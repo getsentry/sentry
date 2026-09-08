@@ -187,7 +187,6 @@ function resolveErroredOpFromAssertPath(
     }
 
     if (current.op === UptimeOpType.AND || current.op === UptimeOpType.OR) {
-      // eslint-disable-next-line @sentry/no-unnecessary-type-annotation
       const next: UptimeOp | undefined = current.children[index];
       if (!next) {
         return null;
@@ -320,7 +319,7 @@ export function AssertionFormError({op, erroredOp}: AssertionFormErrorProps) {
 
   return (
     <Container marginTop="xs">
-      <Tooltip title={message} isHoverable forceVisible overlayStyle={{zIndex: 1}}>
+      <Tooltip title={message} forceVisible overlayStyle={{zIndex: 1}}>
         <IconWarning variant="danger" size="sm" />
       </Tooltip>
     </Container>

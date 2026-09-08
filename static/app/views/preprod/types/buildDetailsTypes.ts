@@ -1,4 +1,4 @@
-/* eslint-disable typescript-sort-keys/interface */
+/* eslint-disable @sentry/sort-interface-keys */
 import {MetricsArtifactType} from 'sentry/views/preprod/types/appSizeTypes';
 
 import type {Platform} from './sharedTypes';

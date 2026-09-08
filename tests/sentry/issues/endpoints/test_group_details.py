@@ -13,10 +13,17 @@ from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_ke
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.action_log import action_context_scope
-from sentry.issues.action_log.types import ActionSource, GroupActionActor, ReconcileStatusAction
+from sentry.issues.action_log.types import (
+    ActionSource,
+    GroupActionActor,
+    GroupActionType,
+    GroupActorType,
+    ReconcileStatusAction,
+)
 from sentry.issues.constants import cache_key_for_issue_view
 from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.auditlogentry import AuditLogEntry
@@ -35,7 +42,7 @@ from sentry.models.release import Release
 from sentry.seer import agent_token
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.action_log import capture_action_log
+from sentry.testutils.helpers.action_log import action_log_activity_enabled, capture_action_log
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
@@ -124,7 +131,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["firstRelease"] is None
         assert response.data["lastRelease"] is None
 
-    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
+    @action_log_activity_enabled()
     def test_group_action_log_entry(self) -> None:
         group = self.create_group()
 
@@ -161,6 +168,78 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             "rule": None,
         }
         assert entry["dateCreated"] is not None
+
+    @action_log_activity_enabled()
+    def test_group_action_log_comment_is_addressable(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+
+        comments_url = f"/api/0/issues/{group.id}/comments/"
+        response = self.client.post(comments_url, format="json", data={"text": "original"})
+        assert response.status_code == 201, response.content
+        activity_id = response.data["data"]["comment_id"]
+
+        details_url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
+        response = self.client.get(details_url, format="json")
+        assert response.status_code == 200, response.content
+
+        notes = [item for item in response.data["activity"] if item["type"] == "note"]
+        assert len(notes) == 1
+        note_id = notes[0]["id"]
+        assert note_id == str(activity_id)
+
+        entry = GroupActionLogEntry.objects.get(
+            group_id=group.id, type=GroupActionType.COMMENT.value
+        )
+        assert entry.data["comment_id"] == activity_id
+
+        # the id served by the feed round-trips through edit ...
+        response = self.client.put(
+            f"{comments_url}{note_id}/", format="json", data={"text": "edited"}
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == note_id
+        assert response.data["data"]["text"] == "edited"
+
+        # ... and delete
+        response = self.client.delete(f"{comments_url}{note_id}/", format="json")
+        assert response.status_code == 204, response.status_code
+
+    @action_log_activity_enabled()
+    def test_group_action_log_served_when_enabled(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            data={"comment_id": 123, "text": "hello world"},
+        )
+
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+
+        assert [item["type"] for item in response.data["activity"]] == ["note", "first_seen"]
+
+    def test_group_action_log_ignored_when_disabled(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            data={"comment_id": 123, "text": "hello world"},
+        )
+
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+
+        # the COMMENT only exists in the log, so its absence means Activity was served
+        assert [item["type"] for item in response.data["activity"]] == ["first_seen"]
 
     def test_pending_delete_pending_merge_excluded(self) -> None:
         group1 = self.create_group(status=GroupStatus.PENDING_DELETION)

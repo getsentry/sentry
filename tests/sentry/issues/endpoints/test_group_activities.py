@@ -3,7 +3,7 @@ from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.types.activity import ActivityType
 
 
@@ -44,7 +44,7 @@ class GroupActivitiesEndpointTest(APITestCase):
         assert "activity" in response.data
         assert len(response.data["activity"]) == 5
 
-    @with_feature("projects:issue-action-log-activity")
+    @action_log_activity_enabled()
     def test_endpoint_with_group_action_log_entries(self) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 

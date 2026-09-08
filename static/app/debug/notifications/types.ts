@@ -21,7 +21,7 @@ export interface NotificationTemplateRegistration {
   };
   previews: {
     [NotificationProviderKey.EMAIL]: {
-      html_content: TrustedHTML;
+      html_content: string;
       subject: string;
       text_content: string;
     };

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC
+from collections.abc import Mapping
 from concurrent.futures import as_completed
 from typing import TYPE_CHECKING, Any, ClassVar
 
@@ -14,6 +15,7 @@ from rest_framework import status
 
 from sentry.api.base import ONE_DAY
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.mailbox import MailboxName
 from sentry.hybridcloud.models.webhookpayload import DestinationType, WebhookPayload
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
@@ -36,6 +38,7 @@ from sentry.silo.client import CellSiloClient, SiloClientError
 from sentry.types.cell import Cell, find_cells_for_org_mappings, get_cell_by_name
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
@@ -201,12 +204,20 @@ class BaseRequestParser(ABC):
     def get_response_from_webhookpayload(
         self,
         cells: list[Cell],
-        identifier: int | str | None = None,
+        mailbox: MailboxName | None = None,  # TODO(getsentry): make required
         integration_id: int | None = None,
+        identifier: int | str | None = None,  # TODO(getsentry): remove
     ) -> HttpResponseBase:
         """
         Used to create webhookpayloads for provided cells to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.
+
+        A provider that resolved nothing to key its mailbox on falls back to its
+        own webhook identifier, which puts every one of its payloads in one mailbox.
+
+        `identifier` is the older spelling of a subject-only `mailbox`, kept while the
+        parsers in getsentry still pass it -- the two repos cannot change in one commit.
+        The fallback to `webhook_identifier` goes when it does; no caller relies on it.
         """
         shed_response = self.get_shed_response(integration_id=integration_id)
         if shed_response is not None:
@@ -215,14 +226,14 @@ class BaseRequestParser(ABC):
         if len(cells) < 1:
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
-        shard_identifier = identifier or self.webhook_identifier.value
+        target = mailbox or MailboxName(
+            self.provider, str(identifier or self.webhook_identifier.value)
+        )
         # Create all payloads first, then trigger one drain per (cell-scoped) mailbox.
         payloads = [
             WebhookPayload.create_from_request(
                 destination_type=DestinationType.SENTRY_CELL,
-                cell=cell.name,
-                provider=self.provider,
-                identifier=shard_identifier,
+                mailbox=target.in_cell(cell.name),
                 integration_id=integration_id,
                 request=self.request,
             )
@@ -309,38 +320,47 @@ class BaseRequestParser(ABC):
             return {}
         return body if isinstance(body, dict) else {}
 
-    def get_mailbox_identifier(
+    def get_mailbox(
         self, integration: RpcIntegration | Integration, data: dict[str, Any]
-    ) -> str:
+    ) -> MailboxName:
         """
         Used by integrations with higher hook volumes to create smaller mailboxes
         that can be delivered in parallel. Requires the integration to implement
         `mailbox_bucket_id`
+
+        The cell is left for the fanout to add -- one mailbox is built for all of
+        them.
         """
-        identifier = self._bucketed_mailbox_identifier(integration, data)
-        event_type = self._mailbox_event_type(data)
-        return f"{identifier}:{event_type}" if event_type else identifier
+        return self._bucketed(
+            MailboxName(
+                provider=self.provider,
+                subject=str(integration.id),
+                event_type=self._mailbox_event_type(data),
+            ),
+            integration,
+            data,
+        )
 
-    def _bucketed_mailbox_identifier(
-        self, integration: RpcIntegration | Integration, data: dict[str, Any]
-    ) -> str:
-        """The mailbox identifier up to the bucket, before any event-type suffix.
-
-        Falls back to the integration-level mailbox when the integration is below
-        the volume that warrants buckets, or when no bucket ID is available."""
+    def _bucketed(
+        self,
+        mailbox: MailboxName,
+        integration: RpcIntegration | Integration,
+        data: dict[str, Any],
+    ) -> MailboxName:
+        """`mailbox` in a bucket, or unchanged where the integration is below the
+        volume that warrants buckets, or the payload carries no key to bucket it on."""
         if not self.always_bucket and not self._exceeds_bucketing_volume(integration):
             self._record_mailbox_routing(bucketed=False, reason="under_volume_gate")
-            return str(integration.id)
+            return mailbox
 
         mailbox_bucket_id = self.mailbox_bucket_id(data)
         if mailbox_bucket_id is None:
             self._record_mailbox_routing(bucketed=False, reason="no_bucket_key")
-            return str(integration.id)
+            return mailbox
 
-        bucket_number = mailbox_bucket_id % self.mailbox_bucket_count
         self._record_mailbox_routing(bucketed=True, reason="bucketed")
 
-        return f"{integration.id}:{bucket_number}"
+        return mailbox.in_bucket(mailbox_bucket_id % self.mailbox_bucket_count)
 
     def _exceeds_bucketing_volume(self, integration: RpcIntegration | Integration) -> bool:
         # If we get fewer than 3000 in 1 hour we don't need to split into buckets
@@ -371,6 +391,18 @@ class BaseRequestParser(ABC):
         raise NotImplementedError(
             "You must implement mailbox_bucket_id to use bucketed identifiers"
         )
+
+    @staticmethod
+    def bucket_key_at(data: Mapping[str, Any], *path: str) -> int | None:
+        """Read a bucket key out of `data`, or None if it is missing or not numeric.
+
+        Shared so every provider degrades the same way rather than raising out of the
+        parser on a body it did not expect.
+        """
+        try:
+            return int(get_path(data, *path))
+        except (TypeError, ValueError):
+            return None
 
     def _mailbox_event_type(self, data: dict[str, Any]) -> str | None:
         """Validation lives here, not in the subclass: the discriminator comes out of
