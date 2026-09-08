@@ -423,6 +423,9 @@ export const SEER_EMBED_SCHEMAS = {
       'The ONLY way to reference a saved Sentry issue view. ' +
       'Use the view ID exactly as the issue-views API returns it. ' +
       'Include the API-provided name when available. ' +
+      'Inline: renders a compact link. ' +
+      'Block: loads the saved filters and renders a live preview of matching issues. ' +
+      'Do not duplicate the issue titles, event counts, users, priorities, or assignees as text. ' +
       'Never use a markdown link for issue view references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -655,10 +658,16 @@ export const SEER_EMBED_SCHEMAS = {
   },
   metricsQuery: {
     description:
-      'Link to an Explore > Metrics query for a single trace metric. ' +
+      'Preview an Explore > Metrics query for a single trace metric. ' +
       'Requires the metric `name` and `type` exactly as the metrics API returns ' +
       'them. Use mode "aggregate" with `groupBy`/`yAxes` to chart the metric, or ' +
-      '"samples" to list raw points.',
+      '"samples" to list raw points. ' +
+      'Name `yAxes` the short way, e.g. "p95(value)" — the embed qualifies them ' +
+      'with the metric itself. Omit `yAxes` to use the default aggregate for the ' +
+      "metric's type. " +
+      'Inline renders a link; block renders a timeseries chart with the first ' +
+      'five matching rows beneath it. An aggregate that groups by nothing ' +
+      'collapses to a single row, so there the chart replaces the table.',
     level: ['inline', 'block'],
     schema: z.object({
       ...exploreQueryFields,
