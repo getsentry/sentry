@@ -1,43 +1,43 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import { OrganizationFixture } from 'sentry-fixture/organization';
+import { ProjectFixture } from 'sentry-fixture/project';
 
-import {render, renderHookWithProviders, screen} from 'sentry-test/reactTestingLibrary';
+import { render, renderHookWithProviders, screen } from 'sentry-test/reactTestingLibrary';
 
-import type {AutofixSection} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {Block, ToolCall, ToolLink} from 'sentry/views/seerExplorer/types';
+import type { AutofixSection } from 'sentry/components/events/autofix/useExplorerAutofix';
+import { ProjectsStore } from 'sentry/stores/projectsStore';
+import type { Block, ToolCall, ToolLink } from 'sentry/views/seerExplorer/types';
 
 import {
   AutofixEvidence,
   AUTOFIX_EVIDENCE_PROPS_RESOLVER,
   type EvidenceButtonProps,
 } from './autofixEvidence';
-import {useAutofixSectionEvidence} from './useAutofixSectionEvidence';
+import { useAutofixSectionEvidence } from './useAutofixSectionEvidence';
 
 function makeToolCall(fn: string, args: Record<string, any> = {}, id = 'tc-1'): ToolCall {
-  return {id, function: fn, args: JSON.stringify(args)};
+  return { id, function: fn, args: JSON.stringify(args) };
 }
 
 function makeToolLink(kind: string, params: Record<string, any> = {}): ToolLink {
-  return {kind, params};
+  return { kind, params };
 }
 
 function makeBlock(overrides: Partial<Block> = {}): Block {
   return {
     id: 'block-1',
     timestamp: '2024-01-01T00:00:00Z',
-    message: {content: '', role: 'assistant'},
+    message: { content: '', role: 'assistant' },
     ...overrides,
   };
 }
 
 function makeSection(blocks: Block[]): AutofixSection {
-  return {step: 'exploration', status: 'completed', artifacts: [], blocks};
+  return { step: 'exploration', status: 'completed', artifacts: [], blocks };
 }
 
 describe('AutofixEvidence', () => {
   const organization = OrganizationFixture();
-  const project = ProjectFixture({id: '1', slug: 'test-project'});
+  const project = ProjectFixture({ id: '1', slug: 'test-project' });
 
   function resolveProps({
     toolCall,
@@ -67,19 +67,19 @@ describe('AutofixEvidence', () => {
   describe('null rendering', () => {
     it('returns null when toolLink is missing', () => {
       const toolCall = makeToolCall('telemetry_live_search');
-      expect(resolveProps({toolCall})).toBeNull();
+      expect(resolveProps({ toolCall })).toBeNull();
     });
 
     it('returns null when toolLink kind is unknown', () => {
       const toolCall = makeToolCall('telemetry_live_search');
       const toolLink = makeToolLink('unknown_kind');
-      expect(resolveProps({toolCall, toolLink})).toBeNull();
+      expect(resolveProps({ toolCall, toolLink })).toBeNull();
     });
 
     it('returns null for unknown toolCall function with valid toolLink', () => {
       const toolCall = makeToolCall('unknown_function');
-      const toolLink = makeToolLink('telemetry_live_search', {query: 'test'});
-      expect(resolveProps({toolCall, toolLink})).toBeNull();
+      const toolLink = makeToolLink('telemetry_live_search', { query: 'test' });
+      expect(resolveProps({ toolCall, toolLink })).toBeNull();
     });
   });
 
@@ -90,14 +90,14 @@ describe('AutofixEvidence', () => {
         dataset: 'spans',
         query: 'test',
       });
-      const props = resolveProps({toolCall, toolLink});
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('Query: Spans')).toBeInTheDocument();
     });
@@ -108,14 +108,14 @@ describe('AutofixEvidence', () => {
         dataset: 'issues',
         query: 'test',
       });
-      const props = resolveProps({toolCall, toolLink});
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('Query: Issues')).toBeInTheDocument();
     });
@@ -126,14 +126,14 @@ describe('AutofixEvidence', () => {
         dataset: 'errors',
         query: 'test',
       });
-      const props = resolveProps({toolCall, toolLink});
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('Query: Errors')).toBeInTheDocument();
     });
@@ -144,14 +144,14 @@ describe('AutofixEvidence', () => {
         dataset: 'logs',
         query: 'test',
       });
-      const props = resolveProps({toolCall, toolLink});
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('Query: Logs')).toBeInTheDocument();
     });
@@ -161,16 +161,16 @@ describe('AutofixEvidence', () => {
       const toolLink = makeToolLink('telemetry_live_search', {
         dataset: 'metrics',
         query: 'test',
-        trace_metric: {name: 'tool.duration', type: 'distribution', unit: 'second'},
+        trace_metric: { name: 'tool.duration', type: 'distribution', unit: 'second' },
       });
-      const props = resolveProps({toolCall, toolLink});
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('Query: Metrics')).toBeInTheDocument();
     });
@@ -180,31 +180,31 @@ describe('AutofixEvidence', () => {
       const toolLink = makeToolLink('telemetry_live_search', {
         dataset: 'tracemetrics',
         query: 'test',
-        trace_metric: {name: 'tool.duration', type: 'distribution', unit: 'second'},
+        trace_metric: { name: 'tool.duration', type: 'distribution', unit: 'second' },
       });
-      const props = resolveProps({toolCall, toolLink});
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('Query: Metrics')).toBeInTheDocument();
     });
 
     it('defaults to "Query: Spans" when dataset is undefined', () => {
       const toolCall = makeToolCall('telemetry_live_search');
-      const toolLink = makeToolLink('telemetry_live_search', {query: 'test'});
-      const props = resolveProps({toolCall, toolLink});
+      const toolLink = makeToolLink('telemetry_live_search', { query: 'test' });
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('Query: Spans')).toBeInTheDocument();
     });
@@ -217,14 +217,14 @@ describe('AutofixEvidence', () => {
         trace_id: 'abc123def4567890',
         span_id: '11223344aabbccdd',
       });
-      const props = resolveProps({toolCall, toolLink});
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('Span: 11223344')).toBeInTheDocument();
     });
@@ -234,14 +234,14 @@ describe('AutofixEvidence', () => {
       const toolLink = makeToolLink('get_trace_waterfall', {
         trace_id: 'abc123def4567890',
       });
-      const props = resolveProps({toolCall, toolLink});
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('Trace: abc123de')).toBeInTheDocument();
     });
@@ -254,14 +254,14 @@ describe('AutofixEvidence', () => {
         event_id: 'abcd1234efgh5678',
         issue_id: '12345',
       });
-      const props = resolveProps({toolCall, toolLink});
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('Error: abcd1234')).toBeInTheDocument();
     });
@@ -272,22 +272,22 @@ describe('AutofixEvidence', () => {
         issue_id: '12345',
         event_id: 'abcd1234efgh5678',
       });
-      const props = resolveProps({toolCall, toolLink});
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('Error: abcd1234')).toBeInTheDocument();
     });
 
     it('returns null when event_id is missing for get_issue_details', () => {
       const toolCall = makeToolCall('get_issue_details');
-      const toolLink = makeToolLink('get_issue_details', {issue_id: '12345'});
-      expect(resolveProps({toolCall, toolLink})).toBeNull();
+      const toolLink = makeToolLink('get_issue_details', { issue_id: '12345' });
+      expect(resolveProps({ toolCall, toolLink })).toBeNull();
     });
   });
 
@@ -297,14 +297,14 @@ describe('AutofixEvidence', () => {
       const toolLink = makeToolLink('get_replay_details', {
         replay_id: 'aabbccdd11223344',
       });
-      const props = resolveProps({toolCall, toolLink});
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('Replay: aabbccdd')).toBeInTheDocument();
     });
@@ -317,14 +317,14 @@ describe('AutofixEvidence', () => {
         profile_id: 'prof1234abcd5678',
         project_id: '1',
       });
-      const props = resolveProps({toolCall, toolLink});
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('Profile: prof1234')).toBeInTheDocument();
     });
@@ -339,14 +339,14 @@ describe('AutofixEvidence', () => {
       const toolLink = makeToolLink('code_search', {
         code_url: 'https://github.com/org/repo/blob/main/src/foo/bar.py',
       });
-      const props = resolveProps({toolCall, toolLink});
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('File: bar.py')).toBeInTheDocument();
       expect(screen.getByText('File: bar.py').closest('a')).toHaveAttribute(
@@ -363,14 +363,14 @@ describe('AutofixEvidence', () => {
       const toolLink = makeToolLink('code_search', {
         code_url: 'https://github.com/org/repo/blob/main/src/foo/thisisalongfilename.py',
       });
-      const props = resolveProps({toolCall, toolLink});
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('File: thisisal\u2026ename.py')).toBeInTheDocument();
       expect(
@@ -382,19 +382,19 @@ describe('AutofixEvidence', () => {
     });
 
     it('returns null when mode is not read_file', () => {
-      const toolCall = makeToolCall('code_search', {mode: 'search', query: 'foo'});
+      const toolCall = makeToolCall('code_search', { mode: 'search', query: 'foo' });
       const toolLink = makeToolLink('code_search', {
         code_url: 'https://github.com/org/repo',
       });
-      expect(resolveProps({toolCall, toolLink})).toBeNull();
+      expect(resolveProps({ toolCall, toolLink })).toBeNull();
     });
 
     it('returns null when mode is missing', () => {
-      const toolCall = makeToolCall('code_search', {path: 'src/foo/bar.py'});
+      const toolCall = makeToolCall('code_search', { path: 'src/foo/bar.py' });
       const toolLink = makeToolLink('code_search', {
         code_url: 'https://github.com/org/repo/blob/main/src/foo/bar.py',
       });
-      expect(resolveProps({toolCall, toolLink})).toBeNull();
+      expect(resolveProps({ toolCall, toolLink })).toBeNull();
     });
 
     it('returns null when toolLink is missing', () => {
@@ -402,7 +402,7 @@ describe('AutofixEvidence', () => {
         mode: 'read_file',
         path: 'src/foo/bar.py',
       });
-      expect(resolveProps({toolCall})).toBeNull();
+      expect(resolveProps({ toolCall })).toBeNull();
     });
 
     it('returns null when code_url is missing from toolLink params', () => {
@@ -411,23 +411,23 @@ describe('AutofixEvidence', () => {
         path: 'src/foo/bar.py',
       });
       const toolLink = makeToolLink('code_search', {});
-      expect(resolveProps({toolCall, toolLink})).toBeNull();
+      expect(resolveProps({ toolCall, toolLink })).toBeNull();
     });
 
     it('returns null when path is missing from args', () => {
-      const toolCall = makeToolCall('code_search', {mode: 'read_file'});
+      const toolCall = makeToolCall('code_search', { mode: 'read_file' });
       const toolLink = makeToolLink('code_search', {
         code_url: 'https://github.com/org/repo/blob/main/src/foo/bar.py',
       });
-      expect(resolveProps({toolCall, toolLink})).toBeNull();
+      expect(resolveProps({ toolCall, toolLink })).toBeNull();
     });
 
     it('returns null when args is invalid JSON', () => {
-      const toolCall = {id: 'tc-1', function: 'code_search', args: '{invalid json'};
+      const toolCall = { id: 'tc-1', function: 'code_search', args: '{invalid json' };
       const toolLink = makeToolLink('code_search', {
         code_url: 'https://github.com/org/repo/blob/main/src/foo/bar.py',
       });
-      expect(resolveProps({toolCall, toolLink})).toBeNull();
+      expect(resolveProps({ toolCall, toolLink })).toBeNull();
     });
   });
 
@@ -435,16 +435,16 @@ describe('AutofixEvidence', () => {
     const CODE_URL = 'https://github.com/org/repo/blob/main/src/foo/bar.py';
 
     it('renders filename with code_url link', () => {
-      const toolCall = makeToolCall('read_file', {path: 'src/foo/bar.py'});
-      const toolLink = makeToolLink('read_file', {code_url: CODE_URL});
-      const props = resolveProps({toolCall, toolLink});
+      const toolCall = makeToolCall('read_file', { path: 'src/foo/bar.py' });
+      const toolLink = makeToolLink('read_file', { code_url: CODE_URL });
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('File: bar.py')).toBeInTheDocument();
       expect(screen.getByText('File: bar.py').closest('a')).toHaveAttribute(
@@ -454,20 +454,20 @@ describe('AutofixEvidence', () => {
     });
 
     it('renders single line anchor when start_line equals end_line', () => {
-      const toolCall = makeToolCall('read_file', {path: 'src/foo/bar.py'});
+      const toolCall = makeToolCall('read_file', { path: 'src/foo/bar.py' });
       const toolLink = makeToolLink('read_file', {
         code_url: CODE_URL,
         start_line: 10,
         end_line: 10,
       });
-      const props = resolveProps({toolCall, toolLink});
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('File: bar.py L10')).toBeInTheDocument();
       expect(screen.getByText('File: bar.py L10').closest('a')).toHaveAttribute(
@@ -477,20 +477,20 @@ describe('AutofixEvidence', () => {
     });
 
     it('renders line range anchor when start_line and end_line differ', () => {
-      const toolCall = makeToolCall('read_file', {path: 'src/foo/bar.py'});
+      const toolCall = makeToolCall('read_file', { path: 'src/foo/bar.py' });
       const toolLink = makeToolLink('read_file', {
         code_url: CODE_URL,
         start_line: 10,
         end_line: 20,
       });
-      const props = resolveProps({toolCall, toolLink});
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('File: bar.py L10-L20')).toBeInTheDocument();
       expect(screen.getByText('File: bar.py L10-L20').closest('a')).toHaveAttribute(
@@ -506,45 +506,45 @@ describe('AutofixEvidence', () => {
       const toolLink = makeToolLink('read_file', {
         code_url: 'https://github.com/org/repo/blob/main/src/foo/thisisalongfilename.py',
       });
-      const props = resolveProps({toolCall, toolLink});
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('File: thisisal\u2026ename.py')).toBeInTheDocument();
     });
 
     it('returns null when toolLink is missing', () => {
-      const toolCall = makeToolCall('read_file', {path: 'src/foo/bar.py'});
-      expect(resolveProps({toolCall})).toBeNull();
+      const toolCall = makeToolCall('read_file', { path: 'src/foo/bar.py' });
+      expect(resolveProps({ toolCall })).toBeNull();
     });
 
     it('returns null when path is missing from args', () => {
       const toolCall = makeToolCall('read_file', {});
-      const toolLink = makeToolLink('read_file', {code_url: CODE_URL});
-      expect(resolveProps({toolCall, toolLink})).toBeNull();
+      const toolLink = makeToolLink('read_file', { code_url: CODE_URL });
+      expect(resolveProps({ toolCall, toolLink })).toBeNull();
     });
 
     it('returns null when path is not a string', () => {
-      const toolCall = makeToolCall('read_file', {path: 123});
-      const toolLink = makeToolLink('read_file', {code_url: CODE_URL});
-      expect(resolveProps({toolCall, toolLink})).toBeNull();
+      const toolCall = makeToolCall('read_file', { path: 123 });
+      const toolLink = makeToolLink('read_file', { code_url: CODE_URL });
+      expect(resolveProps({ toolCall, toolLink })).toBeNull();
     });
 
     it('returns null when code_url is missing from toolLink params', () => {
-      const toolCall = makeToolCall('read_file', {path: 'src/foo/bar.py'});
+      const toolCall = makeToolCall('read_file', { path: 'src/foo/bar.py' });
       const toolLink = makeToolLink('read_file', {});
-      expect(resolveProps({toolCall, toolLink})).toBeNull();
+      expect(resolveProps({ toolCall, toolLink })).toBeNull();
     });
 
     it('returns null when args is invalid JSON', () => {
-      const toolCall = {id: 'tc-1', function: 'read_file', args: '{invalid json'};
-      const toolLink = makeToolLink('read_file', {code_url: CODE_URL});
-      expect(resolveProps({toolCall, toolLink})).toBeNull();
+      const toolCall = { id: 'tc-1', function: 'read_file', args: '{invalid json' };
+      const toolLink = makeToolLink('read_file', { code_url: CODE_URL });
+      expect(resolveProps({ toolCall, toolLink })).toBeNull();
     });
   });
 
@@ -554,14 +554,14 @@ describe('AutofixEvidence', () => {
         description: 'Run tests',
         command: 'pytest tests/ -q',
       });
-      const props = resolveProps({toolCall});
+      const props = resolveProps({ toolCall, isEmployee: true });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('Command: Run tests')).toBeInTheDocument();
     });
@@ -571,14 +571,14 @@ describe('AutofixEvidence', () => {
         description: 'Run tests',
         command: 'pytest tests/ -q',
       });
-      const props = resolveProps({toolCall});
+      const props = resolveProps({ toolCall, isEmployee: true });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       const chip = screen.queryByText('Command: Run tests');
       expect(chip).toBeInTheDocument();
@@ -586,15 +586,15 @@ describe('AutofixEvidence', () => {
     });
 
     it('falls back to the command when description is absent', () => {
-      const toolCall = makeToolCall('bash', {command: 'pytest -q'});
-      const props = resolveProps({toolCall});
+      const toolCall = makeToolCall('bash', { command: 'pytest -q' });
+      const props = resolveProps({ toolCall, isEmployee: true });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('Command: pytest -q')).toBeInTheDocument();
     });
@@ -603,26 +603,34 @@ describe('AutofixEvidence', () => {
       const toolCall = makeToolCall('bash', {
         description: 'this is a very long description that should be truncated',
       });
-      const props = resolveProps({toolCall});
+      const props = resolveProps({ toolCall, isEmployee: true });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('Command: this is \u2026runcated')).toBeInTheDocument();
     });
 
     it('returns null when neither description nor command is present', () => {
       const toolCall = makeToolCall('bash');
-      expect(resolveProps({toolCall})).toBeNull();
+      expect(resolveProps({ toolCall, isEmployee: true })).toBeNull();
     });
 
     it('returns null when args is invalid JSON', () => {
-      const toolCall = {id: 'tc-1', function: 'bash', args: '{invalid json'};
-      expect(resolveProps({toolCall})).toBeNull();
+      const toolCall = { id: 'tc-1', function: 'bash', args: '{invalid json' };
+      expect(resolveProps({ toolCall, isEmployee: true })).toBeNull();
+    });
+
+    it('renders null when not employee', () => {
+      const toolCall = makeToolCall('bash', {
+        description: 'Run tests',
+        command: 'pytest tests/ -q',
+      });
+      expect(resolveProps({ toolCall })).toBeNull();
     });
   });
 
@@ -641,14 +649,14 @@ describe('AutofixEvidence', () => {
         commit_url: COMMIT_URL,
         sha: FULL_SHA,
       });
-      const props = resolveProps({toolCall, toolLink});
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('Commit: a1b2c3d')).toBeInTheDocument();
       expect(screen.getByText('Commit: a1b2c3d').closest('a')).toHaveAttribute(
@@ -664,14 +672,14 @@ describe('AutofixEvidence', () => {
         commit_url: COMMIT_URL,
         sha: shortSha,
       });
-      const props = resolveProps({toolCall, toolLink});
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('Commit: abc1234')).toBeInTheDocument();
     });
@@ -684,14 +692,14 @@ describe('AutofixEvidence', () => {
         start_date: START_DATE,
         end_date: END_DATE,
       });
-      const props = resolveProps({toolCall, toolLink});
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText(`Commits: ${REPO_NAME}`)).toBeInTheDocument();
       expect(screen.getByText(`Commits: ${REPO_NAME}`).closest('a')).toHaveAttribute(
@@ -709,14 +717,14 @@ describe('AutofixEvidence', () => {
         end_date: END_DATE,
         file_path: 'src/foo/bar.py',
       });
-      const props = resolveProps({toolCall, toolLink});
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('Commits: bar.py')).toBeInTheDocument();
     });
@@ -730,14 +738,14 @@ describe('AutofixEvidence', () => {
         end_date: END_DATE,
         file_path: 'src/components/thisisalongfilename.tsx',
       });
-      const props = resolveProps({toolCall, toolLink});
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('Commits: thisisal\u2026name.tsx')).toBeInTheDocument();
     });
@@ -752,39 +760,39 @@ describe('AutofixEvidence', () => {
         start_date: START_DATE,
         end_date: END_DATE,
       });
-      const props = resolveProps({toolCall, toolLink});
+      const props = resolveProps({ toolCall, toolLink });
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
           groupId="123"
           toolCall={toolCall}
         />,
-        {organization}
+        { organization }
       );
       expect(screen.getByText('Commit: a1b2c3d')).toBeInTheDocument();
     });
 
     it('returns null when toolLink is missing', () => {
       const toolCall = makeToolCall('git_search');
-      expect(resolveProps({toolCall})).toBeNull();
+      expect(resolveProps({ toolCall })).toBeNull();
     });
 
     it('returns null when toolLink params are empty', () => {
       const toolCall = makeToolCall('git_search');
       const toolLink = makeToolLink('git_search', {});
-      expect(resolveProps({toolCall, toolLink})).toBeNull();
+      expect(resolveProps({ toolCall, toolLink })).toBeNull();
     });
 
     it('returns null when commit_url is present but sha is missing', () => {
       const toolCall = makeToolCall('git_search');
-      const toolLink = makeToolLink('git_search', {commit_url: COMMIT_URL});
-      expect(resolveProps({toolCall, toolLink})).toBeNull();
+      const toolLink = makeToolLink('git_search', { commit_url: COMMIT_URL });
+      expect(resolveProps({ toolCall, toolLink })).toBeNull();
     });
 
     it('returns null when sha is present but commit_url is missing', () => {
       const toolCall = makeToolCall('git_search');
-      const toolLink = makeToolLink('git_search', {sha: FULL_SHA});
-      expect(resolveProps({toolCall, toolLink})).toBeNull();
+      const toolLink = makeToolLink('git_search', { sha: FULL_SHA });
+      expect(resolveProps({ toolCall, toolLink })).toBeNull();
     });
 
     it('returns null when commits_url path is missing end_date', () => {
@@ -794,7 +802,7 @@ describe('AutofixEvidence', () => {
         repo_name: REPO_NAME,
         start_date: START_DATE,
       });
-      expect(resolveProps({toolCall, toolLink})).toBeNull();
+      expect(resolveProps({ toolCall, toolLink })).toBeNull();
     });
 
     it('returns null when commits_url path is missing repo_name', () => {
@@ -804,13 +812,13 @@ describe('AutofixEvidence', () => {
         start_date: START_DATE,
         end_date: END_DATE,
       });
-      expect(resolveProps({toolCall, toolLink})).toBeNull();
+      expect(resolveProps({ toolCall, toolLink })).toBeNull();
     });
 
     it('returns null when commit_url is not a string', () => {
       const toolCall = makeToolCall('git_search');
-      const toolLink = makeToolLink('git_search', {commit_url: 123, sha: FULL_SHA});
-      expect(resolveProps({toolCall, toolLink})).toBeNull();
+      const toolLink = makeToolLink('git_search', { commit_url: 123, sha: FULL_SHA });
+      expect(resolveProps({ toolCall, toolLink })).toBeNull();
     });
   });
 });
@@ -831,11 +839,11 @@ describe('useAutofixSectionEvidence', () => {
             content: 'results',
           },
         ],
-        tool_links: [makeToolLink('telemetry_live_search', {dataset: 'spans'})],
+        tool_links: [makeToolLink('telemetry_live_search', { dataset: 'spans' })],
       }),
     ]);
 
-    const {result} = renderHookWithProviders(() => useAutofixSectionEvidence({section}));
+    const { result } = renderHookWithProviders(() => useAutofixSectionEvidence({ section }));
 
     expect(result.current).toHaveLength(1);
     expect(result.current[0]!.toolCall.id).toBe('tc-1');
@@ -867,13 +875,13 @@ describe('useAutofixSectionEvidence', () => {
           },
         ],
         tool_links: [
-          makeToolLink('telemetry_live_search', {dataset: 'spans'}),
-          makeToolLink('get_trace_waterfall', {trace_id: 'abc'}),
+          makeToolLink('telemetry_live_search', { dataset: 'spans' }),
+          makeToolLink('get_trace_waterfall', { trace_id: 'abc' }),
         ],
       }),
     ]);
 
-    const {result} = renderHookWithProviders(() => useAutofixSectionEvidence({section}));
+    const { result } = renderHookWithProviders(() => useAutofixSectionEvidence({ section }));
 
     expect(result.current).toHaveLength(2);
     expect(result.current[0]!.toolCall.id).toBe('tc-1');
@@ -896,7 +904,7 @@ describe('useAutofixSectionEvidence', () => {
             content: 'r1',
           },
         ],
-        tool_links: [makeToolLink('telemetry_live_search', {dataset: 'spans'})],
+        tool_links: [makeToolLink('telemetry_live_search', { dataset: 'spans' })],
       }),
       makeBlock({
         id: 'b2',
@@ -912,11 +920,11 @@ describe('useAutofixSectionEvidence', () => {
             content: 'r2',
           },
         ],
-        tool_links: [makeToolLink('get_trace_waterfall', {trace_id: 'abc'})],
+        tool_links: [makeToolLink('get_trace_waterfall', { trace_id: 'abc' })],
       }),
     ]);
 
-    const {result} = renderHookWithProviders(() => useAutofixSectionEvidence({section}));
+    const { result } = renderHookWithProviders(() => useAutofixSectionEvidence({ section }));
 
     expect(result.current).toHaveLength(2);
   });
@@ -924,15 +932,15 @@ describe('useAutofixSectionEvidence', () => {
   it('returns empty array for empty blocks', () => {
     const section = makeSection([]);
 
-    const {result} = renderHookWithProviders(() => useAutofixSectionEvidence({section}));
+    const { result } = renderHookWithProviders(() => useAutofixSectionEvidence({ section }));
 
     expect(result.current).toEqual([]);
   });
 
   it('returns empty array when blocks have no tool_calls', () => {
-    const section = makeSection([makeBlock({message: {content: '', role: 'assistant'}})]);
+    const section = makeSection([makeBlock({ message: { content: '', role: 'assistant' } })]);
 
-    const {result} = renderHookWithProviders(() => useAutofixSectionEvidence({section}));
+    const { result } = renderHookWithProviders(() => useAutofixSectionEvidence({ section }));
 
     expect(result.current).toEqual([]);
   });
@@ -948,7 +956,7 @@ describe('useAutofixSectionEvidence', () => {
       }),
     ]);
 
-    const {result} = renderHookWithProviders(() => useAutofixSectionEvidence({section}));
+    const { result } = renderHookWithProviders(() => useAutofixSectionEvidence({ section }));
 
     expect(result.current).toEqual([]);
   });
@@ -971,7 +979,7 @@ describe('useAutofixSectionEvidence', () => {
       }),
     ]);
 
-    const {result} = renderHookWithProviders(() => useAutofixSectionEvidence({section}));
+    const { result } = renderHookWithProviders(() => useAutofixSectionEvidence({ section }));
 
     expect(result.current).toEqual([]);
   });
