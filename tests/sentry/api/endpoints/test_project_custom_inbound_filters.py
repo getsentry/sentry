@@ -35,6 +35,7 @@ class CustomInboundFiltersTest(APITestCase):
             project=self.project,
             name="Error filter",
             active=False,
+            data_type="error",
             conditions=[{"type": "error_message", "value": ["TypeError*"]}],
         )
 
@@ -382,6 +383,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
         self.custom_filter = self.create_project_custom_inbound_filter(
             project=self.project,
             name="Original filter",
+            data_type="error",
             conditions=[{"type": "release", "value": ["1.*"]}],
         )
         self.login_as(user=self.user)
@@ -550,6 +552,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
         error_filter = self.create_project_custom_inbound_filter(
             project=self.project,
             name="Error filter",
+            data_type="error",
             conditions=[{"type": "error_message", "value": ["TypeError*"]}],
         )
 
