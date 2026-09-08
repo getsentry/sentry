@@ -65,7 +65,7 @@ function EventColumns({
   // Mount only with events so empty timelines don't load Seer setup through this hook.
   const {setActiveTab} = useActiveReplayTab({});
 
-  return Array.from(framesByCol.entries()).map(([column, colFrames]) => (
+  return Array.from(framesByCol.entries(), ([column, colFrames]) => (
     <EventColumn key={column} style={{gridColumn: Math.floor(column)}}>
       <Event
         frames={colFrames}
