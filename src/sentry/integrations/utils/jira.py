@@ -78,6 +78,9 @@ def parse_jira_issue_key(query: str, base_url: str) -> str | None:
         if ISSUE_KEY_RE.match(selected):
             return selected
 
+    # The path shapes Jira's own links use: /browse/ABC-123 and
+    # /projects/ABC/issues/ABC-123. Checking the parent segment rather than
+    # scanning for anything key-shaped keeps /docs/ABC-123/archive a text search.
     if (
         len(segments) >= 2
         and segments[-2] in _ISSUE_PATH_PARENTS
