@@ -34,7 +34,6 @@ describe('useConversationSelection', () => {
         selectedSpanId: null,
         onSelectSpan,
         isLoading: false,
-        autoSelectDefaultNode: true,
       })
     );
 

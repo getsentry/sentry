@@ -579,7 +579,6 @@ function ItemCheckbox({disabled, value}: {disabled: boolean; value: string}) {
     >
       <CheckWrap role="presentation">
         <Checkbox
-          size="sm"
           checked={selected}
           disabled={disabled}
           onChange={() => {

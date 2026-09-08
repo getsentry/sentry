@@ -99,7 +99,6 @@ describe('Avatar', () => {
           identifier="test-id"
           name="Test User"
           tooltip="Test Tooltip"
-          hasTooltip={false}
         />
       );
       expect(screen.getByText('TU')).toBeInTheDocument();

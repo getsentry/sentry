@@ -288,6 +288,8 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
             )
 
         assert assigned_member.id == member.id
+        assert getattr(assigned_member.flags, "sso:linked")
+        assert not getattr(assigned_member.flags, "sso:invalid")
 
     def test_demo_user_can_be_added_new_user_when_demo_org(self) -> None:
         # Force demo user behavior, and mark org as demo org
@@ -314,7 +316,9 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         redirect = self.handler.handle_existing_identity(self.state, auth_identity)
 
         assert redirect.url == mock_auth.get_login_redirect.return_value
-        mock_auth.get_login_redirect.assert_called_with(self.request)
+        mock_auth.get_login_redirect.assert_called_with(
+            self.request, default=f"/organizations/{self.organization.slug}/issues/"
+        )
 
         persisted_identity = AuthIdentity.objects.get(ident=auth_identity.ident)
         assert persisted_identity.data == self.identity["data"]
@@ -341,7 +345,9 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
             redirect = self.handler.handle_existing_identity(self.state, auth_identity)
 
             assert redirect.url == mock_auth.get_login_redirect.return_value
-            mock_auth.get_login_redirect.assert_called_with(self.request)
+            mock_auth.get_login_redirect.assert_called_with(
+                self.request, default=f"/organizations/{self.organization.slug}/issues/"
+            )
 
             persisted_identity = AuthIdentity.objects.get(ident=auth_identity.ident)
             assert persisted_identity.data == self.identity["data"]

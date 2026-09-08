@@ -110,7 +110,7 @@ function MetricsEquationVisualizeContent({
   const initialAggregate = useFormField<string>(aggregateFieldName);
   const metricQueries = useMultiMetricsQueryParams();
   const referenceMap = useMetricReferences(metricQueries);
-  const addAggregate = useAddMetricQuery({type: 'aggregate'});
+  const addAggregate = useAddMetricQuery({});
   const addEquation = useAddMetricQuery({type: 'equation'});
 
   // Track the selected row by its stable label (A, B, …)

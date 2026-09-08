@@ -185,6 +185,9 @@ class Fixtures:
     def create_organization(self, *args, **kwargs):
         return Factories.create_organization(*args, **kwargs)
 
+    def create_organization_avatar(self, *args, **kwargs):
+        return Factories.create_organization_avatar(*args, **kwargs)
+
     def create_investigation(self, *args, **kwargs):
         return Factories.create_investigation(*args, **kwargs)
 
@@ -193,6 +196,15 @@ class Fixtures:
 
     def create_investigation_favorite(self, *args, **kwargs):
         return Factories.create_investigation_favorite(*args, **kwargs)
+
+    def create_investigation_orchestration_run(self, *args, **kwargs):
+        return Factories.create_investigation_orchestration_run(*args, **kwargs)
+
+    def create_investigation_orchestration_event(self, *args, **kwargs):
+        return Factories.create_investigation_orchestration_event(*args, **kwargs)
+
+    def create_investigation_orchestration_command(self, *args, **kwargs):
+        return Factories.create_investigation_orchestration_command(*args, **kwargs)
 
     def create_investigation_block(self, *args, **kwargs):
         return Factories.create_investigation_block(*args, **kwargs)

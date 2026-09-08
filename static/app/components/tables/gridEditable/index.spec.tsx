@@ -17,9 +17,12 @@ describe('GridEditable', () => {
     render(
       <GridEditable
         columnOrder={COLUMN_ORDER}
-        columnSortBy={[{key: 'count', order: 'desc'}]}
         data={DATA}
-        grid={{}}
+        grid={{
+          getColumnSort: column => ({
+            direction: column.key === 'count' ? 'desc' : undefined,
+          }),
+        }}
       />
     );
 
@@ -36,9 +39,12 @@ describe('GridEditable', () => {
     render(
       <GridEditable
         columnOrder={COLUMN_ORDER}
-        columnSortBy={[{key: 'name', order: 'asc'}]}
         data={DATA}
-        grid={{}}
+        grid={{
+          getColumnSort: column => ({
+            direction: column.key === 'name' ? 'asc' : undefined,
+          }),
+        }}
       />
     );
 
@@ -49,9 +55,7 @@ describe('GridEditable', () => {
   });
 
   it('announces no sort when the table is unsorted', () => {
-    render(
-      <GridEditable columnOrder={COLUMN_ORDER} columnSortBy={[]} data={DATA} grid={{}} />
-    );
+    render(<GridEditable columnOrder={COLUMN_ORDER} data={DATA} grid={{}} />);
 
     expect(screen.getByRole('columnheader', {name: 'Count'})).not.toHaveAttribute(
       'aria-sort'

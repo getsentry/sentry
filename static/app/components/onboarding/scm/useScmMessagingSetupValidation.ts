@@ -96,8 +96,8 @@ export function useScmMessagingSetupValidation({
   const [staleReason, setStaleReason] = useState<StaleDestinationReason>();
   const hasSelectedDestination = messagingSetup.mode === 'selected';
 
-  const integrationQuery = useQuery(
-    apiOptions.as<OrganizationIntegration>()(
+  const integrationQuery = useQuery({
+    ...apiOptions.as<OrganizationIntegration>()(
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
       {
         path: hasSelectedDestination
@@ -108,8 +108,9 @@ export function useScmMessagingSetupValidation({
           : skipToken,
         staleTime: 0,
       }
-    )
-  );
+    ),
+    refetchOnWindowFocus: true,
+  });
 
   const isMissingIntegration = isNotFoundError(integrationQuery.error);
   const fetchedIntegration = isMissingIntegration ? undefined : integrationQuery.data;
@@ -119,16 +120,19 @@ export function useScmMessagingSetupValidation({
     fetchedIntegration !== undefined && !isEligibleForIssueAlerts(fetchedIntegration);
   const integration = resolveSavedIntegration(fetchedIntegration, messagingSetup);
 
-  // A 404 settles the query as conclusively as a successful fetch does; any
-  // other error leaves the saved integration unverified.
+  // A 404, or a failed refetch that retains cached data, settles as conclusively
+  // as a success; only a first-load failure leaves the integration unverified.
   const isIntegrationSettled =
-    !integrationQuery.isFetching && (integrationQuery.isSuccess || isMissingIntegration);
+    !integrationQuery.isFetching &&
+    (integrationQuery.isSuccess ||
+      integrationQuery.isRefetchError ||
+      isMissingIntegration);
 
   const validateParam =
     integration === undefined ? undefined : channelValidateParam(messagingSetup);
 
-  const channelValidateQuery = useQuery(
-    apiOptions.as<{valid: boolean; detail?: string}>()(
+  const channelValidateQuery = useQuery({
+    ...apiOptions.as<{valid: boolean; detail?: string}>()(
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/channel-validate/',
       {
         path:
@@ -141,11 +145,16 @@ export function useScmMessagingSetupValidation({
         query: validateParam === undefined ? undefined : {channel: validateParam},
         staleTime: 0,
       }
-    )
-  );
+    ),
+    refetchOnWindowFocus: true,
+  });
 
+  // As with the integration query, a failed background refetch keeps the last
+  // successful result usable so a transient focus refetch cannot strand a
+  // previously-confirmed channel.
   const isChannelSettled =
-    channelValidateQuery.isSuccess && !channelValidateQuery.isFetching;
+    !channelValidateQuery.isFetching &&
+    (channelValidateQuery.isSuccess || channelValidateQuery.isRefetchError);
 
   // A newly chosen destination must not inherit the previous one's warning while
   // its own queries are still in flight — the effect below cannot clear it until
@@ -203,23 +212,22 @@ export function useScmMessagingSetupValidation({
   const isChannelValidateError =
     integration !== undefined &&
     validateParam !== undefined &&
-    channelValidateQuery.isError;
+    channelValidateQuery.isLoadingError;
 
   return {
     isError:
       hasSelectedDestination &&
-      ((!isMissingIntegration && integrationQuery.isError) || isChannelValidateError),
+      ((!isMissingIntegration && integrationQuery.isLoadingError) ||
+        isChannelValidateError),
     isPending:
       hasSelectedDestination &&
       (integrationQuery.isFetching ||
         (integration !== undefined &&
           validateParam !== undefined &&
           channelValidateQuery.isFetching)),
-    isValid:
-      isIntegrationSettled &&
-      integration !== undefined &&
-      isChannelSettled &&
-      !!channelValidateQuery.data?.valid,
+    // Use last known data rather than settled flags so a background refetch
+    // (focus or manual) isn't considered stale/invalid.
+    isValid: integration !== undefined && !!channelValidateQuery.data?.valid,
     staleReason,
   };
 }

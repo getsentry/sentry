@@ -172,7 +172,7 @@ function OverviewAction({
         >
           {getProcessingLabel(sectionKey)}
         </Button>
-        <OpenSeerButton run={run} section={sectionKey} size="sm" variant="secondary" />
+        <OpenSeerButton run={run} section={sectionKey} size="sm" />
       </ActionButtonBar>
     );
   }
@@ -207,12 +207,7 @@ function OverviewAction({
                     {label}
                   </LinkButton>
                 </Tooltip>
-                <OpenSeerButton
-                  run={run}
-                  section={sectionKey}
-                  size="sm"
-                  variant="secondary"
-                />
+                <OpenSeerButton run={run} section={sectionKey} size="sm" />
               </ActionButtonBar>
             );
           })}
@@ -560,6 +555,7 @@ export const OverviewCard = memo(function OverviewCardComponent({
       }
     }
   }, [inView, scmWindows, requestScmWindow]);
+  const headline = run.rootCause?.headline;
   const rootCause = run.rootCause?.oneLineDescription;
   const proposedFix = run.proposedFix?.oneLineSummary;
   const issueUrl = `/organizations/${orgSlug}/issues/${run.groupId}/`;
@@ -616,9 +612,14 @@ export const OverviewCard = memo(function OverviewCardComponent({
                   })
                 }
               >
-                {run.title}
+                {headline || run.title}
               </TitleLink>
             </Text>
+            {headline && (
+              <Text size="sm" variant="muted" ellipsis>
+                {run.title}
+              </Text>
+            )}
             <Flex wrap="wrap" gap="md" align="center">
               <Flex gap="xs" align="center">
                 <ProjectAvatar

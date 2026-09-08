@@ -32,6 +32,8 @@ import type {StepProps} from './types';
  */
 export const SCM_MESSAGING_TITLE = t('Get alerts where your team works');
 
+type MessagingProviderList = ReturnType<typeof useScmMessagingProviders>['providers'];
+
 interface ScmMessagingProps {
   messagingSetup: ScmMessagingSetup;
   onMessagingSetupChange: (messagingSetup: ScmMessagingSetup) => void;
@@ -64,6 +66,7 @@ export function ScmMessaging({
   const [activeRow, setActiveRow] = useState<ScmMessagingActiveRow>(null);
 
   const validatedActiveRow = validateActiveRow(activeRow, providers, messagingSetup);
+  const visibleProviders = listedProviders(providers, validatedActiveRow, messagingSetup);
 
   // Continue creates the project and alert rules. It renders as soon as a
   // destination is selected so Set up later does not shift, but stays disabled
@@ -89,7 +92,7 @@ export function ScmMessaging({
         isEligibleForIssueAlerts(integration)
     );
     // Drop exclusive if the install never surfaced a usable integration.
-    if (result.isError || !connected) {
+    if (result.isLoadingError || !connected) {
       setActiveRow(null);
     }
   };
@@ -198,21 +201,18 @@ export function ScmMessaging({
                 transition={{duration: 0.15}}
                 gap="lg"
               >
-                {providers.map(viewModel =>
-                  validatedActiveRow === null ||
-                  validatedActiveRow.providerKey === viewModel.providerKey ? (
-                    <ScmMessagingProviderRow
-                      key={viewModel.providerKey}
-                      viewModel={viewModel}
-                      messagingSetup={messagingSetup}
-                      onMessagingSetupChange={onMessagingSetupChange}
-                      onInstallComplete={handleInstallComplete}
-                      activeRow={validatedActiveRow}
-                      onActiveRowChange={setActiveRow}
-                      isRefetchingIntegrations={isRefetchingIntegrations}
-                    />
-                  ) : null
-                )}
+                {visibleProviders.map(resolvedProvider => (
+                  <ScmMessagingProviderRow
+                    key={resolvedProvider.providerKey}
+                    resolvedProvider={resolvedProvider}
+                    messagingSetup={messagingSetup}
+                    onMessagingSetupChange={onMessagingSetupChange}
+                    onInstallComplete={handleInstallComplete}
+                    activeRow={validatedActiveRow}
+                    onActiveRowChange={setActiveRow}
+                    isRefetchingIntegrations={isRefetchingIntegrations}
+                  />
+                ))}
               </MotionStack>
             ) : null}
           </AnimatePresence>
@@ -266,22 +266,24 @@ export function ScmMessaging({
  */
 function validateActiveRow(
   activeRow: ScmMessagingActiveRow,
-  providers: ReturnType<typeof useScmMessagingProviders>['providers'],
+  providers: MessagingProviderList,
   messagingSetup: ScmMessagingSetup
 ): ScmMessagingActiveRow {
   if (!activeRow) {
     return null;
   }
-  const viewModel = providers.find(p => p.providerKey === activeRow.providerKey);
-  if (!viewModel) {
+  const resolvedProvider = providers.find(p => p.providerKey === activeRow.providerKey);
+  if (!resolvedProvider) {
     return null;
   }
-  if (viewModel.status === 'connected') {
+  if (resolvedProvider.status === 'connected') {
     if (activeRow.mode === 'removing') {
       const isConfigured =
         messagingSetup.mode === 'selected' &&
         messagingSetup.providerKey === activeRow.providerKey &&
-        viewModel.eligibleIntegrations.some(i => i.id === messagingSetup.integrationId);
+        resolvedProvider.eligibleIntegrations.some(
+          i => i.id === messagingSetup.integrationId
+        );
       if (!isConfigured) {
         return null;
       }
@@ -290,10 +292,31 @@ function validateActiveRow(
   }
   // Post-install: configuring is set before the refetch promotes installable
   // to connected. Keep exclusive so the footer cannot be clicked in between.
-  if (activeRow.mode === 'configuring' && viewModel.status === 'installable') {
+  if (activeRow.mode === 'configuring' && resolvedProvider.status === 'installable') {
     return activeRow;
   }
   return null;
+}
+
+/**
+ * Rows shown in the provider list. Exclusive while a row is being configured
+ * or removed, and while a destination is saved — other providers stay hidden
+ * until the destination is cleared. Falls back to the full list when the
+ * exclusive provider is missing so a stale selection cannot blank the step.
+ */
+function listedProviders(
+  providers: MessagingProviderList,
+  exclusiveRow: ScmMessagingActiveRow,
+  messagingSetup: ScmMessagingSetup
+): MessagingProviderList {
+  const exclusiveKey =
+    exclusiveRow?.providerKey ??
+    (messagingSetup.mode === 'selected' ? messagingSetup.providerKey : undefined);
+  if (exclusiveKey === undefined) {
+    return providers;
+  }
+  const exclusive = providers.filter(provider => provider.providerKey === exclusiveKey);
+  return exclusive.length > 0 ? exclusive : providers;
 }
 
 const MotionFlex = motion.create(Flex);

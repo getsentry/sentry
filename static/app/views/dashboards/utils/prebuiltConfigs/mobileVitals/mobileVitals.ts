@@ -1,10 +1,15 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {PrebuiltWidget} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import type {
+  PrebuiltWidget,
+  PrebuiltDashboard,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
   APP_START_TABLE_CONDITION,
+  AVG_COLD_START,
+  AVG_START_VALUE,
+  AVG_WARM_START,
   COLD_START_CONDITION,
   SCREEN_LOAD_TABLE_CONDITION,
   SCREEN_RENDERING_CONDITION,
@@ -38,8 +43,8 @@ const COLD_START_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   queries: [
     {
       name: '',
-      fields: [`avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
-      aggregates: [`avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
+      fields: [AVG_START_VALUE],
+      aggregates: [AVG_START_VALUE],
       columns: [],
       conditions: COLD_START_CONDITION,
       orderby: '',
@@ -71,8 +76,8 @@ const WARM_START_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   queries: [
     {
       name: '',
-      fields: [`avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
-      aggregates: [`avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
+      fields: [AVG_START_VALUE],
+      aggregates: [AVG_START_VALUE],
       columns: [],
       conditions: WARM_START_CONDITION,
       orderby: '',
@@ -305,17 +310,13 @@ const APP_START_TABLE: PrebuiltWidget = {
     {
       name: '',
       fields: [
-        SpanFields.TRANSACTION,
-        `avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`,
-        `avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`,
+        SpanFields.APP_VITALS_START_SCREEN,
+        AVG_COLD_START,
+        AVG_WARM_START,
         TRANSACTION_COUNT,
       ],
-      aggregates: [
-        `avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`,
-        `avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`,
-        TRANSACTION_COUNT,
-      ],
-      columns: [SpanFields.TRANSACTION],
+      aggregates: [AVG_COLD_START, AVG_WARM_START, TRANSACTION_COUNT],
+      columns: [SpanFields.APP_VITALS_START_SCREEN],
       fieldAliases: [
         t('Screen'),
         t('Avg Cold Start'),
@@ -326,7 +327,7 @@ const APP_START_TABLE: PrebuiltWidget = {
       orderby: `-${TRANSACTION_COUNT}`,
       linkedDashboards: [
         {
-          field: SpanFields.TRANSACTION,
+          field: SpanFields.APP_VITALS_START_SCREEN,
           dashboardId: '-1',
           staticDashboardId: 9,
         },

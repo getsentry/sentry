@@ -442,8 +442,6 @@ SENTRY_HYBRIDCLOUD_OUTBOX_MODELS: Mapping[str, list[str]] = {
     "CONTROL": ["sentry.ControlOutbox"],
     "CELL": ["sentry.CellOutbox"],
 }
-# Backwards-compatible alias for getsentry, which extends this mapping with UsageOutbox.
-SENTRY_OUTBOX_MODELS = SENTRY_HYBRIDCLOUD_OUTBOX_MODELS
 
 # Do not modify reordering
 # The applications listed first in INSTALLED_APPS have precedence
@@ -985,6 +983,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
+    "sentry.tasks.gpu_crash",
     "sentry.tasks.groupowner",
     "sentry.tasks.llm_issue_detection.detection",
     "sentry.tasks.llm_issue_detection",
@@ -1227,6 +1226,12 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         # Hourly rather than daily: the sweep has to keep pace with inbound PR
         # webhooks, and small frequent batches are gentler than one daily surge.
         "schedule": crontab("20", "*", "*", "*", "*"),
+    },
+    "autofix-sweep-pr-iteration-details": {
+        "task": "seer:sentry.tasks.autofix.sweep_pr_iteration_details",
+        # Hourly: the task discards iteration rows more than a day old, so it
+        # must be regular, not prompt.
+        "schedule": crontab("40", "*", "*", "*", "*"),
     },
     "relocation-find-transfer-region": {
         "task": "relocation:sentry.relocation.transfer.find_relocation_transfer_region",
@@ -1531,6 +1536,10 @@ SUPERUSER_ORG_ID: int | None = None
 SENTRY_SCIM_STAFF_TEAM_SLUG: str | None = None
 SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG: str | None = None
 SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG: str | None = None
+
+# Mapping of UserPermission strings to SCIM team slugs.
+# Adding/removing members from these teams grants/revokes the corresponding UserPermission.
+SENTRY_SCIM_PERMISSION_TEAM_SLUGS: dict[str, str] = {}
 
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT: int | None = None
@@ -2895,6 +2904,9 @@ SENTRY_REPROCESSING_TOMBSTONES_TTL = 24 * 3600
 # How long reprocessing counters are kept in Redis before they expire.
 SENTRY_REPROCESSING_SYNC_TTL = 30 * 24 * 3600  # 30 days
 
+# How long the reprocessing page claims are kept in Redis before they expire.
+SENTRY_REPROCESSING_PAGE_CLAIM_TTL = 24 * 3600  # 1 day
+
 # How many events to query for at once while paginating through an entire
 # issue. Note that this needs to be kept in sync with the time-limits on
 # `sentry.tasks.reprocessing2.reprocess_group`. That task is responsible for
@@ -2993,6 +3005,13 @@ SEER_GHE_ENCRYPT_KEY: str | None = os.getenv("SEER_GHE_ENCRYPT_KEY")
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
 
 SENTRY_TEMPEST_URL = os.getenv("TEMPEST", "http://127.0.0.1:9130")
+
+# URL of the teapot GPU crash dump symbolication service, derived from the
+# SENTRY_TEAPOT_HOST host:port (the k8s service in SaaS, localhost in dev).
+SENTRY_TEAPOT_URL = f"http://{os.getenv('SENTRY_TEAPOT_HOST', 'localhost:8125')}"
+
+# Shared secret used to sign requests to teapot
+SENTRY_TEAPOT_SHARED_SECRET = os.getenv("SENTRY_TEAPOT_SHARED_SECRET", "")
 
 SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
 
@@ -3094,9 +3113,6 @@ SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 # For each Sliceable, the range [0, SENTRY_SLICING_LOGICAL_PARTITION_COUNT) must be mapped
 # to a slice ID
 SENTRY_SLICING_CONFIG: Mapping[str, Mapping[tuple[int, int], int]] = {}
-
-# Show banners on the login page that are defined in layout.html
-SHOW_LOGIN_BANNER = False
 
 # Mapping of (logical topic names, slice id) to physical topic names
 # and kafka broker names. The kafka broker names are used to construct
@@ -3329,8 +3345,6 @@ if SILO_DEVSERVER:
     SENTRY_LOCALITIES = [
         {
             "name": "us",
-            # TODO(cells): Deprecate category
-            "category": "MULTI_TENANT",
             "cells": ["us"],
             "new_org_cell": "us",
         }

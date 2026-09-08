@@ -593,7 +593,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
         from sentry.identity.services.identity.service import identity_service
         from sentry.users.services.user.service import user_service
 
-        # TODO(mark) Add using_replica here
         integration = self.get_integration(
             provider=integration_provider,
             external_id=integration_external_id,

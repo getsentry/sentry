@@ -1,7 +1,11 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {useQuery, useQueryClient} from '@tanstack/react-query';
-import {useInfiniteQuery, useMutation} from '@tanstack/react-query';
+import {
+  useQuery,
+  useQueryClient,
+  useInfiniteQuery,
+  useMutation,
+} from '@tanstack/react-query';
 import sortBy from 'lodash/sortBy';
 
 import {Button, LinkButton} from '@sentry/scraps/button';

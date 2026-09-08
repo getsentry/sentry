@@ -40,7 +40,7 @@ describe('Slider', () => {
     });
 
     it('sets aria-valuetext', () => {
-      render(<Slider defaultValue={30} min={0} max={100} aria-label="Test" />);
+      render(<Slider defaultValue={30} aria-label="Test" />);
       expect(screen.getByRole('slider')).toHaveAttribute('aria-valuetext', '30');
     });
   });

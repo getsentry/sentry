@@ -45,6 +45,7 @@ class ActivityAlertBaseTest(TestCase):
             ActivityType.SEER_CODING_STARTED,
             ActivityType.SEER_CODING_COMPLETED,
             ActivityType.SEER_PR_CREATED,
+            ActivityType.SEER_PR_READY_FOR_REVIEW,
             ActivityType.SEER_ITERATION_STARTED,
             ActivityType.SEER_ITERATION_COMPLETED,
         ]

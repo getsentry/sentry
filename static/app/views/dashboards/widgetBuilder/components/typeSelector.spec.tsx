@@ -3,8 +3,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {WidgetType} from 'sentry/views/dashboards/types';
-import {WidgetBuilderTypeSelector as TypeSelector} from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  getVisualizationTypeDisabledReason,
+  WidgetBuilderTypeSelector as TypeSelector,
+} from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
 jest.mock('sentry/utils/useNavigate', () => ({
@@ -14,6 +18,26 @@ jest.mock('sentry/utils/useNavigate', () => ({
 const mockUseNavigate = jest.mocked(useNavigate);
 
 describe('TypeSelector', () => {
+  it('gates trace metrics tables behind the release flag', () => {
+    const config = getDatasetConfig(WidgetType.TRACEMETRICS);
+
+    expect(
+      getVisualizationTypeDisabledReason(
+        DisplayType.TABLE,
+        config,
+        WidgetType.TRACEMETRICS
+      )
+    ).toBe('Tables are not yet available for the Trace Metrics dataset.');
+    expect(
+      getVisualizationTypeDisabledReason(
+        DisplayType.TABLE,
+        config,
+        WidgetType.TRACEMETRICS,
+        true
+      )
+    ).toBeUndefined();
+  });
+
   it('changes the visualization type', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);

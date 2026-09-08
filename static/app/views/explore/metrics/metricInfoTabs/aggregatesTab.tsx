@@ -7,6 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {getNextDirection} from 'sentry/components/tables/getNextSort';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -215,8 +216,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
           const canSort = field !== TraceMetricKnownFieldKey.METRIC_NAME;
 
           function updateSort() {
-            const kind = direction === 'desc' ? 'asc' : 'desc';
-            setSorts([{field, kind}]);
+            setSorts([{field, kind: getNextDirection(direction)}]);
           }
 
           return (

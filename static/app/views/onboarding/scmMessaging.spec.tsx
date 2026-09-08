@@ -4,7 +4,14 @@ import {IntegrationProviderFixture} from 'sentry-fixture/integrationProvider';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import {
   OnboardingContextProvider,
@@ -135,6 +142,7 @@ describe('ScmMessaging', () => {
   });
 
   afterEach(() => {
+    cleanup();
     MockApiClient.clearMockResponses();
     // Context-backed tests persist onboarding state to session storage, and
     // useSessionStorage prefers a stored value over initialValue.
@@ -216,6 +224,100 @@ describe('ScmMessaging', () => {
       expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
     );
     await waitFor(() => expect(screen.queryByText(warning)).not.toBeInTheDocument());
+  });
+
+  it('Continue stays enabled when revalidation queries fail on a later refetch', async () => {
+    const queryClient = makeTestQueryClient();
+    mockIntegration();
+    mockChannelValidate(true);
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ScmMessaging
+          messagingSetup={selectedMessagingSetup}
+          onMessagingSetupChange={jest.fn()}
+          selectedPlatform={selectedPlatform}
+        />
+      </QueryClientProvider>
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
+    );
+
+    // Both validation queries now return 500 on the next background refetch.
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/',
+      statusCode: 500,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/channel-validate/',
+      statusCode: 500,
+      match: [MockApiClient.matchQuery({channel: '#alerts'})],
+    });
+    await act(async () => {
+      await queryClient.invalidateQueries();
+    });
+
+    // isRefetchError keeps both queries settled; cached {valid: true} stays usable.
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
+    // isLoadingError (not isError) gates the danger alert, so it must not appear.
+    expect(
+      screen.queryByText(
+        "We couldn't check the saved destination. Reload the page to try again."
+      )
+    ).not.toBeInTheDocument();
+  });
+
+  it('Continue stays enabled while a later revalidation refetch is in flight', async () => {
+    const queryClient = makeTestQueryClient();
+    mockIntegration();
+    mockChannelValidate(true);
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ScmMessaging
+          messagingSetup={selectedMessagingSetup}
+          onMessagingSetupChange={jest.fn()}
+          selectedPlatform={selectedPlatform}
+        />
+      </QueryClientProvider>
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
+    );
+
+    // Replace mocks with gated versions so the refetches stay in flight.
+    let releaseGate!: () => void;
+    const gate = new Promise<void>(r => {
+      releaseGate = r;
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/',
+      body: OrganizationIntegrationsFixture({id: '15', status: 'active'}),
+      asyncDelay: gate,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/channel-validate/',
+      body: {valid: true},
+      asyncDelay: gate,
+      match: [MockApiClient.matchQuery({channel: '#alerts'})],
+    });
+
+    // Kick off refetches without awaiting — both queries are now in flight.
+    act(() => {
+      void queryClient.invalidateQueries();
+    });
+
+    // isValid reads from cached data, not isFetching, so Continue must stay enabled.
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
+
+    // Release and confirm Continue stays enabled once the refetches settle.
+    act(() => releaseGate());
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
+    );
   });
 
   it('marks the channel stale without resetting session state when channel-validate returns false', async () => {
@@ -511,6 +613,38 @@ describe('ScmMessaging', () => {
   });
 
   describe('exclusive mode (activeRow)', () => {
+    const exclusiveSlackSetup: ScmMessagingSetup = {
+      mode: 'selected',
+      providerKey: 'slack',
+      integrationId: 'slack-1',
+      channelId: 'C123',
+      channelName: '#alerts',
+    };
+
+    function mockExclusiveSlackProviders() {
+      mockProviderQueries([slackIntegration, discordIntegration, msteamsIntegration]);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/slack-1/',
+        body: slackIntegration,
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/slack-1/channel-validate/',
+        body: {valid: true},
+        match: [MockApiClient.matchQuery({channel: '#alerts'})],
+      });
+    }
+
+    function StatefulMessaging({initial}: {initial: ScmMessagingSetup}) {
+      const [setup, setSetup] = useState(initial);
+      return (
+        <ScmMessaging
+          messagingSetup={setup}
+          onMessagingSetupChange={setSetup}
+          selectedPlatform={selectedPlatform}
+        />
+      );
+    }
+
     it('entering configuring mode hides sibling rows and the footer; Cancel restores them', async () => {
       mockProviderQueries([slackIntegration, discordIntegration, msteamsIntegration]);
       MockApiClient.addMockResponse({
@@ -545,44 +679,88 @@ describe('ScmMessaging', () => {
       expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
     });
 
-    it('entering removing mode hides sibling rows and the footer; Cancel restores them', async () => {
-      const slackSetup: ScmMessagingSetup = {
-        mode: 'selected',
-        providerKey: 'slack',
-        integrationId: 'slack-1',
-        channelId: 'C123',
-        channelName: '#alerts',
-      };
-      mockProviderQueries([slackIntegration, discordIntegration, msteamsIntegration]);
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/integrations/slack-1/',
-        body: slackIntegration,
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/integrations/slack-1/channel-validate/',
-        body: {valid: true},
-      });
-
-      renderMessaging(jest.fn(), slackSetup);
+    it('a saved destination hides sibling rows and keeps the footer', async () => {
+      mockExclusiveSlackProviders();
+      renderMessaging(jest.fn(), exclusiveSlackSetup);
 
       expect(await screen.findByText('slack')).toBeInTheDocument();
-      expect(screen.getByText('discord')).toBeInTheDocument();
-      expect(screen.getByText('msteams')).toBeInTheDocument();
+      expect(screen.queryByText('discord')).not.toBeInTheDocument();
+      expect(screen.queryByText('msteams')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
+      );
+    });
+
+    it('saving a destination from the picker keeps siblings hidden and restores the footer', async () => {
+      mockExclusiveSlackProviders();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/slack-1/channels/',
+        body: {
+          results: [{id: 'C123', name: 'alerts', display: '#alerts', type: 'channel'}],
+        },
+      });
+
+      render(<StatefulMessaging initial={{mode: 'unconfigured'}} />);
+
+      expect(await screen.findByText('discord')).toBeInTheDocument();
+      await userEvent.click(
+        screen.getByRole('button', {name: /Choose destination for slack/})
+      );
+      expect(screen.queryByText('discord')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Set up later'})
+      ).not.toBeInTheDocument();
+
+      await selectEvent.select(screen.getByLabelText('channel'), '#alerts');
+      await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
+
+      // activeRow clears after save; selected setup keeps siblings hidden and
+      // brings the footer back.
+      expect(screen.queryByText('discord')).not.toBeInTheDocument();
+      expect(screen.queryByText('msteams')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
+      );
+    });
+
+    it('Cancel from removing keeps siblings hidden and restores the footer', async () => {
+      mockExclusiveSlackProviders();
+      renderMessaging(jest.fn(), exclusiveSlackSetup);
+
+      expect(await screen.findByText('slack')).toBeInTheDocument();
+      expect(screen.queryByText('discord')).not.toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: /Remove/}));
 
       expect(screen.queryByText('discord')).not.toBeInTheDocument();
-      expect(screen.queryByText('msteams')).not.toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: 'Set up later'})
       ).not.toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
+      expect(screen.queryByText('discord')).not.toBeInTheDocument();
+      expect(screen.queryByText('msteams')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
+    });
+
+    it('confirming Remove restores sibling rows and the footer', async () => {
+      mockExclusiveSlackProviders();
+      render(<StatefulMessaging initial={exclusiveSlackSetup} />);
+
+      expect(await screen.findByText('slack')).toBeInTheDocument();
+      expect(screen.queryByText('discord')).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: /Remove/}));
+      await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+
       expect(await screen.findByText('discord')).toBeInTheDocument();
       expect(screen.getByText('msteams')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
     });
 
     it('clears stale removing activeRow when the destination is cleared externally', async () => {

@@ -3,7 +3,7 @@ import {useCallback, useMemo, useState} from 'react';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Select} from '@sentry/scraps/select';
+import {Select, type SelectValue} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
@@ -14,11 +14,13 @@ import {
   type IntegrationChannel,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {
-  type Channel,
   ChannelField,
   ChannelSelect,
-  useMessagingIntegrationAlertRule,
 } from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
+import {
+  type Channel,
+  useMessagingChannel,
+} from 'sentry/views/projectInstall/useMessagingChannel';
 
 import type {ScmMessagingProviderKey} from './messagingProviders';
 import type {ScmMessagingSetup} from './scmMessagingSetup';
@@ -88,9 +90,9 @@ export function ScmMessagingChannelPicker({
       ? channelState.channel
       : undefined;
 
-  const providersToIntegrations = useMemo(
-    () => ({[providerKey]: eligibleIntegrations}),
-    [providerKey, eligibleIntegrations]
+  const integrationOptions = useMemo(
+    () => eligibleIntegrations.map(i => ({value: i, label: i.name})),
+    [eligibleIntegrations]
   );
 
   const {
@@ -99,29 +101,22 @@ export function ScmMessagingChannelPicker({
     isChannelsError,
     channelsData,
     channelError,
+    clearChannelValidation,
     onChannelChange,
     onCreateChannel,
-    onIntegrationChange,
-    integrationOptions,
-    integrationDisabled,
-  } = useMessagingIntegrationAlertRule({
+  } = useMessagingChannel({
     channel,
     integration: selectedIntegration,
     provider: providerKey,
     setChannel,
-    setIntegration: i => {
-      if (i) {
-        setSelectedIntegrationId(i.id);
-      }
-    },
-    setProvider: () => {},
-    providersToIntegrations,
-    actions: [],
-    setActions: () => {},
-    queryError: false,
-    querySuccess: true,
-    shouldRenderSetupButton: false,
+    options: {refetchOnWindowFocus: true},
   });
+
+  const handleIntegrationChange = (option: SelectValue<OrganizationIntegration>) => {
+    setSelectedIntegrationId(option.value.id);
+    setChannel(undefined);
+    clearChannelValidation();
+  };
 
   if (!selectedIntegration) {
     return null;
@@ -178,10 +173,10 @@ export function ScmMessagingChannelPicker({
           </Text>
           <Select
             aria-label={t('workspace')}
-            disabled={integrationDisabled}
+            disabled={integrationOptions.length === 1}
             value={selectedIntegration}
             options={integrationOptions}
-            onChange={onIntegrationChange}
+            onChange={handleIntegrationChange}
           />
         </Stack>
         <Stack gap="xs">

@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from sentry.utils.cache import cache
 
@@ -8,6 +8,7 @@ AGENT_MESSAGE_CACHE_TIMEOUT_SECONDS = 60 * 60 * 24  # 1 day
 class SlackSeerAgentMessageCachePayload(TypedDict):
     thread_ts: str
     run_id: int
+    input_id: NotRequired[str]
 
 
 class SlackSeerAgentMessageCache:

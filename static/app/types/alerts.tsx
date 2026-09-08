@@ -1,4 +1,4 @@
-import type {IssueConfigField} from './integrations';
+import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
 
 export const enum IssueAlertActionType {
   SLACK = 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction',
@@ -61,17 +61,17 @@ interface IssueAlertRuleActionTemplate {
 export interface IssueAlertRuleAction extends IssueAlertRuleActionTemplate {
   // These are the same values as the keys in `formFields` for a template
   [key: string]: any;
-  dynamic_form_fields?: IssueConfigField[];
+  dynamic_form_fields?: JsonFormAdapterFieldConfig[];
 }
 
 type IssueAlertRuleCondition = IssueAlertRuleActionTemplate & {
-  dynamic_form_fields?: IssueConfigField[];
+  dynamic_form_fields?: JsonFormAdapterFieldConfig[];
 } & Record<string, number | string>;
 
 export interface TicketActionData {
   [key: string]: any;
   integration: string;
-  dynamic_form_fields?: IssueConfigField[];
+  dynamic_form_fields?: JsonFormAdapterFieldConfig[];
 }
 
 interface SlackAction {

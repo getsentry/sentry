@@ -187,7 +187,6 @@ function AccountClose() {
                   {organization.slug}
                 </Text>
                 <Switch
-                  size="sm"
                   id={`delete-organization-${organization.slug}`}
                   checked={orgsToRemove.has(organization.slug)}
                   value={organization.slug}

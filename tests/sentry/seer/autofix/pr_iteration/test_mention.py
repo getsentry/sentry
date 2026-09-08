@@ -120,3 +120,59 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
         with self.feature("organizations:autofix-pr-iteration-manual"):
             self._call(self._event(body="contact email@sentry.io for help"))
         mock_delay.assert_not_called()
+
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
+    @patch(f"{MENTION_PATH}.pause_pr_iteration_from_comment.delay")
+    def test_schedules_pause_task_for_stop_command(
+        self, mock_pause_delay: MagicMock, mock_trigger_delay: MagicMock
+    ) -> None:
+        with self.feature("organizations:autofix-pr-iteration-manual"):
+            self._call(self._event(body="@sentry stop iterating"))
+
+        mock_trigger_delay.assert_not_called()
+        mock_pause_delay.assert_called_once_with(
+            organization_id=self.organization.id,
+            repo_id=self.repo.id,
+            integration_id=self.integration.id,
+            pr_number=7,
+            comment_id=999,
+            github_username="octocat",
+        )
+
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
+    @patch(f"{MENTION_PATH}.pause_pr_iteration_from_comment.delay")
+    def test_skips_stop_command_when_manual_feature_disabled(
+        self, mock_pause_delay: MagicMock, mock_trigger_delay: MagicMock
+    ) -> None:
+        with self.feature("organizations:autofix-pr-iteration"):
+            self._call(self._event(body="@sentry stop iterating"))
+
+        mock_pause_delay.assert_not_called()
+        mock_trigger_delay.assert_not_called()
+
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
+    @patch(f"{MENTION_PATH}.pause_pr_iteration_from_comment.delay")
+    def test_skips_stop_command_for_github_enterprise(
+        self, mock_pause_delay: MagicMock, mock_trigger_delay: MagicMock
+    ) -> None:
+        self.integration = MagicMock(id=42, provider="github_enterprise")
+
+        with self.feature("organizations:autofix-pr-iteration-manual"):
+            self._call(self._event(body="@sentry stop iterating"))
+
+        mock_pause_delay.assert_not_called()
+        mock_trigger_delay.assert_not_called()
+
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
+    @patch(f"{MENTION_PATH}.pause_pr_iteration_from_comment.delay")
+    def test_skips_stop_command_when_not_pr_comment(
+        self, mock_pause_delay: MagicMock, mock_trigger_delay: MagicMock
+    ) -> None:
+        event = self._event(body="@sentry stop iterating")
+        event["issue"].pop("pull_request")
+
+        with self.feature("organizations:autofix-pr-iteration-manual"):
+            self._call(event)
+
+        mock_pause_delay.assert_not_called()
+        mock_trigger_delay.assert_not_called()

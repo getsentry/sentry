@@ -97,7 +97,7 @@ class ObjectstoreEndpointTest(TransactionTestCase):
     def test_uncompressed(self) -> None:
         session = self.get_session()
 
-        object_key = session.put(b"test data", compression="none")
+        object_key = session.put(b"test data", compress="none")
         assert object_key is not None
 
         retrieved = session.get(object_key)

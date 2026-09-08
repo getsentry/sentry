@@ -207,7 +207,7 @@ describe('Tooltip', () => {
 
     render(
       <button type="button" onClick={handleAncestorClick}>
-        <Tooltip title={<span>Copy</span>} isHoverable forceVisible>
+        <Tooltip title={<span>Copy</span>} forceVisible>
           <div>Trigger</div>
         </Tooltip>
       </button>
@@ -293,6 +293,22 @@ describe('Tooltip', () => {
       await showTooltip('just a sentence');
 
       expect(document.querySelector('[data-tooltip-section]')).not.toBeInTheDocument();
+    });
+
+    it('reads a grid from the left, undoing the overlay centring', async () => {
+      // The overlay centres text for the sentence case. A card is a set of
+      // rows, so the grid resets it and cells only state an alignment when
+      // they want something other than left.
+      await showTooltip(
+        <Tooltip.Grid>
+          <Tooltip.Row>cell</Tooltip.Row>
+        </Tooltip.Grid>
+      );
+
+      const grid = document.querySelector('[data-tooltip-section]');
+      expect(getEmotionRules(grid as HTMLElement).join('')).toContain(
+        'text-align: left;'
+      );
     });
   });
 

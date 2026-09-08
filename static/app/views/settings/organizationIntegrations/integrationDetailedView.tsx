@@ -21,7 +21,11 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
+import type {
+  Integration,
+  IntegrationProvider,
+  OrganizationIntegration,
+} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -155,7 +159,7 @@ export default function IntegrationDetailedView() {
     isPending: isConfigurationsPending,
     isFetching: isConfigurationsFetching,
     isError: isConfigurationsError,
-  } = useApiQuery<Integration[]>(
+  } = useApiQuery<OrganizationIntegration[]>(
     makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
     {
       staleTime: 0,
@@ -286,7 +290,7 @@ export default function IntegrationDetailedView() {
   );
 
   const {mutate: onRemove} = useMutation({
-    mutationFn: (integration: Integration) =>
+    mutationFn: (integration: OrganizationIntegration) =>
       fetchMutation({
         method: 'DELETE',
         url: getApiUrl(
@@ -302,12 +306,12 @@ export default function IntegrationDetailedView() {
       // Cancel in-flight refetches so they can't clobber the optimistic update.
       await queryClient.cancelQueries({queryKey});
 
-      const previousConfigurations = getApiQueryData<Integration[]>(
+      const previousConfigurations = getApiQueryData<OrganizationIntegration[]>(
         queryClient,
         queryKey
       );
 
-      setApiQueryData<Integration[]>(queryClient, queryKey, current =>
+      setApiQueryData<OrganizationIntegration[]>(queryClient, queryKey, current =>
         (current ?? []).map(config =>
           config.id === integration.id
             ? {
@@ -322,7 +326,7 @@ export default function IntegrationDetailedView() {
     },
     onError: (_error, _integration, context) => {
       if (context?.previousConfigurations) {
-        setApiQueryData<Integration[]>(
+        setApiQueryData<OrganizationIntegration[]>(
           queryClient,
           makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
           context.previousConfigurations
@@ -338,7 +342,7 @@ export default function IntegrationDetailedView() {
     },
   });
 
-  const onDisable = useCallback((integration: Integration) => {
+  const onDisable = useCallback((integration: OrganizationIntegration) => {
     let url: string;
 
     if (!integration.domainName) {

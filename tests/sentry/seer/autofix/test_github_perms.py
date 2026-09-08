@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from unittest.mock import patch
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.seer.agent.client_models import (
     MemoryBlock,
     Message,
@@ -15,12 +17,16 @@ from sentry.seer.agent.client_models import (
 )
 from sentry.seer.autofix.github_perms import (
     MissingGithubPermissions,
-    blocks_have_failed_tool_call,
-    comment_on_out_of_date_github_permissions,
-    repos_with_failed_tool_calls,
+    failed_tool_calls,
+    get_blocked_pr_iteration_permissions,
+    get_missing_permissions_by_repo,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
+
+REPO_NAME = "getsentry/sentry"
+LOGGER_NAME = "sentry.seer.autofix.github_perms"
 
 
 def _block(
@@ -47,53 +53,157 @@ def _block(
     )
 
 
-def test_no_blocks() -> None:
-    assert repos_with_failed_tool_calls([]) == set()
-    assert blocks_have_failed_tool_call([]) is False
+def _state(*, pr_number: int | None) -> SeerRunState:
+    return SeerRunState(
+        run_id=1,
+        blocks=[],
+        status="completed",
+        updated_at="2023-07-18T12:00:00Z",
+        repo_pr_states={REPO_NAME: RepoPRState(repo_name=REPO_NAME, pr_number=pr_number)},
+    )
 
 
-def test_ignores_successful_tool_calls() -> None:
-    block = _block(calls=[("code_file_edit", "org/repo", False)])
-    assert repos_with_failed_tool_calls([block]) == set()
-    assert blocks_have_failed_tool_call([block]) is False
-
-
-def test_returns_repo_of_failed_tool_call() -> None:
-    block = _block(calls=[("summarize_failed_ci_logs", "org/repo", True)])
-    assert repos_with_failed_tool_calls([block]) == {"org/repo"}
-    assert blocks_have_failed_tool_call([block]) is True
-
-
-def test_failed_tool_call_without_repo_is_not_attributed() -> None:
-    block = _block(calls=[("get_issue_details", None, True)])
-    assert repos_with_failed_tool_calls([block]) == set()
-    # It still counts as a failed tool call, just not against a repo.
-    assert blocks_have_failed_tool_call([block]) is True
-
-
-def test_only_failed_call_repo_is_returned() -> None:
-    # A success against repo-a and a failure against repo-b in the same block.
+def test_failed_tool_calls_returns_errored_calls() -> None:
     block = _block(
         calls=[
             ("code_file_edit", "org/repo-a", False),
             ("summarize_failed_ci_logs", "org/repo-b", True),
         ]
     )
-    assert repos_with_failed_tool_calls([block]) == {"org/repo-b"}
+    calls = failed_tool_calls([block])
+    assert [call.function for call in calls] == ["summarize_failed_ci_logs"]
 
 
-def test_aggregates_across_blocks() -> None:
+def test_failed_tool_calls_aggregates_across_blocks() -> None:
     blocks = [
         _block(calls=[("t", "org/repo-a", True)]),
-        _block(calls=[("t", "org/repo-b", True)]),
+        _block(calls=[("u", "org/repo-b", True)]),
     ]
-    assert repos_with_failed_tool_calls(blocks) == {"org/repo-a", "org/repo-b"}
+    assert [call.function for call in failed_tool_calls(blocks)] == ["t", "u"]
 
 
-class CommentOnOutOfDateGithubPermissionsTest(TestCase):
-    def _missing_permissions(
-        self, account_type: str, account_login: str
-    ) -> MissingGithubPermissions:
+class GetBlockedPrIterationPermissionsTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="9999",
+            metadata={"permissions": {"contents": "read"}},
+        )
+        self.repo = self.create_repo(
+            project=self.create_project(organization=self.organization),
+            name=REPO_NAME,
+            provider="integrations:github",
+            integration_id=self.integration.id,
+        )
+
+    @override_options({"github-app.required-permissions": {"contents": "write"}})
+    def test_warns_when_a_pr_exists_and_feedback_is_queued(self) -> None:
+        missing = get_blocked_pr_iteration_permissions(
+            self.organization, _state(pr_number=7), has_actionable_feedback=True
+        )
+
+        assert set(missing) == {REPO_NAME}
+        assert missing[REPO_NAME].missing_scopes == ["contents"]
+        assert missing[REPO_NAME].installation_id == "9999"
+        assert missing[REPO_NAME].repository_id == self.repo.id
+
+    @override_options({"github-app.required-permissions": {"contents": "write"}})
+    def test_silent_without_actionable_feedback(self) -> None:
+        assert (
+            get_blocked_pr_iteration_permissions(
+                self.organization, _state(pr_number=7), has_actionable_feedback=False
+            )
+            == {}
+        )
+
+    @override_options({"github-app.required-permissions": {"contents": "write"}})
+    def test_silent_before_the_pr_is_created(self) -> None:
+        assert (
+            get_blocked_pr_iteration_permissions(
+                self.organization, _state(pr_number=None), has_actionable_feedback=True
+            )
+            == {}
+        )
+
+    @override_options({"github-app.required-permissions": {"contents": "read"}})
+    def test_silent_when_the_install_is_healthy(self) -> None:
+        assert (
+            get_blocked_pr_iteration_permissions(
+                self.organization, _state(pr_number=7), has_actionable_feedback=True
+            )
+            == {}
+        )
+
+
+class GetMissingPermissionsByRepoTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="9999",
+            metadata={"permissions": {"contents": "read"}},
+        )
+        self.repo = self.create_repo(
+            project=self.create_project(organization=self.organization),
+            name=REPO_NAME,
+            provider="integrations:github",
+            integration_id=self.integration.id,
+        )
+
+    @override_options({"github-app.required-permissions": {"contents": "write"}})
+    def test_reports_the_repository_the_install_was_resolved_for(self) -> None:
+        missing = get_missing_permissions_by_repo(self.organization, [REPO_NAME])
+
+        assert missing[REPO_NAME].repository_id == self.repo.id
+        assert missing[REPO_NAME].missing_scopes == ["contents"]
+
+    def _assert_warns(self, organization: Organization, repo_name: str, reason: str) -> None:
+        with self.assertLogs(LOGGER_NAME, level="WARNING") as logs:
+            assert get_missing_permissions_by_repo(organization, [repo_name]) == {}
+
+        assert len(logs.records) == 1
+        assert logs.records[0].__dict__["reason"] == reason
+        assert logs.records[0].__dict__["organization_id"] == organization.id
+
+    @override_options({"github-app.required-permissions": {"contents": "write"}})
+    def test_warns_without_a_repository_row(self) -> None:
+        self._assert_warns(self.organization, "org/unknown", "no_repository_row")
+
+    @override_options({"github-app.required-permissions": {"contents": "write"}})
+    def test_warns_when_the_repository_is_not_active(self) -> None:
+        self.repo.update(status=ObjectStatus.PENDING_DELETION)
+
+        self._assert_warns(self.organization, REPO_NAME, "no_repository_row")
+
+    @override_options({"github-app.required-permissions": {"contents": "write"}})
+    def test_warns_when_the_repository_belongs_to_another_org(self) -> None:
+        self._assert_warns(self.create_organization(), REPO_NAME, "no_repository_row")
+
+    @override_options({"github-app.required-permissions": {"contents": "write"}})
+    def test_warns_when_the_repository_has_no_integration(self) -> None:
+        Repository.objects.filter(id=self.repo.id).update(integration_id=None)
+
+        self._assert_warns(self.organization, REPO_NAME, "no_integration_id")
+
+    @override_options({"github-app.required-permissions": {"contents": "write"}})
+    def test_warns_when_the_integration_is_gone(self) -> None:
+        Repository.objects.filter(id=self.repo.id).update(integration_id=self.integration.id + 1000)
+
+        self._assert_warns(self.organization, REPO_NAME, "integration_not_found")
+
+    @override_options({"github-app.required-permissions": {"contents": "write"}})
+    def test_quiet_when_every_repo_resolves(self) -> None:
+        with self.assertNoLogs(LOGGER_NAME, level="WARNING"):
+            assert set(get_missing_permissions_by_repo(self.organization, [REPO_NAME])) == {
+                REPO_NAME
+            }
+
+
+class InstallationUrlTest(TestCase):
+    def _info(self, account_type: str, account_login: str) -> MissingGithubPermissions:
         integration = self.create_integration(
             organization=self.organization,
             provider="github",
@@ -104,63 +214,20 @@ class CommentOnOutOfDateGithubPermissionsTest(TestCase):
         rpc_integration = integration_service.get_integration(integration_id=integration.id)
         assert rpc_integration is not None
         return MissingGithubPermissions(
-            integration=rpc_integration, repo_id=1, missing_scopes=["workflows"]
+            integration=rpc_integration, missing_scopes=["workflows"], repository_id=1
         )
-
-    def _run_state(self) -> SeerRunState:
-        return SeerRunState(
-            run_id=1,
-            blocks=[],
-            status="completed",
-            updated_at="2023-07-18T12:00:00Z",
-            repo_pr_states={
-                "getsentry/sentry": RepoPRState(repo_name="getsentry/sentry", pr_number=92)
-            },
-        )
-
-    def _post_comment(self, account_type: str, account_login: str) -> str:
-        info = self._missing_permissions(account_type, account_login)
-        with patch(
-            "sentry.integrations.github.client.GitHubApiClient.create_comment"
-        ) as create_comment:
-            commented = comment_on_out_of_date_github_permissions(
-                self.organization, self._run_state(), {"getsentry/sentry": info}
-            )
-        assert commented == ["getsentry/sentry"]
-        return create_comment.call_args.args[2]["body"]
 
     def test_user_installation_links_personal_namespace(self) -> None:
-        body = self._post_comment("User", "example-user")
-        assert "https://github.com/settings/installations/123456/permissions/update" in body
+        assert (
+            self._info("User", "example-user").installation_url
+            == "https://github.com/settings/installations/123456/permissions/update"
+        )
 
     def test_org_installation_links_org_namespace(self) -> None:
-        body = self._post_comment("Organization", "getsentry")
-        assert (
+        assert self._info("Organization", "getsentry").installation_url == (
             "https://github.com/organizations/getsentry"
-            "/settings/installations/123456/permissions/update" in body
+            "/settings/installations/123456/permissions/update"
         )
 
-    def test_org_installation_without_account_login_logs_and_skips(self) -> None:
-        info = self._missing_permissions("Organization", "")
-        with (
-            patch(
-                "sentry.integrations.github.client.GitHubApiClient.create_comment"
-            ) as create_comment,
-            patch("sentry.seer.autofix.github_perms.logger") as mock_logger,
-        ):
-            commented = comment_on_out_of_date_github_permissions(
-                self.organization, self._run_state(), {"getsentry/sentry": info}
-            )
-
-        assert commented == []
-        create_comment.assert_not_called()
-        assert (
-            mock_logger.error.call_args.args[0] == "autofix.permissions_comment.no_installation_url"
-        )
-        assert set(mock_logger.error.call_args.kwargs["extra"]) == {
-            "run_id",
-            "organization_id",
-            "repo_id",
-            "integration_id",
-            "account_type",
-        }
+    def test_org_installation_without_account_login_has_no_url(self) -> None:
+        assert self._info("Organization", "").installation_url is None

@@ -1,5 +1,6 @@
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
+from uuid import UUID
 
 import pytest
 from pydantic import ValidationError
@@ -16,7 +17,11 @@ from sentry.seer.autofix.pr_iteration.feedback import (
     parse_feedback,
     serialize_feedback,
 )
-from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
+    ConsumeTask,
+    Decision,
+    TriggerDecision,
+)
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
     MissingCheckSuiteAutofixRun,
@@ -186,6 +191,41 @@ class ParseSerializeFeedbackTest(TestCase):
         mock_resolve.assert_not_called()
         assert parsed[2].source._autofix_run is None
 
+    def test_feedback_id_is_the_source_id(self) -> None:
+        ui = Feedback(
+            source=UserUIFeedbackSource(
+                user_id=7, user_feedback="ui", source_id="aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+            )
+        )
+        comment = Feedback(
+            source=GithubPrCommentFeedbackSource(comment={"id": 99, "body": "@sentry comment"})
+        )
+        suite = Feedback(source=_check_suite_source())
+
+        assert ui.feedback_id == "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+        assert comment.feedback_id == "99"
+        assert suite.feedback_id == "1"
+
+    def test_user_ui_mints_source_id_at_construction(self) -> None:
+        first = UserUIFeedbackSource(user_id=1, user_feedback="a")
+        second = UserUIFeedbackSource(user_id=1, user_feedback="a")
+
+        UUID(first.source_id)
+        UUID(second.source_id)
+        assert first.source_id != second.source_id
+
+    def test_user_ui_source_id_survives_round_trip(self) -> None:
+        item = Feedback(
+            source=UserUIFeedbackSource(
+                user_id=1, user_feedback="ui", source_id="aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+            )
+        )
+
+        parsed = parse_feedback(serialize_feedback([item]))
+
+        assert parsed[0].source.source_id == "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+        assert parsed[0].feedback_id == "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+
     def test_parses_single_object(self) -> None:
         feedback = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="solo"))
 
@@ -301,6 +341,7 @@ class FeedbackBackwardsCompatTest(TestCase):
         assert parsed[0].source.user_feedback == ""
         assert parsed[0].text == "please fix"
         assert parsed[0].ui_text == "please fix"
+        UUID(parsed[0].source.source_id)
 
     def test_parses_old_github_pr_comment_format_without_comment_feedback(self) -> None:
         raw = (
@@ -385,7 +426,7 @@ class GithubPrCommentShouldConsumeTest(TestCase):
         state = _run_state(blocks=[_feedback_block(processed)])
         source = GithubPrCommentFeedbackSource(comment={"id": 555, "body": "@sentry a"})
 
-        assert source.should_consume(state) is False
+        assert source.should_consume(state) == Decision(ok=False, reason="already_processed")
 
     def test_true_when_comment_unseen(self) -> None:
         processed = Feedback(
@@ -394,12 +435,12 @@ class GithubPrCommentShouldConsumeTest(TestCase):
         state = _run_state(blocks=[_feedback_block(processed)])
         source = GithubPrCommentFeedbackSource(comment={"id": 777, "body": "@sentry b"})
 
-        assert source.should_consume(state) is True
+        assert source.should_consume(state) == Decision(ok=True, reason="not_yet_processed")
 
     def test_true_when_comment_id_missing(self) -> None:
         source = GithubPrCommentFeedbackSource(comment={"body": "@sentry a"})
 
-        assert source.should_consume(_run_state()) is True
+        assert source.should_consume(_run_state()) == Decision(ok=True, reason="no_comment_id")
 
 
 class GithubPrReviewCommentTextTest(TestCase):
@@ -516,17 +557,17 @@ class GithubPrReviewBodyTest(TestCase):
         processed = Feedback(source=GithubPrReviewBodyFeedbackSource(review_id=5, body="a"))
         state = _run_state(blocks=[_feedback_block(processed)])
         source = GithubPrReviewBodyFeedbackSource(review_id=5, body="a")
-        assert source.should_consume(state) is False
+        assert source.should_consume(state) == Decision(ok=False, reason="already_processed")
 
     def test_should_consume_true_when_review_unseen(self) -> None:
         processed = Feedback(source=GithubPrReviewBodyFeedbackSource(review_id=5, body="a"))
         state = _run_state(blocks=[_feedback_block(processed)])
         source = GithubPrReviewBodyFeedbackSource(review_id=6, body="b")
-        assert source.should_consume(state) is True
+        assert source.should_consume(state) == Decision(ok=True, reason="not_yet_processed")
 
     def test_should_consume_true_when_review_id_missing(self) -> None:
         source = GithubPrReviewBodyFeedbackSource(body="a")
-        assert source.should_consume(_run_state()) is True
+        assert source.should_consume(_run_state()) == Decision(ok=True, reason="no_review_id")
 
 
 class ConsumeTaskTest(TestCase):
@@ -540,6 +581,36 @@ class ConsumeTaskTest(TestCase):
     def test_later_with_negative_timedelta_returns_zero(self) -> None:
         task = ConsumeTask.Later(when=timedelta(seconds=-10))
         assert task.countdown() == 0
+
+
+class CheckSuiteLogFieldsTest(TestCase):
+    def _event(self, *, head_sha="abc", repo_name="owner/repo", conclusion="failure") -> dict:
+        return {
+            "check_suite": {
+                "id": 1,
+                "head_sha": head_sha,
+                "conclusion": conclusion,
+                "check_runs_url": "https://github.com/owner/repo/check-runs",
+                "app": {"name": "CI"},
+                "updated_at": "2024-01-01T00:00:00Z",
+            },
+            "repository": {
+                "full_name": repo_name,
+                "html_url": "https://github.com/owner/repo",
+            },
+        }
+
+    def test_a_stale_suite_shows_the_two_shas_that_disagreed(self) -> None:
+        source = _check_suite_source(self._event())
+        state = _run_state(
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="newer")}
+        )
+
+        fields = source.log_fields(state)
+
+        assert source.should_queue(state) == Decision(ok=False, reason="stale_head")
+        assert fields["check_suite_head_sha"] == "abc"
+        assert fields["run_pr_commit_sha"] == "newer"
 
 
 class CheckSuiteShouldQueueTest(TestCase):
@@ -563,7 +634,7 @@ class CheckSuiteShouldQueueTest(TestCase):
             repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")}
         )
 
-        assert source.should_queue(state) is True
+        assert source.should_queue(state) == Decision(ok=True, reason="head_matches")
 
     def test_false_when_only_matches_block_commit_sha(self) -> None:
         # A past block's SHA no longer counts: only the PR's current head
@@ -576,7 +647,9 @@ class CheckSuiteShouldQueueTest(TestCase):
             pr_commit_shas={"owner/repo": "abc"},
         )
 
-        assert source.should_queue(_run_state(blocks=[block])) is False
+        assert source.should_queue(_run_state(blocks=[block])) == Decision(
+            ok=False, reason="stale_head"
+        )
 
     def test_false_when_no_match(self) -> None:
         source = _check_suite_source(self._event())
@@ -586,17 +659,17 @@ class CheckSuiteShouldQueueTest(TestCase):
             }
         )
 
-        assert source.should_queue(state) is False
+        assert source.should_queue(state) == Decision(ok=False, reason="stale_head")
 
     def test_false_when_missing_head_sha(self) -> None:
         source = _check_suite_source(self._event(head_sha=""))
 
-        assert source.should_queue(_run_state()) is False
+        assert source.should_queue(_run_state()) == Decision(ok=False, reason="stale_head")
 
     def test_false_when_missing_repo_name(self) -> None:
         source = _check_suite_source(self._event(repo_name=""))
 
-        assert source.should_queue(_run_state()) is False
+        assert source.should_queue(_run_state()) == Decision(ok=False, reason="stale_head")
 
 
 class CheckSuiteShouldConsumeTest(TestCase):
@@ -648,7 +721,7 @@ class CheckSuiteShouldConsumeTest(TestCase):
             repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")}
         )
 
-        assert source.should_consume(state) is True
+        assert source.should_consume(state) == Decision(ok=True, reason="head_matches")
 
     def test_false_when_head_superseded(self) -> None:
         # PR head advanced past the commit the suite ran on -> out of date.
@@ -657,32 +730,38 @@ class CheckSuiteShouldConsumeTest(TestCase):
             repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="newer")}
         )
 
-        assert source.should_consume(state) is False
+        assert source.should_consume(state) == Decision(ok=False, reason="stale_head")
 
     def test_false_when_no_repo_pr_state(self) -> None:
         source = _check_suite_source(self._event())
 
-        assert source.should_consume(_run_state()) is False
+        assert source.should_consume(_run_state()) == Decision(ok=False, reason="stale_head")
 
     def test_false_when_same_suite_same_updated_at(self) -> None:
         """Webhook retry: same suite id + updated_at → already processed."""
         source = _check_suite_source(self._event(updated_at="2024-01-01T00:00:00Z"))
         prior = Feedback(source=_check_suite_source(self._event(updated_at="2024-01-01T00:00:00Z")))
 
-        assert source.should_consume(self._state_with_prior(prior)) is False
+        assert source.should_consume(self._state_with_prior(prior)) == Decision(
+            ok=False, reason="already_processed"
+        )
 
     def test_true_when_same_suite_new_updated_at(self) -> None:
         """GitHub Actions re-run: same suite id, bumped updated_at → consume."""
         source = _check_suite_source(self._event(updated_at="2024-01-02T00:00:00Z"))
         prior = Feedback(source=_check_suite_source(self._event(updated_at="2024-01-01T00:00:00Z")))
 
-        assert source.should_consume(self._state_with_prior(prior)) is True
+        assert source.should_consume(self._state_with_prior(prior)) == Decision(
+            ok=True, reason="head_matches"
+        )
 
     def test_true_when_different_check_suite_id(self) -> None:
         source = _check_suite_source(self._event(suite_id=1))
         prior = Feedback(source=_check_suite_source(self._event(suite_id=99)))
 
-        assert source.should_consume(self._state_with_prior(prior)) is True
+        assert source.should_consume(self._state_with_prior(prior)) == Decision(
+            ok=True, reason="head_matches"
+        )
 
     def test_legacy_missing_updated_at_dedupes_by_suite_id(self) -> None:
         """History without updated_at falls back to suite-id-only dedupe."""
@@ -690,14 +769,13 @@ class CheckSuiteShouldConsumeTest(TestCase):
         prior = Feedback(source=_check_suite_source(legacy_event))
         state = self._state_with_prior(prior)
 
-        assert _check_suite_source(legacy_event).should_consume(state) is False
-        # Re-run with updated_at is a distinct attempt key from suite-id-only legacy.
-        assert (
-            _check_suite_source(self._event(updated_at="2024-01-02T00:00:00Z")).should_consume(
-                state
-            )
-            is True
+        assert _check_suite_source(legacy_event).should_consume(state) == Decision(
+            ok=False, reason="already_processed"
         )
+        # Re-run with updated_at is a distinct attempt key from suite-id-only legacy.
+        assert _check_suite_source(self._event(updated_at="2024-01-02T00:00:00Z")).should_consume(
+            state
+        ) == Decision(ok=True, reason="head_matches")
 
 
 class CheckSuiteShouldTriggerTest(TestCase):
@@ -716,18 +794,24 @@ class CheckSuiteShouldTriggerTest(TestCase):
         )
 
     def test_now_when_no_head_sha(self) -> None:
-        assert self._source(head_sha="").should_trigger(_run_state()) == ConsumeTask.Now
+        assert self._source(head_sha="").should_trigger(_run_state()) == TriggerDecision(
+            task=ConsumeTask.Now, reason="missing_head_sha"
+        )
 
     @patch("sentry.scm.factory.new", side_effect=Exception("boom"))
     def test_now_when_scm_init_fails(self, _mock_new: MagicMock) -> None:
-        assert self._source().should_trigger(_run_state()) == ConsumeTask.Now
+        assert self._source().should_trigger(_run_state()) == TriggerDecision(
+            task=ConsumeTask.Now, reason="scm_init_failed"
+        )
 
     @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", type("Other", (), {}))
     @patch("sentry.scm.factory.new")
     def test_now_when_unsupported_provider(self, mock_new: MagicMock) -> None:
         mock_new.return_value = MagicMock()
 
-        assert self._source().should_trigger(_run_state()) == ConsumeTask.Now
+        assert self._source().should_trigger(_run_state()) == TriggerDecision(
+            task=ConsumeTask.Now, reason="sweep_complete"
+        )
 
     @patch(f"{CHECK_SUITES_PATH}.iter_all_pages")
     @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
@@ -740,7 +824,9 @@ class CheckSuiteShouldTriggerTest(TestCase):
         mock_new.return_value = MagicMock()
         mock_pages.return_value = [{"data": [{"status": "in_progress"}]}]
 
-        assert self._source().should_trigger(_run_state()) == ConsumeTask.Later(timedelta(hours=1))
+        assert self._source().should_trigger(_run_state()) == TriggerDecision(
+            task=ConsumeTask.Later(timedelta(hours=1)), reason="sweep_incomplete"
+        )
 
     @patch(f"{CHECK_SUITES_PATH}.iter_all_pages")
     @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
@@ -753,7 +839,9 @@ class CheckSuiteShouldTriggerTest(TestCase):
         mock_new.return_value = MagicMock()
         mock_pages.return_value = [{"data": [{"status": "completed"}]}]
 
-        assert self._source().should_trigger(_run_state()) == ConsumeTask.Now
+        assert self._source().should_trigger(_run_state()) == TriggerDecision(
+            task=ConsumeTask.Now, reason="sweep_complete"
+        )
 
     @patch(f"{CHECK_SUITES_PATH}.iter_all_pages", side_effect=Exception("boom"))
     @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
@@ -765,7 +853,9 @@ class CheckSuiteShouldTriggerTest(TestCase):
     ) -> None:
         mock_new.return_value = MagicMock()
 
-        assert self._source().should_trigger(_run_state()) == ConsumeTask.Now
+        assert self._source().should_trigger(_run_state()) == TriggerDecision(
+            task=ConsumeTask.Now, reason="sweep_complete"
+        )
 
 
 class ResolveCheckSuiteRepositoriesTest(TestCase):

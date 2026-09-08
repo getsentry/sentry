@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 import {useQueryState} from 'nuqs';
 
+import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -22,12 +23,7 @@ export function useReplayTableSort() {
 
   const handleSortClick = useCallback(
     (key: string) => {
-      const newSort = {
-        field: key,
-        kind: key === sort.field ? (sort.kind === 'asc' ? 'desc' : 'asc') : 'desc',
-      } satisfies Sort;
-
-      setSort(newSort);
+      setSort(getNextSort(key, sort));
 
       trackAnalytics('replay.list-sorted', {
         organization,

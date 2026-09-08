@@ -306,8 +306,23 @@ describe('ExploreToolbar', () => {
     await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]!);
     expect(visualizes).toEqual([new VisualizeFunction('avg(span.self_time)')]);
 
-    // only one left so we hide the delete button
+    // only one left, so the delete button becomes a clear button
     expect(within(section).queryByLabelText('Remove Overlay')).not.toBeInTheDocument();
+    await userEvent.click(within(section).getByLabelText('Clear Visualize'));
+    expect(visualizes).toEqual([new VisualizeFunction('count(span.duration)')]);
+
+    expect(within(section).queryByLabelText('Clear Visualize')).not.toBeInTheDocument();
+    expect(within(section).queryByLabelText('Remove Overlay')).not.toBeInTheDocument();
+  });
+
+  it('does not show a clear button when the default chart is only hidden', async () => {
+    render(<ExploreToolbar />, {additionalWrapper: Wrapper});
+
+    const section = screen.getByTestId('section-visualizes');
+    expect(within(section).queryByLabelText('Clear Visualize')).not.toBeInTheDocument();
+
+    await userEvent.click(within(section).getByText('A'));
+    expect(within(section).queryByLabelText('Clear Visualize')).not.toBeInTheDocument();
   });
 
   it('allows changing group bys', async () => {

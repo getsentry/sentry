@@ -412,11 +412,8 @@ function DynamicSamplingRulesTable({
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>{row.formattedRateType}</SimpleTable.RowCell>
             <SimpleTable.RowCell justify="end" paddingRight="3xl" gap="md">
-              <Tooltip isHoverable title={row.samplingValue.value}>
-                {row.formattedRateValue}
-              </Tooltip>
+              <Tooltip title={row.samplingValue.value}>{row.formattedRateValue}</Tooltip>
               <Tooltip
-                isHoverable
                 title={`This rule ${
                   row.impact > 0 ? 'increases' : 'decreases'
                 } sample rate of matching events`}
@@ -449,11 +446,9 @@ const PanelHeaderRight = styled('div')`
 `;
 
 const BaseSampleRateWrapper = styled(Alert)`
-  padding: ${p => p.theme.space.md};
   margin-right: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.md};
   font-weight: 600;
-  width: max-content;
   flex-basis: 50%;
 `;
 

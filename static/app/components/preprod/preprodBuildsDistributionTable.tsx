@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -15,7 +16,7 @@ import {
   PreprodBuildsHeaderCells,
   PreprodBuildsRowCells,
 } from './preprodBuildsTableCommon';
-import {BuildsTableGrid} from './preprodBuildsTableStyles';
+import {BuildsTableGrid, buildsTableColumns} from './preprodBuildsTableStyles';
 
 interface PreprodBuildsDistributionTableProps {
   builds: BuildDetailsApiResponse[];
@@ -65,8 +66,7 @@ export function PreprodBuildsDistributionTable({
 
   return (
     <BuildsTableGrid
-      tracks={distributionTableColumns}
-      showProjectColumn={showProjectColumn}
+      columns={buildsTableColumns(distributionTableColumns, showProjectColumn)}
       header={
         <SimpleTable.HeaderRow>
           <PreprodBuildsHeaderCells showProjectColumn={showProjectColumn} />
@@ -80,12 +80,13 @@ export function PreprodBuildsDistributionTable({
   );
 }
 
-const distributionTableColumns = {
-  withProject: `minmax(250px, 2fr) minmax(120px, 1fr) minmax(250px, 2fr)
-    minmax(120px, 1fr) minmax(80px, 120px)`,
-  withoutProject: `minmax(250px, 2fr) minmax(250px, 2fr) minmax(120px, 1fr)
-    minmax(80px, 120px)`,
-};
+const distributionTableColumns: TableColumnConfig[] = [
+  {key: 'app', width: 'minmax(250px, 2fr)'},
+  {key: 'project', width: 'minmax(120px, 1fr)'},
+  {key: 'build', width: 'minmax(250px, 2fr)'},
+  {key: 'downloadCount', width: 'minmax(120px, 1fr)'},
+  {key: 'created', width: 'minmax(80px, 120px)'},
+];
 
 const DisabledRow = styled(SimpleTable.Row)`
   [role='cell'] {

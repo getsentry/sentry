@@ -227,6 +227,75 @@ class PostOrganizationDashboardRevisionRestoreTest(OrganizationDashboardRevision
 
         assert response.status_code == 403
 
+    def test_restores_saved_project_for_open_membership_user(self) -> None:
+        organization = self.create_organization(owner=self.user, flags=1)
+        team = self.create_team(organization=organization)
+        project = self.create_project(organization=organization, teams=[team])
+        member = self.create_user()
+        self.create_member(organization=organization, user=member, role="member", teams=[])
+        dashboard = Dashboard.objects.create(
+            title="Duplicated Dashboard",
+            created_by_id=member.id,
+            organization=organization,
+        )
+        dashboard.projects.add(project)
+        revision = DashboardRevision.objects.create(
+            dashboard=dashboard,
+            created_by_id=member.id,
+            title=dashboard.title,
+            source="edit",
+            snapshot={"title": dashboard.title, "widgets": [], "projects": [project.id]},
+            snapshot_schema_version=DashboardRevision.SNAPSHOT_SCHEMA_VERSION,
+        )
+        self.login_as(member)
+
+        response = self.client.post(
+            reverse(
+                "sentry-api-0-organization-dashboard-revision-restore",
+                kwargs={
+                    "organization_id_or_slug": organization.slug,
+                    "dashboard_id": dashboard.id,
+                    "revision_id": revision.id,
+                },
+            )
+        )
+
+        assert response.status_code == 200, response.data
+
+    def test_returns_403_when_snapshot_project_is_not_accessible(self) -> None:
+        organization = self.create_organization(owner=self.user, flags=0)
+        team = self.create_team(organization=organization)
+        project = self.create_project(organization=organization, teams=[team])
+        member = self.create_user()
+        self.create_member(organization=organization, user=member, role="member", teams=[])
+        dashboard = Dashboard.objects.create(
+            title="Restricted Dashboard",
+            created_by_id=member.id,
+            organization=organization,
+        )
+        revision = DashboardRevision.objects.create(
+            dashboard=dashboard,
+            created_by_id=member.id,
+            title=dashboard.title,
+            source="edit",
+            snapshot={"title": dashboard.title, "widgets": [], "projects": [project.id]},
+            snapshot_schema_version=DashboardRevision.SNAPSHOT_SCHEMA_VERSION,
+        )
+        self.login_as(member)
+
+        response = self.client.post(
+            reverse(
+                "sentry-api-0-organization-dashboard-revision-restore",
+                kwargs={
+                    "organization_id_or_slug": organization.slug,
+                    "dashboard_id": dashboard.id,
+                    "revision_id": revision.id,
+                },
+            )
+        )
+
+        assert response.status_code == 403
+
     def test_returns_409_when_restored_title_conflicts_with_another_dashboard(self) -> None:
         Dashboard.objects.create(
             title="Conflicting Title",

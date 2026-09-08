@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -18,6 +19,15 @@ import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {modalCss, ViewCodeOwnerModal} from './viewCodeOwnerModal';
+
+const CODEOWNER_COLUMNS: TableColumnConfig[] = [
+  {key: 'codeowners', width: '1fr'},
+  {key: 'stackRoot', width: '1fr'},
+  {key: 'sourceRoot', width: '1fr'},
+  {key: 'lastSynced', width: 'auto'},
+  {key: 'file', width: 'min-content'},
+  {key: 'actions', width: 'min-content'},
+];
 
 interface CodeOwnerFileTableProps {
   codeowners: CodeOwner[];
@@ -123,6 +133,7 @@ export function CodeOwnerFileTable({
 
   return (
     <StyledSimpleTable
+      columns={CODEOWNER_COLUMNS}
       header={
         <SimpleTable.HeaderRow>
           <SimpleTable.HeaderCell>{t('codeowners')}</SimpleTable.HeaderCell>
@@ -198,7 +209,6 @@ export function CodeOwnerFileTable({
 }
 
 const StyledSimpleTable = styled(SimpleTable)`
-  grid-template-columns: 1fr 1fr 1fr auto min-content min-content;
   position: static;
   overflow: auto;
   white-space: nowrap;

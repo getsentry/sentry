@@ -199,7 +199,6 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
                 organization,
                 path: `/${encodeURIComponent(selectedRelease.version)}/`,
               })}${props.project ? `?project=${props.project.id}` : ''}`}
-              openInNewTab
             >
               <Flex align="center" gap="xs">
                 {t('View release')} <IconOpen size="xs" />

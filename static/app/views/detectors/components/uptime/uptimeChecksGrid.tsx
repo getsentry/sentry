@@ -90,7 +90,6 @@ export function UptimeChecksGrid({traceSampling, uptimeChecks}: Props) {
         {key: 'regionName', width: COL_WIDTH_UNDEFINED, name: t('Region')},
         {key: 'traceId', width: COL_WIDTH_UNDEFINED, name: t('Trace')},
       ]}
-      columnSortBy={[]}
       grid={{
         renderBodyCell: (column, dataRow) => (
           <CheckInBodyCell
@@ -141,7 +140,6 @@ function CheckInBodyCell({
         <TimeCell>
           <Tooltip
             maxWidth={300}
-            isHoverable
             title={t('Checked at %s', <DateTime date={timestamp} seconds />)}
           >
             <DateTime date={scheduledCheckTime} timeZone />
@@ -219,7 +217,6 @@ function CheckInBodyCell({
           <Placeholder height="20px" width="60px" />
         ) : hasOnlySystemSpans ? (
           <Tooltip
-            isHoverable
             title={
               traceSampling
                 ? tct(

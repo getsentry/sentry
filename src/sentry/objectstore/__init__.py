@@ -100,7 +100,7 @@ class UsecaseId(Enum):
             case UsecaseId.DEBUG_FILES:
                 return ObjectstoreClientUsecase(
                     self.value,
-                    compression="none",
+                    compression="zstd",
                     expiration_policy=TimeToIdle(timedelta(days=90)),
                 )
             case UsecaseId.PROFILE_ATTACHMENTS:
@@ -130,7 +130,6 @@ def _create_client() -> Client:
     return Client(
         options["base_url"],
         metrics_backend=SentryMetricsBackend(),
-        propagate_traces=options.get("propagate_traces", False),
         retries=options.get("retries", None),
         timeout_ms=options.get("timeout_ms", None),
         connection_kwargs=options.get(

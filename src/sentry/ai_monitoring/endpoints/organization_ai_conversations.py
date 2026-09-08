@@ -1,23 +1,35 @@
 import logging
 import re
 from collections import defaultdict
-from collections.abc import Mapping
-from datetime import datetime
+from collections.abc import Mapping, Sequence
 from typing import Any, TypedDict
 
 import sentry_sdk
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.ai_monitoring.constants import AI_CONVERSATIONS_FIELDS
+from sentry.ai_monitoring.conversation_titles import fetch_conversation_titles
 from sentry.ai_monitoring.serializers import OrganizationAIConversationsSerializer
-from sentry.ai_monitoring.utils import fetch_conversation_titles
+from sentry.ai_monitoring.utils import get_first_input_message, get_last_output, timestamp_to_float
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.ai_conversation_examples import AIConversationExamples
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.resolver import SearchResolver
@@ -27,12 +39,6 @@ from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import TableQuery
 from sentry.snuba.spans_rpc import Spans
-from sentry.utils.ai_message_normalizer import (
-    FILTERED,
-    extract_assistant_output,
-    normalize_to_messages,
-    stringify_message_content,
-)
 from sentry.utils.tracing import set_span_data, start_span, trace
 
 logger = logging.getLogger("sentry.api.endpoints.organization_ai_conversations")
@@ -76,6 +82,26 @@ class AIConversationResponse(TypedDict):
 # `gen_ai.conversation.id:abc` or `gen_ai.conversation.id:"slack:1234"`.
 _CONVERSATION_ID_LOOKUP_RE = re.compile(r'^gen_ai\.conversation\.id:(?:"[^"]+"|\S+)$')
 
+AI_CONVERSATIONS_QUERY_PARAM = OpenApiParameter(
+    name="query",
+    location="query",
+    required=False,
+    type=str,
+    description=(
+        "Sentry search syntax matched against spans. A conversation is returned when any "
+        "span in it matches. Summary fields include all spans in selected projects and time "
+        "range, not only matching spans."
+    ),
+)
+
+AI_CONVERSATIONS_PER_PAGE_PARAM = OpenApiParameter(
+    name="per_page",
+    location="query",
+    required=False,
+    type=int,
+    description="Number of conversations to return per page. Defaults to 10; maximum is 100.",
+)
+
 
 def _is_conversation_id_lookup(user_query: str) -> bool:
     return bool(_CONVERSATION_ID_LOOKUP_RE.match(user_query.strip()))
@@ -93,80 +119,8 @@ def _extract_conversation_ids(results: EAPResponse) -> list[str]:
     ]
 
 
-def _to_timestamp_float(ts: Any) -> float:
-    """Convert timestamp to float (seconds since epoch)."""
-    if ts is None:
-        return 0.0
-    if isinstance(ts, (int, float)):
-        return float(ts)
-    if hasattr(ts, "timestamp"):
-        return ts.timestamp()
-    if isinstance(ts, str):
-        try:
-            dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
-            return dt.timestamp()
-        except (ValueError, TypeError):
-            return 0.0
-    return 0.0
-
-
 def _compute_timestamp_ms(finish_ts: float) -> int:
     return int(finish_ts * 1000) if finish_ts else 0
-
-
-def _extract_first_user_message(messages: Any) -> str | None:
-    """Extract first user message, handling both old (content) and new (parts) formats."""
-    if isinstance(messages, str) and messages == FILTERED:
-        return FILTERED
-    parsed = normalize_to_messages(messages, "user")
-    if not parsed:
-        return None
-    for msg in parsed:
-        if msg.get("role") == "user":
-            content = stringify_message_content(msg.get("content"))
-            if content:
-                return content
-    return None
-
-
-def _get_first_input_message(row: QueryRow) -> str | None:
-    """
-    Gets first user message from input attributes, checking in priority order.
-    Priority: gen_ai.input.messages > gen_ai.request.messages
-    """
-    # 1. Check new format first (gen_ai.input.messages)
-    input_messages = row.get("gen_ai.input.messages")
-    if input_messages:
-        first_user = _extract_first_user_message(input_messages)
-        if first_user:
-            return first_user
-
-    # 2. Check current format (gen_ai.request.messages)
-    request_messages = row.get("gen_ai.request.messages")
-    if request_messages:
-        return _extract_first_user_message(request_messages)
-
-    return None
-
-
-def _get_last_output(row: QueryRow) -> str | None:
-    """
-    Gets output text from output attributes, checking in priority order.
-    Priority: gen_ai.output.messages > gen_ai.response.text
-    """
-    output_messages = row.get("gen_ai.output.messages")
-    if output_messages:
-        if output_messages == FILTERED:
-            return FILTERED
-        text = extract_assistant_output(output_messages, "assistant")["response_text"]
-        if text:
-            return text
-
-    response_text = row.get("gen_ai.response.text")
-    if response_text:
-        return response_text
-
-    return None
 
 
 def _build_user_response(
@@ -233,25 +187,65 @@ def _build_conversation_response(
     }
 
 
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
-    def get(self, request: Request, organization: Organization) -> Response:
-        if not features.has("organizations:gen-ai-conversations", organization, actor=request.user):
-            return Response(status=404)
+    @extend_schema(
+        operation_id="listOrganizationAIConversations",
+        summary="List an Organization's AI Conversations",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            AI_CONVERSATIONS_QUERY_PARAM,
+            CursorQueryParam,
+            AI_CONVERSATIONS_PER_PAGE_PARAM,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListOrganizationAIConversationsResponse", list[AIConversationResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=AIConversationExamples.LIST_AI_CONVERSATIONS,
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[list[AIConversationResponse]] | Response[ValidationErrorResponse] | Response[None]
+    ):
+        """Return AI conversations ordered by latest span time.
 
+        **Experimental:** This API is under active development and may change.
+
+        `query` uses Sentry search syntax against spans. A conversation matches when
+        any span matches. Summary values then include all conversation spans inside
+        selected project, environment, and time filters.
+        """
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
 
-        serializer = OrganizationAIConversationsSerializer(data=request.GET)
+        sorting_enabled = features.has(
+            "organizations:gen-ai-conversations-querying-enhancements", organization
+        )
+        serializer = OrganizationAIConversationsSerializer(
+            data=request.GET, context={"sorting_enabled": sorting_enabled}
+        )
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         validated_data = serializer.validated_data
 
@@ -262,6 +256,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 limit=limit,
                 user_query=validated_data.get("query", ""),
                 sampling_mode=validated_data.get("samplingMode", "NORMAL"),
+                sorts=validated_data["sort"] if sorting_enabled else None,
             )
 
         with handle_query_errors():
@@ -291,12 +286,13 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         limit: int,
         user_query: str,
         sampling_mode: SAMPLING_MODES = "NORMAL",
+        sorts: Sequence[str] | None = None,
     ) -> list[AIConversationResponse]:
         base_filter = "has:gen_ai.conversation.id has:gen_ai.operation.type"
         query_string = _build_conversation_query(base_filter, user_query)
 
         conversation_ids_results = self._fetch_conversation_ids(
-            snuba_params, query_string, offset, limit, sampling_mode
+            snuba_params, query_string, offset, limit, sampling_mode, sorts
         )
         conversation_ids = _extract_conversation_ids(conversation_ids_results)
 
@@ -316,16 +312,37 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         offset: int,
         limit: int,
         sampling_mode: SAMPLING_MODES,
+        sorts: Sequence[str] | None = None,
     ) -> EAPResponse:
+        selected_columns = ["gen_ai.conversation.id", "max(precise.finish_ts)"]
+        orderby = ["-max(precise.finish_ts)"]
+        if sorts is not None:
+            # Keep groups with missing sort attributes: EAP filters for the presence
+            # of at least one selected aggregate attribute. Timestamp is always present.
+            selected_columns = ["gen_ai.conversation.id", "max(timestamp)"]
+            selected_aliases = set(selected_columns)
+            orderby = []
+            for sort in sorts:
+                expression, alias = AI_CONVERSATIONS_FIELDS[sort.removeprefix("-")]
+                orderby.append(("-" if sort.startswith("-") else "") + alias)
+                if alias not in selected_aliases:
+                    selected_columns.append(
+                        expression if expression == alias else f"{expression} as {alias}"
+                    )
+                    selected_aliases.add(alias)
+            if not any(column.removeprefix("-") == "gen_ai.conversation.id" for column in orderby):
+                orderby.append("gen_ai.conversation.id")
+
+        # TODO (vgrozdanic): Sort on whole conversations instead of only matching spans.
         return Spans.run_table_query(
             params=snuba_params,
             query_string=query_string,
-            selected_columns=["gen_ai.conversation.id", "max(precise.finish_ts)"],
-            orderby=["-max(precise.finish_ts)"],
+            selected_columns=selected_columns,
+            orderby=orderby,
             offset=offset,
             limit=limit,
             referrer=Referrer.API_AI_CONVERSATIONS.value,
-            config=SearchResolverConfig(auto_fields=True),
+            config=SearchResolverConfig(auto_fields=True, disable_aggregate_extrapolation=True),
             sampling_mode=sampling_mode,
         )
 
@@ -333,7 +350,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     def _get_conversations_data(
         self, snuba_params: SnubaParams, conversation_ids: list[str]
     ) -> list[AIConversationResponse]:
-        config = SearchResolverConfig(auto_fields=True)
+        config = SearchResolverConfig(auto_fields=True, disable_aggregate_extrapolation=True)
         resolver = Spans.get_resolver(snuba_params, config)
 
         # Build queries
@@ -533,7 +550,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 if trace_id:
                     traces_by_conversation[conv_id].add(trace_id)
 
-                if row.get("gen_ai.operation.type") == "invoke_agent":
+                if row.get("gen_ai.operation.type") == "agent":
                     agent_name = row.get("gen_ai.agent.name", "")
                     if agent_name:
                         flows_by_conversation[conv_id].append(agent_name)
@@ -589,15 +606,15 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 if not conv_id:
                     continue
 
-                ts = _to_timestamp_float(row.get("timestamp"))
+                ts = timestamp_to_float(row.get("timestamp"))
 
                 # Use the new helper functions for priority-based extraction
                 if conv_id not in first_input_by_conv:
-                    first_user_content = _get_first_input_message(row)
+                    first_user_content = get_first_input_message(row)
                     if first_user_content:
                         first_input_by_conv[conv_id] = first_user_content
 
-                output_content = _get_last_output(row)
+                output_content = get_last_output(row)
                 if output_content:
                     current = last_output_by_conv.get(conv_id)
                     if current is None or ts > current[0]:

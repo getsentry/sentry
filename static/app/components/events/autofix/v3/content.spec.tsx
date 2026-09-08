@@ -60,6 +60,25 @@ describe('SeerDrawerContent', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Start Analysis'}));
 
-    expect(startStep).toHaveBeenCalledWith('root_cause');
+    expect(startStep).toHaveBeenCalledWith('root_cause', {
+      enableBashTools: undefined,
+    });
+  });
+
+  it('starts Autofix with bash tools when force bash mode is set', async () => {
+    localStorage.setItem('autofix-force-bash-mode', 'true');
+    const startStep = jest.fn().mockResolvedValue(undefined);
+
+    render(
+      <SeerDrawerContent
+        aiConfig={makeAiConfig()}
+        autofix={makeAutofix({startStep})}
+        group={GroupFixture()}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Start Analysis'}));
+
+    expect(startStep).toHaveBeenCalledWith('root_cause', {enableBashTools: true});
   });
 });
