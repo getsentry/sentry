@@ -14,17 +14,23 @@ function getInstallSnippet({
   packageManager,
   additionalPackages = [],
   packageName = '@sentry/node',
+  version,
 }: {
   packageManager: 'npm' | 'yarn' | 'pnpm';
   params: DocsParams;
   additionalPackages?: Array<`@sentry/${string}`>;
   packageName?: `@sentry/${string}`;
+  version?: string;
 }) {
   let packages = [packageName];
   if (params.isProfilingSelected) {
     packages.push('@sentry/profiling-node');
   }
   packages = packages.concat(additionalPackages);
+
+  if (version) {
+    packages = packages.map(name => `${name}@${version}`);
+  }
 
   if (packageManager === 'yarn') {
     return `yarn add ${packages.join(' ')}`;
@@ -42,9 +48,12 @@ export function getInstallCodeBlock(
   {
     packageName = '@sentry/node',
     additionalPackages,
+    version,
   }: {
     additionalPackages?: Array<`@sentry/${string}`>;
     packageName?: `@sentry/${string}`;
+    /** Pins every Sentry package to this range, e.g. `^10` */
+    version?: string;
   } = {}
 ): ContentBlock {
   return {
@@ -58,6 +67,7 @@ export function getInstallCodeBlock(
           additionalPackages,
           packageManager: 'npm',
           packageName,
+          version,
         }),
       },
       {
@@ -68,6 +78,7 @@ export function getInstallCodeBlock(
           additionalPackages,
           packageManager: 'yarn',
           packageName,
+          version,
         }),
       },
       {
@@ -78,6 +89,7 @@ export function getInstallCodeBlock(
           additionalPackages,
           packageManager: 'pnpm',
           packageName,
+          version,
         }),
       },
     ],
@@ -160,9 +172,11 @@ function getDefaultNodeImports({
 export const getNodeProfilingOnboarding = ({
   packageName = '@sentry/node',
   profilingLifecycle = 'trace',
+  version,
 }: {
   packageName?: `@sentry/${string}`;
   profilingLifecycle?: 'trace' | 'manual';
+  version?: string;
 } = {}): OnboardingConfig => ({
   install: params => [
     {
@@ -179,6 +193,7 @@ export const getNodeProfilingOnboarding = ({
         },
         getInstallCodeBlock(params, {
           packageName,
+          version,
         }),
       ],
     },
@@ -315,9 +330,11 @@ Sentry.profiler.stopProfiler();
 export const getNodeMcpOnboarding = ({
   packageName = '@sentry/node',
   importPath,
+  version,
 }: {
   importPath?: string;
   packageName?: `@sentry/${string}`;
+  version?: string;
 } = {}): OnboardingConfig => {
   const importFrom = (importPath ?? packageName) as `@sentry/${string}`;
   return {
@@ -336,6 +353,7 @@ export const getNodeMcpOnboarding = ({
           },
           getInstallCodeBlock(params, {
             packageName,
+            version,
           }),
         ],
       },
@@ -482,12 +500,14 @@ export const getNodeLogsOnboarding = <
   docsPlatform,
   packageName,
   importPath,
+  version,
   generateConfigureSnippet = getNodeLogsConfigureSnippet,
 }: {
   docsPlatform: string;
   packageName: `@sentry/${string}`;
   generateConfigureSnippet?: typeof getNodeLogsConfigureSnippet;
   importPath?: string;
+  version?: string;
 }): OnboardingConfig<PlatformOptions> => {
   const importFrom = (importPath ?? packageName) as `@sentry/${string}`;
   return {
@@ -505,7 +525,7 @@ export const getNodeLogsOnboarding = <
               }
             ),
           },
-          getInstallCodeBlock(params, {packageName}),
+          getInstallCodeBlock(params, {packageName, version}),
           {
             type: 'text',
             text: tct(

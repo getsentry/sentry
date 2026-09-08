@@ -41,9 +41,20 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: t('Add the Sentry Node SDK as a dependency:'),
+          text: tct(
+            'Add the Sentry Node SDK as a dependency. Connect is supported up to version 10 of the SDK, so install the [code:10.x] line:',
+            {code: <code />}
+          ),
         },
-        getInstallCodeBlock(params),
+        getInstallCodeBlock(params, {version: '^10'}),
+        {
+          type: 'alert',
+          alertType: 'warning',
+          showIcon: true,
+          text: t(
+            'Version 11 of the Sentry SDK removed the Connect instrumentation. Stay on version 10 to keep Connect support.'
+          ),
+        },
       ],
     },
   ],
