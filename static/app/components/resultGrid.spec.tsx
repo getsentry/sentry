@@ -1,11 +1,16 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {Client} from 'sentry/api';
 import {ResultGrid} from 'sentry/components/resultGrid';
 import {ConfigStore} from 'sentry/stores/configStore';
 
 describe('ResultGrid', () => {
   const endpoint = '/test-endpoint/';
   const path = '/test/';
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   function makeLinkHeader() {
     return (
@@ -111,6 +116,21 @@ describe('ResultGrid', () => {
     await userEvent.click(await screen.findByRole('option', {name: 'Any'}));
 
     await waitFor(() => expect(router.location.query).not.toHaveProperty('status'));
+  });
+
+  it('shows the error state when the fetch itself rejects', async () => {
+    // The API client swallows a fetch-level rejection without running either
+    // callback, so the grid has to observe requestPromise to leave loading.
+    jest.spyOn(Client.prototype, 'request').mockReturnValue({
+      requestPromise: Promise.reject(new Error('Failed to fetch')),
+      alive: true,
+      cancel: () => {},
+    });
+
+    renderBasicGrid();
+    const alert = await screen.findByText('Something bad happened :/');
+
+    expect(alert).toBeInTheDocument();
   });
 });
 

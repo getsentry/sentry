@@ -756,8 +756,9 @@ export function ResultGrid({
     }
 
     const activeCell = cell;
+    const token = fetchTokenRef.current;
 
-    api.request(cellEndpoint(activeCell), {
+    const activeRequest = api.request(cellEndpoint(activeCell), {
       method,
       host: activeCell ? activeCell.locality_url : undefined,
       data: queryParams,
@@ -813,6 +814,17 @@ export function ResultGrid({
         setResults(prev => ({...prev, loading: false, error: true}));
         onError?.(res);
       },
+    });
+
+    // The API client swallows a rejection of the fetch itself (a blocked
+    // request, a network failure) without running either callback, which would
+    // leave the grid stuck on its loading state. Surface it as an error here.
+    // An abort from api.clear() also lands here, but the fetch token was
+    // already bumped by then, so a superseded request is ignored.
+    activeRequest?.requestPromise?.catch(() => {
+      if (token === fetchTokenRef.current) {
+        setResults(prev => ({...prev, loading: false, error: true}));
+      }
     });
   });
 
