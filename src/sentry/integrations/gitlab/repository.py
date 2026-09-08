@@ -119,8 +119,8 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
         """Clean up the attached webhook"""
         project_id = repo.config.get("project_id")
         webhook_id = repo.config.get("webhook_id")
-        # Legacy rows can lack either key. There is no hook to clean up then, and raising
-        # would only stop the user from deleting the repository.
+        # A repository whose hook creation failed has no webhook_id. There is no hook to
+        # clean up then, and raising would only stop the user from deleting the repository.
         if not project_id or not webhook_id:
             return
         installation = self.get_installation(repo.integration_id, repo.organization_id)
