@@ -10,10 +10,15 @@ import pytest
 import requests.exceptions
 import responses
 from cryptography.fernet import Fernet
+from django.contrib.auth.models import AnonymousUser
 from django.test import override_settings
 from django.urls import reverse
+from rest_framework.request import Request
+from rest_framework.test import APIRequestFactory
 from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsResponse
 
+from sentry.api.client_kind import FEATURE_FLAG as CLIENT_KIND_FEATURE_FLAG
+from sentry.api.client_kind import ClientKind, get_client_kind
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
@@ -35,6 +40,7 @@ from sentry.seer.endpoints.seer_rpc import (
     get_repo_installation_id,
     has_repo_code_mappings,
     refresh_monitoring_provider_token,
+    seer_method_registry,
 )
 from sentry.seer.models.run import SeerRunType
 from sentry.seer.sentry_data_models import (
@@ -106,6 +112,45 @@ class TestSeerRpc(APITestCase):
         assert response.status_code == 200
         assert "projects" in response.data
         assert project.id in [p["id"] for p in response.data["projects"]]
+
+    def test_dispatch_declares_seer_as_the_client_kind(self) -> None:
+        org = self.create_organization()
+        captured: list[ClientKind | None] = []
+
+        def fake_method(**kwargs: Any) -> dict[str, Any]:
+            nested = Request(APIRequestFactory().get("/"))
+            nested.user = AnonymousUser()
+            nested.auth = None
+            captured.append(get_client_kind(nested, org))
+            return {"features": []}
+
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        with (
+            self.feature(CLIENT_KIND_FEATURE_FLAG),
+            patch.dict(seer_method_registry, {"get_organization_features": fake_method}),
+        ):
+            response = self.client.post(
+                path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+            )
+
+        assert response.status_code == 200
+        assert captured == [ClientKind.SEER]
+
+    def test_client_kind_scope_does_not_outlive_the_dispatch(self) -> None:
+        org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        with self.feature(CLIENT_KIND_FEATURE_FLAG):
+            response = self.client.post(
+                path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+            )
+            assert response.status_code == 200
+
+            nested = Request(APIRequestFactory().get("/"))
+            nested.user = AnonymousUser()
+            nested.auth = None
+            assert get_client_kind(nested, org) == ClientKind.UNKNOWN
 
     def test_snuba_rate_limit_returns_429(self) -> None:
         """Test that SnubaRPCRateLimitExceeded returns 429 to Seer for retry."""

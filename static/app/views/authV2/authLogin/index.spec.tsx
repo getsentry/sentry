@@ -173,10 +173,9 @@ describe('AuthLogin', () => {
     expect(screen.getByRole('button', {name: 'SSO'})).toBeInTheDocument();
     expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Account Settings'})).toHaveAttribute(
-      'href',
-      'https://sentry.io/settings/account/'
-    );
+    expect(
+      screen.queryByRole('button', {name: 'Account Settings'})
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Clear organization login context'})
     ).not.toBeInTheDocument();
