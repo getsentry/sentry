@@ -1,3 +1,5 @@
+from django.db.migrations.state import StateApps
+
 from sentry.testutils.cases import TestMigrations
 from sentry.testutils.silo import control_silo_test
 
@@ -9,7 +11,7 @@ class ControlCacheVersionBackfillKeynameTest(TestMigrations):
     migrate_from = "0035_add_cacheversion_keyname"
     migrate_to = "0036_controlcacheversion_backfill_keyname"
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: StateApps) -> None:
         ControlCacheVersion = apps.get_model("hybridcloud", "ControlCacheVersion")
         self.to_update = ControlCacheVersion.objects.create(
             key="no_keyname",
@@ -24,7 +26,7 @@ class ControlCacheVersionBackfillKeynameTest(TestMigrations):
         )
         assert self.no_touch.keyname is not None, "initialized"
 
-    def test(self):
+    def test(self) -> None:
         ControlCacheVersion = self.apps.get_model("hybridcloud", "ControlCacheVersion")
 
         updated = ControlCacheVersion.objects.get(id=self.to_update.id)
