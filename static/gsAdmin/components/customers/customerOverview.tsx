@@ -512,16 +512,18 @@ function isWithinAcceptedMargin(
 
 const formatRate = (rate: number) => `${rate.toFixed(2)}%`;
 
-type SampleRateRowProps = {
-  desiredSampleRate: number | null;
-  label: string;
-  rate: number | null;
-};
+const SAMPLE_RATE_LABEL = 'Sample Rate (24h)';
 
-function SampleRateRow({label, rate, desiredSampleRate}: SampleRateRowProps) {
+function SampleRateRow({
+  rate,
+  desiredSampleRate,
+}: {
+  desiredSampleRate: number | null;
+  rate: number | null;
+}) {
   if (!defined(rate)) {
     return (
-      <ThresholdLabel label={label} positive={false}>
+      <ThresholdLabel label={SAMPLE_RATE_LABEL} positive={false}>
         n/a
       </ThresholdLabel>
     );
@@ -546,7 +548,7 @@ function SampleRateRow({label, rate, desiredSampleRate}: SampleRateRowProps) {
 
   return (
     <ThresholdLabel
-      label={label}
+      label={SAMPLE_RATE_LABEL}
       positive={
         effectiveSampleRate && desiredSampleRate
           ? isWithinAcceptedMargin(effectiveSampleRate, desiredSampleRate)
@@ -558,31 +560,11 @@ function SampleRateRow({label, rate, desiredSampleRate}: SampleRateRowProps) {
   );
 }
 
-const SAMPLE_RATE_SOURCES = [
-  {key: 'effectiveSampleRate', label: 'Sample Rate (24h, Generic Metrics)'},
-  {key: 'eapEffectiveSampleRate', label: 'Sample Rate (24h, EAP)'},
-] as const;
-
-// Every state renders one row per source, so the label column keeps its width
-// when the request resolves.
-function SampleRateStatusRows({children}: {children: React.ReactNode}) {
-  return (
-    <Fragment>
-      {SAMPLE_RATE_SOURCES.map(({key, label}) => (
-        <ThresholdLabel key={key} label={label} positive={false}>
-          {children}
-        </ThresholdLabel>
-      ))}
-    </Fragment>
-  );
-}
-
 function DynamicSampling({organization}: {organization: Organization}) {
   const dynamicSamplingEnabled = organization.features?.includes('dynamic-sampling');
 
   const {data, isPending, isError} = useApiQuery<{
     eapEffectiveSampleRate: number | null;
-    effectiveSampleRate: number | null;
   }>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/', {
@@ -596,13 +578,25 @@ function DynamicSampling({organization}: {organization: Organization}) {
   );
 
   if (!dynamicSamplingEnabled) {
-    return <SampleRateStatusRows>Disabled</SampleRateStatusRows>;
+    return (
+      <ThresholdLabel label={SAMPLE_RATE_LABEL} positive={false}>
+        Disabled
+      </ThresholdLabel>
+    );
   }
   if (isError) {
-    return <SampleRateStatusRows>Error loading data</SampleRateStatusRows>;
+    return (
+      <ThresholdLabel label={SAMPLE_RATE_LABEL} positive={false}>
+        Error loading data
+      </ThresholdLabel>
+    );
   }
   if (isPending) {
-    return <SampleRateStatusRows>Loading...</SampleRateStatusRows>;
+    return (
+      <ThresholdLabel label={SAMPLE_RATE_LABEL} positive={false}>
+        Loading...
+      </ThresholdLabel>
+    );
   }
 
   const desiredSampleRate = organization.desiredSampleRate
@@ -610,16 +604,10 @@ function DynamicSampling({organization}: {organization: Organization}) {
     : null;
 
   return (
-    <Fragment>
-      {SAMPLE_RATE_SOURCES.map(({key, label}) => (
-        <SampleRateRow
-          key={key}
-          label={label}
-          rate={data[key]}
-          desiredSampleRate={desiredSampleRate}
-        />
-      ))}
-    </Fragment>
+    <SampleRateRow
+      rate={data.eapEffectiveSampleRate}
+      desiredSampleRate={desiredSampleRate}
+    />
   );
 }
 

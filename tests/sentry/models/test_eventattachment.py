@@ -7,6 +7,7 @@ from django.db import connections, router
 from django.test.utils import CaptureQueriesContext
 
 from sentry.attachments.base import CachedAttachment
+from sentry.constants import DataCategory
 from sentry.models.eventattachment import (
     EventAttachment,
     PendingEventAttachment,
@@ -14,6 +15,7 @@ from sentry.models.eventattachment import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.utils.outcomes import Outcome
 
 
 class EventAttachmentDeleteTest(TestCase):
@@ -69,6 +71,7 @@ class PendingEventAttachmentDeleteTest(TestCase):
             project_id=self.project.id,
             type="event.attachment",
             name="test.txt",
+            size=42,
             blob_path=f"{prefix}/some-key",
         )
 
@@ -116,6 +119,72 @@ class PendingEventAttachmentDeleteTest(TestCase):
 
         mock_get_storage.return_value.delete.assert_not_called()
         assert EventAttachment.objects.filter(id=promoted.id).exists()
+
+    @mock.patch("sentry.models.eventattachment.get_storage")
+    @mock.patch("sentry.utils.outcomes.track_outcome")
+    def test_delete_records_the_dropped_outcome(
+        self, mock_track_outcome: mock.Mock, mock_get_storage: mock.Mock
+    ) -> None:
+        pending = self._create_pending()
+
+        pending.delete()
+
+        assert len(mock_track_outcome.mock_calls) == 2
+
+        outcomes_by_category = {
+            call.kwargs["category"]: call.kwargs for call in mock_track_outcome.mock_calls
+        }
+
+        assert outcomes_by_category == {
+            DataCategory.ATTACHMENT: {
+                "event_id": pending.event_id,
+                "key_id": None,
+                "org_id": self.organization.id,
+                "outcome": Outcome.INVALID,
+                "project_id": self.project.id,
+                "quantity": 42,
+                "reason": "missing_event",
+                "timestamp": pending.date_added,
+                "category": DataCategory.ATTACHMENT,
+            },
+            DataCategory.ATTACHMENT_ITEM: {
+                "event_id": pending.event_id,
+                "key_id": None,
+                "org_id": self.organization.id,
+                "outcome": Outcome.INVALID,
+                "project_id": self.project.id,
+                "quantity": 1,
+                "reason": "missing_event",
+                "timestamp": pending.date_added,
+                "category": DataCategory.ATTACHMENT_ITEM,
+            },
+        }
+
+    @mock.patch("sentry.models.eventattachment.get_storage")
+    @mock.patch("sentry.utils.outcomes.track_outcome")
+    def test_delete_does_not_record_an_outcome_for_a_promoted_row(
+        self, mock_track_outcome: mock.Mock, mock_get_storage: mock.Mock
+    ) -> None:
+        pending = self._create_pending()
+        PendingEventAttachment.objects.filter(id=pending.id).delete()
+
+        # The stale instance `cleanup` is holding. Promotion already emitted ACCEPTED for
+        # this attachment, so recording a drop here would report it twice.
+        pending.delete()
+
+        assert mock_track_outcome.call_count == 0
+
+    @mock.patch("sentry.models.eventattachment.get_storage")
+    @mock.patch("sentry.utils.outcomes.track_outcome")
+    def test_delete_records_at_least_one_byte(
+        self, mock_track_outcome: mock.Mock, mock_get_storage: mock.Mock
+    ) -> None:
+        pending = self._create_pending()
+        pending.update(size=0)
+
+        pending.delete()
+
+        assert mock_track_outcome.mock_calls[0].kwargs["quantity"] == 1
 
     def test_delete_locks_the_row_before_dropping_the_blob(self) -> None:
         pending = self._create_pending()
