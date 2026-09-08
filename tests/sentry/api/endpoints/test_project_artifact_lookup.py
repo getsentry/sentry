@@ -3,11 +3,13 @@ import zipfile
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
 from io import BytesIO
+from unittest.mock import patch
 from uuid import uuid4
 
 import orjson
 from django.core.files.base import ContentFile
 from django.urls import reverse
+from urllib3.exceptions import ProtocolError
 
 from sentry.models.artifactbundle import (
     ArtifactBundle,
@@ -763,6 +765,30 @@ class ArtifactLookupTest(APITestCase):
         )
 
         self.assert_download_matches_file(f"{url}?download=release_file/{rf_a.id}", file_content)
+
+    def test_download_protocol_error_returns_404(self) -> None:
+        file_a = make_file("app.js", b"legitimate-project-a-data", "release.file", {})
+        rf_a = ReleaseFile.objects.create(
+            organization_id=self.organization.id,
+            release_id=self.release.id,
+            file=file_a,
+            name="http://example.com/app.js",
+        )
+
+        self.login_as(user=self.user)
+
+        url = reverse(
+            "sentry-api-0-project-artifact-lookup",
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
+        )
+
+        with patch.object(File, "getfile", side_effect=ProtocolError("connection broken")):
+            response = self.client.get(f"{url}?download=release_file/{rf_a.id}")
+
+        assert response.status_code == 404
 
     def test_download_invalid_id(self) -> None:
         self.login_as(user=self.user)

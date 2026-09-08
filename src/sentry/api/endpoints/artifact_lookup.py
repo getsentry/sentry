@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
+from urllib3.exceptions import HTTPError
 
 from sentry import ratelimits
 from sentry.api.api_owners import ApiOwner
@@ -114,14 +115,14 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         file = file_m.file
 
         try:
-            fp = file.getfile()
+            fp = file.getfile(prefetch=True)
             response = StreamingHttpResponse(
                 iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
             )
             response["Content-Length"] = file.size
             response["Content-Disposition"] = f'attachment; filename="{file.name}"'
             return response
-        except OSError:
+        except (OSError, HTTPError):
             raise Http404
 
     def get(self, request: Request, project: Project) -> Response:
