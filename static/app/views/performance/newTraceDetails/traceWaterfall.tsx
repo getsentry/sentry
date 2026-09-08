@@ -11,6 +11,7 @@ import {
 } from 'react';
 import {flushSync} from 'react-dom';
 import styled from '@emotion/styled';
+import type {Placement} from '@popperjs/core';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
@@ -71,6 +72,11 @@ import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 import {useTraceScrollToPath, type UseTraceScrollToPath} from './useTraceScrollToPath';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
+
+// The settings trigger is the toolbar's last item and the search input beside it grows to
+// fill, so the trigger always sits flush right. In the narrow Seer embed the 300px menu would
+// run past the embed's `overflow: hidden` edge, so let it right-align there instead.
+const SEER_EMBED_MENU_FALLBACKS: Placement[] = ['bottom-end'];
 
 export type TraceWaterfallSource =
   | 'feedback'
@@ -826,6 +832,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           organization={props.organization}
         />
         <TracePreferencesDropdown
+          fallbackPlacements={
+            props.source === 'seer_embed' ? SEER_EMBED_MENU_FALLBACKS : undefined
+          }
           rootEventResults={props.rootEventResults}
           autogroup={
             traceState.preferences.autogroup.parent &&

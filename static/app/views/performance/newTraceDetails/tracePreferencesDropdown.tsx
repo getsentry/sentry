@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import type {Placement} from '@popperjs/core';
 
 import {
   CompactSelect,
@@ -23,13 +24,6 @@ import {getCustomInstrumentationLink} from 'sentry/views/performance/newTraceDet
 import {TraceShortcutsModal} from 'sentry/views/performance/newTraceDetails/traceShortcutsModal';
 import {TRACE_WATERFALL_TIME_COMPRESSION_FEATURE} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
-// The settings trigger is the toolbar's last item and the search input beside it grows to
-// fill, so the trigger always sits flush right and the 300px menu can run past the edge of
-// whatever contains the waterfall. Keep the default `bottom-start` and let Popper fall back
-// to right-aligned only when that would actually overflow — `useOverlay` sets
-// `flipVariations: false`, so without a fallback nothing re-aligns on its own.
-const MENU_FLIP_OPTIONS = {fallbackPlacements: ['bottom-end' as const]};
-
 interface TracePreferencesDropdownProps {
   autogroup: boolean;
   compressedTimeline: boolean;
@@ -38,6 +32,12 @@ interface TracePreferencesDropdownProps {
   onCompressedTimelineChange: () => void;
   onMissingInstrumentationChange: () => void;
   rootEventResults: TraceRootEventQueryResults;
+  /**
+   * Placements Popper may fall back to when the default `bottom-start` would overflow the
+   * menu's clipping container. `useOverlay` sets `flipVariations: false`, so without this the
+   * menu never re-aligns on its own. Pass a stable reference.
+   */
+  fallbackPlacements?: Placement[];
 }
 
 export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
@@ -95,6 +95,12 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
     props.compressedTimeline,
     props.missingInstrumentation,
   ]);
+
+  const fallbackPlacements = props.fallbackPlacements;
+  const flipOptions = useMemo(
+    () => (fallbackPlacements ? {fallbackPlacements} : undefined),
+    [fallbackPlacements]
+  );
 
   const onAutogroupChange = props.onAutogroupChange;
   const onMissingInstrumentationChange = props.onMissingInstrumentationChange;
@@ -163,7 +169,7 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
       }
       onChange={onChange}
       menuWidth={300}
-      flipOptions={MENU_FLIP_OPTIONS}
+      flipOptions={flipOptions}
     />
   );
 }
