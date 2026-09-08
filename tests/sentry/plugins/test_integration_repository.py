@@ -200,7 +200,63 @@ class IntegrationRepositoryTestCase(TestCase):
         assert repo.id == orphan.id
         orphan.refresh_from_db()
         assert orphan.status == ObjectStatus.ACTIVE
+        assert orphan.provider == "integrations:github"
         assert orphan.integration_id == self.integration.id
+
+    def test_create_repositories__ignores_rows_of_other_provider(self, get_jwt: MagicMock) -> None:
+        # The bulk path (link_all_repos, install-change sync) matches by external id too.
+        hidden = self.create_repo(
+            project=self.project,
+            name="group/hidden",
+            provider="integrations:gitlab",
+            external_id=self.config["external_id"],
+        )
+        hidden.update(status=ObjectStatus.HIDDEN)
+        unlinked = self.create_repo(
+            project=self.project,
+            name="group/unlinked",
+            provider="gitlab",
+            external_id="999",
+        )
+        other_config = {**self.config, "external_id": "999", "identifier": "getsentry/other"}
+
+        created, reactivated, missing = self.provider.create_repositories(
+            [self.config, other_config], self.organization
+        )
+
+        assert {repo.external_id for repo in created} == {self.config["external_id"], "999"}
+        assert reactivated == []
+        assert missing == []
+        hidden.refresh_from_db()
+        unlinked.refresh_from_db()
+        assert (hidden.status, hidden.provider) == (ObjectStatus.HIDDEN, "integrations:gitlab")
+        assert (unlinked.integration_id, unlinked.provider) == (None, "gitlab")
+
+    def test_create_repositories__adopts_own_and_provider_less_rows(
+        self, get_jwt: MagicMock
+    ) -> None:
+        hidden = self.create_repo(
+            project=self.project,
+            name=self.repo_name,
+            provider="integrations:github",
+            external_id=self.config["external_id"],
+        )
+        hidden.update(status=ObjectStatus.HIDDEN)
+        orphan = self.create_repo(project=self.project, name="getsentry/other", external_id="999")
+        other_config = {**self.config, "external_id": "999", "identifier": "getsentry/other"}
+
+        created, reactivated, missing = self.provider.create_repositories(
+            [self.config, other_config], self.organization
+        )
+
+        assert created == []
+        assert {repo.id for repo in reactivated} == {hidden.id, orphan.id}
+        assert missing == []
+        for repo in (hidden, orphan):
+            repo.refresh_from_db()
+            assert repo.status == ObjectStatus.ACTIVE
+            assert repo.provider == "integrations:github"
+            assert repo.integration_id == self.integration.id
 
     def test_create_repository__ignores_unlinked_repo_of_other_provider(
         self, get_jwt: MagicMock

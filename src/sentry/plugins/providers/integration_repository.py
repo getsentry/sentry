@@ -126,27 +126,19 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         """
         return [self.id, self.repo_provider, *self.legacy_provider_ids]
 
-    def _adoptable_repositories(
-        self, organization_id: int, external_id: str, **filters: Any
-    ) -> list[RpcRepository]:
-        """Repositories this provider may take over for ``external_id``.
+    def _adoptable_repositories(self, organization_id: int, **filters: Any) -> list[RpcRepository]:
+        """Repositories this provider may take over, narrowed by ``filters``.
 
-        Its own rows (including plugin-era ones) and rows that never had a provider. A
-        row belonging to another provider is a different repository that happens to share
-        the id, and is left alone.
+        Its own rows (including plugin-era ones) and rows that never had a provider. A row
+        belonging to another provider is a different repository that happens to share an
+        external id, and is left alone.
         """
         return [
             *repository_service.get_repositories(
-                organization_id=organization_id,
-                providers=self.owned_provider_ids,
-                external_id=external_id,
-                **filters,
+                organization_id=organization_id, providers=self.owned_provider_ids, **filters
             ),
             *repository_service.get_repositories(
-                organization_id=organization_id,
-                has_provider=False,
-                external_id=external_id,
-                **filters,
+                organization_id=organization_id, has_provider=False, **filters
             ),
         ]
 
@@ -164,12 +156,13 @@ class IntegrationRepositoryProvider(Generic[InstT]):
 
         # first check if there is an existing hidden repository for the organization and external id
         repositories = self._adoptable_repositories(
-            organization.id, external_id, status=ObjectStatus.HIDDEN
+            organization.id, external_id=external_id, status=ObjectStatus.HIDDEN
         )
         existing_repo = repositories[0] if repositories else None
         if existing_repo:
             existing_repo.status = ObjectStatus.ACTIVE
             existing_repo.name = name
+            existing_repo.provider = self.id  # a plugin-era or provider-less row is ours now
             existing_repo.integration_id = integration_id
             existing_repo.url = url
             existing_repo.config = {**existing_repo.config, **(result.get("config") or {})}
@@ -182,7 +175,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
 
         # then check if there is a repository without an integration that matches
         repositories = self._adoptable_repositories(
-            organization.id, external_id, has_integration=False
+            organization.id, external_id=external_id, has_integration=False
         )
         repo = repositories[0] if repositories else None
 
@@ -256,6 +249,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
 
     def _update_repository(self, repo: RpcRepository, config: RepositoryConfig) -> RpcRepository:
         repo.status = ObjectStatus.ACTIVE
+        repo.provider = self.id  # a plugin-era or provider-less row is ours now
 
         new_config = config.get("config") or {}
         repo.config = {**repo.config, **new_config}
@@ -297,17 +291,11 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         repos_to_update: list[RpcRepository] = []
         created_repos: list[RpcRepository] = []
 
-        hidden_repos = repository_service.get_repositories(
-            organization_id=organization.id,
-            status=ObjectStatus.HIDDEN,
-        )
+        hidden_repos = self._adoptable_repositories(organization.id, status=ObjectStatus.HIDDEN)
         repos_to_update.extend(self._update_repositories(hidden_repos, external_id_to_repo_config))
 
         # then check if there are repositories without an integration that matches
-        repositories = repository_service.get_repositories(
-            organization_id=organization.id,
-            has_integration=False,
-        )
+        repositories = self._adoptable_repositories(organization.id, has_integration=False)
         repos_to_update.extend(self._update_repositories(repositories, external_id_to_repo_config))
 
         # create remaining repositories
