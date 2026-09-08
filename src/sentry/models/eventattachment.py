@@ -19,6 +19,7 @@ from objectstore_client import TimeToLive
 
 from sentry.attachments.base import CachedAttachment
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import DataCategory
 from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.bounded import BoundedIntegerField
 from sentry.db.models.manager.base_query_set import BaseQuerySet
@@ -356,7 +357,41 @@ class PendingEventAttachment(EventAttachmentBase):
 
         if is_owner:
             self.delete_blob()
+            self.track_dropped_outcome()
         return rv
+
+    def track_dropped_outcome(self) -> None:
+        """
+        Record the outcome for an attachment that is dropped instead of promoted.
+
+        Promotion is the only place an accepted outcome is emitted, so a pending
+        attachment that expires has no outcome at all unless it gets one here.
+        """
+        from sentry.models.project import Project
+        from sentry.utils.outcomes import Outcome, track_outcome
+
+        try:
+            organization_id = _get_organization(self.project_id)
+        except Project.DoesNotExist:
+            # The project was deleted while the attachment was parked. There is nobody
+            # left to report the drop to.
+            return
+
+        track_outcome(
+            org_id=organization_id,
+            project_id=self.project_id,
+            # NOTE: the standalone attachment consumer does not know the DSN that was used,
+            # so pending attachments are never attributed to a key.
+            key_id=None,
+            outcome=Outcome.INVALID,
+            reason="missing_event",
+            # Report the drop at the time the attachment was ingested, matching the
+            # accepted outcome that promotion would have emitted for the same row.
+            timestamp=self.date_added,
+            event_id=self.event_id,
+            category=DataCategory.ATTACHMENT,
+            quantity=self.size or 1,
+        )
 
 
 def normalize_content_type(content_type: str | None, name: str) -> str:

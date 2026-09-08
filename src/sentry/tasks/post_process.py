@@ -480,9 +480,10 @@ def update_existing_attachments(job: PostProcessJob) -> None:
     # consumer can usually see the event and never takes the pending path at all.
     #
     # It does NOT close the window. An attachment can still be parked after this runs, and
-    # it will be dropped when `PENDING_ATTACHMENT_TTL` expires. What that costs is the
-    # attachment, not the customer's money: `save_pending_attachments` only emits the
-    # ACCEPTED outcome on promotion, so an attachment we lose is one we never billed for.
+    # it will be dropped when `PENDING_ATTACHMENT_TTL` expires, which records an
+    # INVALID(missing_event) outcome. What that costs is the attachment, not the
+    # customer's money: `save_pending_attachments` only emits the ACCEPTED outcome on
+    # promotion, so an attachment we lose is one we never billed for.
     # Closing it properly needs a periodic sweep over pending rows that re-checks
     # eventstore once Snuba has certainly caught up.
     #
