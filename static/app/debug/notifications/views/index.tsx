@@ -48,16 +48,20 @@ export default function DebugNotificationsIndex() {
           <SidebarContainer>
             <DebugNotificationsSidebar />
           </SidebarContainer>
-          <Stack area="body" overflowX="auto">
+          <Stack area="body">
             {selectedRegistration ? (
-              <Stack gap="xl" padding="2xl" minWidth="900px" maxWidth="2000px">
+              <Stack gap="xl" padding="2xl" maxWidth="2000px" containerType="inline-size">
                 <Heading as="h2" variant="success">
                   <Flex gap="md" align="center">
                     {selectedRegistration.source}
                     <Tag variant="success">{selectedRegistration.category}</Tag>
                   </Flex>
                 </Heading>
-                <Grid columns="minmax(400px, 1fr) 450px" gap="2xl" position="relative">
+                <Grid
+                  columns={{zero: '1fr', '3xl': '1fr auto'}}
+                  gap="2xl"
+                  position="relative"
+                >
                   <Stack position="relative" minWidth="400px" justify="start">
                     <EmailPreview registration={selectedRegistration} />
                     <SlackPreview registration={selectedRegistration} />
@@ -69,7 +73,7 @@ export default function DebugNotificationsIndex() {
                     top={`calc(${HEADER_HEIGHT}px + ${theme.space.xl})`}
                     alignSelf="flex-start"
                     minWidth={0}
-                    maxWidth="450px"
+                    maxWidth={{zero: 'none', '3xl': '450px'}}
                   >
                     <DebugNotificationsExample registration={selectedRegistration} />
                   </Container>
