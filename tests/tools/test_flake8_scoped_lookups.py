@@ -9,9 +9,24 @@ its relations.
 import importlib
 
 import pytest
+from django.apps import apps
 from django.db.models import Field, Model, UniqueConstraint
 
 from tools.flake8_plugin import S025_SCOPED_LOOKUPS
+
+# Column names that hold another system's identifier.
+EXTERNAL_COLUMN_NAMES = frozenset({"external_id", "external_identifier", "external_name"})
+
+# Unique external-style columns S025 deliberately does not scope, and why. An entry here
+# is a decision, so a column that stops existing fails the test too.
+NOT_SCOPED: dict[str, str] = {
+    "sentry.models.commitauthor.CommitAuthor.external_id": (
+        "the value is `<provider>:<login>`, so the provider is inside the string"
+    ),
+    "sentry.models.project.Project.external_id": (
+        "unique per organization with no provider column; the schema, not a lookup, decides"
+    ),
+}
 
 
 def _model(path: str) -> type[Model]:
@@ -88,3 +103,36 @@ def test_accepted_kwargs_exist(path: str, required: str, kwarg: str) -> None:
 )
 def test_required_column_is_itself_accepted(required: str, accepted: tuple[str, ...]) -> None:
     assert required in accepted
+
+
+def _looks_external(column: str) -> bool:
+    return column in EXTERNAL_COLUMN_NAMES or column.endswith("_external_id")
+
+
+def _unique_external_columns() -> set[str]:
+    found: set[str] = set()
+    for model in apps.get_models():
+        path = f"{model.__module__}.{model.__qualname__}"
+        for key in _unique_keys(model):
+            found.update(f"{path}.{column}" for column in key if _looks_external(column))
+    return found
+
+
+def test_every_unique_external_column_is_scoped_or_excused() -> None:
+    """A new `external_id`-style column in a unique key must be a decision, not a gap."""
+    scoped = {
+        f"{path}.{column}" for path, columns in S025_SCOPED_LOOKUPS.items() for column in columns
+    }
+    unknown = _unique_external_columns() - scoped - NOT_SCOPED.keys()
+    assert not unknown, (
+        f"{sorted(unknown)}: add to S025_SCOPED_LOOKUPS in tools/flake8_plugin.py, or to "
+        "NOT_SCOPED here with the reason it needs no provider"
+    )
+
+
+def test_excusals_and_rules_name_live_columns() -> None:
+    live = _unique_external_columns()
+    assert set(NOT_SCOPED) <= live, sorted(set(NOT_SCOPED) - live)
+    assert set(NOT_SCOPED).isdisjoint(
+        f"{path}.{column}" for path, columns in S025_SCOPED_LOOKUPS.items() for column in columns
+    )

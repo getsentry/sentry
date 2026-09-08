@@ -114,7 +114,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):
             if validated_data["provider"] in CASE_INSENSITIVE_PROVIDERS:
                 external_name = validated_data.pop("external_name")
 
-                return ExternalActor.objects.get_or_create(
+                return ExternalActor.objects.get_or_create(  # noqa: S025  # provider is in validated_data
                     external_name__iexact=external_name,
                     **validated_data,
                     **lookup_params,

@@ -1245,6 +1245,11 @@ def test_S025_chained_calls_compose() -> None:
         _s025('RepositoryModel.objects.exclude(status=1).filter(external_id="1", integration_id=1)')
         == []
     )
+    # exclude() negates: it neither pins the namespace nor looks a row up.
+    assert _s025('RepositoryModel.objects.exclude(provider="x").filter(external_id="1")') == [
+        "S025 Repository.external_id is only unique together with provider"
+    ]
+    assert _s025('RepositoryModel.objects.exclude(external_id="")') == []
     assert _s025('RepositoryModel.objects.filter(external_id="1").exclude(status=1).first()') == [
         "S025 Repository.external_id is only unique together with provider"
     ]
@@ -1278,8 +1283,14 @@ def test_S025_positional_q_expressions() -> None:
     assert _s025('RepositoryModel.objects.filter(Q(external_id="1") | Q(provider="x"))') == [
         "S025 Repository.external_id is only unique together with provider"
     ]
-    # A helper returning a Q is opaque here; the runtime guard owns that case.
-    assert _s025('RepositoryModel.objects.filter(provider_match("x"), external_id="1")') == []
+    # A helper returning a Q pins nothing; the author says why with a `# noqa`.
+    assert _s025('RepositoryModel.objects.filter(provider_match("x"), external_id="1")') == [
+        "S025 Repository.external_id is only unique together with provider"
+    ]
+    assert (
+        _s025('RepositoryModel.objects.filter(provider_match("x"), provider="x", external_id="1")')
+        == []
+    )
 
 
 def test_S025_repository_service_lookup() -> None:

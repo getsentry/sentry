@@ -132,9 +132,18 @@ S025_SCOPED_LOOKUPS: dict[str, dict[str, dict[str, tuple[str, ...]]]] = {
     "sentry.users.models.identity.IdentityProvider": {
         "external_id": {"type": ("type",)},
     },
+    "sentry.integrations.models.external_actor.ExternalActor": {
+        "external_name": {"provider": ("provider", "integration_id")},
+    },
+    "sentry.integrations.models.integration_external_project.IntegrationExternalProject": {
+        "external_id": {"organization_integration_id": ("organization_integration_id",)},
+    },
+    "sentry.models.organizationcontributors.OrganizationContributors": {
+        "external_identifier": {"provider": ("provider",), "hostname": ("hostname",)},
+    },
 }
 S025_queryset_methods = frozenset(
-    ("filter", "get", "exclude", "get_or_create", "update_or_create", "get_or_none")
+    ("filter", "get", "get_or_create", "update_or_create", "get_or_none")
 )
 # RPC services that compose the same lookups from keyword arguments:
 # {service: {method: (looked-up kwargs, kwargs that pin the provider)}}.
@@ -1002,8 +1011,9 @@ class SentryVisitor(ast.NodeVisitor):
             return
 
         # Every column the chain looks up, against the columns it pins on every matching
-        # row: `Q(a) | Q(b)` looks up both but pins neither. A path across a relation
-        # (`idp__type`) is never a scoped column itself and pins only what a rule names.
+        # row: `Q(a) | Q(b)` looks up both but pins neither, and `exclude()` does neither.
+        # A path across a relation (`idp__type`) is never a scoped column itself and pins
+        # only what a rule names.
         looked_up: set[str] = set()
         pinned: set[str] = set()
         for call in calls:
@@ -1015,11 +1025,11 @@ class SentryVisitor(ast.NodeVisitor):
                     looked_up.add(keyword.arg)
                     pinned.add(keyword.arg)
             for arg in call.args:
-                q_columns = _s025_q_columns(arg)
-                if q_columns is None:
-                    return  # an opaque positional filter; leave it to the runtime guard
-                pinned |= q_columns[0]
-                looked_up |= q_columns[1]
+                # A helper returning a Q, or a `*args` splat, pins nothing: a `# noqa` with
+                # the reason at the call site beats a silent pass.
+                if q_columns := _s025_q_columns(arg):
+                    pinned |= q_columns[0]
+                    looked_up |= q_columns[1]
         looked_up = {column for column in map(_s025_column, looked_up) if column is not None}
         pinned = {column for column in map(_s025_column, pinned) if column is not None}
         if pinned & {"id", "pk"}:
