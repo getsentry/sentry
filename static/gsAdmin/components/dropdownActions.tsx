@@ -86,7 +86,9 @@ export function DropdownActions({actions, label}: Props) {
         });
       }}
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps}>{label}</OverlayTrigger.Button>
+        <OverlayTrigger.Button {...triggerProps} data-test-id="detail-actions">
+          {label}
+        </OverlayTrigger.Button>
       )}
     />
   );
