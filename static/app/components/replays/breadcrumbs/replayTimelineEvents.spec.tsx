@@ -18,6 +18,33 @@ describe('ReplayTimelineEvents', () => {
     });
   });
 
+  it('only loads Seer setup when timeline events are present', async () => {
+    const getSeerSetup = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/seer/setup-check/',
+      body: AutofixSetupFixture({}),
+    });
+    const record = ReplayRecordFixture();
+    const frames = hydrateBreadcrumbs(record, [
+      ReplayClickFrameFixture({timestamp: record.started_at}),
+    ]);
+    const props = {
+      durationMs: 60000,
+      startTimestampMs: record.started_at.getTime(),
+      width: 600,
+    };
+    const {rerender} = render(<ReplayTimelineEvents {...props} frames={[]} />);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(getSeerSetup).not.toHaveBeenCalled();
+
+    rerender(<ReplayTimelineEvents {...props} frames={frames} />);
+    expect(screen.getByRole('button')).toBeInTheDocument();
+    await waitFor(() => expect(getSeerSetup).toHaveBeenCalledTimes(1));
+
+    rerender(<ReplayTimelineEvents {...props} frames={[]} />);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(getSeerSetup).toHaveBeenCalledTimes(1);
+  });
+
   it('does not add query subscriptions as timeline columns are added', async () => {
     const record = ReplayRecordFixture();
     const frames = hydrateBreadcrumbs(

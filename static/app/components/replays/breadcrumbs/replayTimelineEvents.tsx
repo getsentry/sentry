@@ -34,8 +34,6 @@ export function ReplayTimelineEvents({
   startTimestampMs,
   width,
 }: Props) {
-  // Share URL subscriptions: per-marker popstate listeners can exceed React's update depth.
-  const {setActiveTab} = useActiveReplayTab({});
   const markerWidth = frames.length < 200 ? 4 : frames.length < 500 ? 6 : 10;
 
   const totalColumns = Math.floor(width / markerWidth);
@@ -43,18 +41,40 @@ export function ReplayTimelineEvents({
 
   return (
     <Timeline.Columns className={className} totalColumns={totalColumns} remainder={0}>
-      {Array.from(framesByCol.entries()).map(([column, colFrames]) => (
-        <EventColumn key={column} style={{gridColumn: Math.floor(column)}}>
-          <Event
-            frames={colFrames}
-            markerWidth={markerWidth}
-            setActiveTab={setActiveTab}
-            startTimestampMs={startTimestampMs}
-          />
-        </EventColumn>
-      ))}
+      {framesByCol.size > 0 ? (
+        <EventColumns
+          framesByCol={framesByCol}
+          markerWidth={markerWidth}
+          startTimestampMs={startTimestampMs}
+        />
+      ) : null}
     </Timeline.Columns>
   );
+}
+
+function EventColumns({
+  framesByCol,
+  markerWidth,
+  startTimestampMs,
+}: {
+  framesByCol: Map<number, ReplayFrame[]>;
+  markerWidth: number;
+  startTimestampMs: number;
+}) {
+  // Share URL subscriptions: per-marker popstate listeners can exceed React's update depth.
+  // Mount only with events so empty timelines don't load Seer setup through this hook.
+  const {setActiveTab} = useActiveReplayTab({});
+
+  return Array.from(framesByCol.entries()).map(([column, colFrames]) => (
+    <EventColumn key={column} style={{gridColumn: Math.floor(column)}}>
+      <Event
+        frames={colFrames}
+        markerWidth={markerWidth}
+        setActiveTab={setActiveTab}
+        startTimestampMs={startTimestampMs}
+      />
+    </EventColumn>
+  ));
 }
 
 const EventColumn = styled(Timeline.Col)`
