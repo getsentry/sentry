@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from unittest import mock
 from uuid import uuid4
 
@@ -48,12 +47,9 @@ class EventAttachmentDeleteTest(TestCase):
         mock_get_session: mock.Mock,
     ) -> None:
         attachment = self._create_v2_attachment()
+        attachment.date_expires = attachment.date_added
 
-        os.environ["_SENTRY_CLEANUP"] = "1"
-        try:
-            attachment.delete()
-        finally:
-            del os.environ["_SENTRY_CLEANUP"]
+        attachment.delete()
 
         mock_get_session.return_value.delete.assert_not_called()
         assert not EventAttachment.objects.filter(id=attachment.id).exists()
@@ -94,11 +90,7 @@ class PendingEventAttachmentDeleteTest(TestCase):
     ) -> None:
         pending = self._create_pending("v2")
 
-        os.environ["_SENTRY_CLEANUP"] = "1"
-        try:
-            pending.delete()
-        finally:
-            del os.environ["_SENTRY_CLEANUP"]
+        pending.delete()
 
         mock_get_session.return_value.delete.assert_called_once_with("some-key")
         assert not PendingEventAttachment.objects.filter(id=pending.id).exists()
