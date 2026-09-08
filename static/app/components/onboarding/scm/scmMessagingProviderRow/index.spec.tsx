@@ -128,6 +128,7 @@ function ControlledRow({
   messagingSetup,
   initialActiveRow = null,
   isRefetchingIntegrations = false,
+  onContinue = jest.fn(),
   onInstallComplete = jest.fn(),
   onMessagingSetupChange = jest.fn(),
   renderChannelPicker,
@@ -136,6 +137,7 @@ function ControlledRow({
   resolvedProvider: ScmMessagingResolvedProvider;
   initialActiveRow?: ScmMessagingActiveRow;
   isRefetchingIntegrations?: boolean;
+  onContinue?: jest.Mock;
   onInstallComplete?: jest.Mock;
   onMessagingSetupChange?: jest.Mock;
   renderChannelPicker?: jest.Mock;
@@ -147,6 +149,7 @@ function ControlledRow({
       messagingSetup={messagingSetup}
       activeRow={activeRow}
       onActiveRowChange={setActiveRow}
+      onContinue={onContinue}
       onInstallComplete={onInstallComplete}
       onMessagingSetupChange={onMessagingSetupChange}
       renderChannelPicker={renderChannelPicker}
@@ -161,12 +164,14 @@ function renderRow(
   overrides: {
     initialActiveRow?: ScmMessagingActiveRow;
     isRefetchingIntegrations?: boolean;
+    onContinue?: jest.Mock;
     onInstallComplete?: jest.Mock;
     onMessagingSetupChange?: jest.Mock;
     organization?: Partial<Organization>;
     renderChannelPicker?: jest.Mock;
   } = {}
 ) {
+  const onContinue = overrides.onContinue ?? jest.fn();
   const onInstallComplete = overrides.onInstallComplete ?? jest.fn();
   const onMessagingSetupChange = overrides.onMessagingSetupChange ?? jest.fn();
   const renderChannelPicker = overrides.renderChannelPicker;
@@ -177,6 +182,7 @@ function renderRow(
       resolvedProvider={resolvedProvider}
       messagingSetup={messagingSetup}
       initialActiveRow={overrides.initialActiveRow}
+      onContinue={onContinue}
       onInstallComplete={onInstallComplete}
       onMessagingSetupChange={onMessagingSetupChange}
       renderChannelPicker={renderChannelPicker}
@@ -364,6 +370,7 @@ describe('ScmMessagingProviderRow', () => {
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
+          onContinue={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
         />,
@@ -385,6 +392,7 @@ describe('ScmMessagingProviderRow', () => {
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
+          onContinue={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
         />
@@ -419,6 +427,7 @@ describe('ScmMessagingProviderRow', () => {
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
+          onContinue={jest.fn()}
           onInstallComplete={onInstallComplete}
           onMessagingSetupChange={jest.fn()}
         />
@@ -436,6 +445,7 @@ describe('ScmMessagingProviderRow', () => {
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
+          onContinue={jest.fn()}
           onInstallComplete={onInstallComplete}
           onMessagingSetupChange={jest.fn()}
           isRefetchingIntegrations
@@ -464,6 +474,7 @@ describe('ScmMessagingProviderRow', () => {
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
+          onContinue={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
         />,
@@ -480,6 +491,7 @@ describe('ScmMessagingProviderRow', () => {
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
+          onContinue={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
           isRefetchingIntegrations
@@ -495,6 +507,7 @@ describe('ScmMessagingProviderRow', () => {
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
+          onContinue={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
         />
@@ -676,6 +689,7 @@ describe('ScmMessagingProviderRow', () => {
           messagingSetup={selectedSlackSetup}
           activeRow={null}
           onActiveRowChange={jest.fn()}
+          onContinue={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={onMessagingSetupChange}
           renderChannelPicker={renderChannelPicker}

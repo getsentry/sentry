@@ -30,6 +30,7 @@ export function isEligibleForIssueAlerts(integration: OrganizationIntegration): 
   if (integration.provider.key !== 'msteams') {
     return true;
   }
+
   return integration.configData?.installationType !== 'tenant';
 }
 
