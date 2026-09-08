@@ -132,6 +132,20 @@ const LINK_RULE_EXAMPLES: Record<string, LinkSubject> = {
     name: 'get_metric_attributes',
     params: {trace_id: 'trace1'},
   },
+  organization_events: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/events/',
+    params: {},
+    title: 'Querying spans for transaction:/issues/',
+    query: {
+      dataset: 'spans',
+      query: 'transaction:/issues/',
+      project: '2',
+      statsPeriod: '30d',
+      field: 'count()',
+    },
+  },
   telemetry_live_search: {
     kind: 'link',
     name: 'telemetry_live_search',
@@ -773,6 +787,79 @@ describe('search links', () => {
         query: {node: 'span-span1'},
       },
     });
+  });
+});
+
+describe('organization_events', () => {
+  it('deep-links a raw Explore events call from resolved_path query params', () => {
+    const subject = subjectFromCallRecord({
+      id: 1,
+      kind: 'api',
+      method: 'GET',
+      path: '/api/0/organizations/{organization_id_or_slug}/events/',
+      title: 'Querying spans for transaction:/issues/',
+      resolved_path:
+        '/api/0/organizations/org-slug/events/?dataset=spans&query=transaction%3A%2Fissues%2F&project=2&statsPeriod=30d&field=count%28%29',
+    });
+    const link = resolveLink(subject, ctx);
+    expect(link?.id).toBe('organization_events');
+    expect(link?.label).toBe('Querying spans for transaction:/issues/');
+    expect(link?.url).toEqual(
+      expect.objectContaining({
+        pathname: '/organizations/org-slug/traces/',
+        query: expect.objectContaining({
+          query: 'transaction:/issues/',
+          project: ['2'],
+          statsPeriod: '30d',
+        }),
+      })
+    );
+  });
+
+  it('maps timeseries axes and grouping into an aggregate Explore link', () => {
+    const subject = subjectFromCallRecord({
+      id: 1,
+      kind: 'api',
+      method: 'GET',
+      path: '/api/0/organizations/{organization_id_or_slug}/events-timeseries/',
+      title: 'Querying span duration by transaction',
+      resolved_path:
+        '/api/0/organizations/org-slug/events-timeseries/?dataset=spans&query=has%3Aduration&yAxis=p95%28span.duration%29&groupBy=transaction',
+    });
+
+    expect(resolveLink(subject, ctx)).toEqual(
+      expect.objectContaining({
+        id: 'organization_events',
+        url: expect.objectContaining({
+          pathname: '/organizations/org-slug/traces/',
+          query: expect.objectContaining({
+            aggregateField: [
+              JSON.stringify({yAxes: ['p95(span.duration)']}),
+              JSON.stringify({groupBy: 'transaction'}),
+            ],
+            groupBy: ['transaction'],
+            mode: 'aggregate',
+            visualize: [JSON.stringify('p95(span.duration)')],
+            yAxes: [JSON.stringify('p95(span.duration)')],
+          }),
+        }),
+      })
+    );
+  });
+
+  it('declines without a dataset rather than guessing a destination', () => {
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'GET',
+          path: '/api/0/organizations/{organization_id_or_slug}/events/',
+          params: {},
+          query: {query: 'transaction:/issues/'},
+        },
+        ctx
+      )
+    ).toBeNull();
   });
 });
 

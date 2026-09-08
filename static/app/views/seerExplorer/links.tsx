@@ -576,6 +576,34 @@ export const LINK_RULES: LinkRule[] = [
   // seer read. ---
 
   {
+    // Raw Explore table/timeseries calls. Subject is in the query string (dataset/query), not the
+    // path; subjectFromCallRecord already splits that off resolved_path. Title text stays seer's.
+    id: 'organization_events',
+    match: ({kind, method, path}) =>
+      kind === 'api' &&
+      method === 'GET' &&
+      !!path &&
+      /\/organizations\/\{organization_id_or_slug\}\/events(?:-timeseries)?\/?$/.test(
+        path
+      ),
+    resolve: ({query, title}, {projects}) => {
+      const params = exploreApiSearchParams(query);
+      if (!params) {
+        return null;
+      }
+      const url = searchUrl(params, projects);
+      if (!url) {
+        return null;
+      }
+      const datasetLabel = telemetryDatasetLabel(params.dataset);
+      return {
+        label: title ?? (datasetLabel ? t('View %s', datasetLabel) : t('View results')),
+        url,
+      };
+    },
+  },
+
+  {
     id: 'telemetry_live_search',
     resolve: ({kind, params, title}, {projects}) => {
       // Arrives on both channels. The bus link always carries the translated query. The call row
@@ -589,7 +617,12 @@ export const LINK_RULES: LinkRule[] = [
         return null;
       }
 
-      const url = searchUrl(params, projects);
+      const searchParams = asExploreSearchParams(params);
+      if (!searchParams) {
+        return null;
+      }
+
+      const url = searchUrl(searchParams, projects);
       if (!url) {
         return null;
       }
@@ -597,7 +630,7 @@ export const LINK_RULES: LinkRule[] = [
       // Prefer seer's title when present (the call row ships one); otherwise name the dataset so a
       // residual nav link is not a generic "View results" under a row that already says which
       // dataset ran.
-      const datasetLabel = telemetryDatasetLabel(params.dataset);
+      const datasetLabel = telemetryDatasetLabel(searchParams.dataset);
       return {
         label: title ?? (datasetLabel ? t('View %s', datasetLabel) : t('View results')),
         url,
@@ -759,6 +792,115 @@ function getStringArray(value: unknown): string[] {
   return typeof value === 'string' ? [value] : [];
 }
 
+/**
+ * Shared shape for telemetry deep-links into Explore / Discover / Issues.
+ *
+ * Built by `exploreApiSearchParams` from a raw API query string, and also accepted from seer-emitted
+ * `telemetry_live_search` params (which may still carry extra keys we ignore).
+ */
+type ExploreSearchParams = {
+  dataset: string;
+  end?: string;
+  group_by?: string[];
+  mode?: string;
+  project_ids?: string[];
+  project_slugs?: string[];
+  query?: string;
+  sort?: string;
+  start?: string;
+  stats_period?: string;
+  /** Present on metrics live-search links; validated in `getTraceMetricFromParams`. */
+  trace_metric?: unknown;
+  y_axes?: string[];
+};
+
+/** Narrow seer/link params onto the fields `searchUrl` reads. No dataset → no link. */
+function asExploreSearchParams(
+  params: Record<string, unknown>
+): ExploreSearchParams | null {
+  if (typeof params.dataset !== 'string' || !params.dataset) {
+    return null;
+  }
+
+  const projectIds = getStringArray(params.project_ids);
+  const projectSlugs = getStringArray(params.project_slugs);
+  const yAxes = getStringArray(params.y_axes);
+  const groupBy = getStringArray(params.group_by);
+
+  return {
+    dataset: params.dataset,
+    query: typeof params.query === 'string' ? params.query : undefined,
+    sort: typeof params.sort === 'string' ? params.sort : undefined,
+    stats_period:
+      typeof params.stats_period === 'string' ? params.stats_period : undefined,
+    start: typeof params.start === 'string' ? params.start : undefined,
+    end: typeof params.end === 'string' ? params.end : undefined,
+    project_ids: projectIds.length > 0 ? projectIds : undefined,
+    project_slugs: projectSlugs.length > 0 ? projectSlugs : undefined,
+    y_axes: yAxes.length > 0 ? yAxes : undefined,
+    group_by: groupBy.length > 0 ? groupBy : undefined,
+    mode: typeof params.mode === 'string' ? params.mode : undefined,
+    trace_metric: params.trace_metric,
+  };
+}
+
+/**
+ * Map a raw Explore API query string onto the param shape `searchUrl` already understands.
+ *
+ * Declines when there is no dataset: without one we cannot pick Discover vs Logs vs Traces, and a
+ * guessed destination is worse than an unlinked row.
+ */
+function exploreApiSearchParams(
+  query: Record<string, unknown> | undefined
+): ExploreSearchParams | null {
+  if (!query) {
+    return null;
+  }
+  const dataset = typeof query.dataset === 'string' ? query.dataset : undefined;
+  if (!dataset) {
+    return null;
+  }
+
+  const params: ExploreSearchParams = {
+    dataset,
+    query: typeof query.query === 'string' ? query.query : '',
+  };
+  if (typeof query.sort === 'string' && query.sort) {
+    params.sort = query.sort;
+  }
+  if (typeof query.statsPeriod === 'string' && query.statsPeriod) {
+    params.stats_period = query.statsPeriod;
+  }
+  if (typeof query.start === 'string' && query.start) {
+    params.start = query.start;
+  }
+  if (typeof query.end === 'string' && query.end) {
+    params.end = query.end;
+  }
+
+  // httpx/urlencode repeats `project=`; query-string may collapse that to a string or keep an array.
+  if (query.project !== undefined) {
+    params.project_ids = getStringArray(query.project);
+  }
+
+  const axes = [
+    ...getStringArray(query.field).filter(name => name.includes('(')),
+    ...getStringArray(query.yAxis),
+  ];
+  if (axes.length > 0) {
+    params.y_axes = axes;
+    params.mode = 'aggregates';
+  }
+
+  const groups = getStringArray(query.groupBy);
+  if (groups.length > 0) {
+    params.group_by = groups;
+    params.mode = 'aggregates';
+  }
+
+  return params;
+}
+
 /** Dataset noun for residual telemetry links, or undefined when unknown. */
 function telemetryDatasetLabel(dataset: unknown): string | undefined {
   switch (dataset) {
@@ -785,12 +927,17 @@ function telemetryDatasetLabel(dataset: unknown): string | undefined {
  * filters are built once and the dataset branch translates from there.
  */
 function searchUrl(
-  params: Record<string, any>,
+  params: ExploreSearchParams,
   projects?: Array<{id: string; slug: string}>
 ): LocationDescriptor | null {
-  const {dataset, project_slugs, query, sort, stats_period, start, end} = params;
+  const {dataset, project_slugs, project_ids, query, sort, stats_period, start, end} =
+    params;
 
-  const queryParams: Record<string, any> = {query: query || '', project: null};
+  // history's LocationDescriptor query is stringy; keep values in that shape.
+  const queryParams: Record<string, string | string[] | null | undefined> = {
+    query: query || '',
+    project: null,
+  };
   if (stats_period) {
     queryParams.statsPeriod = stats_period;
   }
@@ -804,7 +951,10 @@ function searchUrl(
   if (end) {
     queryParams.end = end.replace(/Z$/, '');
   }
-  if (project_slugs?.length && projects) {
+  if (project_ids?.length) {
+    // Raw Explore API already ships numeric project ids — keep them as-is.
+    queryParams.project = getStringArray(project_ids);
+  } else if (project_slugs?.length && projects) {
     const projectIds = project_slugs
       .map((slug: string) => projects.find(p => p.slug === slug)?.id)
       .filter((id: string | undefined) => id !== undefined);
@@ -834,12 +984,14 @@ function searchUrl(
   return {pathname: '/traces/', query: spansQuery(queryParams, params)};
 }
 
+type LocationQuery = Record<string, string | string[] | null | undefined>;
+
 function errorsQuery(
-  queryParams: Record<string, any>,
-  params: Record<string, any>
-): Record<string, any> {
+  queryParams: LocationQuery,
+  params: ExploreSearchParams
+): LocationQuery {
   const {y_axes, group_by} = params;
-  const next: Record<string, any> = {
+  const next: LocationQuery = {
     ...queryParams,
     dataset: 'errors',
     queryDataset: 'error-events',
@@ -857,7 +1009,7 @@ function errorsQuery(
     : [...DEFAULT_EVENT_VIEW_MAP[SavedQueryDatasets.ERRORS].fields];
 
   // Discover sort strips parentheses from aggregates: -count() -> -count
-  if (next.sort) {
+  if (typeof next.sort === 'string') {
     next.sort = next.sort.replace(/\(\)/g, '');
   }
 
@@ -865,14 +1017,17 @@ function errorsQuery(
 }
 
 function logsQuery(
-  queryParams: Record<string, any>,
-  params: Record<string, any>
-): Record<string, any> {
+  queryParams: LocationQuery,
+  params: ExploreSearchParams
+): LocationQuery {
   const {group_by, mode} = params;
   const {query, sort, ...rest} = queryParams;
-  const next: Record<string, any> = {...rest, [LOGS_QUERY_KEY]: query || ''};
+  const next: LocationQuery = {
+    ...rest,
+    [LOGS_QUERY_KEY]: typeof query === 'string' ? query : '',
+  };
 
-  if (sort) {
+  if (typeof sort === 'string') {
     next[LOGS_SORT_BYS_KEY] = sort;
   }
   if (group_by) {
@@ -886,11 +1041,11 @@ function logsQuery(
 }
 
 function spansQuery(
-  queryParams: Record<string, any>,
-  params: Record<string, any>
-): Record<string, any> {
+  queryParams: LocationQuery,
+  params: ExploreSearchParams
+): LocationQuery {
   const {y_axes, group_by, mode} = params;
-  const next = {...queryParams};
+  const next: LocationQuery = {...queryParams};
   const aggregateFields: string[] = [];
 
   if (y_axes) {
@@ -921,23 +1076,22 @@ function spansQuery(
   return next;
 }
 
-function getTraceMetricFromParams(params: Record<string, any>): TraceMetric | null {
+function getTraceMetricFromParams(params: ExploreSearchParams): TraceMetric | null {
   const rawTraceMetric = params.trace_metric;
-  if (
-    !rawTraceMetric ||
-    typeof rawTraceMetric !== 'object' ||
-    typeof rawTraceMetric.name !== 'string' ||
-    typeof rawTraceMetric.type !== 'string'
-  ) {
+  if (!rawTraceMetric || typeof rawTraceMetric !== 'object') {
     return null;
   }
 
-  const traceMetric: TraceMetric = {
-    name: rawTraceMetric.name,
-    type: rawTraceMetric.type,
-  };
-  if (typeof rawTraceMetric.unit === 'string') {
-    traceMetric.unit = rawTraceMetric.unit;
+  const name = 'name' in rawTraceMetric ? rawTraceMetric.name : undefined;
+  const type = 'type' in rawTraceMetric ? rawTraceMetric.type : undefined;
+  if (typeof name !== 'string' || typeof type !== 'string') {
+    return null;
+  }
+
+  const traceMetric: TraceMetric = {name, type};
+  const unit = 'unit' in rawTraceMetric ? rawTraceMetric.unit : undefined;
+  if (typeof unit === 'string') {
+    traceMetric.unit = unit;
   }
   return traceMetric;
 }
@@ -987,7 +1141,7 @@ function parseMetricsSort(
   return {field: sortField, kind};
 }
 
-function buildMetricsQueryParam(params: Record<string, any>): string[] | undefined {
+function buildMetricsQueryParam(params: ExploreSearchParams): string[] | undefined {
   const traceMetric = getTraceMetricFromParams(params);
   if (!traceMetric) {
     return undefined;
