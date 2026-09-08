@@ -284,9 +284,18 @@ function CellResult({
       data-test-id="text-cell-result"
       data-cell-variant="unbordered"
     >
-      <Container position="absolute" top={0} right={0}>
-        {actions}
-      </Container>
+      {block.title ? (
+        <Flex align="start" justify="between" gap="md">
+          <Heading as="h2" size="lg" density="compressed">
+            {block.title}
+          </Heading>
+          {actions}
+        </Flex>
+      ) : (
+        <Container position="absolute" top={0} right={0}>
+          {actions}
+        </Container>
+      )}
       <CellExecutionAlert block={block} />
       {markdown ? (
         <SeerMarkdown raw={markdown} />
@@ -329,7 +338,7 @@ function QueryResult({
           onClick={() => setExpanded(value => !value)}
         >
           <Text data-test-id="query-cell-title" size="sm" tabular>
-            {title}
+            {t('Evidence/%s', title)}
           </Text>
         </QueryDisclosureButton>
         {actions}
@@ -469,9 +478,30 @@ export function shouldDisplayInvestigationBlock(
   block: InvestigationBlock,
   blocks: InvestigationBlock[]
 ) {
-  // Waiting cells have no useful content yet. Dependency failures and cancellations
-  // remain visible so users can understand why downstream work stopped.
-  return getCellProgressState(block, blocks) !== 'waiting';
+  const progressState = getCellProgressState(block, blocks);
+
+  if (progressState === 'waiting') {
+    return false;
+  }
+
+  if (
+    progressState === 'failed' ||
+    progressState === 'cancelled' ||
+    progressState === 'blockedByFailure' ||
+    progressState === 'blockedByCancellation'
+  ) {
+    return hasRenderableBlockContent(block);
+  }
+
+  return true;
+}
+
+function hasRenderableBlockContent(block: InvestigationBlock) {
+  if (block.kind === 'text') {
+    return Boolean(getTextOutput(block.output) ?? block.content.trim());
+  }
+
+  return getQueryOutput(block.output) !== null;
 }
 
 export function shouldPollInvestigationBlocks(blocks: InvestigationBlock[]) {

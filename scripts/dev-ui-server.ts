@@ -3,6 +3,7 @@ import * as net from 'node:net';
 
 const DEFAULT_PORT = parseInt(process.env.SENTRY_WEBPACK_PROXY_PORT ?? '7999', 10);
 const MAX_PORT_SEARCH = 10;
+const IS_READ_ONLY = process.env.SENTRY_DEV_UI_READ_ONLY === '1';
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -27,6 +28,12 @@ async function findNextPort(
 }
 
 function startServer(port: number): void {
+  if (IS_READ_ONLY) {
+    process.stderr.write(
+      'Read-only dev-ui mode enabled: non-GET API requests will be blocked locally.\n'
+    );
+  }
+
   const child = spawn('rspack', ['serve'], {
     env: {...process.env, SENTRY_WEBPACK_PROXY_PORT: String(port)},
     stdio: 'inherit',

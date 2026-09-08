@@ -85,6 +85,10 @@ declare global {
      */
     __SENTRY_DEV_UI?: boolean;
     /**
+     * Is the dev-ui proxy blocking requests that can mutate production data.
+     */
+    __SENTRY_DEV_UI_READ_ONLY?: boolean;
+    /**
      * Sentrys version string
      */
     __SENTRY__VERSION?: string;
