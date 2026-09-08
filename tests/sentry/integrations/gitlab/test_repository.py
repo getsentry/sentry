@@ -135,11 +135,12 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             serialize_repository(repo), serialize_rpc_organization(self.organization)
         )
 
-    def add_webhook_recreate_responses(self, delete_status: int) -> None:
+    def add_relink_responses(self, update_status: int) -> None:
         responses.add(
-            responses.DELETE,
+            responses.PUT,
             "https://example.gitlab.com/api/v4/projects/%s/hooks/99" % self.gitlab_id,
-            status=delete_status,
+            status=update_status,
+            json={"id": 99},
         )
         responses.add(
             responses.POST,
@@ -148,47 +149,69 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         )
 
     @responses.activate
-    def test_on_create_repository_relink_recreates_webhook(self) -> None:
+    def test_on_create_repository_relink_updates_webhook(self) -> None:
         response = self.create_repository(self.default_repository_config, self.integration.id)
         responses.reset()
-        self.add_webhook_recreate_responses(delete_status=204)
+
+        def request_callback(request):
+            payload = orjson.loads(request.body)
+            assert "url" in payload
+            assert payload["push_events"]
+            assert payload["merge_requests_events"]
+            expected_token = "{}:{}".format(
+                self.integration.external_id, self.integration.metadata["webhook_secret"]
+            )
+            assert payload["token"] == expected_token
+
+            return 200, {}, orjson.dumps({"id": 99}).decode()
+
+        responses.add_callback(
+            responses.PUT,
+            "https://example.gitlab.com/api/v4/projects/%s/hooks/99" % self.gitlab_id,
+            callback=request_callback,
+        )
+        responses.add(
+            responses.POST,
+            "https://example.gitlab.com/api/v4/projects/%s/hooks" % self.gitlab_id,
+            json={"id": 100},
+        )
 
         repo = self.get_repository(pk=response.data["id"])
         self.relink_repository(repo)
 
-        assert [call.request.method for call in responses.calls] == ["DELETE", "POST"]
-        assert self.get_repository(pk=repo.id).config["webhook_id"] == 100
+        assert [call.request.method for call in responses.calls] == ["PUT"]
+        assert self.get_repository(pk=repo.id).config["webhook_id"] == 99
 
     @responses.activate
-    def test_on_create_repository_relink_when_webhook_already_gone(self) -> None:
+    def test_on_create_repository_relink_recreates_missing_webhook(self) -> None:
         response = self.create_repository(self.default_repository_config, self.integration.id)
         responses.reset()
-        self.add_webhook_recreate_responses(delete_status=404)
+        self.add_relink_responses(update_status=404)
 
         repo = self.get_repository(pk=response.data["id"])
         self.relink_repository(repo)
 
-        assert [call.request.method for call in responses.calls] == ["DELETE", "POST"]
+        assert [call.request.method for call in responses.calls] == ["PUT", "POST"]
         assert self.get_repository(pk=repo.id).config["webhook_id"] == 100
 
     @responses.activate
-    def test_on_create_repository_relink_delete_failure_creates_no_duplicate(self) -> None:
+    def test_on_create_repository_relink_update_failure_creates_no_duplicate(self) -> None:
         response = self.create_repository(self.default_repository_config, self.integration.id)
         responses.reset()
-        self.add_webhook_recreate_responses(delete_status=403)
+        self.add_relink_responses(update_status=500)
 
         repo = self.get_repository(pk=response.data["id"])
         with pytest.raises(IntegrationError):
             self.relink_repository(repo)
 
-        assert [call.request.method for call in responses.calls] == ["DELETE"]
+        assert [call.request.method for call in responses.calls] == ["PUT"]
         assert self.get_repository(pk=repo.id).config["webhook_id"] == 99
 
     @responses.activate
     def test_repository_without_project_id(self) -> None:
         response = self.create_repository(self.default_repository_config, self.integration.id)
         responses.reset()
-        self.add_webhook_recreate_responses(delete_status=204)
+        self.add_relink_responses(update_status=200)
 
         repo = self.get_repository(pk=response.data["id"])
         with assume_test_silo_mode(SiloMode.CELL):

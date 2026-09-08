@@ -86,17 +86,20 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
         client = installation.get_client()
         existing_webhook_id = repo.config.get("webhook_id")
         if existing_webhook_id:
-            # The stored hook may be gone, disabled, or carrying a rotated token, so replace
-            # it. Swallowing anything but a 404 here would leave a duplicate hook behind.
             try:
-                client.delete_project_webhook(project_id, existing_webhook_id)
+                client.update_project_webhook(project_id, existing_webhook_id)
             except ApiError as e:
+                # Only a missing hook may fall through to create. An update that reached
+                # GitLab but reported anything else may well have applied, and creating a
+                # second hook on top of it would double every delivery.
                 if e.code != 404:
                     raise installation.raise_error(e)
+            else:
                 logger.info(
-                    "gitlab.repository.webhook_already_gone",
+                    "gitlab.repository.webhook_updated",
                     extra={**log_extra, "gitlab.repository.webhook_id": existing_webhook_id},
                 )
+                return
         try:
             hook_id = client.create_project_webhook(project_id)
         except Exception as e:
@@ -104,7 +107,11 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
         repo.config["webhook_id"] = hook_id
         repository_service.update_repository(organization_id=organization.id, update=repo)
         logger.info(
-            "gitlab.repository.webhook_created",
+            (
+                "gitlab.repository.webhook_recreated"
+                if existing_webhook_id
+                else "gitlab.repository.webhook_created"
+            ),
             extra={**log_extra, "gitlab.repository.webhook_id": hook_id},
         )
 
