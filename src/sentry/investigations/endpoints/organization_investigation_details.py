@@ -11,7 +11,6 @@ from sentry.api.serializers import serialize
 from sentry.investigations.endpoints.base import (
     OrganizationInvestigationEndpoint,
     service_error,
-    user_id,
 )
 from sentry.investigations.endpoints.serializers import InvestigationDetailsSerializer
 from sentry.investigations.endpoints.validators import (
@@ -83,7 +82,7 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
                 archived = archive_investigation_with_orchestration(
                     investigation=investigation,
                     expected_version=expected_version,
-                    actor_id=user_id(request),
+                    actor_id=request.user.id,
                 )
             except Exception as error:
                 response = service_error(error)
@@ -127,7 +126,7 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
             archive_investigation_with_orchestration(
                 investigation=investigation,
                 expected_version=validator.validated_data["investigation_version"],
-                actor_id=user_id(request),
+                actor_id=request.user.id,
             )
         except Exception as error:
             response = service_error(error)

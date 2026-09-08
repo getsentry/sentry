@@ -221,16 +221,17 @@ def _reconcile_command_version_conflict(
     response_run_id = response["runId"]
     projection = response["projection"]
     try:
-        reconcile_orchestration_projection(
-            orchestration_run_id=run.id,
-            seer_run_id=response_run_id,
-            projection=projection,
-            expected_last_event_sequence=run.last_event_sequence,
-            expected_workflow_version=run.workflow_version,
-        )
+        with transaction.atomic(using=router.db_for_write(InvestigationOrchestrationRun)):
+            reconcile_orchestration_projection(
+                orchestration_run_id=run.id,
+                seer_run_id=response_run_id,
+                projection=projection,
+                expected_last_event_sequence=run.last_event_sequence,
+                expected_workflow_version=run.workflow_version,
+            )
+            _mark_command_version_conflicted(command.id)
     except InvestigationOrchestrationEventConflict as error:
         raise SeerApiError("Investigation changed while reconciling", 502) from error
-    _mark_command_version_conflicted(command.id)
 
 
 def _mark_command_dispatch_acknowledged(

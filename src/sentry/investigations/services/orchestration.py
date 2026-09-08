@@ -9,6 +9,7 @@ from uuid import UUID, uuid5
 from django.db import IntegrityError, router, transaction
 from django.db.models import Max
 from django.utils import timezone
+from rest_framework.exceptions import PermissionDenied
 
 from sentry.investigations.models import (
     Investigation,
@@ -310,7 +311,7 @@ def _schedule_orchestration_commands(run_id: int) -> None:
 
 
 def archive_investigation_with_orchestration(
-    *, investigation: Investigation, expected_version: int, actor_id: int
+    *, investigation: Investigation, expected_version: int, actor_id: int | None
 ) -> Investigation:
     database = router.db_for_write(InvestigationOrchestrationRun)
     with transaction.atomic(using=database):
@@ -325,6 +326,8 @@ def archive_investigation_with_orchestration(
             .filter(investigation=locked_investigation)
             .first()
         )
+        if run is not None and actor_id is None:
+            raise PermissionDenied
         archive_version = expected_version
         if run is None:
             if locked_investigation.version != expected_version:
@@ -340,6 +343,7 @@ def archive_investigation_with_orchestration(
             InvestigationOrchestrationStatus.FAILED,
             InvestigationOrchestrationStatus.CANCELLED,
         }:
+            assert actor_id is not None
             accept_orchestration_command(
                 investigation=locked_investigation,
                 request_id=uuid5(

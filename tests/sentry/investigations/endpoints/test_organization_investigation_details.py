@@ -13,8 +13,11 @@ from sentry.investigations.models import (
     InvestigationSourceType,
     InvestigationStatus,
 )
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 FEATURE = "organizations:investigations"
 
@@ -77,6 +80,49 @@ class OrganizationInvestigationDetailsTest(APITestCase):
         )
         assert response.status_code == 200
         assert response.data["status"] == "active"
+
+    def test_org_token_can_archive_a_legacy_investigation(self) -> None:
+        investigation = self.create_investigation(
+            organization=self.organization, created_by=self.user, title="Legacy investigation"
+        )
+        token = generate_token(self.organization.slug, "")
+        self.create_org_auth_token(
+            organization_id=self.organization.id,
+            name="investigation token",
+            token_hashed=hash_token(token),
+            token_last_characters=token[-4:],
+            scope_list=["org:read"],
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+
+        response = self.client.put(
+            self.details_url(investigation),
+            data={"investigationVersion": investigation.version, "status": "archived"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+        )
+        assert response.status_code == 200, response.data
+        investigation.refresh_from_db()
+        assert investigation.status == InvestigationStatus.ARCHIVED
+
+        restored = self.client.put(
+            self.details_url(investigation),
+            data={"investigationVersion": investigation.version, "status": "active"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+        )
+        assert restored.status_code == 200, restored.data
+        investigation.refresh_from_db()
+        deleted = self.client.delete(
+            self.details_url(investigation),
+            data={"investigationVersion": investigation.version},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+        )
+        assert deleted.status_code == 204, deleted.data
+        investigation.refresh_from_db()
+        assert investigation.status == InvestigationStatus.ARCHIVED
 
     def test_archive_rejects_an_active_block_run(self) -> None:
         created = self.client.post(

@@ -7,6 +7,7 @@ from unittest import mock
 from uuid import uuid4
 
 import pytest
+from django.db import router, transaction
 from django.utils import timezone
 
 from sentry.investigations.models import (
@@ -15,14 +16,19 @@ from sentry.investigations.models import (
     InvestigationBlockExecutionStatus,
     InvestigationBlockKind,
     InvestigationOrchestrationCommandStatus,
+    InvestigationOrchestrationRun,
 )
 from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
-from sentry.investigations.services.orchestration import accept_orchestration_command
+from sentry.investigations.services.orchestration import (
+    accept_orchestration_command,
+    create_agentic_manual_investigation,
+)
 from sentry.investigations.services.orchestration_events import deliver_orchestration_event
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.tasks.seer.investigation import (
     _mark_command_dispatch_failed,
+    _reconcile_command_version_conflict,
     dispatch_investigation_execution,
     dispatch_investigation_orchestration_commands,
     dispatch_investigation_orchestration_create,
@@ -309,6 +315,37 @@ class InvestigationOrchestrationDispatchTest(TestCase):
             "errors": [],
             "heartbeatAt": "2025-01-01T00:00:00+00:00",
         }
+
+    @mock.patch(
+        "sentry.tasks.seer.investigation.dispatch_investigation_orchestration_commands.delay"
+    )
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
+    def test_creation_and_commands_dispatch_only_after_commit(
+        self, dispatch_create: mock.Mock, dispatch_commands: mock.Mock
+    ) -> None:
+        with transaction.atomic(using=router.db_for_write(InvestigationOrchestrationRun)):
+            investigation, run = create_agentic_manual_investigation(
+                organization=self.organization,
+                user_id=self.user.id,
+                title=None,
+                source={"type": "manual", "prompt": "Investigate latency"},
+                project_ids=[],
+                filters={},
+            )
+            dispatch_create.assert_not_called()
+        dispatch_create.assert_called_once_with(run.id)
+
+        with transaction.atomic(using=router.db_for_write(InvestigationOrchestrationRun)):
+            accept_orchestration_command(
+                investigation=investigation,
+                request_id=uuid4(),
+                expected_workflow_version=1,
+                command_type="add_hypothesis",
+                payload={"statement": "A release caused this"},
+                actor_id=self.user.id,
+            )
+            dispatch_commands.assert_not_called()
+        dispatch_commands.assert_called_once_with(run.id)
 
     @mock.patch(
         "sentry.tasks.seer.investigation.dispatch_investigation_orchestration_commands.delay"
@@ -714,6 +751,49 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         assert command.status == InvestigationOrchestrationCommandStatus.FAILED
         schedule.assert_not_called()
 
+    @mock.patch("sentry.tasks.seer.investigation._mark_command_version_conflicted")
+    @mock.patch("sentry.tasks.seer.investigation.get_investigation_orchestration_run")
+    def test_conflict_reconciliation_and_stale_queue_update_are_atomic(
+        self, get_run: mock.Mock, mark_conflicted: mock.Mock
+    ) -> None:
+        self.orchestration_run.update(
+            seer_run=self.create_seer_run(
+                organization=self.organization,
+                type=SeerRunType.INVESTIGATION,
+                seer_run_state_id=self.seer_run_id,
+                mirror_status=SeerRunMirrorStatus.LIVE,
+            ),
+            workflow_version=2,
+            projection=self.projection(workflow_version=2),
+        )
+        command = self.create_investigation_orchestration_command(
+            orchestration_run=self.orchestration_run,
+            request_id=uuid4(),
+            actor_id=self.user.id,
+            expected_workflow_version=1,
+            resulting_workflow_version=2,
+            type="add_hypothesis",
+            payload={"statement": "A release caused this"},
+        )
+        get_run.return_value = {
+            "runId": self.seer_run_id,
+            "projection": self.projection(workflow_version=1),
+        }
+        mark_conflicted.side_effect = RuntimeError("Stale command update failed")
+
+        with pytest.raises(RuntimeError, match="Stale command update failed"):
+            _reconcile_command_version_conflict(
+                self.orchestration_run,
+                command,
+                {"organization_id": self.organization.id, "user_id": self.user.id},
+            )
+
+        self.orchestration_run.refresh_from_db()
+        command.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 2
+        assert self.orchestration_run.projection["workflowVersion"] == 2
+        assert command.status == InvestigationOrchestrationCommandStatus.ACCEPTED
+
     @mock.patch("sentry.tasks.seer.investigation.current_task")
     @mock.patch("sentry.tasks.seer.investigation.get_investigation_orchestration_run")
     @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_command")
@@ -724,7 +804,12 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         current_task: mock.Mock,
     ) -> None:
         self.orchestration_run.update(
-            seer_run_id=self.seer_run_id,
+            seer_run=self.create_seer_run(
+                organization=self.organization,
+                type=SeerRunType.INVESTIGATION,
+                seer_run_state_id=self.seer_run_id,
+                mirror_status=SeerRunMirrorStatus.LIVE,
+            ),
             workflow_version=2,
             projection=self.projection(workflow_version=2),
         )
