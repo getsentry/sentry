@@ -1219,3 +1219,40 @@ class TopEventsQueryBuilderTest(TestCase):
             selected_columns=["tags[foo]"],
         )
         assert builder is not None
+
+    @pytest.mark.querybuilder
+    def test_resolve_top_event_conditions_timezone_aware_timestamp(self) -> None:
+        """Regression test: timezone-aware ISO datetime strings must be normalized.
+
+        ClickHouse's DateTime type cannot parse ISO 8601 strings with a timezone
+        offset suffix (e.g. '2026-08-10T00:00:00+00:00'). When top-event results
+        contain such strings for timestamp.to_* fields, they must be converted to
+        naive UTC datetime objects before being used as WHERE condition values.
+        """
+        top_events = [
+            {"count": "7", "timestamp.to_day": "2026-08-10T00:00:00+00:00"},
+            {"count": "3", "timestamp.to_day": "2026-08-11T00:00:00+00:00"},
+        ]
+        builder = TopEventsQueryBuilder(
+            Dataset.Discover,
+            self.params,
+            interval=86400,
+            top_events=top_events,
+            selected_columns=["timestamp.to_day"],
+        )
+        # Find the timestamp condition in WHERE; it should be an Or of two EQ conditions
+        # whose rhs values are naive datetime objects, not raw ISO strings.
+        timestamp_condition = None
+        for condition in builder.where:
+            if hasattr(condition, "conditions"):
+                for sub in condition.conditions:
+                    if isinstance(sub, Condition) and isinstance(sub.rhs, datetime.datetime):
+                        timestamp_condition = condition
+                        break
+        assert timestamp_condition is not None, "Expected a timestamp OR condition in WHERE"
+        for sub in timestamp_condition.conditions:
+            assert isinstance(sub.rhs, datetime.datetime), (
+                f"Expected datetime rhs, got {type(sub.rhs)}: {sub.rhs!r}"
+            )
+            # Must be naive (no tzinfo) so ClickHouse can parse it as DateTime
+            assert sub.rhs.tzinfo is None, f"Expected naive UTC datetime, got {sub.rhs!r}"
