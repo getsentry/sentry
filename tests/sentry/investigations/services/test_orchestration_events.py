@@ -27,6 +27,7 @@ from sentry.investigations.models import (
     InvestigationStatus,
 )
 from sentry.investigations.services.investigations import (
+    InvestigationConflictError,
     archive_investigation,
     update_investigation,
 )
@@ -956,6 +957,29 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.orchestration_run.projection["report"]["metadata"]["title"] == (
             "My incident title"
         )
+
+    def test_first_title_edit_cannot_race_with_archiving(self) -> None:
+        original_title = self.investigation.title
+        original_version = self.investigation.version
+        archive_investigation_with_orchestration(
+            investigation=self.investigation,
+            expected_version=original_version,
+            actor_id=self.user.id,
+        )
+
+        with pytest.raises(InvestigationConflictError):
+            update_investigation_with_orchestration(
+                investigation=self.investigation,
+                expected_version=original_version,
+                fields={"title": "A late title edit"},
+                project_ids=None,
+            )
+
+        self.investigation.refresh_from_db()
+        self.orchestration_run.refresh_from_db()
+        assert self.investigation.status == InvestigationStatus.ARCHIVED
+        assert self.investigation.title == original_title
+        assert not self.orchestration_run.projection["_sentryControl"].get("manualTitleOverride")
 
     def test_archive_generation_fence_survives_restore_until_a_new_generation(self) -> None:
         block = self.create_investigation_block(

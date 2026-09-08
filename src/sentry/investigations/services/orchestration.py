@@ -348,7 +348,7 @@ def archive_investigation_with_orchestration(
                 investigation=locked_investigation,
                 request_id=uuid5(
                     _ARCHIVE_CANCEL_NAMESPACE,
-                    f"{locked_investigation.id}:{expected_version}",
+                    f"{locked_investigation.id}:{archive_version}",
                 ),
                 expected_workflow_version=run.workflow_version,
                 command_type="cancel",
@@ -408,7 +408,12 @@ def update_investigation_with_orchestration(
             .filter(investigation=locked_investigation)
             .first()
         )
-        if run is not None and set(fields) == {"title"} and project_ids is None:
+        if (
+            run is not None
+            and locked_investigation.status == InvestigationStatus.ACTIVE
+            and set(fields) == {"title"}
+            and project_ids is None
+        ):
             control = run.projection.get(_CONTROL_KEY, {})
             assert isinstance(control, dict)
             if control.get("manualTitleOverride") is not True:

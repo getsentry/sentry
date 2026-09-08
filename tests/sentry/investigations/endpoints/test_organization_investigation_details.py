@@ -209,6 +209,28 @@ class OrganizationInvestigationDetailsTest(APITestCase):
         assert run.projection["_sentryControl"]["notebookWriteFenceGeneration"] == run.generation
         schedule.assert_called_once()
 
+        restored = self.client.put(
+            self.details_url(investigation),
+            data={"investigationVersion": investigation.version, "status": "active"},
+            format="json",
+        )
+        assert restored.status_code == 200, restored.data
+        with mock.patch(
+            "sentry.tasks.seer.investigation.dispatch_investigation_orchestration_commands.delay"
+        ):
+            for _ in range(2):
+                archived = self.client.delete(
+                    self.details_url(investigation),
+                    data={"investigationVersion": created["version"]},
+                    format="json",
+                )
+                assert archived.status_code == 204, archived.data
+        investigation.refresh_from_db()
+        assert investigation.status == InvestigationStatus.ARCHIVED
+        assert list(
+            run.commands.order_by("id").values_list("expected_workflow_version", flat=True)
+        ) == [1, 2]
+
     def test_agentic_title_update_marks_a_manual_override(self) -> None:
         created = self.client.post(
             self.collection_url,
