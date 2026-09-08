@@ -7,9 +7,11 @@ import {logs} from './logs';
 import {mcp} from './mcp';
 import {metrics} from './metrics';
 import {onboarding} from './onboarding';
+import {platformOptions, type PlatformOptions} from './utils';
 
-export const docs: Docs = {
+export const docs: Docs<PlatformOptions> = {
   onboarding,
+  platformOptions,
   crashReportOnboarding: crashReport,
   featureFlagOnboarding: featureFlag({
     packageName: '@sentry/cloudflare',
