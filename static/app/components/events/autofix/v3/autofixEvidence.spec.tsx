@@ -45,8 +45,8 @@ describe('AutofixEvidence', () => {
     isEmployee,
   }: {
     toolCall: ToolCall;
-    toolLink?: ToolLink;
     isEmployee?: boolean;
+    toolLink?: ToolLink;
   }): EvidenceButtonProps | null {
     const resolver = AUTOFIX_EVIDENCE_PROPS_RESOLVER[toolCall.function];
     return (
