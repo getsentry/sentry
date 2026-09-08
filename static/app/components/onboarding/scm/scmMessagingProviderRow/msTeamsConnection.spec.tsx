@@ -36,9 +36,20 @@ const providerWithoutExternalInstall = makeMsteamsProvider(undefined);
 describe('MsTeamsConnection modal', () => {
   const organization = OrganizationFixture();
 
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/',
+      body: [],
+    });
+  });
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
   it('renders the title, info alert, and marketplace button', () => {
     renderGlobalModal({organization});
-    act(() => openMsTeamsConnectionModal(provider));
+    act(() => openMsTeamsConnectionModal(provider, jest.fn()));
 
     expect(
       screen.getByText('Installing Microsoft Teams Integration')
@@ -48,15 +59,12 @@ describe('MsTeamsConnection modal', () => {
         "Visit the Teams Marketplace to add Sentry to a team and channel. You'll get a welcome message in the General channel to complete installation."
       )
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Teams Marketplace'})).toHaveAttribute(
-      'href',
-      TEAMS_MARKETPLACE_URL
-    );
+    expect(screen.getByRole('button', {name: 'Teams Marketplace'})).toBeInTheDocument();
   });
 
   it('omits the marketplace button when externalInstall is absent', () => {
     renderGlobalModal({organization});
-    act(() => openMsTeamsConnectionModal(providerWithoutExternalInstall));
+    act(() => openMsTeamsConnectionModal(providerWithoutExternalInstall, jest.fn()));
 
     expect(
       screen.getByText(

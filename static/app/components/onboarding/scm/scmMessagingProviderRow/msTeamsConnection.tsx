@@ -1,27 +1,59 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
-import {LinkButton} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
+import {useScmMessagingIntegrationsQuery} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
+import {
+  isEligibleForIssueAlerts,
+  isIntegrationActive,
+} from 'sentry/components/onboarding/scm/useScmMessagingSetupValidation';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {IntegrationProvider} from 'sentry/types/integrations';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+interface MsTeamsConnectionProps extends ModalRenderProps {
+  onConnected: () => void;
+  provider: IntegrationProvider;
+}
+
 function MsTeamsConnection({
   Header,
   Body,
   closeModal,
   provider,
-}: ModalRenderProps & {provider: IntegrationProvider}) {
+  onConnected,
+}: MsTeamsConnectionProps) {
   const organization = useOrganization();
   const externalInstall = provider.metadata.aspects.externalInstall;
+  const [isWaiting, setIsWaiting] = useState(false);
+
+  const {data: integrations} = useScmMessagingIntegrationsQuery();
+  const hasEligible = (integrations ?? []).some(
+    i =>
+      i.provider.key === 'msteams' &&
+      isIntegrationActive(i) &&
+      isEligibleForIssueAlerts(i)
+  );
+
+  // Close and notify once the user has installed a non-tenant MS Teams workspace.
+  // Uses the modal's own closeModal (from ModalRenderProps) so it is scoped to
+  // this modal instance; the global closeModal() would close whatever modal happens
+  // to be open at the time.
+  useEffect(() => {
+    if (!isWaiting || !hasEligible) {
+      return;
+    }
+    onConnected();
+    closeModal();
+  }, [isWaiting, hasEligible, onConnected, closeModal]);
 
   return (
     <Fragment>
@@ -36,13 +68,13 @@ function MsTeamsConnection({
             )}
           </Alert>
           {externalInstall ? (
-            <LinkButton
+            <Button
               size="sm"
               variant="primary"
               icon={<IconOpen />}
-              href={externalInstall.url}
-              external
+              busy={isWaiting}
               onClick={() => {
+                window.open(externalInstall.url, '_blank');
                 trackIntegrationAnalytics('integrations.installation_start', {
                   integration: 'msteams',
                   integration_type: 'first_party',
@@ -52,11 +84,11 @@ function MsTeamsConnection({
                   already_installed: false,
                   organization,
                 });
-                closeModal();
+                setIsWaiting(true);
               }}
             >
               {externalInstall.buttonText}
-            </LinkButton>
+            </Button>
           ) : null}
         </Stack>
       </Body>
@@ -64,8 +96,12 @@ function MsTeamsConnection({
   );
 }
 
-export function openMsTeamsConnectionModal(provider: IntegrationProvider) {
-  openModal(deps => <MsTeamsConnection {...deps} provider={provider} />, {
-    closeEvents: 'none',
-  });
+export function openMsTeamsConnectionModal(
+  provider: IntegrationProvider,
+  onConnected: () => void
+) {
+  openModal(
+    deps => <MsTeamsConnection {...deps} provider={provider} onConnected={onConnected} />,
+    {closeEvents: 'none'}
+  );
 }

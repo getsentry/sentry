@@ -44,17 +44,14 @@ export type ScmMessagingResolvedProvider = {
   status: ScmMessagingProviderStatus;
 };
 
-export function useScmMessagingProviders(): {
-  isError: boolean;
-  isPending: boolean;
-  isRefetchingIntegrations: boolean;
-  providers: ScmMessagingResolvedProvider[];
-  refetchIntegrations: () => Promise<QueryObserverResult<OrganizationIntegration[]>>;
-  retry: () => void;
-} {
+/**
+ * Fetches (and caches) the list of messaging integrations for the current org.
+ * Call this from multiple components freely — React Query dedupes identical keys
+ * into a single in-flight request and shares the cached result.
+ */
+export function useScmMessagingIntegrationsQuery() {
   const organization = useOrganization();
-
-  const integrationsQuery = useQuery({
+  return useQuery({
     ...apiOptions.as<OrganizationIntegration[]>()(
       '/organizations/$organizationIdOrSlug/integrations/',
       {
@@ -65,6 +62,18 @@ export function useScmMessagingProviders(): {
     ),
     refetchOnWindowFocus: true,
   });
+}
+
+export function useScmMessagingProviders(): {
+  isError: boolean;
+  isPending: boolean;
+  isRefetchingIntegrations: boolean;
+  providers: ScmMessagingResolvedProvider[];
+  refetchIntegrations: () => Promise<QueryObserverResult<OrganizationIntegration[]>>;
+  retry: () => void;
+} {
+  const organization = useOrganization();
+  const integrationsQuery = useScmMessagingIntegrationsQuery();
 
   const providerQueries = useQueries({
     queries: SCM_MESSAGING_PROVIDER_KEYS.map(providerKey =>
