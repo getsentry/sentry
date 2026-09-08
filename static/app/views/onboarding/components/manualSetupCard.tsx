@@ -4,7 +4,7 @@ import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {ScmCardButton} from 'sentry/components/onboarding/scm/scmCardButton';
-import {IconSliders} from 'sentry/icons';
+import {IconChevron, IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 interface ManualSetupCardProps {
@@ -15,16 +15,16 @@ export function ManualSetupCard({onSetupInBrowser}: ManualSetupCardProps) {
   return (
     <CardButton onClick={onSetupInBrowser} data-test-id="onboarding-setup-in-browser">
       <Grid
-        columns="min-content 1fr"
-        gap="md lg"
+        columns="min-content 1fr min-content"
+        gap="xs xl"
         align="center"
         border="primary"
         radius="xl"
         padding="xl"
         width="100%"
         areas={`
-          "icon title"
-          ".    body"
+          "icon title chevron"
+          ".    body  body"
         `}
       >
         <Flex area="icon" align="center">
@@ -32,9 +32,12 @@ export function ManualSetupCard({onSetupInBrowser}: ManualSetupCardProps) {
         </Flex>
         <Container area="title">
           <Text bold size="lg">
-            {t('Set up manually instead')}
+            {t('Set up manually')}
           </Text>
         </Container>
+        <Flex area="chevron" align="center">
+          <IconChevron direction="right" size="sm" variant="secondary" />
+        </Flex>
         <Container area="body">
           <Text variant="muted" size="md" density="comfortable" textWrap="pretty">
             {t(
