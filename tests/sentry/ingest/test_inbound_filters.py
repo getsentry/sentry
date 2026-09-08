@@ -523,6 +523,11 @@ def test_custom_inbound_filter_skips_untranslatable_filters(default_project, fac
         data_type="unknown_data_type",
         conditions=[{"type": "release", "value": ["1.*"]}],
     )
+    # A row written before the column existed carries no data type at all.
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "release", "value": ["1.*"]}],
+    ).update(data_type=None)
     # A span filter accepts release alone, so any other condition disables the filter
     # rather than widening it.
     factories.create_project_custom_inbound_filter(
