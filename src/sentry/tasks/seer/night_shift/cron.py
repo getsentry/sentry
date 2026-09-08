@@ -253,7 +253,7 @@ def schedule_night_shift(
 
 
 class _NoQuotaHandling(StrEnum):
-    """How to persist a Night Shift invocation when quota is unavailable."""
+    """How to handle a Night Shift invocation when quota is unavailable."""
 
     # Return without creating or executing a run.
     SKIP_WITHOUT_RUN = "skip_without_run"
