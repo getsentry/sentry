@@ -136,7 +136,11 @@ class GroupDetailsEndpoint(GroupEndpoint):
         if derived is None:
             return
 
-        record_status_consistency(group, derived, source="read_path")
+        inconsistency = record_status_consistency(group, derived, source="read_path")
+        if inconsistency is not None:
+            from sentry.issues.derived.tasks import reconcile_group_status
+
+            reconcile_group_status.delay(group.id)
 
     @staticmethod
     def __group_hourly_daily_stats(
