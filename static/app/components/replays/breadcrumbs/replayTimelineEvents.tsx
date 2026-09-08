@@ -34,6 +34,8 @@ export function ReplayTimelineEvents({
   startTimestampMs,
   width,
 }: Props) {
+  // Share URL subscriptions: per-marker popstate listeners can exceed React's update depth.
+  const {setActiveTab} = useActiveReplayTab({});
   const markerWidth = frames.length < 200 ? 4 : frames.length < 500 ? 6 : 10;
 
   const totalColumns = Math.floor(width / markerWidth);
@@ -46,6 +48,7 @@ export function ReplayTimelineEvents({
           <Event
             frames={colFrames}
             markerWidth={markerWidth}
+            setActiveTab={setActiveTab}
             startTimestampMs={startTimestampMs}
           />
         </EventColumn>
@@ -75,15 +78,16 @@ type GraphicsVariantTrio =
 function Event({
   frames,
   markerWidth,
+  setActiveTab,
   startTimestampMs,
 }: {
   frames: ReplayFrame[];
   markerWidth: number;
+  setActiveTab: ReturnType<typeof useActiveReplayTab>['setActiveTab'];
   startTimestampMs: number;
 }) {
   const theme = useTheme();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
-  const {setActiveTab} = useActiveReplayTab({});
 
   const buttons = frames.map((frame, i) => (
     <BreadcrumbItem

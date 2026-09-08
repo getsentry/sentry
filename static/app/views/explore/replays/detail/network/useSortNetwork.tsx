@@ -1,5 +1,5 @@
 import {useCallback, useMemo} from 'react';
-import {parseAsBoolean, parseAsInteger, parseAsStringLiteral, useQueryStates} from 'nuqs';
+import {parseAsBoolean, parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import type {SpanFrame} from 'sentry/utils/replays/types';
 
@@ -19,21 +19,23 @@ const SortStrategies: Record<string, (row: any) => any> = {
   startTimestamp: row => row.startTimestamp,
 };
 
-const sortNetworkParsers = {
-  s_n_asc: parseAsBoolean.withDefault(true),
-  s_n_by: parseAsStringLiteral(Object.keys(SortStrategies)).withDefault('startTimestamp'),
-  n_detail_row: parseAsInteger,
-};
-
 type Opts = {items: SpanFrame[]};
 
 export function useSortNetwork({items}: Opts) {
-  const [sortState, setSortState] = useQueryStates(sortNetworkParsers, {
-    history: 'push',
-    throttleMs: 0,
-  });
-
-  const {s_n_asc: sortAsc, s_n_by: sortBy} = sortState;
+  const [sortAsc, setSortAsc] = useQueryState(
+    's_n_asc',
+    parseAsBoolean.withDefault(true).withOptions({history: 'push', throttleMs: 0})
+  );
+  const [sortBy, setSortBy] = useQueryState(
+    's_n_by',
+    parseAsStringLiteral(Object.keys(SortStrategies))
+      .withDefault('startTimestamp')
+      .withOptions({history: 'push', throttleMs: 0})
+  );
+  const [, setDetailRow] = useQueryState(
+    'n_detail_row',
+    parseAsString.withDefault('').withOptions({history: 'push', throttleMs: 0})
+  );
 
   const sortConfig = useMemo(
     () =>
@@ -50,12 +52,14 @@ export function useSortNetwork({items}: Opts) {
   const handleSort = useCallback(
     (fieldName: keyof typeof SortStrategies) => {
       if (sortConfig.by === fieldName) {
-        setSortState({s_n_asc: !sortConfig.asc, n_detail_row: null});
+        setSortAsc(sortConfig.asc ? false : true);
       } else {
-        setSortState({s_n_asc: true, s_n_by: fieldName, n_detail_row: null});
+        setSortAsc(true);
+        setSortBy(fieldName);
       }
+      setDetailRow('');
     },
-    [sortConfig, setSortState]
+    [sortConfig, setSortAsc, setSortBy, setDetailRow]
   );
 
   return {
