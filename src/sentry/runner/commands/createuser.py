@@ -3,8 +3,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import click
+from django.conf import settings
 
 from sentry.runner.decorators import configuration
+from sentry.users.models.userpermission import UserPermission
 
 if TYPE_CHECKING:
     from django.db.models.fields import Field
@@ -49,14 +51,8 @@ def _get_superuser() -> bool:
 
 
 def _set_superadmin(user: User) -> None:
-    """
-    superadmin role approximates superuser (model attribute) but leveraging
-    Sentry's role system.
-    """
-    from sentry.users.models.userrole import UserRole, UserRoleUser
-
-    role = UserRole.objects.get(name="Super Admin")
-    UserRoleUser.objects.create(user=user, role=role)
+    for permission in settings.SENTRY_USER_PERMISSIONS:
+        UserPermission.objects.get_or_create(user=user, permission=permission)
 
 
 @click.command()

@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
 from typing import Any
 
 from django.utils.functional import LazyObject, empty
 
-from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.services.user import (
@@ -75,11 +73,6 @@ def serialize_rpc_user(user: User) -> RpcUser:
     # And process the _base_query special data additions
     args["permissions"] = frozenset(getattr(user, "permissions", None) or ())
 
-    roles: frozenset[str] = frozenset()
-    if hasattr(user, "roles") and user.roles is not None:
-        roles = frozenset(_flatten(user.roles))
-    args["roles"] = roles
-
     args["useremails"] = [
         RpcUserEmail(id=e["id"], email=e["email"], is_verified=e["is_verified"])
         for e in (getattr(user, "useremails", None) or ())
@@ -124,12 +117,4 @@ def serialize_user_avatar(avatar: UserAvatar) -> RpcAvatar:
         file_id=avatar.control_file_id,
         ident=avatar.ident,
         avatar_type=avatar.get_avatar_type_display(),
-    )
-
-
-def _flatten(iter: Iterable[Any]) -> list[Any]:
-    return (
-        ((_flatten(iter[0]) + _flatten(iter[1:])) if len(iter) > 0 else [])
-        if type(iter) is list or isinstance(iter, BaseQuerySet)
-        else [iter]
     )
