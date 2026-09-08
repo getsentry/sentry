@@ -1,4 +1,3 @@
-import {Button} from '@sentry/scraps/button';
 import {InlineCode} from '@sentry/scraps/code';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -54,11 +53,9 @@ export function AgentInfo({onboardingCode}: AgentInfoProps) {
         </Stack>
       }
     >
-      <Button variant="link" size="zero" icon={<IconInfo variant="secondary" />}>
-        <Text size="sm" variant="muted" underline="dotted">
-          {t('What will my agent do?')}
-        </Text>
-      </Button>
+      <Text size="md" variant="muted" underline="dotted">
+        {t('What your agent will do')}
+      </Text>
     </Hovercard>
   );
 }
