@@ -102,6 +102,10 @@ describe('DebugMeta', () => {
     expect(screen.getByText('Ok')).toBeInTheDocument();
     expect(screen.getByText(imageName)).toBeInTheDocument();
     expect(screen.getByText('Symbolication')).toBeInTheDocument();
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Status'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Image'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Processing'})).toBeInTheDocument();
     expect(mockGetDebug).not.toHaveBeenCalled();
 
     const codeFile = image?.code_file!;

@@ -4,16 +4,17 @@ import {
   useEffect,
   useLayoutEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {Table, type TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {openReprocessEventModal} from 'sentry/actionCreators/modal';
@@ -41,6 +42,12 @@ import {combineStatus, getFileName, normalizeId} from './utils';
 
 const ROW_HEIGHT = 45;
 const MAX_HEIGHT = 400;
+const TABLE_COLUMNS: TableColumnConfig[] = [
+  {key: 'status', width: '0.6fr', resizable: false},
+  {key: 'image', width: '2fr', resizable: false},
+  {key: 'processing', width: '1fr', resizable: false},
+  {key: 'actions', width: '0.4fr', resizable: false},
+];
 
 function filterImages(
   images: ImageWithCombinedStatus[],
@@ -99,7 +106,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
   const theme = useTheme();
   const organization = useOrganization();
 
-  const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
   const [filterSelections, setFilterSelections] = useState<FilterSelections>([]);
   const [filtersInitialized, setFiltersInitialized] = useState(false);
   const [lockHeight, setLockHeight] = useState(false);
@@ -165,7 +172,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
 
   const virtualizer = useVirtualizer({
     count: filteredImages.length,
-    getScrollElement: () => scrollContainer,
+    getScrollElement: () => tableRef.current,
     estimateSize: () => ROW_HEIGHT,
     overscan: 5,
   });
@@ -221,64 +228,90 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
           onFilterChange={setFilterSelections}
           filterSelections={filterSelections}
         />
-        <Container border="primary" radius="md" overflow="hidden" marginTop="sm">
-          <Container overflowX="auto">
-            <Container minWidth="800px">
-              <Header
-                columns="0.6fr 2fr 1fr 0.4fr"
-                background="secondary"
-                borderBottom="primary"
-              >
-                <Flex align="center" minWidth="0" padding="md lg">
-                  {t('Status')}
-                </Flex>
-                <Flex align="center" minWidth="0" paddingTop="md" paddingBottom="md">
-                  {t('Image')}
-                </Flex>
-                <Flex align="center" minWidth="0" paddingTop="md" paddingBottom="md">
-                  {t('Processing')}
-                </Flex>
-                <div />
-              </Header>
-              {filteredImages.length ? (
-                <ScrollArea
-                  ref={setScrollContainer}
-                  style={{
-                    height: lockHeight ? MAX_HEIGHT : undefined,
-                    maxHeight: MAX_HEIGHT,
-                  }}
-                >
-                  <div style={{height: totalSize, position: 'relative'}}>
-                    {virtualizer.getVirtualItems().map(row => (
-                      <div
-                        key={row.key}
-                        ref={virtualizer.measureElement}
-                        data-index={row.index}
-                        style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          width: '100%',
-                          transform: `translateY(${row.start}px)`,
-                        }}
-                      >
-                        <DebugImage
-                          image={filteredImages[row.index]!}
-                          isLast={row.index === filteredImages.length - 1}
-                          onOpenImageDetailsModal={openDetails}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              ) : (
-                <Stack
+        <Container border="primary" radius="md" overflowX="auto" marginTop="sm">
+          <Table
+            ref={tableRef}
+            columns={TABLE_COLUMNS}
+            style={{
+              width: '100%',
+              minWidth: 800,
+              overflowY: 'auto',
+              height: lockHeight ? MAX_HEIGHT + ROW_HEIGHT : undefined,
+              maxHeight: MAX_HEIGHT + ROW_HEIGHT,
+            }}
+          >
+            <Table.Head sticky>
+              <Table.Row>
+                <Flex
+                  as="th"
+                  role="columnheader"
                   align="center"
-                  justify="center"
-                  gap="md"
-                  padding="lg"
-                  style={lockHeight ? {height: MAX_HEIGHT} : undefined}
+                  padding="md lg"
+                  background="secondary"
+                  borderBottom="primary"
                 >
+                  <Text size="sm" variant="muted" bold uppercase>
+                    {t('Status')}
+                  </Text>
+                </Flex>
+                <Flex
+                  as="th"
+                  role="columnheader"
+                  align="center"
+                  padding="md lg"
+                  background="secondary"
+                  borderBottom="primary"
+                >
+                  <Text size="sm" variant="muted" bold uppercase>
+                    {t('Image')}
+                  </Text>
+                </Flex>
+                <Flex
+                  as="th"
+                  role="columnheader"
+                  align="center"
+                  padding="md lg"
+                  background="secondary"
+                  borderBottom="primary"
+                >
+                  <Text size="sm" variant="muted" bold uppercase>
+                    {t('Processing')}
+                  </Text>
+                </Flex>
+                <Flex
+                  as="th"
+                  role="columnheader"
+                  background="secondary"
+                  borderBottom="primary"
+                />
+              </Table.Row>
+            </Table.Head>
+            {filteredImages.length ? (
+              <Table.Body style={{height: totalSize, position: 'relative'}}>
+                {virtualizer.getVirtualItems().map(row => (
+                  <Table.Row
+                    key={row.key}
+                    ref={virtualizer.measureElement}
+                    data-index={row.index}
+                    divider={row.index !== filteredImages.length - 1}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      transform: `translateY(${row.start}px)`,
+                    }}
+                  >
+                    <DebugImage
+                      image={filteredImages[row.index]!}
+                      onOpenImageDetailsModal={openDetails}
+                    />
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            ) : (
+              <Table.StatusBody style={lockHeight ? {height: MAX_HEIGHT} : undefined}>
+                <Stack align="center" justify="center" gap="md" padding="lg">
                   <Text align="center" variant="muted">
                     {searchTerm
                       ? t('No images match your search query')
@@ -297,22 +330,11 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
                     </Button>
                   )}
                 </Stack>
-              )}
-            </Container>
-          </Container>
+              </Table.StatusBody>
+            )}
+          </Table>
         </Container>
       </Fragment>
     </FoldSection>
   );
 }
-
-const Header = styled(Grid)`
-  font-size: ${p => p.theme.font.size.sm};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  color: ${p => p.theme.tokens.content.secondary};
-  text-transform: uppercase;
-`;
-
-const ScrollArea = styled('div')`
-  overflow-y: auto;
-`;

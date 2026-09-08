@@ -1,5 +1,5 @@
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -16,26 +16,21 @@ import {Status} from './status';
 
 type Props = {
   image: ImageWithCombinedStatus;
-  isLast: boolean;
   onOpenImageDetailsModal: (image: ImageWithCombinedStatus) => void;
 };
 
-export function DebugImage({image, isLast, onOpenImageDetailsModal}: Props) {
+export function DebugImage({image, onOpenImageDetailsModal}: Props) {
   const {unwind_status, debug_status, debug_file, code_file, status} = image;
   const codeFilename = getFileName(code_file);
   const debugFilename = getFileName(debug_file);
   const imageAddress = getImageAddress(image);
 
   return (
-    <Grid
-      columns="0.6fr 2fr 1fr 0.4fr"
-      borderBottom={isLast ? undefined : 'primary'}
-      padding="sm md"
-    >
-      <Flex align="center" minWidth="0" padding="sm md">
+    <Fragment>
+      <Flex as="td" role="cell" align="center" minWidth="0" padding="sm md">
         <Status status={status} />
       </Flex>
-      <Flex align="center" minWidth="0" padding="sm 0">
+      <Flex as="td" role="cell" align="center" minWidth="0" padding="sm 0">
         <Stack minWidth="0" overflow="hidden">
           <Text ellipsis>
             {codeFilename && <Tooltip title={code_file}>{codeFilename}</Tooltip>}
@@ -50,18 +45,19 @@ export function DebugImage({image, isLast, onOpenImageDetailsModal}: Props) {
           )}
         </Stack>
       </Flex>
-      <Flex align="center" minWidth="0" padding="sm md">
+      <Flex as="td" role="cell" align="center" minWidth="0" padding="sm md">
         {unwind_status || debug_status ? (
           <Processings unwind_status={unwind_status} debug_status={debug_status} />
         ) : (
           <NotAvailable />
         )}
       </Flex>
-      <Flex align="center" justify="end" minWidth="0" padding="sm md">
+      <Flex as="td" role="cell" align="center" justify="end" minWidth="0" padding="sm md">
         <Button size="xs" onClick={() => onOpenImageDetailsModal(image)}>
           {t('View')}
         </Button>
       </Flex>
-    </Grid>
+    </Fragment>
   );
 }
+import {Fragment} from 'react';
