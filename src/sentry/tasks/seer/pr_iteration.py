@@ -476,7 +476,10 @@ def _drain_queued_autofix_feedback(
 
     # Claim before the pop, so feedback arriving mid-drain opens its own row.
     iteration_id = trigger_pr_iteration_details(
-        log_ctx=log_ctx, run_id=run_id, organization_id=organization_id
+        log_ctx=log_ctx,
+        run_id=run_id,
+        organization_id=organization_id,
+        trigger_source=trigger_source,
     )
 
     queued_items = pop_queued_autofix_feedback(run_id)
