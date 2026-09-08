@@ -7,23 +7,17 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
-  getImportInstrumentSnippet,
+  getImport,
   getInstallCodeBlock,
   getSdkInitSnippet,
-  getSentryImportSnippet,
 } from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 
 const getSdkSetupSnippet = () => `
-${getImportInstrumentSnippet()}
-
-// All other imports below
-${getSentryImportSnippet('@sentry/node')}
-const Koa = require("koa");
+${getImport('@sentry/node', 'esm-only').join('\n')}
+import Koa from "koa";
 
 const app = new Koa();
-
-Sentry.setupKoaErrorHandler(app);
 
 // All your controllers should live here
 
@@ -79,7 +73,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'To initialize the SDK before everything else, create an external file called [code:instrument.js/mjs].',
+            'To initialize the SDK before everything else, create an external file called [code:instrument.mjs].',
             {code: <code />}
           ),
         },
@@ -89,15 +83,15 @@ export const onboarding: OnboardingConfig = {
             {
               label: 'JavaScript',
               language: 'javascript',
-              filename: 'instrument.(js|mjs)',
-              code: getSdkInitSnippet(params, 'node'),
+              filename: 'instrument.mjs',
+              code: getSdkInitSnippet(params, 'node', 'esm-only'),
             },
           ],
         },
         {
           type: 'text',
           text: tct(
-            "Make sure to import [code:instrument.js/mjs] at the top of your file. Set up the error handler after all controllers and before any other error middleware. This setup is typically done in your application's entry point file, which is usually [code:index.(js|ts)]. If you're running your application in ESM mode, or looking for alternative ways to set up Sentry, read about [docs:installation methods in our docs].",
+            'Start your application with the [code:--import] flag, so that [code:instrument.mjs] loads before any other module. For alternative ways to set up Sentry, read about [docs:installation methods in our docs].',
             {
               code: <code />,
               docs: (
@@ -108,14 +102,33 @@ export const onboarding: OnboardingConfig = {
         },
         {
           type: 'code',
+          language: 'bash',
+          code: 'node --import ./instrument.mjs index.mjs',
+        },
+        {
+          type: 'text',
+          text: tct(
+            'This is what your application entry point, usually [code:index.mjs], looks like:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
           tabs: [
             {
               label: 'JavaScript',
               language: 'javascript',
-              filename: 'index.(js|mjs)',
+              filename: 'index.mjs',
               code: getSdkSetupSnippet(),
             },
           ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'The default [code:koaIntegration] captures errors from your middleware automatically. You do not have to add an error handler.',
+            {code: <code />}
+          ),
         },
       ],
     },
