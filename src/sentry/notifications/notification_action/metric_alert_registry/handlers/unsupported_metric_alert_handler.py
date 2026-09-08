@@ -19,10 +19,6 @@ class UnsupportedMetricAlertHandler(BaseMetricAlertHandler):
     support metric alerts / metric issues. The UI already tells users that this action is
     incompatible with the current configuration when they attach a ticketing action to a
     metric alert, so this handler no-ops instead of raising NoRegistrationExistsError.
-
-    Mirrors UnsupportedActivityHandler in activity_registry/unsupported.py: only the entry
-    point actually invoked (invoke_legacy_registry) is overridden. send_alert is left as-is,
-    so it still raises NotImplementedError via BaseMetricAlertHandler if ever reached directly.
     """
 
     @classmethod
