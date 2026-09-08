@@ -267,6 +267,22 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
         return condition_group
 
+    @staticmethod
+    def _parse_optional_int_id(value: Any, field_name: str) -> int | None:
+        """
+        Parse an optional ID from API input.
+
+        Ownership checks run before field-level action validation, so non-numeric
+        values (for example legacy rule action class paths) must become 400s here
+        instead of unhandled ValueErrors.
+        """
+        if value is None:
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            raise serializers.ValidationError(f"Invalid {field_name}: {value}")
+
     def _validate_trigger_ownership(self, triggers: InputData) -> None:
         """
         If a data_condition_group id is passed in, it must belong to the workflow being updated
@@ -274,11 +290,11 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         """
         workflow = self.context["workflow"]
 
-        condition_group_id = triggers.get("id")
+        condition_group_id = self._parse_optional_int_id(triggers.get("id"), "Condition Group ID")
 
         if (
             condition_group_id is not None
-            and int(condition_group_id) != workflow.when_condition_group_id
+            and condition_group_id != workflow.when_condition_group_id
         ):
             raise serializers.ValidationError(f"Invalid Condition Group ID {condition_group_id}")
 
@@ -295,15 +311,15 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         )
 
         for action_filter in action_filters:
-            dcg_id = action_filter.get("id")
-            if dcg_id is not None and int(dcg_id) not in valid_dcg_ids:
+            dcg_id = self._parse_optional_int_id(action_filter.get("id"), "Action filter ID")
+            if dcg_id is not None and dcg_id not in valid_dcg_ids:
                 raise serializers.ValidationError(
                     f"Action filter ID {dcg_id} does not belong to this workflow"
                 )
 
             for action in action_filter.get("actions", []):
-                action_id = action.get("id")
-                if action_id is not None and int(action_id) not in valid_action_ids:
+                action_id = self._parse_optional_int_id(action.get("id"), "Action ID")
+                if action_id is not None and action_id not in valid_action_ids:
                     raise serializers.ValidationError(
                         f"Action ID {action_id} does not belong to this workflow"
                     )
