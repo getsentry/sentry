@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from enum import StrEnum
 from typing import Any
 
@@ -10,23 +10,34 @@ from django.db import router, transaction
 from google.api_core.exceptions import DeadlineExceeded
 from sentry_sdk import set_tag, set_user
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
-from sentry.issues.auto_source_code_config.code_mapping import CodeMapping, CodeMappingTreesHelper
+from sentry.issues.auto_source_code_config.code_mapping import (
+    CodeMapping,
+    CodeMappingTreesHelper,
+    convert_stacktrace_frame_path_to_source_path,
+)
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
+from sentry.models.projectrepository import (
+    SOURCE_PRIORITY,
+    ProjectRepository,
+    ProjectRepositorySource,
+)
 from sentry.models.repository import Repository
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
+from sentry.utils.event_frames import EventFrame, get_sdk_name
 from sentry.utils.locking import UnableToAcquireLock
 
 from .constants import METRIC_PREFIX
@@ -90,13 +101,32 @@ def process_event(
     if not frames_to_process:
         return [], []
 
+    # Java also uses inferred mappings to restore missing derived in-app rules.
+    if not platform_config.creates_in_app_stack_trace_rules():
+        frames_to_process = _get_uncovered_frames(
+            frames_to_process,
+            _get_usable_code_mappings(project),
+            platform,
+            get_sdk_name(event.data),
+        )
+        if not frames_to_process:
+            return [], []
+
     code_mappings: list[CodeMapping] = []
     in_app_stack_trace_rules: list[str] = []
     try:
         installation = get_installation(org)
-        trees = get_trees_for_org(installation, org, extra)
-        trees_helper = CodeMappingTreesHelper(trees)
-        code_mappings = trees_helper.generate_code_mappings(frames_to_process, platform)
+        linked_repository_names = _get_linked_repository_names(project)
+        # Prefer project-linked repositories, then fall back to everything the integration exposes.
+        repository_searches = [linked_repository_names, None] if linked_repository_names else [None]
+        for repository_names in repository_searches:
+            trees = get_trees_for_org(installation, org, extra, repository_names=repository_names)
+            code_mappings = CodeMappingTreesHelper(trees).generate_code_mappings(
+                frames_to_process, platform
+            )
+            if code_mappings:
+                break
+
         _, in_app_stack_trace_rules = create_configurations(
             code_mappings, installation, project, platform_config
         )
@@ -105,6 +135,84 @@ def process_event(
         pass
 
     return code_mappings, in_app_stack_trace_rules
+
+
+def _get_usable_code_mappings(project: Project) -> list[RepositoryProjectPathConfig]:
+    code_mappings = list(
+        RepositoryProjectPathConfig.objects.filter(
+            project_repository__project_id=project.id,
+            project_repository__repository__organization_id=project.organization_id,
+            project_repository__repository__status=ObjectStatus.ACTIVE,
+            organization_id=project.organization_id,
+            organization_integration_id__isnull=False,
+        )
+        # A generated empty root only proves the single file that produced it matched.
+        .exclude(automatically_generated=True, stack_root="")
+        .select_related("project_repository__repository")
+        .order_by("id")
+    )
+    if not code_mappings:
+        return []
+
+    active_organization_integrations = integration_service.get_organization_integrations(
+        org_integration_ids=list(
+            {code_mapping.organization_integration_id for code_mapping in code_mappings}
+        ),
+        organization_id=project.organization_id,
+        status=ObjectStatus.ACTIVE,
+    )
+    active_organization_integration_ids = {
+        organization_integration.id for organization_integration in active_organization_integrations
+    }
+    return [
+        code_mapping
+        for code_mapping in code_mappings
+        if code_mapping.organization_integration_id in active_organization_integration_ids
+    ]
+
+
+def _get_uncovered_frames(
+    frames: Sequence[dict[str, Any]],
+    code_mappings: Sequence[RepositoryProjectPathConfig],
+    platform: str,
+    sdk_name: str | None,
+) -> list[dict[str, Any]]:
+    frames_requiring_inference: list[dict[str, Any]] = []
+    for frame in frames:
+        event_frame = EventFrame.from_dict(frame)
+        is_covered = any(
+            convert_stacktrace_frame_path_to_source_path(
+                frame=event_frame,
+                code_mapping=code_mapping,
+                platform=platform,
+                sdk_name=sdk_name,
+            )
+            is not None
+            for code_mapping in code_mappings
+        )
+        if not is_covered:
+            frames_requiring_inference.append(frame)
+
+    return frames_requiring_inference
+
+
+def _get_linked_repository_names(project: Project) -> list[str]:
+    project_repositories = ProjectRepository.objects.filter(
+        project_id=project.id,
+        repository__organization_id=project.organization_id,
+        repository__status=ObjectStatus.ACTIVE,
+    ).select_related("repository")
+    return [
+        project_repository.repository.name
+        for project_repository in sorted(
+            project_repositories,
+            key=lambda project_repository: (
+                -SOURCE_PRIORITY.get(ProjectRepositorySource(project_repository.source), 0),
+                project_repository.repository.name,
+                project_repository.repository_id,
+            ),
+        )
+    ]
 
 
 def fetch_event(
@@ -167,7 +275,10 @@ def process_error(error: ApiError, extra: dict[str, Any]) -> None:
 
 
 def get_trees_for_org(
-    installation: IntegrationInstallation, org: Organization, extra: dict[str, Any]
+    installation: IntegrationInstallation,
+    org: Organization,
+    extra: dict[str, Any],
+    repository_names: list[str] | None = None,
 ) -> dict[str, Any]:
     trees: dict[str, Any] = {}
     if not hasattr(installation, "get_trees_for_org"):
@@ -184,7 +295,7 @@ def get_trees_for_org(
     ).capture() as lifecycle:
         try:
             with lock.acquire():
-                trees = installation.get_trees_for_org()
+                trees = installation.get_trees_for_org(repository_names=repository_names)
                 if not trees:
                     lifecycle.record_halt(DeriveCodeMappingsErrorReason.EMPTY_TREES, extra=extra)
         except ApiError as error:

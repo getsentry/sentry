@@ -2,6 +2,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any, TypedDict, cast
 from unittest.mock import patch
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.repo_trees import RepoAndBranch
@@ -89,7 +90,7 @@ class BaseDeriveCodeMappings(TestCase):
         source_root: str,
         automatically_generated: bool = False,
         default_branch: str = "master",
-    ) -> None:
+    ) -> RepositoryProjectPathConfig:
         with assume_test_silo_mode_of(OrganizationIntegration):
             organization_integration = OrganizationIntegration.objects.get(
                 organization_id=self.organization.id, integration=self.integration
@@ -105,7 +106,7 @@ class BaseDeriveCodeMappings(TestCase):
             repository=repository,
             defaults={"source": ProjectRepositorySource.MANUAL},
         )
-        RepositoryProjectPathConfig.objects.create(
+        return RepositoryProjectPathConfig.objects.create(
             stack_root=stack_root,
             source_root=source_root,
             default_branch=default_branch,
@@ -116,6 +117,24 @@ class BaseDeriveCodeMappings(TestCase):
             project_repository=project_repo,
         )
 
+    def create_project_repository(
+        self,
+        repo_name: str,
+        source: ProjectRepositorySource = ProjectRepositorySource.MANUAL,
+    ) -> ProjectRepository:
+        repository = self.create_repo(
+            project=self.project,
+            name=repo_name,
+            integration_id=self.integration.id,
+            external_id=repo_name,
+        )
+        project_repository, _ = ProjectRepository.objects.get_or_create(
+            project=self.project,
+            repository=repository,
+            defaults={"source": source},
+        )
+        return project_repository
+
     def _process_and_assert_configuration_changes(
         self,
         *,  # Force keyword arguments
@@ -124,12 +143,15 @@ class BaseDeriveCodeMappings(TestCase):
         platform: str,
         expected_new_code_mappings: Sequence[ExpectedCodeMapping] | None = None,
         expected_new_in_app_stack_trace_rules: list[str] | None = None,
+        expected_tree_requests: Sequence[str] | None = None,
     ) -> GroupEvent:
         platform_config = PlatformConfig(platform)
         dry_run = platform_config.is_dry_run_platform(self.organization)
         tags = {"dry_run": dry_run, "platform": platform}
         with (
-            patch(f"{CLIENT}.get_tree", side_effect=create_mock_get_tree(repo_trees)),
+            patch(
+                f"{CLIENT}.get_tree", side_effect=create_mock_get_tree(repo_trees)
+            ) as mock_get_tree,
             patch(f"{CLIENT}.get_remaining_api_requests", return_value=500),
             patch(
                 f"{REPO_TREES_INTEGRATION}._populate_repositories",
@@ -144,6 +166,11 @@ class BaseDeriveCodeMappings(TestCase):
             code_mappings, in_app_stack_trace_rules = process_event(
                 self.project.id, event.group_id, event.event_id
             )
+
+            if expected_tree_requests is not None:
+                assert [call.args[0] for call in mock_get_tree.call_args_list] == list(
+                    expected_tree_requests
+                )
 
             current_code_mappings = RepositoryProjectPathConfig.objects.all()
             current_repositories = Repository.objects.all()
@@ -183,6 +210,7 @@ class BaseDeriveCodeMappings(TestCase):
                     for expected_cm in expected_new_code_mappings:
                         code_mapping = current_code_mappings.get(
                             project_repository__project_id=self.project.id,
+                            project_repository__repository__name=expected_cm["repo_name"],
                             stack_root=expected_cm["stack_root"],
                             source_root=expected_cm["source_root"],
                         )
@@ -311,22 +339,124 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
             )
 
     def test_handle_existing_code_mapping(self) -> None:
-        self.create_repo_and_code_mapping("repo", "foo/", "src/foo/")
-        # The platform & frames are irrelevant for this test
-        event = self.create_event([self.frame("foo/bar/baz.py", True)], "python")
-        assert event.group_id is not None
-        process_event(self.project.id, event.group_id, event.event_id)
+        self.create_repo_and_code_mapping(REPO1, "", "src/")
+
+        with patch(f"{REPO_TREES_INTEGRATION}.get_trees_for_org") as get_trees_for_org:
+            self._process_and_assert_configuration_changes(
+                repo_trees={REPO1: ["src/foo/bar.py"]},
+                frames=[self.frame("foo/bar.py", True)],
+                platform="python",
+                expected_tree_requests=[],
+            )
+
+        get_trees_for_org.assert_not_called()
         all_cm = RepositoryProjectPathConfig.objects.all()
         assert len(all_cm) == 1
         assert all_cm[0].automatically_generated is False
 
+    def test_mapping_with_inactive_repository_does_not_suppress_discovery(self) -> None:
+        code_mapping = self.create_repo_and_code_mapping("inactive-repo", "foo/", "src/foo/")
+        code_mapping.project_repository.repository.update(status=ObjectStatus.DISABLED)
+
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["src/foo/bar.py"]},
+            frames=[self.frame("foo/bar.py", True)],
+            platform="python",
+            expected_new_code_mappings=[self.code_mapping("foo/", "src/foo/")],
+            expected_tree_requests=[REPO1, REPO2],
+        )
+
+    def test_mapping_with_inactive_organization_integration_is_not_usable(self) -> None:
+        self.create_repo_and_code_mapping("inactive-repo", "foo/", "src/foo/")
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            organization_integration = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id,
+                integration=self.integration,
+            )
+            organization_integration.update(status=ObjectStatus.DISABLED)
+
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["src/foo/bar.py"]},
+            frames=[self.frame("foo/bar.py", True)],
+            platform="python",
+            expected_new_code_mappings=[self.code_mapping("foo/", "src/foo/")],
+            expected_tree_requests=[REPO1, REPO2],
+        )
+
+    def test_linked_repository_match_avoids_unrelated_trees(self) -> None:
+        self.create_project_repository(REPO2)
+
+        self._process_and_assert_configuration_changes(
+            repo_trees={
+                REPO1: ["src/foo/bar.py"],
+                REPO2: ["src/foo/bar.py"],
+            },
+            frames=[self.frame("foo/bar.py", True)],
+            platform="python",
+            expected_new_code_mappings=[self.code_mapping("foo/", "src/foo/", REPO2)],
+            expected_tree_requests=[REPO2],
+        )
+
+    def test_no_linked_match_falls_back_to_organization_repositories(self) -> None:
+        self.create_project_repository(REPO1)
+
+        self._process_and_assert_configuration_changes(
+            repo_trees={
+                REPO1: ["src/not-a-match.py"],
+                REPO2: ["src/foo/bar.py"],
+            },
+            frames=[self.frame("foo/bar.py", True)],
+            platform="python",
+            expected_new_code_mappings=[self.code_mapping("foo/", "src/foo/", REPO2)],
+            expected_tree_requests=[REPO1, REPO2],
+        )
+
+    def test_same_path_in_two_linked_repositories_is_ambiguous(self) -> None:
+        self.create_project_repository(REPO1, ProjectRepositorySource.AUTO_NAME_MATCH)
+        self.create_project_repository(REPO2)
+
+        self._process_and_assert_configuration_changes(
+            repo_trees={
+                REPO1: ["src/foo/bar.py"],
+                REPO2: ["src/foo/bar.py"],
+            },
+            frames=[self.frame("foo/bar.py", True)],
+            platform="python",
+            expected_tree_requests=[REPO2, REPO1],
+        )
+
+    def test_partially_covered_event_only_processes_uncovered_frames(self) -> None:
+        covered_frame = self.frame("covered/file.py", True)
+        uncovered_frame = self.frame("uncovered/file.py", True)
+        self.create_repo_and_code_mapping(REPO1, "covered/", "existing/covered/")
+
+        self._process_and_assert_configuration_changes(
+            repo_trees={
+                REPO1: [
+                    "different/covered/file.py",
+                    "src/uncovered/file.py",
+                ]
+            },
+            frames=[covered_frame, uncovered_frame],
+            platform="python",
+            expected_new_code_mappings=[self.code_mapping("uncovered/", "src/uncovered/")],
+        )
+
     def test_single_file_path(self) -> None:
         """Test that single-file paths like Program.cs are handled correctly."""
         self._process_and_assert_configuration_changes(
-            repo_trees={REPO1: ["src/foo/bar.py"]},
+            repo_trees={REPO1: ["src/foo/bar.py", "src/other/baz.py"]},
             frames=[self.frame("bar.py", True)],
             platform="python",
             expected_new_code_mappings=[self.code_mapping("", "src/foo/")],
+        )
+
+        # The inferred empty stack root is not enough evidence to cover unrelated frames.
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["src/foo/bar.py", "src/other/baz.py"]},
+            frames=[self.frame("other/baz.py", True)],
+            platform="python",
+            expected_new_code_mappings=[self.code_mapping("other/", "src/other/")],
         )
 
     def test_dry_run_platform(self) -> None:
@@ -716,13 +846,14 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
                 "stack.module:com.example.** +app",
             ],
         )
-        # Second run: the code mapping already exists, but the in-app rule is still applied
+        self.project.delete_option(DERIVED_ENHANCEMENTS_OPTION_KEY)
+
+        # A covered Java frame still needs discovery when its derived rule is missing.
         self._process_and_assert_configuration_changes(
             repo_trees={REPO1: ["src/com/example/foo/Bar.kt"]},
             frames=[self.frame_from_module("com.example.foo.Bar", "Bar.kt", in_app=True)],
             platform=self.platform,
-            expected_new_code_mappings=[],
-            expected_new_in_app_stack_trace_rules=[],
+            expected_new_in_app_stack_trace_rules=["stack.module:com.example.** +app"],
         )
 
     def test_short_packages(self) -> None:
