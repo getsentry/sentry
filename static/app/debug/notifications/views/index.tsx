@@ -72,6 +72,7 @@ export default function DebugNotificationsIndex() {
                     position="sticky"
                     top={`calc(${HEADER_HEIGHT}px + ${theme.space.xl})`}
                     alignSelf="flex-start"
+                    minWidth={0}
                     maxWidth={{zero: 'none', '2xl': '450px'}}
                   >
                     <DebugNotificationsExample registration={selectedRegistration} />
