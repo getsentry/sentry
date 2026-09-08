@@ -29,6 +29,7 @@ import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {callRecordLabel} from 'sentry/views/seerExplorer/callRecords';
 import type {CallRecord, ToolLink} from 'sentry/views/seerExplorer/types';
 
 /**
@@ -677,7 +678,9 @@ export function subjectFromCallRecord(record: CallRecord): LinkSubject {
     pathname: pathname || undefined,
     query: query ? (queryString.parse(query) as Record<string, string>) : undefined,
     status: record.status,
-    title: record.title?.trim() || undefined,
+    // Same precedence as the row's own label, so a rule that names the row from its title
+    // still leads with the agent's line rather than dropping it on every navigable row.
+    title: callRecordLabel(record) ?? undefined,
   };
 }
 

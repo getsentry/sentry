@@ -4,8 +4,8 @@ import * as Sentry from '@sentry/react';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {linkProjectToRepository} from 'sentry/components/onboarding/scm/linkProjectToRepository';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
+import type {CreatedProjectRule} from 'sentry/components/onboarding/useCreateProjectRules';
 import {t} from 'sentry/locale';
-import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
@@ -16,9 +16,9 @@ import {useTeams} from 'sentry/utils/useTeams';
 import type {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
 
-type CreateNotificationAction = ReturnType<
+type GetIntegrationAction = ReturnType<
   typeof useCreateNotificationAction
->['createNotificationAction'];
+>['getIntegrationAction'];
 
 export interface ScmProjectCreationResult {
   project: Project;
@@ -27,8 +27,8 @@ export interface ScmProjectCreationResult {
    * unchanged platform) instead of creating a new one.
    */
   reused: boolean;
-  ruleIds: string[];
-  notificationRule?: IssueAlertRule;
+  workflowIds: string[];
+  notificationRule?: CreatedProjectRule;
 }
 
 interface UseScmProjectCreationOptions {
@@ -63,13 +63,13 @@ interface CreateOrReuseProjectOptions {
    */
   alertRuleConfig?: Partial<RequestDataFragment>;
   /**
-   * Creates the messaging-integration notification rule, if one is configured.
+   * Returns the selected messaging-integration action, if one is configured.
    * Defaults to a no-op (email-only creation).
    */
-  createNotificationAction?: CreateNotificationAction;
+  getIntegrationAction?: GetIntegrationAction;
 }
 
-const noopNotificationAction: CreateNotificationAction = () => {};
+const noopIntegrationAction: GetIntegrationAction = () => {};
 
 /**
  * Shared project + alert-rule creation for the SCM onboarding flow. Both
@@ -105,7 +105,7 @@ export function useScmProjectCreation({
     async ({
       platform,
       alertRuleConfig,
-      createNotificationAction,
+      getIntegrationAction,
       onSuccess,
     }: CreateOrReuseProjectOptions): Promise<ScmProjectCreationResult | undefined> => {
       if (isCreatingRef.current) {
@@ -123,7 +123,7 @@ export function useScmProjectCreation({
         const result: ScmProjectCreationResult = {
           project: existingProject,
           reused: true,
-          ruleIds: [],
+          workflowIds: [],
         };
         onSuccess(result);
         return result;
@@ -142,7 +142,7 @@ export function useScmProjectCreation({
             platform,
             team: firstAdminTeam?.slug,
             alertRuleConfig: alertRuleConfig ?? {defaultRules: true},
-            createNotificationAction: createNotificationAction ?? noopNotificationAction,
+            getIntegrationAction: getIntegrationAction ?? noopIntegrationAction,
           })
           .catch(error => {
             addErrorMessage(t('Failed to create project'));
@@ -166,7 +166,7 @@ export function useScmProjectCreation({
         const result: ScmProjectCreationResult = {
           project: creation.project,
           reused: false,
-          ruleIds: creation.ruleIds,
+          workflowIds: creation.workflowIds,
           notificationRule: creation.notificationRule,
         };
         onSuccess(result);

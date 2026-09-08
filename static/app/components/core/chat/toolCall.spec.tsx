@@ -57,11 +57,6 @@ describe('ToolCall', () => {
     expect(screen.queryByText('Failed')).not.toBeInTheDocument();
   });
 
-  it('renders a duration in the meta slot', () => {
-    render(<ToolCall title="Query spans" status="success" durationMs={9400} />);
-    expect(screen.getByText('9.4s')).toBeInTheDocument();
-  });
-
   it('renders the input slot under an Input label', () => {
     render(
       <ToolCall

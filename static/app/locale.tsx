@@ -394,15 +394,11 @@ function gettextComponentTemplate(
   components: ComponentMap
 ): React.JSX.Element {
   const parsedTemplate = parseComponentTemplate(getClient().gettext(template));
-  return mark(renderTemplate(parsedTemplate, components));
-}
-
-/**
- * Helper over `gettextComponentTemplate` with a pre-populated `<code />` component that
- * is commonly used.
- */
-export function tctCode(template: string, components: ComponentMap = {}) {
-  return gettextComponentTemplate(template, {code: <code />, ...components});
+  return mark(
+    renderTemplate(parsedTemplate, {
+      ...components,
+    })
+  );
 }
 
 /**

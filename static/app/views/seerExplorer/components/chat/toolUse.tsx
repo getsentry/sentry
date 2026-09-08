@@ -33,6 +33,7 @@ import {
   callRecordFailure,
   callRecordInputQuery,
   callRecordLabel,
+  fallbackCallLabel,
   callRecordStatus,
   visibleCallRecords,
 } from 'sentry/views/seerExplorer/callRecords';
@@ -92,6 +93,74 @@ function linkKey(link: ToolLink) {
     .map(k => `${k}=${JSON.stringify(params[k])}`)
     .join(',');
   return `${link.kind}:${sorted}`;
+}
+
+/**
+ * Whether `ToolCallList` will render anything for this block.
+ *
+ * `ToolCallList` suppresses a tool call that reported nothing, so a caller deciding whether to open
+ * a container around it cannot go by `tool_calls.length` — that opens an empty box.
+ *
+ * The same terms as the per-call `hasContent` guard below, plus the block's own running placeholder,
+ * and attributing progress and live rows the way the list does: only to a call that has not settled.
+ */
+export function blockRendersToolContent(block: Block, blocks?: Block[]): boolean {
+  const toolCalls = block.message.tool_calls ?? [];
+  if (!toolCalls.length) {
+    return false;
+  }
+  const results = block.tool_results ?? [];
+  const settledCallIds = new Set(results.flatMap(result => result?.tool_call_id ?? []));
+  const pendingCallIds = toolCalls.flatMap(toolCall =>
+    toolCall.id && !settledCallIds.has(toolCall.id) ? [toolCall.id] : []
+  );
+
+  if (findLatestTodos(blocks)?.block === block) {
+    return true;
+  }
+  // The placeholder the list renders after its rows, whether or not any row survived.
+  if (
+    block.loading &&
+    toolCalls.some(
+      toolCall =>
+        CODE_MODE_TOOLS.has(toolCall.function) &&
+        toolCall.id &&
+        !settledCallIds.has(toolCall.id)
+    )
+  ) {
+    return true;
+  }
+  // Live rows hang off the block, so the list can only attribute them to a lone pending call.
+  if (block.live_calls?.length && pendingCallIds.length === 1) {
+    return true;
+  }
+  // Progress narration stands in for rows until its call reports.
+  if (
+    (block.progress ?? []).some(
+      event =>
+        event?.token && event.message?.trim() && pendingCallIds.includes(event.token)
+    )
+  ) {
+    return true;
+  }
+  if (
+    results.some(result => {
+      const structured = result?.structuredContent;
+      return Boolean(
+        structured?.calls?.length ||
+        // Errored links render no row, and todos render only from the block holding the newest
+        // snapshot — already checked above. Counting either unfiltered reopens the empty box.
+        structured?.links?.some(link => link?.params?.is_error !== true) ||
+        (structured && result.content.trimStart().startsWith('{%'))
+      );
+    })
+  ) {
+    return true;
+  }
+  const toolsUsed = getToolsStringFromBlock(block);
+  return toolCalls.some(
+    (toolCall, idx) => !CODE_MODE_TOOLS.has(toolCall.function) && Boolean(toolsUsed[idx])
+  );
 }
 
 export function ToolUseBlock({
@@ -240,6 +309,20 @@ function useToolLinks(block: Block) {
   // The mirror lives on the block, not per tool call, so it can only be attributed to a call that
   // has not reported yet. With several still in flight there is no way to tell whose calls these
   // are, so it is shown on none of them rather than duplicated across all.
+  // Grouped by the call that emitted them: an event names its own, so unlike the mirror below
+  // several calls can be in flight and each still reports.
+  const progressForCallId = useMemo(() => {
+    const grouped = new Map<string, string[]>();
+    for (const event of block.progress ?? []) {
+      const message = event?.message?.trim();
+      if (!event?.token || !message) {
+        continue;
+      }
+      grouped.set(event.token, [...(grouped.get(event.token) ?? []), message]);
+    }
+    return grouped;
+  }, [block.progress]);
+
   const liveCallsForCallId = useMemo(() => {
     const calls = block.live_calls ?? [];
     if (!calls.length) {
@@ -263,6 +346,7 @@ function useToolLinks(block: Block) {
     structuredContentMarkdownByCallId,
     callRecordsByCallId,
     liveCallsForCallId,
+    progressForCallId,
     settledCallIds,
     organization,
     projects,
@@ -285,6 +369,7 @@ export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps
     structuredContentMarkdownByCallId,
     callRecordsByCallId,
     liveCallsForCallId,
+    progressForCallId,
     settledCallIds,
     organization,
     projects,
@@ -405,6 +490,11 @@ export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps
         const finishedCalls = toolCall.id
           ? (callRecordsByCallId.get(toolCall.id) ?? [])
           : [];
+        // Progress first: attributed by token, so it survives several calls in flight — exactly
+        // when the mirror shows nothing. The mirror stays the fallback for an older seer.
+        const progressLines = toolCall.id
+          ? (progressForCallId.get(toolCall.id) ?? [])
+          : [];
         const live = toolCall.id ? (liveCallsForCallId.get(toolCall.id) ?? []) : [];
         // A result exists, so the execute returned and nothing it reported is still running. Read
         // off the result itself rather than off the records it carried: a call that reports none
@@ -419,7 +509,23 @@ export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps
         // claiming it wholesale would starve later rows of their bus twins. Those are paired one
         // bus link at a time below instead.
         const claimedLinkKinds = new Set<string>();
-        const callRows = visibleCallRecords(finishedCalls.length ? finishedCalls : live)
+        // Progress carries a string, so each line becomes a note-shaped record and rides the same
+        // renderer. Negative ids keep them clear of the per-execute counter.
+        const inFlightRows: CallRecord[] = progressLines.map((message, index) => ({
+          id: -(index + 1),
+          kind: 'note' as const,
+          llm_description: message,
+        }));
+        // Progress describes work in flight, so it is stale the moment the call reports back —
+        // seer clears it then, but an older seer or a failed clear must not leave narration
+        // rendering as settled rows, least of all when a finished session is replayed.
+        const inFlight = callsAreSettled ? [] : inFlightRows;
+        const rowSource = finishedCalls.length
+          ? finishedCalls
+          : inFlight.length
+            ? inFlight
+            : live;
+        const callRows = visibleCallRecords(rowSource)
           .map(record => {
             const subject = subjectFromCallRecord(record);
             const link = resolveLink(subject, {organization, projects});
@@ -443,10 +549,12 @@ export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps
               linkLabel: genericLink?.label ?? null,
             };
           })
-          // A record we have no label for is dropped rather than rendered as a route or an
-          // internal identifier — one fewer row beats a raw string on screen. The predicate
-          // narrows `label` for the render below, which is why it is not a plain Boolean check.
-          .filter((row): row is typeof row & {label: string} => Boolean(row.label));
+          // Reported rather than deleted — a row should never disappear for want of wording — but
+          // given a generic label, since a raw route reads worse than no row at all.
+          .map(row => ({
+            ...row,
+            label: row.label ?? fallbackCallLabel(row.record),
+          }));
 
         const residualNavItems = navItems.filter(
           item => !claimedLinkKinds.has(item.kind)

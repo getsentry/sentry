@@ -133,7 +133,7 @@ export const getColumnSort = ({
 
 export const renderHeadCell = ({column}: Pick<Options, 'column'>) =>
   column.tooltip ? (
-    <StyledTooltip isHoverable showUnderline title={column.tooltip}>
+    <StyledTooltip showUnderline title={column.tooltip}>
       {column.name}
     </StyledTooltip>
   ) : (

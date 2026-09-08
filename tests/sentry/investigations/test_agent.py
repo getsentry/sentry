@@ -1,7 +1,9 @@
+from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.utils import timezone
 
 from sentry.investigations.agent import (
     _maybe_start_title_generation,
@@ -14,6 +16,10 @@ from sentry.investigations.agent import (
 )
 from sentry.investigations.models import InvestigationBlockExecutionStatus
 from sentry.investigations.services.investigations import DEFAULT_INVESTIGATION_TITLE
+from sentry.investigations.telemetry import (
+    record_execution_completed,
+    record_investigation_completed,
+)
 from sentry.seer.agent.client_models import (
     MemoryBlock,
     Message,
@@ -413,6 +419,38 @@ class InvestigationAgentTest(TestCase):
         record_completed.assert_called_once()
         assert record_completed.call_args.args[0].id == self.execution.id
 
+    @patch("sentry.investigations.telemetry.metrics.distribution")
+    @patch("sentry.investigations.telemetry.sentry_sdk.metrics.distribution")
+    def test_completed_execution_records_duration_metrics(
+        self, sdk_distribution: MagicMock, metrics_distribution: MagicMock
+    ) -> None:
+        started_at = timezone.now()
+        self.execution.date_added = started_at
+        self.execution.completed_at = started_at + timedelta(seconds=42)
+
+        record_execution_completed(self.execution)
+
+        attributes = {
+            "source_type": "manual",
+            "template": "manual",
+            "block_kind": "query",
+            "executor": "code_mode",
+            "outcome": "completed",
+        }
+        sdk_distribution.assert_called_once_with(
+            "investigations.execution.duration",
+            42.0,
+            unit="second",
+            attributes=attributes,
+        )
+        metrics_distribution.assert_called_once_with(
+            "investigations.execution.duration",
+            42.0,
+            unit="second",
+            tags=attributes,
+            sample_rate=1.0,
+        )
+
     def test_completed_query_rejects_prose_wrapped_json(self) -> None:
         run_state = state(
             blocks=[
@@ -491,13 +529,25 @@ class InvestigationAgentTest(TestCase):
         )
         interrupt_run.assert_called_once_with(self.organization, 43)
 
+    @patch("sentry.investigations.telemetry.metrics.distribution")
+    @patch("sentry.investigations.telemetry.sentry_sdk.metrics.distribution")
     @patch("sentry.investigations.telemetry.metrics.incr")
     @patch("sentry.investigations.telemetry.sentry_sdk.metrics.count")
     def test_failed_execution_records_metrics(
-        self, metrics_count: MagicMock, metrics_incr: MagicMock
+        self,
+        metrics_count: MagicMock,
+        metrics_incr: MagicMock,
+        sdk_distribution: MagicMock,
+        metrics_distribution: MagicMock,
     ) -> None:
         with self.captureOnCommitCallbacks(execute=True):
             synchronize_execution(self.execution, state(status="error", blocks=[]))
+
+        self.execution.refresh_from_db()
+        assert self.execution.completed_at is not None
+        execution_duration = (
+            self.execution.completed_at - self.execution.date_added
+        ).total_seconds()
 
         execution_attributes = {
             "reason": "seer_execution_failed",
@@ -525,6 +575,26 @@ class InvestigationAgentTest(TestCase):
                 {"tags": investigation_attributes, "sample_rate": 1.0},
             ),
         ]
+        duration_attributes = {
+            "source_type": "manual",
+            "template": "manual",
+            "block_kind": "query",
+            "executor": "code_mode",
+            "outcome": "failed",
+        }
+        sdk_distribution.assert_called_once_with(
+            "investigations.execution.duration",
+            execution_duration,
+            unit="second",
+            attributes=duration_attributes,
+        )
+        metrics_distribution.assert_called_once_with(
+            "investigations.execution.duration",
+            execution_duration,
+            unit="second",
+            tags=duration_attributes,
+            sample_rate=1.0,
+        )
 
     @patch("sentry.investigations.agent.record_investigation_failed")
     @patch("sentry.investigations.agent.interrupt_run")
@@ -1088,6 +1158,32 @@ class InvestigationAgentTest(TestCase):
         assert self.investigation.title_generation_status == "completed"
         record_title_completed.assert_called_once_with(self.investigation)
         record_investigation_completed.assert_called_once_with(self.investigation)
+
+    @patch("sentry.investigations.telemetry.metrics.distribution")
+    @patch("sentry.investigations.telemetry.sentry_sdk.metrics.distribution")
+    def test_completed_investigation_records_duration_metrics(
+        self, sdk_distribution: MagicMock, metrics_distribution: MagicMock
+    ) -> None:
+        completed_at = timezone.now()
+        self.investigation.date_added = completed_at - timedelta(seconds=90)
+
+        with patch("sentry.investigations.telemetry.timezone.now", return_value=completed_at):
+            record_investigation_completed(self.investigation)
+
+        attributes = {"source_type": "manual", "template": "manual"}
+        sdk_distribution.assert_called_once_with(
+            "investigations.duration",
+            90.0,
+            unit="second",
+            attributes=attributes,
+        )
+        metrics_distribution.assert_called_once_with(
+            "investigations.duration",
+            90.0,
+            unit="second",
+            tags=attributes,
+            sample_rate=1.0,
+        )
 
     def test_title_accepts_metadata_in_a_json_code_fence(self) -> None:
         self.investigation.update(

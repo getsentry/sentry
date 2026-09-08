@@ -295,7 +295,7 @@ describe('useSaveAsItems', () => {
     }
     const saveQueryFn = modalCall[0].saveQuery;
 
-    await saveQueryFn('Test Query Title', true);
+    await saveQueryFn({name: 'Test Query Title', starred: true});
 
     await waitFor(() => {
       expect(saveQueryMock).toHaveBeenCalledWith(

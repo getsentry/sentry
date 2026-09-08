@@ -1,0 +1,106 @@
+name: 'frontend-snapshots-upload'
+
+# workflow_run has secrets even for fork PRs, unlike pull_request. This job
+# only consumes rendered PNGs and metadata and never runs PR code.
+on:
+  workflow_run:
+    workflows: ['frontend-snapshots']
+    types: [completed]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+  statuses: write
+
+env:
+  SNAPSHOT_OUTPUT_DIR: .artifacts/snapshots
+  VCS_METADATA_FILE: .artifacts/vcs-metadata.json
+
+jobs:
+  upload:
+    name: upload snapshots
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Download snapshots artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: frontend-snapshots-${{ github.event.workflow_run.id }}
+          path: .artifacts
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: Install sentry-cli
+        uses: getsentry/action-setup-cli@70d7e587b84c2e78cf4d37cd33d7b74fb3729c1b # v1
+        with:
+          version: '3.5.0'
+
+      # Event fields are trusted; artifact fields are fork-writable, so they are
+      # validated and never ${{ }}-interpolated.
+      # The head repo is always reported as this repo, even for forks: the
+      # backend resolves the GitHub integration and base build by head repo.
+      - name: Upload snapshots
+        id: upload
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          HEAD_REF: ${{ github.event.workflow_run.head_branch }}
+          REPO_NAME: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          PR_NUMBER=$(jq -r '.pr_number // ""' "$VCS_METADATA_FILE")
+          BASE_REF=$(jq -r '.base_ref // ""' "$VCS_METADATA_FILE")
+          BASE_SHA=$(jq -r '.base_sha // ""' "$VCS_METADATA_FILE")
+
+          if [ -n "$PR_NUMBER" ] && ! printf '%s' "$PR_NUMBER" | grep -qE '^[0-9]+$'; then
+            echo "Refusing to upload: pr_number is not numeric: $PR_NUMBER" >&2
+            exit 1
+          fi
+
+          args=(snapshots upload "$SNAPSHOT_OUTPUT_DIR" \
+            --app-id sentry-frontend \
+            --project sentry-frontend \
+            --vcs-provider github \
+            --head-repo-name "$REPO_NAME" \
+            --base-repo-name "$REPO_NAME")
+          [ -n "$HEAD_SHA" ] && args+=(--head-sha "$HEAD_SHA")
+          [ -n "$HEAD_REF" ] && args+=(--head-ref "$HEAD_REF")
+          [ -n "$BASE_REF" ] && args+=(--base-ref "$BASE_REF")
+          [ -n "$BASE_SHA" ] && args+=(--base-sha "$BASE_SHA")
+          # --pr-number requires --base-sha or sentry-cli bails.
+          if [ -n "$PR_NUMBER" ] && [ -n "$BASE_SHA" ]; then
+            args+=(--pr-number "$PR_NUMBER")
+          fi
+
+          sentry-cli --log-level=debug "${args[@]}"
+
+      # Posted on every outcome so a successful retry clears an earlier failure.
+      - name: Post upload status on head commit
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
+          STATE: ${{ job.status == 'success' && 'success' || 'failure' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api "repos/${{ github.repository }}/statuses/$COMMIT_SHA" \
+            -f state="$STATE" \
+            -f context="snapshots/upload" \
+            -f description="Snapshot upload $STATE" \
+            -f target_url="$RUN_URL"
+
+      - name: Report upload failure to Sentry
+        if: ${{ failure() && steps.upload.outcome == 'failure' }}
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_SNAPSHOTS_DSN }}
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          sentry-cli send-event \
+            --message "Frontend snapshot upload failed" \
+            --tag workflow:frontend-snapshots-upload \
+            --tag commit:"$COMMIT_SHA"

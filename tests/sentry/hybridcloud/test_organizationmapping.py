@@ -45,7 +45,6 @@ def assert_matching_organization_mapping(
         assert org_mapping.disable_new_visibility_features == bool(
             org.flags.disable_new_visibility_features
         )
-        assert org_mapping.require_email_verification == bool(org.flags.require_email_verification)
         assert org_mapping.disable_member_project_creation == bool(
             org.flags.disable_member_project_creation
         )

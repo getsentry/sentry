@@ -2,6 +2,7 @@ import {useEffect} from 'react';
 
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   AuthV2CookieState,
   getAuthV2CookieState,
@@ -10,7 +11,7 @@ import {
 
 export function useAuthV2Rollout() {
   const {loading, organization} = useLegacyStore(OrganizationStore);
-  const {setAuthV2CookieState} = useEnableAuthV2();
+  const {authV2RolloutOrganization, setAuthV2CookieState} = useEnableAuthV2();
 
   useEffect(() => {
     if (loading || !organization) {
@@ -18,16 +19,28 @@ export function useAuthV2Rollout() {
     }
 
     const authV2CookieState = getAuthV2CookieState();
-
     if (!organization.features.includes('authv2-rollout')) {
-      if (authV2CookieState === AuthV2CookieState.ENABLED) {
+      if (
+        authV2CookieState === AuthV2CookieState.ENABLED &&
+        authV2RolloutOrganization === organization.slug
+      ) {
         setAuthV2CookieState(AuthV2CookieState.UNSET);
+        trackAnalytics('auth_v2.rollout.changed', {
+          organization,
+          source: 'feature_flag',
+          state: 'unset',
+        });
       }
       return;
     }
 
     if (authV2CookieState === AuthV2CookieState.UNSET) {
-      setAuthV2CookieState(AuthV2CookieState.ENABLED);
+      setAuthV2CookieState(AuthV2CookieState.ENABLED, organization.slug);
+      trackAnalytics('auth_v2.rollout.changed', {
+        organization,
+        source: 'feature_flag',
+        state: 'enabled',
+      });
     }
-  }, [loading, organization, setAuthV2CookieState]);
+  }, [authV2RolloutOrganization, loading, organization, setAuthV2CookieState]);
 }

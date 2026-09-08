@@ -22,6 +22,7 @@ import type {Project} from 'sentry/types/project';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
+import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -57,7 +58,6 @@ import {MCPOutputSection} from 'sentry/views/performance/newTraceDetails/traceDr
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {BreadCrumbs} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/breadCrumbs';
 import {ReplayPreview} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/replayPreview';
-import {findSpanAttributeValue} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
@@ -641,8 +641,8 @@ function EAPSpanNodeDetailsContent({
         {isTransaction ? (
           <ReplayPreview
             replayId={
-              findSpanAttributeValue(attributes, 'replay.id') ||
-              findSpanAttributeValue(attributes, 'replayId')
+              getAttributeValue(attributes, 'replay.id', 'string') ||
+              getAttributeValue(attributes, 'replayId', 'string')
             }
             eventTimestampMs={Math.floor(node.value.start_timestamp * 1000)}
             organization={organization}

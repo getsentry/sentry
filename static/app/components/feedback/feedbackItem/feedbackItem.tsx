@@ -1,6 +1,8 @@
 import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {InfoTip} from '@sentry/scraps/info';
+
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
@@ -21,7 +23,6 @@ import {MessageSection} from 'sentry/components/feedback/feedbackItem/messageSec
 import {MessageTitle} from 'sentry/components/feedback/feedbackItem/messageTitle';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconChat, IconFire, IconSpan, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -158,7 +159,7 @@ export function FeedbackItem({feedbackItem, eventData, onBackToList}: Props) {
               title={
                 <Fragment>
                   {t('Internal Activity')}
-                  <QuestionTooltip
+                  <InfoTip
                     size="xs"
                     title={t(
                       'Use this section to post comments that are visible only to your organization. It will also automatically update when someone resolves or assigns the feedback.'

@@ -7,8 +7,6 @@ import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {IconSpan} from 'sentry/icons';
-import {getDuration} from 'sentry/utils/duration/getDuration';
-import {SECOND} from 'sentry/utils/formatters';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import {ToolCallIndicator, type ToolCallStatus} from './toolCallIndicator';
@@ -60,11 +58,6 @@ interface ToolCallProps {
    * Always visible: a nested tool call has no disclosure of its own.
    */
   children?: ReactNode;
-  /**
-   * How long the call took, in milliseconds. Rendered right-aligned in the
-   * trailing meta slot. Omit when the duration is unknown.
-   */
-  durationMs?: number;
   /**
    * The trailing danger chip's text when `status` is `failure` (e.g. the HTTP
    * status code `502`). Defaults to `Failed`.
@@ -160,14 +153,6 @@ function FailureChip({label}: {label: ReactNode}) {
   );
 }
 
-function ToolCallDuration({durationMs}: {durationMs: number}) {
-  return (
-    <Text size="sm" variant="secondary" align="right" monospace>
-      {getDuration(durationMs / 1000, 1, true, false, false, SECOND)}
-    </Text>
-  );
-}
-
 function InputBox({input}: {input: ReactNode}) {
   const {t} = useTranslation();
   return (
@@ -230,14 +215,13 @@ function getStatusLabel(
  * Unlike the collapsible `ThinkingBlock` it lives in, a tool call is not itself a
  * disclosure — its detail is always visible. The lifecycle glyph
  * (`ToolCallIndicator`) leads the title; an optional `reference` chip and, on
- * failure, a `failureLabel` chip (the HTTP status) trail it; and a `durationMs`
- * reads right-aligned in the meta slot. `input`, `output`, `notifications`, and
- * `children` stack beneath the title, indented to align under the headline.
+ * failure, a `failureLabel` chip (the HTTP status) trail it. `input`, `output`,
+ * `notifications`, and `children` stack beneath the title, indented to align
+ * under the headline.
  */
 export function ToolCall({
   title,
   status,
-  durationMs,
   failureLabel,
   input,
   output,
@@ -271,7 +255,6 @@ export function ToolCall({
             </Flex>
           ) : null}
         </Flex>
-        {durationMs === undefined ? null : <ToolCallDuration durationMs={durationMs} />}
       </Flex>
 
       {hasDetail ? (

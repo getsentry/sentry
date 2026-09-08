@@ -43,7 +43,6 @@ import {getHighlightedSpanAttributes} from 'sentry/views/performance/newTraceDet
 import {SpanSummaryLink} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/components/spanSummaryLink';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
-  findSpanAttributeValue,
   getSearchInExploreTarget,
   TraceDrawerActionKind,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
@@ -319,7 +318,11 @@ function ResourceImageDescription({
 
   const [showLinks, setShowLinks] = useLocalStorageState(LOCAL_STORAGE_SHOW_LINKS, false);
 
-  const size = findSpanAttributeValue(attributes, 'http.decoded_response_content_length');
+  const size = getAttributeValue(
+    attributes,
+    'http.decoded_response_content_length',
+    'number'
+  );
 
   return (
     <StyledDescriptionWrapper>
