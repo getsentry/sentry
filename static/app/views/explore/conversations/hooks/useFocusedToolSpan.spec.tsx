@@ -23,18 +23,16 @@ describe('useFocusedToolSpan', () => {
       createToolNode({id: 'span-b', toolName: 'second-tool'}),
     ];
 
+    const initialProps: {focusedTool: string | null} = {focusedTool: 'first-tool'};
     const {rerender} = renderHook(
-      ({focusedTool}) =>
+      ({focusedTool}: {focusedTool: string | null}) =>
         useFocusedToolSpan({
           nodes,
           focusedTool,
           isLoading: false,
           onSpanFound,
         }),
-      {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-        initialProps: {focusedTool: 'first-tool' as string | null},
-      }
+      {initialProps}
     );
 
     expect(onSpanFound).toHaveBeenNthCalledWith(1, 'span-a');
