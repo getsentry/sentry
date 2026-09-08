@@ -249,10 +249,7 @@ class GcpIntegration(IntegrationInstallation):
                 "name": "projects",
                 "type": "select",
                 "label": _("GCP Project IDs"),
-                "help": _(
-                    "The GCP projects Sentry reads telemetry from. "
-                    "Type a project ID and press enter to add it."
-                ),
+                "help": _("The GCP projects Sentry reads telemetry from."),
                 "multiple": True,
                 "creatable": True,
                 "required": True,
