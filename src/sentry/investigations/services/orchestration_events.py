@@ -466,7 +466,11 @@ def _upsert_report_block(
         block.position = payload["position"]
     title = payload.get("title", block.title)
     config = payload.get("config", block.config)
-    incoming_display = payload.get("display", {})
+    incoming_display = payload.get("display")
+    if incoming_display is None:
+        incoming_display = {}
+    elif not isinstance(incoming_display, dict):
+        raise serializers.ValidationError({"payload": "display must be an object."})
     display = {**_default_display(kind), **block.display, **incoming_display}
     if kind == InvestigationBlockKind.QUERY:
         if incoming_display.get("type") in {"table", "chart"} and "version" not in incoming_display:

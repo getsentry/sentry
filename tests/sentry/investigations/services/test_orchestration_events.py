@@ -536,6 +536,59 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             == ""
         )
 
+    def test_started_report_block_accepts_null_display(self) -> None:
+        for sequence, kind in enumerate(["text", "query"], start=1):
+            receipt = self.deliver(
+                self.event(
+                    sequence,
+                    "report_block_started",
+                    self.report_block(kind, kind=kind, display=None),
+                )
+            )
+            assert receipt.application_status == InvestigationOrchestrationEventStatus.APPLIED
+            block = InvestigationBlock.objects.get(
+                investigation=self.investigation, stable_agent_key=kind
+            )
+            assert block.current_execution is not None
+            assert block.current_execution.status == InvestigationBlockExecutionStatus.RUNNING
+            assert (
+                block.display
+                == {
+                    "text": {"type": "markdown"},
+                    "query": {
+                        "version": 1,
+                        "type": "table",
+                        "defaultView": "table",
+                        "queryCollapsed": True,
+                    },
+                }[kind]
+            )
+
+    def test_invalid_started_report_display_does_not_block_later_events(self) -> None:
+        invalid_displays = [[], ["table"], "table", 1, False]
+        for sequence, display in enumerate(invalid_displays, start=1):
+            receipt = self.deliver(
+                self.event(
+                    sequence,
+                    "report_block_started",
+                    self.report_block(display=display),
+                )
+            )
+            assert receipt.application_status == InvestigationOrchestrationEventStatus.FAILED
+            assert receipt.last_applied_sequence == sequence
+            assert not InvestigationBlock.objects.filter(investigation=self.investigation).exists()
+            assert not InvestigationBlockExecution.objects.filter(
+                block__investigation=self.investigation
+            ).exists()
+
+        applied = self.deliver(
+            self.event(len(invalid_displays) + 1, "report_block_upserted", self.report_block())
+        )
+        assert applied.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        assert applied.last_applied_sequence == len(invalid_displays) + 1
+        block = InvestigationBlock.objects.get(investigation=self.investigation)
+        assert block.content == "Original report"
+
     def test_query_report_displays_use_the_editable_block_schema(self) -> None:
         result = {
             "schemaVersion": 1,
