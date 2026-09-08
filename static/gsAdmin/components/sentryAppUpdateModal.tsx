@@ -1,4 +1,4 @@
-import {useMutation} from '@tanstack/react-query';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
@@ -8,9 +8,10 @@ import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import type {IntegrationFeature} from 'sentry/types/integrations';
+import type {IntegrationFeature, SentryApp} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -37,17 +38,27 @@ const schema = z.object({
 
 export function SentryAppUpdateModal(props: Props) {
   const {sentryAppData, closeModal, Header, Body, Footer} = props;
+  const queryClient = useQueryClient();
+  const sentryAppQueryOptions = sentryAppApiOptions({
+    appSlug: sentryAppData.slug,
+  });
 
   const mutation = useMutation({
     mutationFn: (data: {features: number[]; popularity: number}) =>
-      fetchMutation({
+      fetchMutation<SentryApp>({
         url: getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
           path: {sentryAppIdOrSlug: sentryAppData.slug},
         }),
         method: 'PUT',
         data: {...sentryAppData, ...data},
       }),
-    onSuccess: closeModal,
+    onSuccess: updatedSentryApp => {
+      queryClient.setQueryData(sentryAppQueryOptions.queryKey, previous => ({
+        headers: previous?.headers ?? {},
+        json: updatedSentryApp,
+      }));
+      closeModal();
+    },
     onError: error => {
       if (
         error instanceof RequestError &&
@@ -56,6 +67,11 @@ export function SentryAppUpdateModal(props: Props) {
         return;
       }
       addErrorMessage('Unable to update the Sentry App.');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: sentryAppQueryOptions.queryKey,
+      });
     },
   });
 
