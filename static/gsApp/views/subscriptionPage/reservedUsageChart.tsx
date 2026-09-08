@@ -5,8 +5,8 @@ import moment from 'moment-timezone';
 
 import {markLine} from 'sentry/components/charts/components/markLine';
 import {ChartTooltip} from 'sentry/components/charts/components/tooltip';
-import {BarSeries} from 'sentry/components/charts/series/barSeries';
-import {lineSeries} from 'sentry/components/charts/series/lineSeries';
+import {createBarSeries} from 'sentry/components/charts/series/barSeries';
+import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils/defined';
@@ -715,7 +715,7 @@ export function ProductUsageChart({
       chartSeries={[
         ...(displayMode === 'cost' && chartData.reserved
           ? [
-              BarSeries({
+              createBarSeries({
                 // Reserved spend
                 name: 'Included in Subscription',
                 data: chartData.reserved,
@@ -724,7 +724,7 @@ export function ProductUsageChart({
                 legendHoverLink: false,
                 color: theme.chart.getColorPalette(5)[0],
               }),
-              BarSeries({
+              createBarSeries({
                 name: displayBudgetName(subscription.planDetails, {title: true}),
                 data: chartData.onDemand,
                 barMinHeight: 1,
@@ -734,7 +734,7 @@ export function ProductUsageChart({
               }),
             ]
           : []),
-        lineSeries({
+        createLineSeries({
           markLine: markLine({
             silent: true,
             lineStyle: {
