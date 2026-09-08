@@ -149,7 +149,12 @@ class MsTeamsClientTest(TestCase):
     def test_invalid_request_records_failure(self) -> None:
         lifecycle = mock.MagicMock()
 
-        record_lifecycle_termination_level(lifecycle, ApiInvalidRequestError("Invalid request"))
+        record_lifecycle_termination_level(
+            lifecycle,
+            ApiInvalidRequestError(
+                '{"error":{"code":"BadSyntax","message":"Bad format of conversation ID"}}'
+            ),
+        )
 
         lifecycle.record_failure.assert_called_once()
         lifecycle.record_halt.assert_not_called()
@@ -165,6 +170,18 @@ class MsTeamsClientTest(TestCase):
 
         lifecycle.record_halt.assert_called_once()
         lifecycle.record_failure.assert_not_called()
+
+    @responses.activate
+    def test_invalid_request_without_halt_code_records_failure(self) -> None:
+        lifecycle = mock.MagicMock()
+
+        record_lifecycle_termination_level(
+            lifecycle,
+            ApiInvalidRequestError('{"error":{"code":"SomeOtherInvalidRequest","message":"nope"}}'),
+        )
+
+        lifecycle.record_failure.assert_called_once()
+        lifecycle.record_halt.assert_not_called()
 
     @responses.activate
     @patch("sentry.integrations.msteams.client.IntegrationProxyClient.request")
