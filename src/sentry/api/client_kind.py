@@ -24,8 +24,12 @@ from sentry.middleware import is_frontend_request
 from sentry.models.organization import Organization
 from sentry.seer.agent_token import is_agent_auth
 from sentry.utils.http import SEER_REFERRER_HEADER, get_mcp_client_family, is_mcp_request
+from sentry.utils.sdk import get_transaction_name_from_request
+from sentry.utils.tracing import set_span_data, start_span
 
 FEATURE_FLAG = "organizations:api-client-kind-check"
+
+ATTRIBUTION_SPAN_OP = "api.attribution"
 
 
 class ClientKind(StrEnum):
@@ -156,12 +160,21 @@ def get_client_kind(request: Request, organization: Organization) -> ClientKind 
 
 
 def set_client_kind_attributes(request: Request, organization: Organization) -> None:
-    """Tag the current transaction with who called the endpoint.
+    """Record who called the endpoint, on a span and on the enclosing transaction.
 
     A no-op when the org has not opted into ``client_kind``. Wired into
     ``OrganizationEventsEndpointBase.convert_args`` so every events endpoint
     reports the same set of attributes without hand-wiring them per handler.
     """
+    client_kind = get_client_kind(request, organization)
+    if client_kind is None:
+        return
+
+    client_host = get_client_host(request)
+    user_agent = get_user_agent(request)
+
+    _record_attribution_span(request, client_kind, client_host, user_agent)
+
     # `sentry.api.client.ApiClient` dispatches endpoints in-process with a synthetic
     # request that carries no user agent, cookies or token, so it classifies as
     # UNKNOWN. These attributes are isolation-scoped, so recording that would overwrite
@@ -170,23 +183,39 @@ def set_client_kind_attributes(request: Request, organization: Organization) -> 
     if getattr(request, "__from_api_client__", False):
         return
 
-    client_kind = get_client_kind(request, organization)
-    if client_kind is None:
-        return
-
     # `_test` suffix while this is a POC, to keep it out of the way of a
     # real `client_kind` attribute later.
     sentry_sdk.set_tag("client_kind_test", client_kind.value)
     sentry_sdk.set_attribute("client_kind_test", client_kind.value)
 
-    client_host = get_client_host(request)
     if client_host is not None:
         sentry_sdk.set_tag("client_host_test", client_host)
         sentry_sdk.set_attribute("client_host_test", client_host)
 
-    user_agent = get_user_agent(request)
     if user_agent is not None:
         sentry_sdk.set_attribute(ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, user_agent)
+
+
+def _record_attribution_span(
+    request: Request,
+    client_kind: ClientKind,
+    client_host: str | None,
+    user_agent: str | None,
+) -> None:
+    """Emit a span pairing the route served with the caller that asked for it.
+
+    Scoped to the dispatch, unlike the isolation-scoped attributes above, so an
+    endpoint reached in-process through `sentry.api.client.ApiClient` reports the
+    route it served rather than its caller's.
+    """
+    route = get_transaction_name_from_request(request)
+    with start_span(op=ATTRIBUTION_SPAN_OP, name=route) as span:
+        set_span_data(span, ATTRIBUTE_NAMES.HTTP_ROUTE, route)
+        set_span_data(span, "client_kind_test", client_kind.value)
+        if client_host is not None:
+            set_span_data(span, "client_host_test", client_host)
+        if user_agent is not None:
+            set_span_data(span, ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, user_agent)
 
 
 def get_user_agent(request: Request) -> str | None:
