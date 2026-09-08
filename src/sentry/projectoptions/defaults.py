@@ -182,8 +182,8 @@ register(
 register(
     key="sentry:loader_available_sdk_versions",
     epoch_defaults={
-        1: ["10.x", "9.x", "8.x", "7.x", "6.x", "5.x", "4.x"],
-        11: ["10.x", "9.x", "8.x", "7.x"],
+        1: ["11.x", "10.x", "9.x", "8.x", "7.x", "6.x", "5.x", "4.x"],
+        11: ["11.x", "10.x", "9.x", "8.x", "7.x"],
     },
 )
 
