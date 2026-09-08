@@ -829,7 +829,7 @@ register(
 )
 
 # PagerDuty Integration
-register("pagerduty.app-id", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("pagerduty.app-id", default="", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 
 # Vercel Integration
 register("vercel.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
