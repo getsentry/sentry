@@ -238,9 +238,12 @@ def get_author_users_by_external_actors(
     # external_id is "<provider>:<login>", so a mapping only counts for the same provider.
     authors_by_mapping: dict[tuple[int, str], CommitAuthor] = {}
     for author in authors:
-        provider = EXTERNAL_PROVIDERS_REVERSE_VALUES.get(author.get_provider_from_external_id())
+        provider_slug = author.get_provider_from_external_id()
         username = author.get_username_from_external_id()
-        if provider is not None and username:
+        if provider_slug is None or not username:
+            continue
+        provider = EXTERNAL_PROVIDERS_REVERSE_VALUES.get(provider_slug)
+        if provider is not None:
             authors_by_mapping[(provider.value, f"@{username}")] = author
 
     if not authors_by_mapping:
