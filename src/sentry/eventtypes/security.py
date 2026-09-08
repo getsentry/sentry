@@ -38,30 +38,3 @@ class CspEvent(SecurityEvent):
         metadata["uri"] = csp.normalize_value(data["csp"].get("blocked_uri") or "")
         metadata["directive"] = data["csp"].get("effective_directive")
         return metadata
-
-
-class HpkpEvent(SecurityEvent):
-    key = "hpkp"
-
-    def extract_metadata(self, data: MutableMapping[str, Any]) -> dict[str, str]:
-        metadata = SecurityEvent.extract_metadata(self, data)
-        metadata["origin"] = data["hpkp"].get("hostname")
-        return metadata
-
-
-class ExpectCTEvent(SecurityEvent):
-    key = "expectct"
-
-    def extract_metadata(self, data: MutableMapping[str, Any]) -> dict[str, str]:
-        metadata = SecurityEvent.extract_metadata(self, data)
-        metadata["origin"] = data["expectct"].get("hostname")
-        return metadata
-
-
-class ExpectStapleEvent(SecurityEvent):
-    key = "expectstaple"
-
-    def extract_metadata(self, data: MutableMapping[str, Any]) -> dict[str, str]:
-        metadata = SecurityEvent.extract_metadata(self, data)
-        metadata["origin"] = data["expectstaple"].get("hostname")
-        return metadata
