@@ -69,6 +69,7 @@ from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.seer.anomaly_detection.store_data import send_new_rule_data, update_rule_data_legacy
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.shared_integrations.exceptions import (
+    ApiError,
     ApiTimeoutError,
     DuplicateDisplayNameError,
     IntegrationError,
@@ -1640,7 +1641,13 @@ def _get_alert_rule_trigger_action_msteams_channel_id(
 ) -> str:
     from sentry.integrations.msteams.utils import get_channel_id
 
-    channel_id = get_channel_id(organization, integration_id, name)
+    try:
+        channel_id = get_channel_id(organization, integration_id, name)
+    except ApiError:
+        raise InvalidTriggerActionError(
+            "Could not find channel %s. The Microsoft Teams bot may have been removed from the team."
+            % name
+        )
 
     if channel_id is None:
         # no granting access for msteams channels unlike slack

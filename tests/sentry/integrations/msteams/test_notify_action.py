@@ -408,3 +408,22 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         assert not form.is_valid()
         assert len(form.errors) == 1
+
+    @responses.activate
+    def test_channel_lookup_api_error(self) -> None:
+        """When MS Teams API returns 400 (e.g. bot removed from team), the form
+        should return a validation error instead of letting the exception propagate."""
+        rule = self.get_rule(data={"team": self.integration.id, "channel": "Errors-channel"})
+
+        responses.add(
+            method=responses.GET,
+            url="https://smba.trafficmanager.net/amer/v3/teams/D4r7h_Pl4gu315_th3_w153/conversations",
+            status=400,
+            json={"error": {"code": "BadRequest", "message": "Bad Request"}},
+        )
+
+        form = rule.get_form_instance()
+
+        assert not form.is_valid()
+        assert len(form.errors) == 1
+        assert "bot may have been removed" in str(form.errors)
