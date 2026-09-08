@@ -14,7 +14,6 @@ from sentry.dynamic_sampling.per_org.calculations import (
     run_project_balancing,
     run_transaction_balancing,
 )
-from sentry.dynamic_sampling.per_org.comparisons import emit_comparisons
 from sentry.dynamic_sampling.per_org.configuration import (
     CustomDynamicSamplingOrganizationConfiguration,
     get_configuration,
@@ -23,7 +22,6 @@ from sentry.dynamic_sampling.per_org.feature_cache import (
     candidate_organizations,
     get_orgs_with_dynamic_sampling,
 )
-from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout, is_org_in_serving_rollout
 from sentry.dynamic_sampling.per_org.queries import (
     RECALIBRATION_TIME_INTERVAL,
     get_eap_organization_volume,
@@ -34,6 +32,7 @@ from sentry.dynamic_sampling.per_org.telemetry import (
     SCHEDULER_BUCKET_ORG_STATUS_METRIC,
     DynamicSamplingStatus,
     emit_status,
+    log_sample_rates_summary,
     track_dynamic_sampling,
 )
 from sentry.dynamic_sampling.rules.utils import OrganizationId
@@ -77,47 +76,42 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
         return DynamicSamplingStatus.ORG_HAS_NO_PROJECTS
 
     try:
-        results = config.results
         org_volume_end = datetime.now(UTC).replace(second=0, microsecond=0)
-        results.organization_volume = get_eap_organization_volume(
+        organization_volume = get_eap_organization_volume(
             config.organization,
             config.projects,
             time_interval=RECALIBRATION_TIME_INTERVAL,
             end=org_volume_end,
         )
-        if results.organization_volume is None:
+        if organization_volume is None:
             return DynamicSamplingStatus.NO_ORG_VOLUME
-        results.project_volumes = get_eap_project_volumes(config)
-        if not results.project_volumes:
+        project_volumes = get_eap_project_volumes(config)
+        if not project_volumes:
             return DynamicSamplingStatus.NO_PROJECT_VOLUMES
 
         if config.should_balance_projects:
-            rebalanced_projects = run_project_balancing(config, results.project_volumes)
+            rebalanced_projects = run_project_balancing(config, project_volumes)
             rebalanced_projects = apply_project_sample_rate_overrides(rebalanced_projects)
             config.set_rebalanced_project_sample_rates(rebalanced_projects)
 
         sample_rates = config.get_project_sample_rates()
-        results.projects_to_balance = [
-            project for project in config.projects if sample_rates.get(project.id) != 1.0
-        ]
-        if not results.projects_to_balance:
+        if all(sample_rates.get(project.id) == 1.0 for project in config.projects):
             return DynamicSamplingStatus.ALL_PROJECTS_AT_FULL_SAMPLE_RATE
 
-        results.transaction_volumes = get_eap_transaction_volumes(config)
-        if not results.transaction_volumes:
+        transaction_volumes = get_eap_transaction_volumes(config)
+        if not transaction_volumes:
             return DynamicSamplingStatus.NO_TRANSACTION_VOLUMES
 
-        results.rebalanced_transactions = run_transaction_balancing(
-            config, results.project_volumes, results.transaction_volumes
+        config.results.rebalanced_transactions = run_transaction_balancing(
+            config, project_volumes, transaction_volumes
         )
 
-        if is_org_in_serving_rollout(org_id):
-            config.recalibrate(results.organization_volume)
+        config.recalibrate(organization_volume)
 
         return None
     finally:
-        emit_comparisons(config)
         write_caches(config)
+        log_sample_rates_summary(config)
 
 
 def calculate_project_target_sample_rates(organization: Organization) -> list[RebalancedItem]:
@@ -144,13 +138,9 @@ def calculate_project_target_sample_rates(organization: Organization) -> list[Re
 @track_dynamic_sampling
 def schedule_per_org_calculations() -> None:
     dispatched = 0
-    skipped = 0
 
-    def validate_and_track(org_id: int) -> bool:
-        nonlocal dispatched, skipped
-        if not is_org_in_rollout(org_id):
-            skipped += 1
-            return False
+    def count_dispatched(org_id: int) -> bool:
+        nonlocal dispatched
         dispatched += 1
         return True
 
@@ -181,7 +171,7 @@ def schedule_per_org_calculations() -> None:
         queryset=organizations,
         task=run_calculations_per_org_task_entry,
         cycle_duration=CYCLE_DURATION,
-        validate_item=validate_and_track,
+        validate_item=count_dispatched,
         prevalidate_batch=keep_orgs_with_dynamic_sampling,
     )
     scheduler.tick()
@@ -190,9 +180,4 @@ def schedule_per_org_calculations() -> None:
         SCHEDULER_BUCKET_ORG_STATUS_METRIC,
         DynamicSamplingStatus.DISPATCHED,
         amount=dispatched,
-    )
-    emit_status(
-        SCHEDULER_BUCKET_ORG_STATUS_METRIC,
-        DynamicSamplingStatus.ROLLOUT_EXCLUDED,
-        amount=skipped,
     )

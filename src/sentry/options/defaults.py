@@ -2402,7 +2402,7 @@ register(
 )
 
 # Dynamic Sampling system-wide options
-# Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
+# Not read anymore. Delete once its sentry-options-automator entry is gone.
 register("dynamic-sampling:sliding_window.size", default=24, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Number of large transactions to retrieve from Snuba for transaction re-balancing.
 register(
@@ -2410,7 +2410,7 @@ register(
     30,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Toggles emitting the smallest-transaction sampling-factor bucket metric during transaction rebalancing.
+# Not read anymore. Delete once its sentry-options-automator entry is gone.
 register(
     "dynamic-sampling.boost_low_volume_transactions.emit_smallest_transaction_factor_metric",
     default=False,
@@ -2459,19 +2459,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Killswitch for the legacy dynamic sampling pipeline. When set to True, the four
-# scheduled jobs (sliding_window_org, boost_low_volume_projects,
-# boost_low_volume_transactions, recalibrate_orgs) exit before they do any work.
+# Not read anymore. Delete once its sentry-options-automator entry is gone.
 register(
     "dynamic-sampling.legacy.killswitch",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deterministic % rollout of the per-org dynamic sampling pipeline, keyed on
-# organization id. A value of 0.0 disables the pipeline for every org; 1.0
-# enables it for every org. Intermediate values select a stable hash-based
-# subset so toggling the rate up and down does not reshuffle which orgs run.
+# Not read anymore. Delete once its sentry-options-automator entry is gone.
 register(
     "dynamic-sampling.per_org.rollout-rate",
     type=Float,
@@ -2479,13 +2474,7 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deterministic % rollout of serving the per-org pipeline's results, keyed on organization
-# id. Above 0.0, rule generation reads the project, transaction and recalibration sample
-# rates of the selected orgs from the per-org caches instead of the legacy ones. An org
-# only has per-org cache entries once dynamic-sampling.per_org.rollout-rate selects it too.
-# An org switches over as a whole:
-# until a pass has stored its project sample rates, rule generation serves all of its
-# values from the legacy caches, and from then on all of them from the per-org ones.
+# Not read anymore. Delete once its sentry-options-automator entry is gone.
 register(
     "dynamic-sampling.per_org.serving-rollout-rate",
     type=Float,
@@ -2493,9 +2482,7 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Organizations rule generation serves from the per-org caches, whatever
-# dynamic-sampling.per_org.serving-rollout-rate selects. Names a single org to pilot
-# before a rate group exists.
+# Not read anymore. Delete once its sentry-options-automator entry is gone.
 register(
     "dynamic-sampling.per_org.serving-org-ids",
     type=Sequence,
@@ -2514,6 +2501,7 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Not read anymore. Delete once its sentry-options-automator entry is gone.
 register(
     "dynamic-sampling.per_org.project-balancing-debug-project-ids",
     type=Sequence,
@@ -2521,6 +2509,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Not read anymore. Delete once its sentry-options-automator entry is gone.
 register(
     "dynamic-sampling.per_org.transaction-volume-debug-project-ids",
     type=Sequence,
@@ -2535,8 +2524,7 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Organizations for which the per-org pipeline logs the EAP-vs-outcomes sliding-window
-# sample rate comparison. Empty disables the comparison entirely.
+# Not read anymore. Delete once its sentry-options-automator entry is gone.
 register(
     "dynamic-sampling.per_org.sliding-window-comparison-org-ids",
     type=Sequence,
@@ -4399,14 +4387,6 @@ register(
 # Kill switch for Objectstore Debug Files migration
 register(
     "debug-files.objectstore-migration.enabled",
-    default=True,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Killswitch for token-level remapping of compound Dart exception types.
-register(
-    "dart.compound-type-deobfuscation.enabled",
     default=True,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,

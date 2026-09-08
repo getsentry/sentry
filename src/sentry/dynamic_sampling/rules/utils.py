@@ -19,8 +19,6 @@ LATEST_RELEASES_BOOST_DECAYED_FACTOR = 1.0
 IGNORE_HEALTH_CHECKS_FACTOR_TRACES = 3
 
 ProjectId = int
-DecisionDropCount = int
-DecisionKeepCount = int
 OrganizationId = int
 TransactionName = str
 

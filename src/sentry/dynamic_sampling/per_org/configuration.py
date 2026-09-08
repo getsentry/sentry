@@ -11,7 +11,7 @@ from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.calculations import calculate_recalibration_factor
 from sentry.dynamic_sampling.per_org.queries import get_outcomes_organization_volume
 from sentry.dynamic_sampling.per_org.results import DynamicSamplingResults
-from sentry.dynamic_sampling.per_org.serving import get_previous_recalibration_factor
+from sentry.dynamic_sampling.per_org.serving import get_recalibration_factor
 from sentry.dynamic_sampling.per_org.telemetry import (
     DynamicSamplingException,
     DynamicSamplingStatus,
@@ -21,11 +21,7 @@ from sentry.dynamic_sampling.sliding_window import (
     SLIDING_WINDOW_HOURS,
     compute_sliding_window_sample_rate,
 )
-from sentry.dynamic_sampling.types import (
-    DynamicSamplingMode,
-    OrganizationDataVolume,
-    SamplingMeasure,
-)
+from sentry.dynamic_sampling.types import DynamicSamplingMode, OrganizationDataVolume
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
@@ -57,7 +53,6 @@ def get_configuration(organization_id: int) -> BaseDynamicSamplingConfiguration:
 
 
 class BaseDynamicSamplingConfiguration(ABC):
-    measure: SamplingMeasure
     sample_rate: TargetSampleRate = None
     should_balance_projects: bool = True
     projects: list[Project]
@@ -93,17 +88,6 @@ class BaseDynamicSamplingConfiguration(ABC):
             int(item.id): item.new_sample_rate for item in rebalanced_projects
         }
 
-    @property
-    def is_span_based(self) -> bool:
-        return self.measure == SamplingMeasure.SPANS
-
-    @property
-    def is_segment_based(self) -> bool:
-        return self.measure == SamplingMeasure.SEGMENTS
-
-    def _get_sampling_measure(self) -> SamplingMeasure:
-        return SamplingMeasure.SEGMENTS
-
     def _get_projects(self) -> list[Project]:
         return list(
             Project.objects.filter(organization_id=self.organization.id, status=ObjectStatus.ACTIVE)
@@ -116,12 +100,9 @@ class BaseDynamicSamplingConfiguration(ABC):
         if not self.projects or self.get_sample_rate() is None:
             return
 
-        results.previous_recalibration_factor = get_previous_recalibration_factor(
-            self.organization.id
-        )
         results.recalibration_factor = calculate_recalibration_factor(
             org_volume,
-            results.previous_recalibration_factor,
+            get_recalibration_factor(self.organization.id),
             self.get_sample_rate(),
         )
 
@@ -153,7 +134,6 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
 
     def __init__(self, organization: Organization) -> None:
         super().__init__(organization)
-        self.measure = self._get_sampling_measure()
         try:
             self.sample_rate = quotas.backend.get_blended_sample_rate(
                 organization_id=organization.id
@@ -170,20 +150,16 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
         return self.sample_rate is not None
 
     def get_sample_rate(self) -> TargetSampleRate:
-        # The usage-based rate. It mirrors the legacy *cache* (boost_low_volume_projects, via
-        # get_org_sample_rate), which is what project balancing and the comparison logging run
-        # against. The blended-100% gate is intentionally NOT applied here: the legacy cache is
-        # ungated too, so applying it would make the logged rates diverge for orgs under their
-        # reserved quota. That gate lives in get_serving_sample_rate, matching legacy serving.
+        # The usage-based rate that project balancing runs against. The blended-100% gate
+        # of get_serving_sample_rate is not applied here, so that the projects of an
+        # organization under its reserved quota are still balanced against its usage.
         if self.sliding_window_sample_rate is not None:
             return self.sliding_window_sample_rate
         return self.sample_rate
 
     def get_serving_sample_rate(self) -> TargetSampleRate:
-        # Serving-time parity with the legacy path (get_guarded_project_sample_rate): a blended
-        # (reserved-based) rate of 100% serves at 100%, bypassing the usage-based sliding-window
-        # rate. Kept out of get_sample_rate so the gate does not leak into the balancing and
-        # comparison path, which must stay aligned with the (ungated) legacy cache.
+        # A blended (reserved-based) rate of 100% serves at 100%, bypassing the usage-based
+        # sliding-window rate. Rule generation applies the same gate.
         if self.sample_rate == 1.0:
             return self.sample_rate
         return self.get_sample_rate()
@@ -222,7 +198,6 @@ class CustomDynamicSamplingOrganizationConfiguration(BaseDynamicSamplingConfigur
 
     def __init__(self, organization: Organization) -> None:
         super().__init__(organization)
-        self.measure = self._get_sampling_measure()
         self.projects = self._get_projects()
 
         self.sample_rate = float(
@@ -253,7 +228,6 @@ class CustomDynamicSamplingProjectConfiguration(BaseDynamicSamplingConfiguration
         super().__init__(organization)
         self.projects = self._get_projects()
         self.project_sample_rates = self._get_project_target_sample_rates()
-        self.measure = self._get_sampling_measure()
 
     @property
     def is_enabled(self) -> bool:

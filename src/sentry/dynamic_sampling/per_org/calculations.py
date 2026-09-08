@@ -61,9 +61,8 @@ def run_project_balancing(
         if project_volume.project_id in project_ids and project_volume.total > 0:
             counts_by_project[project_volume.project_id] = project_volume.total
 
-    # Mirror the legacy serving path (get_guarded_project_sample_rate): a 100% org sample
-    # rate means every project is sampled at 100% and the balanced ("boost low volume
-    # projects") rate is never applied. Reproduced intentionally to match the legacy pipeline.
+    # Rule generation serves a 100% org sample rate as-is (get_guarded_project_sample_rate),
+    # so every project is sampled in full and a balanced rate would never apply.
     if sample_rate == 1.0:
         return [
             RebalancedItem(
@@ -75,13 +74,13 @@ def run_project_balancing(
         ]
 
     # When no project has any volume there is nothing to rebalance, and the model would
-    # divide by zero on all-zero counts. Matches the legacy pipeline, which returns early.
+    # divide by zero on all-zero counts.
     if not counts_by_project:
         return []
 
     # Include every project, defaulting those without volume to a count of 0. The model
-    # assigns zero-count projects a 100% sample rate, and their presence keeps the
-    # per-project ideal budget identical to the legacy calculation.
+    # assigns zero-count projects a 100% sample rate, and their presence counts them into
+    # the per-project ideal budget.
     return ProjectsRebalancingModel().run(
         ProjectsRebalancingInput(
             classes=[
@@ -144,10 +143,8 @@ def run_transaction_balancing(
                 "its transactions"
             )
             continue
-        # Mirror the legacy pipeline (boost_low_volume_transactions_of_project): at a 100%
-        # project rate every transaction is kept anyway, so the legacy task skips the model
-        # and writes no cache entry. Skipping here keeps parity and avoids comparison log
-        # lines that would only ever hit cache misses.
+        # At a 100% project rate every transaction is kept anyway, so there is nothing to
+        # balance and no cache entry to write.
         if sample_rate == 1.0:
             continue
         named_rates, implicit_rate = TransactionsRebalancingModel().run(

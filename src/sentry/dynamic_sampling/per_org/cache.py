@@ -10,7 +10,6 @@ import sentry_sdk
 
 from sentry import options
 from sentry.dynamic_sampling.models.common import RebalancedItem
-from sentry.dynamic_sampling.per_org.gate import is_org_in_serving_rollout
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import metrics
@@ -99,9 +98,6 @@ def write_caches(config: BaseDynamicSamplingConfiguration) -> None:
     if not (wrote_recalibration_factor or wrote_project_rates or wrote_transaction_rates):
         return
 
-    if not is_org_in_serving_rollout(org_id):
-        return
-
     schedule_invalidate_project_config(organization_id=org_id, trigger="dynamic_sampling_per_org")
 
 
@@ -177,29 +173,15 @@ def set_adjusted_factor(org_id: int, adjusted_factor: float) -> None:
         delete_adjusted_factor(org_id)
 
 
-def read_adjusted_factor(org_id: int, source: str) -> float | None:
-    """The stored factor of an organization, or None when it has none stored."""
+def get_adjusted_factor(org_id: int) -> float:
+    """The stored factor of an organization, or the identity factor when it has none stored."""
     redis_client = get_redis_client_for_ds()
     cache_key = generate_recalibrate_orgs_cache_key(org_id)
-
-    factor = None
     try:
         value = redis_client.get(cache_key)
-        if value is not None:
-            factor = float(value)
+        return 1.0 if value is None else float(value)
     except (TypeError, ValueError):
-        pass
-
-    metrics.incr(
-        "dynamic_sampling.per_org.recalibration.get_adjusted_factor",
-        tags={"source": source, "result": "hit" if factor is not None else "miss"},
-    )
-    return factor
-
-
-def get_adjusted_factor(org_id: int, source: str) -> float:
-    factor = read_adjusted_factor(org_id, source)
-    return 1.0 if factor is None else factor
+        return 1.0
 
 
 def get_adjusted_factor_age(org_id: int) -> timedelta | None:
@@ -223,9 +205,6 @@ def delete_adjusted_factor(org_id: int) -> None:
 
 def set_project_sample_rates(org_id: int, rebalanced_projects: Iterable[RebalancedItem]) -> bool:
     """Store the balanced per-project sample rates this pipeline computed.
-
-    Mirrors the layout of the legacy ``prioritise_projects`` hash, so that both pipelines
-    are readable the same way and one can replace the other for a single organization.
 
     Only rates that moved are written. Most projects keep the same rate from one pass to
     the next, and a project with no volume keeps it forever. The expiry is always renewed,
@@ -284,8 +263,8 @@ def set_transaction_sample_rates(
 ) -> bool:
     """Store the balanced per-transaction sample rates of an organization's projects.
 
-    Each stored value has the same shape as the legacy ``pri_tran`` entry: the named rates
-    followed by the rate that applies to every transaction without one.
+    Each stored value holds the named rates followed by the rate that applies to every
+    transaction without one.
 
     Returns whether anything was written, which is what makes the organization's rules
     worth republishing.

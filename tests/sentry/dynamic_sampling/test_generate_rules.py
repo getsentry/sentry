@@ -8,6 +8,7 @@ from sentry_relay.processing import normalize_project_config
 from sentry.constants import HEALTH_CHECK_GLOBS
 from sentry.discover.models import TeamKeyTransaction
 from sentry.dynamic_sampling import ENVIRONMENT_GLOBS, generate_rules, get_redis_client_for_ds
+from sentry.dynamic_sampling.per_org.cache import generate_recalibrate_orgs_cache_key
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.dynamic_sampling.rules.utils import (
     LATEST_RELEASES_BOOST_DECAYED_FACTOR,
@@ -106,7 +107,7 @@ def test_generate_rules_return_only_always_allowed_rules_if_sample_rate_is_100_a
     # We also enable the recalibration to show it's not generated as part of the rules.
     redis_client = get_redis_client_for_ds()
     redis_client.set(
-        f"ds::o:{default_old_project.organization.id}:rate_rebalance_factor2",
+        generate_recalibrate_orgs_cache_key(default_old_project.organization.id),
         0.5,
     )
 
@@ -643,7 +644,7 @@ def test_generate_rules_return_uniform_rules_and_recalibrate_orgs_rule(
 
     default_factor = 0.5
     redis_client.set(
-        f"ds::o:{default_old_project.organization.id}:rate_rebalance_factor2",
+        generate_recalibrate_orgs_cache_key(default_old_project.organization.id),
         default_factor,
     )
 

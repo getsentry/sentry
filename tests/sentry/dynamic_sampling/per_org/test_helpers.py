@@ -17,7 +17,7 @@ BLENDED_SAMPLE_RATE = f"{CONFIGURATION}.quotas.backend.get_blended_sample_rate"
 OUTCOMES_VOLUME = f"{CONFIGURATION}.get_outcomes_organization_volume"
 SLIDING_WINDOW_RATE = f"{CONFIGURATION}.compute_sliding_window_sample_rate"
 CALCULATE_FACTOR = f"{CONFIGURATION}.calculate_recalibration_factor"
-GET_FACTOR = f"{CONFIGURATION}.get_previous_recalibration_factor"
+GET_FACTOR = f"{CONFIGURATION}.get_recalibration_factor"
 # The factor is written by write_caches at the end of the pass, not by the configuration.
 SET_FACTOR = f"{CACHE}.set_adjusted_factor"
 DELETE_FACTOR = f"{CACHE}.delete_adjusted_factor"
@@ -37,8 +37,8 @@ def patch_configuration(targets: dict[str, Any]) -> Iterator[dict[str, MagicMock
         }
 
 
-def make_project_volume(project_id: int, total: int = 100, keep: int = 25) -> ProjectVolume:
-    return ProjectVolume(project_id=project_id, total=total, keep=keep, drop=max(total - keep, 0))
+def make_project_volume(project_id: int, total: int = 100) -> ProjectVolume:
+    return ProjectVolume(project_id=project_id, total=total)
 
 
 def mock_configuration(

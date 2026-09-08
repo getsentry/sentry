@@ -47,17 +47,13 @@ class DynamicSamplingQueryFields(StrEnum):
     COUNT = "count()"
     COUNT_SAMPLE = "count_sample()"
     COUNT_UNIQUE_TRANSACTIONS = "count_unique(sentry.dsc.transaction)"
-    MAX_RECEIVED = "max(received)"
 
 
 @dataclass(order=True)
 class ProjectVolume:
     project_id: ProjectId
     total: int
-    keep: int
-    drop: int
     num_distinct_transactions: int = 0
-    seconds_since_last_item: float | None = None
 
 
 @dataclass(order=True)
@@ -249,39 +245,6 @@ def get_generic_metrics_organization_volume(
     return OrganizationDataVolume(org_id=org_id, total=total, indexed=int(data[0]["keep_count"]))
 
 
-def get_generic_metrics_transaction_volumes(
-    org_id: int,
-    project_ids: set[int],
-    max_transactions: int | None = None,
-) -> dict[int, list[tuple[str, float]]]:
-    """
-    Per-transaction volumes of a set of projects from the legacy generic-metrics pipeline,
-    for side-by-side debugging against ``get_eap_transaction_volumes``. Reuses
-    ``FetchProjectTransactionVolumes`` (the same query the legacy pipeline runs) rather
-    than issuing a new one, scanning the org once for every requested project instead of
-    once per project.
-    """
-    from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
-        FetchProjectTransactionVolumes,
-    )
-
-    if max_transactions is None:
-        max_transactions = int(
-            options.get("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions")
-        )
-
-    remaining = set(project_ids)
-    result: dict[int, list[tuple[str, float]]] = {}
-    for project_transactions in FetchProjectTransactionVolumes([org_id], max_transactions):
-        if not remaining:
-            break
-        project_id = project_transactions["project_id"]
-        if project_id in remaining:
-            result[project_id] = project_transactions["transaction_counts"]
-            remaining.discard(project_id)
-    return result
-
-
 def get_eap_project_volumes(
     config: OrganizationVolumeConfig,
     time_interval: timedelta = timedelta(hours=1),
@@ -302,9 +265,7 @@ def get_eap_project_volumes(
             "selected_columns": [
                 DynamicSamplingQueryFields.DSC_PROJECT_ID,
                 DynamicSamplingQueryFields.COUNT,
-                DynamicSamplingQueryFields.COUNT_SAMPLE,
                 DynamicSamplingQueryFields.COUNT_UNIQUE_TRANSACTIONS,
-                DynamicSamplingQueryFields.MAX_RECEIVED,
             ],
             "orderby": [DynamicSamplingQueryFields.DSC_PROJECT_ID],
             "referrer": Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES.value,
@@ -316,7 +277,6 @@ def get_eap_project_volumes(
         }
     ):
         total = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT)
-        keep = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT_SAMPLE)
         num_distinct_transactions = _get_aggregate_int(
             row, DynamicSamplingQueryFields.COUNT_UNIQUE_TRANSACTIONS
         )
@@ -324,17 +284,11 @@ def get_eap_project_volumes(
         if dsc_project_id is None:
             continue
 
-        received = row.get(DynamicSamplingQueryFields.MAX_RECEIVED)
-        seconds_since_last_item = end_time.timestamp() - float(received) if received else None
-
         project_volumes.append(
             ProjectVolume(
                 project_id=ProjectId(int(dsc_project_id)),
                 total=total,
-                keep=keep,
-                drop=max(total - keep, 0),
                 num_distinct_transactions=num_distinct_transactions,
-                seconds_since_last_item=seconds_since_last_item,
             )
         )
 
@@ -348,10 +302,8 @@ def get_eap_transaction_volumes(
     root_projects: Sequence[Project] | None = None,
 ) -> list[ProjectTransactionCounts]:
     """
-    Fetch the highest-volume transactions of every root project in a single
-    LIMIT BY query, mirroring the legacy pipeline's per-project top-N
-    (``LIMIT BY (org_id, project_id)`` in boost_low_volume_transactions) so the
-    transaction rebalancing model sees the same explicit transaction set.
+    Fetch the highest-volume transactions of every root project in a single LIMIT BY
+    query, so that the transaction rebalancing model sees the top N of each project.
     """
     # Spans rooted in one project can be owned by any project in the org, so the query
     # scope stays config.projects; root_projects only narrows which root projects
@@ -362,9 +314,7 @@ def get_eap_transaction_volumes(
         return []
 
     if max_transactions_per_project is None:
-        # Shared with the legacy pipeline so both select the same explicit transaction
-        # set per project. The companion small-transactions option is 0 in production,
-        # so only the largest transactions are fetched.
+        # Only the largest transactions of a project get an explicit rate.
         max_transactions_per_project = int(
             options.get("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions")
         )
