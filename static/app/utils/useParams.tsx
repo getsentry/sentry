@@ -57,6 +57,7 @@ type ParamKeys =
   | 'scrubbingId'
   | 'searchId'
   | 'sentryAppSlug'
+  | 'sessionId'
   | 'shareId'
   | 'snapshotId'
   | 'spanSlug'

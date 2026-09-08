@@ -8,12 +8,7 @@ import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
 import {Template} from 'sentry/components/events/interfaces/template';
 import {Threads} from 'sentry/components/events/interfaces/threads';
 import {t} from 'sentry/locale';
-import {
-  EntryType,
-  type Entry,
-  type Event,
-  type EventTransaction,
-} from 'sentry/types/event';
+import {EntryType, type Entry, type Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
@@ -85,7 +80,7 @@ export function Entries({
   definedEvent,
   projectSlug,
 }: {
-  definedEvent: EventTransaction;
+  definedEvent: Event;
   projectSlug: string;
 }) {
   if (!Array.isArray(definedEvent.entries) || !definedEvent.projectSlug) {

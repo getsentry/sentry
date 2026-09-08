@@ -92,6 +92,12 @@ export interface TraceWaterfallProps {
   // If set to true, the entire waterfall will not render if it is empty.
   hideIfNoData?: boolean;
   replayTraces?: ReplayTrace[];
+  /**
+   * The node to open the waterfall on. Only for embedders that already know which
+   * one they are showing the trace for — everything else says it in the url, and
+   * the url is what this overrides.
+   */
+  scrollToEventId?: string;
 }
 
 export function TraceWaterfall(props: TraceWaterfallProps) {
@@ -124,7 +130,10 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const projectsRef = useRef(projects);
   projectsRef.current = projects;
 
-  const scrollQueueRef = useTraceScrollToPath({traceSlug: props.traceSlug});
+  const scrollQueueRef = useTraceScrollToPath({
+    traceSlug: props.traceSlug,
+    scrollToEventId: props.scrollToEventId,
+  });
   const forceRerender = useCallback(() => {
     flushSync(rerender);
   }, []);
@@ -476,7 +485,12 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       viewManager.row_measurer.on('row measure end', onTargetRowMeasure);
       previouslyScrolledToNodeRef.current = node;
 
-      traceDispatch({type: 'minimize drawer', payload: false});
+      // A node the url asked for is one the reader came here to read, so the drawer
+      // opens on it. A node an embedder asked for is one the embedder is already
+      // showing around the waterfall, so its own drawer preference stands.
+      if (!props.scrollToEventId) {
+        traceDispatch({type: 'minimize drawer', payload: false});
+      }
       setRowAsFocused(node, null, traceStateRef.current.search.resultsLookup, index);
       traceDispatch({
         type: 'set roving index',
@@ -493,6 +507,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     traceScheduler,
     scrollQueueRef,
     props.tree,
+    props.scrollToEventId,
   ]);
 
   // Setup the middleware for the trace reducer
