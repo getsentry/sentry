@@ -2,9 +2,10 @@ import {useCallback} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {AlertsMonitorsShowcaseButton} from 'sentry/components/workflowEngine/alertsMonitorsShowcaseButton';
@@ -126,31 +127,56 @@ function TableHeader() {
   );
 
   return (
-    <Flex gap="xl">
-      <ProjectPageFilter size="md" />
-      <Flex
-        flexGrow={1}
-        gap="md"
-        align={{zero: 'stretch', '3xl': 'center'}}
-        direction={{zero: 'column', '3xl': 'row'}}
-      >
-        <div style={{flexGrow: 1}}>
-          <AutomationSearch initialQuery={initialQuery} onSearch={onSearch} />
-        </div>
-        <LinkButton
-          to={makeAutomationCreatePathname(organization.slug)}
-          disabled={!canCreateAlert}
-          tooltipProps={{
-            title: canCreateAlert ? undefined : getNoAlertWritePermissionTooltip(),
-          }}
-          variant="primary"
-          icon={<IconAdd />}
-          size="sm"
-        >
-          {t('Create Alert')}
-        </LinkButton>
+    <Grid
+      columns={{
+        zero: '100%',
+        xl: '1fr auto',
+        '3xl': 'auto 1fr min-content',
+      }}
+      areas={{
+        zero: `
+          "project"
+          "search"
+          "create"
+        `,
+        xl: `
+          "project create"
+          "search search"
+        `,
+        '3xl': '"project search create"',
+      }}
+      align="center"
+      gap="md"
+      width="100%"
+    >
+      <Container area="project" justifySelf={{zero: 'stretch', sm: 'start'}}>
+        <PageFilterBar>
+          <ProjectPageFilter size="md" />
+        </PageFilterBar>
+      </Container>
+      <Container area="search" minWidth="0">
+        <AutomationSearch initialQuery={initialQuery} onSearch={onSearch} />
+      </Container>
+      <Flex area="create" align="start" justifySelf={{zero: 'stretch', sm: 'end'}}>
+        <Container width={{zero: '100%', sm: 'auto'}}>
+          {buttonProps => (
+            <LinkButton
+              {...buttonProps}
+              to={makeAutomationCreatePathname(organization.slug)}
+              disabled={!canCreateAlert}
+              tooltipProps={{
+                title: canCreateAlert ? undefined : getNoAlertWritePermissionTooltip(),
+              }}
+              variant="primary"
+              icon={<IconAdd />}
+              size="sm"
+            >
+              {t('Create Alert')}
+            </LinkButton>
+          )}
+        </Container>
       </Flex>
-    </Flex>
+    </Grid>
   );
 }
 
