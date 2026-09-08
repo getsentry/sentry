@@ -127,6 +127,30 @@ describe('GcpCustomerConfigStep', () => {
     ).toBeInTheDocument();
   });
 
+  it('accepts a project ID pasted with surrounding whitespace', async () => {
+    const advance = jest.fn();
+    render(
+      <GcpCustomerConfigStep {...makeCustomerConfigStepProps({stepData: {}, advance})} />
+    );
+
+    await userEvent.type(
+      screen.getByLabelText('Service Account Email'),
+      'gcp-sentry@my-project.iam.gserviceaccount.com'
+    );
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'GCP Project IDs'}),
+      'my-project-prod {Enter}'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+    await waitFor(() => {
+      expect(advance).toHaveBeenCalledWith({
+        customerSaEmail: 'gcp-sentry@my-project.iam.gserviceaccount.com',
+        projects: ['my-project-prod'],
+      });
+    });
+  });
+
   it('shows busy state when isAdvancing', () => {
     render(
       <GcpCustomerConfigStep

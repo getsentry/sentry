@@ -158,7 +158,7 @@ function GcpCustomerConfigStep({
     onSubmit: ({value}) => {
       advance({
         customerSaEmail: value.customerSaEmail,
-        projects: value.projects.map(s => s.trim()).filter(Boolean),
+        projects: value.projects,
       });
     },
   });
@@ -196,7 +196,9 @@ function GcpCustomerConfigStep({
                 creatable
                 options={[]}
                 value={field.state.value}
-                onChange={field.handleChange}
+                onChange={ids =>
+                  field.handleChange(ids.map(id => id.trim()).filter(Boolean))
+                }
                 placeholder={t('Type a project ID and press enter')}
               />
             </field.Layout.Stack>
