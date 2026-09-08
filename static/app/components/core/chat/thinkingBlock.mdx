@@ -133,14 +133,27 @@ export function OverflowDemo() {
   return (
     <ThinkingBlock title="Analyzed source code" startTime={start} endTime={end}>
       <Text size="sm" monospace variant="muted">
-        The user is asking about a missing span in the DSL output. Let me search the spans
-        dataset first, scoped to the ml-service project, filtering on span.description
-        containing "DSL" and looking at the last 24 hours of data. I'll also check whether
-        the span is being dropped by a sampling rule, since the service has a custom
-        sampling configuration that could explain gaps in low-traffic transactions. If
-        that doesn't turn anything up, I'll pull the trace waterfall for a few sample
-        trace IDs to see whether the span is present but mislabeled, or genuinely never
-        emitted by the SDK in this code path.
+
+
+The user is asking about a missing span in the DSL output. Let me search the spans
+dataset first, scoped to the `ml-service` project, filtering on `span.description`
+containing `DSL` and looking at the last 24 hours of data. I'll also check whether the
+span is being dropped by a sampling rule, since the service has a custom sampling
+configuration that could explain gaps in low-traffic transactions. If that doesn't turn
+anything up, I'll pull the trace waterfall for a few sample trace IDs to see whether the
+span is present but mislabeled, or genuinely never emitted by the SDK in this code path.
+
+Assuming the span never made it out of the SDK, the next question is whether this code
+path is instrumented at all. Let me check the release history for `ml-service` and see
+whether the gap correlates with a deploy — if the span disappeared at a version boundary,
+that points at an SDK upgrade or a refactor that moved the DSL evaluation outside the
+active transaction scope. I should also confirm the integration responsible for this span
+is still enabled in the init config, since a change to `default_integrations` or a
+narrowed `traces_sampler` would produce exactly this shape of missing data. Worth
+comparing against a sibling service on the same SDK version to rule out a platform-level
+regression before I go digging through the instrumentation code.
+
+
       </Text>
     </ThinkingBlock>
   );
