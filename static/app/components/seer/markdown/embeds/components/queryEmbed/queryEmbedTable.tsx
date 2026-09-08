@@ -69,10 +69,11 @@ interface QueryEmbedTableProps<Row> {
 }
 
 /**
- * The preview table every query embed shares: fixed column widths, ellipsised
- * cells, and the three async states. Rows are read-only by construction —
- * cells render values, never controls, so an interaction here can't reach the
- * host page (see the embeds README).
+ * The preview table every query embed shares: evenly split, resizable columns,
+ * ellipsised cells, and the three async states. Rows are read-only by
+ * construction — cells render values, never controls — and the column widths a
+ * reader drags stay inside the embed, so neither can reach the host page (see
+ * the embeds README).
  */
 export function QueryEmbedTable<Row>({
   columns,
@@ -83,9 +84,14 @@ export function QueryEmbedTable<Row>({
   rowKey,
   rows,
 }: QueryEmbedTableProps<Row>) {
-  const columnConfig = columns.map((column, index) => ({
+  // Every column opens on an equal share. Weighting the first one assumed it
+  // held the widest value, which is true of an errors table led by `title` and
+  // false of a logs table led by `timestamp` — and with only two columns it read
+  // as a lopsided 2:1. `columnIndex` opts each cell into the resize handle, so a
+  // reader can settle the split the query actually needs.
+  const columnConfig = columns.map(column => ({
     key: column.key,
-    width: index === 0 ? 'minmax(0, 2fr)' : 'minmax(0, 1fr)',
+    width: 'minmax(0, 1fr)',
   }));
 
   return (
@@ -93,8 +99,8 @@ export function QueryEmbedTable<Row>({
       columns={columnConfig}
       header={
         <SimpleTable.HeaderRow>
-          {columns.map(column => (
-            <SimpleTable.HeaderCell key={column.key}>
+          {columns.map((column, index) => (
+            <SimpleTable.HeaderCell columnIndex={index} key={column.key}>
               <Text ellipsis>{column.key}</Text>
             </SimpleTable.HeaderCell>
           ))}
