@@ -125,16 +125,23 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
         execute_via_group_type_registry(invocation)
         mock_execute_metric_alert_handler.assert_called_once_with(invocation)
 
-    @mock.patch(
-        "sentry.notifications.notification_action.registry.metric_alert_handler_registry.get"
+    @pytest.mark.parametrize(
+        "action_type",
+        [
+            Action.Type.GITHUB,
+            Action.Type.GITHUB_ENTERPRISE,
+            Action.Type.JIRA,
+            Action.Type.JIRA_SERVER,
+            Action.Type.AZURE_DEVOPS,
+        ],
     )
     def test_metric_issue_resolution_ticketing_action_is_noop(
-        self, mock_registry_get: mock.MagicMock
+        self, action_type: Action.Type
     ) -> None:
-        """Ticketing actions (e.g. GitHub, Jira) have no metric alert registration.
-        This is a known, UI-communicated gap, so it should no-op instead of raising."""
-        mock_registry_get.side_effect = NoRegistrationExistsError()
-
+        """Ticketing actions (GitHub, GitHub Enterprise, Jira, Jira Server, Azure DevOps) are
+        registered with UnsupportedMetricAlertHandler since metric issues are not supported
+        for ticketing actions and the UI already tells users this is incompatible. This should
+        no-op instead of raising NoRegistrationExistsError."""
         group = self.create_group(type=MetricIssue.type_id)
         activity = self.create_group_activity(
             group=group,
@@ -144,7 +151,7 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
 
         invocation = ActionInvocation(
             event_data=event_data,
-            action=Action(type=Action.Type.GITHUB),
+            action=Action(type=action_type),
             detector=self.detector,
             notification_uuid=str(uuid.uuid4()),
             workflow_id=self.workflow.id,
