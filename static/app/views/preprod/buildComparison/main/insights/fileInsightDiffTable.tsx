@@ -154,7 +154,6 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
                       ) : null
                     }
                     disabled={!fileDiffItem.path}
-                    isHoverable
                     maxWidth={420}
                   >
                     <TextOverflow
