@@ -78,19 +78,17 @@ export function RowSubtitle({
   }
 
   if (visualState === 'configured' && messagingSetup.mode === 'selected') {
+    const workspaceName = resolvedProvider.eligibleIntegrations.find(
+      i => i.id === messagingSetup.integrationId
+    )?.name;
+
     return (
       <Flex gap="xs" align="center">
-        <Text size="sm">
-          {
-            resolvedProvider.eligibleIntegrations.find(
-              i => i.id === messagingSetup.integrationId
-            )?.name
-          }
-        </Text>
-        <Text variant="muted" size="sm" aria-hidden>
-          /
-        </Text>
         <Text size="sm">{messagingSetup.channelName}</Text>
+        <Text variant="muted" size="sm" aria-hidden>
+          {t('in')}
+        </Text>
+        <Text size="sm">{workspaceName}</Text>
       </Flex>
     );
   }

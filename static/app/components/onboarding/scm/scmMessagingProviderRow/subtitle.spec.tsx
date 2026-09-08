@@ -126,11 +126,12 @@ describe('RowSubtitle', () => {
   });
 
   describe('configured state', () => {
-    it('shows workspace name and channel name', () => {
+    it('shows channel name in workspace format', () => {
       renderSubtitle('configured', connectedSlack, selectedSlackSetup);
 
-      expect(screen.getByText('test-workspace')).toBeInTheDocument();
       expect(screen.getByText('#alerts')).toBeInTheDocument();
+      expect(screen.getByText('in')).toBeInTheDocument();
+      expect(screen.getByText('test-workspace')).toBeInTheDocument();
     });
   });
 
