@@ -1,10 +1,8 @@
 import type {Query} from 'history';
 
-import type {ChartUnit} from 'sentry/components/seer/markdown/embeds/components/chartTypes';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import type {Organization, NewQuery} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -34,7 +32,7 @@ const DEFAULT_AGGREGATE = 'count(span.duration)';
  */
 const CHART_TOP_EVENTS = 5;
 
-export function getSpansQueryFields(data: SpansQueryData): string[] {
+function getSpansQueryFields(data: SpansQueryData): string[] {
   if (data.mode === 'samples') {
     return data.fields?.length ? data.fields : DEFAULT_SAMPLE_FIELDS;
   }
@@ -205,17 +203,4 @@ export function buildSpansChartQuery(
     // would be the one line in the legend with no row to read it against.
     excludeOther: '1',
   };
-}
-
-export function toChartUnit(outputType: AggregationOutputType): ChartUnit {
-  switch (outputType) {
-    case 'duration':
-      return 'duration';
-    case 'percentage':
-      return 'percentage';
-    case 'size':
-      return 'bytes';
-    default:
-      return 'number';
-  }
 }
