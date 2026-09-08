@@ -136,8 +136,7 @@ def _metric_alert_threshold(conditions: Any) -> str | None:
         if not isinstance(condition, dict):
             continue
         comparison = condition.get("comparison")
-        # anomaly detection stores a config object here rather than a number. There is no
-        # threshold to state in that case, and str() would leak a python repr into the output.
+        # anomaly detection puts a config object here, not a number
         if not isinstance(comparison, str | int | float) or isinstance(comparison, bool):
             continue
         condition_type = condition.get("type")

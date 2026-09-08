@@ -274,9 +274,7 @@ def _two_contexts(model: EventObject, limits: object) -> Section | None:
 
 
 def test_json_types_do_not_depend_on_how_many_items_an_event_has() -> None:
-    # a consumer cannot read a field whose type changes with the count. Seen in production:
-    # span_evidence.text was a string on one issue and a list on another, and contexts was an
-    # object on one and a list on another.
+    # seen in production: span_evidence.text was a string on one issue and a list on another
     event = EventObject(title="t")
     one = json.loads(JsonFormatter().render(event, [_one_context], LIMITS_DEFAULT))
     two = json.loads(JsonFormatter().render(event, [_two_contexts], LIMITS_DEFAULT))
@@ -288,7 +286,7 @@ def test_json_types_do_not_depend_on_how_many_items_an_event_has() -> None:
 
 
 def _multi_group_body(model: EventObject, limits: object) -> Section | None:
-    # what autofix builds: several groups that are parts of one body, not repetitions
+    # what autofix builds: parts of one body, not repetitions
     return Section(
         title="Root Cause",
         groups=(

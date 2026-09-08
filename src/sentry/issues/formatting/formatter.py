@@ -145,9 +145,8 @@ class Section:
 
     title: str
     groups: tuple[Group, ...] = ()
-    # whether groups are repetitions of one kind of thing (exceptions, threads) rather than
-    # different parts of one body. Only json cares: it emits a list for a repeating section and
-    # an object otherwise, so a consumer's field type does not change with the item count.
+    # repetitions of one thing (exceptions, threads), not parts of one body. Only json reads
+    # this: a repeating section is always a list, so field types don't shift with the count.
     repeating: bool = False
     max_chars: int | None = None  # cut the joined body here
     max_group_chars: int | None = None  # drop whole groups instead
@@ -288,9 +287,7 @@ class JsonFormatter(Formatter):
         if not groups:
             return ""
 
-        # a repeating section is always a list; a non-repeating one is always a single object,
-        # merging its groups rather than dropping them (autofix builds a root cause out of
-        # several)
+        # merge rather than take the first: autofix builds a root cause out of several groups
         payload: Any = groups if section.repeating else _merge_groups(groups)
         return _ENCODER.encode({slug(section.title): payload})
 
@@ -313,8 +310,7 @@ class JsonFormatter(Formatter):
             else:
                 text.append(item.text)
 
-        # always lists, for the same reason: reading one breadcrumb and reading ten should not
-        # differ in shape
+        # always lists, so one item and ten read the same
         obj: dict[str, Any] = dict(fields)
         if text:
             obj["text"] = text

@@ -472,9 +472,8 @@ def test_metric_alert_renders_in_the_output() -> None:
 
 
 def test_metric_alert_skips_an_anomaly_detection_threshold() -> None:
-    # anomaly detection puts a config object in `comparison`. Seen in production rendering as
-    # "{'seasonality': 'auto', 'sensitivity': 'low', 'thresholdType': 2}"; the MCP's own
-    # formatter skips the condition instead, and a python repr is not a threshold.
+    # seen in production rendering as "{'seasonality': 'auto', ...}". The MCP skips the
+    # condition instead; a python repr is not a threshold.
     model = event_response_to_model(
         _metric_issue(
             conditions=[
@@ -490,5 +489,4 @@ def test_metric_alert_skips_an_anomaly_detection_threshold() -> None:
         )
     )
     assert not [label for label, _ in model.metric_alert if label == "Threshold"]
-    # the rest of the alert still renders
     assert ("Dataset", "events_analytics_platform") in model.metric_alert
