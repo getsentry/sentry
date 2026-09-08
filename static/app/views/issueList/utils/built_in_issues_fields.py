@@ -171,15 +171,33 @@ keys_without_values = [
     "ota_updates.update_id",
 ]
 
-# Of ``keys_without_values``, the ones where fetching values over the network
-# actually returns something useful.
+# Of ``keys_without_values``, the ones worth fetching values for over the network.
 #
-# Starts from the 56 keys whose field definition valueType is ``string`` --
-# date / boolean / number keys never reach the network, because
-# getPredefinedValues() falls through to getValueSuggestions(), which returns a
-# non-null list for those types and so leaves shouldFetchValues false.
+# Every key here satisfies shouldFetchValues as defined in
+# static/app/components/searchQueryBuilder/tokens/filter/valueCombobox.tsx:397-398::
 #
-# Then drops:
+#     !shouldFetchTagKeys && predefinedValues === null && (key ? !key.predefined : true)
+#
+# (verified by evaluating that expression against the real getPredefinedValues,
+# getFieldDefinition and parsed filter token for each key; shouldFetchTagKeys is
+# false throughout, since it only applies to `has`, which is excluded here.)
+# 54 of the 70 keys satisfy the predicate; this list drops these 16:
+#
+#   14 keys where predefinedValues is non-null
+#       date / boolean / number valueTypes. getPredefinedValues falls through to
+#       getValueSuggestions, which returns a list for those types, so the fetch is
+#       already skipped.
+#
+#   issue, monitor
+#       key.predefined is True with no values ever assigned -- both are
+#       ISSUE_PROPERTY_FIELDS, which PREDEFINED_FIELDS stamps predefined: True. The
+#       fetch is already skipped and nothing is suggested, so their dropdowns are
+#       empty. Arguably a bug for ``monitor`` (cron slugs are a bounded, useful set);
+#       ``issue`` would yield numeric group ids anyway, since the backend rewrites
+#       group_id to tags[group_id].
+#
+# The remaining keys below DO satisfy the predicate and fetch today -- they are
+# dropped because the request is not worth making:
 #
 #   id, trace, profiler.id
 #       Hardcoded to an empty result server side. get_tag_value_paginator_for_projects
@@ -188,18 +206,15 @@ keys_without_values = [
 #       opaque ids make useless suggestions. These fetch today and get nothing back.
 #
 #   device.class
-#       Intercepted client side. makeGetIssueTagValues returns DEVICE_CLASS_TAG_VALUES
-#       without a request, because snuba stores device.class as numbers while the UI
-#       suggests high / medium / low.
+#       Reaches getTagValues, but makeGetIssueTagValues intercepts it and returns
+#       DEVICE_CLASS_TAG_VALUES without a network request, because snuba stores
+#       device.class as numbers while the UI suggests high / medium / low.
 #
-#   issue, message, error.value, title, location, http.url, http.referer, stack.abs_path
+#   message, error.value, title, location, http.url, http.referer, stack.abs_path
 #       Real values come back, but the value space is effectively unbounded, so the
-#       suggestions are near-random until a long prefix is typed. ``issue`` is the odd
-#       one: the backend rewrites group_id to tags[group_id], so it yields numeric
-#       group ids rather than the short IDs users actually type.
+#       suggestions are near-random until a long prefix is typed.
 should_fetch_keys = [
     "firstRelease",
-    "monitor",
     "device.arch",
     "device.brand",
     "device.family",
@@ -245,15 +260,16 @@ should_fetch_keys = [
 ]
 
 # ``keys_without_values`` minus ``should_fetch_keys``: keys the UI has no stored
-# values for and where a network fetch is not worth making. Either the query
-# builder synthesizes suggestions locally from the valueType (date / boolean /
-# number), or the request is wasted -- see the notes on should_fetch_keys.
+# values for and where a network fetch is not worth making. Some of these are
+# already skipped by shouldFetchValues; the rest fetch today and shouldn't --
+# see the notes on should_fetch_keys.
 no_val_no_fetch_keys = [
     "age",
     "firstSeen",
     "issue.seer_last_run",
-    "issue",  # fetch behavior is wonky, returns numeric group ids rather than the short ID this filter is for
+    "issue",
     "lastSeen",
+    "monitor",
     "timesSeen",
     "userCount",
     "app.in_foreground",
@@ -281,7 +297,6 @@ no_val_no_fetch_keys = [
 # TODO: maybe allow fetch for Unbounded free text (7) — a fetch works but the result is noise
 # message, error.value, title, location, http.url, http.referer, stack.abs_path
 # TODO: add guidelines for
-
 
 # ``key_val_map`` restricted to the keys that carry a non-empty ``values`` list --
 # the ones the search query builder can suggest values for with no further work.
