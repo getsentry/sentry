@@ -78,7 +78,12 @@ function TraceWaterfallEmbed({traceId, timestamp, spanId}: EmbedOutput<'trace'>)
   });
 
   // Same encoding the compact trace link puts in `?node=`, handed to the waterfall directly
-  // rather than through the URL.
+  // rather than through the URL. Seer only knows the span id, so the path cannot name the
+  // parent transaction and `ExpandToPath` — which reads `txn-` segments only — fetches nothing
+  // from here. That is inert for EAP traces, whose spans all arrive with the trace itself, and
+  // for small non-EAP ones, which `maybeAutoExpandTrace` zooms before the scroll lookup runs. A
+  // non-EAP trace too large to auto-expand can still fail to scroll, exactly as following the
+  // link above into the standalone view does.
   const scrollToNode = useMemo(
     (): UseTraceScrollToPath =>
       spanId ? {eventId: spanId, path: [`span-${spanId}`]} : null,
