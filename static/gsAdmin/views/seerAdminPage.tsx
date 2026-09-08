@@ -3,7 +3,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -16,7 +16,11 @@ import {PageHeader} from 'admin/components/pageHeader';
 
 const formSchema = z.object({
   locality: z.string().min(1, 'Select a region'),
-  organizationId: z.string().trim().regex(/^\d*$/, 'Organization ID must be a number'),
+  organizationId: z
+    .number()
+    .int('Organization ID must be a whole number')
+    .positive('Organization ID must be greater than 0')
+    .nullable(),
   maxCandidates: z.number().min(1, 'Max candidates must be at least 1').nullable(),
   dryRun: z.boolean(),
 });
@@ -25,7 +29,7 @@ type NightShiftFormData = {
   dryRun: boolean;
   locality: string;
   maxCandidates: number | null;
-  organizationId: string;
+  organizationId: number | null;
 };
 
 export function SeerAdminPage() {
@@ -37,9 +41,7 @@ export function SeerAdminPage() {
         url: getApiUrl('/internal/seer/night-shift/trigger/'),
         method: 'POST',
         data: {
-          ...(data.organizationId
-            ? {organization_id: parseInt(data.organizationId, 10)}
-            : {}),
+          ...(data.organizationId === null ? {} : {organization_id: data.organizationId}),
           dry_run: data.dryRun,
           ...(data.maxCandidates === null ? {} : {max_candidates: data.maxCandidates}),
         },
@@ -48,9 +50,10 @@ export function SeerAdminPage() {
     },
     onSuccess: (_data, variables) => {
       const mode = variables.dryRun ? ' (dry run)' : '';
-      const target = variables.organizationId
-        ? `organization ${variables.organizationId}`
-        : 'all eligible orgs';
+      const target =
+        variables.organizationId === null
+          ? 'all eligible orgs'
+          : `organization ${variables.organizationId}`;
       addSuccessMessage(`Night shift run triggered for ${target}${mode}`);
     },
     onError: () => {
@@ -60,7 +63,7 @@ export function SeerAdminPage() {
 
   const defaultValues: z.input<typeof formSchema> = {
     locality: localities[0]?.url ?? '',
-    organizationId: '',
+    organizationId: null,
     maxCandidates: null,
     dryRun: false,
   };
@@ -120,7 +123,8 @@ export function SeerAdminPage() {
                 <form.AppField name="organizationId">
                   {field => (
                     <field.Layout.Stack label="Organization ID (blank = all orgs)">
-                      <field.Input
+                      <field.Number
+                        min={1}
                         value={field.state.value}
                         onChange={field.handleChange}
                         placeholder="Leave blank to trigger every eligible org"
@@ -150,17 +154,9 @@ export function SeerAdminPage() {
                     </field.Layout.Stack>
                   )}
                 </form.AppField>
-                <Container alignSelf="end">
-                  <form.Subscribe selector={state => state.values.organizationId}>
-                    {organizationId => (
-                      <form.SubmitButton>
-                        {organizationId.trim()
-                          ? 'Trigger Night Shift'
-                          : 'Trigger Night Shift (all orgs)'}
-                      </form.SubmitButton>
-                    )}
-                  </form.Subscribe>
-                </Container>
+                <Flex justify="end">
+                  <form.SubmitButton>Trigger Night Shift</form.SubmitButton>
+                </Flex>
               </Stack>
             </Container>
           </form.AppForm>
