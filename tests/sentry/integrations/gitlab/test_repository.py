@@ -135,12 +135,22 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             serialize_repository(repo), serialize_rpc_organization(self.organization)
         )
 
-    def add_relink_responses(self, update_status: int) -> None:
+    def add_relink_responses(
+        self, update_status: int, alert_status: str | None = None, delete_status: int = 204
+    ) -> None:
+        hook: dict[str, int | str] = {"id": 99}
+        if alert_status:
+            hook["alert_status"] = alert_status
         responses.add(
             responses.PUT,
             "https://example.gitlab.com/api/v4/projects/%s/hooks/99" % self.gitlab_id,
             status=update_status,
-            json={"id": 99},
+            json=hook,
+        )
+        responses.add(
+            responses.DELETE,
+            "https://example.gitlab.com/api/v4/projects/%s/hooks/99" % self.gitlab_id,
+            status=delete_status,
         )
         responses.add(
             responses.POST,
@@ -205,6 +215,57 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             self.relink_repository(repo)
 
         assert [call.request.method for call in responses.calls] == ["PUT"]
+        assert self.get_repository(pk=repo.id).config["webhook_id"] == 99
+
+    @responses.activate
+    def test_on_create_repository_relink_replaces_permanently_disabled_webhook(self) -> None:
+        response = self.create_repository(self.default_repository_config, self.integration.id)
+        responses.reset()
+        self.add_relink_responses(update_status=200, alert_status="disabled")
+
+        repo = self.get_repository(pk=response.data["id"])
+        self.relink_repository(repo)
+
+        assert [call.request.method for call in responses.calls] == ["PUT", "DELETE", "POST"]
+        assert self.get_repository(pk=repo.id).config["webhook_id"] == 100
+
+    @responses.activate
+    def test_on_create_repository_relink_keeps_live_webhook(self) -> None:
+        response = self.create_repository(self.default_repository_config, self.integration.id)
+        repo = self.get_repository(pk=response.data["id"])
+
+        for alert_status in ("executable", "temporarily_disabled"):
+            responses.reset()
+            self.add_relink_responses(update_status=200, alert_status=alert_status)
+
+            self.relink_repository(repo)
+
+            assert [call.request.method for call in responses.calls] == ["PUT"], alert_status
+            assert self.get_repository(pk=repo.id).config["webhook_id"] == 99
+
+    @responses.activate
+    def test_on_create_repository_relink_disabled_webhook_already_gone(self) -> None:
+        response = self.create_repository(self.default_repository_config, self.integration.id)
+        responses.reset()
+        self.add_relink_responses(update_status=200, alert_status="disabled", delete_status=404)
+
+        repo = self.get_repository(pk=response.data["id"])
+        self.relink_repository(repo)
+
+        assert [call.request.method for call in responses.calls] == ["PUT", "DELETE", "POST"]
+        assert self.get_repository(pk=repo.id).config["webhook_id"] == 100
+
+    @responses.activate
+    def test_on_create_repository_relink_disabled_webhook_delete_failure(self) -> None:
+        response = self.create_repository(self.default_repository_config, self.integration.id)
+        responses.reset()
+        self.add_relink_responses(update_status=200, alert_status="disabled", delete_status=403)
+
+        repo = self.get_repository(pk=response.data["id"])
+        with pytest.raises(IntegrationError):
+            self.relink_repository(repo)
+
+        assert [call.request.method for call in responses.calls] == ["PUT", "DELETE"]
         assert self.get_repository(pk=repo.id).config["webhook_id"] == 99
 
     @responses.activate
