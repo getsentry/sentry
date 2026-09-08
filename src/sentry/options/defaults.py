@@ -829,7 +829,7 @@ register(
 )
 
 # PagerDuty Integration
-register("pagerduty.app-id", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("pagerduty.app-id", default="", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 
 # Vercel Integration
 register("vercel.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -2459,6 +2459,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Killswitch for the legacy dynamic sampling pipeline. When set to True, the four
+# scheduled jobs (sliding_window_org, boost_low_volume_projects,
+# boost_low_volume_transactions, recalibrate_orgs) exit before they do any work.
+register(
+    "dynamic-sampling.legacy.killswitch",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Deterministic % rollout of the per-org dynamic sampling pipeline, keyed on
 # organization id. A value of 0.0 disables the pipeline for every org; 1.0
 # enables it for every org. Intermediate values select a stable hash-based
@@ -2672,6 +2681,26 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Kill switches for the extra per-tick outbox observability queries run by the
+# outbox scheduler. Both add full or per-shard aggregates over the outbox
+# tables, so they can be turned off if they become expensive during a backlog.
+register(
+    "hybridcloud.outbox.category_depth_metric.enabled",
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybridcloud.outbox.deep_shard_logging.enabled",
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Shards with at least this many queued rows are logged with their sharding
+# columns and dominant category by the scheduler.
+register(
+    "hybridcloud.outbox.deep_shard_logging.threshold",
+    default=10_000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Break glass controls
 register(
@@ -3971,6 +4000,15 @@ register(
 
 # Fraction of attachments that are being stored exclusively in the new objectstore.
 register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Fraction of expiring pending attachments that are checked for a matching event before
+# being deleted. Each check costs one nodestore read.
+register(
+    "attachments.pending.premature_deletion_check_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 
 register(

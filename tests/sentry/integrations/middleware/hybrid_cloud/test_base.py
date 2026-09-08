@@ -184,6 +184,20 @@ class BaseRequestParserTest(TestCase):
         ):
             assert str(parser.get_mailbox(integration, {})) == f"test_provider:{integration.id}:77"
 
+    def test_bucket_key_at_coerces_or_falls_back(self) -> None:
+        at = BaseRequestParser.bucket_key_at
+
+        assert at({"issue": {"id": 10237}}, "issue", "id") == 10237
+        assert at({"issue": {"id": "10237"}}, "issue", "id") == 10237
+
+        # Anything unusable falls back rather than raising at the modulo.
+        assert at({}, "issue", "id") is None
+        assert at({"issue": {}}, "issue", "id") is None
+        assert at({"issue": "PROJ-1"}, "issue", "id") is None
+        assert at({"issue": {"id": None}}, "issue", "id") is None
+        assert at({"issue": {"id": "not-a-number"}}, "issue", "id") is None
+        assert at({"issue": {"id": ["10237"]}}, "issue", "id") is None
+
     def test_get_mailbox_always_bucket_skips_volume_check(self) -> None:
         class AlwaysBucketedParser(ExampleRequestParser):
             always_bucket = True
