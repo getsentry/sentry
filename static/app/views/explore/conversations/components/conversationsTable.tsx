@@ -201,6 +201,7 @@ export function ConversationsTable() {
     error,
     pageLinks,
     setCursor,
+    unsetCursor,
     isDirectHit,
     sort,
     setSort,
@@ -307,11 +308,11 @@ export function ConversationsTable() {
         direction,
         onSort: () => {
           setSort(direction === 'desc' ? field : `-${field}`);
-          setCursor(undefined);
+          unsetCursor();
         },
       };
     },
-    [setCursor, setSort, sort, sortingEnabled]
+    [setSort, sort, sortingEnabled, unsetCursor]
   );
 
   const renderBodyCell = useCallback(

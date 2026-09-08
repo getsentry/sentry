@@ -80,7 +80,7 @@ function normalizeConversationPreview(
 
 export function useConversations() {
   const organization = useOrganization();
-  const {cursor, setCursor} = useTableCursor();
+  const {cursor, setCursor, unsetCursor} = useTableCursor();
   const pageFilters = usePageFilters();
   const combinedQuery = useCombinedQuery();
   const sortingEnabled = organization.features.includes(
@@ -134,6 +134,7 @@ export function useConversations() {
     error,
     pageLinks,
     setCursor,
+    unsetCursor,
     isDirectHit,
     sort,
     setSort,
