@@ -1,4 +1,4 @@
-import {useEffect, useLayoutEffect, useRef} from 'react';
+import {useEffect, useEffectEvent, useLayoutEffect, useRef} from 'react';
 
 import type {ConversationViewTab} from 'sentry/views/explore/conversations/components/conversationView';
 
@@ -35,10 +35,9 @@ export function useConversationScrollRestoration({
     timeline: 0,
   });
 
-  // The scroll listener is attached once, so it reads the active tab from a ref
-  // to always record against the tab that is currently visible.
-  const activeTabRef = useRef(activeTab);
-  activeTabRef.current = activeTab;
+  const handleScroll = useEffectEvent((container: HTMLDivElement) => {
+    offsetByTab.current[activeTab] = container.scrollTop;
+  });
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -46,12 +45,9 @@ export function useConversationScrollRestoration({
       return;
     }
 
-    const handleScroll = () => {
-      offsetByTab.current[activeTabRef.current] = container.scrollTop;
-    };
-
-    container.addEventListener('scroll', handleScroll, {passive: true});
-    return () => container.removeEventListener('scroll', handleScroll);
+    const onScroll = () => handleScroll(container);
+    container.addEventListener('scroll', onScroll, {passive: true});
+    return () => container.removeEventListener('scroll', onScroll);
   }, []);
 
   useLayoutEffect(() => {
