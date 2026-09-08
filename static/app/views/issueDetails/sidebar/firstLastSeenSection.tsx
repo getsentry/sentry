@@ -15,7 +15,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {issueFirstLastReleaseQueryOptions} from 'sentry/views/issueDetails/issueFirstLastReleaseQueryOptions';
@@ -28,7 +27,7 @@ function useFetchAllEnvsGroupData(organization: Organization, group: Group) {
       organizationSlug: organization.slug,
       groupId: group.id,
       environments: [],
-      expandDerivedData: orgHasIssueInbox(organization),
+      expandDerivedData: organization.features.includes('issue-inbox'),
     }),
     gcTime: 30_000,
   });
