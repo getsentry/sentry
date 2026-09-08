@@ -2529,7 +2529,8 @@ def save_attachment(
         # The event this attachment belongs to has not been ingested (yet), so we do not
         # know whether it will be accepted at all. Park the attachment in
         # `PendingEventAttachment` with a short TTL; `save_pending_attachments` promotes it
-        # to an `EventAttachment` (and emits the outcome) once the event is saved.
+        # to an `EventAttachment` (and emits the ACCEPTED outcome) once the event is saved.
+        # A row that is never promoted records INVALID(missing_event) when it is deleted.
         metrics.incr("attachments.pending.create")
         db_fields.pop("group_id")
         db_fields["date_expires_retention"] = db_fields["date_expires"]
@@ -2593,9 +2594,11 @@ def save_pending_attachments(
     ``date_expires_retention``; promoting them restores the retention date and
     attaches the ``group_id``.
 
-    Outcomes are only emitted here, on promotion: an attachment whose event never
-    arrives expires without ever being accepted. That is what keeps the race described
-    in :func:`sentry.tasks.post_process.update_existing_attachments` from costing the
+    The ACCEPTED outcome is emitted here, on promotion: an attachment whose event never
+    arrives expires without ever being accepted, and records INVALID(missing_event) when
+    it is deleted instead (see :meth:`PendingEventAttachment.track_dropped_outcome`).
+    That is what keeps the race described in
+    :func:`sentry.tasks.post_process.update_existing_attachments` from costing the
     customer money -- an attachment we drop is an attachment we never billed for.
 
     Safe to call more than once for the same event, and called from two places for
