@@ -185,16 +185,15 @@ export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
         return;
       }
 
-      // Stop the ComboBox from treating Enter as "select focused option" when the
-      // menu is open but nothing was intentionally highlighted, then dismiss.
-      event.preventDefault();
-      event.stopPropagation();
-
-      const active = document.activeElement;
-      if (active instanceof HTMLElement && ref.current?.contains(active)) {
-        active.blur();
-      }
-      collapseToDefaultWidth();
+      // Do not preventDefault/stopPropagation — ComboBox Enter must still run
+      // onInputCommit for free-text and function arguments. Collapse after that.
+      requestAnimationFrame(() => {
+        const active = document.activeElement;
+        if (active instanceof HTMLElement && ref.current?.contains(active)) {
+          active.blur();
+        }
+        collapseToDefaultWidth();
+      });
     },
     [collapseToDefaultWidth, isAcceptingAutocompleteSuggestion]
   );

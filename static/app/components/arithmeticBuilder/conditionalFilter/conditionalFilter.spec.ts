@@ -183,6 +183,16 @@ describe('getConditionalFilterEditContext', () => {
       valueQuery: 'db',
     });
   });
+
+  it('keeps next-key replace range inside grouping parentheses', () => {
+    const value = '(span.op:db span)';
+    expect(getConditionalFilterEditContext(value, value.length - 1)).toMatchObject({
+      phase: 'key',
+      editText: 'span',
+      replaceStart: 12,
+      replaceEnd: value.length - 1,
+    });
+  });
 });
 
 describe('replaceConditionalFilterClause', () => {
@@ -213,6 +223,16 @@ describe('replaceConditionalFilterClause', () => {
     expect(replaceConditionalFilterClause('(span.op:)', 9, 'span.op:db')).toEqual({
       newCursorIndex: 11,
       newValue: '(span.op:db)',
+    });
+  });
+
+  it('preserves a trailing parenthesis when selecting a next-key suggestion', () => {
+    const value = '(span.op:db span)';
+    expect(
+      replaceConditionalFilterClause(value, value.length - 1, 'span.status:')
+    ).toEqual({
+      newCursorIndex: 24,
+      newValue: '(span.op:db span.status:)',
     });
   });
 });

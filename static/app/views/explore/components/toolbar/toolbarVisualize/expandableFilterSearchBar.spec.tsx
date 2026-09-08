@@ -90,6 +90,25 @@ describe('ExpandableFilterSearchBar', () => {
     expect(isExpanded(input)).toBe(true);
 
     await userEvent.keyboard('{Enter}');
+    await flushAnimationFrames();
+    await waitFor(() => {
+      expect(isExpanded(input)).toBe(false);
+    });
+  });
+
+  it('lets the focused input handle Enter before collapsing', async () => {
+    const onKeyDown = jest.fn();
+    render(<SearchBarStub defaultValue="" onKeyDown={onKeyDown} />);
+
+    const input = screen.getByTestId('query-builder-input');
+    await userEvent.click(input);
+    await flushAnimationFrames();
+
+    await userEvent.keyboard('{Enter}');
+    expect(onKeyDown).toHaveBeenCalledWith(
+      expect.objectContaining({key: 'Enter', defaultPrevented: false})
+    );
+    await flushAnimationFrames();
     await waitFor(() => {
       expect(isExpanded(input)).toBe(false);
     });
@@ -114,8 +133,9 @@ describe('ExpandableFilterSearchBar', () => {
     await flushAnimationFrames();
     expect(isExpanded(input)).toBe(true);
 
-    // Suggestions may be open without a highlight — Enter dismisses.
+    // Suggestions may be open without a highlight — Enter dismisses after commit.
     await userEvent.keyboard('{Enter}');
+    await flushAnimationFrames();
     await waitFor(() => {
       expect(isExpanded(input)).toBe(false);
     });

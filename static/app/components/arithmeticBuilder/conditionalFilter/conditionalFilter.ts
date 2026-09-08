@@ -253,8 +253,10 @@ export function getConditionalFilterEditContext(
   value: string,
   cursorIndex: number
 ): ConditionalFilterEditContext {
-  const {clause, clauseStart, clauseEnd, clauseCursorIndex} =
-    getConditionalFilterClauseAtCursor(value, cursorIndex);
+  const {clause, clauseStart, clauseCursorIndex} = getConditionalFilterClauseAtCursor(
+    value,
+    cursorIndex
+  );
 
   const {innerStart, innerEnd} = getClauseInnerBounds(clause);
   const inner = clause.slice(innerStart, innerEnd);
@@ -266,7 +268,6 @@ export function getConditionalFilterEditContext(
   const absoluteInnerStart = clauseStart + innerStart;
   // Keep trailing grouping `)` outside replacements; leading `(` stay before replaceStart.
   const absoluteInnerEnd = clauseStart + innerEnd;
-  const absoluteClauseEnd = clauseEnd;
 
   const colonIndex = inner.indexOf(':');
   if (colonIndex === -1 || clampedInnerCursor <= colonIndex) {
@@ -309,7 +310,7 @@ export function getConditionalFilterEditContext(
         phase: 'key',
         editText: nextKey,
         replaceStart: absoluteInnerStart + keyStartInInner,
-        replaceEnd: absoluteClauseEnd,
+        replaceEnd: absoluteInnerEnd,
       };
     }
   }
@@ -323,7 +324,7 @@ export function getConditionalFilterEditContext(
       phase: 'key',
       editText: nextKey,
       replaceStart: absoluteInnerStart + keyStartInInner,
-      replaceEnd: absoluteClauseEnd,
+      replaceEnd: absoluteInnerEnd,
     };
   }
 

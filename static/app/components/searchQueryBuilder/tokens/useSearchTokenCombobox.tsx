@@ -238,7 +238,10 @@ export function useSearchTokenCombobox<T>(
     }),
     listBoxProps: mergeProps(menuProps, listBoxProps, {
       onAction: undefined,
-      autoFocus: state.focusStrategy || true,
+      // Only virtual-focus an option after ArrowUp/ArrowDown sets focusStrategy.
+      // Autofocusing the first item on open makes Enter select it instead of
+      // committing the typed value (and blocks expandable equation dismiss).
+      autoFocus: state.focusStrategy ?? false,
       shouldUseVirtualFocus: true,
       shouldSelectOnPressUp: true,
       shouldFocusOnHover: true,
