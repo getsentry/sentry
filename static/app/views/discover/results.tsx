@@ -46,7 +46,7 @@ import {trackAiQueryOutcome} from 'sentry/components/searchQueryBuilder/askSeerC
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconEllipsis} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
-import {t, tct, tctCode} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {DataCategory, type PageFilters} from 'sentry/types/core';
 import {SavedSearchType} from 'sentry/types/group';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
@@ -968,9 +968,10 @@ function TransactionsDatasetDeprecationBanner({
             />
           }
         >
-          {tctCode(
+          {tct(
             'The transactions dataset is being deprecated. Please use [traceLink:Explore / Traces] with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
             {
+              code: <code />,
               traceLink: (
                 <Link
                   to={{
