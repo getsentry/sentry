@@ -445,14 +445,16 @@ export const platforms: PlatformIntegration[] = [
   },
   {
     id: 'node-cloudflare-pages',
-    name: 'Cloudflare',
+    name: 'Cloudflare (Node)',
     type: 'framework',
     language: 'node',
     link: 'https://docs.sentry.io/platforms/javascript/guides/cloudflare/',
+    // Merged into `node-cloudflare-workers`, which is the Cloudflare platform.
+    hidden: true,
   },
   {
     id: 'node-cloudflare-workers',
-    name: 'Cloudflare',
+    name: 'Cloudflare (Node)',
     type: 'framework',
     language: 'node',
     link: 'https://docs.sentry.io/platforms/javascript/guides/cloudflare/',
