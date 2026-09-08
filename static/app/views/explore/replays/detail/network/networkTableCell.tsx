@@ -87,7 +87,6 @@ export function NetworkTableCell({
         <Tooltip
           title={frame.description}
           delay={750}
-          isHoverable
           maxWidth={10_000}
           showOnlyOnOverflow
         >
@@ -97,7 +96,7 @@ export function NetworkTableCell({
     ),
     () => (
       <Cell {...columnProps}>
-        <Tooltip title={operationName(frame.op)} isHoverable showOnlyOnOverflow>
+        <Tooltip title={operationName(frame.op)} showOnlyOnOverflow>
           <Text>{operationName(frame.op)}</Text>
         </Tooltip>
       </Cell>
