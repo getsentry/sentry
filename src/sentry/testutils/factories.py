@@ -858,7 +858,7 @@ class Factories:
         project: Project,
         name: str = "Custom inbound filter",
         active: bool = True,
-        data_type: str = CustomInboundFilterDataType.ALL,
+        data_type: str = CustomInboundFilterDataType.ERROR,
         conditions: list[dict[str, object]] | None = None,
     ) -> CustomInboundFilter:
         if conditions is None:
