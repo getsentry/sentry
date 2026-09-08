@@ -1,8 +1,10 @@
 import {useCallback, useMemo, useState} from 'react';
 
+import {useTheme} from '@emotion/react';
+
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Select, type SelectValue} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
@@ -46,6 +48,7 @@ export function ScmMessagingChannelPicker({
   existingSetup,
   providerKey,
 }: ScmMessagingChannelPickerProps) {
+  const theme = useTheme();
   const {channelSelectedBy} = providerDetails[providerKey];
 
   // The saved destination we're editing, if any. Drives both the dropdown seed
@@ -118,6 +121,8 @@ export function ScmMessagingChannelPicker({
     clearChannelValidation();
   };
 
+  const hasMultipleWorkspaces = eligibleIntegrations.length > 1;
+
   if (!selectedIntegration) {
     return null;
   }
@@ -165,50 +170,60 @@ export function ScmMessagingChannelPicker({
   };
 
   return (
-    <Stack gap="xl">
-      <Grid columns="1fr 1fr" gap="md">
-        <Stack gap="xs">
-          <Text bold size="sm">
-            {t('Workspace')}
-          </Text>
-          <Select
-            aria-label={t('workspace')}
-            disabled={integrationOptions.length === 1}
-            value={selectedIntegration}
-            options={integrationOptions}
-            onChange={handleIntegrationChange}
-          />
-        </Stack>
-        <Stack gap="xs">
-          <Text bold size="sm">
-            {t('Channel')}
-          </Text>
-          <ChannelField
-            name="channel"
-            error={channelError}
-            inline={false}
-            flexibleControlStateSize
-          >
-            {() => (
-              <ChannelSelect
-                provider={providerKey}
-                options={channelOptions}
-                value={channel}
-                isLoading={isChannelLoading}
-                disabled={false}
-                onChange={onChannelChange}
-                onCreateOption={onCreateChannel}
+    <Container>
+      <Stack gap="lg" padding="xl lg">
+        <Grid columns={hasMultipleWorkspaces ? '1fr 1fr' : '1fr'} gap="md">
+          {hasMultipleWorkspaces && (
+            <Stack gap="xs">
+              <Text bold size="sm">
+                {t('Workspace')}
+              </Text>
+              <Select
+                aria-label={t('workspace')}
+                value={selectedIntegration}
+                options={integrationOptions}
+                onChange={handleIntegrationChange}
               />
-            )}
-          </ChannelField>
-        </Stack>
-      </Grid>
-      {isChannelsError && (
-        <Alert variant="warning">
-          {t('Failed to load channels. You can still type a channel name.')}
-        </Alert>
-      )}
-      <Flex gap="sm" justify="end">
+            </Stack>
+          )}
+          <Stack gap="xs">
+            <Text bold size="sm">
+              {t('Channel')}
+            </Text>
+            <ChannelField
+              name="channel"
+              error={channelError}
+              inline={false}
+              flexibleControlStateSize
+            >
+              {() => (
+                <ChannelSelect
+                  provider={providerKey}
+                  options={channelOptions}
+                  value={channel}
+                  isLoading={isChannelLoading}
+                  disabled={false}
+                  onChange={onChannelChange}
+                  onCreateOption={onCreateChannel}
+                />
+              )}
+            </ChannelField>
+          </Stack>
+        </Grid>
+        {isChannelsError && (
+          <Alert variant="warning">
+            {t('Failed to load channels. You can still type a channel name.')}
+          </Alert>
+        )}
+      </Stack>
+      <Flex
+        gap="lg"
+        justify="end"
+        padding="lg"
+        background="secondary"
+        borderTop="primary"
+        style={{borderRadius: `0 0 ${theme.radius.lg} ${theme.radius.lg}`}}
+      >
         {onCancel && (
           <Button size="sm" variant="link" onClick={onCancel}>
             {t('Cancel')}
@@ -226,6 +241,6 @@ export function ScmMessagingChannelPicker({
           {t('Confirm and continue')}
         </Button>
       </Flex>
-    </Stack>
+    </Container>
   );
 }

@@ -63,6 +63,20 @@ export function RowSubtitle({
     );
   }
 
+  if (visualState === 'configuring') {
+    if (resolvedProvider.eligibleIntegrations.length === 1) {
+      return (
+        <Flex gap="2xs" align="center">
+          <Text variant="muted" size="sm">{t('Connected to')}</Text>
+          <Text size="sm">{resolvedProvider.eligibleIntegrations[0]!.name}</Text>
+        </Flex>
+      );
+    }
+    return (
+      <Text variant="muted" size="sm">{t('Choose where to send your alerts to')}</Text>
+    );
+  }
+
   if (visualState === 'configured' && messagingSetup.mode === 'selected') {
     return (
       <Flex gap="xs" align="center">

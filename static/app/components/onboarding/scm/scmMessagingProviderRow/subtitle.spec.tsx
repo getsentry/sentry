@@ -146,13 +146,34 @@ describe('RowSubtitle', () => {
     });
   });
 
-  describe.each<RowVisualState>(['install-error', 'configuring'])(
-    '%s state',
-    visualState => {
-      it('renders nothing', () => {
-        const {container} = renderSubtitle(visualState);
-        expect(container).toBeEmptyDOMElement();
-      });
-    }
-  );
+  describe('install-error state', () => {
+    it('renders nothing', () => {
+      const {container} = renderSubtitle('install-error');
+      expect(container).toBeEmptyDOMElement();
+    });
+  });
+
+  describe('configuring state', () => {
+    it('shows Connected to and the workspace name when there is one eligible integration', () => {
+      renderSubtitle('configuring', connectedSlack);
+
+      expect(screen.getByText('Connected to')).toBeInTheDocument();
+      expect(screen.getByText('test-workspace')).toBeInTheDocument();
+    });
+
+    it('shows Choose where to send copy when there are multiple eligible integrations', () => {
+      const connectedSlackMulti: ScmMessagingResolvedProvider = {
+        ...connectedSlack,
+        eligibleIntegrations: [
+          slackIntegration,
+          OrganizationIntegrationsFixture({id: 'slack-2', name: 'second-workspace'}),
+        ],
+      };
+      renderSubtitle('configuring', connectedSlackMulti);
+
+      expect(
+        screen.getByText('Choose where to send your alerts to')
+      ).toBeInTheDocument();
+    });
+  });
 });

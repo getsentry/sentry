@@ -242,7 +242,10 @@ export function ScmMessagingProviderRow({
   const errorMessage = getInstallErrorMessage(installState);
 
   return (
-    <Container border={visualState === 'removing' ? 'danger' : 'primary'} radius="lg">
+    <Container
+      border={visualState === 'removing' ? 'danger' : 'primary'}
+      radius="lg"
+    >
       <Stack>
         {visualState === 'install-error' && (
           <Stack padding="md" gap="md" align="start">
@@ -283,11 +286,14 @@ export function ScmMessagingProviderRow({
                       </Tooltip>
                     )}
                   {resolvedProvider.status === 'connected' &&
-                    visualState !== 'removing' && (
+                    visualState !== 'removing' &&
+                    (isConfigured ? (
                       <Tag variant="success" icon={<IconCheckmark />}>
-                        {isConfigured ? t('Destination added') : t('Connected')}
+                        {t('Connected')}
                       </Tag>
-                    )}
+                    ) : (
+                      <Tag variant="info">{t('Authorized')}</Tag>
+                    ))}
                 </Flex>
                 <RowSubtitle
                   visualState={visualState}
@@ -314,7 +320,7 @@ export function ScmMessagingProviderRow({
 
         {visualState === 'configuring' &&
           resolvedProvider.eligibleIntegrations.length > 0 && (
-            <Container borderTop="primary" padding="lg">
+            <Container borderTop="primary">
               {renderChannelPicker ? (
                 renderChannelPicker({
                   integrations: resolvedProvider.eligibleIntegrations,
