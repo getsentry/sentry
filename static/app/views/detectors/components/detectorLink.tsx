@@ -195,9 +195,15 @@ function MetricDetectorDetails({detector}: {detector: MetricDetector}) {
 }
 
 function UptimeDetectorDetails({detector}: {detector: UptimeDetector}) {
+  // Runtime payloads can null dataSources despite the typed non-empty tuple.
+  const dataSources = Array.isArray(detector.dataSources) ? detector.dataSources : [];
+
   return (
     <Fragment>
-      {detector.dataSources.map(dataSource => {
+      {dataSources.map(dataSource => {
+        if (!dataSource?.queryObj) {
+          return null;
+        }
         return (
           <Fragment key={dataSource.id}>
             <DetailItem>{middleEllipsis(dataSource.queryObj.url, 40)}</DetailItem>
