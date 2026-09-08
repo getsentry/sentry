@@ -290,6 +290,7 @@ def comment_on_missing_permissions(
     pr_number: int,
     pr_id: int | None,
     integration_id: int,
+    repository_id: int | None = None,
     *args: Any,
     **kwargs: Any,
 ) -> None:
@@ -299,6 +300,10 @@ def comment_on_missing_permissions(
     GitHub call never runs inside a webhook task's deadline or the synchronous
     autofix endpoint. Retries on ``UnableToAcquireLock`` instead of waiting on
     the lock, so a losing activation requeues rather than parking a worker.
+
+    ``repository_id`` is what the gate resolved and defaults to None so
+    activations queued by an older deploy still run; the comment path resolves
+    the repo again and only uses this to notice a change in between.
     """
     organization = _organization_for_gate(run_id, organization_id)
     if organization is None:
@@ -324,6 +329,7 @@ def comment_on_missing_permissions(
         pr_number=pr_number,
         pr_id=pr_id,
         integration_id=integration_id,
+        queued_repository_id=repository_id,
         log_ctx=PrIterationLogContext.for_run(logger, state, organization_id, group_id),
     )
 

@@ -24,7 +24,8 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class MissingGithubPermissions:
     integration: RpcIntegration
-    # Empty when the installation has every required permission.
+    # Required permissions the installation does not hold. Never empty: an
+    # install with everything it needs is not reported as missing anything.
     missing_scopes: list[str]
     # The Repository row this was resolved for, so callers can log an id
     # instead of the repo's full name.
@@ -123,6 +124,7 @@ def get_missing_permissions_by_repo(
     if not repo_names:
         return {}
 
+    # Org-scoped so a run can only surface permissions for repos in its own org.
     repos = (
         Repository.objects.filter(
             organization_id=organization.id,
@@ -135,12 +137,22 @@ def get_missing_permissions_by_repo(
     )
 
     missing_by_repo: dict[str, MissingGithubPermissions] = {}
+    resolved: set[str] = set()
     for repo_name, repository_id, integration_id in repos:
+        resolved.add(repo_name)
+
         if not isinstance(integration_id, int):
+            _warn_unresolved(organization, "no_integration_id", repository_id=repository_id)
             continue
 
         integration = integration_service.get_integration(integration_id=integration_id)
         if integration is None:
+            _warn_unresolved(
+                organization,
+                "integration_not_found",
+                repository_id=repository_id,
+                integration_id=integration_id,
+            )
             continue
 
         missing = get_missing_github_app_permissions(integration.metadata)
@@ -150,4 +162,20 @@ def get_missing_permissions_by_repo(
                 integration=integration, missing_scopes=missing_scopes, repository_id=repository_id
             )
 
+    for repo_name in set(repo_names) - resolved:
+        _warn_unresolved(organization, "no_repository_row", scm_repo_full_name=repo_name)
+
     return missing_by_repo
+
+
+def _warn_unresolved(organization: Organization, reason: str, **fields: object) -> None:
+    """A repo the run is working in that we cannot check permissions for.
+
+    Warning, not info: the caller silently treats these as "nothing missing", so
+    without a log a user never hearing about a permission they need looks
+    identical to a healthy install.
+    """
+    logger.warning(
+        "autofix.github_perms.repo_unresolved",
+        extra={"organization_id": organization.id, "reason": reason, **fields},
+    )

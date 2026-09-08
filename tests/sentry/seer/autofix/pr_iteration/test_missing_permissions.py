@@ -108,7 +108,7 @@ class BlockIterationForMissingPermissionsTest(TestCase):
         mock_delay.assert_not_called()
 
     def test_blocks_and_queues_a_comment(self, mock_get_perms, mock_delay) -> None:
-        mock_get_perms.return_value = {REPO_NAME: _perms()}
+        mock_get_perms.return_value = {REPO_NAME: _perms(repository_id=123)}
 
         assert self._run(_state(getsentry__sentry=7)) is True
 
@@ -119,6 +119,7 @@ class BlockIterationForMissingPermissionsTest(TestCase):
             pr_number=7,
             pr_id=4242,
             integration_id=INTEGRATION_ID,
+            repository_id=123,
         )
 
     def test_queues_per_repo(self, mock_get_perms, mock_delay) -> None:
@@ -168,14 +169,17 @@ class PostMissingPermissionsCommentTest(TestCase):
         self.addCleanup(patcher.stop)
         return client
 
-    def _post(self) -> None:
+    def _post(
+        self, *, integration_id: int = INTEGRATION_ID, queued_repository_id: int | None = None
+    ) -> None:
         post_missing_permissions_comment(
             organization=self.organization,
             run_id=RUN_ID,
             repo_name=REPO_NAME,
             pr_number=7,
             pr_id=4242,
-            integration_id=INTEGRATION_ID,
+            integration_id=integration_id,
+            queued_repository_id=queued_repository_id,
             log_ctx=_log_ctx(_state(getsentry__sentry=7)),
         )
 
@@ -221,7 +225,40 @@ class PostMissingPermissionsCommentTest(TestCase):
 
         client.create_comment.assert_not_called()
 
-    def test_stays_silent_when_the_permissions_were_accepted(self, mock_get_perms) -> None:
+    def test_records_the_ids_resolved_here_not_the_ones_queued(self, mock_get_perms) -> None:
+        mock_get_perms.return_value = {
+            REPO_NAME: _perms(integration_id=INTEGRATION_ID, repository_id=123)
+        }
+        self._stub_client()
+
+        with assert_analytics_events(
+            [
+                AiAutofixPrIterationMissingPermissionsEvent(
+                    action="comment_posted",
+                    organization_id=self.organization.id,
+                    integration_id=INTEGRATION_ID,
+                    repository_id=123,
+                )
+            ]
+        ):
+            self._post(integration_id=INTEGRATION_ID + 1, queued_repository_id=456)
+
+    def test_comments_and_logs_when_the_repo_was_re_pointed_while_queued(
+        self, mock_get_perms
+    ) -> None:
+        mock_get_perms.return_value = {REPO_NAME: _perms(repository_id=123)}
+        client = self._stub_client()
+
+        with self.assertLogs(MODULE, level="ERROR") as logs:
+            self._post(queued_repository_id=456)
+
+        client.create_comment.assert_called_once()
+        assert len(logs.records) == 1
+        assert logs.records[0].msg == "autofix.pr_iteration.missing_permissions.repository_changed"
+        assert logs.records[0].queued_repository_id == 456
+        assert logs.records[0].repository_id == 123
+
+    def test_stays_silent_when_nothing_is_missing(self, mock_get_perms) -> None:
         mock_get_perms.return_value = {}
         client = self._stub_client()
 
@@ -230,14 +267,6 @@ class PostMissingPermissionsCommentTest(TestCase):
         client.create_comment.assert_not_called()
         self.seer_run.refresh_from_db()
         assert get_missing_permissions_marker(self.seer_run, REPO_NAME) is None
-
-    def test_stays_silent_when_the_integration_is_gone(self, mock_get_perms) -> None:
-        mock_get_perms.return_value = {}
-        client = self._stub_client()
-
-        self._post()
-
-        client.create_comment.assert_not_called()
 
     def test_no_second_comment_when_a_racing_task_marks_first(self, mock_get_perms) -> None:
         mock_get_perms.return_value = {REPO_NAME: _perms()}

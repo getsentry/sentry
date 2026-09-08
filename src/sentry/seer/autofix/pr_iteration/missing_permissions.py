@@ -166,9 +166,7 @@ def get_blocking_permissions(
     )
     log_ctx.info(
         "autofix.pr_iteration.missing_permissions.blocked",
-        repo_ids=sorted(
-            info.repository_id for info in missing_by_repo.values() if info.repository_id
-        ),
+        repo_ids=sorted(info.repository_id for info in missing_by_repo.values()),
     )
     return missing_by_repo
 
@@ -256,6 +254,7 @@ def _queue_missing_permissions_comments(
             pr_number=pr_state.pr_number,
             pr_id=pr_state.pr_id,
             integration_id=info.integration.id,
+            repository_id=info.repository_id,
         )
 
 
@@ -267,6 +266,7 @@ def post_missing_permissions_comment(
     pr_number: int,
     pr_id: int | None,
     integration_id: int,
+    queued_repository_id: int | None = None,
     log_ctx: PrIterationLogContext,
 ) -> None:
     """Post the single "accept these permissions" comment for a run+repo.
@@ -278,6 +278,12 @@ def post_missing_permissions_comment(
     Exhausting those retries is the only way a user never hears about the
     missing permissions, and taskworker already reports it: this taskname with
     ``status:failure`` on ``taskworker.worker.execute_task``.
+
+    Permissions are re-resolved here rather than trusted from the gate's args,
+    so what we comment and record reflects the repo now. ``integration_id`` and
+    ``queued_repository_id`` are what the gate saw; the latter is only compared
+    against the fresh lookup to log a repo that was re-pointed in between, and
+    is None for activations queued before it was threaded through.
     """
     log_fields: dict[str, Any] = {
         "integration_id": integration_id,
@@ -295,9 +301,19 @@ def post_missing_permissions_comment(
 
     info = get_missing_permissions_by_repo(organization, [repo_name]).get(repo_name)
     if info is None:
-        # Accepted between the gate and this task: nothing left to ask for.
-        _skip(log_ctx, "permissions_resolved", **log_fields)
+        # Nothing left to ask for: the permissions were accepted, or the repo or
+        # its integration stopped resolving, between the gate and this task.
+        _skip(log_ctx, "no_missing_permissions", **log_fields)
         return
+
+    if queued_repository_id is not None and queued_repository_id != info.repository_id:
+        log_ctx.error(
+            "autofix.pr_iteration.missing_permissions.repository_changed",
+            exc_info=False,
+            queued_repository_id=queued_repository_id,
+            repository_id=info.repository_id,
+            **log_fields,
+        )
 
     lock = locks.get(
         f"autofix:pr_iteration:missing_permissions:{seer_run.id}:{repo_name}",
@@ -327,7 +343,7 @@ def post_missing_permissions_comment(
             pr_id=pr_id,
         )
 
-    _record_comment_posted(organization.id, integration_id, info.repository_id, log_ctx)
+    _record_comment_posted(organization.id, info.integration.id, info.repository_id, log_ctx)
 
     metrics.incr(
         "autofix.pr_iteration.missing_permissions.commented",
