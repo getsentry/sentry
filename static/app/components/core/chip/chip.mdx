@@ -48,11 +48,9 @@ Compose the primitives when individual sections need to be interactive
 `onClick`, at which point it becomes a focusable button. `Chip.Dismiss` is always
 a button and stops its click from bubbling to the chip.
 
-By default (`focus="auto"`) `Chip.Root` manages a roving tabindex: a single tab
-stop enters the chip and <kbd>←</kbd>/<kbd>→</kbd>/<kbd>Home</kbd>/<kbd>End</kbd>
-move between sections. Pass `focus="manual"` when an outer system (e.g. the
-search query builder grid) already owns focus — sections then defer entirely to
-the props you spread onto them.
+`Chip.Root` manages a roving tabindex: a single tab stop enters the chip and
+
+<kbd>←</kbd>/<kbd>→</kbd>/<kbd>Home</kbd>/<kbd>End</kbd> move between sections.
 
 <Storybook.Demo>
   <Flex gap="md" align="center" wrap="wrap">

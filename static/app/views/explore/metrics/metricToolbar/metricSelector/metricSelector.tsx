@@ -606,7 +606,7 @@ export function MetricSelector({
         }));
 
   const sidePanelAnchorPosition =
-    sidePanelAnchorOffset === null ? '0px' : `${sidePanelAnchorOffset}px`;
+    sidePanelAnchorOffset === null ? '0px' : (`${sidePanelAnchorOffset}px` as const);
   const hasSelectedMetric =
     Boolean(highlightedOption) ||
     (!focusedOption && Boolean(traceMetric.name) && !fieldOption?.isSelected);

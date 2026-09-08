@@ -98,6 +98,26 @@ class BaseQuerySet(QuerySet[M, R]):
         """
         return self.using(router.db_for_read(self.model, replica=True))
 
+    def get_or_none(self, *args: Any, **kwargs: Any) -> R | None:
+        """Like ``get()``, but returns ``None`` instead of raising ``DoesNotExist``.
+
+        Still raises ``MultipleObjectsReturned`` if more than one row matches.
+        Prefer this over ``first()`` when the lookup is unique and order does not matter.
+        """
+        try:
+            return self.get(*args, **kwargs)
+        except self.model.DoesNotExist:
+            return None
+
+    # django-stubs types these as plain QuerySet[M, ...], which drops BaseQuerySet methods.
+    def values(self, *fields: Any, **expressions: Any) -> BaseQuerySet[M, dict[str, Any]]:
+        return super().values(*fields, **expressions)  # type: ignore[return-value]
+
+    def values_list(
+        self, *fields: Any, flat: bool = False, named: bool = False
+    ) -> BaseQuerySet[M, Any]:
+        return super().values_list(*fields, flat=flat, named=named)  # type: ignore[return-value]
+
     def defer(self, *args: Any, **kwargs: Any) -> Self:
         raise NotImplementedError("Use ``values_list`` instead [performance].")
 

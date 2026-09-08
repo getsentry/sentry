@@ -28,10 +28,7 @@ import {
   investigationListQueryOptions,
 } from 'sentry/views/investigations/api';
 import InvestigationDetailView from 'sentry/views/investigations/detail';
-import type {
-  InvestigationBlock,
-  InvestigationDetail,
-} from 'sentry/views/investigations/types';
+import {InvestigationDetailFixture} from 'sentry/views/investigations/fixtures';
 
 jest.unmock('@tanstack/react-pacer');
 
@@ -71,74 +68,6 @@ function InstallFeedbackIntegration() {
   }, [setState]);
 
   return null;
-}
-
-function InvestigationDetailFixture(
-  overrides: Partial<InvestigationDetail> = {}
-): InvestigationDetail & {blocks: InvestigationBlock[]} {
-  return {
-    id: 'investigation-1',
-    title: 'Investigate database latency',
-    status: 'active',
-    sourceType: 'manual',
-    createdBy: '1',
-    dateCreated: '2026-08-13T20:00:00Z',
-    dateUpdated: '2026-08-13T21:00:00Z',
-    version: 1,
-    blockCount: 2,
-    isFavorited: false,
-    summary: null,
-    summaryDescription: null,
-    blocks: [
-      {
-        id: 'block-1',
-        position: 0,
-        kind: 'text',
-        title: 'Summary',
-        content: 'Initial notes',
-        generationPrompt: '',
-        generatedContent: '',
-        output: null,
-        outputStatus: 'notRun',
-        currentExecution: null,
-        config: {},
-        display: {type: 'markdown'},
-        dependencies: [],
-        parameterKeys: [],
-        version: 1,
-        staleAt: null,
-        createdBy: '1',
-        lastEditedBy: '1',
-      },
-      {
-        id: 'block-2',
-        position: 1,
-        kind: 'query',
-        title: 'Latency query',
-        content: '',
-        generationPrompt: 'Find slow spans',
-        generatedContent: '',
-        output: null,
-        outputStatus: 'notRun',
-        currentExecution: null,
-        config: {},
-        display: {type: 'table'},
-        dependencies: [],
-        parameterKeys: [],
-        version: 1,
-        staleAt: null,
-        createdBy: '1',
-        lastEditedBy: '1',
-      },
-    ],
-    filters: {},
-    parameters: [],
-    projectIds: [],
-    source: {type: 'manual', ref: {}, revision: null},
-    template: null,
-    titleGeneration: {status: null},
-    ...overrides,
-  };
 }
 
 function renderView(
@@ -1356,6 +1285,116 @@ describe('Investigation detail', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Ask Seer again'}));
     expect(screen.getByLabelText('Instructions for Seer')).toHaveValue('');
+  });
+
+  it('shows "Building chart…" for a query block\'s in-progress structured result instead of raw JSON', async () => {
+    const investigation = InvestigationDetailFixture();
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    const blockUrl = `${detailUrl}blocks/block-2/`;
+    MockApiClient.addMockResponse({
+      url: blockUrl,
+      method: 'PUT',
+      body: {...investigation.blocks[1]!, version: 2},
+    });
+    const runUrl = `${blockUrl}executions/`;
+    MockApiClient.addMockResponse({
+      url: runUrl,
+      method: 'POST',
+      body: {id: 'execution-building', status: 'running'},
+    });
+    MockApiClient.addMockResponse({
+      url: `${runUrl}execution-building/`,
+      body: {
+        id: 'execution-building',
+        status: 'running',
+        blocks: [
+          {
+            id: 'step-1',
+            timestamp: '2026-08-18T20:00:01Z',
+            loading: true,
+            message: {
+              role: 'assistant',
+              content: '{"tableMarkdown":"| Fact | Value |\\n|---|---|\\n| Monit',
+            },
+            artifacts: [],
+            toolLinks: null,
+            toolResults: null,
+          },
+        ],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: null,
+        error: null,
+      },
+    });
+
+    renderView();
+    await chooseCellAction('Latency query', 'Refine');
+    await userEvent.type(
+      screen.getByLabelText('Instructions for Seer'),
+      'Find slow spans'
+    );
+    fireEvent.keyDown(screen.getByLabelText('Instructions for Seer'), {key: 'Enter'});
+
+    expect(await screen.findByText('Building chart…')).toBeInTheDocument();
+    expect(screen.queryByText(/tableMarkdown/)).not.toBeInTheDocument();
+  });
+
+  it("hides a query block's completed structured result from the transcript, not just while streaming", async () => {
+    const investigation = InvestigationDetailFixture();
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    const blockUrl = `${detailUrl}blocks/block-2/`;
+    MockApiClient.addMockResponse({
+      url: blockUrl,
+      method: 'PUT',
+      body: {...investigation.blocks[1]!, version: 2},
+    });
+    const runUrl = `${blockUrl}executions/`;
+    MockApiClient.addMockResponse({
+      url: runUrl,
+      method: 'POST',
+      body: {id: 'execution-built', status: 'running'},
+    });
+    MockApiClient.addMockResponse({
+      url: `${runUrl}execution-built/`,
+      body: {
+        id: 'execution-built',
+        status: 'completed',
+        blocks: [
+          {
+            id: 'step-1',
+            timestamp: '2026-08-18T20:00:04Z',
+            loading: false,
+            message: {
+              role: 'assistant',
+              content:
+                '{"tableMarkdown":"| Fact | Value |","chart":null,"preferredView":"table","isEmpty":false,"chartUnavailableReason":null}',
+            },
+            artifacts: [],
+            toolLinks: null,
+            toolResults: null,
+          },
+        ],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: null,
+        error: null,
+      },
+    });
+
+    renderView();
+    await chooseCellAction('Latency query', 'Refine');
+    await userEvent.type(
+      screen.getByLabelText('Instructions for Seer'),
+      'Find slow spans'
+    );
+    fireEvent.keyDown(screen.getByLabelText('Instructions for Seer'), {key: 'Enter'});
+
+    // The transcript renders once the block settles, but the raw JSON answer is dropped —
+    // `QueryResult` above already presents its parsed chart/table.
+    expect(await screen.findByText('No steps')).toBeInTheDocument();
+    expect(screen.queryByText(/tableMarkdown/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Building chart…')).not.toBeInTheDocument();
   });
 
   it('stops an active refinement and leaves the rendered result visible', async () => {

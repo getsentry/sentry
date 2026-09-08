@@ -17,6 +17,7 @@ from sentry.integrations.services.integration import (
     RpcOrganizationIntegration,
     integration_service,
 )
+from sentry.integrations.types import IntegrationIssueConfigField
 from sentry.integrations.utils.github_permissions import get_missing_github_app_permissions
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models.user import User
@@ -112,7 +113,7 @@ class IntegrationSerializer(Serializer):
 
 class IntegrationConfigSerializerResponse(IntegrationSerializerResponse, total=False):
     configOrganization: Sequence[Any]
-    createIssueConfig: list[dict[str, Any]]
+    createIssueConfig: list[IntegrationIssueConfigField]
 
 
 class IntegrationConfigSerializer(IntegrationSerializer):
@@ -139,32 +140,32 @@ class IntegrationConfigSerializer(IntegrationSerializer):
             return {**base, "configOrganization": []}
 
         try:
-            install = obj.get_installation(organization_id=self.organization_id)
+            installation = obj.get_installation(organization_id=self.organization_id)
         except NotImplementedError:
             # The integration may not implement a Installed Integration object
             # representation.
             return {**base, "configOrganization": []}
 
-        config_organization = install.get_organization_config()
-
-        # Query param "action" only attached in TicketRuleForm modal.
+        # TicketRuleModal only needs the ticket-creation form for this request.
         if self.params.get("action") == "create":
             return {
                 **base,
-                "configOrganization": config_organization,
+                "configOrganization": [],
                 # This method comes from IssueBasicIntegration within the integration's installation class
-                "createIssueConfig": install.get_create_issue_config(  # type: ignore[attr-defined]
-                    None, user, params=self.params
+                "createIssueConfig": installation.get_create_issue_config(  # type: ignore[attr-defined]
+                    None,
+                    user,
+                    params=self.params,
                 ),
             }
 
-        return {**base, "configOrganization": config_organization}
+        return {**base, "configOrganization": installation.get_organization_config()}
 
 
 @register(OrganizationIntegration)
 class OrganizationIntegrationSerializer(Serializer):
     def __init__(self, params: Mapping[str, Any] | None = None) -> None:
-        self.params = params
+        self.params = params or {}
 
     def get_attrs(
         self,
@@ -201,6 +202,16 @@ class OrganizationIntegrationSerializer(Serializer):
         )
         serialized_integration: MutableMapping[str, Any] = {**integration_config}
 
+        organization_integration_fields = {
+            "externalId": integration.external_id,
+            "organizationId": obj.organization_id,
+            "organizationIntegrationStatus": obj.get_status_display(),
+            "gracePeriodEnd": obj.grace_period_end,
+        }
+        if self.params.get("action") == "create":
+            serialized_integration.update({"configData": None, **organization_integration_fields})
+            return serialized_integration
+
         dynamic_display_information = None
         config_data = None
 
@@ -230,10 +241,7 @@ class OrganizationIntegrationSerializer(Serializer):
         serialized_integration.update(
             {
                 "configData": config_data,
-                "externalId": integration.external_id,
-                "organizationId": obj.organization_id,
-                "organizationIntegrationStatus": obj.get_status_display(),
-                "gracePeriodEnd": obj.grace_period_end,
+                **organization_integration_fields,
             }
         )
 

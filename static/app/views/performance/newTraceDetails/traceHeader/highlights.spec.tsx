@@ -170,6 +170,28 @@ describe('Highlights', () => {
     expect(screen.queryByText('18.0.0')).not.toBeInTheDocument();
   });
 
+  it('keeps the deprecated runtime name and version paired when both versions exist', () => {
+    const rootEventResults = {
+      data: makeTraceItemDetailsResponse([
+        {name: 'runtime.name', type: 'str', value: 'node'},
+        {name: 'process.runtime.version', type: 'str', value: '3.12.0'},
+        {name: 'runtime.version', type: 'str', value: '18.0.0'},
+      ]),
+    } as TraceRootEventQueryResults;
+
+    render(
+      <Highlights
+        rootEventResults={rootEventResults}
+        organization={organization}
+        project={project}
+      />
+    );
+
+    expect(screen.getByText('node')).toBeInTheDocument();
+    expect(screen.getByText('18.0.0')).toBeInTheDocument();
+    expect(screen.queryByText('3.12.0')).not.toBeInTheDocument();
+  });
+
   it('does not render os, browser, or runtime highlights when name attribute is missing', () => {
     const rootEventResults = {
       data: makeTraceItemDetailsResponse([

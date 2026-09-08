@@ -56,7 +56,6 @@ interface PlatformPickerProps {
   noAutoFilter?: boolean;
   organization?: Organization;
   platform?: string | null;
-  showOther?: boolean;
   source?: string;
   /**
    * For project-creation picker events, `source` identifies the flow and `variant`
@@ -79,7 +78,6 @@ export function PlatformPicker({
   variant,
   visibleSelection = true,
   loading = false,
-  showOther = true,
 }: PlatformPickerProps) {
   const {isSelfHosted} = useLegacyStore(ConfigStore);
 
@@ -120,7 +118,7 @@ export function PlatformPicker({
     // 'other' is not part of the createablePlatforms list, therefore it won't be included in the filtered list
     const filtered = availablePlatforms.filter(filter ? subsetMatch : categoryMatch);
 
-    if (showOther && filter.toLowerCase() === 'other') {
+    if (filter.toLowerCase() === 'other') {
       // We only show 'Other' if users click on the 'Other' suggestion rendered in the not found state or type this word in the search bar
       return [otherPlatform];
     }
@@ -135,7 +133,7 @@ export function PlatformPicker({
 
     // We only want to sort the platforms alphabetically if users are not viewing the 'popular' tab category
     return filtered.sort((a, b) => comparePlatformNames(a.name, b.name));
-  }, [filter, category, availablePlatforms, showOther]);
+  }, [filter, category, availablePlatforms]);
 
   const latestValuesRef = useRef({
     filter,

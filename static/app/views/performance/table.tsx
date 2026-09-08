@@ -473,7 +473,7 @@ export function Table({
   ): React.ReactNode {
     const label = title.title || column.name;
     const content = title.tooltip ? (
-      <Tooltip isHoverable title={title.tooltip} showUnderline>
+      <Tooltip title={title.tooltip} showUnderline>
         {label}
       </Tooltip>
     ) : (

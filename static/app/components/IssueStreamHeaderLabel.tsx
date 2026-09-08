@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {css, useTheme} from '@emotion/react';
 
 import {Container, type ContainerProps} from '@sentry/scraps/layout';

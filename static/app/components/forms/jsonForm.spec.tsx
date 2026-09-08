@@ -1,12 +1,8 @@
-import {UserFixture} from 'sentry-fixture/user';
-
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import JsonForm from 'sentry/components/forms/jsonForm';
 
 import type {FieldObject, JsonFormObject} from './types';
-
-const user = UserFixture();
 
 const testFormFields: JsonFormObject[] = [
   {
@@ -56,64 +52,13 @@ describe('JsonForm', () => {
           ],
         },
       ];
-      render(
-        <JsonForm
-          forms={forms}
-          additionalFieldProps={{user}}
-          collapsible
-          initiallyCollapsed
-        />
-      );
+      render(<JsonForm forms={forms} collapsible initiallyCollapsed />);
 
       expect(screen.getByText('Form1 title')).toBeInTheDocument();
       expect(screen.getByText('Form2 title')).toBeInTheDocument();
 
       expect(screen.queryByText('Field Label 1')).not.toBeVisible();
       expect(screen.queryByText('Field Label 2')).not.toBeVisible();
-    });
-
-    it('initiallyCollapsed prop from children form groups override json form initiallyCollapsed prop', () => {
-      const forms: JsonFormObject[] = [
-        {
-          title: 'Form1 title',
-          fields: [
-            {
-              name: 'name',
-              type: 'string',
-              required: true,
-              label: 'Field Label 1 ',
-              placeholder: 'e.g. John Doe',
-            },
-          ],
-        },
-        {
-          title: 'Form2 title',
-          fields: [
-            {
-              name: 'name',
-              type: 'string',
-              required: true,
-              label: 'Field Label 2',
-              placeholder: 'e.g. Abdullah Khan',
-            },
-          ],
-          initiallyCollapsed: false, // Prevents this form group from being collapsed
-        },
-      ];
-      render(
-        <JsonForm
-          forms={forms}
-          additionalFieldProps={{user}}
-          collapsible
-          initiallyCollapsed
-        />
-      );
-
-      expect(screen.getByText('Form1 title')).toBeInTheDocument();
-      expect(screen.getByText('Form2 title')).toBeInTheDocument();
-
-      expect(screen.queryByText('Field Label 1')).not.toBeVisible();
-      expect(screen.queryByText('Field Label 2')).toBeVisible();
     });
 
     it('should ALWAYS hide panel, if all fields have visible set to false AND there is no renderHeader & renderFooter', () => {

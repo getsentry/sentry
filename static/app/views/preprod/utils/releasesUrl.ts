@@ -1,19 +1,18 @@
 type ReleasesUrlParams = {
   display?: string;
   query?: string;
-  tab?: string;
 };
 
 export function makeReleasesUrl(
   organizationSlug: string,
   projectId: string | undefined,
-  {display, query, tab = 'mobile-builds'}: ReleasesUrlParams = {}
+  {display, query}: ReleasesUrlParams = {}
 ): string {
   const params = new URLSearchParams();
   if (projectId !== undefined) {
     params.set('project', projectId);
   }
-  params.set('tab', tab);
+  params.set('tab', 'mobile-builds');
 
   if (display) {
     params.set('display', display);
