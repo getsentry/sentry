@@ -168,6 +168,72 @@ class IntegrationRepositoryTestCase(TestCase):
         assert repo.status == ObjectStatus.ACTIVE
         mock_metrics.incr.assert_called_with("sentry.integration_repo_provider.repo_relink")
 
+    def test_create_repository__ignores_hidden_repo_of_other_provider(
+        self, get_jwt: MagicMock
+    ) -> None:
+        # External ids are only unique per provider.
+        other = self.create_repo(
+            project=self.project,
+            name="group/project",
+            provider="integrations:gitlab",
+            external_id=self.config["external_id"],
+        )
+        other.update(status=ObjectStatus.HIDDEN)
+
+        _, repo = self.provider.create_repository(self.config, self.organization)
+
+        assert repo.id != other.id
+        assert repo.provider == "integrations:github"
+        other.refresh_from_db()
+        assert other.status == ObjectStatus.HIDDEN
+
+    def test_create_repository__activates_hidden_repo_without_provider(
+        self, get_jwt: MagicMock
+    ) -> None:
+        orphan = self.create_repo(
+            project=self.project, name=self.repo_name, external_id=self.config["external_id"]
+        )
+        orphan.update(status=ObjectStatus.HIDDEN)
+
+        _, repo = self.provider.create_repository(self.config, self.organization)
+
+        assert repo.id == orphan.id
+        orphan.refresh_from_db()
+        assert orphan.status == ObjectStatus.ACTIVE
+        assert orphan.integration_id == self.integration.id
+
+    def test_create_repository__ignores_unlinked_repo_of_other_provider(
+        self, get_jwt: MagicMock
+    ) -> None:
+        other = self.create_repo(
+            project=self.project,
+            name="group/project",
+            provider="gitlab",
+            external_id=self.config["external_id"],
+        )
+
+        _, repo = self.provider.create_repository(self.config, self.organization)
+
+        assert repo.id != other.id
+        other.refresh_from_db()
+        assert other.provider == "gitlab"
+        assert other.integration_id is None
+
+    def test_create_repository__adopts_plugin_era_repo(self, get_jwt: MagicMock) -> None:
+        legacy = self.create_repo(
+            project=self.project,
+            name=self.repo_name,
+            provider="github",
+            external_id=self.config["external_id"],
+        )
+
+        _, repo = self.provider.create_repository(self.config, self.organization)
+
+        assert repo.id == legacy.id
+        legacy.refresh_from_db()
+        assert legacy.provider == "integrations:github"
+        assert legacy.integration_id == self.integration.id
+
     def test_create_repository__only_activates_hidden_repo(self, get_jwt: MagicMock) -> None:
         repo = self._create_repo(external_id=self.config["external_id"])
         repo.status = ObjectStatus.PENDING_DELETION

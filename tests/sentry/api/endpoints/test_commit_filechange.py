@@ -101,3 +101,48 @@ class CommitFileChangeTest(APITestCase):
             status_code=404,
             qs_params={"repo_id": "0"},
         )
+
+    def test_query_external_id_ignores_other_provider(self) -> None:
+        # External ids are only unique per provider: another provider's repo with the same
+        # id has no commits in this release and must not shadow the release's repo.
+        self.create_repo(
+            project=self.project,
+            name="other/repo",
+            provider="integrations:gitlab",
+            external_id="123",
+        )
+        response = self.get_success_response(
+            self.project.organization.slug,
+            self.release.version,
+            qs_params={"repo_id": "123"},
+        )
+
+        assert len(response.data) == 2
+
+    def test_query_external_id_with_duplicate_repos(self) -> None:
+        newest_repo = self.create_repo(
+            project=self.project,
+            name="relinked/repo",
+            provider="integrations:gitlab",
+            external_id="123",
+        )
+        commit = self.create_commit(repo=newest_repo, key="c" * 40)
+        self.create_release_commit(release=self.release, commit=commit, order=2)
+        response = self.get_success_response(
+            self.project.organization.slug,
+            self.release.version,
+            qs_params={"repo_id": "123"},
+        )
+
+        assert {change["filename"] for change in response.data} == set(
+            CommitFileChange.objects.filter(commit_id=commit.id).values_list("filename", flat=True)
+        )
+
+    def test_query_external_id_repo_without_release_commits(self) -> None:
+        self.create_repo(project=self.project, name="other/repo", external_id="456")
+        self.get_error_response(
+            self.project.organization.slug,
+            self.release.version,
+            status_code=404,
+            qs_params={"repo_id": "456"},
+        )

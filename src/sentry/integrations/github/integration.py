@@ -1024,7 +1024,9 @@ def validate_github_installation(
 
     try:
         integration = Integration.objects.get(
-            external_id=installation_id, status=ObjectStatus.ACTIVE
+            provider=GitHubIntegrationProvider.key,
+            external_id=installation_id,
+            status=ObjectStatus.ACTIVE,
         )
     except Integration.DoesNotExist:
         # The installation.created webhook from GitHub normally creates the
