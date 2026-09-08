@@ -8,7 +8,9 @@ from uuid import uuid4
 from django.db import router, transaction
 from django.utils import timezone
 from pydantic import ValidationError
+from scm import actions as scm_actions
 from scm.manager import SourceCodeManager
+from scm.types import GetPullRequestProtocol
 
 from sentry import analytics, features
 from sentry.analytics.events.autofix_events import (
@@ -123,6 +125,49 @@ def _iteration_repo_states(state: SeerRunState) -> list[dict[str, Any]]:
         }
         for repo_name, pr_state in state.repo_pr_states.items()
     ]
+
+
+def _iteration_prs_all_closed(organization: Organization, state: SeerRunState) -> bool:
+    """True when the run has PRs and every one of them reads back as closed.
+
+    A PR we cannot read (no number, repo gone, unsupported provider, API error)
+    counts as open: a transient read failure should not silently drop an
+    iteration's changes.
+    """
+    checked_any = False
+
+    for repo_name, pr_state in state.repo_pr_states.items():
+        pr_number = pr_state.pr_number
+        if pr_number is None:
+            return False
+
+        repo, _resolution = Repository.objects.resolve_active(
+            organization_id=organization.id,
+            name=repo_name,
+            normalized_provider=None,
+        )
+        if repo is None:
+            return False
+
+        try:
+            scm = make_scm(organization.id, repo.id, referrer="seer")
+        except Exception:
+            return False
+
+        if not isinstance(scm, GetPullRequestProtocol):
+            return False
+
+        try:
+            pull_request = scm_actions.get_pull_request(scm, str(pr_number))
+        except Exception:
+            return False
+
+        if pull_request["data"]["state"] != "closed":
+            return False
+
+        checked_any = True
+
+    return checked_any
 
 
 def _stopping_point_from_run(organization: Organization, run_id: int) -> str | None:
@@ -1121,6 +1166,10 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 reason="terminal_push_errors",
                 errored_repos=errored_repos,
             )
+            return False
+
+        if _iteration_prs_all_closed(group.organization, state):
+            log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="pr_closed")
             return False
 
         try:

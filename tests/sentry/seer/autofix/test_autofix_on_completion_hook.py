@@ -2,6 +2,7 @@ from typing import TypedDict
 from unittest.mock import MagicMock, patch
 
 from sentry.models.activity import Activity
+from sentry.models.repository import Repository
 from sentry.seer.agent.client_models import (
     AgentFilePatch,
     Artifact,
@@ -753,6 +754,56 @@ class TestPrIterationCompletionHook(TestCase):
 
         assert pushed is False
         mock_push.assert_not_called()
+
+    def _github_repo(self) -> None:
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="test-repo",
+            provider="integrations:github",
+            external_id="1",
+        )
+
+    @patch(f"{HOOK_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{HOOK_PATH}.scm_actions.get_pull_request")
+    @patch(f"{HOOK_PATH}.make_scm")
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_a_closed_pr_stops_the_push(self, mock_push, mock_make_scm, mock_get_pull_request):
+        """Closing the PR is the stop signal; pushing into it would talk past it."""
+        self._github_repo()
+        mock_get_pull_request.return_value = {"data": {"state": "closed"}}
+
+        pushed = self._push(self._unsynced())
+
+        assert pushed is False
+        mock_push.assert_not_called()
+
+    @patch(f"{HOOK_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{HOOK_PATH}.scm_actions.get_pull_request")
+    @patch(f"{HOOK_PATH}.make_scm")
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_an_open_pr_still_pushes(self, mock_push, mock_make_scm, mock_get_pull_request):
+        self._github_repo()
+        mock_get_pull_request.return_value = {"data": {"state": "open"}}
+
+        pushed = self._push(self._unsynced())
+
+        assert pushed is True
+        mock_push.assert_called_once()
+
+    @patch(f"{HOOK_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{HOOK_PATH}.scm_actions.get_pull_request", side_effect=ValueError("boom"))
+    @patch(f"{HOOK_PATH}.make_scm")
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_a_pr_we_cannot_read_still_pushes(
+        self, mock_push, mock_make_scm, mock_get_pull_request
+    ):
+        """A transient read failure must not silently drop the iteration's changes."""
+        self._github_repo()
+
+        pushed = self._push(self._unsynced())
+
+        assert pushed is True
+        mock_push.assert_called_once()
 
     @patch(f"{HOOK_PATH}.trigger_push_changes", side_effect=ValueError("boom"))
     def test_a_failed_push_is_swallowed(self, mock_push):
