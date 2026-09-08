@@ -33,7 +33,9 @@ describe('CustomerIntegrationDebugDetails', () => {
     renderGlobalModal();
 
     expect(
-      screen.getByText(/Supported integrations will be enabled and their grace periods cleared/)
+      screen.getByText(
+        /Supported integrations will be enabled and their grace periods cleared/
+      )
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByTestId('confirm-button'));
