@@ -6,6 +6,7 @@ from pydantic import BaseModel, ValidationError
 
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.pr_iteration.current_iteration import untriggered_iteration_id
 from sentry.seer.autofix.pr_iteration.emit import open_pr_iteration_details
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
@@ -69,6 +70,12 @@ def try_enqueue_autofix_feedback(
                 organization_id=organization_id,
                 group_id=group_id,
             )
+
+        # The row this item just opened, or the waiting one it joined.
+        if (
+            iteration_id := untriggered_iteration_id(run_id=run_id, organization_id=organization_id)
+        ) is not None:
+            log_ctx = log_ctx.with_iteration(iteration_id)
 
     # One log name for both branches, emitted after the push so ``queued`` means
     # the feedback is actually in Redis: ``outcome`` says which way it went and

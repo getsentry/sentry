@@ -24,6 +24,7 @@ import logging
 from typing import Any, TypedDict
 
 from sentry.seer.agent.client_models import SeerRunState
+from sentry.seer.autofix.pr_iteration.current_iteration import triggered_iteration_id
 
 
 class PrIterationScmInfo(TypedDict, total=False):
@@ -52,6 +53,9 @@ class PrIterationIdentity(TypedDict, total=False):
 
     # The stable id: what ties the four sections of one iteration together.
     run_id: int
+
+    # The SeerRunPrIteration row id, once one iteration within the run is known.
+    iteration_id: int
 
     sentry_organization_id: int
     sentry_group_id: int
@@ -85,6 +89,8 @@ class PrIterationLogContext:
             identity["run_id"] = run_state.run_id
             if scm_infos := _scm_infos(run_state):
                 identity["scm_infos"] = scm_infos
+            if (iteration_id := triggered_iteration_id(run_state)) is not None:
+                identity["iteration_id"] = iteration_id
         self._identity = identity
 
     @classmethod
@@ -101,6 +107,16 @@ class PrIterationLogContext:
     @property
     def identity(self) -> PrIterationIdentity:
         return self._identity.copy()
+
+    def with_iteration(self, iteration_id: int) -> PrIterationLogContext:
+        """A copy of this context whose lines also carry the iteration's id.
+
+        The iteration id is usually only resolved partway through a flow, so
+        callers reassign their ``log_ctx`` to the result once they have it.
+        """
+        ctx = PrIterationLogContext(self._logger)
+        ctx._identity = {**self._identity, "iteration_id": iteration_id}
+        return ctx
 
     def info(self, name: str, **fields: Any) -> None:
         """Record that we are doing, or have done, a piece of work."""

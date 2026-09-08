@@ -61,6 +61,7 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER
+from sentry.seer.autofix.pr_iteration.current_iteration import untriggered_iteration_id
 from sentry.seer.autofix.pr_iteration.details_store import (
     count_iterations_before,
     remove_iterations_before,
@@ -403,6 +404,10 @@ def consume_queued_autofix_feedback(
 
         group_id = state.metadata.get("group_id") if state.metadata else None
         log_ctx = PrIterationLogContext.for_run(logger, state, organization_id, group_id)
+        if (
+            waiting_id := untriggered_iteration_id(run_id=run_id, organization_id=organization_id)
+        ) is not None:
+            log_ctx = log_ctx.with_iteration(waiting_id)
         task_state = current_task()
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.started",

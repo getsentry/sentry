@@ -24,7 +24,8 @@ from sentry.analytics.events.pr_iteration_events import (
 )
 from sentry.models.group import Group
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.autofix.autofix_agent import get_iterations, get_latest_iteration_index
+from sentry.seer.autofix.autofix_agent import get_latest_iteration_index
+from sentry.seer.autofix.pr_iteration.current_iteration import triggered_iteration_id
 from sentry.seer.autofix.pr_iteration.details_store import (
     add_iteration,
     claim_iteration,
@@ -35,8 +36,6 @@ from sentry.seer.autofix.pr_iteration.details_store import (
 )
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.models.run import SeerRun, SeerRunPrIteration
-
-ITERATION_ID_METADATA_KEY = "iteration_id"
 
 
 def _seer_run(*, run_id: int, organization_id: int) -> SeerRun | None:
@@ -178,25 +177,6 @@ def discard_pr_iteration_details(
         log_ctx.error("autofix.pr_iteration.details.discard_failed")
 
 
-def state_iteration_id(log_ctx: PrIterationLogContext, run_state: SeerRunState) -> int | None:
-    """The id the run's latest iteration was started with."""
-    try:
-        iterations = get_iterations(run_state)
-    except Exception:
-        log_ctx.error("autofix.pr_iteration.details.get_iterations_failed")
-        return None
-
-    if not iterations or not iterations[-1].blocks:
-        return None
-
-    metadata = iterations[-1].blocks[0].message.metadata or {}
-    try:
-        # Prompt metadata is a string map; the id goes out stringified.
-        return int(metadata[ITERATION_ID_METADATA_KEY])
-    except (KeyError, TypeError, ValueError):
-        return None
-
-
 def _build_event(
     log_ctx: PrIterationLogContext,
     iteration: SeerRunPrIteration,
@@ -240,7 +220,7 @@ def complete_pr_iteration_details(
     pushed_changes: bool,
 ) -> None:
     """Emit the row for the iteration that just finished, and drop it."""
-    iteration_id = state_iteration_id(log_ctx, run_state)
+    iteration_id = triggered_iteration_id(run_state)
     if iteration_id is None:
         log_ctx.error(
             "autofix.pr_iteration.details.unresolved", exc_info=False, reason="no_iteration_id"
