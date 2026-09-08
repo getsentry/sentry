@@ -75,6 +75,9 @@ def deliver_autofix_rca_result(
             logger.warning("autofix_rca.delivery.no_result", extra={**log_extra, "status": status})
             return
 
+        # Clear any stale delivery error_message now that this delivery has succeeded.
+        extras.pop("error_message", None)
+
         agent_run.update(
             using=using,
             extras={**extras, "status": "completed"},
