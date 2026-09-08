@@ -74,7 +74,7 @@ export function SeerAdminPage() {
     onSubmit: ({value}) =>
       mutation
         .mutateAsync(formSchema.parse(value))
-        .then(() => form.reset())
+        .then(() => form.setFieldValue('organizationId', null))
         .catch(() => {}),
   });
 
