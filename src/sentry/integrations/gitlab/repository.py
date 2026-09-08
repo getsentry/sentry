@@ -67,7 +67,7 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
             "gitlab.repository.organization_id": repo.organization_id,
             "gitlab.repository.integration_id": repo.integration_id,
             "gitlab.repository.repository_id": repo.id,
-            "gitlab.repository.project_id": repo.config.get("project_id"),
+            "gitlab.repository.project_id": repo.config["project_id"],
         }
         # Emitted on every invocation so we can gauge how often this path runs
         # (and therefore how many webhook create calls we make to GitLab).
@@ -78,12 +78,9 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
                 "gitlab.repository.has_existing_webhook": bool(repo.config.get("webhook_id")),
             },
         )
-        project_id = repo.config.get("project_id")
-        if not project_id:
-            logger.info("gitlab.repository.missing_project_id", extra=log_extra)
-            return
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
+        project_id = repo.config["project_id"]
         existing_webhook_id = repo.config.get("webhook_id")
         if existing_webhook_id:
             try:
@@ -117,16 +114,15 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
 
     def on_delete_repository(self, repo):
         """Clean up the attached webhook"""
-        project_id = repo.config.get("project_id")
         webhook_id = repo.config.get("webhook_id")
         # A repository whose hook creation failed has no webhook_id. There is no hook to
         # clean up then, and raising would only stop the user from deleting the repository.
-        if not project_id or not webhook_id:
+        if not webhook_id:
             return
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
         try:
-            client.delete_project_webhook(project_id, webhook_id)
+            client.delete_project_webhook(repo.config["project_id"], webhook_id)
         except ApiError as e:
             if e.code == 404:
                 return

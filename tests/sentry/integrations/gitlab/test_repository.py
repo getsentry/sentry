@@ -208,21 +208,16 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         assert self.get_repository(pk=repo.id).config["webhook_id"] == 99
 
     @responses.activate
-    def test_repository_without_project_id(self) -> None:
+    def test_on_delete_repository_without_webhook_does_not_call_gitlab(self) -> None:
         response = self.create_repository(self.default_repository_config, self.integration.id)
-        responses.reset()
-        self.add_relink_responses(update_status=200)
-
         repo = self.get_repository(pk=response.data["id"])
         with assume_test_silo_mode(SiloMode.CELL):
-            del repo.config["project_id"]
+            del repo.config["webhook_id"]
             repo.save()
+        responses.reset()
 
-        with self.assertLogs("sentry.integrations.gitlab", level="INFO") as logs:
-            self.relink_repository(repo)
         self.provider.on_delete_repository(repo)
 
-        assert "gitlab.repository.missing_project_id" in "\n".join(logs.output)
         assert len(responses.calls) == 0
 
     @responses.activate
