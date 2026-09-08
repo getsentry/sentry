@@ -1621,7 +1621,7 @@ describe('ArtifactCard', () => {
       expect(screen.queryByText('Implementing changes…')).not.toBeInTheDocument();
     });
 
-    it('tags block feedback whose iteration made no changes', () => {
+    it('tags block feedback whose iteration made no changes', async () => {
       render(
         <CodeChangesCard
           groupId="1"
@@ -1638,6 +1638,12 @@ describe('ArtifactCard', () => {
 
       expect(screen.getByText('first pass')).toBeInTheDocument();
       expect(screen.getByText('No changes')).toBeInTheDocument();
+
+      // The tooltip scopes the outcome to the iteration, not the single comment.
+      await userEvent.hover(screen.getByText('No changes'));
+      expect(
+        await screen.findByText('Seer made no code changes for this round of feedback.')
+      ).toBeInTheDocument();
     });
 
     it('does not tag block feedback whose iteration made changes', () => {
@@ -1680,7 +1686,7 @@ describe('ArtifactCard', () => {
       expect(screen.queryByText('Processing')).not.toBeInTheDocument();
     });
 
-    it('tags the current iteration feedback as in progress while processing', () => {
+    it('tags the current iteration feedback as in progress while processing', async () => {
       render(
         <CodeChangesCard
           groupId="1"
@@ -1699,6 +1705,11 @@ describe('ArtifactCard', () => {
       expect(screen.getByText('fix the CI failure')).toBeInTheDocument();
       expect(screen.getByText('Processing')).toBeInTheDocument();
       expect(screen.queryByText('No changes')).not.toBeInTheDocument();
+
+      await userEvent.hover(screen.getByText('Processing'));
+      expect(
+        await screen.findByText('Seer is working on this round of feedback.')
+      ).toBeInTheDocument();
     });
 
     it('marks queued feedback with a queued label and no timestamp', () => {
