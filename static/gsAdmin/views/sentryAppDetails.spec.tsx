@@ -52,7 +52,9 @@ describe('SentryAppDetails', () => {
   it('shows disable action for a non-disabled app', async () => {
     renderSentryAppDetails({isDisabled: false});
 
-    await userEvent.click(await screen.findByTestId('detail-actions'));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Sentry Apps Actions'})
+    );
     expect(await screen.findByText('Disable App')).toBeInTheDocument();
     expect(screen.queryByText('disabled')).not.toBeInTheDocument();
   });
@@ -61,7 +63,7 @@ describe('SentryAppDetails', () => {
     renderSentryAppDetails({isDisabled: true});
 
     expect(await screen.findByText('disabled')).toBeInTheDocument();
-    await userEvent.click(screen.getByTestId('detail-actions'));
+    await userEvent.click(screen.getByRole('button', {name: 'Sentry Apps Actions'}));
     expect(await screen.findByText('Enable App')).toBeInTheDocument();
   });
 
@@ -88,7 +90,9 @@ describe('SentryAppDetails', () => {
       body: {...sentryApp, isDisabled: true},
     });
 
-    await userEvent.click(await screen.findByTestId('detail-actions'));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Sentry Apps Actions'})
+    );
     await userEvent.click(await screen.findByRole('option', {name: /Disable App/}));
     await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
@@ -109,7 +113,9 @@ describe('SentryAppDetails', () => {
     });
     MockApiClient.addMockResponse({url: '/integration-features/', body: []});
 
-    await userEvent.click(await screen.findByTestId('detail-actions'));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Sentry Apps Actions'})
+    );
     await userEvent.click(await screen.findByRole('option', {name: /Update Details/}));
 
     const updatedSentryApp = {...sentryApp, popularity: 20};
