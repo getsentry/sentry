@@ -50,7 +50,7 @@ export default function DebugNotificationsIndex() {
           </SidebarContainer>
           <Stack area="body">
             {selectedRegistration ? (
-              <Stack gap="xl" padding="2xl" maxWidth="2000px">
+              <Stack gap="xl" padding="2xl" maxWidth="2000px" containerType="inline-size">
                 <Heading as="h2" variant="success">
                   <Flex gap="md" align="center">
                     {selectedRegistration.source}
