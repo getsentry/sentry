@@ -8,6 +8,7 @@ from sentry.seer.agent.client_models import (
     Message,
     RepoPRState,
     SeerRunState,
+    ToolResult,
 )
 from sentry.seer.autofix.autofix_agent import AutofixStep
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
@@ -35,14 +36,34 @@ def _iteration_block(index: int | None = 0, *, edited: bool = False) -> MemoryBl
     )
 
 
-def _plain_block(id: str, *, edited: bool = False, commit_sha: str | None = None) -> MemoryBlock:
+def _tool_result(*, patches: bool) -> ToolResult:
+    return ToolResult(
+        tool_call_id="call-1",
+        tool_call_function="execute",
+        structuredContent=({"file_patches": [_patch().dict()]} if patches else {"logs": []}),
+    )
+
+
+def _plain_block(
+    id: str,
+    *,
+    edited: bool = False,
+    # A Code Mode edit puts its patches on a tool result instead of `file_patches`;
+    # the merged view is written to the block field either way.
+    code_mode_edited: bool = False,
+    tool_result: ToolResult | None = None,
+    commit_sha: str | None = None,
+) -> MemoryBlock:
+    if code_mode_edited:
+        tool_result = _tool_result(patches=True)
     return MemoryBlock(
         id=id,
         message=Message(role="assistant", content=""),
         timestamp="2023-07-18T12:00:00Z",
         file_patches=[_patch()] if edited else None,
-        merged_file_patches=[_patch()] if edited else None,
+        merged_file_patches=[_patch()] if edited or code_mode_edited else None,
         pr_commit_shas={"test-repo": commit_sha} if commit_sha is not None else None,
+        tool_results=[tool_result] if tool_result is not None else None,
     )
 
 
@@ -88,6 +109,21 @@ class TestGetIterationOutcomes(TestCase):
         )
 
         assert self._outcomes(state) == {"0": IterationOutcome.CHANGES_PUSHED}
+
+    def test_code_mode_edits_pushed_to_the_pr(self) -> None:
+        state = _state(
+            [_iteration_block(0), _plain_block("a", code_mode_edited=True, commit_sha="abc")],
+            repo_pr_states=_synced_pr_states("abc"),
+        )
+
+        assert self._outcomes(state) == {"0": IterationOutcome.CHANGES_PUSHED}
+
+    def test_a_tool_result_without_patches_is_not_an_edit(self) -> None:
+        state = _state(
+            [_iteration_block(0), _plain_block("a", tool_result=_tool_result(patches=False))]
+        )
+
+        assert self._outcomes(state) == {"0": IterationOutcome.NO_CHANGES}
 
     def test_edits_that_never_reached_the_pr(self) -> None:
         state = _state(

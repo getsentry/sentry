@@ -25,9 +25,9 @@ class IterationOutcome(StrEnum):
 
 
 def _made_changes(iteration: Iteration) -> bool:
-    """`file_patches` hold the edits of one block, so they show only the work of
-    this iteration."""
-    return any(block.file_patches for block in iteration.blocks)
+    """A block's patches are the edits of that block alone, so they show only the
+    work of this iteration."""
+    return any(block.has_file_patches() for block in iteration.blocks)
 
 
 def get_iteration_outcomes(

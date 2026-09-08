@@ -178,6 +178,20 @@ class MemoryBlock(BaseModel):
     class Config:
         extra = "ignore"
 
+    def has_file_patches(self) -> bool:
+        """Whether this block edited code, on either channel seer delivers patches on.
+
+        Classic editing tools write ``file_patches``; a Code Mode edit only ever
+        returns them on its tool result's ``structuredContent["file_patches"]``.
+        """
+        if self.file_patches:
+            return True
+        for result in self.tool_results or []:
+            structured = result.structuredContent if result is not None else None
+            if structured and structured.get("file_patches"):
+                return True
+        return False
+
 
 class PendingUserInput(BaseModel):
     """A pending user input request from the agent."""
