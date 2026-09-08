@@ -6,17 +6,13 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconBot} from 'sentry/icons';
-import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import type {IconSize} from 'sentry/utils/theme';
 import {AgentInfo} from 'sentry/views/onboarding/components/agentInfo';
+import {SETUP_CARD_ICON_PX, SETUP_CARD_ICON_SIZE} from 'sentry/views/onboarding/consts';
 
 export type AgentSetupCopySource = 'install_command' | 'prompt';
 
 const INSTALL_PLUGIN_COMMAND = 'npx @sentry/agent-plugin install';
-
-const ICON_SIZE: IconSize = 'md';
-const ICON_PX = SvgIcon.ICON_SIZES[ICON_SIZE] as `${number}px`;
 
 const SUPPORTED_AGENTS = ['Claude Code', 'Codex', 'Cursor', 'Grok'];
 const SUPPORTED_AGENTS_LABEL = t(
@@ -41,8 +37,8 @@ export function AgentSetupCard({
   return (
     <Stack border="primary" radius="xl" padding="xl 2xl" gap="0">
       <Flex align="center" gap="xl">
-        <Flex width={ICON_PX} flexShrink={0} justify="center">
-          <IconBot size={ICON_SIZE} variant="secondary" />
+        <Flex width={SETUP_CARD_ICON_PX} flexShrink={0} justify="center">
+          <IconBot size={SETUP_CARD_ICON_SIZE} variant="secondary" />
         </Flex>
         <Flex align="center" gap="md" wrap="wrap">
           <Heading as="h3" size="lg">
@@ -53,7 +49,7 @@ export function AgentSetupCard({
       </Flex>
 
       <Flex gap="xl" paddingTop="md" paddingBottom="2xl">
-        <Container width={ICON_PX} flexShrink={0} />
+        <Container width={SETUP_CARD_ICON_PX} flexShrink={0} />
         <Stack gap="xs">
           <Flex align="center" gap="xs" wrap="wrap">
             <Text variant="muted" size="md">
@@ -68,14 +64,14 @@ export function AgentSetupCard({
       </Flex>
 
       <Flex align="center" gap="xl">
-        <Flex width={ICON_PX} flexShrink={0} justify="center">
+        <Flex width={SETUP_CARD_ICON_PX} flexShrink={0} justify="center">
           <StepNumber>1</StepNumber>
         </Flex>
         <Text size="md">{t('Install the Sentry plugin for your agent')}</Text>
       </Flex>
 
       <Flex gap="xl">
-        <Flex width={ICON_PX} flexShrink={0} justify="center" paddingTop="md">
+        <Flex width={SETUP_CARD_ICON_PX} flexShrink={0} justify="center" paddingTop="md">
           <Container borderLeft="muted" />
         </Flex>
         <Container flexGrow={1} minWidth="0px" paddingTop="lg" paddingBottom="2xl">
@@ -90,7 +86,7 @@ export function AgentSetupCard({
       </Flex>
 
       <Flex gap="xl" paddingTop="md">
-        <Flex width={ICON_PX} flexShrink={0} justify="center">
+        <Flex width={SETUP_CARD_ICON_PX} flexShrink={0} justify="center">
           <StepNumber>2</StepNumber>
         </Flex>
         <Stack width="100%" gap="lg">
@@ -119,8 +115,8 @@ const StepNumber = styled('span')`
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: ${ICON_PX};
-  height: ${ICON_PX};
+  width: ${SETUP_CARD_ICON_PX};
+  height: ${SETUP_CARD_ICON_PX};
   border-radius: 50%;
   background: ${p => p.theme.tokens.background.warning.vibrant};
   color: ${p => p.theme.tokens.content.onVibrant.dark};
