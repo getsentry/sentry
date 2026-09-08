@@ -22,6 +22,9 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry import analytics, options
+from sentry.analytics.events.pr_iteration_events import (
+    AiAutofixPrIterationMissingPermissionsEvent,
+)
 from sentry.analytics.events.webhook_repository_created import WebHookRepositoryCreatedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -570,6 +573,24 @@ class InstallationEventWebhook(GitHubWebhook):
                 "integration_id": integration.id,
             },
         )
+
+        for organization_integration in result.organization_integrations:
+            try:
+                analytics.record(
+                    AiAutofixPrIterationMissingPermissionsEvent(
+                        action="permissions_accepted",
+                        organization_id=organization_integration.organization_id,
+                        integration_id=integration.id,
+                    )
+                )
+            except Exception:
+                logger.exception(
+                    "github.new-permissions-analytics-failed",
+                    extra={
+                        "organization_id": organization_integration.organization_id,
+                        "integration_id": integration.id,
+                    },
+                )
 
         # Eagerly refresh the token so it's valid immediately and the stored
         # permissions are confirmed against GitHub. Non-fatal: the token also

@@ -69,7 +69,7 @@ describe('useSpansSaveQuery', () => {
       },
     });
 
-    await result.current.saveQuery('New Query', true);
+    await result.current.saveQuery({name: 'New Query', starred: true});
 
     expect(saveQueryMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/explore/saved/`,

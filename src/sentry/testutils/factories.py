@@ -90,6 +90,9 @@ from sentry.investigations.models import (
     InvestigationBlockExecutionProject,
     InvestigationBlockParameter,
     InvestigationFavoriteUser,
+    InvestigationOrchestrationCommand,
+    InvestigationOrchestrationEvent,
+    InvestigationOrchestrationRun,
     InvestigationParameter,
     InvestigationProject,
 )
@@ -447,6 +450,25 @@ class Factories:
     def create_investigation_favorite(investigation, user):
         return InvestigationFavoriteUser.objects.create(
             investigation=investigation, user_id=user.id
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_orchestration_run(investigation, **kwargs):
+        return InvestigationOrchestrationRun.objects.create(investigation=investigation, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_orchestration_event(orchestration_run, **kwargs):
+        return InvestigationOrchestrationEvent.objects.create(
+            orchestration_run=orchestration_run, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_orchestration_command(orchestration_run, **kwargs):
+        return InvestigationOrchestrationCommand.objects.create(
+            orchestration_run=orchestration_run, **kwargs
         )
 
     @staticmethod

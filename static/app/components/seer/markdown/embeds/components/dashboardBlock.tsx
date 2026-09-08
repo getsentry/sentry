@@ -76,6 +76,20 @@ function getDashboardPreview(dashboard: DashboardDetails): DashboardDetails {
   };
 }
 
+function getWidgetPreview(widget: Widget): Widget {
+  return {
+    ...widget,
+    // Embedded widgets should keep legend interactions local instead of
+    // persisting them to the host route as saved dashboard widgets do.
+    id: undefined,
+    tempId: widget.tempId ?? widget.id,
+    limit: Math.min(
+      widget.limit ?? MAX_PREVIEW_ITEMS_PER_WIDGET,
+      MAX_PREVIEW_ITEMS_PER_WIDGET
+    ),
+  };
+}
+
 function DashboardWidgetPreview({
   dashboard,
   selection,
@@ -89,6 +103,8 @@ function DashboardWidgetPreview({
   widgetInterval: string;
   widgetLegendState: LocalWidgetLegendSelectionState;
 }) {
+  const previewWidget = useMemo(() => getWidgetPreview(widget), [widget]);
+
   return (
     <Container minHeight="240px">
       <ErrorBoundary mini>
@@ -100,11 +116,8 @@ function DashboardWidgetPreview({
             dashboardFilters={dashboard.filters}
             selection={selection}
             showContextMenu={false}
-            tableItemLimit={Math.min(
-              widget.limit ?? MAX_PREVIEW_ITEMS_PER_WIDGET,
-              MAX_PREVIEW_ITEMS_PER_WIDGET
-            )}
-            widget={{...widget}}
+            tableItemLimit={previewWidget.limit ?? MAX_PREVIEW_ITEMS_PER_WIDGET}
+            widget={previewWidget}
             widgetInterval={widgetInterval}
             widgetLegendState={widgetLegendState}
             widgetLimitReached={false}

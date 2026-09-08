@@ -109,7 +109,7 @@ export function describeService(service: GcpServiceResult): string {
   }`;
 }
 
-export function parseGcpProjectIds(value: string): string[] {
+function parseGcpProjectIds(value: string): string[] {
   return [
     ...new Set(
       value
@@ -118,4 +118,39 @@ export function parseGcpProjectIds(value: string): string[] {
         .filter(Boolean)
     ),
   ];
+}
+
+export function buildGcpVerifyPayload(
+  configData: Record<string, unknown> | null | undefined
+): {customerSaEmail: string; gcpProjectIds: string[]} | null {
+  const customerSaEmail = configData?.customer_sa_email;
+  const projectIds = configData?.projects;
+  if (typeof customerSaEmail !== 'string' || typeof projectIds !== 'string') {
+    return null;
+  }
+
+  const gcpProjectIds = parseGcpProjectIds(projectIds);
+  if (!customerSaEmail || !gcpProjectIds.length) {
+    return null;
+  }
+
+  return {customerSaEmail, gcpProjectIds};
+}
+
+export function getConnectionErrorDetails(projectStatuses: unknown): string[] {
+  if (!Array.isArray(projectStatuses)) {
+    return [];
+  }
+
+  const details = projectStatuses
+    .map(status =>
+      status !== null && typeof status === 'object' && 'error_detail' in status
+        ? status.error_detail
+        : null
+    )
+    .filter(
+      (detail): detail is string => typeof detail === 'string' && detail.length > 0
+    );
+
+  return [...new Set(details)];
 }

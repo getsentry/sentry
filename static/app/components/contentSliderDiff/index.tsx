@@ -1,6 +1,7 @@
-import {useRef, type CSSProperties} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {Container} from '@sentry/scraps/layout';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
@@ -17,7 +18,7 @@ interface Props {
    * The content to display before the divider. Usually an image or replay.
    */
   before: React.ReactNode;
-  minHeight?: CSSProperties['minHeight'];
+  minHeight?: CSS['minHeight'];
   /**
    * A callback function triggered when the divider is clicked (mouse down event).
    * Useful when we want to track analytics.
@@ -41,7 +42,7 @@ function Body({onDragHandleMouseDown, after, before, minHeight = '0px'}: Props) 
         width="100%"
         height="100%"
         position="relative"
-        minHeight={typeof minHeight === 'number' ? `${minHeight}px` : minHeight}
+        minHeight={minHeight}
         ref={positionedRef}
       >
         {viewDimensions.width ? (

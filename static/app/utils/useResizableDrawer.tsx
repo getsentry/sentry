@@ -16,18 +16,18 @@ export interface UseResizableDrawerOptions {
    */
   min: number;
   /**
-   * Triggered while dragging
-   */
-  onResize: (
-    newSize: number,
-    maybeOldSize: number | undefined,
-    userEvent: boolean
-  ) => void;
-  /**
    * The maximum size the container may be dragged to. Optional — defaults
    * to no upper bound. Only enforced during drag, mirroring `min`.
    */
   max?: number;
+  /**
+   * Triggered while dragging
+   */
+  onResize?: (
+    newSize: number,
+    maybeOldSize: number | undefined,
+    userEvent: boolean
+  ) => void;
   /**
    * Fires once when a drag completes (on mouseUp). Receives the size at
    * the start and end of the drag.
@@ -99,7 +99,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   const updateSize = useCallback((newSize: number, userEvent = false) => {
     sizeRef.current = newSize;
     setSize(newSize);
-    optionsRef.current.onResize(newSize, undefined, userEvent);
+    optionsRef.current.onResize?.(newSize, undefined, userEvent);
     if (optionsRef.current.sizeStorageKey) {
       localStorage.setItem(optionsRef.current.sizeStorageKey, newSize.toString());
     }
@@ -110,7 +110,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   // invoke the onResize callback with the previously stored dimensions.
   useLayoutEffect(() => {
     const clamped = clampSize(options.initialSize ?? 0, options.min, options.max);
-    options.onResize(clamped, size, false);
+    options.onResize?.(clamped, size, false);
     setSize(clamped);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.direction]);

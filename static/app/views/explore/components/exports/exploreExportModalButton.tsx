@@ -77,7 +77,7 @@ export function ExploreExportModalButton({
           : t('Configure export options before starting your export.'),
       }}
     >
-      {t('Export Data')}
+      {t('Export')}
     </Button>
   );
 }

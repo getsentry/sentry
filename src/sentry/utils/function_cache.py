@@ -67,7 +67,7 @@ def clear_cache_for_cached_func(
 
 def cache_func_for_models(
     cache_invalidators: list[tuple[type[S], Callable[[S], tuple[*Ts] | None]]],
-    cache_ttl: None | timedelta = None,
+    cache_ttl: timedelta,
     recalculate: bool = True,
 ) -> Callable[[Callable[[*Ts], R]], CachedFunction[*Ts, R]]:
     """
@@ -88,8 +88,6 @@ def cache_func_for_models(
     The decorated function is replaced with a CachedFunction instance that provides both the original
     function behavior and a batch method for efficient bulk operations.
     """
-    if cache_ttl is None:
-        cache_ttl = timedelta(days=7)
 
     def cached_query_func(func_to_cache: Callable[[*Ts], R]) -> CachedFunction[*Ts, R]:
         for model, arg_getter in cache_invalidators:

@@ -1,5 +1,7 @@
 import type {ComponentType, ReactNode} from 'react';
+import {css} from '@emotion/react';
 
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {
@@ -65,7 +67,19 @@ export function ResourceLink({
   icon: ComponentType<SVGIconProps>;
   title: string;
 }): ReactNode {
-  const icon = <Icon size="xs" style={{verticalAlign: 'middle'}} />;
+  const icon = (
+    <Flex
+      as="span"
+      align="center"
+      display="inline-flex"
+      height="1em"
+      css={css`
+        vertical-align: text-bottom;
+      `}
+    >
+      <Icon size="xs" />
+    </Flex>
+  );
 
   if (/^https?:\/\//.test(href) && isSafeHref(href)) {
     try {

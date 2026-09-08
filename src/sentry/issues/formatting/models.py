@@ -163,4 +163,6 @@ class EventObject(BaseModel):
     spans: list[EvidenceSpan] = []
     # occurrence evidence (name/value pairs) for perf & generic/regression issues
     evidence: list[tuple[str, str]] = []
+    # the alert definition behind a metric issue, as ordered label/value pairs
+    metric_alert: list[tuple[str, str]] = []
     culprit: str | None = None
