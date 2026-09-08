@@ -18,6 +18,7 @@ from sentry.api.client_kind import (
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken
 from sentry.seer.agent_token import AGENT_TOKEN_KIND
+from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
 from sentry.testutils.cases import TestCase
 
 
@@ -49,6 +50,16 @@ def mark_from_api_client(request: Request) -> None:
     """
     django_request: Any = request._request
     django_request.__from_api_client__ = True
+
+
+def mark_authenticated_by(request: Request, authenticator: object) -> None:
+    """Record the authenticator DRF would have selected.
+
+    `successful_authenticator` is a read-only property over `_authenticator`, so
+    tests that exercise credential-based branches have to set the backing attribute.
+    """
+    drf_request: Any = request
+    drf_request._authenticator = authenticator
 
 
 def session_user(*, is_sentry_app: bool = False) -> SimpleNamespace:
@@ -134,6 +145,45 @@ class GetClientKindTest(TestCase):
             with self.subTest(user_agent=user_agent):
                 request = make_request(auth=api_token(), user_agent=user_agent)
                 assert self.classify(request) == expected
+
+    def test_seer_signals_outrank_seers_own_script_like_user_agent(self) -> None:
+        # Seer calls Sentry with `python-httpx`, which the script rules match. Every
+        # Seer branch is checked before the user-agent rules, so widening those must
+        # not reclassify Seer as SCRIPT -- the bucket is only reached on a fall-through.
+        user_agent = "python-httpx/0.28.1"
+        assert self.classify(make_request(auth=api_token(), user_agent=user_agent)) == (
+            ClientKind.SCRIPT
+        )
+
+        rpc_signature = make_request(auth=api_token(), user_agent=user_agent)
+        mark_authenticated_by(rpc_signature, SeerRpcSignatureAuthentication())
+        cases = [
+            (
+                "seer referrer",
+                make_request(
+                    auth=api_token(),
+                    user_agent=user_agent,
+                    headers={"X-Seer-Referrer": "explorer"},
+                ),
+            ),
+            (
+                "viewer context",
+                make_request(
+                    auth=api_token(), user_agent=user_agent, headers={"X-Viewer-Context": "a.b.c"}
+                ),
+            ),
+            (
+                "agent token",
+                make_request(
+                    auth=AuthenticatedToken(kind=AGENT_TOKEN_KIND, user_id=1, organization_id=1),
+                    user_agent=user_agent,
+                ),
+            ),
+            ("rpc signature", rpc_signature),
+        ]
+        for signal, request in cases:
+            with self.subTest(signal=signal):
+                assert self.classify(request) == ClientKind.SEER
 
     def test_tool_name_is_found_after_a_prefix(self) -> None:
         # Real clients bury the telling token behind a prefix or inside a comment.
