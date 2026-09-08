@@ -16,13 +16,17 @@ const DETAIL_CLIP_HEIGHT = 180;
  * `ClippedBox` only clips once the content exceeds `clipHeight + clipFlex` (208 px with
  * these defaults).
  *
- * When clipped, the overflowed children are marked `inert` so keyboard users
- * cannot tab into content hidden behind `overflow: hidden`.
+ * Overflowed children are marked `inert` while clipped so keyboard users cannot
+ * tab into content hidden behind `overflow: hidden`. Content is treated as
+ * clipped until the (asynchronous) resize measurement proves otherwise.
  */
 export function ClippedDetail({children}: {children: ReactNode}) {
-  const [isClipped, setIsClipped] = useState(false);
+  // Assume clipped until measured: between mount and the ResizeObserver callback,
+  // overflowed content would otherwise be hidden but still keyboard-focusable.
+  const [isClipped, setIsClipped] = useState(true);
 
-  // ponytail: ref callback — mount sets inert, unmount (node=null on reveal) clears it
+  // The fade unmounts on reveal (or once measurement proves the content is short),
+  // clearing `inert` in the same commit that removes it.
   const onClipFadeRef = useCallback(
     (node: HTMLElement | null) => setIsClipped(node !== null),
     []
@@ -34,6 +38,7 @@ export function ClippedDetail({children}: {children: ReactNode}) {
         <ClippedBox
           {...containerProps}
           clipHeight={DETAIL_CLIP_HEIGHT}
+          defaultClipped
           buttonProps={{size: 'xs'}}
           clipFade={({showMoreButton}) => (
             <Container
@@ -42,9 +47,9 @@ export function ClippedDetail({children}: {children: ReactNode}) {
               left={0}
               bottom={0}
               paddingTop="xs"
-              style={{pointerEvents: 'none'}}
+              pointerEvents="none"
             >
-              <div style={{pointerEvents: 'auto'}}>{showMoreButton}</div>
+              <Container pointerEvents="auto">{showMoreButton}</Container>
             </Container>
           )}
         >

@@ -193,8 +193,12 @@ describe('ThinkingBlock', () => {
       </ThinkingBlock>
     );
 
-    expect(screen.getByText('Short thought')).toBeInTheDocument();
+    const content = screen.getByText('Short thought');
+    expect(content).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Show More'})).not.toBeInTheDocument();
+    // Measurement (mocked synchronous) proved the content is short, so it must not
+    // stay inert from the default clipped assumption.
+    expect(content.closest('[inert]')).toBeNull();
     restore();
   });
 
@@ -211,10 +215,15 @@ describe('ThinkingBlock', () => {
     const expandButton = screen.getByRole('button', {name: 'Show More'});
     expect(expandButton).toBeInTheDocument();
     // The content itself still renders (it is clipped via `max-height`, not removed).
-    expect(screen.getByText('A very long chain of reasoning')).toBeInTheDocument();
+    const content = screen.getByText('A very long chain of reasoning');
+    expect(content).toBeInTheDocument();
+    // Clipped content is inert from the first render, before the (asynchronous in
+    // real browsers) measurement, so hidden links/buttons are unreachable by keyboard.
+    expect(content.closest('[inert]')).not.toBeNull();
 
     await userEvent.click(expandButton);
     expect(screen.queryByRole('button', {name: 'Show More'})).not.toBeInTheDocument();
+    expect(content.closest('[inert]')).toBeNull();
     restore();
   });
 });
