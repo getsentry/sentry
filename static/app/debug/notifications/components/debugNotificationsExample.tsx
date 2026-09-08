@@ -27,7 +27,7 @@ export function DebugNotificationsExample({
   );
   return (
     <Container padding="md" border="primary" radius="md">
-      <ExampleGrid columns="auto minmax(0, 1fr)" gap="lg xl">
+      <ExampleGrid columns="1fr 1fr" gap="lg xl">
         <Flex justify="between" column="span 2" align="center">
           <Heading as="h3">Example Data</Heading>
           <SegmentedControl
