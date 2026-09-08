@@ -26,18 +26,20 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {TimeRangeSelector, type ChangeData} from 'sentry/components/timeRangeSelector';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Actor} from 'sentry/types/core';
+import type {Actor, PageFilterDatetime} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {
   indexMembersByProject,
@@ -104,6 +106,8 @@ const SORT_OPTIONS: Array<{label: string; value: OverviewSort}> = [
 ];
 
 const {'90d': _90d, ...ACTIVITY_RELATIVE_PERIODS} = DEFAULT_RELATIVE_PERIODS;
+
+const ACTIVITY_DEFAULT_PERIOD = '7d';
 
 const EMPTY_MEMBER_LIST: User[] = [];
 
@@ -199,6 +203,59 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
       value,
     });
 
+  const activityDatetime = useMemo<PageFilterDatetime>(() => {
+    const {statsPeriod, start, end, utc} = normalizeDateTimeParams(
+      {
+        statsPeriod: location.query.activityStatsPeriod,
+        start: location.query.activityStart,
+        end: location.query.activityEnd,
+        utc: location.query.activityUtc,
+      },
+      {defaultStatsPeriod: ACTIVITY_DEFAULT_PERIOD}
+    );
+    return {
+      period: statsPeriod ?? null,
+      start: start ?? null,
+      end: end ?? null,
+      utc: utc === undefined ? null : utc === 'true',
+    };
+  }, [
+    location.query.activityStatsPeriod,
+    location.query.activityStart,
+    location.query.activityEnd,
+    location.query.activityUtc,
+  ]);
+
+  const setActivityWindow = (next: {
+    activityEnd?: string;
+    activityStart?: string;
+    activityStatsPeriod?: string;
+    activityUtc?: string;
+  }) =>
+    navigate(
+      {pathname: location.pathname, query: {...location.query, ...next}},
+      {replace: true}
+    );
+
+  const handleActivityChange = ({start, end, relative, utc}: ChangeData) => {
+    trackFilterChanged('activity', relative ?? 'absolute');
+    if (start && end) {
+      setActivityWindow({
+        activityStatsPeriod: undefined,
+        activityStart: getUtcDateString(start),
+        activityEnd: getUtcDateString(end),
+        activityUtc: utc ? 'true' : undefined,
+      });
+      return;
+    }
+    setActivityWindow({
+      activityStatsPeriod: relative || undefined,
+      activityStart: undefined,
+      activityEnd: undefined,
+      activityUtc: undefined,
+    });
+  };
+
   const {
     data,
     projectConfig,
@@ -214,6 +271,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
   } = useAutofixOverview({
     organization,
     selection,
+    datetime: activityDatetime,
     sort,
     enabled: pageFiltersReady,
   });
@@ -230,7 +288,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     numProjectsSelected: selection.projects.length,
     numUnconfiguredProjects: unconfiguredProjects.length,
     projectConfigPending,
-    statsPeriod: selection.datetime.period,
+    statsPeriod: activityDatetime.period,
   });
   const allUnconfigured =
     unconfiguredProjects.length > 0 &&
@@ -368,11 +426,15 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
         ) : (
           <ProjectFilterSkeleton />
         )}
-        <DatePageFilter
+        <TimeRangeSelector
+          relative={activityDatetime.period ?? ''}
+          start={activityDatetime.start}
+          end={activityDatetime.end}
+          utc={activityDatetime.utc}
           relativeOptions={activityRelativeOptions}
-          onChange={update =>
-            trackFilterChanged('activity', update.relative ?? 'absolute')
-          }
+          onChange={handleActivityChange}
+          menuTitle={t('Filter Time Range')}
+          menuWidth="22em"
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix={t('Autofix Activity')} />
           )}
@@ -462,7 +524,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
                   collapsedGroups={collapsedGroups}
                   onToggle={toggleGroup}
                   orgSlug={organization.slug}
-                  statsPeriod={selection.datetime.period}
+                  statsPeriod={activityDatetime.period}
                   requestScmWindow={requestScmWindow}
                   scmWindowsByRunId={scmWindowsByRunId}
                   isScmSettled={isScmSettled}

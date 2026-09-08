@@ -56,7 +56,6 @@ from sentry.seer.agent.client_utils import fetch_run_status, get_agent_state_fro
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     PrIterationNoPullRequestException,
-    PrIterationNotEnabledException,
     trigger_autofix_agent,
 )
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
@@ -92,6 +91,7 @@ from sentry.seer.autofix.pr_iteration.missing_permissions import (
     post_missing_permissions_comment,
 )
 from sentry.seer.autofix.pr_iteration.pause import (
+    PauseReason,
     is_pr_iteration_paused,
     pause_pr_iteration,
     record_pause_blocked,
@@ -462,11 +462,11 @@ def _drain_queued_autofix_feedback(
         log_ctx.error("autofix.pr_iteration.consume_feedback.group_not_found", exc_info=False)
         return
 
-    if state.status == "processing":
+    if state.status in ("processing", "error"):
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.drain",
             outcome="skipped",
-            reason="run_processing",
+            reason="run_processing" if state.status == "processing" else "run_errored",
             run_status=state.status,
             trigger_id=trigger_id,
             trigger_source=trigger_source,
@@ -589,11 +589,7 @@ def _drain_queued_autofix_feedback(
             commit_author=commit_author_for_feedback(feedback_items, organization_id),
             iteration_id=iteration_id,
         )
-    except (
-        PrIterationNoPullRequestException,
-        PrIterationNotEnabledException,
-        SeerPermissionError,
-    ) as error:
+    except (PrIterationNoPullRequestException, SeerPermissionError) as error:
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.trigger_agent",
             outcome="skipped",
@@ -1282,6 +1278,7 @@ def pause_pr_iteration_from_comment(
     paused = pause_pr_iteration(
         run_id=run_id,
         organization_id=organization_id,
+        reason=PauseReason.USER_STOP,
         actor_user_id=resolved.actor_user.id if resolved.actor_user else None,
     )
     reaction: Reaction = "+1"

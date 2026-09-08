@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
+import {InfoTip} from '@sentry/scraps/info';
+
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -34,7 +35,7 @@ function addFingerprintInfo(
       t('Fingerprint rule'),
       <TextWithQuestionTooltip key="type">
         {variant.matched_rule}
-        <QuestionTooltip
+        <InfoTip
           size="xs"
           position="top"
           title={t('The server-side fingerprinting rule that produced the fingerprint.')}
@@ -86,7 +87,7 @@ export function GroupingVariant({
         t('Hash'),
         <TextWithQuestionTooltip key="hash">
           <Hash>{variant.hash}</Hash>
-          <QuestionTooltip
+          <InfoTip
             size="xs"
             position="top"
             title={t('Events with the same hash are grouped together')}

@@ -65,7 +65,7 @@ class JiraRequestParser(BaseRequestParser):
         if self.view_class in self.control_classes:
             return self.get_response_from_control_silo()
 
-        integration = self.get_integration_from_request()
+        integration = self.integration_for_request()
         if not integration:
             raise Integration.DoesNotExist()
 
@@ -87,7 +87,7 @@ class JiraRequestParser(BaseRequestParser):
         if self.view_class in self.outbox_response_cell_classes:
             return self.get_response_from_webhookpayload(
                 cells=cells,
-                identifier=self.get_mailbox_identifier(integration, self.get_request_body()),
+                mailbox=self.get_mailbox(integration, self.get_request_body()),
                 integration_id=integration.id,
             )
 

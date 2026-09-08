@@ -1,11 +1,20 @@
 from types import SimpleNamespace
 from typing import Any
+from unittest import mock
 
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 from rest_framework.request import Request
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
-from sentry.api.client_kind import FEATURE_FLAG, ClientKind, get_client_host, get_client_kind
+from sentry.api.client_kind import (
+    FEATURE_FLAG,
+    ClientKind,
+    get_client_host,
+    get_client_kind,
+    get_user_agent,
+    set_client_kind_attributes,
+)
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken
 from sentry.seer.agent_token import AGENT_TOKEN_KIND
@@ -69,6 +78,21 @@ class GetClientKindTest(TestCase):
         request = make_request(user=session_user(), headers={"X-Viewer-Context": "a.b.c"})
         assert self.classify(request) == ClientKind.SEER
 
+    def test_seer_referrer_header_is_seer(self) -> None:
+        # Seer sets this on API calls it makes for a user; without it those calls
+        # carry an ordinary user token and used to read as UNKNOWN.
+        request = make_request(auth=api_token(), headers={"X-Seer-Referrer": "explorer"})
+        assert self.classify(request) == ClientKind.SEER
+
+    def test_mcp_wins_over_a_seer_signal(self) -> None:
+        # Priority matches `resolve_action_source`: MCP is checked before Seer.
+        request = make_request(
+            auth=api_token(application_id=42),
+            user_agent="sentry-mcp/0.35.0 (https://mcp.sentry.dev)",
+            headers={"X-Seer-Referrer": "explorer"},
+        )
+        assert self.classify(request) == ClientKind.MCP
+
     def test_mcp_user_agent_wins_over_the_oauth_token_it_carries(self) -> None:
         # MCP authenticates via OAuth, so its token would otherwise read as INTEGRATION.
         request = make_request(
@@ -107,6 +131,18 @@ class GetClientKindTest(TestCase):
         assert self.classify(request) == ClientKind.UNKNOWN
 
 
+class GetUserAgentTest(TestCase):
+    def test_returns_the_raw_user_agent(self) -> None:
+        assert get_user_agent(make_request(user_agent="curl/8.7.1")) == "curl/8.7.1"
+
+    def test_absent_user_agent_is_none(self) -> None:
+        assert get_user_agent(make_request()) is None
+
+    def test_empty_user_agent_is_none(self) -> None:
+        # An empty header and no header at all mean the same thing to a reader.
+        assert get_user_agent(make_request(user_agent="")) is None
+
+
 class GetClientHostTest(TestCase):
     def test_mcp_client_family(self) -> None:
         request = make_request(headers={"X-Sentry-MCP-Client-Family": "Claude-Code"})
@@ -118,3 +154,55 @@ class GetClientHostTest(TestCase):
 
     def test_absent_header_is_none(self) -> None:
         assert get_client_host(make_request()) is None
+
+
+class SetClientKindAttributesTest(TestCase):
+    def test_noop_when_feature_is_disabled(self) -> None:
+        request = make_request(auth=api_token(), user_agent="curl/8.7.1")
+        with (
+            self.feature({FEATURE_FLAG: False}),
+            mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
+        ):
+            set_client_kind_attributes(request, self.organization)
+        sdk.set_tag.assert_not_called()
+        sdk.set_attribute.assert_not_called()
+
+    def test_records_kind_and_user_agent(self) -> None:
+        request = make_request(auth=api_token(), user_agent="curl/8.7.1")
+        with (
+            self.feature(FEATURE_FLAG),
+            mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
+        ):
+            set_client_kind_attributes(request, self.organization)
+        assert sdk.set_tag.call_args_list == [mock.call("client_kind_test", "script")]
+        assert sdk.set_attribute.call_args_list == [
+            mock.call("client_kind_test", "script"),
+            mock.call(ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, "curl/8.7.1"),
+        ]
+
+    def test_records_client_host_for_mcp(self) -> None:
+        request = make_request(
+            auth=api_token(),
+            user_agent="sentry-mcp/1.0",
+            headers={
+                "X-Sentry-MCP-Version": "1.0",
+                "X-Sentry-MCP-Client-Family": "Claude-Code",
+            },
+        )
+        with (
+            self.feature(FEATURE_FLAG),
+            mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
+        ):
+            set_client_kind_attributes(request, self.organization)
+        assert mock.call("client_host_test", "claude-code") in sdk.set_tag.call_args_list
+        assert mock.call("client_host_test", "claude-code") in sdk.set_attribute.call_args_list
+
+    def test_omits_user_agent_when_absent(self) -> None:
+        request = make_request(auth=api_token())
+        with (
+            self.feature(FEATURE_FLAG),
+            mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
+        ):
+            set_client_kind_attributes(request, self.organization)
+        for call in sdk.set_attribute.call_args_list:
+            assert call.args[0] != ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL

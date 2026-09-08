@@ -473,7 +473,6 @@ function SourceMapUploadDeleteButton({onDelete}: SourceMapUploadDeleteButtonProp
   );
 }
 
-
 const List = styled('div')`
   display: grid;
   grid-template-columns: 1fr;

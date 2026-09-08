@@ -3,7 +3,6 @@ from typing import Any, TypedDict
 
 from django.db import IntegrityError
 from django.http import Http404
-from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -178,11 +177,13 @@ class ExternalUserSerializer(ExternalActorSerializerBase):
         fields = ["user_id", "external_id", "external_name", "provider", "integration_id", "id"]
 
 
-@extend_schema_serializer(exclude_fields=["team_id"])
 class ExternalTeamSerializer(ExternalActorSerializerBase):
     _actor_key = "team_id"
 
-    team_id = serializers.IntegerField(required=True)
+    team_id = serializers.IntegerField(
+        required=True,
+        help_text="ID of the Sentry team to link to the external team.",
+    )
 
     def validate_team_id(self, team_id: int) -> Team:
         """Ensure that this team exists and that they belong to the organization."""

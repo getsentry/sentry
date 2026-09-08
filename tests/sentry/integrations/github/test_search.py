@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 
+import orjson
 import responses
 from django.urls import reverse
 
@@ -26,6 +27,7 @@ class GithubSearchTest(APITestCase):
     # one to ensure that github:enterprise behaves as expected.
     provider = "github"
     base_url = "https://api.github.com"
+    graphql_url = "https://api.github.com/graphql"
 
     def _create_integration(self) -> Integration:
         future = datetime.now() + timedelta(hours=1)
@@ -194,7 +196,10 @@ class GithubSearchTest(APITestCase):
         responses.add(
             responses.GET,
             self.base_url + "/repos/test/example/assignees",
-            json=[{"login": "octocat"}],
+            json=[
+                {"login": "octocat", "name": "The Octocat"},
+                {"login": "github-actions[bot]", "name": None},
+            ],
         )
 
         resp = self.client.get(
@@ -205,8 +210,66 @@ class GithubSearchTest(APITestCase):
         assert resp.status_code == 200
         assert resp.data == [
             {"value": "", "label": "Unassigned"},
-            {"value": "octocat", "label": "octocat"},
+            {"value": "octocat", "label": "The Octocat (@octocat)"},
+            {"value": "github-actions[bot]", "label": "github-actions[bot]"},
         ]
+
+    @responses.activate
+    def test_searches_assignees(self) -> None:
+        responses.add(
+            responses.POST,
+            self.graphql_url,
+            json={
+                "data": {
+                    "repository": {
+                        "results": {"nodes": [{"login": "target-user", "name": "Target User"}]}
+                    }
+                }
+            },
+        )
+
+        resp = self.client.get(
+            self.url,
+            data={"field": "assignee", "query": "TARGET", "repo": "test/example"},
+        )
+
+        assert resp.status_code == 200
+        assert resp.data == [{"value": "target-user", "label": "Target User (@target-user)"}]
+        request_body = orjson.loads(responses.calls[0].request.body)
+        assert "assignableUsers" in request_body["query"]
+        assert request_body["variables"] == {
+            "owner": "test",
+            "name": "example",
+            "search": "TARGET",
+        }
+
+    @responses.activate
+    def test_searches_assignees_rate_limit(self) -> None:
+        responses.add(
+            responses.POST,
+            self.graphql_url,
+            json={"errors": [{"type": "RATE_LIMITED"}]},
+        )
+
+        resp = self.client.get(
+            self.url,
+            data={"field": "assignee", "query": "target", "repo": "test/example"},
+        )
+
+        assert resp.status_code == 429
+        assert resp.data == {"detail": "Rate limit exceeded"}
+
+    @responses.activate
+    def test_searches_assignees_invalid_identity(self) -> None:
+        responses.add(responses.POST, self.graphql_url, status=401)
+
+        resp = self.client.get(
+            self.url,
+            data={"field": "assignee", "query": "target", "repo": "test/example"},
+        )
+
+        assert resp.status_code == 400
+        assert resp.data == {"detail": "Unable to fetch options from GitHub"}
 
     @responses.activate
     def test_prefetches_label_results(self) -> None:
@@ -226,6 +289,58 @@ class GithubSearchTest(APITestCase):
             {"value": "bug", "label": "bug"},
             {"value": "enhancement", "label": "enhancement"},
         ]
+
+    @responses.activate
+    def test_searches_labels(self) -> None:
+        responses.add(
+            responses.POST,
+            self.graphql_url,
+            json={
+                "data": {
+                    "repository": {"results": {"nodes": [{"name": "Component: Integrations"}]}}
+                }
+            },
+        )
+
+        resp = self.client.get(
+            self.url,
+            data={"field": "labels", "query": "integrations", "repo": "test/example"},
+        )
+
+        assert resp.status_code == 200
+        assert resp.data == [
+            {"value": "Component: Integrations", "label": "Component: Integrations"}
+        ]
+        request_body = orjson.loads(responses.calls[0].request.body)
+        assert "labels" in request_body["query"]
+        assert request_body["variables"] == {
+            "owner": "test",
+            "name": "example",
+            "search": "integrations",
+        }
+
+    @responses.activate
+    def test_searches_labels_missing_repository(self) -> None:
+        responses.add(
+            responses.POST,
+            self.graphql_url,
+            json={
+                "errors": [
+                    {
+                        "type": "NOT_FOUND",
+                        "message": "Could not resolve to a Repository with the requested name.",
+                    }
+                ]
+            },
+        )
+
+        resp = self.client.get(
+            self.url,
+            data={"field": "labels", "query": "bug", "repo": "test/missing"},
+        )
+
+        assert resp.status_code == 400
+        assert resp.data == {"detail": "Unable to fetch options from GitHub"}
 
     def test_rejects_invalid_repo_when_prefetching_fields(self) -> None:
         resp = self.client.get(

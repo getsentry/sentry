@@ -280,14 +280,14 @@ function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
         onClick={toggleDisabled}
         busy={isUpdating}
         disabled={!canEdit}
-        tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+        tooltipProps={{title: permissionTooltipText}}
       >
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
       <LinkButton
         to={makeAutomationEditPathname(organization.slug, automation.id)}
         disabled={!canEdit}
-        tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+        tooltipProps={{title: permissionTooltipText}}
         variant="primary"
         icon={<IconEdit />}
         size={size}

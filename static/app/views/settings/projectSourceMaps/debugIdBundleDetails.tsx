@@ -62,4 +62,3 @@ export function DebugIdBundleDetails({
 
   return <KeyValueTableDataList data={detailsData} shouldSort={false} noMargin />;
 }
-

@@ -53,6 +53,8 @@ from sentry.identity.services.identity import identity_service
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import MONITORING_PROVIDERS, IntegrationProviderSlug
+from sentry.investigations.endpoints.validators import InvestigationOrchestrationEventValidator
+from sentry.investigations.services.orchestration_events import deliver_orchestration_event
 from sentry.models.group import Group
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
@@ -136,6 +138,7 @@ from sentry.seer.sentry_data_models import (
     GitHubEnterpriseConfigErrorResponse,
     GitHubEnterpriseConfigSuccessResponse,
     HasRepoCodeMappingsResponse,
+    InvestigationEventDeliveryResponse,
     MonitoringProviderConnectionsResponse,
     OrganizationAutofixConsentResponse,
     OrganizationFeaturesResponse,
@@ -163,6 +166,7 @@ from sentry.utils.tracing import start_span, trace
 from sentry.viewer_context import (
     get_viewer_context,
     observe_viewer_context_propagation,
+    viewer_context_from_header,
 )
 
 logger = logging.getLogger(__name__)
@@ -320,6 +324,26 @@ class SeerRpcServiceEndpoint(Endpoint):
             )
             raise PermissionDenied("Viewer context organization does not match request")
 
+    def _enforce_investigation_event_viewer_context(
+        self,
+        request: Request,
+        method_name: str,
+        arguments: dict[str, Any],
+    ) -> None:
+        if method_name != "deliver_investigation_event":
+            return
+        header = request.META.get("HTTP_X_VIEWER_CONTEXT")
+        viewer = viewer_context_from_header(header) if header else None
+        argument_org_id = arguments.get("org_id")
+        if argument_org_id is None or isinstance(argument_org_id, bool):
+            raise ParseError("Invalid organization id")
+        try:
+            organization_id = int(argument_org_id)
+        except (TypeError, ValueError):
+            raise ParseError("Invalid organization id")
+        if viewer is None or viewer.organization_id != organization_id:
+            raise PermissionDenied("Viewer context organization does not match request")
+
     @trace
     def _dispatch_to_local_method(self, method_name: str, arguments: dict[str, Any]) -> Any:
         if method_name not in seer_method_registry:
@@ -364,6 +388,7 @@ class SeerRpcServiceEndpoint(Endpoint):
             raise ParseError
 
         self._enforce_viewer_context_org_binding(request, arguments)
+        self._enforce_investigation_event_viewer_context(request, method_name, arguments)
 
         try:
             result = self._dispatch_to_local_method(method_name, arguments)
@@ -393,6 +418,24 @@ class SeerRpcServiceEndpoint(Endpoint):
 def get_organization_slug(*, org_id: int) -> OrganizationSlugResponse:
     org: Organization = Organization.objects.get(id=org_id)
     return OrganizationSlugResponse(slug=org.slug)
+
+
+def deliver_investigation_event(
+    *, org_id: int, event: dict[str, Any]
+) -> InvestigationEventDeliveryResponse:
+    validator = InvestigationOrchestrationEventValidator(data=event)
+    validator.is_valid(raise_exception=True)
+    receipt = deliver_orchestration_event(
+        organization_id=org_id,
+        event=dict(validator.validated_data),
+    )
+    return InvestigationEventDeliveryResponse(
+        duplicate=receipt.duplicate,
+        application_status=receipt.application_status,
+        last_applied_sequence=receipt.last_applied_sequence,
+        next_expected_sequence=receipt.next_expected_sequence,
+        notebook_revision=receipt.notebook_revision,
+    )
 
 
 def get_organization_projects(*, org_id: int) -> OrganizationProjectsResponse:
@@ -980,6 +1023,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "get_github_enterprise_integration_config": seer_rpc(get_github_enterprise_integration_config),
     "get_organization_projects": seer_rpc(get_organization_projects),
     "get_organization_features": seer_rpc(get_organization_features),
+    "deliver_investigation_event": seer_rpc(deliver_investigation_event),
     "get_repo_installation_id": seer_rpc(get_repo_installation_id),
     #
     # Autofix
