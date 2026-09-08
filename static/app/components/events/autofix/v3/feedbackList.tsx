@@ -478,19 +478,17 @@ function FeedbackItem({item}: {item: IterationFeedback}) {
 
 // `changes_made` gets no tag, because the pushed commit already shows on the PR.
 // `queued` gets no tag, because the timestamp cell reads "Queued".
-// The outcome covers the whole iteration — which can fold in a review's worth of
-// comments — not the one comment the tag sits beside, so the tooltip says so.
 function FeedbackStatusTag({status}: {status: FeedbackStatus | undefined}) {
   switch (status) {
     case 'in_progress':
       return (
-        <Tooltip title={t('Seer is working on this round of feedback.')}>
+        <Tooltip title={t('Seer is working on this feedback.')}>
           <Tag variant="promotion">{t('Processing')}</Tag>
         </Tooltip>
       );
     case 'no_changes':
       return (
-        <Tooltip title={t('Seer made no code changes for this round of feedback.')}>
+        <Tooltip title={t('Seer made no code changes for this feedback.')}>
           <Tag variant="warning">{t('No changes')}</Tag>
         </Tooltip>
       );

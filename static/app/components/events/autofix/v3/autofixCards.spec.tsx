@@ -1639,10 +1639,9 @@ describe('ArtifactCard', () => {
       expect(screen.getByText('first pass')).toBeInTheDocument();
       expect(screen.getByText('No changes')).toBeInTheDocument();
 
-      // The tooltip scopes the outcome to the iteration, not the single comment.
       await userEvent.hover(screen.getByText('No changes'));
       expect(
-        await screen.findByText('Seer made no code changes for this round of feedback.')
+        await screen.findByText('Seer made no code changes for this feedback.')
       ).toBeInTheDocument();
     });
 
@@ -1708,7 +1707,7 @@ describe('ArtifactCard', () => {
 
       await userEvent.hover(screen.getByText('Processing'));
       expect(
-        await screen.findByText('Seer is working on this round of feedback.')
+        await screen.findByText('Seer is working on this feedback.')
       ).toBeInTheDocument();
     });
 
