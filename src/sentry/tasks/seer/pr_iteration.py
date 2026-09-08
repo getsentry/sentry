@@ -96,6 +96,7 @@ from sentry.seer.autofix.pr_iteration.pause import (
     pause_pr_iteration,
     record_pause_blocked,
 )
+from sentry.seer.autofix.pr_iteration.pr_state import iteration_prs_all_closed
 from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
     clear_queued_autofix_feedback,
@@ -417,6 +418,14 @@ def consume_queued_autofix_feedback(
             trigger_source=trigger_source,
             activation_id=task_state.id if task_state else None,
         )
+
+        if iteration_prs_all_closed(organization, state):
+            log_ctx.info(
+                "autofix.pr_iteration.consume_feedback.skipped",
+                trigger_id=trigger_id,
+                reason="pr_closed",
+            )
+            return
 
         try:
             _drain_queued_autofix_feedback(

@@ -600,6 +600,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
 
 
 HOOK_PATH = "sentry.seer.autofix.on_completion_hook"
+PR_STATE_PATH = "sentry.seer.autofix.pr_iteration.pr_state"
 
 
 class TestPrIterationCompletionHook(TestCase):
@@ -763,9 +764,9 @@ class TestPrIterationCompletionHook(TestCase):
             external_id="1",
         )
 
-    @patch(f"{HOOK_PATH}.GetPullRequestProtocol", object)
-    @patch(f"{HOOK_PATH}.scm_actions.get_pull_request")
-    @patch(f"{HOOK_PATH}.make_scm")
+    @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request")
+    @patch(f"{PR_STATE_PATH}.make_scm")
     @patch(f"{HOOK_PATH}.trigger_push_changes")
     def test_a_closed_pr_stops_the_push(self, mock_push, mock_make_scm, mock_get_pull_request):
         """Closing the PR is the stop signal; pushing into it would talk past it."""
@@ -777,9 +778,9 @@ class TestPrIterationCompletionHook(TestCase):
         assert pushed is False
         mock_push.assert_not_called()
 
-    @patch(f"{HOOK_PATH}.GetPullRequestProtocol", object)
-    @patch(f"{HOOK_PATH}.scm_actions.get_pull_request")
-    @patch(f"{HOOK_PATH}.make_scm")
+    @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request")
+    @patch(f"{PR_STATE_PATH}.make_scm")
     @patch(f"{HOOK_PATH}.trigger_push_changes")
     def test_an_open_pr_still_pushes(self, mock_push, mock_make_scm, mock_get_pull_request):
         self._github_repo()
@@ -790,9 +791,9 @@ class TestPrIterationCompletionHook(TestCase):
         assert pushed is True
         mock_push.assert_called_once()
 
-    @patch(f"{HOOK_PATH}.GetPullRequestProtocol", object)
-    @patch(f"{HOOK_PATH}.scm_actions.get_pull_request", side_effect=ValueError("boom"))
-    @patch(f"{HOOK_PATH}.make_scm")
+    @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request", side_effect=ValueError("boom"))
+    @patch(f"{PR_STATE_PATH}.make_scm")
     @patch(f"{HOOK_PATH}.trigger_push_changes")
     def test_a_pr_we_cannot_read_still_pushes(
         self, mock_push, mock_make_scm, mock_get_pull_request
