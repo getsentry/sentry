@@ -258,6 +258,49 @@ class IntegrationRepositoryTestCase(TestCase):
             assert repo.provider == "integrations:github"
             assert repo.integration_id == self.integration.id
 
+    def test_create_repository__does_not_adopt_over_an_existing_row(
+        self, get_jwt: MagicMock
+    ) -> None:
+        # A plugin-era row and the integration's own row for the same repo: adopting the
+        # former would rewrite it onto the key the latter already holds.
+        legacy = self.create_repo(
+            project=self.project,
+            name=self.repo_name,
+            provider="github",
+            external_id=self.config["external_id"],
+        )
+        existing = self._create_repo(external_id=self.config["external_id"])
+
+        with pytest.raises(RepoExistsError) as exc_info:
+            self.provider.create_repository(self.config, self.organization)
+
+        assert exc_info.value.existing_repo is not None
+        assert exc_info.value.existing_repo.id == existing.id
+        legacy.refresh_from_db()
+        assert (legacy.provider, legacy.integration_id) == ("github", None)
+
+    def test_create_repositories__does_not_adopt_over_an_existing_row(
+        self, get_jwt: MagicMock
+    ) -> None:
+        legacy = self.create_repo(
+            project=self.project,
+            name=self.repo_name,
+            provider="github",
+            external_id=self.config["external_id"],
+        )
+        legacy.update(status=ObjectStatus.HIDDEN)
+        existing = self._create_repo(external_id=self.config["external_id"])
+
+        created, reactivated, missing = self.provider.create_repositories(
+            [self.config], self.organization
+        )
+
+        assert created == []
+        assert {repo.id for repo in reactivated} == {existing.id}
+        assert missing == [self.provider.build_repository_config(self.organization, self.config)]
+        legacy.refresh_from_db()
+        assert (legacy.status, legacy.provider) == (ObjectStatus.HIDDEN, "github")
+
     def test_create_repository__ignores_unlinked_repo_of_other_provider(
         self, get_jwt: MagicMock
     ) -> None:

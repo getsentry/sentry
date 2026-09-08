@@ -132,14 +132,30 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         Its own rows (including plugin-era ones) and rows that never had a provider. A row
         belonging to another provider is a different repository that happens to share an
         external id, and is left alone.
+
+        Adopting rewrites ``provider`` to this provider's id, so a plugin-era or
+        provider-less row is skipped when a row already holds ``(organization, provider,
+        external_id)`` for it — whatever that row's status. That row is the repository;
+        rewriting the other would violate the unique key.
         """
-        return [
+        candidates = [
             *repository_service.get_repositories(
                 organization_id=organization_id, providers=self.owned_provider_ids, **filters
             ),
             *repository_service.get_repositories(
                 organization_id=organization_id, has_provider=False, **filters
             ),
+        ]
+        taken = {
+            repo.external_id
+            for repo in repository_service.get_repositories(
+                organization_id=organization_id,
+                providers=[self.id],
+                external_id=filters.get("external_id"),
+            )
+        }
+        return [
+            repo for repo in candidates if repo.provider == self.id or repo.external_id not in taken
         ]
 
     def create_repository(
