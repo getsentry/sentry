@@ -44,11 +44,7 @@ export function DisabledAlert({automation}: DisabledAlertProps) {
       <Alert
         variant="muted"
         trailingItems={
-          <Tooltip
-            title={canEdit ? undefined : permissionTooltipText}
-            disabled={canEdit}
-            isHoverable
-          >
+          <Tooltip title={canEdit ? undefined : permissionTooltipText} disabled={canEdit}>
             <Button
               size="xs"
               icon={<IconPlay />}

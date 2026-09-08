@@ -173,7 +173,7 @@ export function MentionInput<TSuggestion>({
   });
   const hasSuggestions = queryStatus === 'success' && suggestionCount > 0;
 
-  const updateActiveMention = (nextValue = value) => {
+  const updateActiveMention = () => {
     const input = inputRef.current;
     if (!input) {
       setActiveMention(null);
@@ -182,7 +182,7 @@ export function MentionInput<TSuggestion>({
 
     const selection = getEditorSelection(input);
     const nextActiveMention = selection
-      ? findActiveMention(nextValue, selection.start, selection.end, sources)
+      ? findActiveMention(value, selection.start, selection.end, sources)
       : null;
     const nextRequestKey = getRequestKey(nextActiveMention);
     setActiveMention(
