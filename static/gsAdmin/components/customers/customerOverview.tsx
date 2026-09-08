@@ -669,8 +669,10 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
     // Stop/extend stay available for any in-flight non-Seer trial.
     const blockEnterpriseNonSeerStart =
       isEnterprisePlan && !isSeerProductTrial(category, apiName);
+    const enterpriseNonSeerAllowTooltip =
+      'Non-Seer product trials cannot be allowed on enterprise plans.';
     const enterpriseNonSeerStartTooltip =
-      'Non-Seer product trials cannot be started on enterprise plans. Use gifts or a plan trial instead.';
+      'Gift usage for this SKU instead. Per-product trials are disabled on enterprise plans.';
 
     const handleExtendTrial = () => {
       if (!activeProductTrial) {
@@ -722,7 +724,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
               }
               tooltipProps={{
                 title: blockEnterpriseNonSeerStart
-                  ? enterpriseNonSeerStartTooltip
+                  ? enterpriseNonSeerAllowTooltip
                   : hasActiveProductTrial
                     ? `A product trial is currently active for ${formattedTrialName}`
                     : hasUsedProductTrial

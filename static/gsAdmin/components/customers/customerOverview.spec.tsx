@@ -511,7 +511,7 @@ describe('CustomerOverview', () => {
     expect(screen.queryByText('Transactions:')).not.toBeInTheDocument();
   });
 
-  it('disables non-Seer product trial start/allow on enterprise plans', () => {
+  it('disables non-Seer product trial start/allow on enterprise plans', async () => {
     const organization = OrganizationFixture();
     const enterpriseSubscription = InvoicedSubscriptionFixture({
       organization,
@@ -558,6 +558,13 @@ describe('CustomerOverview', () => {
     expect(spansButtons.allowTrialButton).toBeDisabled();
     expect(spansButtons.stopTrialButton).toBeDisabled();
     expect(spansButtons.extendTrialButton).toBeDisabled();
+
+    await userEvent.hover(spansButtons.startTrialButton);
+    expect(
+      await screen.findByText(
+        'Gift usage for this SKU instead. Per-product trials are disabled on enterprise plans.'
+      )
+    ).toBeInTheDocument();
 
     const replaysButtons = getTrialButtons('Replays:');
     expect(replaysButtons.startTrialButton).toBeDisabled();
