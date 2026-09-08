@@ -37,6 +37,31 @@ describe('RequestLog details drawer', () => {
     expect(within(drawer).getByText('400')).toBeInTheDocument();
     expect(within(drawer).getByText('issue.assigned')).toBeInTheDocument();
     expect(within(drawer).getByText('https://example.com/webhook')).toBeInTheDocument();
+    expect(within(drawer).getByText('Issue 42')).toBeInTheDocument();
+    expect(within(drawer).getByText('150.00ms')).toBeInTheDocument();
+    expect(within(drawer).getByText('abc-123')).toBeInTheDocument();
+    expect(
+      within(drawer).getByRole('button', {name: 'Copy Request ID'})
+    ).toBeInTheDocument();
+    expect(
+      within(drawer).queryByRole('link', {name: 'Issue 42'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('links the subject for an internal app', async () => {
+    const internalApp = SentryAppFixture({status: 'internal'});
+    MockApiClient.addMockResponse({
+      url: `/sentry-apps/${internalApp.slug}/webhook-requests/`,
+      body: [SentryAppWebhookRequestFixture()],
+    });
+    render(<RequestLog app={internalApp} />);
+
+    const drawer = await openDrawer();
+
+    expect(within(drawer).getByRole('link', {name: 'Issue 42'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/42/'
+    );
   });
 
   it('renders request headers', async () => {

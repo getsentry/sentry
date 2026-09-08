@@ -8,7 +8,10 @@ from django.db.models import F, Q
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
-from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
+from sentry.db.models.fields.bounded import (
+    BoundedBigIntegerField,
+    BoundedPositiveIntegerField,
+)
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
@@ -80,6 +83,15 @@ class InvestigationBlock(DefaultFieldsModel):
     # from a current one before a replacement execution finishes.
     stale_at = models.DateTimeField(null=True)
 
+    # Agent-generated blocks are revision-fenced; manual and template blocks leave these empty.
+    # The owning investigation identifies the one-to-one orchestration run.
+    report_revision = BoundedPositiveIntegerField(null=True)
+    stable_agent_key = models.CharField(max_length=128, null=True)
+    # Seer's own run id for the run that authored this block. Not a foreign key:
+    # a block can be produced by a per-hypothesis investigator run that Seer
+    # spawns itself, which Sentry never initiates and so never mirrors.
+    producing_seer_run_id = BoundedBigIntegerField(null=True)
+
     # Blocks are hidden rather than hard-deleted so execution history remains
     # inspectable and stale references retain a stable target.
     deleted_at = models.DateTimeField(null=True)
@@ -90,6 +102,13 @@ class InvestigationBlock(DefaultFieldsModel):
         indexes = [
             models.Index(fields=["investigation", "deleted_at", "position"]),
             models.Index(fields=["investigation", "-date_updated"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["investigation", "report_revision", "stable_agent_key"],
+                condition=Q(stable_agent_key__isnull=False),
+                name="invest_unique_report_block_key",
+            )
         ]
 
     __repr__ = sane_repr("investigation_id", "kind", "position")

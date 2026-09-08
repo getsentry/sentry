@@ -195,6 +195,17 @@ class WriteCachesTest(TestCase):
             mocks[DELETE_FACTOR].assert_called_once_with(self.organization.id)
             mocks[SET_FACTOR].assert_not_called()
 
+    def test_a_factor_out_of_bounds_is_clamped_when_the_clamp_option_is_on(self) -> None:
+        with override_options({"dynamic-sampling.recalibration.clamp-factor": True}):
+            for factor, bound in (
+                (MIN_REBALANCE_FACTOR / 2, MIN_REBALANCE_FACTOR),
+                (MAX_REBALANCE_FACTOR * 2, MAX_REBALANCE_FACTOR),
+            ):
+                mocks = self._write(DynamicSamplingResults(recalibration_factor=factor))
+
+                mocks[SET_FACTOR].assert_called_once_with(self.organization.id, bound)
+                mocks[DELETE_FACTOR].assert_not_called()
+
     def test_a_pass_without_a_factor_leaves_the_stored_one_alone(self) -> None:
         mocks = self._write(DynamicSamplingResults())
 

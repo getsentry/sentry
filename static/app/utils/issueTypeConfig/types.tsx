@@ -158,10 +158,6 @@ export type IssueTypeConfig = {
     userFeedback: DisabledWithReasonConfig;
   };
   /**
-   * Shows performance duration regression components
-   */
-  performanceDurationRegression: DisabledWithReasonConfig;
-  /**
    * Shows profiling duration regression components
    */
   profilingDurationRegression: DisabledWithReasonConfig;

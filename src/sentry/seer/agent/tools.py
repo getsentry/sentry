@@ -1363,8 +1363,7 @@ def _get_recommended_event(
     return fallback_event or get_latest_event()
 
 
-# Activity types to include in issue details for Seer Agent (manual actions only)
-_SEER_EXPLORER_ACTIVITY_TYPES = [
+_SEER_EXPLORER_ACTOR_OPTIONAL_ACTIVITY_TYPES = [
     ActivityType.NOTE.value,
     ActivityType.SET_RESOLVED.value,
     ActivityType.SET_RESOLVED_IN_RELEASE.value,
@@ -1372,6 +1371,11 @@ _SEER_EXPLORER_ACTIVITY_TYPES = [
     ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
     ActivityType.SET_UNRESOLVED.value,
     ActivityType.ASSIGNED.value,
+]
+
+_SEER_EXPLORER_ACTOR_REQUIRED_ACTIVITY_TYPES = [
+    ActivityType.TRIGGER_AUTOFIX.value,
+    ActivityType.SEER_ITERATION_STARTED.value,
 ]
 
 
@@ -1543,10 +1547,15 @@ def get_issue_details(
         timeseries, timeseries_stats_period, timeseries_interval = None, None, None
 
     try:
-        activities = Activity.objects.filter(
-            group=group,
-            type__in=_SEER_EXPLORER_ACTIVITY_TYPES,
-        ).order_by("-datetime")[:50]
+        activity_filter = models.Q(
+            type__in=_SEER_EXPLORER_ACTOR_OPTIONAL_ACTIVITY_TYPES
+        ) | models.Q(
+            type__in=_SEER_EXPLORER_ACTOR_REQUIRED_ACTIVITY_TYPES,
+            user_id__isnull=False,
+        )
+        activities = (
+            Activity.objects.filter(group=group).filter(activity_filter).order_by("-datetime")[:50]
+        )
         serialized_activities = serialize(
             list(activities), user=None, serializer=ActivitySerializer(resolve_mentions=True)
         )

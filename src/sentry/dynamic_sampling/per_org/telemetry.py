@@ -41,7 +41,7 @@ class ServingSource(StrEnum):
     # The organization is not in the serving rollout.
     LEGACY = "legacy"
     PER_ORG = "per_org"
-    PER_ORG_FALLBACK = "per_org_fallback"
+    # The organization is in the serving rollout, but no pass has stored a value for it.
     PER_ORG_NO_DATA = "per_org_no_data"
 
 
@@ -98,23 +98,6 @@ def emit_status(
         amount=amount,
         sample_rate=metrics_sample_rate(),
         tags={"status": status.value, **dict(extra_tags or {})},
-    )
-
-
-def emit_count(metric: str, amount: int) -> None:
-    metrics.incr(
-        metric,
-        amount=amount,
-        sample_rate=metrics_sample_rate(),
-    )
-
-
-def emit_gauge(metric: str, value: float, *, tags: Mapping[str, str] | None = None) -> None:
-    metrics.gauge(
-        metric,
-        value,
-        sample_rate=metrics_sample_rate(),
-        tags=dict(tags) if tags else None,
     )
 
 

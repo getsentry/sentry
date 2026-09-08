@@ -1,5 +1,4 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
-import {useQuery} from '@tanstack/react-query';
+import {useMutation, useQueryClient, useQuery} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 import some from 'lodash/some';
 

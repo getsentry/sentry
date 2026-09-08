@@ -4,10 +4,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
-import type {StylesConfig} from '@sentry/scraps/select';
+import type {StylesConfig, SelectValue, MultiValueProps} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
-import type {SelectValue} from '@sentry/scraps/select';
-import type {MultiValueProps} from '@sentry/scraps/select';
 
 import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import {RoleSelectControl} from 'sentry/components/roleSelectControl';

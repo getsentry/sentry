@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 from unittest.mock import patch
 
-from sentry.integrations.services.integration import RpcIntegration
 from sentry.seer.agent.client_models import (
     AgentFilePatch,
     FilePatch,
@@ -17,7 +16,6 @@ from sentry.seer.agent.client_models import (
 )
 from sentry.seer.autofix.autofix_agent import AutofixStep
 from sentry.seer.autofix.coding_agent import IntegrationNotFound
-from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix.utils import CodingAgentProviderType
 from sentry.seer.models.seer_api_models import SeerAutomationHandoffConfiguration
@@ -109,21 +107,6 @@ def _iteration_block(
     )
 
 
-def _perms(integration_id: int) -> MissingGithubPermissions:
-    return MissingGithubPermissions(
-        integration=RpcIntegration(
-            id=integration_id,
-            provider="github",
-            external_id=str(integration_id),
-            name="octocat",
-            metadata={},
-            status=0,
-        ),
-        repo_id=integration_id,
-        missing_scopes=["contents"],
-    )
-
-
 def _state(
     blocks: list[MemoryBlock],
     *,
@@ -136,79 +119,6 @@ def _state(
         updated_at="2023-07-18T12:00:00Z",
         repo_pr_states=repo_pr_states or {},
     )
-
-
-@patch("sentry.seer.autofix.on_completion_hook.comment_on_out_of_date_github_permissions")
-@patch("sentry.seer.autofix.on_completion_hook.get_out_of_date_github_permissions")
-class TestMaybeCommentOnMissingPermissions(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.organization = self.create_organization()
-
-    def _run(self, state: SeerRunState) -> None:
-        AutofixOnCompletionHook._maybe_comment_on_missing_permissions(
-            self.organization, run_id=1, state=state
-        )
-
-    def test_no_iterations(self, mock_get_perms, mock_comment) -> None:
-        self._run(_state([]))
-
-        mock_get_perms.assert_not_called()
-        mock_comment.assert_not_called()
-
-    def test_latest_iteration_did_not_fail(self, mock_get_perms, mock_comment) -> None:
-        self._run(_state([_iteration_block(0, failed=False, repos=["repo-a"])]))
-
-        mock_get_perms.assert_not_called()
-        mock_comment.assert_not_called()
-
-    def test_no_missing_permissions(self, mock_get_perms, mock_comment) -> None:
-        mock_get_perms.return_value = {}
-
-        self._run(_state([_iteration_block(0, failed=True, repos=["repo-a"])]))
-
-        mock_get_perms.assert_called_once()
-        mock_comment.assert_not_called()
-
-    def test_comments_on_missing_permissions(self, mock_get_perms, mock_comment) -> None:
-        perms = _perms(42)
-        mock_get_perms.return_value = {"repo-a": perms}
-
-        state = _state([_iteration_block(0, failed=True, repos=["repo-a"])])
-        self._run(state)
-
-        mock_comment.assert_called_once_with(self.organization, state, {"repo-a": perms})
-
-    def test_skips_repo_with_prior_failing_iteration(self, mock_get_perms, mock_comment) -> None:
-        perms = _perms(42)
-        mock_get_perms.return_value = {"repo-a": perms}
-
-        # repo-a already failed in an earlier iteration -> excluded from the latest.
-        state = _state(
-            [
-                _iteration_block(0, failed=True, repos=["repo-a"]),
-                _iteration_block(1, failed=True, repos=["repo-a"]),
-            ]
-        )
-        self._run(state)
-
-        mock_comment.assert_not_called()
-
-    def test_comments_only_on_newly_failing_repo(self, mock_get_perms, mock_comment) -> None:
-        perms_a = _perms(1)
-        perms_b = _perms(2)
-        mock_get_perms.return_value = {"repo-a": perms_a, "repo-b": perms_b}
-
-        # repo-a failed before; repo-b is failing for the first time now.
-        state = _state(
-            [
-                _iteration_block(0, failed=True, repos=["repo-a"]),
-                _iteration_block(1, failed=True, repos=["repo-a", "repo-b"]),
-            ]
-        )
-        self._run(state)
-
-        mock_comment.assert_called_once_with(self.organization, state, {"repo-b": perms_b})
 
 
 @patch("sentry.seer.autofix.on_completion_hook.metrics")

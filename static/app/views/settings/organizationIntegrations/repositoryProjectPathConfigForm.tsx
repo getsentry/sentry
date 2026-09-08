@@ -1,6 +1,5 @@
 import * as Sentry from '@sentry/react';
-import {useQueryClient} from '@tanstack/react-query';
-import {useMutation} from '@tanstack/react-query';
+import {useQueryClient, useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';

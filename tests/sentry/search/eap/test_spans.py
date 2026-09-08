@@ -13,6 +13,9 @@ from sentry_conventions.attributes import (
     DeprecationStatus,
     Visibility,
 )
+from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
+    AttributeConditionalAggregation,
+)
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     AggregationAndFilter,
     AggregationComparisonFilter,
@@ -26,6 +29,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     ExtrapolationMode,
     Function,
     IntArray,
+    RankedBy,
     StrArray,
     VirtualColumnContext,
 )
@@ -52,7 +56,7 @@ from sentry.search.eap.spans.attributes import (
 )
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
-from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
+from sentry.search.eap.types import FieldsACL, SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute_to_api
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import TestCase
@@ -1116,6 +1120,149 @@ class SearchResolverColumnTest(TestCase):
 
         resolved_column, virtual_context = self.resolver.resolve_column("count()")
         assert (resolved_column, virtual_context) == (p95_column, p95_context)
+
+    def test_first_function(self) -> None:
+        # first isn't allowed in the default acl
+        with pytest.raises(
+            InvalidSearchQuery, match="The function first is not allowed for this query"
+        ):
+            resolved_column, _ = self.resolver.resolve_column("first(span.description, timestamp)")
+        # Enable first
+        self.resolver = SearchResolver(
+            params=SnubaParams(projects=[self.project]),
+            config=SearchResolverConfig(fields_acl=FieldsACL(functions={"first", "first_if"})),
+            definitions=SPAN_DEFINITIONS,
+        )
+        function = "first(span.description, timestamp)"
+        resolved_column, _ = self.resolver.resolve_column(function)
+        assert function in self.resolver._resolved_function_cache
+
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_FIRST,
+            key=AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING),
+            label=function,
+            ranked_by=RankedBy(
+                key=AttributeKey(name="sentry.timestamp", type=AttributeKey.TYPE_DOUBLE)
+            ),
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+        )
+
+        function = "first_if(`span.description:foo`, span.description, timestamp)"
+        resolved_column, _ = self.resolver.resolve_column(function)
+        assert function in self.resolver._resolved_function_cache
+
+        assert resolved_column.proto_definition == AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_FIRST,
+            key=AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING),
+            filter=TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(
+                        name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING
+                    ),
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=AttributeValue(val_str="foo"),
+                )
+            ),
+            label=function,
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+            ranked_by=RankedBy(
+                key=AttributeKey(name="sentry.timestamp", type=AttributeKey.TYPE_DOUBLE)
+            ),
+        )
+
+    def test_last_function(self) -> None:
+        # last isn't allowed in the default acl
+        with pytest.raises(
+            InvalidSearchQuery, match="The function last is not allowed for this query"
+        ):
+            resolved_column, _ = self.resolver.resolve_column("last(span.description, timestamp)")
+        # Enable last
+        self.resolver = SearchResolver(
+            params=SnubaParams(projects=[self.project]),
+            config=SearchResolverConfig(fields_acl=FieldsACL(functions={"last", "last_if"})),
+            definitions=SPAN_DEFINITIONS,
+        )
+        function = "last(span.description, timestamp)"
+        resolved_column, _ = self.resolver.resolve_column(function)
+        assert function in self.resolver._resolved_function_cache
+
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_LAST,
+            key=AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING),
+            label=function,
+            ranked_by=RankedBy(
+                key=AttributeKey(name="sentry.timestamp", type=AttributeKey.TYPE_DOUBLE)
+            ),
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+        )
+
+        function = "last_if(`span.description:foo`, span.description, timestamp)"
+        resolved_column, _ = self.resolver.resolve_column(function)
+        assert function in self.resolver._resolved_function_cache
+
+        assert resolved_column.proto_definition == AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_LAST,
+            key=AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING),
+            filter=TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(
+                        name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING
+                    ),
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=AttributeValue(val_str="foo"),
+                )
+            ),
+            label=function,
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+            ranked_by=RankedBy(
+                key=AttributeKey(name="sentry.timestamp", type=AttributeKey.TYPE_DOUBLE)
+            ),
+        )
+
+    def test_collect_unique(self) -> None:
+        # collect_unique isn't allowed in the default acl
+        with pytest.raises(
+            InvalidSearchQuery, match="The function collect_unique is not allowed for this query"
+        ):
+            resolved_column, _ = self.resolver.resolve_column("collect_unique(span.description)")
+        # Enable collect_unique
+        self.resolver = SearchResolver(
+            params=SnubaParams(projects=[self.project]),
+            config=SearchResolverConfig(
+                fields_acl=FieldsACL(functions={"collect_unique", "collect_unique_if"}),
+            ),
+            definitions=SPAN_DEFINITIONS,
+        )
+        function = "collect_unique(span.description)"
+        resolved_column, _ = self.resolver.resolve_column(function)
+        assert function in self.resolver._resolved_function_cache
+
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_COLLECT_UNIQUE,
+            key=AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING),
+            label=function,
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+        )
+
+        function = "collect_unique_if(`span.description:foo`, span.description)"
+        resolved_column, _ = self.resolver.resolve_column(function)
+        assert function in self.resolver._resolved_function_cache
+
+        assert resolved_column.proto_definition == AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_COLLECT_UNIQUE,
+            key=AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING),
+            filter=TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(
+                        name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING
+                    ),
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=AttributeValue(val_str="foo"),
+                )
+            ),
+            label=function,
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+        )
 
 
 def _make_deprecated_metadata(

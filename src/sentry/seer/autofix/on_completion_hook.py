@@ -38,13 +38,8 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.commit_author import SeerCommitAuthor, parse_commit_author
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.github_perms import (
-    blocks_have_failed_tool_call,
-    comment_on_out_of_date_github_permissions,
-    failed_tool_calls,
-    get_out_of_date_github_permissions,
-    repos_with_failed_tool_calls,
-)
+from sentry.seer.autofix.github_perms import failed_tool_calls
+from sentry.seer.autofix.pr_iteration.emit import complete_pr_iteration_details
 from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
@@ -52,6 +47,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.pause import PauseReason, pause_pr_iteration
 from sentry.seer.autofix.pr_ready_for_review import (
     emit_pr_ready_for_review,
     format_pull_requests_payload,
@@ -171,6 +167,8 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
     Handles:
     - Sending webhooks for completed steps (root_cause_completed, solution_completed, etc.)
     - Continuing the automated pipeline if stopping_point hasn't been reached
+    - No-op'ing when the run did not complete (errors / timeouts), so Seer can
+      invoke this hook with ``call_on_failure=True`` without advancing the pipeline
     """
 
     @classmethod
@@ -191,11 +189,27 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             )
             return
 
+        if state.status != "completed":
+            logger.info(
+                "autofix.on_completion_hook.run_not_completed",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                    "status": state.status,
+                    "failure_reason": state.failure_reason,
+                },
+            )
+            metrics.incr(
+                "autofix.on_completion_hook.run_not_completed",
+                tags={"status": state.status},
+            )
+            return
+
         metadata = state.metadata or {}
         group_id = metadata.get("group_id")
-        run_referrer = None
+        mirror_group_id, run_referrer = _group_and_referrer_from_run(organization, run_id)
         if group_id is None:
-            group_id, run_referrer = _group_and_referrer_from_run(organization, run_id)
+            group_id = mirror_group_id
         if group_id is None:
             logger.warning(
                 "autofix.on_completion_hook.missing_group_id",
@@ -238,11 +252,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         cls._send_step_webhook(organization, run_id, state, group, fallback_referrer=run_referrer)
 
         cls._record_failed_tool_calls(organization, group, state)
-
-        # When a tool failed because the GitHub App installation is missing
-        # permissions the user needs to re-accept, comment on the affected PRs
-        # so the user knows to update them (at most once per repo per run).
-        cls._maybe_comment_on_missing_permissions(organization, run_id, state)
 
         # Acknowledge the comment(s) that triggered a completed PR iteration; no
         # outcomes means it was never an ack candidate, so there's nothing to log.
@@ -311,64 +320,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             failed_tool_functions=[call.function for call in failed],
             failed_tool_counts=dict(counts),
         )
-
-    @classmethod
-    def _maybe_comment_on_missing_permissions(
-        cls,
-        organization: Organization,
-        run_id: int,
-        state: SeerRunState,
-    ) -> None:
-        # Comment on a PR the first time a tool call fails for it since PRs were
-        # created — the first failing iteration touching that repo is our "first
-        # time" signal, so we don't need to persist whether we've commented.
-        # This is per-repo: a repo that already had a failing iteration is
-        # skipped, while a repo hitting its first failure now is commented on.
-        # Failures before PR creation (e.g. in code_changes) are ignored.
-        iterations = get_iterations(state)
-        if not iterations:
-            return
-
-        # Only proceed when the latest iteration failed — that's when a repo can
-        # be hitting its first failure.
-        *earlier, latest = iterations
-        if not blocks_have_failed_tool_call(latest.blocks):
-            return
-
-        missing_by_repo = get_out_of_date_github_permissions(organization, latest.blocks)
-        if not missing_by_repo:
-            return
-
-        # Repos a tool call failed against in an earlier iteration have been
-        # commented on before, so exclude them.
-        repos_with_prior_failure: set[str] = set()
-        for iteration in earlier:
-            repos_with_prior_failure |= repos_with_failed_tool_calls(iteration.blocks)
-
-        missing_by_repo = {
-            repo: info
-            for repo, info in missing_by_repo.items()
-            if repo not in repos_with_prior_failure
-        }
-        if not missing_by_repo:
-            return
-
-        logger.info(
-            "autofix.on_completion_hook.github_permissions_out_of_date",
-            extra={
-                "run_id": run_id,
-                "organization_id": organization.id,
-                "missing_by_repo": {
-                    repo: {
-                        "missing_scopes": info.missing_scopes,
-                        "installation_id": info.installation_id,
-                    }
-                    for repo, info in missing_by_repo.items()
-                },
-            },
-        )
-
-        comment_on_out_of_date_github_permissions(organization, state, missing_by_repo)
 
     @classmethod
     def _repo_name_for_feedback(
@@ -902,6 +853,21 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         # the hook re-fire after the push doesn't loop.
         if current_step == AutofixStep.PR_ITERATION:
             log_ctx = cls._iteration_log_context(organization, group, state)
+
+            if state.status == "error":
+                paused = pause_pr_iteration(
+                    run_id=run_id,
+                    organization_id=organization.id,
+                    reason=PauseReason.RUN_ERRORED,
+                )
+                log_ctx.info(
+                    "autofix.pr_iteration.paused_on_error",
+                    run_status=state.status,
+                    paused=paused,
+                    failure_reason=state.failure_reason,
+                )
+                return
+
             pushed = cls._push_iteration_changes(
                 log_ctx,
                 group,
@@ -915,6 +881,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 # we want to consume queued feedback _after_ we know changes have been pushed
                 # because some feedback in the queue could be filtered out
                 cls._consume_queued_feedback(log_ctx, organization, run_id)
+
+            complete_pr_iteration_details(
+                log_ctx=log_ctx,
+                run_state=state,
+                organization_id=organization.id,
+                pushed_changes=pushed,
+            )
             return
 
         if stopping_point is None or reached_stopping_point:
@@ -986,7 +959,15 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         organization: Organization,
         run_id: int,
     ) -> None:
-        """Drain any feedback enqueued while the iteration was running."""
+        """Drain any feedback enqueued while the iteration was running.
+
+        No GitHub App permission check here, deliberately. We only reach this
+        from a finished PR_ITERATION step, and an iteration can only have been
+        started by ``trigger_consume_pr_iteration_feedback``, which refuses to
+        schedule one while a permission is missing. So reaching this point is
+        itself evidence the permissions were there — re-checking would only
+        catch a lapse mid-iteration, which the next queue-time gate handles.
+        """
         # Minted here because `apply_async` returns `None`, so passing our own id
         # down is the only direction the link travels.
         trigger_id = uuid4().hex
