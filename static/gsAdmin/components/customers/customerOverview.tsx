@@ -665,12 +665,10 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
       moment(activeProductTrial?.endDate).add(1, 'day').diff(moment(), 'days') < 1;
     const hasUsedProductTrial =
       hasActiveProductTrial || categoryHasUsedProductTrial(category);
-    // Enterprise plans: only Seer product trials can be started/allowed from _admin.
-    // Stop/extend stay available for any in-flight non-Seer trial.
+    // Enterprise plans: only Seer product trials can be started from _admin.
+    // Allow Trial and Stop/Extend stay available for any in-flight non-Seer trial.
     const blockEnterpriseNonSeerStart =
       isEnterprisePlan && !isSeerProductTrial(category, apiName);
-    const enterpriseNonSeerAllowTooltip =
-      'Non-Seer product trials cannot be allowed on enterprise plans.';
     const enterpriseNonSeerStartTooltip =
       'Gift usage for this SKU instead. Per-product trials are disabled on enterprise plans.';
 
@@ -717,21 +715,15 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             <Button
               size="xs"
               onClick={() => updateCustomerStatus(`allowTrial${formattedApiName}`)}
-              disabled={
-                blockEnterpriseNonSeerStart ||
-                !hasUsedProductTrial ||
-                hasActiveProductTrial
-              }
+              disabled={!hasUsedProductTrial || hasActiveProductTrial}
               tooltipProps={{
-                title: blockEnterpriseNonSeerStart
-                  ? enterpriseNonSeerAllowTooltip
-                  : hasActiveProductTrial
-                    ? `A product trial is currently active for ${formattedTrialName}`
-                    : hasUsedProductTrial
-                      ? isAdminOnly
-                        ? `Reset trial eligibility for ${formattedTrialName}`
-                        : `Allow customer to start a new trial for ${formattedTrialName}`
-                      : `A product trial is already available for ${formattedTrialName}`,
+                title: hasActiveProductTrial
+                  ? `A product trial is currently active for ${formattedTrialName}`
+                  : hasUsedProductTrial
+                    ? isAdminOnly
+                      ? `Reset trial eligibility for ${formattedTrialName}`
+                      : `Allow customer to start a new trial for ${formattedTrialName}`
+                    : `A product trial is already available for ${formattedTrialName}`,
               }}
             >
               Allow Trial

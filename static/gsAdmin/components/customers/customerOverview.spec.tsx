@@ -511,11 +511,20 @@ describe('CustomerOverview', () => {
     expect(screen.queryByText('Transactions:')).not.toBeInTheDocument();
   });
 
-  it('disables non-Seer product trial start/allow on enterprise plans', async () => {
+  it('disables non-Seer product trial start on enterprise plans', async () => {
     const organization = OrganizationFixture();
     const enterpriseSubscription = InvoicedSubscriptionFixture({
       organization,
       plan: 'am3_business_ent_auf',
+      productTrials: [
+        {
+          category: DataCategory.REPLAYS,
+          isStarted: true,
+          reasonCode: 1001,
+          startDate: moment().utc().subtract(20, 'days').format(),
+          endDate: moment().utc().subtract(10, 'days').format(),
+        },
+      ],
     });
 
     render(
@@ -555,7 +564,6 @@ describe('CustomerOverview', () => {
 
     const spansButtons = getTrialButtons('Spans:');
     expect(spansButtons.startTrialButton).toBeDisabled();
-    expect(spansButtons.allowTrialButton).toBeDisabled();
     expect(spansButtons.stopTrialButton).toBeDisabled();
     expect(spansButtons.extendTrialButton).toBeDisabled();
 
@@ -566,13 +574,14 @@ describe('CustomerOverview', () => {
       )
     ).toBeInTheDocument();
 
+    // Allow Trial is unaffected by the enterprise non-Seer start block: it stays
+    // enabled once a trial has been used, regardless of plan.
     const replaysButtons = getTrialButtons('Replays:');
     expect(replaysButtons.startTrialButton).toBeDisabled();
-    expect(replaysButtons.allowTrialButton).toBeDisabled();
+    expect(replaysButtons.allowTrialButton).toBeEnabled();
 
     const seerButtons = getTrialButtons('Seer:');
     expect(seerButtons.startTrialButton).toBeEnabled();
-    expect(seerButtons.allowTrialButton).toBeDisabled();
     expect(seerButtons.stopTrialButton).toBeDisabled();
     expect(seerButtons.extendTrialButton).toBeDisabled();
   });
