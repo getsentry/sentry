@@ -74,29 +74,12 @@ describe('GcpSaGenerationStep', () => {
 });
 
 describe('GcpCustomerConfigStep', () => {
-  it('renders the config form with one empty project input', () => {
+  it('renders the config form', () => {
     render(<GcpCustomerConfigStep {...makeCustomerConfigStepProps({stepData: {}})} />);
 
     expect(screen.getByLabelText('Service Account Email')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('my-gcp-project')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Add Project'})).toBeInTheDocument();
+    expect(screen.getByText('GCP Project IDs')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
-  });
-
-  it('adds and removes project inputs', async () => {
-    render(<GcpCustomerConfigStep {...makeCustomerConfigStepProps({stepData: {}})} />);
-
-    expect(screen.getAllByPlaceholderText('my-gcp-project')).toHaveLength(1);
-    expect(
-      screen.queryByRole('button', {name: 'Remove project'})
-    ).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Add Project'}));
-    expect(screen.getAllByPlaceholderText('my-gcp-project')).toHaveLength(2);
-    expect(screen.getAllByRole('button', {name: 'Remove project'})).toHaveLength(2);
-
-    await userEvent.click(screen.getAllByRole('button', {name: 'Remove project'})[0]!);
-    expect(screen.getAllByPlaceholderText('my-gcp-project')).toHaveLength(1);
   });
 
   it('calls advance with config on submit', async () => {
@@ -110,12 +93,9 @@ describe('GcpCustomerConfigStep', () => {
       'gcp-sentry@my-project.iam.gserviceaccount.com'
     );
 
-    const projectInputs = screen.getAllByPlaceholderText('my-gcp-project');
-    await userEvent.type(projectInputs[0]!, 'my-project-prod');
-
-    await userEvent.click(screen.getByRole('button', {name: 'Add Project'}));
-    const updatedInputs = screen.getAllByPlaceholderText('my-gcp-project');
-    await userEvent.type(updatedInputs[1]!, 'my-project-staging');
+    const projectIds = screen.getByRole('textbox', {name: 'GCP Project IDs'});
+    await userEvent.type(projectIds, 'my-project-prod{Enter}');
+    await userEvent.type(projectIds, 'my-project-staging{Enter}');
 
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 

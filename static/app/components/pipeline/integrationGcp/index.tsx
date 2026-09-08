@@ -17,7 +17,7 @@ import type {
 } from 'sentry/components/pipeline/types';
 import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
-import {IconAdd, IconDelete, IconRefresh} from 'sentry/icons';
+import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -128,7 +128,7 @@ const gcpCustomerConfigSchema = z.object({
   projects: z
     .array(z.string().regex(GCP_PROJECT_ID_RE, t('Invalid project ID')))
     .min(1, t('At least one project ID is required'))
-    .max(MAX_PROJECTS),
+    .max(MAX_PROJECTS, t('You can connect up to %s GCP projects', MAX_PROJECTS)),
 });
 
 function GcpCustomerConfigStep({
@@ -142,7 +142,7 @@ function GcpCustomerConfigStep({
 >) {
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {customerSaEmail: '', projects: ['']},
+    defaultValues: {customerSaEmail: '', projects: [] as string[]},
     validators: {onDynamic: gcpCustomerConfigSchema},
     onSubmit: ({value}) => {
       advance({
@@ -177,48 +177,18 @@ function GcpCustomerConfigStep({
             </field.Layout.Stack>
           )}
         </form.AppField>
-        <form.AppField name="projects" mode="array">
+        <form.AppField name="projects">
           {field => (
-            <Fragment>
-              <Text bold>{t('GCP Project IDs')}</Text>
-              <Stack gap="sm">
-                {field.state.value.map((_, i) => (
-                  <Flex key={i} gap="sm" align="center">
-                    <form.AppField name={`projects[${i}]`}>
-                      {subField => (
-                        <subField.Input
-                          value={subField.state.value}
-                          onChange={subField.handleChange}
-                          placeholder="my-gcp-project"
-                          style={{flex: 1}}
-                        />
-                      )}
-                    </form.AppField>
-                    {field.state.value.length > 1 && (
-                      <Button
-                        aria-label={t('Remove project')}
-                        size="sm"
-                        variant="transparent"
-                        icon={<IconDelete size="xs" />}
-                        onClick={() => field.removeValue(i)}
-                      />
-                    )}
-                  </Flex>
-                ))}
-                {field.state.value.length < MAX_PROJECTS && (
-                  <Flex>
-                    <Button
-                      size="sm"
-                      icon={<IconAdd size="xs" />}
-                      onClick={() => field.pushValue('')}
-                    >
-                      {t('Add Project')}
-                    </Button>
-                  </Flex>
-                )}
-                <field.Meta.Status />
-              </Stack>
-            </Fragment>
+            <field.Layout.Stack label={t('GCP Project IDs')} required>
+              <field.Select
+                multiple
+                creatable
+                options={[]}
+                value={field.state.value}
+                onChange={field.handleChange}
+                placeholder={t('Type a project ID and press enter')}
+              />
+            </field.Layout.Stack>
           )}
         </form.AppField>
         <Flex>
