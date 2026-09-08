@@ -166,6 +166,17 @@ class MsTeamsClientTest(TestCase):
             self.msteams_client.get_channel_list("foobar")
 
     @responses.activate
+    @patch("sentry.integrations.msteams.client.IntegrationProxyClient.request")
+    def test_bad_syntax_is_invalid_request(self, mock_request: mock.MagicMock) -> None:
+        mock_request.side_effect = ApiError(
+            '{"error":{"code":"BadSyntax","message":"Bad format of conversation ID"}}',
+            code=400,
+        )
+
+        with pytest.raises(ApiInvalidRequestError):
+            self.msteams_client.get_channel_list("foobar")
+
+    @responses.activate
     def test_api_client_from_integration_installation(self) -> None:
         installation = self.integration.get_installation(organization_id=self.organization.id)
         client = installation.get_client()

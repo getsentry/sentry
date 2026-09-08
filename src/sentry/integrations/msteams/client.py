@@ -95,7 +95,8 @@ class MsTeamsClient(MsTeamsClientABC, IntegrationProxyClient):
         try:
             return super().request(*args, **kwargs)
         except ApiError as error:
-            if error.json and error.json.get("error", {}).get("code") == "ConversationNotFound":
+            error_code = (error.json or {}).get("error", {}).get("code")
+            if error_code in {"ConversationNotFound", "BadSyntax"}:
                 raise ApiInvalidRequestError(error.text, url=error.url) from error
             raise
 
