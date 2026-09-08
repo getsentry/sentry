@@ -26,7 +26,6 @@ def update_organization_mapping_from_instance(
         allow_joinleave=bool(organization.flags.allow_joinleave),
         disable_new_visibility_features=bool(organization.flags.disable_new_visibility_features),
         enhanced_privacy=bool(organization.flags.enhanced_privacy),
-        require_email_verification=bool(organization.flags.require_email_verification),
         disable_member_project_creation=bool(organization.flags.disable_member_project_creation),
         prevent_superuser_access=bool(organization.flags.prevent_superuser_access),
         disable_member_invite=bool(organization.flags.disable_member_invite),

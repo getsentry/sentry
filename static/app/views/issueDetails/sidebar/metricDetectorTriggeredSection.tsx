@@ -5,6 +5,7 @@ import type {LocationDescriptor} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -16,7 +17,6 @@ import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {GroupList} from 'sentry/components/issues/groupList';
 import {Placeholder} from 'sentry/components/placeholder';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
@@ -245,7 +245,7 @@ function BooleanLogicError({discoverUrl}: {discoverUrl: LocationDescriptor}) {
         }
       >
         {t('Contributing issues unavailable for this detector.')}{' '}
-        <QuestionTooltip
+        <InfoTip
           title={t(
             'Issues do not support AND/OR queries. Modify your query to see contributing issues.'
           )}

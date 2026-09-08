@@ -106,7 +106,7 @@ describe('AssertionOpJsonPath', () => {
     await renderOp(makeJsonPathOp());
 
     // Hover over the question mark icon to show tooltip
-    const questionIcon = screen.getByTestId('more-information');
+    const questionIcon = screen.getByRole('img', {name: 'More information'});
     await userEvent.hover(questionIcon);
 
     // Check that tooltip appears with the link

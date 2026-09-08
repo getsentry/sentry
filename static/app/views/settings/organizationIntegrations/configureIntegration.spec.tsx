@@ -82,6 +82,23 @@ describe('ConfigureIntegration settings tab', () => {
     expect(screen.queryByText('github.com/sentry-demos')).not.toBeInTheDocument();
   });
 
+  it('links the configurations crumb to the provider configurations tab', async () => {
+    const integration = OrganizationIntegrationsFixture({
+      name: 'sentry-demos',
+      domainName: 'github.com/sentry-demos',
+      provider: {...githubProvider, key: 'github'},
+      configOrganization: [],
+    });
+    mockRequests(integration);
+
+    renderConfigure();
+
+    expect(await screen.findByRole('link', {name: 'Configurations'})).toHaveAttribute(
+      'href',
+      `/settings/${org.slug}/integrations/github/?tab=configurations`
+    );
+  });
+
   it('uses a full domain URL without adding another protocol', async () => {
     const integration = OrganizationIntegrationsFixture({
       name: 'Azure DevOps',
@@ -388,7 +405,12 @@ describe('ConfigureIntegration GCP re-verification', () => {
   function setup({
     providerKey = 'gcp',
     connectionStatus = 'connected',
-  }: {connectionStatus?: string; providerKey?: string} = {}) {
+    verifyDelay,
+  }: {
+    connectionStatus?: string;
+    providerKey?: string;
+    verifyDelay?: number;
+  } = {}) {
     const organization = OrganizationFixture({
       access: ['org:integrations', 'org:write'],
     });
@@ -447,6 +469,7 @@ describe('ConfigureIntegration GCP re-verification', () => {
     const verifyRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/monitoring-providers/gcp/verify-connection/`,
       method: 'POST',
+      asyncDelay: verifyDelay,
       body: () => {
         // The endpoint records its result on the integration.
         storedConfig = {
@@ -549,6 +572,19 @@ describe('ConfigureIntegration GCP re-verification', () => {
     await saveNewSaEmail('new-sa@my-project.iam.gserviceaccount.com');
 
     // The check runs after the save, so the page has to refresh again to show it.
+    expect(await screen.findByText('Connected')).toBeInTheDocument();
+  });
+
+  it('reports the check as running instead of the interim unverified status', async () => {
+    setup({connectionStatus: 'unverified', verifyDelay: 50});
+
+    expect(await screen.findByText('Not verified')).toBeInTheDocument();
+
+    await saveNewSaEmail('new-sa@my-project.iam.gserviceaccount.com');
+
+    expect(await screen.findByText('Checking connection...')).toBeInTheDocument();
+    expect(screen.queryByText('Not verified')).not.toBeInTheDocument();
+
     expect(await screen.findByText('Connected')).toBeInTheDocument();
   });
 

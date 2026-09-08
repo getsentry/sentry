@@ -5,6 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
+import {blockRendersToolContent} from 'sentry/views/seerExplorer/components/chat/toolUse';
 import type {
   AgentWriteApproval,
   Block,
@@ -1518,5 +1519,64 @@ describe('ToolUseBlock', () => {
       expect(screen.getByText('Output:')).toBeInTheDocument();
       expect(screen.getByText('Returned HTTP 500')).toBeInTheDocument();
     });
+  });
+});
+
+describe('blockRendersToolContent', () => {
+  // The predicate exists to agree with `ToolCallList`; every case here is one the list suppresses,
+  // so counting it opens a box with an empty body.
+  function codeModeBlock(
+    id: string,
+    structuredContent: Record<string, unknown> | null
+  ): Block {
+    return {
+      id,
+      message: {
+        role: 'tool_use',
+        content: null,
+        tool_calls: [{id: `${id}-call`, function: 'sentry_api_execute', args: '{}'}],
+      },
+      timestamp: '2024-01-01T00:01:00Z',
+      loading: false,
+      tool_results: [
+        {
+          tool_call_id: `${id}-call`,
+          tool_call_function: 'sentry_api_execute',
+          content: 'ok',
+          structuredContent,
+        },
+      ],
+    };
+  }
+
+  it('ignores links that only reported an error', () => {
+    // `ToolCallList` filters `is_error` links out, so a result carrying nothing else renders no row.
+    const block = codeModeBlock('t1', {
+      links: [{kind: 'get_issue_details', params: {is_error: true}}],
+    });
+
+    expect(blockRendersToolContent(block, [block])).toBe(false);
+  });
+
+  it('counts a link that did not error', () => {
+    const block = codeModeBlock('t1', {
+      links: [{kind: 'get_issue_details', params: {issueId: '4521'}}],
+    });
+
+    expect(blockRendersToolContent(block, [block])).toBe(true);
+  });
+
+  it('ignores todos superseded by a later block', () => {
+    // Only the block holding the newest snapshot renders the checklist.
+    const stale = codeModeBlock('t1', {
+      todos: [{id: '1', text: 'old', status: 'completed'}],
+    });
+    const newest = codeModeBlock('t2', {
+      todos: [{id: '2', text: 'new', status: 'pending'}],
+    });
+    const blocks = [stale, newest];
+
+    expect(blockRendersToolContent(stale, blocks)).toBe(false);
+    expect(blockRendersToolContent(newest, blocks)).toBe(true);
   });
 });

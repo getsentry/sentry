@@ -1,6 +1,7 @@
 import {Observer} from 'mobx-react-lite';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import type {CSS} from '@sentry/scraps/cssTypes';
 
 import {FormContext} from 'sentry/components/forms/formContext';
 import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
@@ -12,7 +13,7 @@ import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 interface NewDetectorFooterProps {
   disabledCreate?: string;
   extras?: React.ReactNode;
-  maxWidth?: string;
+  maxWidth?: CSS['maxWidth'];
 }
 
 export function NewDetectorFooter({

@@ -6,8 +6,10 @@ from django.test import override_settings
 from requests.exceptions import ConnectionError
 
 from sentry.integrations.jira_server.integration import JiraServerIntegration
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration.serial import serialize_integration
+from sentry.integrations.utils.external_issue_key import PROVIDER_ISSUE_ID_KEY
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -66,6 +68,45 @@ class JiraServerWebhookEndpointTest(APITestCase):
         # Use the wrong id in the token.
         token = jwt.encode({"id": integration.external_id}, "bad-secret")
         self.get_error_response(token, status_code=400)
+
+    def test_post_issue_moved_rekeys_external_issue(self) -> None:
+        # Jira Server announces a project move the same way Jira Cloud does, so the
+        # linked `ExternalIssue` has to follow the new key here too.
+        link_group(self.organization, self.integration, self.group)
+
+        payload = {
+            "changelog": {
+                "items": [
+                    {
+                        "field": "project",
+                        "fieldtype": "jira",
+                        "from": "10000",
+                        "fromString": "APP",
+                        "to": "10001",
+                        "toString": "PLATFORM",
+                    },
+                    {
+                        "field": "Key",
+                        "fieldtype": "jira",
+                        "fromString": "APP-1",
+                        "toString": "PLATFORM-9",
+                    },
+                ],
+                "id": 12345,
+            },
+            "issue": {
+                "id": "10001",
+                "key": "PLATFORM-9",
+                "fields": {"updated": "2023-01-01T00:00:00.000+0000"},
+            },
+        }
+        self.get_success_response(self.jwt_token, **payload)
+
+        external_issue = ExternalIssue.objects.get(
+            organization_id=self.organization.id, integration_id=self.integration.id
+        )
+        assert external_issue.key == "PLATFORM-9"
+        assert external_issue.metadata[PROVIDER_ISSUE_ID_KEY] == "10001"
 
     @patch("sentry.integrations.jira_server.utils.api.sync_group_assignee_inbound")
     def test_post_update_assignee(self, mock_sync: MagicMock) -> None:

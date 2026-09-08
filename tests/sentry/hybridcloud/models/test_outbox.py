@@ -6,7 +6,7 @@ from typing import Any
 from unittest.mock import Mock, call, patch
 
 import pytest
-from django.db import OperationalError, connections
+from django.db import OperationalError, connections, router, transaction
 from pytest import raises
 
 from sentry.hybridcloud.models.outbox import (
@@ -299,6 +299,24 @@ class OutboxDrainTest(TransactionTestCase):
 
 
 class CellOutboxTest(TestCase):
+    @patch.object(CellOutbox, "drain_shard")
+    @patch("sentry.hybridcloud.models.outbox.metrics.timer")
+    def test_sync_shard_drain_records_duration(
+        self, mock_timer: Mock, mock_drain_shard: Mock
+    ) -> None:
+        with self.captureOnCommitCallbacks(execute=True):
+            with outbox_context(transaction.atomic(router.db_for_write(CellOutbox))):
+                Organization(id=10).outbox_for_update().save()
+
+        mock_timer.assert_called_once_with(
+            "outbox.sync_shard_drain.duration",
+            tags={
+                "category": "ORGANIZATION_UPDATE",
+                "outbox_name": "sentry.CellOutbox",
+            },
+        )
+        mock_drain_shard.assert_called_once_with()
+
     def test_creating_org_outboxes(self) -> None:
         with outbox_context(flush=False):
             Organization(id=10).outbox_for_update().save()

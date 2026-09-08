@@ -642,10 +642,9 @@ const OnboardingContainer = styled('div')<{
 
 const Header = styled(Grid)`
   background: ${p => p.theme.tokens.background.primary};
-  padding-left: ${p => p.theme.space['3xl']};
-  padding-right: ${p => p.theme.space['3xl']};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space['3xl']};
   position: sticky;
-  height: 80px;
+  min-height: 60px;
   align-items: center;
   top: 0;
   z-index: 100;
@@ -653,7 +652,7 @@ const Header = styled(Grid)`
 `;
 
 const LogoSvg = styled(LogoSentry)`
-  height: 30px;
+  height: 24px;
   color: ${p => p.theme.tokens.content.primary};
 `;
 

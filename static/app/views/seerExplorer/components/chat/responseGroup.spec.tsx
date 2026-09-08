@@ -41,6 +41,36 @@ function toolUseBlock(
   };
 }
 
+/**
+ * Seer's global LLM-wait placeholder: `loading` with no tool calls, content defaulting to
+ * "Thinking..." (see `add_loading_response_block`). Appended before every completion.
+ */
+function llmWaitBlock(): Block {
+  return {
+    id: 'loading',
+    message: {role: 'assistant', content: 'Thinking...', tool_calls: null},
+    timestamp: '2024-01-01T00:02:00Z',
+    loading: true,
+  };
+}
+
+/**
+ * The response's `ThinkingBlock`. Located structurally rather than by title: the header shows the
+ * live tool label while active but a static summary once settled, so a title match silently stops
+ * meaning "the box is open".
+ */
+function queryReasoningBox(container: HTMLElement): HTMLElement | null {
+  return container.querySelector<HTMLElement>('[data-disclosure]');
+}
+
+function reasoningBox(container: HTMLElement): HTMLElement {
+  const box = queryReasoningBox(container);
+  if (!box) {
+    throw new Error('no reasoning box rendered');
+  }
+  return box;
+}
+
 function assistantBlock(id: string, content: string, loading = false): Block {
   return {
     id,
@@ -122,6 +152,82 @@ describe('ResponseGroup', () => {
     expect(screen.getByText('The final answer')).toBeInTheDocument();
   });
 
+  it('does not open a reasoning box for a call that renders nothing', () => {
+    // `ToolCallList` suppresses a settled call that reported no rows, links, todos or markdown.
+    // Counting it as a trace anyway left an empty box between the previous answer and the next
+    // spinner.
+    const group: Block[] = [
+      {
+        id: 't1',
+        message: {
+          role: 'tool_use',
+          content: null,
+          tool_calls: [{id: 't1-call', function: 'sentry_api_execute', args: '{}'}],
+        },
+        timestamp: '2024-01-01T00:01:00Z',
+        loading: false,
+        tool_results: [
+          {
+            tool_call_id: 't1-call',
+            tool_call_function: 'sentry_api_execute',
+            content: 'ok',
+            structuredContent: null,
+          },
+        ],
+      },
+    ];
+
+    const {container} = render(
+      <ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />,
+      {organization}
+    );
+
+    expect(queryReasoningBox(container)).not.toBeInTheDocument();
+  });
+
+  it('still opens the box when the call reported call records', () => {
+    const group: Block[] = [
+      {
+        id: 't1',
+        message: {
+          role: 'tool_use',
+          content: null,
+          tool_calls: [{id: 't1-call', function: 'sentry_api_execute', args: '{}'}],
+        },
+        timestamp: '2024-01-01T00:01:00Z',
+        loading: false,
+        tool_results: [
+          {
+            tool_call_id: 't1-call',
+            tool_call_function: 'sentry_api_execute',
+            content: 'ok',
+            structuredContent: {
+              calls: [{id: 1, kind: 'api', title: 'Retrieving issue 4521'}],
+            },
+          },
+        ],
+      },
+    ];
+
+    const {container} = render(
+      <ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />,
+      {organization}
+    );
+
+    expect(queryReasoningBox(container)).toBeInTheDocument();
+  });
+
+  it('still opens the box for a classic tool call', () => {
+    const group = [toolUseBlock('t1')];
+
+    const {container} = render(
+      <ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />,
+      {organization}
+    );
+
+    expect(queryReasoningBox(container)).toBeInTheDocument();
+  });
+
   it('collapses the reasoning until it is expanded', async () => {
     const group = [
       toolUseBlock('t1', {thinking_content: 'my private reasoning'}),
@@ -140,6 +246,38 @@ describe('ResponseGroup', () => {
     );
 
     expect(screen.getByText('my private reasoning')).toBeVisible();
+  });
+
+  it('spins outside the box while the agent works', () => {
+    // Between tool calls seer appends its LLM-wait placeholder. The tool is done, so the box must
+    // settle and let the placeholder below carry the spinner.
+    const group = [toolUseBlock('t1'), llmWaitBlock()];
+
+    const {container} = render(
+      <ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />,
+      {organization}
+    );
+
+    expect(reasoningBox(container).querySelector('button')).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    expect(reasoningBox(container).contains(screen.getByRole('status'))).toBe(false);
+  });
+
+  it('spins inside the box while a tool works', () => {
+    const group = [toolUseBlock('t1', {loading: true})];
+
+    const {container} = render(
+      <ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />,
+      {organization}
+    );
+
+    expect(reasoningBox(container).querySelector('button')).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+    expect(reasoningBox(container).contains(screen.getByRole('status'))).toBe(true);
   });
 
   it('renders no reasoning block when the response is a direct answer', () => {

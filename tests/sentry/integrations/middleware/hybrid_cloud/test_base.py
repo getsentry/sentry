@@ -144,6 +144,65 @@ class BaseRequestParserTest(TestCase):
             assert payload.destination_type == DestinationType.SENTRY_CELL
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_the_deprecated_identifier_names_the_mailbox_a_subject_would(self) -> None:
+        """The parsers in getsentry still pass `identifier`, and have to keep landing
+        on the mailbox they were landing on before `MailboxName` existed."""
+
+        class MockParser(BaseRequestParser):
+            webhook_identifier = WebhookProviderIdentifier.SLACK
+            provider = "slack"
+
+        parser = MockParser(self.request, self.response_handler)
+
+        response = parser.get_response_from_webhookpayload(
+            cells=self.region_config, identifier=12345
+        )
+
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert {
+            (payload.cell_name, payload.mailbox_name) for payload in WebhookPayload.objects.all()
+        } == {("us", "slack:us:12345"), ("eu", "slack:eu:12345")}
+
+    def test_get_mailbox_buckets_only_above_volume(self) -> None:
+        class BucketedParser(ExampleRequestParser):
+            def mailbox_bucket_id(self, data: dict[str, Any]) -> int | None:
+                return 177
+
+        integration = self.create_integration(
+            organization=self.organization, external_id="1", provider="test_provider"
+        )
+        parser = BucketedParser(self.request, self.response_handler)
+
+        with patch(
+            "sentry.integrations.middleware.hybrid_cloud.parser.ratelimiter.is_limited",
+            return_value=False,
+        ):
+            assert str(parser.get_mailbox(integration, {})) == f"test_provider:{integration.id}"
+        with patch(
+            "sentry.integrations.middleware.hybrid_cloud.parser.ratelimiter.is_limited",
+            return_value=True,
+        ):
+            assert str(parser.get_mailbox(integration, {})) == f"test_provider:{integration.id}:77"
+
+    def test_get_mailbox_always_bucket_skips_volume_check(self) -> None:
+        class AlwaysBucketedParser(ExampleRequestParser):
+            always_bucket = True
+
+            def mailbox_bucket_id(self, data: dict[str, Any]) -> int | None:
+                return 177
+
+        integration = self.create_integration(
+            organization=self.organization, external_id="1", provider="test_provider"
+        )
+        parser = AlwaysBucketedParser(self.request, self.response_handler)
+
+        with patch(
+            "sentry.integrations.middleware.hybrid_cloud.parser.ratelimiter.is_limited"
+        ) as mock_is_limited:
+            assert str(parser.get_mailbox(integration, {})) == f"test_provider:{integration.id}:77"
+        mock_is_limited.assert_not_called()
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch("sentry.integrations.middleware.hybrid_cloud.parser.maybe_trigger_drain")
     def test_get_response_from_webhookpayload_triggers_drain_per_mailbox(
         self, mock_trigger: MagicMock
@@ -350,13 +409,16 @@ class BaseRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch("sentry.integrations.middleware.hybrid_cloud.parser.metrics.incr")
-    def test_mailbox_identifier_under_volume_gate(self, mock_incr: MagicMock) -> None:
+    def test_mailbox_under_volume_gate(self, mock_incr: MagicMock) -> None:
         integration = self.create_integration(
             organization=self.organization, provider="test_provider", external_id="test_external_id"
         )
         parser = BucketingRequestParser(self.request, self.response_handler)
 
-        assert parser.get_mailbox_identifier(integration, {"bucket_id": 101}) == str(integration.id)
+        assert (
+            str(parser.get_mailbox(integration, {"bucket_id": 101}))
+            == f"test_provider:{integration.id}"
+        )
 
         mock_incr.assert_any_call(
             "hybridcloud.webhookpayload.mailbox_routing",
@@ -372,7 +434,7 @@ class BaseRequestParserTest(TestCase):
         cache.set(f"webhookpayload:test_provider:{integration.id}:use_buckets", 1)
         parser = BucketingRequestParser(self.request, self.response_handler)
 
-        assert parser.get_mailbox_identifier(integration, {}) == str(integration.id)
+        assert str(parser.get_mailbox(integration, {})) == f"test_provider:{integration.id}"
 
         mock_incr.assert_any_call(
             "hybridcloud.webhookpayload.mailbox_routing",
@@ -389,7 +451,8 @@ class BaseRequestParserTest(TestCase):
         parser = BucketingRequestParser(self.request, self.response_handler)
 
         assert (
-            parser.get_mailbox_identifier(integration, {"bucket_id": 101}) == f"{integration.id}:1"
+            str(parser.get_mailbox(integration, {"bucket_id": 101}))
+            == f"test_provider:{integration.id}:1"
         )
 
         mock_incr.assert_any_call(

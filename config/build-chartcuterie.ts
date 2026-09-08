@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 /* eslint-disable import/no-nodejs-modules, no-console */
 
 import childProcess from 'node:child_process';

@@ -95,6 +95,74 @@ function linkKey(link: ToolLink) {
   return `${link.kind}:${sorted}`;
 }
 
+/**
+ * Whether `ToolCallList` will render anything for this block.
+ *
+ * `ToolCallList` suppresses a tool call that reported nothing, so a caller deciding whether to open
+ * a container around it cannot go by `tool_calls.length` — that opens an empty box.
+ *
+ * The same terms as the per-call `hasContent` guard below, plus the block's own running placeholder,
+ * and attributing progress and live rows the way the list does: only to a call that has not settled.
+ */
+export function blockRendersToolContent(block: Block, blocks?: Block[]): boolean {
+  const toolCalls = block.message.tool_calls ?? [];
+  if (!toolCalls.length) {
+    return false;
+  }
+  const results = block.tool_results ?? [];
+  const settledCallIds = new Set(results.flatMap(result => result?.tool_call_id ?? []));
+  const pendingCallIds = toolCalls.flatMap(toolCall =>
+    toolCall.id && !settledCallIds.has(toolCall.id) ? [toolCall.id] : []
+  );
+
+  if (findLatestTodos(blocks)?.block === block) {
+    return true;
+  }
+  // The placeholder the list renders after its rows, whether or not any row survived.
+  if (
+    block.loading &&
+    toolCalls.some(
+      toolCall =>
+        CODE_MODE_TOOLS.has(toolCall.function) &&
+        toolCall.id &&
+        !settledCallIds.has(toolCall.id)
+    )
+  ) {
+    return true;
+  }
+  // Live rows hang off the block, so the list can only attribute them to a lone pending call.
+  if (block.live_calls?.length && pendingCallIds.length === 1) {
+    return true;
+  }
+  // Progress narration stands in for rows until its call reports.
+  if (
+    (block.progress ?? []).some(
+      event =>
+        event?.token && event.message?.trim() && pendingCallIds.includes(event.token)
+    )
+  ) {
+    return true;
+  }
+  if (
+    results.some(result => {
+      const structured = result?.structuredContent;
+      return Boolean(
+        structured?.calls?.length ||
+        // Errored links render no row, and todos render only from the block holding the newest
+        // snapshot — already checked above. Counting either unfiltered reopens the empty box.
+        structured?.links?.some(link => link?.params?.is_error !== true) ||
+        (structured && result.content.trimStart().startsWith('{%'))
+      );
+    })
+  ) {
+    return true;
+  }
+  const toolsUsed = getToolsStringFromBlock(block);
+  return toolCalls.some(
+    (toolCall, idx) => !CODE_MODE_TOOLS.has(toolCall.function) && Boolean(toolsUsed[idx])
+  );
+}
+
 export function ToolUseBlock({
   block,
   showThinking,

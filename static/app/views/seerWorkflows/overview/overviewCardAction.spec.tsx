@@ -351,13 +351,13 @@ describe('OverviewCardAction', () => {
   });
 
   it('shows a loading state before revealing all options at once', async () => {
-    const agentsRequest = Promise.withResolvers<void>();
+    const codingAgents = Promise.withResolvers<void>();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/coding-agents/',
       body: {
         integrations: [{id: '123', name: 'Claude Agent', provider: 'claude_code'}],
       },
-      asyncDelay: agentsRequest.promise,
+      asyncDelay: codingAgents.promise,
     });
 
     render(
@@ -375,7 +375,7 @@ describe('OverviewCardAction', () => {
       screen.queryByRole('menuitemradio', {name: 'Open Seer'})
     ).not.toBeInTheDocument();
 
-    agentsRequest.resolve();
+    codingAgents.resolve();
 
     expect(
       await screen.findByRole('menuitemradio', {name: 'Open Seer'})

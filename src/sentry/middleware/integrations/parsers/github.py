@@ -23,7 +23,6 @@ from sentry.integrations.github.webhook_types import (
 )
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
@@ -67,6 +66,7 @@ class GithubRequestParser(BaseRequestParser):
     webhook_identifier = WebhookProviderIdentifier.GITHUB
     webhook_endpoint: Any = GitHubIntegrationsWebhookEndpoint
     """Overridden in GithubEnterpriseRequestParser"""
+    always_bucket = True
 
     def _get_external_id(self, event: Mapping[str, Any]) -> str | None:
         """Overridden in GithubEnterpriseRequestParser"""
@@ -85,19 +85,8 @@ class GithubRequestParser(BaseRequestParser):
                 return repo_id
         return None
 
-    def get_mailbox_identifier(
-        self, integration: RpcIntegration | Integration, data: dict[str, Any]
-    ) -> str:
-        """Distribute webhooks across sub-mailboxes by repository ID and event type.
-
-        Bypasses the rate-limit auto-switch used by the base class so GitHub webhooks
-        are always bucketed.
-        """
-        base = self._build_bucketed_identifier(integration, data)
-        event_type = self.request.META.get(GITHUB_WEBHOOK_TYPE_HEADER)
-        if event_type:
-            return f"{base}:{event_type}"
-        return base
+    def mailbox_event_type(self, data: Mapping[str, Any]) -> str | None:
+        return self.request.META.get(GITHUB_WEBHOOK_TYPE_HEADER)
 
     def should_route_to_control_silo(
         self, parsed_event: Mapping[str, Any], request: HttpRequest
@@ -117,43 +106,18 @@ class GithubRequestParser(BaseRequestParser):
             return None
         return Integration.objects.filter(external_id=external_id, provider=self.provider).first()
 
-    def get_response(self) -> HttpResponseBase:
+    def _get_drop_response(
+        self,
+        github_event: str | None,
+        event: Mapping[str, Any],
+        action: Any,
+        action_filter: ActionFilter | None,
+    ) -> HttpResponse | None:
+        """A 202 for a webhook no cell-side consumer reads, or None to keep routing it.
+
+        Reads the event header and the request body and nothing else, which is what
+        lets it run before the integration and cell lookups.
         """
-        Orchestrates GitHub webhook routing across Sentry's multi-service architecture.
-
-        Handles installation events in control silo and distributes webhooks to appropriate
-        cell silos based on organization locations.
-        """
-        webhook_endpoints = (
-            self.webhook_endpoint
-            if isinstance(self.webhook_endpoint, tuple)
-            else (self.webhook_endpoint,)
-        )
-        if self.view_class not in webhook_endpoints:
-            return self.get_response_from_control_silo()
-
-        try:
-            event = orjson.loads(self.request.body)
-        except orjson.JSONDecodeError:
-            return HttpResponse(status=400)
-
-        if self.should_route_to_control_silo(parsed_event=event, request=self.request):
-            return self.get_response_from_control_silo()
-
-        try:
-            integration = self.get_integration_from_request()
-            if not integration:
-                return self.get_default_missing_integration_response()
-
-            cells = self.get_cells_from_organizations()
-        except Integration.DoesNotExist:
-            return self.get_default_missing_integration_response()
-
-        if len(cells) == 0:
-            return self.get_default_missing_integration_response()
-
-        github_event = self.request.META.get(GITHUB_WEBHOOK_TYPE_HEADER)
-
         # Only drop when we have a known unprocessed event type. Missing or empty
         # X-GitHub-Event is malformed; let the request be forwarded so the cell
         # returns 400 and GitHub is notified of the delivery failure.
@@ -169,8 +133,6 @@ class GithubRequestParser(BaseRequestParser):
 
         # For the highest-volume event types, only some actions have a cell-side
         # consumer (see CELL_PROCESSED_ACTIONS); drop the rest.
-        action = event.get("action")
-        action_filter = CELL_PROCESSED_ACTIONS.get(github_event or "")
         if action_filter is not None and not (
             isinstance(action, str) and action in action_filter.consumed
         ):
@@ -201,8 +163,61 @@ class GithubRequestParser(BaseRequestParser):
             )
             return HttpResponse(status=202)
 
-        # Ahead of the forwarded_event counter and the mailbox lookup, so a shed webhook
-        # is neither counted as forwarded nor charged for routing it will not use.
+        return None
+
+    def get_response(self) -> HttpResponseBase:
+        """
+        Orchestrates GitHub webhook routing across Sentry's multi-service architecture.
+
+        Handles installation events in control silo and distributes webhooks to appropriate
+        cell silos based on organization locations.
+        """
+        webhook_endpoints = (
+            self.webhook_endpoint
+            if isinstance(self.webhook_endpoint, tuple)
+            else (self.webhook_endpoint,)
+        )
+        if self.view_class not in webhook_endpoints:
+            return self.get_response_from_control_silo()
+
+        try:
+            event = orjson.loads(self.request.body)
+        except orjson.JSONDecodeError:
+            return HttpResponse(status=400)
+
+        if self.should_route_to_control_silo(parsed_event=event, request=self.request):
+            return self.get_response_from_control_silo()
+
+        github_event = self.request.META.get(GITHUB_WEBHOOK_TYPE_HEADER)
+        action = event.get("action")
+        action_filter = CELL_PROCESSED_ACTIONS.get(github_event or "")
+
+        # Ahead of the lookups: a webhook no cell consumes should not pay to resolve them.
+        drop_response = self._get_drop_response(github_event, event, action, action_filter)
+        if drop_response is not None:
+            return drop_response
+
+        # A condition naming no integration_id sheds the whole provider, so it needs no
+        # lookup. Break-glass for a flood should not wait on the queries below.
+        shed_response = self.get_shed_response()
+        if shed_response is not None:
+            return shed_response
+
+        try:
+            integration = self.integration_for_request()
+            if not integration:
+                return self.get_default_missing_integration_response()
+
+            cells = self.get_cells_from_organizations()
+        except Integration.DoesNotExist:
+            return self.get_default_missing_integration_response()
+
+        if len(cells) == 0:
+            return self.get_default_missing_integration_response()
+
+        # The integration-scoped half. Ahead of the forwarded_event counter and the
+        # mailbox lookup, so a shed webhook is neither counted as forwarded nor charged
+        # for routing it will not use.
         shed_response = self.get_shed_response(integration_id=integration.id)
         if shed_response is not None:
             return shed_response
@@ -214,7 +229,7 @@ class GithubRequestParser(BaseRequestParser):
 
         response = self.get_response_from_webhookpayload(
             cells=cells,
-            identifier=self.get_mailbox_identifier(integration, event),
+            mailbox=self.get_mailbox(integration, event),
             integration_id=integration.id,
         )
 

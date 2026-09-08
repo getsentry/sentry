@@ -10,7 +10,7 @@ from django.db import models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
 from django.urls import reverse
 from django.utils import timezone as django_timezone
-from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from sentry_sdk import capture_exception
@@ -892,22 +892,6 @@ def create_console_platform_audit_log(
         )
 
 
-@extend_schema_serializer(
-    exclude_fields=[
-        "accountRateLimit",
-        "projectRateLimit",
-        "apdexThreshold",
-        "genAIConsent",
-        "defaultAutofixAutomationTuning",
-        "defaultSeerScannerAutomation",
-        "autoOpenPrs",
-        "autoEnableCodeReview",
-        "defaultCodeReviewTriggers",
-        "ingestThroughTrustedRelaysOnly",
-        "enabledConsolePlatforms",
-        "consoleSdkInviteQuota",
-    ]
-)
 class OrganizationDetailsPutSerializer(serializers.Serializer):
     # general
     slug = serializers.CharField(
@@ -1096,7 +1080,10 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
 
     # private attributes
     # legacy features
-    apdexThreshold = serializers.IntegerField(required=False)
+    apdexThreshold = serializers.IntegerField(
+        required=False,
+        help_text="Deprecated. Response-time threshold in milliseconds previously used to compute Apdex.",
+    )
 
 
 # NOTE: We override the permission class of this endpoint in getsentry with the OrganizationDetailsPermission class

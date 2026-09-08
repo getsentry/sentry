@@ -53,8 +53,8 @@ from sentry.issues.constants import (
     cache_key_for_issue_view,
     get_issue_tsdb_group_model,
 )
-from sentry.issues.derived.check import check_status_consistency
-from sentry.issues.derived.gate import derived_should_be_correct
+from sentry.issues.derived.check import record_status_consistency
+from sentry.issues.derived.gate import derived_should_be_correct, should_serve_action_log_activity
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
@@ -136,33 +136,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         if derived is None:
             return
 
-        inconsistency = check_status_consistency(group, derived)
-        if inconsistency is None:
-            metrics.incr(
-                "issues.status_reconciliation.checked",
-                sample_rate=1.0,
-                tags={"result": "aligned"},
-            )
-            return
-
-        metrics.incr(
-            "issues.status_reconciliation.checked",
-            sample_rate=1.0,
-            tags={
-                "result": "diverged",
-                "derived_status": inconsistency.derived.value,
-                "actual_status": inconsistency.actual.value,
-            },
-        )
-        logger.info(
-            "issues.status_reconciliation.diverged",
-            extra={
-                "group_id": group.id,
-                "project_id": group.project_id,
-                "derived_status": inconsistency.derived.value,
-                "actual_status": inconsistency.actual.value,
-            },
-        )
+        record_status_consistency(group, derived, source="read_path")
 
     @staticmethod
     def __group_hourly_daily_stats(
@@ -368,9 +342,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 }
             )
 
-            if features.has(
-                "projects:issue-action-log-activity", group.project, actor=request.user
-            ):
+            if should_serve_action_log_activity(group.project, request.user):
                 action_log = GroupActionLogEntry.objects.get_actions_for_group(group, 99)
                 if action_log:
                     # swap action log data in under the activity name

@@ -1,8 +1,8 @@
-import type {CSSProperties} from 'react';
 import {useCallback, useEffect, useLayoutEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {vec2, type mat3} from 'gl-matrix';
 
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {Stack} from '@sentry/scraps/layout';
 
 import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
@@ -348,8 +348,8 @@ export function computePreviewConfigView(
 }
 
 const Canvas = styled('canvas')<{
-  cursor?: CSSProperties['cursor'];
-  pointerEvents?: CSSProperties['pointerEvents'];
+  cursor?: CSS['cursor'];
+  pointerEvents?: CSS['pointerEvents'];
 }>`
   left: 0;
   top: 0;

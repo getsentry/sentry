@@ -7,8 +7,10 @@ from typing import Any
 from rest_framework import status
 from rest_framework.response import Response
 
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.utils.external_issue_key import rekey_external_issues
 from sentry.integrations.utils.status_sync import PROVIDER_EVENT_TIME_KEY
 from sentry.integrations.utils.sync import sync_group_assignee_inbound
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
@@ -80,6 +82,50 @@ def handle_assignee_change(
         return
 
     sync_group_assignee_inbound(integration, email, issue_key, assign=True)
+
+
+def handle_issue_moved(integration: RpcIntegration | Integration, data: Mapping[str, Any]) -> None:
+    """
+    Follow a Jira-side issue key change over to `ExternalIssue`.
+
+    Jira reassigns an issue's key when the issue moves to another project (and when a
+    project itself is rekeyed), announcing it as a `Key` changelog item. Jira Server
+    sends the same shape, so both flavors share this handler.
+    """
+    changelog_items = (data.get("changelog") or {}).get("items") or []
+    key_change = next(
+        (item for item in changelog_items if (item.get("field") or "").lower() == "key"),
+        None,
+    )
+    # Every other `issue.updated` webhook — the overwhelming majority — is not a move, so
+    # don't open a lifecycle for it.
+    if key_change is None:
+        return
+
+    with ProjectManagementEvent(
+        action_type=ProjectManagementActionType.REKEY_EXTERNAL_ISSUE, integration=integration
+    ).capture() as lifecycle:
+        issue = data.get("issue") or {}
+        old_key = key_change.get("fromString")
+        # Jira fills in `toString`, but `issue.key` is already the new key either way.
+        new_key = key_change.get("toString") or issue.get("key")
+        log_context = {
+            "integration_id": integration.id,
+            "old_key": old_key,
+            "new_key": new_key,
+        }
+        lifecycle.add_extras(log_context)
+
+        if not old_key or not new_key or old_key == new_key:
+            lifecycle.record_halt(
+                ProjectManagementHaltReason.REKEY_UNUSABLE_KEY_CHANGE, extra=log_context
+            )
+            return
+
+        rekeyed = rekey_external_issues(
+            integration, old_key, new_key, provider_issue_id=issue.get("id")
+        )
+        lifecycle.add_extras({"rekeyed_count": rekeyed})
 
 
 # TODO(Gabe): Consolidate this with VSTS's implementation, create DTO for status

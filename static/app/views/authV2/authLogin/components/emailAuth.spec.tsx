@@ -1,6 +1,13 @@
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import {EmailAuth} from './emailAuth';
 
@@ -15,12 +22,20 @@ describe('EmailAuth', () => {
     });
     render(<EmailAuth onAuthResult={onAuthResult} />);
 
+    const loginButton = screen.getByRole('button', {name: 'Log in to Sentry'});
+    expect(loginButton).toBeEnabled();
+    expect(loginButton).toHaveAttribute('tabindex', '-1');
+    expect(loginButton).not.toHaveAttribute('aria-hidden');
+    expect(loginButton).toHaveStyle({pointerEvents: 'none'});
     await userEvent.type(
       screen.getByRole('textbox', {name: 'Email'}),
       'user@example.com'
     );
+    expect(loginButton).toHaveAttribute('tabindex', '-1');
     await userEvent.type(screen.getByLabelText('Password'), 'secret');
-    await userEvent.click(screen.getByRole('button', {name: 'Log in to Sentry'}));
+    expect(loginButton).not.toHaveAttribute('tabindex');
+    expect(loginButton).toHaveStyle({pointerEvents: 'auto'});
+    await userEvent.click(loginButton);
 
     await waitFor(() =>
       expect(request).toHaveBeenCalledWith(
@@ -40,7 +55,7 @@ describe('EmailAuth', () => {
     );
   });
 
-  it('submits credentials populated without change events', async () => {
+  it('allows password managers to submit immediately after autofill', async () => {
     const request = MockApiClient.addMockResponse({
       url: '/auth/login/',
       method: 'POST',
@@ -48,30 +63,26 @@ describe('EmailAuth', () => {
     });
     render(<EmailAuth onAuthResult={jest.fn()} />);
 
-    const email = screen.getByRole('textbox', {name: 'Email'});
-    const password = screen.getByLabelText('Password');
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(
-      email,
-      'user@example.com'
-    );
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(
-      password,
-      'secret'
-    );
+    const emailInput = screen.getByRole('textbox', {name: 'Email'});
+    const passwordInput = screen.getByLabelText('Password');
+    const loginButton = screen.getByRole('button', {name: 'Log in to Sentry'});
 
-    await userEvent.click(screen.getByRole('button', {name: 'Log in to Sentry'}));
+    emailInput.setAttribute('value', 'user@example.com');
+    passwordInput.setAttribute('value', 'secret');
+    fireEvent.click(loginButton);
 
     await waitFor(() =>
       expect(request).toHaveBeenCalledWith(
         '/auth/login/',
         expect.objectContaining({
+          method: 'POST',
           data: {username: 'user@example.com', password: 'secret', orgSlug: null},
         })
       )
     );
   });
 
-  it('preserves credentials populated without change events after an error', async () => {
+  it('preserves credentials after an error', async () => {
     MockApiClient.addMockResponse({
       url: '/auth/login/',
       method: 'POST',
@@ -83,24 +94,18 @@ describe('EmailAuth', () => {
     });
     render(<EmailAuth onAuthResult={jest.fn()} />);
 
-    const email = screen.getByRole('textbox', {name: 'Email'});
-    const password = screen.getByLabelText('Password');
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(
-      email,
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Email'}),
       'user@example.com'
     );
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(
-      password,
-      'wrong'
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Log in to Sentry'}));
+    await userEvent.type(screen.getByLabelText('Password'), 'wrong');
+    await userEvent.click(await screen.findByRole('button', {name: 'Log in to Sentry'}));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Invalid email or password'
     );
-    expect(email).toHaveValue('user@example.com');
-    expect(password).toHaveValue('wrong');
+    expect(screen.getByRole('textbox', {name: 'Email'})).toHaveValue('user@example.com');
+    expect(screen.getByLabelText('Password')).toHaveValue('wrong');
   });
 
   it('reports required MFA methods', async () => {
@@ -131,7 +136,7 @@ describe('EmailAuth', () => {
     );
   });
 
-  it('shows login errors and clears them when credentials change', async () => {
+  it('clears login errors when entering password recovery', async () => {
     MockApiClient.addMockResponse({
       url: '/auth/login/',
       method: 'POST',
@@ -153,8 +158,16 @@ describe('EmailAuth', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Invalid email or password'
     );
+    expect(screen.getByRole('textbox', {name: 'Email'})).toHaveAccessibleDescription(
+      'Invalid email or password'
+    );
+    await waitFor(() =>
+      expect(document.querySelector('[data-tooltip]')).toHaveTextContent(
+        'Invalid email or password'
+      )
+    );
 
-    await userEvent.type(screen.getByLabelText('Password'), '!');
+    await userEvent.click(screen.getByRole('button', {name: 'Forgot password?'}));
 
     expect(screen.queryByText('Invalid email or password')).not.toBeInTheDocument();
   });
@@ -236,9 +249,9 @@ describe('EmailAuth', () => {
     );
     expect(screen.getByText('user@example.com')).toBeInTheDocument();
     expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
-    expect(
+    await waitForElementToBeRemoved(() =>
       screen.queryByRole('button', {name: 'Reset Password'})
-    ).not.toBeInTheDocument();
+    );
     expect(
       screen.queryByRole('button', {name: 'Use a different email'})
     ).not.toBeInTheDocument();

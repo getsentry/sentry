@@ -1282,6 +1282,18 @@ class TestEventDetectorsAllProject(TestCase):
         assert ed.has_detectors is True
         assert ed.detectors == {self.all_projects_detector}
 
+    def test_missing_all_projects_detector(self) -> None:
+        self.all_projects_detector.delete()
+        cache.clear()
+        assert get_all_projects_detector(self.organization.id) is None
+
+    def test_many_all_projects_detectors(self) -> None:
+        self.create_all_projects_detector(self.organization)
+        self.create_all_projects_detector(self.organization)
+        self.create_all_projects_detector(self.organization)
+        cache.clear()
+        assert get_all_projects_detector(self.organization.id) is None
+
     def test_cached_miss_is_invalidated_when_detector_is_created(self) -> None:
         self.all_projects_detector.delete()
         cache.clear()
@@ -1349,7 +1361,7 @@ class TestGetDetectorsForEventAllProject(TestCase):
         assert self.all_projects_detector not in result.detectors
         assert result.preferred_detector == self.error_detector
 
-    @override_options({"workflow_engine.all_projects_detectors_enabled": True})
+    @override_options({"workflow_engine.all_projects_detectors.rollout-rate": 1.0})
     def test_includes_all_projects_detector_with_option(self) -> None:
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
         result = get_detectors_for_event_data(event_data)
@@ -1357,7 +1369,7 @@ class TestGetDetectorsForEventAllProject(TestCase):
         assert self.all_projects_detector in result.detectors
         assert result.preferred_detector == self.error_detector
 
-    @override_options({"workflow_engine.all_projects_detectors_enabled": True})
+    @override_options({"workflow_engine.all_projects_detectors.rollout-rate": 1.0})
     def test_missing_all_projects_detector_no_effect(self) -> None:
         self.all_projects_detector.delete()
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
