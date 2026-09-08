@@ -7,7 +7,7 @@ add help_text instead; sentry.apidocs.hooks spells out when omission is correct.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import TypeVar
 
 from drf_spectacular.drainage import get_override, set_override
@@ -19,10 +19,13 @@ OMISSION_REASONS_OVERRIDE = "sentry_omission_reasons"
 T = TypeVar("T", bound=type)
 
 
-def sentry_schema_serializer(*, omit_from_public_schema: dict[str, str]) -> Callable[[T], T]:
+def sentry_schema_serializer(
+    *, omit_from_public_schema: dict[str, str], deprecate_fields: Sequence[str] | None = None
+) -> Callable[[T], T]:
     """Withhold fields from the generated schema, recording why for each one.
 
     Each value is the reason that field is not part of the public API surface.
+    ``deprecate_fields`` is passed through to drf-spectacular unchanged.
     """
     if not omit_from_public_schema:
         raise ValueError(
@@ -48,6 +51,14 @@ def sentry_schema_serializer(*, omit_from_public_schema: dict[str, str]) -> Call
         reasons = {**(get_override(klass, OMISSION_REASONS_OVERRIDE, {}) or {})}
         reasons.update(omit_from_public_schema)
         set_override(klass, OMISSION_REASONS_OVERRIDE, reasons)
+
+        if deprecate_fields:
+            existing_deprecated = get_override(klass, "deprecate_fields", []) or []
+            set_override(
+                klass,
+                "deprecate_fields",
+                list(dict.fromkeys([*existing_deprecated, *deprecate_fields])),
+            )
         return klass
 
     return decorator

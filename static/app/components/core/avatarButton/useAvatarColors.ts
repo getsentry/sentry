@@ -7,20 +7,20 @@ import {useAvatar} from '@sentry/scraps/avatar';
 
 import {resolveImageAvatarColors} from './avatarImageAnalysis';
 
-type AvatarColorsResult =
+export type AvatarColorsResult =
   | {chonk: string; style: 'padded' | 'fill'; type: 'image'}
   | {chonk: string; type: 'letter'}
   | {type: 'none'};
 
-export function useAvatarColors(avatar: BaseAvatarProps): AvatarColorsResult {
+export function useAvatarColors(avatar?: BaseAvatarProps): AvatarColorsResult {
   const theme = useTheme();
   const avatarDefinition = useAvatar({
-    identifier: avatar.identifier,
-    name: avatar.name,
+    identifier: avatar?.identifier ?? '',
+    name: avatar?.name ?? '',
     imageDefinition:
-      avatar.type === 'upload'
+      avatar?.type === 'upload'
         ? {type: 'upload', uploadUrl: avatar.uploadUrl}
-        : avatar.type === 'gravatar'
+        : avatar?.type === 'gravatar'
           ? {type: 'gravatar', gravatarId: avatar.gravatarId}
           : undefined,
   });
@@ -31,11 +31,15 @@ export function useAvatarColors(avatar: BaseAvatarProps): AvatarColorsResult {
   const {data: imageResult} = useQuery({
     queryKey: ['avatar-button-chonk', imageUrl, theme.type],
     queryFn:
-      imageUrl && avatarDefinition.type === 'image'
+      avatar && imageUrl && avatarDefinition.type === 'image'
         ? () => resolveImageAvatarColors(imageUrl, theme.type)
         : skipToken,
     staleTime: Infinity,
   });
+
+  if (!avatar) {
+    return {type: 'none'};
+  }
 
   if (avatarDefinition.type === 'letter') {
     const chonk = color(avatarDefinition.configuration.background).darken(0.65).hex();

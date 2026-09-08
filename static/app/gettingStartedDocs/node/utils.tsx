@@ -111,11 +111,8 @@ function getProfilingImport(defaultMode?: 'esm' | 'cjs'): string {
 /**
  * Import Snippet for the Node and Serverless SDKs without other packages (like profiling).
  */
-export function getSentryImportSnippet(
-  packageName: `@sentry/${string}`,
-  defaultMode?: 'esm' | 'cjs'
-): string {
-  return getImport(packageName, defaultMode).join('\n');
+export function getSentryImportSnippet(packageName: `@sentry/${string}`): string {
+  return getImport(packageName).join('\n');
 }
 
 export function getImportInstrumentSnippet(

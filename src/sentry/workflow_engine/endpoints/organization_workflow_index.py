@@ -109,7 +109,7 @@ class OrganizationWorkflowPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin", "alerts:read"],
         "POST": ["org:read", "org:write", "org:admin", "alerts:write"],
-        "PUT": ["org:write", "org:admin", "alerts:write"],
+        "PUT": ["org:read", "org:write", "org:admin", "alerts:write"],
         "DELETE": ["org:read", "org:write", "org:admin", "alerts:write"],
     }
 
@@ -253,6 +253,26 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         queryset = queryset.filter(accessible_workflows).distinct()
 
         return queryset
+
+    def _get_workflows_for_mutation(
+        self, request: Request, organization: Organization
+    ) -> tuple[QuerySet[Workflow], list[Workflow]]:
+        """Return the complete set of workflows that the request is allowed to mutate."""
+        queryset = self.filter_workflows(request, organization)
+        workflows = list(queryset)
+
+        if not workflows:
+            return queryset, workflows
+
+        if raw_idlist := request.GET.getlist("id"):
+            requested_ids = set(to_valid_int_id_list("id", raw_idlist))
+            if requested_ids != {workflow.id for workflow in workflows}:
+                raise PermissionDenied
+
+        if not can_edit_workflows(workflows, request):
+            raise PermissionDenied
+
+        return queryset, workflows
 
     @extend_schema(
         operation_id="listOrganizationWorkflows",
@@ -418,8 +438,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         """
         Bulk enable or disable alerts for a given Organization
         """
+        raw_idlist = request.GET.getlist("id")
         if not (
-            request.GET.getlist("id")
+            raw_idlist
             or request.GET.get("query")
             or request.GET.getlist("project")
             or request.GET.getlist("projectSlug")
@@ -435,9 +456,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         validator.is_valid(raise_exception=True)
         enabled = validator.validated_data["enabled"]
 
-        queryset = self.filter_workflows(request, organization)
+        queryset, workflows = self._get_workflows_for_mutation(request, organization)
 
-        if not queryset:
+        if not workflows:
             return Response(
                 {"detail": "No workflows found."},
                 status=status.HTTP_200_OK,
@@ -445,7 +466,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
 
         with transaction.atomic(router.db_for_write(Workflow)):
             # We update workflows individually to ensure post_save signals are called
-            for workflow in queryset:
+            for workflow in workflows:
                 workflow.update(enabled=enabled)
 
         return self.paginate(
@@ -494,22 +515,13 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        queryset = self.filter_workflows(request, organization)
-        workflows = list(queryset)
+        _, workflows = self._get_workflows_for_mutation(request, organization)
 
         if not workflows:
             return Response(
                 {"detail": "No workflows found."},
                 status=status.HTTP_200_OK,
             )
-
-        if raw_idlist:
-            requested_ids = set(to_valid_int_id_list("id", raw_idlist))
-            if requested_ids != {workflow.id for workflow in workflows}:
-                raise PermissionDenied
-
-        if not can_edit_workflows(workflows, request):
-            raise PermissionDenied
 
         for workflow in workflows:
             with transaction.atomic(router.db_for_write(Workflow)):

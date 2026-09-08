@@ -1,8 +1,8 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {SearchBar} from 'sentry/components/searchBar';
@@ -28,7 +28,12 @@ export function SearchBarAction({
   className,
 }: Props) {
   return (
-    <Wrapper className={className}>
+    <Flex
+      className={className}
+      width={{zero: '100%', xl: '500px'}}
+      maxWidth="500px"
+      gap="sm"
+    >
       {filterOptions && (
         <CompactSelect
           size="sm"
@@ -38,7 +43,7 @@ export function SearchBarAction({
           value={filterSelections?.map(f => f.value)}
           onChange={onFilterChange}
           trigger={props => (
-            <StyledTrigger
+            <OverlayTrigger.Button
               variant={
                 filterSelections && filterSelections.length > 0 ? 'primary' : 'secondary'
               }
@@ -47,7 +52,7 @@ export function SearchBarAction({
               {filterSelections?.length
                 ? tn('%s Active Filter', '%s Active Filters', filterSelections.length)
                 : t('Filter By')}
-            </StyledTrigger>
+            </OverlayTrigger.Button>
           )}
         />
       )}
@@ -56,39 +61,11 @@ export function SearchBarAction({
         onChange={onChange}
         query={query}
         placeholder={placeholder}
-        blendWithFilter={!!filterOptions}
       />
-    </Wrapper>
+    </Flex>
   );
 }
 
-const Wrapper = styled('div')`
-  display: flex;
+const StyledSearchBar = styled(SearchBar)`
   width: 100%;
-  justify-content: flex-end;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    width: 350px;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    width: 500px;
-  }
-`;
-
-const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
-  width: 100%;
-
-  ${p =>
-    p.blendWithFilter &&
-    css`
-      input {
-        border-radius: 0 ${p.theme.radius.md} ${p.theme.radius.md} 0;
-        border-left-width: 0;
-      }
-    `}
-`;
-
-const StyledTrigger = styled(OverlayTrigger.Button)`
-  border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
 `;

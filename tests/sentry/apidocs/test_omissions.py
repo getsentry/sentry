@@ -69,3 +69,32 @@ def test_blank_reason_is_rejected(reason: str) -> None:
 def test_empty_mapping_is_rejected() -> None:
     with pytest.raises(ValueError):
         sentry_schema_serializer(omit_from_public_schema={})
+
+
+def test_deprecate_fields_is_passed_through() -> None:
+    @sentry_schema_serializer(
+        omit_from_public_schema={"hidden": "A stated reason."}, deprecate_fields=["legacy"]
+    )
+    class DeprecatingSerializer(serializers.Serializer):
+        hidden = serializers.CharField(required=False)
+        legacy = serializers.CharField(required=False)
+
+    assert get_override(DeprecatingSerializer, "exclude_fields") == ["hidden"]
+    assert get_override(DeprecatingSerializer, "deprecate_fields") == ["legacy"]
+
+
+def test_deprecate_fields_merges_with_a_stacked_decorator() -> None:
+    @sentry_schema_serializer(
+        omit_from_public_schema={"hidden": "A stated reason."}, deprecate_fields=["new"]
+    )
+    @extend_schema_serializer(deprecate_fields=["old"])
+    class StackedDeprecating(serializers.Serializer):
+        hidden = serializers.CharField(required=False)
+        old = serializers.CharField(required=False)
+        new = serializers.CharField(required=False)
+
+    assert sorted(get_override(StackedDeprecating, "deprecate_fields")) == ["new", "old"]
+
+
+def test_omitting_without_deprecating_sets_no_deprecate_override() -> None:
+    assert get_override(OmittingSerializer, "deprecate_fields") is None

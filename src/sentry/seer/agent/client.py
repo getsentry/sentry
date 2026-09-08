@@ -354,14 +354,6 @@ class SeerAgentClient:
 
         self.enable_coding = enable_coding
 
-        # PR context tools back both the automated CI and the manual iteration flows,
-        # so either flag grants them.
-        if enable_pr_context_tools and not (
-            features.has("organizations:autofix-pr-iteration", organization, actor=user)
-            or features.has("organizations:autofix-pr-iteration-manual", organization, actor=user)
-        ):
-            raise SeerPermissionError("PR context tools are not enabled for this organization")
-
         self.enable_pr_context_tools = enable_pr_context_tools
 
         self.viewer_context = self._build_viewer_context()
@@ -546,10 +538,10 @@ class SeerAgentClient:
         feature_id: str,
         payload: dict[str, Any],
         title: str,
+        referrer: str,
         flush: bool = True,
         extras: dict[str, Any] | None = None,
         on_run_created: Callable[[SeerRun], None] | None = None,
-        referrer: str | None = None,
         agent_run_options: AgentRunOptions | None = None,
         user_org_context: UserOrgContext | None = None,
     ) -> SeerRun:
@@ -598,6 +590,7 @@ class SeerAgentClient:
             feature_id=feature_id,
             payload=payload,
             agent_run_options=resolved_agent_run_options,
+            referrer=referrer,
         )
         if user_org_context is not None:
             body["user_org_context"] = user_org_context

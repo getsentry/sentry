@@ -722,7 +722,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 0.75},
+      body: {eapEffectiveSampleRate: 0.75},
     });
 
     render(
@@ -752,7 +752,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 1},
+      body: {eapEffectiveSampleRate: 1},
     });
 
     render(
@@ -783,7 +783,7 @@ describe('CustomerOverview', () => {
     // Simulates floating-point imprecision: 0.600001 * 100 !== 0.6 * 100
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 0.600001},
+      body: {eapEffectiveSampleRate: 0.600001},
     });
 
     render(
@@ -813,7 +813,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 0.54},
+      body: {eapEffectiveSampleRate: 0.58},
     });
 
     render(
@@ -823,7 +823,7 @@ describe('CustomerOverview', () => {
         organization={organization}
       />
     );
-    await screen.findByText('54.00% instead of 60.00% (~6.00%)');
+    await screen.findByText('58.00% instead of 60.00% (~2.00%)');
   });
 
   it('renders decimal sample rates preserving trailing zeros', async () => {
@@ -837,7 +837,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 0.501},
+      body: {eapEffectiveSampleRate: 0.502},
     });
 
     render(
@@ -847,7 +847,7 @@ describe('CustomerOverview', () => {
         organization={organization}
       />
     );
-    await screen.findByText('50.10% instead of 60.00% (~9.90%)');
+    await screen.findByText('50.20% instead of 60.00% (~9.80%)');
   });
 
   it('renders n/a when effective sample rate is missing', async () => {
@@ -861,7 +861,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: null},
+      body: {eapEffectiveSampleRate: null},
     });
 
     render(
@@ -875,6 +875,40 @@ describe('CustomerOverview', () => {
     await waitFor(() => {
       const term = screen.getByText('Sample Rate (24h):');
       expect(term.nextElementSibling).toHaveTextContent('n/a');
+    });
+  });
+
+  it('renders the sample rate row while the request is pending', async () => {
+    const organization = OrganizationFixture({
+      features: ['dynamic-sampling'],
+      desiredSampleRate: 0.75,
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
+      body: {eapEffectiveSampleRate: 0.75},
+      asyncDelay: 1,
+    });
+
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByText('Sample Rate (24h):').nextElementSibling).toHaveTextContent(
+      'Loading...'
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Sample Rate (24h):').nextElementSibling).toHaveTextContent(
+        '75.00%'
+      );
     });
   });
 

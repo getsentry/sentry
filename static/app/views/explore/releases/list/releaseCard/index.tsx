@@ -170,7 +170,6 @@ export function ReleaseCard({
             <FinalizeWrapper>
               {release.dateReleased ? (
                 <Tooltip
-                  isHoverable
                   title={tct('This release was finalized on [date]. [docs:Read More].', {
                     date: moment(release.dateReleased).format(
                       options?.clock24Hours
@@ -186,7 +185,6 @@ export function ReleaseCard({
                 </Tooltip>
               ) : (
                 <Tooltip
-                  isHoverable
                   title={tct(
                     'Set release date to [date].[br]Finalizing a release means that we populate a second timestamp on the release record, which is prioritized over [code:date_created] when sorting releases. [docs:Read more].',
                     {

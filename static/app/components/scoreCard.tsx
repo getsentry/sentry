@@ -12,7 +12,6 @@ type ScoreCardProps = {
   title: React.ReactNode;
   className?: string;
   help?: React.ReactNode;
-  isTooltipHoverable?: boolean;
   score?: React.ReactNode;
   trend?: React.ReactNode;
   trendStatus?: 'good' | 'bad';
@@ -25,7 +24,6 @@ export function ScoreCard({
   trend,
   trendStatus,
   className,
-  isTooltipHoverable,
 }: ScoreCardProps) {
   const displayScore = score ?? '\u2014';
 
@@ -34,14 +32,7 @@ export function ScoreCard({
       <Flex wrap="wrap" align="center" justify="between">
         <HeaderTitle>
           <Title>{title}</Title>
-          {help && (
-            <QuestionTooltip
-              title={help}
-              size="sm"
-              position="top"
-              isHoverable={isTooltipHoverable}
-            />
-          )}
+          {help && <QuestionTooltip title={help} size="sm" position="top" />}
         </HeaderTitle>
       </Flex>
 
