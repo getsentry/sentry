@@ -45,10 +45,12 @@ function getSpansQueryFields(data: SpansQueryData): string[] {
 // differently: the events API wants the alias `p95_span_duration`, while
 // Explore's `aggregateSort` param is validated by exact match against the
 // page's own y-axis and group-by values and so only accepts
-// `p95(span.duration)`. Neither side reports a mismatch — the events API is
-// fed the sort verbatim, and Explore silently drops one it doesn't recognise
-// and falls back to its default ordering. So normalize at each edge instead
-// of trusting the spelling that arrived.
+// `p95(span.duration)`. Neither side reports a mismatch, and neither tolerates
+// a sort that names no selected field — Explore silently drops one and falls
+// back to its default ordering, while the events API rejects the whole request
+// with "Cannot sort by a field that is not selected". So normalize at each
+// edge instead of trusting the spelling that arrived, and fall back to the
+// default ordering rather than forwarding a sort the fields don't name.
 
 /** Finds which of `fields` a sort names, in either spelling. */
 function findSortedField(sort: string, fields: string[]): string | undefined {
@@ -56,10 +58,20 @@ function findSortedField(sort: string, fields: string[]): string | undefined {
   return fields.find(item => item === field || getAggregateAlias(item) === field);
 }
 
-/** Alias spelling, for the events API. Unrecognised sorts pass through. */
-function toEventsApiSort(sort: string, fields: string[]): string {
+/** Alias spelling, for the events API. Unrecognised sorts fall back. */
+function toEventsApiSort(
+  sort: string | undefined,
+  fields: string[],
+  fallback: string
+): string {
+  if (!sort) {
+    return fallback;
+  }
+
   const field = findSortedField(sort, fields);
-  return field ? `${sort.startsWith('-') ? '-' : ''}${getAggregateAlias(field)}` : sort;
+  return field
+    ? `${sort.startsWith('-') ? '-' : ''}${getAggregateAlias(field)}`
+    : fallback;
 }
 
 /** Field spelling, for Explore's URL. Unrecognised sorts are dropped. */
@@ -85,7 +97,7 @@ export function buildSpansEventView(data: SpansQueryData): EventView {
     id: undefined,
     name: data.title ?? 'Spans',
     fields,
-    orderby: [data.sort ? toEventsApiSort(data.sort, fields) : defaultSort],
+    orderby: [toEventsApiSort(data.sort, fields, defaultSort)],
     query: data.query,
     version: 2,
     dataset: DiscoverDatasets.SPANS,

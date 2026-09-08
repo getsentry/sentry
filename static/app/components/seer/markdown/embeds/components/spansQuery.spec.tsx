@@ -232,8 +232,8 @@ describe('spans query embed', () => {
     });
   });
 
-  it('drops an aggregate sort that names no aggregate field', async () => {
-    MockApiClient.addMockResponse({
+  it('falls back when an aggregate sort names no aggregate field', async () => {
+    const request = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {data: [{'span.op': 'http.server', p95_span_duration: 1234}]},
     });
@@ -260,6 +260,19 @@ describe('spans query embed', () => {
     // Explore would reject it anyway, so leave it off rather than ship a param
     // that does nothing.
     expect(searchParams.get('aggregateSort')).toBeNull();
+
+    // The events API is stricter still: an orderby that names no selected
+    // column fails the request outright, so the table falls back to the
+    // charted aggregate rather than showing an error where the link and the
+    // chart both quietly degrade.
+    await waitFor(() => {
+      expect(request).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({sort: '-p95_span_duration'}),
+        })
+      );
+    });
   });
 
   it('charts a grouped query as one series per top group', async () => {
