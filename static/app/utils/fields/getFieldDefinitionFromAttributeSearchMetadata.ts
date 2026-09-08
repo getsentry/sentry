@@ -7,13 +7,7 @@ import {
   getAttributeSearchDeprecationAliases,
   getPreferredAttributeSearchKey,
 } from './getAttributeSearchSecondaryAliases';
-import {FieldKind, type FieldDefinition} from './types';
-
-export const ARRAY_ATTRIBUTE_SEARCH_TYPES = new Set([
-  'string[]',
-  'boolean[]',
-  'number[]',
-]);
+import {FieldKind, FieldValueType, type FieldDefinition} from './types';
 
 export function getFieldDefinitionFromAttributeSearchMetadata(
   key: string
@@ -25,13 +19,12 @@ export function getFieldDefinitionFromAttributeSearchMetadata(
 
   const keywords = getAttributeSearchDeprecationAliases(key);
   const preferredKey = getPreferredAttributeSearchKey(key);
+  const valueType = attributeSearchTypeToFieldValueType(metadata.type);
 
   return {
-    kind: ARRAY_ATTRIBUTE_SEARCH_TYPES.has(metadata.type)
-      ? FieldKind.ARRAY
-      : FieldKind.FIELD,
+    kind: valueType === FieldValueType.ARRAY ? FieldKind.ARRAY : FieldKind.FIELD,
     desc: td(ATTRIBUTE_SEARCH_METADATA[key]!.brief),
-    valueType: attributeSearchTypeToFieldValueType(metadata.type),
+    valueType,
     ...(keywords.length ? {keywords} : {}),
     ...(preferredKey && preferredKey !== key ? {deprecated: true} : {}),
   };

@@ -1,10 +1,7 @@
 import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions';
 
 import {attributeSearchTypeToFieldValueType} from './attributeSearchTypeToFieldValueType';
-import {
-  ARRAY_ATTRIBUTE_SEARCH_TYPES,
-  getFieldDefinitionFromAttributeSearchMetadata,
-} from './getFieldDefinitionFromAttributeSearchMetadata';
+import {getFieldDefinitionFromAttributeSearchMetadata} from './getFieldDefinitionFromAttributeSearchMetadata';
 import {FieldKind, FieldValueType, type FieldDefinition} from './types';
 
 const UNIT_FIELD_VALUE_TYPES = new Set<FieldValueType>([
@@ -49,7 +46,7 @@ export function mergeAttributeSearchMetadata(
     ...definition,
     desc: keepLocalDescription ? (definition.desc ?? fromSearch.desc) : fromSearch.desc,
     valueType: keepLocalValueType ? definition.valueType : fromSearch.valueType,
-    ...(ARRAY_ATTRIBUTE_SEARCH_TYPES.has(metadata.type) ? {kind: FieldKind.ARRAY} : {}),
+    ...(fromSearch.kind === FieldKind.ARRAY ? {kind: FieldKind.ARRAY} : {}),
     ...(keywords.length ? {keywords} : {}),
   };
 }
