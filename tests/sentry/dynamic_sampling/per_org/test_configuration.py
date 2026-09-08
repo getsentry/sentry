@@ -19,9 +19,12 @@ from sentry.dynamic_sampling.per_org.telemetry import (
     DynamicSamplingException,
     DynamicSamplingStatus,
 )
-from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
-from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
+from sentry.dynamic_sampling.sliding_window import SLIDING_WINDOW_HOURS
+from sentry.dynamic_sampling.types import (
+    DynamicSamplingMode,
+    OrganizationDataVolume,
+    SamplingMeasure,
+)
 from sentry.testutils.cases import TestCase
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (
     BLENDED_SAMPLE_RATE,
@@ -77,13 +80,12 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         assert configuration.get_serving_sample_rate() == 0.25
         mocks[OUTCOMES_VOLUME].assert_called_once()
         assert mocks[OUTCOMES_VOLUME].call_args.kwargs["time_interval"] == timedelta(
-            hours=FALLBACK_SLIDING_WINDOW_SIZE
+            hours=SLIDING_WINDOW_HOURS
         )
         mocks[SLIDING_WINDOW_RATE].assert_called_once_with(
             org_id=org.id,
-            project_id=None,
             total_root_count=1000,
-            window_size=FALLBACK_SLIDING_WINDOW_SIZE,
+            window_size=SLIDING_WINDOW_HOURS,
         )
 
     def test_blended_full_sample_rate_gates_only_the_serving_rate(self) -> None:

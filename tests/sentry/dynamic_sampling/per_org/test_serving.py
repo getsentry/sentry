@@ -8,6 +8,7 @@ import pytest
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org import cache as per_org_cache
 from sentry.dynamic_sampling.per_org.serving import (
+    get_organization_sample_rate,
     get_previous_recalibration_factor,
     get_project_sample_rate,
     get_recalibration_factor,
@@ -23,6 +24,11 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     set_transactions_resampling_rates,
 )
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
+    generate_sliding_window_org_cache_key,
+)
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 
 ORG_ID = 4711
@@ -43,6 +49,7 @@ def clean_redis() -> Iterator[None]:
         per_org_cache.generate_project_sample_rates_cache_key(ORG_ID),
         per_org_cache.generate_transaction_sample_rates_cache_key(ORG_ID, PROJECT_ID),
         per_org_cache.generate_recalibrate_orgs_cache_key(ORG_ID),
+        per_org_cache.generate_organization_sample_rate_cache_key(ORG_ID),
         legacy_recalibration_cache.generate_recalibrate_orgs_cache_key(ORG_ID),
         generate_boost_low_volume_projects_cache_key(ORG_ID),
     ]
@@ -364,3 +371,49 @@ class TestIsRecalibrationFactorServedPerOrg:
         switch_org_to_per_org()
 
         assert is_recalibration_factor_served_per_org(ORG_ID + 1) is False
+
+
+class GetOrganizationSampleRateTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.org = self.create_organization()
+        redis = get_redis_client_for_ds()
+        keys = [
+            per_org_cache.generate_organization_sample_rate_cache_key(self.org.id),
+            generate_sliding_window_org_cache_key(self.org.id),
+        ]
+        redis.delete(*keys)
+        self.addCleanup(redis.delete, *keys)
+
+    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
+    def test_custom_dynamic_sampling_targets_the_org_option(self) -> None:
+        self.org.update_option("sentry:target_sample_rate", 0.5)
+
+        assert get_organization_sample_rate(self.org.id, None) == (0.5, True)
+
+    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
+    def test_custom_dynamic_sampling_without_the_option_falls_back(self) -> None:
+        assert get_organization_sample_rate(self.org.id, None) == (1.0, False)
+        assert get_organization_sample_rate(self.org.id, 0.7) == (0.7, False)
+
+    def test_serves_the_stored_rate(self) -> None:
+        per_org_cache.set_organization_sample_rate(self.org.id, 0.25)
+
+        assert get_organization_sample_rate(self.org.id, 0.7) == (0.25, True)
+
+    def test_an_org_without_a_stored_rate_serves_the_legacy_sliding_window_rate(self) -> None:
+        get_redis_client_for_ds().set(generate_sliding_window_org_cache_key(self.org.id), 0.3)
+
+        assert get_organization_sample_rate(self.org.id, 0.7) == (0.3, True)
+
+    def test_the_stored_rate_wins_over_the_legacy_one(self) -> None:
+        get_redis_client_for_ds().set(generate_sliding_window_org_cache_key(self.org.id), 0.3)
+        per_org_cache.set_organization_sample_rate(self.org.id, 0.25)
+
+        assert get_organization_sample_rate(self.org.id, 0.7) == (0.25, True)
+
+    def test_an_org_without_any_stored_rate_falls_back(self) -> None:
+        assert get_organization_sample_rate(self.org.id, 0.7) == (0.7, False)
+
+    def test_a_missing_org_falls_back(self) -> None:
+        assert get_organization_sample_rate(99999999, 0.7) == (0.7, False)

@@ -26,11 +26,11 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingInput,
     TransactionsRebalancingModel,
 )
+from sentry.dynamic_sampling.per_org.cache import DEFAULT_REDIS_CACHE_KEY_TTL
 from sentry.dynamic_sampling.tasks.common import MEASURE_CONFIGS, GetActiveOrgs
 from sentry.dynamic_sampling.tasks.constants import (
     BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
     CHUNK_SIZE,
-    DEFAULT_REDIS_CACHE_KEY_TTL,
     MAX_PROJECTS_PER_QUERY,
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (

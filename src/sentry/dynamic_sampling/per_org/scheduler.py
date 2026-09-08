@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from taskbroker_client.retry import Retry
 
 from sentry import features
+from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.cache import write_caches
 from sentry.dynamic_sampling.per_org.calculations import (
     apply_project_sample_rate_overrides,
@@ -14,7 +15,10 @@ from sentry.dynamic_sampling.per_org.calculations import (
     run_transaction_balancing,
 )
 from sentry.dynamic_sampling.per_org.comparisons import emit_comparisons
-from sentry.dynamic_sampling.per_org.configuration import get_configuration
+from sentry.dynamic_sampling.per_org.configuration import (
+    CustomDynamicSamplingOrganizationConfiguration,
+    get_configuration,
+)
 from sentry.dynamic_sampling.per_org.feature_cache import (
     candidate_organizations,
     get_orgs_with_dynamic_sampling,
@@ -44,6 +48,10 @@ logger = logging.getLogger(__name__)
 
 # How long a full pass through all organizations should take.
 CYCLE_DURATION = timedelta(minutes=10)
+
+# The volume the per-project target sample rates are seeded from when an organization
+# switches to project mode.
+PROJECT_TARGET_SAMPLE_RATES_WINDOW = timedelta(days=30)
 
 
 @instrumented_task(
@@ -110,6 +118,20 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     finally:
         emit_comparisons(config)
         write_caches(config)
+
+
+def calculate_project_target_sample_rates(organization: Organization) -> list[RebalancedItem]:
+    """The balanced sample rate of every project, from the organization's volume over the
+    last 30 days and its organization-level target rate.
+
+    Seeds the per-project targets when an organization switches to project mode, so that
+    every project starts from the rate it was balanced at.
+    """
+    config = CustomDynamicSamplingOrganizationConfiguration(organization)
+    project_volumes = get_eap_project_volumes(
+        config, time_interval=PROJECT_TARGET_SAMPLE_RATES_WINDOW
+    )
+    return run_project_balancing(config, project_volumes)
 
 
 @instrumented_task(

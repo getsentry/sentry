@@ -73,16 +73,14 @@ from sentry.constants import (
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     SEER_DEFAULT_CODING_AGENT_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
-    ObjectStatus,
 )
 from sentry.core.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
-from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
-    boost_low_volume_projects_of_org_with_query,
-    calculate_sample_rates_of_projects,
-    query_project_counts_by_org,
+from sentry.dynamic_sampling.per_org.scheduler import (
+    calculate_project_target_sample_rates,
+    run_calculations_per_org_task_entry,
 )
-from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
+from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.dynamic_sampling.utils import (
     has_custom_dynamic_sampling,
     is_organization_mode_sampling,
@@ -101,7 +99,6 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.project import Project
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
@@ -1246,9 +1243,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 if is_org_mode and (
                     "samplingMode" in changed_data or "targetSampleRate" in changed_data
                 ):
-                    boost_low_volume_projects_of_org_with_query.delay(
-                        organization.id,
-                    )
+                    run_calculations_per_org_task_entry.delay(organization.id)
 
                 if is_org_mode and "defaultAutofixAutomationTuning" in changed_data:
                     organization.update_option(
@@ -1317,33 +1312,12 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
     def _compute_project_target_sample_rates(self, request: Request, organization: Organization):
         # TODO: this will take a long time for organizations with a lot of projects
         #       so we need to refactor this into an async task we can run and observe
-        org_id = organization.id
-        measure = SamplingMeasure.SEGMENTS
-        projects_with_tx_count_and_rates = []
-        for chunk in query_project_counts_by_org(
-            [org_id], measure, query_interval=timedelta(days=30)
-        ):
-            for row in chunk:
-                projects_with_tx_count_and_rates.append(row[1:])
-
-        rebalanced_projects = calculate_sample_rates_of_projects(
-            org_id, projects_with_tx_count_and_rates
-        )
-
-        project_ids = set(
-            Project.objects.filter(organization_id=org_id, status=ObjectStatus.ACTIVE).values_list(
-                "id", flat=True
+        for rebalanced_item in calculate_project_target_sample_rates(organization):
+            ProjectOption.objects.update_or_create(
+                project_id=rebalanced_item.id,
+                key="sentry:target_sample_rate",
+                defaults={"value": round(rebalanced_item.new_sample_rate, 4)},
             )
-        )
-
-        if rebalanced_projects is not None:
-            for rebalanced_item in rebalanced_projects:
-                if int(rebalanced_item.id) in project_ids:
-                    ProjectOption.objects.update_or_create(
-                        project_id=rebalanced_item.id,
-                        key="sentry:target_sample_rate",
-                        defaults={"value": round(rebalanced_item.new_sample_rate, 4)},
-                    )
 
     def handle_delete(self, request: Request, organization: Organization):
         """

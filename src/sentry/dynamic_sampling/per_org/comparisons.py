@@ -1,18 +1,14 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from datetime import UTC, datetime, timedelta
 
+import orjson
 import sentry_sdk
 
 from sentry.constants import SAMPLING_MODE_DEFAULT
-from sentry.dynamic_sampling.per_org.cache import (
-    get_cached_organization_sample_rate,
-    get_cached_rebalanced_project_sample_rates,
-    get_cached_rebalanced_transaction_sample_rates,
-    get_cached_recalibration_factor,
-)
+from sentry.dynamic_sampling.per_org.cache import sample_rate_to_float
 from sentry.dynamic_sampling.per_org.calculations import calculate_recalibration_factor
 from sentry.dynamic_sampling.per_org.configuration import (
     AutomaticDynamicSamplingConfiguration,
@@ -31,13 +27,25 @@ from sentry.dynamic_sampling.per_org.queries import (
     get_generic_metrics_transaction_volumes,
     get_outcomes_organization_volume,
 )
-from sentry.dynamic_sampling.tasks.common import (
-    OrganizationDataVolume,
+from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
+from sentry.dynamic_sampling.sliding_window import (
+    SLIDING_WINDOW_HOURS,
     compute_sliding_window_sample_rate,
-    get_effective_sample_rate,
-    get_organization_volume,
 )
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
+from sentry.dynamic_sampling.tasks.common import get_organization_volume
+from sentry.dynamic_sampling.tasks.helpers import (
+    recalibrate_orgs as legacy_recalibration_cache,
+)
+from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
+    generate_boost_low_volume_projects_cache_key,
+)
+from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
+    generate_boost_low_volume_transactions_cache_key,
+)
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
+    generate_sliding_window_org_cache_key,
+)
+from sentry.dynamic_sampling.types import OrganizationDataVolume
 from sentry.utils import metrics
 
 PROJECT_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
@@ -47,6 +55,60 @@ PROJECT_BALANCING_DEBUG_METRIC_PREFIX = "dynamic_sampling.per_org.project_balanc
 SLIDING_WINDOW_METRIC_PREFIX = "dynamic_sampling.per_org.sliding_window"
 
 logger = logging.getLogger(__name__)
+
+CachedTransactionSampleRates = dict[int, tuple[dict[str, float], float] | None]
+
+
+def get_cached_organization_sample_rate(org_id: int) -> float | None:
+    redis_client = get_redis_client_for_ds()
+    return sample_rate_to_float(redis_client.get(generate_sliding_window_org_cache_key(org_id)))
+
+
+def get_cached_rebalanced_project_sample_rates(org_id: int) -> dict[int, float | None]:
+    redis_client = get_redis_client_for_ds()
+    cache_key = generate_boost_low_volume_projects_cache_key(org_id=org_id)
+    return {
+        int(project_id): sample_rate_to_float(sample_rate)
+        for project_id, sample_rate in redis_client.hgetall(cache_key).items()
+    }
+
+
+def get_cached_rebalanced_transaction_sample_rates(
+    org_id: int, project_ids: Iterable[int]
+) -> CachedTransactionSampleRates:
+    redis_client = get_redis_client_for_ds()
+    ordered_project_ids = list(project_ids)
+    if not ordered_project_ids:
+        return {}
+
+    with redis_client.pipeline(transaction=False) as pipeline:
+        for project_id in ordered_project_ids:
+            pipeline.get(
+                generate_boost_low_volume_transactions_cache_key(org_id=org_id, proj_id=project_id)
+            )
+        serialized_values = pipeline.execute()
+
+    result: CachedTransactionSampleRates = {}
+    for project_id, serialized in zip(ordered_project_ids, serialized_values):
+        if serialized is None:
+            result[project_id] = None
+            continue
+        try:
+            named_rates, implicit_rate = orjson.loads(serialized)
+        except (TypeError, ValueError) as e:
+            sentry_sdk.capture_exception(e)
+            result[project_id] = None
+            continue
+        result[project_id] = (named_rates, float(implicit_rate))
+    return result
+
+
+def get_cached_recalibration_factor(org_id: int) -> float:
+    return legacy_recalibration_cache.get_adjusted_factor(org_id, source="per_org_comparison")
+
+
+def _effective_sample_rate(volume: OrganizationDataVolume | None) -> float | None:
+    return None if volume is None else volume.effective_sample_rate
 
 
 def emit_comparisons(config: BaseDynamicSamplingConfiguration) -> None:
@@ -282,10 +344,10 @@ def compare_recalibration_factor_with_cache(config: BaseDynamicSamplingConfigura
             "previous_eap_factor": results.previous_recalibration_factor,
             "total_transactions": None if org_volume is None else org_volume.total,
             "stored_segments": None if org_volume is None else org_volume.indexed,
-            "eap_effective_sample_rate": get_effective_sample_rate(org_volume),
+            "eap_effective_sample_rate": _effective_sample_rate(org_volume),
             "generic_metrics_total": None if legacy_volume is None else legacy_volume.total,
             "generic_metrics_indexed": None if legacy_volume is None else legacy_volume.indexed,
-            "generic_metrics_effective_sample_rate": get_effective_sample_rate(legacy_volume),
+            "generic_metrics_effective_sample_rate": _effective_sample_rate(legacy_volume),
             "relative_deviation": (
                 None
                 if calculated_factor is None
@@ -328,9 +390,8 @@ def compare_organization_sliding_window_sample_rates(
             return None
         return compute_sliding_window_sample_rate(
             org_id=config.organization.id,
-            project_id=None,
             total_root_count=volume.total,
-            window_size=FALLBACK_SLIDING_WINDOW_SIZE,
+            window_size=SLIDING_WINDOW_HOURS,
         )
 
     eap_sample_rate = sample_rate_for(eap_volume)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT
 from sentry.dynamic_sampling.per_org import cache
 from sentry.dynamic_sampling.per_org.gate import is_org_in_serving_rollout
 from sentry.dynamic_sampling.per_org.telemetry import (
@@ -9,6 +10,7 @@ from sentry.dynamic_sampling.per_org.telemetry import (
     ServingSource,
     emit_serving_source,
 )
+from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.helpers import recalibrate_orgs as legacy_cache
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
@@ -16,6 +18,11 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     get_transactions_resampling_rates,
 )
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
+    generate_sliding_window_org_cache_key,
+)
+from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling
+from sentry.models.organization import Organization
 
 
 def _serving_source(org_id: int) -> ServingSource:
@@ -100,3 +107,41 @@ def get_recalibration_factor(org_id: int) -> float:
 def get_previous_recalibration_factor(org_id: int) -> float:
     """The factor a recalibration pass applies its correction on top of."""
     return _recalibration_factor(org_id, _serving_source(org_id), read_by="task")
+
+
+def get_organization_sample_rate(
+    org_id: int, default_sample_rate: float | None
+) -> tuple[float | None, bool]:
+    """The sample rate an organization targets, and whether that rate is its own.
+
+    An organization with custom dynamic sampling targets its ``sentry:target_sample_rate``
+    option. Any other organization targets the rate the last pass derived from its volume,
+    or the one the legacy sliding window job stored while no pass has run yet.
+    Without either, the default is returned and the flag is False.
+    """
+    try:
+        organization = Organization.objects.get_from_cache(id=org_id)
+    except Organization.DoesNotExist:
+        organization = None
+
+    if organization is not None and has_custom_dynamic_sampling(organization):
+        target_sample_rate = organization.get_option("sentry:target_sample_rate")
+        if target_sample_rate is not None:
+            return float(target_sample_rate), True
+        if default_sample_rate is not None:
+            return default_sample_rate, False
+        return TARGET_SAMPLE_RATE_DEFAULT, False
+
+    sample_rate = cache.get_organization_sample_rate(org_id)
+    if sample_rate is None:
+        sample_rate = _get_legacy_sliding_window_sample_rate(org_id)
+    if sample_rate is None:
+        return default_sample_rate, False
+    return sample_rate, True
+
+
+def _get_legacy_sliding_window_sample_rate(org_id: int) -> float | None:
+    redis_client = get_redis_client_for_ds()
+    return cache.sample_rate_to_float(
+        redis_client.get(generate_sliding_window_org_cache_key(org_id))
+    )

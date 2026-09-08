@@ -7,6 +7,7 @@ from taskbroker_client.retry import Retry
 
 from sentry import quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT
+from sentry.dynamic_sampling.per_org.cache import bounded_rebalance_factor
 from sentry.dynamic_sampling.per_org.serving import (
     get_previous_recalibration_factor,
     is_recalibration_factor_served_per_org,
@@ -15,8 +16,7 @@ from sentry.dynamic_sampling.rules.utils import DecisionKeepCount, OrganizationI
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     fetch_projects_with_total_root_transaction_count_and_rates,
 )
-from sentry.dynamic_sampling.tasks.common import GetActiveOrgsVolumes, OrganizationDataVolume
-from sentry.dynamic_sampling.tasks.constants import bounded_rebalance_factor
+from sentry.dynamic_sampling.tasks.common import GetActiveOrgsVolumes
 from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
     compute_adjusted_factor,
     delete_adjusted_factor,
@@ -30,7 +30,11 @@ from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
     legacy_pipeline_killswitched,
 )
-from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
+from sentry.dynamic_sampling.types import (
+    DynamicSamplingMode,
+    OrganizationDataVolume,
+    SamplingMeasure,
+)
 from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption

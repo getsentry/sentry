@@ -6,10 +6,9 @@ from django.utils import timezone
 from sentry.dynamic_sampling.tasks.common import (
     GetActiveOrgs,
     GetActiveOrgsVolumes,
-    OrganizationDataVolume,
     get_organization_volume,
 )
-from sentry.dynamic_sampling.types import SamplingMeasure
+from sentry.dynamic_sampling.types import OrganizationDataVolume, SamplingMeasure
 from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time

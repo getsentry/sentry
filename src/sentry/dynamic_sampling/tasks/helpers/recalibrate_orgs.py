@@ -1,5 +1,5 @@
+from sentry.dynamic_sampling.per_org.cache import adjusted_factor_ttl_ms
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.tasks.constants import adjusted_factor_ttl_ms
 from sentry.utils import metrics
 
 

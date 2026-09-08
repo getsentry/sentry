@@ -5,13 +5,13 @@ from datetime import timedelta
 
 from taskbroker_client.retry import Retry
 
+from sentry.dynamic_sampling.per_org.cache import DEFAULT_REDIS_CACHE_KEY_TTL
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import (
     GetActiveOrgsVolumes,
-    OrganizationDataVolume,
     compute_guarded_sliding_window_sample_rate,
 )
-from sentry.dynamic_sampling.tasks.constants import CHUNK_SIZE, DEFAULT_REDIS_CACHE_KEY_TTL
+from sentry.dynamic_sampling.tasks.constants import CHUNK_SIZE
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
     generate_sliding_window_org_cache_key,
     get_sliding_window_size,
@@ -21,7 +21,7 @@ from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
     legacy_pipeline_killswitched,
 )
-from sentry.dynamic_sampling.types import SamplingMeasure
+from sentry.dynamic_sampling.types import OrganizationDataVolume, SamplingMeasure
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import telemetry_experience_tasks
@@ -79,7 +79,6 @@ def adjust_base_sample_rate_of_org(org_id: int, total_root_count: int, window_si
     """
     sample_rate = compute_guarded_sliding_window_sample_rate(
         org_id,
-        None,
         total_root_count,
         window_size,
     )

@@ -237,7 +237,7 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
     @with_feature("organizations:dynamic-sampling")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
     @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
-    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
+    @patch("sentry.dynamic_sampling.sliding_window.extrapolate_monthly_volume")
     def test_boost_low_volume_projects_simple_with_sliding_window_org_from_cache(
         self,
         extrapolate_monthly_volume,
@@ -281,7 +281,7 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
     )
     @patch("sentry.quotas.backend.get_blended_sample_rate")
     @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
-    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
+    @patch("sentry.dynamic_sampling.sliding_window.extrapolate_monthly_volume")
     def test_config_invalidation_when_sample_rates_change(
         self,
         extrapolate_monthly_volume,
@@ -313,7 +313,7 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
     )
     @patch("sentry.quotas.backend.get_blended_sample_rate")
     @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
-    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
+    @patch("sentry.dynamic_sampling.sliding_window.extrapolate_monthly_volume")
     def test_config_invalidation_when_sample_rates_do_not_change(
         self,
         extrapolate_monthly_volume,
@@ -1015,7 +1015,7 @@ class TestSlidingWindowOrgTask(TasksTestCase):
             )
 
     @with_feature("organizations:dynamic-sampling")
-    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
+    @patch("sentry.dynamic_sampling.sliding_window.extrapolate_monthly_volume")
     @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
     def test_sliding_window_org_processes_all_orgs_by_default(
         self,
@@ -1040,7 +1040,7 @@ class TestSlidingWindowOrgTask(TasksTestCase):
 
     @with_feature("organizations:dynamic-sampling")
     @override_options({"dynamic-sampling.legacy.killswitch": True})
-    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
+    @patch("sentry.dynamic_sampling.sliding_window.extrapolate_monthly_volume")
     @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
     def test_sliding_window_org_killswitch(
         self,

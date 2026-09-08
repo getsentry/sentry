@@ -19,17 +19,24 @@ from sentry.dynamic_sampling.per_org.queries import (
     get_eap_organization_volume,
     get_eap_project_volumes,
     get_eap_transaction_volumes,
+    get_generic_metrics_organization_volume,
     get_outcomes_organization_volume,
     run_eap_spans_table_query_in_chunks,
 )
-from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
+from sentry.dynamic_sampling.types import OrganizationDataVolume
 from sentry.models.organization import Organization
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.snuba.referrer import Referrer
-from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.cases import (
+    BaseMetricsLayerTestCase,
+    SnubaTestCase,
+    SpanTestCase,
+    TestCase,
+)
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (
     BLENDED_SAMPLE_RATE,
     patch_configuration,
@@ -774,3 +781,41 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             ("quiet-high", 3),
             ("quiet-low", 2),
         ]
+
+
+MOCK_DATETIME = (datetime.now(UTC) - timedelta(days=1)).replace(
+    hour=0, minute=0, second=0, microsecond=0
+)
+
+
+@freeze_time(MOCK_DATETIME)
+class GenericMetricsOrganizationVolumeTest(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+    @property
+    def now(self):
+        return MOCK_DATETIME
+
+    def _store(
+        self, org: Organization, project_id: int, decision: str, is_segment: str, value: int
+    ):
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"decision": decision, "is_segment": is_segment},
+            minutes_before_now=1,
+            value=value,
+            project_id=project_id,
+            org_id=org.id,
+        )
+
+    def test_counts_the_received_and_kept_segments(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._store(org, project.id, decision="drop", is_segment="true", value=2)
+        self._store(org, project.id, decision="keep", is_segment="true", value=1)
+        self._store(org, project.id, decision="keep", is_segment="false", value=5)
+
+        assert get_generic_metrics_organization_volume(org.id) == OrganizationDataVolume(
+            org_id=org.id, total=3, indexed=1
+        )
+
+    def test_an_org_without_volume_reads_as_none(self) -> None:
+        assert get_generic_metrics_organization_volume(99999999) is None

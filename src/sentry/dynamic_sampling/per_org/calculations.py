@@ -18,12 +18,10 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
 from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
 from sentry.dynamic_sampling.per_org.results import TransactionSampleRates
 from sentry.dynamic_sampling.sample_rate_override import get_sample_rate_overrides
-from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
+from sentry.dynamic_sampling.types import OrganizationDataVolume
 
 if TYPE_CHECKING:
     from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
-
-REBALANCE_INTENSITY = 0.8
 
 
 def calculate_recalibration_factor(
@@ -125,6 +123,7 @@ def run_transaction_balancing(
 ) -> TransactionSampleRates:
     sample_rates = config.get_project_sample_rates()
     min_sample_rate = options.get("dynamic-sampling.prioritise_transactions.min_sample_rate")
+    intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity")
     result: TransactionSampleRates = {}
     project_volume_by_id = {
         project_volume.project_id: project_volume for project_volume in project_volumes
@@ -160,7 +159,7 @@ def run_transaction_balancing(
                 sample_rate=sample_rate,
                 total_num_classes=project_volume.num_distinct_transactions,
                 total=project_volume.total,
-                intensity=REBALANCE_INTENSITY,  # this should use the option like in the old pipeline
+                intensity=intensity,
                 min_sample_rate=min_sample_rate,
             )
         )

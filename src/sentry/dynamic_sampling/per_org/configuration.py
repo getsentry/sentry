@@ -17,12 +17,15 @@ from sentry.dynamic_sampling.per_org.telemetry import (
     DynamicSamplingStatus,
 )
 from sentry.dynamic_sampling.rules.utils import ProjectId
-from sentry.dynamic_sampling.tasks.common import (
-    OrganizationDataVolume,
+from sentry.dynamic_sampling.sliding_window import (
+    SLIDING_WINDOW_HOURS,
     compute_sliding_window_sample_rate,
 )
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
-from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
+from sentry.dynamic_sampling.types import (
+    DynamicSamplingMode,
+    OrganizationDataVolume,
+    SamplingMeasure,
+)
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
@@ -193,17 +196,16 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
         if not self.projects:
             return None
 
-        org_volume_24h = get_outcomes_organization_volume(
-            self, time_interval=timedelta(hours=FALLBACK_SLIDING_WINDOW_SIZE)
+        org_volume = get_outcomes_organization_volume(
+            self, time_interval=timedelta(hours=SLIDING_WINDOW_HOURS)
         )
-        if org_volume_24h is None:
+        if org_volume is None:
             return None
 
         return compute_sliding_window_sample_rate(
             org_id=self.organization.id,
-            project_id=None,
-            total_root_count=org_volume_24h.total,
-            window_size=FALLBACK_SLIDING_WINDOW_SIZE,
+            total_root_count=org_volume.total,
+            window_size=SLIDING_WINDOW_HOURS,
         )
 
 
