@@ -466,7 +466,6 @@ export function CustomerDetails() {
                 subscription,
                 onSuccess: reloadData,
               }),
-            ...actionRequiresBillingAdmin,
           },
           {
             key: 'addToStartupProgram',
@@ -479,7 +478,6 @@ export function CustomerDetails() {
                 subscription,
                 onSuccess: reloadData,
               }),
-            ...actionRequiresBillingAdmin,
           },
           {
             key: 'toggleBillingPlatformMigration',
@@ -609,7 +607,7 @@ export function CustomerDetails() {
             // TODO(billing): Should we start calling On-Demand periods "Pay-as-you-go" periods?
             help: 'Change the contract and on-demand period dates.',
             skipConfirmModal: true,
-            visible: hasAdminTestFeatures,
+            visible: true,
             onAction: () =>
               triggerChangeDatesModal({
                 orgId,
