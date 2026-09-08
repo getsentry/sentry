@@ -36,10 +36,6 @@ const SOURCE_BADGE_SIZE = 14;
  * - `no_changes`: the iteration it drove ended without a code change.
  * - `changes_pushed`: the iteration it drove pushed a code change.
  * - `push_failed`: the iteration it drove made changes that never got pushed.
- *
- * The first two come from the run status and the block position. The rest come
- * from `pr_iteration_outcomes` on the autofix response, which the backend
- * derives from the run state.
  */
 type FeedbackStatus =
   | 'queued'
@@ -108,7 +104,6 @@ type ParsedFeedback =
 // A parsed feedback enriched with the iteration context the caller supplies.
 type IterationFeedback = ParsedFeedback & {
   iterationIndex: number;
-  // Absent when the response carries no outcome for the iteration.
   status?: FeedbackStatus;
 };
 
@@ -177,8 +172,6 @@ function parseFeedback(raw: string): ParsedFeedback[] {
   return items.map(parseFeedbackItem).filter(defined);
 }
 
-// The response types the outcomes as plain strings, so narrow them here. A
-// backend older than this field, or newer than these names, reads as no outcome.
 function parseIterationOutcome(value: string | undefined): FeedbackStatus | undefined {
   switch (value) {
     case 'no_changes':
@@ -485,10 +478,6 @@ function FeedbackItem({item}: {item: IterationFeedback}) {
   );
 }
 
-// `changes_pushed` gets no tag, because the pushed commit already shows on the
-// PR. `queued` gets no tag, because the timestamp cell reads "Queued".
-// `push_failed` gets no tag either: what to tell the user about a failed push is
-// still an open product decision.
 function FeedbackStatusTag({status}: {status: FeedbackStatus | undefined}) {
   switch (status) {
     case 'in_progress':
