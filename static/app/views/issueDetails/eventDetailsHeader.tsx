@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
@@ -59,7 +59,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
   const environments = useEnvironmentsFromUrl();
   const searchQuery = useEventQuery();
   const issueTypeConfig = getConfigForIssueType(group, project);
-  const {dispatch, isSidebarOpen} = useIssueDetails();
+  const {dispatch} = useIssueDetails();
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
   const hasSetStatsPeriod =
@@ -103,11 +103,16 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
 
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
-      <DetailsContainer
+      <Stack
         role="group"
         aria-description={t('Event filtering controls')}
-        hasFilterBar={issueTypeConfig.header.filterBar.enabled}
-        isSidebarOpen={isSidebarOpen}
+        position="relative"
+        gap="lg"
+        background="secondary"
+        paddingTop="lg"
+        style={{
+          paddingInline: `var(--issue-details-inset, ${theme.space['2xl']})`,
+        }}
       >
         {issueTypeConfig.header.filterBar.enabled && (
           <TourElement<IssueDetailsTour>
@@ -261,7 +266,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
         {issueTypeConfig.header.occurrenceSummary.enabled && (
           <OccurrenceSummarySection group={group} event={event} />
         )}
-      </DetailsContainer>
+      </Stack>
     </PageErrorBoundary>
   );
 }
@@ -294,25 +299,6 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
 
   return <EnvironmentPageFilter triggerProps={{style}} />;
 }
-
-const DetailsContainer = styled('div')<{
-  hasFilterBar: boolean;
-  isSidebarOpen: boolean;
-}>`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.lg};
-  background: ${p => p.theme.tokens.background.secondary};
-  padding-left: var(--issue-details-inset, ${p => p.theme.space['2xl']});
-  padding-right: var(--issue-details-inset, ${p => p.theme.space['2xl']});
-  padding-top: ${p => p.theme.space.lg};
-
-  @container (min-width: ${p => p.theme.container['4xl']}) {
-    border-right: ${p =>
-      p.isSidebarOpen ? `1px solid ${p.theme.tokens.border.primary}` : 'none'};
-  }
-`;
 
 const GraphSection = styled(Flex)`
   & > * {
