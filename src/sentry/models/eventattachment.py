@@ -148,7 +148,9 @@ class EventAttachmentBase(Model):
             # explicit delete to avoid unnecessary load on the objectstore service.
             #
             # Pending attachments are always deleted, because they get cleaned up long before their objectstore TTL expires.
-            if not (self.__class__ is EventAttachment and os.environ.get("_SENTRY_CLEANUP")):
+            is_pending = isinstance(self, PendingEventAttachment)
+            is_cleanup = os.environ.get("_SENTRY_CLEANUP")
+            if is_pending or not is_cleanup:
                 organization_id = _get_organization(self.project_id)
                 get_session(UsecaseId.ATTACHMENTS, self.project_id, org=organization_id).delete(
                     self.blob_path.removeprefix(V2_PREFIX)
