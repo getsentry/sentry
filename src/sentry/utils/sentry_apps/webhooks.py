@@ -59,7 +59,10 @@ if TYPE_CHECKING:
 
 TIMEOUT_STATUS_CODE = 0
 CONNECTION_ERROR_STATUS_CODE = -1
-NO_RESPONSE_STATUS_CODES = frozenset({TIMEOUT_STATUS_CODE, CONNECTION_ERROR_STATUS_CODE})
+INVALID_HEADER_STATUS_CODE = -2
+NO_RESPONSE_STATUS_CODES = frozenset(
+    {TIMEOUT_STATUS_CODE, CONNECTION_ERROR_STATUS_CODE, INVALID_HEADER_STATUS_CODE}
+)
 
 CLAUDE_ROUTINE_URL_RE = re.compile(
     r"https://api\.anthropic\.com/v1/claude_code/routines/[^/?#]+/fire/?"
@@ -416,6 +419,17 @@ def send_and_save_webhook_request(
             # write, but existing apps can still carry a bad stored header, and the underlying
             # HTTP client cannot encode it. Treat this as invalid customer config rather than a
             # Sentry-side failure, and don't retry - the header won't become valid on retry.
+            buffer.add_request(
+                response_code=INVALID_HEADER_STATUS_CODE,
+                org_id=org_id,
+                event=event,
+                url=url,
+                headers=app_platform_event.loggable_headers,
+                request_id=request_id,
+                subject_id=subject_id,
+                subject_type=subject_type,
+                duration_ms=None,
+            )
             lifecycle.record_halt(
                 halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.INVALID_HEADER}"
             )

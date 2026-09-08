@@ -27,6 +27,7 @@ from sentry.utils.circuit_breaker2 import CircuitBreaker
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 from sentry.utils.sentry_apps.webhooks import (
     CONNECTION_ERROR_STATUS_CODE,
+    INVALID_HEADER_STATUS_CODE,
     TIMEOUT_STATUS_CODE,
     WebhookTimeoutError,
     send_and_save_webhook_request,
@@ -678,3 +679,28 @@ class WebhookRequestIdAndDurationTest(TestCase):
         assert row.get("subject_type") is None
         assert row["request_id"] == event.sentry_headers["Request-ID"]
         assert row["duration_ms"] == 10
+
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
+    def test_unicode_encode_error_row_is_logged_and_swallowed(self, MockBreaker, mock_safe_urlopen):
+        """A stored header that can't be latin-1 encoded (e.g. from before write-time
+        validation existed) should be logged like other webhook failures and not
+        raise or retry."""
+        MockBreaker.return_value.should_allow_request.return_value = True
+        mock_safe_urlopen.side_effect = UnicodeEncodeError(
+            "latin-1", "\u3000", 0, 1, "ordinal not in range(256)"
+        )
+
+        event = self._issue_event()
+        response = send_and_save_webhook_request(self.sentry_app, event)
+
+        assert isinstance(response, Response)
+        requests = SentryAppWebhookRequestsBuffer(self.sentry_app).get_requests(errors_only=True)
+        assert len(requests) == 1
+        row = requests[0]
+        assert row["response_code"] == INVALID_HEADER_STATUS_CODE
+        assert row.get("duration_ms") is None
+        assert row["request_id"] == event.sentry_headers["Request-ID"]
+        assert row["subject_id"] == "123"
+        assert row["subject_type"] == "group"
