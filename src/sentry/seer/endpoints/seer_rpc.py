@@ -392,12 +392,6 @@ class SeerRpcServiceEndpoint(Endpoint):
         self._enforce_investigation_event_viewer_context(request, method_name, arguments)
 
         try:
-            # Everything this method dispatches in-process runs on a synthetic request
-            # from `ApiClient` that has none of the Seer signals `get_client_kind` reads
-            # -- no Rpcsignature, no viewer context, no user agent -- so a nested events
-            # endpoint classified the caller as UNKNOWN and, being isolation-scoped,
-            # wrote that onto this transaction beside `seer_rpc_auth`. Only reached once
-            # `_is_authorized` has confirmed the caller really is Seer.
             with client_kind_scope(ClientKind.SEER):
                 result = self._dispatch_to_local_method(method_name, arguments)
         except RpcResolutionException as e:

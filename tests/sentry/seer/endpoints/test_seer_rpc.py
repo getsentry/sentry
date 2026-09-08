@@ -114,12 +114,6 @@ class TestSeerRpc(APITestCase):
         assert project.id in [p["id"] for p in response.data["projects"]]
 
     def test_dispatch_declares_seer_as_the_client_kind(self) -> None:
-        # Everything an RPC method dispatches in-process runs on a synthetic request
-        # from `ApiClient` that has no Rpcsignature, viewer context or user agent left
-        # on it. That classified as UNKNOWN and, being isolation-scoped, overwrote this
-        # transaction's attribution -- leaving `seer_rpc_auth` next to an `unknown`
-        # client kind. The declared scope is what makes a signal-less request read as
-        # SEER for the duration of the dispatch.
         org = self.create_organization()
         captured: list[ClientKind | None] = []
 

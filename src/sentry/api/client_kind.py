@@ -56,17 +56,7 @@ _client_kind_override: contextvars.ContextVar[ClientKind | None] = contextvars.C
 def client_kind_scope(kind: ClientKind) -> Generator[None]:
     """Declare the caller for every request dispatched inside this block.
 
-    For entrypoints that know who called them but cannot hand that knowledge down.
-    ``sentry.api.client.ApiClient`` dispatches endpoints in-process on a synthetic
-    request carrying none of the original credentials or headers, so a nested events
-    endpoint would otherwise classify the caller as UNKNOWN -- and, because these
-    attributes are isolation-scoped, write that over the real caller's transaction.
-
-    A contextvar rather than an argument because the dispatch is several frames deep
-    and crosses ``ApiClient``, which is shared with every other internal caller.
-
-    Server-side only. Never set this from anything a client controls: it bypasses the
-    derivation in `get_client_kind`, which is what makes that function trustworthy.
+    Server-side only -- it bypasses the derivation in ``get_client_kind``.
     """
     token = _client_kind_override.set(kind)
     try:
@@ -121,9 +111,6 @@ def get_client_kind(request: Request, organization: Organization) -> ClientKind 
     if not features.has(FEATURE_FLAG, organization, actor=request.user):
         return None
 
-    # An entrypoint that already knows its caller declared it via `client_kind_scope`.
-    # Checked before anything derived from the request, because the request that
-    # reaches here may be a synthetic one from `ApiClient` with no signals left on it.
     declared = _client_kind_override.get()
     if declared is not None:
         return declared
