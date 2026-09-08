@@ -135,6 +135,17 @@ const mockAutofixWithRunState: ReturnType<typeof useExplorerAutofix> = {
   },
 };
 
+// The backend derives each iteration's outcome and returns it on the response,
+// keyed by the iteration index.
+function makeAutofixWithOutcomes(
+  outcomes: Record<string, string>
+): ReturnType<typeof useExplorerAutofix> {
+  return {
+    ...mockAutofixWithRunState,
+    runState: {...mockAutofixWithRunState.runState!, pr_iteration_outcomes: outcomes},
+  };
+}
+
 function makeRootCauseArtifact(data: RootCauseArtifact | null) {
   return {
     key: 'root-cause',
@@ -1619,7 +1630,71 @@ describe('ArtifactCard', () => {
       expect(screen.queryByText('Implementing changes…')).not.toBeInTheDocument();
     });
 
-    it('marks block feedback as processed when the section is not processing', () => {
+    it('tags block feedback whose iteration made no changes', async () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={makeAutofixWithOutcomes({'0': 'no_changes'})}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [makePrIterationBlock(0, {text: 'first pass'})]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByText('first pass')).toBeInTheDocument();
+      expect(screen.getByText('No changes')).toBeInTheDocument();
+
+      await userEvent.hover(screen.getByText('No changes'));
+      expect(
+        await screen.findByText('Seer made no code changes for this feedback.')
+      ).toBeInTheDocument();
+    });
+
+    it('does not tag block feedback whose iteration pushed changes', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={makeAutofixWithOutcomes({'0': 'changes_pushed'})}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [makePrIterationBlock(0, {text: 'first pass'})]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByText('first pass')).toBeInTheDocument();
+      expect(screen.queryByText('No changes')).not.toBeInTheDocument();
+      expect(screen.queryByText('Processing')).not.toBeInTheDocument();
+    });
+
+    it('does not tag block feedback whose iteration failed to push', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={makeAutofixWithOutcomes({'0': 'push_failed'})}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [makePrIterationBlock(0, {text: 'first pass'})]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByText('first pass')).toBeInTheDocument();
+      expect(screen.queryByText('No changes')).not.toBeInTheDocument();
+      expect(screen.queryByText('Processing')).not.toBeInTheDocument();
+    });
+
+    it('does not tag block feedback that carries no iteration outcome', () => {
       render(
         <CodeChangesCard
           groupId="1"
@@ -1635,14 +1710,15 @@ describe('ArtifactCard', () => {
       );
 
       expect(screen.getByText('first pass')).toBeInTheDocument();
-      expect(screen.getByTestId('feedback-processed')).toBeInTheDocument();
+      expect(screen.queryByText('No changes')).not.toBeInTheDocument();
+      expect(screen.queryByText('Processing')).not.toBeInTheDocument();
     });
 
-    it('marks the current iteration feedback as in progress while processing', () => {
+    it('tags the current iteration feedback as in progress while processing', async () => {
       render(
         <CodeChangesCard
           groupId="1"
-          autofix={mockAutofix}
+          autofix={makeAutofixWithOutcomes({'0': 'no_changes'})}
           section={makeSection(
             'code_changes',
             'processing',
@@ -1653,11 +1729,15 @@ describe('ArtifactCard', () => {
         {organization: prIterationOrganization}
       );
 
-      // While processing, the row shows a spinner (there is also the card body
-      // "Iterating on PR…" loader, hence getAllByTestId) and no processed check.
+      // The run status beats the outcome reported for the previous attempt.
       expect(screen.getByText('fix the CI failure')).toBeInTheDocument();
-      expect(screen.getAllByTestId('loading-indicator').length).toBeGreaterThan(0);
-      expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
+      expect(screen.getByText('Processing')).toBeInTheDocument();
+      expect(screen.queryByText('No changes')).not.toBeInTheDocument();
+
+      await userEvent.hover(screen.getByText('Processing'));
+      expect(
+        await screen.findByText('Seer is working on this feedback.')
+      ).toBeInTheDocument();
     });
 
     it('marks queued feedback with a queued label and no timestamp', () => {
@@ -1685,7 +1765,7 @@ describe('ArtifactCard', () => {
 
       expect(screen.getByText('Make the button blue')).toBeInTheDocument();
       expect(screen.getByText('Queued')).toBeInTheDocument();
-      expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
+      expect(screen.queryByText('Processing')).not.toBeInTheDocument();
     });
 
     it('disables reset once PRs exist when only automated CI iteration is enabled', () => {

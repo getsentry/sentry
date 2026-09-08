@@ -17,10 +17,7 @@ import {
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCircle} from 'sentry/icons/iconCircle';
-import {IconCircleCheckmark} from 'sentry/icons/iconCircleCheckmark';
 import {IconGithub} from 'sentry/icons/iconGithub';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconSeer} from 'sentry/icons/iconSeer';
@@ -34,11 +31,18 @@ const AVATAR_SIZE = 24;
 const SOURCE_BADGE_SIZE = 14;
 
 /**
- * - `processed`: the iteration it drove has finished and its changes are pushed.
- * - `in_progress`: it's driving the iteration currently being processed.
  * - `queued`: submitted while a run was processing, not yet picked up.
+ * - `in_progress`: it's driving the iteration currently being processed.
+ * - `no_changes`: the iteration it drove ended without a code change.
+ * - `changes_pushed`: the iteration it drove pushed a code change.
+ * - `push_failed`: the iteration it drove made changes that never got pushed.
  */
-type FeedbackStatus = 'processed' | 'in_progress' | 'queued';
+type FeedbackStatus =
+  | 'queued'
+  | 'in_progress'
+  | 'no_changes'
+  | 'changes_pushed'
+  | 'push_failed';
 
 interface ParsedBaseFeedback {
   text: string;
@@ -100,7 +104,7 @@ type ParsedFeedback =
 // A parsed feedback enriched with the iteration context the caller supplies.
 type IterationFeedback = ParsedFeedback & {
   iterationIndex: number;
-  status: FeedbackStatus;
+  status?: FeedbackStatus;
 };
 
 // Bot comments arrive as HTML-flavored markdown; keep only the visible prose.
@@ -168,6 +172,17 @@ function parseFeedback(raw: string): ParsedFeedback[] {
   return items.map(parseFeedbackItem).filter(defined);
 }
 
+function parseIterationOutcome(value: string | undefined): FeedbackStatus | undefined {
+  switch (value) {
+    case 'no_changes':
+    case 'changes_pushed':
+    case 'push_failed':
+      return value;
+    default:
+      return undefined;
+  }
+}
+
 /**
  * Collects the PR-iteration feedback to render in the Feedback section.
  *
@@ -175,9 +190,10 @@ function parseFeedback(raw: string): ParsedFeedback[] {
  * the cumulative diff is already merged into the section's code-change artifact
  * by `getOrderedAutofixSections`, so here we only surface the feedback text.
  * Feedback on a block at/after the current step marker drives the iteration
- * still running (when the section is processing); everything earlier is pushed.
- * Feedback submitted mid-run that hasn't been folded into a block yet is
- * appended as `queued`. The list is returned newest-first.
+ * still running (when the section is processing); everything earlier takes the
+ * outcome the backend derived for that iteration index. Feedback submitted
+ * mid-run that hasn't been folded into a block yet is appended as `queued`. The
+ * list is returned newest-first.
  */
 export function usePrIterationFeedback(
   section: AutofixSection,
@@ -188,6 +204,8 @@ export function usePrIterationFeedback(
     () => section.blocks.findLastIndex(block => defined(block.message.metadata?.step)),
     [section.blocks]
   );
+
+  const outcomes = autofix.runState?.pr_iteration_outcomes;
 
   const blockFeedback = useMemo<IterationFeedback[]>(() => {
     if (!enabled) {
@@ -207,10 +225,10 @@ export function usePrIterationFeedback(
         return [];
       }
 
-      const status: FeedbackStatus =
+      const status =
         section.status === 'processing' && blockIndex >= currentStepStart
           ? 'in_progress'
-          : 'processed';
+          : parseIterationOutcome(outcomes?.[String(iterationIndex)]);
 
       return parseFeedback(value).map(parsed => ({
         ...parsed,
@@ -218,7 +236,7 @@ export function usePrIterationFeedback(
         status,
       }));
     });
-  }, [section.blocks, section.status, currentStepStart, enabled]);
+  }, [section.blocks, section.status, currentStepStart, outcomes, enabled]);
 
   const latestIterationIndex = useMemo(
     () =>
@@ -417,7 +435,7 @@ const ReviewChildRow = styled('div')`
 `;
 
 // Each source type owns an `Avatar` and a `Comment` cell. `FeedbackItem` renders
-// the shared grid shell (avatar · comment · timestamp · status) and dispatches
+// the shared grid shell (avatar · comment · timestamp) and dispatches
 // the two varying cells through this table — the single place that switches on
 // `sourceType`. Adding a source means adding one entry plus its cell components.
 type FeedbackCell = React.ComponentType<{item: IterationFeedback}>;
@@ -440,25 +458,43 @@ const SOURCE: Record<
 function FeedbackItem({item}: {item: IterationFeedback}) {
   const {Avatar, Comment} = SOURCE[item.sourceType];
 
-  // Four columns: author avatar, comment, timestamp, status icon. `align="start"`
-  // keeps the avatar top-aligned against multiline comments; each non-avatar cell
-  // is at least one avatar tall (`minHeight`) so its content centers with the
-  // avatar on a single line, and grows top-aligned once the comment wraps.
+  // Three columns: author avatar, comment, timestamp. `align="start"` keeps the
+  // avatar top-aligned against multiline comments; each non-avatar cell is at
+  // least one avatar tall (`minHeight`) so its content centers with the avatar
+  // on a single line, and grows top-aligned once the comment wraps.
   return (
-    <Grid columns="auto 1fr auto auto" gap="md" align="start">
+    <Grid columns="auto 1fr auto" gap="md" align="start">
       <Avatar item={item} />
       <Cell>
-        <Comment item={item} />
+        <Flex align="center" gap="sm" wrap="wrap" minWidth="0">
+          <FeedbackStatusTag status={item.status} />
+          <Comment item={item} />
+        </Flex>
       </Cell>
       <Cell>
         <FeedbackTimestamp item={item} />
       </Cell>
-      {/* Status icon sits at the far right, after the timestamp. */}
-      <Cell>
-        <FeedbackStatusIcon status={item.status} />
-      </Cell>
     </Grid>
   );
+}
+
+function FeedbackStatusTag({status}: {status: FeedbackStatus | undefined}) {
+  switch (status) {
+    case 'in_progress':
+      return (
+        <Tooltip title={t('Seer is working on this feedback.')}>
+          <Tag variant="promotion">{t('Processing')}</Tag>
+        </Tooltip>
+      );
+    case 'no_changes':
+      return (
+        <Tooltip title={t('Seer made no code changes for this feedback.')}>
+          <Tag variant="warning">{t('No changes')}</Tag>
+        </Tooltip>
+      );
+    default:
+      return null;
+  }
 }
 
 // A non-avatar grid cell: at least one avatar tall so its content centers with
@@ -770,37 +806,6 @@ function PrimaryIconAvatar({Icon, tooltip}: {Icon: typeof IconSeer; tooltip: str
       </AvatarFrame>
     </Tooltip>
   );
-}
-
-// Source-agnostic: the same three status glyphs regardless of where the
-// iteration came from.
-function FeedbackStatusIcon({status}: {status: FeedbackStatus}) {
-  switch (status) {
-    case 'processed':
-      return (
-        <Tooltip title={t('Changes from this feedback have been pushed')} skipWrapper>
-          <Flex align="center" justify="center">
-            <IconCircleCheckmark variant="accent" data-test-id="feedback-processed" />
-          </Flex>
-        </Tooltip>
-      );
-    case 'in_progress':
-      return (
-        <Tooltip title={t('This feedback is being processed')} skipWrapper>
-          <LoadingIndicator size={16} style={{margin: 0}} />
-        </Tooltip>
-      );
-    case 'queued':
-      return (
-        <Tooltip title={t('Queued, not yet picked up')} skipWrapper>
-          <Flex align="center" justify="center">
-            <IconCircle variant="muted" />
-          </Flex>
-        </Tooltip>
-      );
-    default:
-      return null;
-  }
 }
 
 // The inline external-link arrow sits with the last line of the comment. A small
