@@ -7,8 +7,10 @@ import pytest
 from django.urls import reverse
 
 from sentry.api.endpoints.timeseries import INGESTION_DELAY_MESSAGE
-from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.constants import DataCategory
+from sentry.testutils.cases import APITestCase, OutcomesSnubaTest, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.utils.outcomes import Outcome
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -511,3 +513,74 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         )
 
         mock_sdk_logger.warning.assert_not_called()
+
+
+class OrganizationEventsTimeseriesAnnotationsTest(APITestCase, OutcomesSnubaTest):
+    endpoint = "sentry-api-0-organization-events-timeseries"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        # Align to an hour boundary so the hourly Outcomes rollup buckets cleanly.
+        self.end = before_now(days=1).replace(minute=0, second=0, microsecond=0)
+        self.start = self.end - timedelta(hours=2)
+        self.url = reverse(
+            self.endpoint,
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+
+    def _store_span_drop(self, quantity: int) -> None:
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.RATE_LIMITED,
+                "reason": "over_quota",
+                "category": DataCategory.SPAN,
+                "timestamp": self.start + timedelta(minutes=30),
+                "quantity": quantity,
+            }
+        )
+
+    def _do_request(self, features):
+        data = {
+            "start": self.start,
+            "end": self.end,
+            "interval": "1h",
+            "project": [self.project.id],
+            "dataset": "spans",
+        }
+        with self.feature(features):
+            return self.client.get(self.url, data=data, format="json")
+
+    def test_annotations_absent_without_flag(self) -> None:
+        self._store_span_drop(2000)
+        response = self._do_request({"organizations:visibility-explore-view": True})
+        assert response.status_code == 200, response.content
+        assert "annotations" not in response.data["meta"]
+
+    def test_annotations_present_with_flag(self) -> None:
+        self._store_span_drop(2000)
+        response = self._do_request(
+            {
+                "organizations:visibility-explore-view": True,
+                "organizations:explore-data-fidelity-annotations": True,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert "annotations" in response.data["meta"]
+        annotations = response.data["meta"]["annotations"]
+        assert len(annotations) == 1
+        assert annotations[0]["category"] == DataCategory.SPAN.api_name()
+        assert annotations[0]["droppedCount"] == 2000
+        assert annotations[0]["reason"] == "over_quota"
+
+    def test_annotations_empty_when_no_drops(self) -> None:
+        response = self._do_request(
+            {
+                "organizations:visibility-explore-view": True,
+                "organizations:explore-data-fidelity-annotations": True,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"]["annotations"] == []
