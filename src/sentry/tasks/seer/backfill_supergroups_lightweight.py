@@ -321,9 +321,9 @@ def _batch_fetch_events(groups: Sequence[Group], organization_id: int) -> list[t
     eventstore.bind_nodes(events)
 
     # Drop events that Seer can't meaningfully analyze: empty data, security
-    # reports (CSP/HPKP/Expect-CT/Expect-Staple/NEL), events without
-    # stacktraces, and unsupported platforms.  Aligned with the similar-issues
-    # eligibility checks in grouping/ingest/seer.py.
+    # reports (CSP/NEL), events without stacktraces, and unsupported platforms.
+    # Aligned with the similar-issues eligibility checks in
+    # grouping/ingest/seer.py.
     valid_groups: list[Group] = []
     valid_events: list[Event] = []
     for group, event in zip(matched_groups, events):

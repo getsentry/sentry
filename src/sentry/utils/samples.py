@@ -178,7 +178,7 @@ def load_data(
     if data is None:
         return
 
-    if platform in ("csp", "hkpk", "expectct", "expectstaple"):
+    if platform == "csp":
         return data
 
     # Generate a timestamp in the present.
