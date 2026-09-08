@@ -14,7 +14,6 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.vsts.webhooks import WorkItemWebhook, get_vsts_external_id
 from sentry.silo.base import control_silo_function
-from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +43,7 @@ class VstsRequestParser(BaseRequestParser):
             return self.get_response_from_control_silo()
 
         try:
-            integration = self.get_integration_from_request()
+            integration = self.integration_for_request()
             if not integration:
                 return self.get_default_missing_integration_response()
 
@@ -57,7 +56,7 @@ class VstsRequestParser(BaseRequestParser):
 
         return self.get_response_from_webhookpayload(
             cells=cells,
-            identifier=self.get_mailbox_identifier(integration, self.get_request_body()),
+            mailbox=self.get_mailbox(integration, self.get_request_body()),
             integration_id=integration.id,
         )
 
@@ -65,7 +64,4 @@ class VstsRequestParser(BaseRequestParser):
         """The subscription is created for `workitem.updated` only, so the work item
         is the only axis a VSTS mailbox can be split on.
         """
-        try:
-            return int(get_path(data, "resource", "workItemId"))
-        except (TypeError, ValueError):
-            return None
+        return self.bucket_key_at(data, "resource", "workItemId")

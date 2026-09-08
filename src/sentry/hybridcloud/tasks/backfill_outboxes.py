@@ -51,6 +51,20 @@ def get_backfill_key(table_name: str) -> str:
     return f"outbox_backfill.{table_name}"
 
 
+def read_processing_state(table_name: str) -> tuple[int, int] | None:
+    """
+    Read-only way to look at the stored watermark pair
+    """
+    client = _get_redis_client()
+    v = client.get(get_backfill_key(table_name))
+    if v is None:
+        return None
+    lower, version = json.loads(v)
+    if not (isinstance(lower, int) and isinstance(version, int)):
+        raise TypeError("Expected processing data to be a tuple of (int, int)")
+    return lower, version
+
+
 def get_processing_state(table_name: str) -> tuple[int, int]:
     result: tuple[int, int]
     client = _get_redis_client()
@@ -183,6 +197,107 @@ def process_outbox_backfill_batch(
 
 OUTBOX_BACKFILLS_PER_MINUTE = 10_000
 
+# stored low bound, emitted every cycle even if the backfill budget is exhausted
+WATERMARK_STATE_METRIC = "backfill_outboxes.watermark_state"
+
+# stored version (per-table)
+WATERMARK_VERSION_METRIC = "backfill_outboxes.watermark_version"
+
+# version the backfill is working towards (per-table)
+WATERMARK_TARGET_VERSION_METRIC = "backfill_outboxes.watermark_target_version"
+
+# reporting errors, debugging only
+WATERMARK_REPORT_ERROR_METRIC = "backfill_outboxes.watermark_report_error"
+
+
+def _backfill_models(
+    silo_mode: SiloMode,
+) -> list[type[ControlOutboxProducingModel] | type[CellOutboxProducingModel] | type[User]]:
+    """
+    The models the backfill loop processes in this silo mode.
+    """
+    found: list[
+        type[ControlOutboxProducingModel] | type[CellOutboxProducingModel] | type[User]
+    ] = []
+    for app_models in apps.all_models.values():
+        for model in app_models.values():
+            if not hasattr(model._meta, "silo_limit"):
+                continue
+
+            if silo_mode is not SiloMode.MONOLITH and silo_mode not in model._meta.silo_limit.modes:
+                continue
+
+            if not (
+                issubclass(model, CellOutboxProducingModel)
+                or issubclass(model, ControlOutboxProducingModel)
+                or issubclass(model, User)
+            ):
+                continue
+
+            found.append(model)
+    return found
+
+
+def _report_watermark_for_model(
+    model: type[ControlOutboxProducingModel] | type[CellOutboxProducingModel] | type[User],
+    *,
+    force_synchronous: bool,
+) -> tuple[int, int] | None:
+    table_name = model._meta.db_table
+    target_version = find_replication_version(model, force_synchronous=force_synchronous)
+    metrics.gauge(
+        WATERMARK_TARGET_VERSION_METRIC,
+        target_version,
+        tags=dict(table_name=table_name),
+        sample_rate=1.0,
+    )
+
+    state = read_processing_state(table_name)
+    if state is None:
+        logger.warning(
+            "backfill_outboxes.watermark_absent",
+            extra={"table_name": table_name, "target_version": target_version},
+        )
+        return None
+
+    lower, version = state
+    metrics.gauge(WATERMARK_STATE_METRIC, lower, tags=dict(table_name=table_name), sample_rate=1.0)
+    metrics.gauge(
+        WATERMARK_VERSION_METRIC, version, tags=dict(table_name=table_name), sample_rate=1.0
+    )
+    return state
+
+
+def report_backfill_watermarks(silo_mode: SiloMode, force_synchronous: bool = False) -> None:
+    """
+    Read every backfill watermark once, and report what it holds.
+    """
+    try:
+        for model in _backfill_models(silo_mode):
+            try:
+                state = _report_watermark_for_model(model, force_synchronous=force_synchronous)
+            except Exception:
+                # One bad table must not stop the rest of the walk.
+                metrics.incr(
+                    WATERMARK_REPORT_ERROR_METRIC,
+                    tags=dict(table_name=model._meta.db_table),
+                    skip_internal=True,
+                    sample_rate=1.0,
+                )
+                logger.exception(
+                    "backfill_outboxes.watermark_report_failed",
+                    extra={"table_name": model._meta.db_table},
+                )
+                continue
+
+            if state is None:
+                continue
+
+            # TODO: we'll dual-write to Postgres here
+    except Exception:
+        metrics.incr(WATERMARK_REPORT_ERROR_METRIC, skip_internal=True, sample_rate=1.0)
+        logger.exception("backfill_outboxes.watermark_report_failed")
+
 
 def backfill_outboxes_for(
     silo_mode: SiloMode,
@@ -199,19 +314,9 @@ def backfill_outboxes_for(
         extra={"remaining": remaining_to_backfill, "scheduled": scheduled_count},
     )
 
-    if remaining_to_backfill > 0:
-        for app, app_models in apps.all_models.items():
-            for model in app_models.values():
-                if not hasattr(model._meta, "silo_limit"):
-                    continue
-
-                # Only process models local this operational mode.
-                if (
-                    silo_mode is not SiloMode.MONOLITH
-                    and silo_mode not in model._meta.silo_limit.modes
-                ):
-                    continue
-
+    try:
+        if remaining_to_backfill > 0:
+            for model in _backfill_models(silo_mode):
                 # If we find some backfill work to perform, do it.
                 batch = process_outbox_backfill_batch(
                     model, batch_size=remaining_to_backfill, force_synchronous=force_synchronous
@@ -223,6 +328,9 @@ def backfill_outboxes_for(
                 backfilled += batch.count
                 if remaining_to_backfill <= 0:
                     break
+    finally:
+        # report the newest values from this cycle
+        report_backfill_watermarks(silo_mode, force_synchronous=force_synchronous)
 
     metrics.incr(
         "backfill_outboxes.backfilled",

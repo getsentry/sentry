@@ -202,7 +202,6 @@ type FetchIssueTagValuesParameters = {
   organization: Organization;
   tagKey: string;
   cursor?: QueryParamValue;
-  environment?: string[];
   sort?: string | string[];
 };
 
@@ -210,7 +209,6 @@ export function issueTagValuesApiOptions({
   organization,
   groupId,
   tagKey,
-  environment,
   sort,
   cursor,
 }: FetchIssueTagValuesParameters) {
@@ -223,7 +221,7 @@ export function issueTagValuesApiOptions({
           issueId: groupId,
           key: tagKey,
         },
-        query: {environment, sort, cursor},
+        query: {sort, cursor},
         staleTime: 0,
       }
     ),

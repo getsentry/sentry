@@ -21,7 +21,6 @@ export function AgentsTracesTableWidgetVisualization({
       tableWidths={tableWidths}
       dashboardFilters={dashboardFilters}
       frameless={frameless}
-      linkToTraceView
     />
   );
 }

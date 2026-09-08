@@ -108,7 +108,8 @@ def run_eap_spans_table_query_in_chunks(
 
 
 def get_eap_organization_volume(
-    config: OrganizationVolumeConfig,
+    organization: Organization,
+    projects: list[Project],
     time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
     end: datetime | None = None,
 ) -> OrganizationDataVolume | None:
@@ -118,8 +119,8 @@ def get_eap_organization_volume(
         params=SnubaParams(
             start=start_time,
             end=end_time,
-            projects=config.projects,
-            organization=config.organization,
+            projects=projects,
+            organization=organization,
         ),
         query_string=DynamicSamplingQueryFilters.IS_SEGMENT,
         selected_columns=[
@@ -147,7 +148,7 @@ def get_eap_organization_volume(
         return None
     indexed = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT_SAMPLE)
 
-    return OrganizationDataVolume(org_id=config.organization.id, total=total, indexed=indexed)
+    return OrganizationDataVolume(org_id=organization.id, total=total, indexed=indexed)
 
 
 def get_outcomes_organization_volume(

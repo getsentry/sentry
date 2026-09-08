@@ -178,12 +178,12 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/sentry/assignees",
-            json=[{"login": "MeredithAnya"}],
+            json=[{"login": "MeredithAnya", "name": "Meredith Anya"}],
         )
 
         assert self.install.get_allowed_assignees(self.repo) == (
             ("", "Unassigned"),
-            ("MeredithAnya", "MeredithAnya"),
+            ("MeredithAnya", "Meredith Anya (@MeredithAnya)"),
         )
 
         if self.should_call_api_without_proxying():

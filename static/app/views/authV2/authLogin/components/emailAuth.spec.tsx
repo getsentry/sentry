@@ -1,6 +1,7 @@
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -21,18 +22,20 @@ describe('EmailAuth', () => {
     });
     render(<EmailAuth onAuthResult={onAuthResult} />);
 
-    expect(
-      screen.queryByRole('button', {name: 'Log in to Sentry'})
-    ).not.toBeInTheDocument();
+    const loginButton = screen.getByRole('button', {name: 'Log in to Sentry'});
+    expect(loginButton).toBeEnabled();
+    expect(loginButton).toHaveAttribute('tabindex', '-1');
+    expect(loginButton).not.toHaveAttribute('aria-hidden');
+    expect(loginButton).toHaveStyle({pointerEvents: 'none'});
     await userEvent.type(
       screen.getByRole('textbox', {name: 'Email'}),
       'user@example.com'
     );
-    expect(
-      screen.queryByRole('button', {name: 'Log in to Sentry'})
-    ).not.toBeInTheDocument();
+    expect(loginButton).toHaveAttribute('tabindex', '-1');
     await userEvent.type(screen.getByLabelText('Password'), 'secret');
-    await userEvent.click(await screen.findByRole('button', {name: 'Log in to Sentry'}));
+    expect(loginButton).not.toHaveAttribute('tabindex');
+    expect(loginButton).toHaveStyle({pointerEvents: 'auto'});
+    await userEvent.click(loginButton);
 
     await waitFor(() =>
       expect(request).toHaveBeenCalledWith(
@@ -49,6 +52,33 @@ describe('EmailAuth', () => {
         nextUri: '/organizations/',
         user,
       })
+    );
+  });
+
+  it('allows password managers to submit immediately after autofill', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: '/auth/login/',
+      method: 'POST',
+      body: {nextUri: '/organizations/', user: UserFixture()},
+    });
+    render(<EmailAuth onAuthResult={jest.fn()} />);
+
+    const emailInput = screen.getByRole('textbox', {name: 'Email'});
+    const passwordInput = screen.getByLabelText('Password');
+    const loginButton = screen.getByRole('button', {name: 'Log in to Sentry'});
+
+    emailInput.setAttribute('value', 'user@example.com');
+    passwordInput.setAttribute('value', 'secret');
+    fireEvent.click(loginButton);
+
+    await waitFor(() =>
+      expect(request).toHaveBeenCalledWith(
+        '/auth/login/',
+        expect.objectContaining({
+          method: 'POST',
+          data: {username: 'user@example.com', password: 'secret', orgSlug: null},
+        })
+      )
     );
   });
 
