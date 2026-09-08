@@ -16,6 +16,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.vercel import VercelClient, VercelIntegrationProvider, metadata
+from sentry.integrations.vercel.integration import VercelEnvVarDefinition
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
@@ -81,6 +82,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert SentryAppInstallation.objects.count() == 1
 
     @responses.activate
+    @with_feature({"organizations:integrations-vercel-upsert-env-var": False})
     def test_update_organization_config(self) -> None:
         """Test that Vercel environment variables are created"""
         with self.tasks():
@@ -177,6 +179,8 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert org_integration.config == {"project_mappings": [[project_id, self.project_id]]}
 
         # assert the env vars were created correctly
+        assert len(responses.calls) == 9
+
         req_params = orjson.loads(responses.calls[1].request.body)
         assert req_params["key"] == "SENTRY_ORG"
         assert req_params["value"] == org.slug
@@ -225,6 +229,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert req_params["type"] == "encrypted"
 
     @responses.activate
+    @with_feature({"organizations:integrations-vercel-upsert-env-var": False})
     def test_update_org_config_vars_exist(self) -> None:
         """Test the case wherein the secret and env vars already exist"""
 
@@ -295,21 +300,18 @@ class VercelIntegrationTest(IntegrationTestCase):
             json={"link": {"type": "github"}, "framework": "gatsby"},
         )
 
-        # mock update env vars
-        count = 0
-        for env_var, details in env_var_map.items():
+        env_list = responses.add(
+            responses.GET,
+            f"{VercelClient.base_url}{VercelClient.GET_ENV_VAR_URL % self.project_id}",
+            json={"envs": [{"id": i, "key": key} for i, key in enumerate(env_var_map)]},
+        )
+        for count, (env_var, details) in enumerate(env_var_map.items()):
             # mock try to create env var
             responses.add(
                 responses.POST,
                 f"{VercelClient.base_url}{VercelClient.CREATE_ENV_VAR_URL % self.project_id}",
                 json={"error": {"code": "ENV_ALREADY_EXISTS"}},
                 status=400,
-            )
-            # mock get env var
-            responses.add(
-                responses.GET,
-                f"{VercelClient.base_url}{VercelClient.GET_ENV_VAR_URL % self.project_id}",
-                json={"envs": [{"id": count, "key": env_var}]},
             )
             # mock update env var
             responses.add(
@@ -322,7 +324,6 @@ class VercelIntegrationTest(IntegrationTestCase):
                     "type": details["type"],
                 },
             )
-            count += 1
 
         data = {"project_mappings": [[project_id, self.project_id]]}
         integration = Integration.objects.get(provider=self.provider.key)
@@ -337,52 +338,12 @@ class VercelIntegrationTest(IntegrationTestCase):
         )
         assert org_integration.config == {"project_mappings": [[project_id, self.project_id]]}
 
-        req_params = orjson.loads(responses.calls[1].request.body)
-        assert req_params["key"] == "SENTRY_ORG"
-        assert req_params["value"] == org.slug
-        assert req_params["target"] == ["production", "preview"]
-        assert req_params["type"] == "encrypted"
-
-        req_params = orjson.loads(responses.calls[4].request.body)
-        assert req_params["key"] == "SENTRY_PROJECT"
-        assert req_params["value"] == self.project.slug
-        assert req_params["target"] == ["production", "preview"]
-        assert req_params["type"] == "encrypted"
-
-        req_params = orjson.loads(responses.calls[7].request.body)
-        assert req_params["key"] == "SENTRY_DSN"
-        assert req_params["value"] == enabled_dsn
-        assert req_params["target"] == ["production", "preview", "development"]
-        assert req_params["type"] == "encrypted"
-
-        req_params = orjson.loads(responses.calls[10].request.body)
-        assert req_params["key"] == "SENTRY_AUTH_TOKEN"
-        assert req_params["target"] == ["production", "preview"]
-        assert req_params["type"] == "encrypted"
-
-        req_params = orjson.loads(responses.calls[13].request.body)
-        assert req_params["key"] == "VERCEL_GIT_COMMIT_SHA"
-        assert req_params["value"] == "VERCEL_GIT_COMMIT_SHA"
-        assert req_params["target"] == ["production", "preview"]
-        assert req_params["type"] == "system"
-
-        req_params = orjson.loads(responses.calls[16].request.body)
-        assert req_params["key"] == "SENTRY_VERCEL_LOG_DRAIN_URL"
-        assert req_params["value"] == f"{integration_endpoint}vercel/logs/"
-        assert req_params["target"] == ["production", "preview"]
-        assert req_params["type"] == "encrypted"
-
-        req_params = orjson.loads(responses.calls[19].request.body)
-        assert req_params["key"] == "SENTRY_OTLP_TRACES_URL"
-        assert req_params["value"] == f"{integration_endpoint}otlp/v1/traces"
-        assert req_params["target"] == ["production", "preview"]
-        assert req_params["type"] == "encrypted"
-
-        req_params = orjson.loads(responses.calls[22].request.body)
-        assert req_params["key"] == "SENTRY_PUBLIC_KEY"
-        assert req_params["value"] == public_key
-        assert req_params["target"] == ["production", "preview"]
-        assert req_params["type"] == "encrypted"
+        assert len(responses.calls) == 18
+        assert env_list.call_count == 1
+        patch_calls = [call for call in responses.calls if call.request.method == "PATCH"]
+        assert len(patch_calls) == 8
+        for call, (key, details) in zip(patch_calls, env_var_map.items(), strict=True):
+            assert orjson.loads(call.request.body) == {"key": key, **details}
 
     @responses.activate
     @with_feature("organizations:integrations-vercel-upsert-env-var")
@@ -457,20 +418,30 @@ class VercelIntegrationTest(IntegrationTestCase):
             json={"link": {"type": "github"}, "framework": "gatsby"},
         )
 
-        # mock upsert env vars: one POST per target per env var (per-target upsert)
-        expected_post_count = sum(len(d["target"]) for d in env_var_map.values())
-        for env_var, details in env_var_map.items():
-            for target in details["target"]:
-                responses.add(
-                    responses.POST,
-                    f"{VercelClient.base_url}{VercelClient.CREATE_ENV_VAR_V10_URL % self.project_id}",
-                    json={
-                        "key": env_var,
-                        "value": details["value"],
-                        "target": [target],
-                        "type": details["type"],
-                    },
-                )
+        for target in ("production", "preview"):
+            responses.add(
+                responses.POST,
+                f"{VercelClient.base_url}{VercelClient.CREATE_ENV_VAR_V10_URL % self.project_id}",
+                status=201,
+                json={
+                    "created": [
+                        {"key": key, **details, "target": [target]}
+                        for key, details in env_var_map.items()
+                    ],
+                    "failed": [],
+                },
+            )
+        responses.add(
+            responses.POST,
+            f"{VercelClient.base_url}{VercelClient.CREATE_ENV_VAR_V10_URL % self.project_id}",
+            status=201,
+            json={
+                "created": [
+                    {"key": "SENTRY_DSN", **env_var_map["SENTRY_DSN"], "target": ["development"]}
+                ],
+                "failed": [],
+            },
+        )
 
         data = {"project_mappings": [[project_id, self.project_id]]}
         integration = Integration.objects.get(provider=self.provider.key)
@@ -485,40 +456,145 @@ class VercelIntegrationTest(IntegrationTestCase):
         )
         assert org_integration.config == {"project_mappings": [[project_id, self.project_id]]}
 
-        # calls[0] = GET project, then one POST per target per env var
-        post_calls = responses.calls[1:]
-        assert len(post_calls) == expected_post_count
-
-        for call in post_calls:
+        assert len(responses.calls) == 4
+        production, preview, development = responses.calls[1:]
+        for call, target in ((production, "production"), (preview, "preview")):
+            assert call.request.method == "POST"
             assert "upsert=true" in call.request.url
-            body = orjson.loads(call.request.body)
-            assert len(body["target"]) == 1, (
-                "Each upsert request should target a single environment"
+            assert orjson.loads(call.request.body) == [
+                {"key": key, **details, "target": [target]} for key, details in env_var_map.items()
+            ]
+
+        assert "upsert=true" in development.request.url
+        assert orjson.loads(development.request.body) == [
+            {"key": "SENTRY_DSN", **env_var_map["SENTRY_DSN"], "target": ["development"]}
+        ]
+
+        # Saved mappings should not trigger any further provisioning requests.
+        installation.update_organization_config(data)
+        assert len(responses.calls) == 4
+
+    @responses.activate
+    @with_feature("organizations:integrations-vercel-upsert-env-var")
+    def test_update_org_config_upsert_partial_failure_and_retry(self) -> None:
+        with self.tasks():
+            integration = self.install_integration(is_team=True)
+        installation = integration.get_installation(self.organization.id)
+        data = {"project_mappings": [[self.project.id, self.project_id]]}
+        responses.add(
+            responses.GET,
+            f"{VercelClient.base_url}{VercelClient.GET_PROJECT_URL % self.project_id}",
+            json={"framework": "nextjs"},
+        )
+        env_url = f"{VercelClient.base_url}{VercelClient.CREATE_ENV_VAR_V10_URL % self.project_id}"
+
+        def upsert_success(request):
+            return (
+                201,
+                {},
+                orjson.dumps({"created": orjson.loads(request.body), "failed": []}).decode(),
             )
 
-        # Verify SENTRY_ORG per-target requests (calls[1] and calls[2])
-        req_params = orjson.loads(responses.calls[1].request.body)
-        assert req_params["key"] == "SENTRY_ORG"
-        assert req_params["value"] == org.slug
-        assert req_params["target"] == ["production"]
+        responses.add_callback(responses.POST, env_url, callback=upsert_success)
+        responses.add(
+            responses.POST,
+            env_url,
+            status=201,
+            json={
+                "created": [{"key": "SENTRY_ORG", "target": ["preview"]}],
+                "failed": [
+                    {"error": {"code": "ENV_CONFLICT", "message": "Cannot update SENTRY_PROJECT."}},
+                    {
+                        "error": {
+                            "code": "ENV_CONFLICT",
+                            "message": "Cannot update NEXT_PUBLIC_SENTRY_DSN.",
+                        }
+                    },
+                ],
+            },
+        )
 
-        req_params = orjson.loads(responses.calls[2].request.body)
-        assert req_params["key"] == "SENTRY_ORG"
-        assert req_params["target"] == ["preview"]
+        with pytest.raises(ValidationError) as exc_info:
+            installation.update_organization_config(data)
 
-        # Verify SENTRY_DSN per-target requests (3 targets: production, preview, development)
-        req_params = orjson.loads(responses.calls[5].request.body)
-        assert req_params["key"] == "SENTRY_DSN"
-        assert req_params["value"] == enabled_dsn
-        assert req_params["target"] == ["production"]
+        assert exc_info.value.detail == {
+            "project_mappings": [
+                "Cannot update SENTRY_PROJECT.",
+                "Cannot update NEXT_PUBLIC_SENTRY_DSN.",
+            ]
+        }
+        assert len(responses.calls) == 3  # No development batch after preview fails.
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+        assert org_integration.config == {}
 
-        req_params = orjson.loads(responses.calls[6].request.body)
-        assert req_params["key"] == "SENTRY_DSN"
-        assert req_params["target"] == ["preview"]
+        responses.replace(
+            responses.CallbackResponse(responses.POST, env_url, callback=upsert_success)
+        )
+        installation.update_organization_config(data)
 
-        req_params = orjson.loads(responses.calls[7].request.body)
-        assert req_params["key"] == "SENTRY_DSN"
-        assert req_params["target"] == ["development"]
+        org_integration.refresh_from_db()
+        assert org_integration.config == data
+        assert len(responses.calls) == 7
+        assert responses.calls[4].request.body == responses.calls[1].request.body
+        assert responses.calls[5].request.body == responses.calls[2].request.body
+        development = orjson.loads(responses.calls[6].request.body)
+        assert len(development) == 1
+        assert development[0]["key"] == "NEXT_PUBLIC_SENTRY_DSN"
+        assert development[0]["target"] == ["development"]
+        for call in responses.calls:
+            assert f"teamId={self.team_id}" in call.request.url
+
+    @responses.activate
+    @with_feature({"organizations:integrations-vercel-upsert-env-var": False})
+    def test_legacy_env_list_is_scoped_to_project_attempt(self) -> None:
+        with self.tasks():
+            integration = self.install_integration()
+        installation = integration.get_installation(self.organization.id)
+        client = installation.get_client()
+        env_var_map: dict[str, VercelEnvVarDefinition] = {
+            "SENTRY_ORG": {
+                "value": self.organization.slug,
+                "type": "encrypted",
+                "target": ["production", "preview"],
+            },
+            "SENTRY_PROJECT": {
+                "value": self.project.slug,
+                "type": "encrypted",
+                "target": ["production", "preview"],
+            },
+        }
+        for project_id in ("first-project", "second-project", "first-project"):
+            env_url = f"{VercelClient.base_url}{VercelClient.CREATE_ENV_VAR_URL % project_id}"
+            # A new variable does not require a list lookup.
+            responses.add(responses.POST, env_url, status=201, json={"key": "SENTRY_ORG"})
+            responses.add(
+                responses.POST,
+                env_url,
+                status=400,
+                json={"error": {"code": "ENV_ALREADY_EXISTS"}},
+            )
+            env_list = responses.add(
+                responses.GET,
+                env_url,
+                json={"envs": [{"id": f"{project_id}-env", "key": "SENTRY_PROJECT"}]},
+            )
+            update = responses.add(
+                responses.PATCH, f"{env_url}/{project_id}-env", json={"key": "SENTRY_PROJECT"}
+            )
+
+            installation.create_env_vars(client, project_id, env_var_map)
+
+            assert env_list.call_count == 1
+            assert update.call_count == 1
+            assert [call.request.method for call in responses.calls[-4:]] == [
+                "POST",
+                "POST",
+                "GET",
+                "PATCH",
+            ]
+            responses.reset()
 
     @responses.activate
     @with_feature("organizations:integrations-vercel-upsert-env-var")

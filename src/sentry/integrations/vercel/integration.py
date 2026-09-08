@@ -112,6 +112,10 @@ class VercelEnvVarDefinition(TypedDict):
     target: list[str]
 
 
+class VercelEnvVar(VercelEnvVarDefinition):
+    key: str
+
+
 class VercelEnvVarMapBuilder:
     """
     Builder for creating Vercel environment variable maps.
@@ -358,14 +362,7 @@ class VercelIntegration(IntegrationInstallation):
                             "Setting SENTRY_AUTH_TOKEN env var with None value in Vercel integration"
                         )
 
-                    self.create_env_var(
-                        vercel_client,
-                        vercel_project_id,
-                        env_var,
-                        details["value"],
-                        details["type"],
-                        details["target"],
-                    )
+                self.create_env_vars(vercel_client, vercel_project_id, env_var_map)
             config.update(data)
             org_integration = integration_service.update_organization_integration(
                 org_integration_id=self.org_integration.id,
@@ -386,49 +383,32 @@ class VercelIntegration(IntegrationInstallation):
             )
             raise
 
-    def create_env_var(self, client, vercel_project_id, key, value, type, targets):
-        data = {
-            "key": key,
-            "value": value,
-            "target": targets,
-            "type": type,
-        }
-
-        use_upsert = features.has(
+    def create_env_vars(
+        self,
+        client: VercelClient,
+        vercel_project_id: str,
+        env_var_map: Mapping[str, VercelEnvVarDefinition],
+    ) -> None:
+        if features.has(
             "organizations:integrations-vercel-upsert-env-var",
             self.organization,
-        )
-
-        if use_upsert:
-            # Upsert one target at a time to avoid ENV_CONFLICT errors when the
-            # existing variable's target list doesn't match ours exactly.
-            for target in targets:
-                target_data = {
-                    "key": key,
-                    "value": value,
-                    "target": [target],
-                    "type": type,
-                }
-                try:
-                    client.create_env_variable(vercel_project_id, target_data, upsert=True)
-                except ApiError as e:
-                    error_message = (
-                        (e.json or {})
-                        .get("error", {})
-                        .get(
-                            "message",
-                            f"Could not create or update environment variable {key}.",
-                        )
-                    )
-                    raise ValidationError({"project_mappings": [error_message]})
+        ):
+            self.upsert_env_vars(client, vercel_project_id, env_var_map)
             return
 
-        try:
-            return client.create_env_variable(vercel_project_id, data)
-        except ApiError as e:
-            if e.json and e.json.get("error", {}).get("code") == "ENV_ALREADY_EXISTS":
+        # Fetch lazily on the first conflict, and reuse only for this project attempt.
+        envs = None
+        for key, details in env_var_map.items():
+            data: VercelEnvVar = {"key": key, **details}
+            try:
+                client.create_env_variable(vercel_project_id, data)
+            except ApiError as e:
+                if (e.json or {}).get("error", {}).get("code") != "ENV_ALREADY_EXISTS":
+                    raise
                 try:
-                    return self.update_env_variable(client, vercel_project_id, data)
+                    if envs is None:
+                        envs = client.get_env_vars(vercel_project_id)["envs"]
+                    self.update_env_variable(client, vercel_project_id, data, envs)
                 except ApiError as e:
                     error_message = (
                         e.json.get("error", {}).get("message")
@@ -436,11 +416,38 @@ class VercelIntegration(IntegrationInstallation):
                         else f"Could not update environment variable {key}."
                     )
                     raise ValidationError({"project_mappings": [error_message]})
-            raise
 
-    def update_env_variable(self, client, vercel_project_id, data):
-        envs = client.get_env_vars(vercel_project_id)["envs"]
+    def upsert_env_vars(
+        self,
+        client: VercelClient,
+        vercel_project_id: str,
+        env_var_map: Mapping[str, VercelEnvVarDefinition],
+    ) -> None:
+        # Keep single-target entries to avoid ENV_CONFLICT with existing scopes.
+        # Separate batches ensure each key appears only once in a request.
+        batches: dict[str, list[VercelEnvVar]] = {}
+        for key, details in env_var_map.items():
+            for target in details["target"]:
+                batches.setdefault(target, []).append({"key": key, **details, "target": [target]})
 
+        for target, batch in batches.items():
+            fallback_message = f"Could not create or update {target} environment variables."
+            try:
+                response = client.create_env_variable(vercel_project_id, batch, upsert=True)
+            except ApiError as e:
+                error_message = (e.json or {}).get("error", {}).get("message", fallback_message)
+                raise ValidationError({"project_mappings": [error_message]})
+
+            if not response:
+                raise ValidationError({"project_mappings": [fallback_message]})
+            # Batches can partially succeed with a 201 response. Do not save the
+            # mapping until every batch succeeds; a retry will upsert again.
+            if response["failed"]:
+                raise ValidationError(
+                    {"project_mappings": [item["error"]["message"] for item in response["failed"]]}
+                )
+
+    def update_env_variable(self, client, vercel_project_id, data, envs):
         env_var_ids = [env_var["id"] for env_var in envs if env_var["key"] == data["key"]]
         if env_var_ids:
             return client.update_env_variable(vercel_project_id, env_var_ids[0], data)
