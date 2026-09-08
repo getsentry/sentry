@@ -54,7 +54,8 @@ export interface TableColumnConfig {
   /**
    * Whether the column takes part in the layout, defaulting to `true`. A
    * responsive value drops the column's track from the grid template and hides
-   * its cells as the container crosses a breakpoint.
+   * its cells as the container crosses a breakpoint, and starts out hidden:
+   * `{'3xl': true}` is the same as `{zero: false, '3xl': true}`.
    *
    * Cells name their column with `columnKey`, which is how they are hidden
    * along with their track.
@@ -68,6 +69,14 @@ interface ResolvedColumn extends Omit<TableColumnConfig, 'visible' | 'width'> {
 }
 
 type ResolvedWidth = number | string | undefined;
+
+function withHiddenBase(visible: Responsive<boolean> | undefined): Responsive<boolean> {
+  if (visible === undefined || typeof visible === 'boolean') {
+    return visible ?? true;
+  }
+
+  return {zero: false, ...visible};
+}
 
 function getDefaultColumnTrack(
   width: ResolvedWidth,
@@ -166,7 +175,7 @@ export function Table({
   const hiddenColumnKeys = new Set<string>();
 
   for (const {visible, width, ...column} of columns) {
-    if (resolveResponsiveProp(visible ?? true)) {
+    if (resolveResponsiveProp(withHiddenBase(visible))) {
       visibleColumns.push({...column, width: resolveResponsiveProp(width)});
     } else {
       hiddenColumnKeys.add(column.key);

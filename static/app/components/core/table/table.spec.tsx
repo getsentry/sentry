@@ -263,7 +263,7 @@ describe('Table', () => {
 
     const RESPONSIVE_COLUMNS: TableColumnConfig[] = [
       {key: 'name', width: {zero: 120, xl: 200}},
-      {key: 'age', visible: {zero: false, xl: true}, width: 150},
+      {key: 'age', visible: {xl: true}, width: 150},
       {key: 'count'},
     ];
 
@@ -302,6 +302,30 @@ describe('Table', () => {
       expect(screen.getByText('name-value')).toBeVisible();
     });
 
+    it('keeps a column named only at wider breakpoints hidden at the base', () => {
+      setClientWidth(400);
+      render(
+        <Container containerType="inline-size">
+          <TestTable columns={[{key: 'name'}, {key: 'age', visible: {xl: true}}]} />
+        </Container>
+      );
+
+      expect(screen.getByText('age-value')).not.toBeVisible();
+    });
+
+    it('keeps a column visible at the base when its `visible` says so', () => {
+      setClientWidth(400);
+      render(
+        <Container containerType="inline-size">
+          <TestTable
+            columns={[{key: 'name'}, {key: 'age', visible: {zero: true, xl: false}}]}
+          />
+        </Container>
+      );
+
+      expect(screen.getByText('age-value')).toBeVisible();
+    });
+
     it('leaves the last visible column flexible when a later column is hidden', () => {
       setClientWidth(400);
       render(
@@ -309,7 +333,7 @@ describe('Table', () => {
           <TestTable
             columns={[
               {key: 'name', width: 120},
-              {key: 'age', visible: {zero: false, xl: true}, width: 150},
+              {key: 'age', visible: {xl: true}, width: 150},
             ]}
           />
         </Container>
@@ -337,7 +361,7 @@ describe('Table', () => {
         <Container containerType="inline-size">
           <TestTable
             columns={[
-              {key: 'name', visible: {zero: false, xl: true}, width: 200},
+              {key: 'name', visible: {xl: true}, width: 200},
               {key: 'age', width: 150},
               {key: 'count'},
             ]}

@@ -320,10 +320,6 @@ const SimpleTableWithColumns = styled(SimpleTable)`
 const responsiveColumns: TableColumnConfig[] = [
   {key: 'name', width: '2fr'},
   {key: 'monitors', width: 'min-content'},
-  {key: 'action', visible: {zero: false, lg: true}, width: 'auto'},
-  {
-    key: 'lastTriggered',
-    visible: {zero: false, '2xs': true},
-    width: {zero: 'auto', lg: '256px'},
-  },
+  {key: 'action', visible: {lg: true}, width: 'auto'},
+  {key: 'lastTriggered', visible: {'2xs': true}, width: {zero: 'auto', lg: '256px'}},
 ];

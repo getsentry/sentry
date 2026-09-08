@@ -1038,10 +1038,10 @@ const CUSTOM_FILTER_COLUMNS: TableColumnConfig[] = [
   {key: 'active', width: '90px'},
   {key: 'name', width: 'minmax(160px, 1fr)'},
   {key: 'conditions', width: 'minmax(240px, 2fr)'},
-  {key: 'trend', visible: {zero: false, '3xl': true}, width: '190px'},
-  {key: 'filtered', visible: {zero: false, '2xl': true}, width: '90px'},
-  {key: 'created', visible: {zero: false, '4xl': true}, width: '90px'},
-  {key: 'edited', visible: {zero: false, '4xl': true}, width: '90px'},
+  {key: 'trend', visible: {'3xl': true}, width: '190px'},
+  {key: 'filtered', visible: {'2xl': true}, width: '90px'},
+  {key: 'created', visible: {'4xl': true}, width: '90px'},
+  {key: 'edited', visible: {'4xl': true}, width: '90px'},
   {key: 'action', width: '110px'},
 ];
 

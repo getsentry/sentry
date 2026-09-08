@@ -35,8 +35,8 @@ type RevokeTokenQueryVariables = {
 
 const TOKEN_COLUMNS: TableColumnConfig[] = [
   {key: 'token', width: {zero: '1fr', xl: 'auto'}},
-  {key: 'created', visible: {zero: false, xl: true}, width: 'auto'},
-  {key: 'lastAccess', visible: {zero: false, xl: true}, width: 'auto'},
+  {key: 'created', visible: {xl: true}, width: 'auto'},
+  {key: 'lastAccess', visible: {xl: true}, width: 'auto'},
   {key: 'actions', width: {zero: '1fr', xl: 'auto'}},
 ];
 

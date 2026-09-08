@@ -334,10 +334,10 @@ function makeDetectorColumns({
   if (!hasVisualization) {
     return [
       {key: 'name', width: {zero: '1fr', sm: '2fr'}},
-      {key: 'type', visible: {zero: false, sm: true}, width: '90px'},
-      {key: 'last-issue', visible: {zero: false, '3xl': true}, width: '1.5fr'},
-      {key: 'assignee', visible: {zero: false, xl: true}, width: '90px'},
-      {key: 'connected-automations', visible: {zero: false, '4xl': true}, width: '110px'},
+      {key: 'type', visible: {sm: true}, width: '90px'},
+      {key: 'last-issue', visible: {'3xl': true}, width: '1.5fr'},
+      {key: 'assignee', visible: {xl: true}, width: '90px'},
+      {key: 'connected-automations', visible: {'4xl': true}, width: '110px'},
       ...additionalColumns.map(column => ({key: column.id, visible: false})),
     ];
   }
@@ -347,11 +347,11 @@ function makeDetectorColumns({
   const visualizationColumns: TableColumnConfig[] = [
     ...additionalColumns.map(column => ({
       key: column.id,
-      visible: {zero: false, xl: true},
+      visible: {xl: true},
       width: column.columnWidth ?? 'auto',
     })),
-    {key: 'visualization', visible: {zero: false, xl: true}, width: '3fr'},
-    {key: 'visualization-expand', visible: {zero: false, xl: true}, width: 'max-content'},
+    {key: 'visualization', visible: {xl: true}, width: '3fr'},
+    {key: 'visualization-expand', visible: {xl: true}, width: 'max-content'},
   ];
 
   // An expanded visualization takes every column the name does not need; an
@@ -371,9 +371,9 @@ function makeDetectorColumns({
   return [
     {key: 'name', width: {zero: '1fr', xl: '2fr'}},
     {key: 'type', visible: false},
-    {key: 'last-issue', visible: {zero: false, '4xl': true}, width: '1.5fr'},
-    {key: 'assignee', visible: {zero: false, '3xl': true}, width: '90px'},
-    {key: 'connected-automations', visible: {zero: false, '5xl': true}, width: '110px'},
+    {key: 'last-issue', visible: {'4xl': true}, width: '1.5fr'},
+    {key: 'assignee', visible: {'3xl': true}, width: '90px'},
+    {key: 'connected-automations', visible: {'5xl': true}, width: '110px'},
     ...visualizationColumns,
   ];
 }

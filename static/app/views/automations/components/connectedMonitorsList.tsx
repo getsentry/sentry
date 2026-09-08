@@ -125,13 +125,9 @@ export function ConnectedMonitorsList({
 
   const columns: TableColumnConfig[] = [
     {key: 'name', width: '1fr'},
-    {key: 'type', visible: {zero: false, sm: true}, width: '100px'},
-    {
-      key: 'last-issue',
-      visible: {zero: false, '3xl': true},
-      width: 'minmax(0, 0.8fr)',
-    },
-    {key: 'owner', visible: {zero: false, xl: true}, width: 'auto'},
+    {key: 'type', visible: {sm: true}, width: '100px'},
+    {key: 'last-issue', visible: {'3xl': true}, width: 'minmax(0, 0.8fr)'},
+    {key: 'owner', visible: {xl: true}, width: 'auto'},
     {key: 'connected', visible: canEdit, width: '140px'},
   ];
 

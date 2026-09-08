@@ -358,28 +358,12 @@ function savedQueryColumns(hasLogsEnabled: boolean): TableColumnConfig[] {
   return [
     {key: 'star', width: '40px'},
     {key: 'name', width: {zero: '30%', xl: '20%'}},
-    {
-      key: 'dataset',
-      visible: hasLogsEnabled && {zero: false, xl: true},
-      width: 'min-content',
-    },
-    {
-      key: 'project',
-      visible: {zero: false, xl: true},
-      width: 'minmax(auto, 120px)',
-    },
-    {
-      key: 'envs',
-      visible: {zero: false, '3xl': true},
-      width: 'minmax(auto, 120px)',
-    },
+    {key: 'dataset', visible: hasLogsEnabled && {xl: true}, width: 'min-content'},
+    {key: 'project', visible: {xl: true}, width: 'minmax(auto, 120px)'},
+    {key: 'envs', visible: {'3xl': true}, width: 'minmax(auto, 120px)'},
     {key: 'query', width: 'minmax(0, 1fr)'},
-    {key: 'created-by', visible: {zero: false, xl: true}, width: 'auto'},
-    {
-      key: 'last-visited',
-      visible: {zero: false, '3xl': true},
-      width: 'auto',
-    },
+    {key: 'created-by', visible: {xl: true}, width: 'auto'},
+    {key: 'last-visited', visible: {'3xl': true}, width: 'auto'},
     {key: 'actions', width: '48px'},
   ];
 }

@@ -8,8 +8,8 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 const TEAMS_TABLE_COLUMNS: TableColumnConfig[] = [
   {key: 'team', width: '1fr'},
-  {key: 'role', visible: {zero: false, xl: true}, width: '125px'},
-  {key: 'projects', visible: {zero: false, '3xl': true}, width: '150px'},
+  {key: 'role', visible: {xl: true}, width: '125px'},
+  {key: 'projects', visible: {'3xl': true}, width: '150px'},
   {key: 'actions', width: 'auto'},
 ];
 

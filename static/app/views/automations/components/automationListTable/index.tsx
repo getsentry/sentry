@@ -250,18 +250,10 @@ const StyledFlex = styled(Flex)`
 
 const AUTOMATION_COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: {zero: '1fr', sm: '2.5fr', '4xl': 'minmax(0, 3fr)'}},
-  {
-    key: 'last-triggered',
-    visible: {zero: false, '3xl': true},
-    width: 'minmax(160px, 1fr)',
-  },
-  {key: 'action', visible: {zero: false, xl: true}, width: '1fr'},
-  {key: 'projects', visible: {zero: false, sm: true}, width: '1fr'},
-  {
-    key: 'connected-monitors',
-    visible: {zero: false, '4xl': true},
-    width: '1fr',
-  },
+  {key: 'last-triggered', visible: {'3xl': true}, width: 'minmax(160px, 1fr)'},
+  {key: 'action', visible: {xl: true}, width: '1fr'},
+  {key: 'projects', visible: {sm: true}, width: '1fr'},
+  {key: 'connected-monitors', visible: {'4xl': true}, width: '1fr'},
 ];
 
 const AutomationsSimpleTable = styled(SimpleTable)`
