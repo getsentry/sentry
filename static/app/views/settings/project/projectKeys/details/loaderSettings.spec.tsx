@@ -513,7 +513,7 @@ describe('Loader Script Settings', () => {
     ).toBeInTheDocument();
   });
 
-  it('enables logs and metrics for SDK version 10.x', () => {
+  it.each(['10.x', '11.x'])('enables logs and metrics for SDK version %s', sdkVersion => {
     const {organization, project} = initializeOrg();
     const params = {
       projectSlug: project.slug,
@@ -532,7 +532,7 @@ describe('Loader Script Settings', () => {
             ...fullDynamicSdkLoaderOptions,
             hasLogsAndMetrics: true,
           },
-          browserSdkVersion: '10.x',
+          browserSdkVersion: sdkVersion,
         }}
       />
     );

@@ -430,10 +430,11 @@ function sdkVersionSupportsPerformanceAndReplay(sdkVersion: string): boolean {
     sdkVersion === '7.x' ||
     sdkVersion === '8.x' ||
     sdkVersion === '9.x' ||
-    sdkVersion === '10.x'
+    sdkVersion === '10.x' ||
+    sdkVersion === '11.x'
   );
 }
 
 function sdkVersionSupportsLogsAndMetrics(sdkVersion: string): boolean {
-  return sdkVersion === '10.x';
+  return sdkVersion === '10.x' || sdkVersion === '11.x';
 }
