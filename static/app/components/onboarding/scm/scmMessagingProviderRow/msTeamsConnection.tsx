@@ -67,16 +67,18 @@ function MsTeamsConnection({
               icon={<IconOpen />}
               busy={isWaiting}
               onClick={() => {
-                window.open(externalInstall.url, '_blank');
-                trackIntegrationAnalytics('integrations.installation_start', {
-                  integration: 'msteams',
-                  integration_type: 'first_party',
-                  is_scm: false,
-                  view: MessagingIntegrationAnalyticsView.ONBOARDING,
-                  variant: 'scm',
-                  already_installed: false,
-                  organization,
-                });
+                window.open(externalInstall.url, '_blank', 'noopener,noreferrer');
+                if (!isWaiting) {
+                  trackIntegrationAnalytics('integrations.installation_start', {
+                    integration: 'msteams',
+                    integration_type: 'first_party',
+                    is_scm: false,
+                    view: MessagingIntegrationAnalyticsView.ONBOARDING,
+                    variant: 'scm',
+                    already_installed: false,
+                    organization,
+                  });
+                }
                 setIsWaiting(true);
               }}
             >

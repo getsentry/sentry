@@ -63,7 +63,7 @@ describe('MsTeamsConnection modal', () => {
       url: '/organizations/org-slug/integrations/',
       body: [],
     });
-    jest.spyOn(window, 'open').mockReturnValue(null as any);
+    jest.spyOn(window, 'open').mockReturnValue(null);
   });
 
   afterEach(() => {
@@ -82,7 +82,7 @@ describe('MsTeamsConnection modal', () => {
     return queryClient;
   }
 
-  it('renders the title, info alert, and marketplace button', () => {
+  it('renders the title, info alert, and marketplace button', async () => {
     renderModal();
     act(() => openMsTeamsConnectionModal(provider, jest.fn()));
 
@@ -94,7 +94,15 @@ describe('MsTeamsConnection modal', () => {
         "Visit the Teams Marketplace to add Sentry to a team and channel. You'll get a welcome message in the General channel to complete installation."
       )
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Teams Marketplace'})).toBeInTheDocument();
+    const btn = screen.getByRole('button', {name: 'Teams Marketplace'});
+    expect(btn).toBeInTheDocument();
+
+    await userEvent.click(btn);
+    expect(window.open).toHaveBeenCalledWith(
+      TEAMS_MARKETPLACE_URL,
+      '_blank',
+      'noopener,noreferrer'
+    );
   });
 
   it('omits the marketplace button when externalInstall is absent', () => {
