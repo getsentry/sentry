@@ -25,7 +25,7 @@ type RouteParams = {
   apiKey: string;
 };
 
-const scopeListSchema = z.array(z.enum(API_ACCESS_SCOPES));
+const scopeListSchema = z.array(z.string());
 const apiKeySchema = z.object({
   label: z.string(),
   key: z.string(),
@@ -135,7 +135,7 @@ function OrganizationApiKeyForm({
                 <Container flexGrow={1}>
                   <MultipleCheckbox
                     value={field.state.value}
-                    onChange={value => field.handleChange(scopeListSchema.parse(value))}
+                    onChange={field.handleChange}
                     name={field.name}
                   >
                     {API_ACCESS_SCOPES.map(scope => (

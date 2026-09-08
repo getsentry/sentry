@@ -60,6 +60,47 @@ describe('OrganizationApiKeyDetails', () => {
     );
   });
 
+  it('preserves scopes unknown to the client when updating', async () => {
+    const unknownScope = 'new-resource:read';
+    const apiKeyWithUnknownScope = {
+      ...apiKey,
+      scope_list: [...apiKey.scope_list, unknownScope],
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/api-keys/${apiKey.id}/`,
+      method: 'GET',
+      body: apiKeyWithUnknownScope,
+    });
+    const updateRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/api-keys/${apiKey.id}/`,
+      method: 'PUT',
+      body: apiKeyWithUnknownScope,
+    });
+
+    render(<OrganizationApiKeyDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/org-slug/api-keys/${apiKey.id}/`,
+        },
+        route: '/settings/:orgId/api-keys/:apiKey/',
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('checkbox', {name: 'alerts:read'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+    await waitFor(() =>
+      expect(updateRequest).toHaveBeenCalledWith(
+        `/organizations/org-slug/api-keys/${apiKey.id}/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            scope_list: [...apiKeyWithUnknownScope.scope_list, 'alerts:read'],
+          }),
+        })
+      )
+    );
+  });
+
   it('requires at least one scope', async () => {
     const updateRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/api-keys/${apiKey.id}/`,
