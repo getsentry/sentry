@@ -53,7 +53,11 @@ export function FrameRegisters({registers, deviceArch, meta}: Props) {
               <SegmentedControl.Item key="decimal">{t('Decimal')}</SegmentedControl.Item>
             </SegmentedControl>
           </Flex>
-          <Grid columns="repeat(auto-fit, minmax(min(100%, 14rem), 1fr))" gap="lg 2xl">
+          <Grid
+            columns="repeat(auto-fit, minmax(min(100%, 14rem), 1fr))"
+            gap="lg 2xl"
+            paddingLeft="sm"
+          >
             {sortedRegisters.map(([name, value]) => {
               if (!defined(value)) {
                 return null;
