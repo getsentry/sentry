@@ -431,7 +431,6 @@ module = [
     "fixtures.vsts",
     "flagpole.*",
     "sentry",
-    "sentry.__main__",
     "sentry.adoption.*",
     "sentry.api",
     "sentry.api.analytics",
