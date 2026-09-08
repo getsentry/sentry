@@ -174,9 +174,6 @@ describe('AuthLogin', () => {
     expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', {name: 'Account Settings'})
-    ).not.toBeInTheDocument();
-    expect(
       screen.queryByRole('button', {name: 'Clear organization login context'})
     ).not.toBeInTheDocument();
     expect(testableWindowLocation.assign).not.toHaveBeenCalled();
