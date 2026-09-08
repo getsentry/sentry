@@ -5,7 +5,9 @@ import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {makeLogsPathname} from 'sentry/views/explore/logs/utils';
 import {makeMetricsPathname} from 'sentry/views/explore/metrics/utils';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
@@ -27,7 +29,13 @@ function datasetPathname(dataset: Dataset, organization: Organization): string {
       return makeMetricsPathname({organizationSlug: organization.slug, path: '/'});
     case 'replays':
       return makeReplaysPathname({organization, path: '/'});
+    case 'ai_conversations':
+      return normalizeUrl(
+        `/organizations/${organization.slug}/explore/${EXPLORE_AGENTS_SUB_PATH}/`
+      );
+    // `segment_spans` is a saved-query-only distinction; both open Traces.
     case 'spans':
+    case 'segment_spans':
       return makeTracesPathname({organization, path: '/'});
     default:
       dataset satisfies never;

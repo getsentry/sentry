@@ -449,7 +449,18 @@ export const SEER_EMBED_SCHEMAS = {
     level: ['inline', 'block'],
     schema: z.object({
       id: z.string().min(1),
-      dataset: z.enum(['spans', 'logs', 'metrics', 'replays']),
+      // Every value the saved query API can report, not just the four Explore
+      // surfaces. `segment_spans` and `ai_conversations` are what the API
+      // returns for a good share of real saved queries, and an embed whose
+      // props fail to parse renders nothing at all.
+      dataset: z.enum([
+        'spans',
+        'segment_spans',
+        'logs',
+        'metrics',
+        'replays',
+        'ai_conversations',
+      ]),
       name: z.string().min(1).optional(),
     }),
     examples: [

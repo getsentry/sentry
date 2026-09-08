@@ -620,7 +620,14 @@
         },
         "dataset": {
           "type": "string",
-          "enum": ["spans", "logs", "metrics", "replays"]
+          "enum": [
+            "spans",
+            "segment_spans",
+            "logs",
+            "metrics",
+            "replays",
+            "ai_conversations"
+          ]
         },
         "name": {
           "type": "string",

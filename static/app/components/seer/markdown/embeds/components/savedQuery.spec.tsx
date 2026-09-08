@@ -94,6 +94,24 @@ describe('saved query embed', () => {
     expect(await screen.findByText('Logs')).toBeInTheDocument();
   });
 
+  // The saved query API reports `segment_spans` and `ai_conversations` for a
+  // real share of saved queries. An embed whose props fail to parse renders
+  // nothing at all, so the tag has to accept every dataset the API can name.
+  it.each([
+    ['segment_spans', '/organizations/org-slug/explore/traces/'],
+    ['ai_conversations', '/organizations/org-slug/explore/agents/'],
+    ['spans', '/organizations/org-slug/explore/traces/'],
+    ['logs', '/organizations/org-slug/explore/logs/'],
+  ])('links a %s saved query inline', (dataset, pathname) => {
+    const href = getEmbedLinkHref('savedQuery', 'Slow checkout spans', {
+      id: '312',
+      dataset,
+      name: 'Slow checkout spans',
+    });
+
+    expect(href).toContain(pathname);
+  });
+
   it('falls back to the inline link when the saved query cannot be loaded', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/explore/saved/999/',
