@@ -1,11 +1,11 @@
 import {useMemo} from 'react';
 import {useQueries, type QueryObserverResult} from '@tanstack/react-query';
 
-import {useScmMessagingIntegrationsQuery} from 'sentry/components/onboarding/scm/useScmMessagingIntegrationsQuery';
 import {
   SCM_MESSAGING_PROVIDER_KEYS,
   type ScmMessagingProviderKey,
 } from 'sentry/components/onboarding/scm/messagingProviders';
+import {useScmMessagingIntegrationsQuery} from 'sentry/components/onboarding/scm/useScmMessagingIntegrationsQuery';
 import {
   isEligibleForIssueAlerts,
   isIntegrationActive,
