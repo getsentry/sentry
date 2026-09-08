@@ -135,14 +135,11 @@ export function parseStatsPeriod(
  * @param relative Relative stats period
  * @return either one of the default "Last x days" string, "Other" if period is valid on the backend, or "Invalid period" otherwise
  */
-export function getRelativeSummary(
-  relative: string,
-  relativeOptions?: Record<string, React.ReactNode>
-): string {
+export function getRelativeSummary(relative: string): string {
   try {
     const defaultRelativePeriodString =
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      relativeOptions?.[relative] ?? DEFAULT_RELATIVE_PERIODS[relative];
+      DEFAULT_RELATIVE_PERIODS[relative];
 
     if (defaultRelativePeriodString) {
       return defaultRelativePeriodString;
@@ -317,8 +314,6 @@ export const timeRangeAutoCompleteFilter = function (
   options: {
     maxDateRange?: number;
     maxDays?: number;
-    supportedPeriods?: RelativeUnitsMapping;
-    supportedUnits?: RelativePeriodUnit[];
   }
 ): TimeRangeItem[] {
   return _timeRangeAutoCompleteFilter(items, filterValue, {

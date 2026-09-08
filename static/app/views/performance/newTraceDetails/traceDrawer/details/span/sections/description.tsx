@@ -14,6 +14,7 @@ import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {ResourceSize} from 'sentry/views/insights/browser/resources/components/resourceSize';
@@ -66,13 +67,21 @@ export function SpanDescription({
     projectSlug: project?.slug,
   });
   const span = node.value;
+  const spanData = span.data ?? {};
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
   const resolvedModule = resolveSpanModule(
     span.sentry_tags?.op,
     span.sentry_tags?.category
   );
 
-  const system = span?.data?.['db.system'];
+  const system = getAttributeValue(spanData, SpanFields.DB_SYSTEM_NAME, 'string');
+  const codeFilepath = getAttributeValue(spanData, SpanFields.CODE_FILE_PATH, 'string');
+  const codeLineNumber = getAttributeValue(
+    spanData,
+    SpanFields.CODE_LINE_NUMBER,
+    'number'
+  );
+  const codeFunction = getAttributeValue(spanData, SpanFields.CODE_FUNCTION, 'string');
   const formattedDescription = useMemo(() => {
     if (resolvedModule !== ModuleName.DB) {
       return span.description ?? '';
@@ -142,14 +151,14 @@ export function SpanDescription({
         >
           {formattedDescription}
         </StyledCodeSnippet>
-        {span?.data?.['code.filepath'] ? (
+        {codeFilepath ? (
           <StackTraceMiniFrame
             projectId={node.event?.projectID}
             event={event}
             frame={{
-              filename: span?.data?.['code.filepath'],
-              lineNo: span?.data?.['code.lineno'],
-              function: span?.data?.['code.function'],
+              filename: codeFilepath,
+              lineNo: codeLineNumber === undefined ? undefined : Number(codeLineNumber),
+              function: codeFunction,
             }}
           />
         ) : (

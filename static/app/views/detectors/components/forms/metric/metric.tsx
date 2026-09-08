@@ -474,7 +474,6 @@ function CustomizeMetricSection({step}: {step?: number}) {
             />
             <Tooltip
               title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
-              isHoverable
               disabled={!isTransactionsDataset}
             >
               <DisabledSection disabled={isTransactionsDataset}>
@@ -485,7 +484,6 @@ function CustomizeMetricSection({step}: {step?: number}) {
         </Stack>
         <Tooltip
           title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
-          isHoverable
           disabled={!isTransactionsDataset}
         >
           <DisabledSection disabled={isTransactionsDataset}>
@@ -496,7 +494,6 @@ function CustomizeMetricSection({step}: {step?: number}) {
         dataset === DetectorDataset.METRICS ? null : (
           <Tooltip
             title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
-            isHoverable
             disabled={!isTransactionsDataset}
           >
             <FilterRow disabled={isTransactionsDataset}>
@@ -540,7 +537,6 @@ function DetectSection({step}: {step?: number}) {
             <WarningIcon
               id="thresholds-warning-icon"
               tooltipProps={{
-                isHoverable: true,
                 title: tct(
                   'Your thresholds may need to be adjusted to take into account [samplingLink:sampling].',
                   {
