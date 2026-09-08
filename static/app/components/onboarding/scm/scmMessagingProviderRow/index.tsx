@@ -128,6 +128,7 @@ export interface ScmMessagingProviderRowProps {
   onActiveRowChange: (row: ScmMessagingActiveRow) => void;
   onInstallComplete: (providerKey: ScmMessagingProviderKey) => void;
   onMessagingSetupChange: (setup: ScmMessagingSetup) => void;
+  onContinue: () => void;
   resolvedProvider: ScmMessagingResolvedProvider;
   /**
    * True while the parent's integrations query is actively refetching (e.g.
@@ -136,7 +137,6 @@ export interface ScmMessagingProviderRowProps {
    * integration surfaced, preventing an infinite spin.
    */
   isRefetchingIntegrations?: boolean;
-  onContinue: () => void;
   /**
    * Render prop for the inline channel picker.
    *

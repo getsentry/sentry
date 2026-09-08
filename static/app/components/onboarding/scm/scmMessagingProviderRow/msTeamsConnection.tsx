@@ -8,7 +8,7 @@ import {Text} from '@sentry/scraps/text';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
-import {useScmMessagingIntegrationsQuery} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
+import {useScmMessagingIntegrationsQuery} from 'sentry/components/onboarding/scm/useScmMessagingIntegrationsQuery';
 import {isIntegrationActive} from 'sentry/components/onboarding/scm/useScmMessagingSetupValidation';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';

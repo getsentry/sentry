@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
-import {useQueries, useQuery, type QueryObserverResult} from '@tanstack/react-query';
+import {useQueries, type QueryObserverResult} from '@tanstack/react-query';
 
+import {useScmMessagingIntegrationsQuery} from 'sentry/components/onboarding/scm/useScmMessagingIntegrationsQuery';
 import {
   SCM_MESSAGING_PROVIDER_KEYS,
   type ScmMessagingProviderKey,
@@ -43,26 +44,6 @@ export type ScmMessagingResolvedProvider = {
   providerKey: ScmMessagingProviderKey;
   status: ScmMessagingProviderStatus;
 };
-
-/**
- * Fetches (and caches) the list of messaging integrations for the current org.
- * Call this from multiple components freely — React Query dedupes identical keys
- * into a single in-flight request and shares the cached result.
- */
-export function useScmMessagingIntegrationsQuery() {
-  const organization = useOrganization();
-  return useQuery({
-    ...apiOptions.as<OrganizationIntegration[]>()(
-      '/organizations/$organizationIdOrSlug/integrations/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        query: {integrationType: 'messaging'},
-        staleTime: 0,
-      }
-    ),
-    refetchOnWindowFocus: true,
-  });
-}
 
 export function useScmMessagingProviders(): {
   isError: boolean;
