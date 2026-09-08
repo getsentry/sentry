@@ -1,6 +1,6 @@
 import artworkBackground from 'sentry-images/brandPageLayout/background.avif';
 import artworkImage from 'sentry-images/brandPageLayout/full-art.avif';
-import artworkOutline from 'sentry-images/brandPageLayout/outline.svg';
+import artworkOutline from 'sentry-images/brandPageLayout/outline.webp';
 
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {slot} from '@sentry/scraps/slot';

@@ -19,21 +19,46 @@ describe('DatadogCredentialsStep', () => {
     expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
   });
 
-  it('points key help links at the selected site settings pages', async () => {
+  it('links key help to the docs until a site is selected', () => {
     render(<DatadogCredentialsStep {...makeStepProps({stepData: {}})} />);
 
+    const docsUrl = 'https://docs.datadoghq.com/account_management/api-app-keys/';
+    expect(screen.getByRole('link', {name: /API Keys/})).toHaveAttribute('href', docsUrl);
+    expect(screen.getByRole('link', {name: /Application Keys/})).toHaveAttribute(
+      'href',
+      docsUrl
+    );
+  });
+
+  it('prefixes app. only for primary sites, not regional ones', async () => {
+    render(<DatadogCredentialsStep {...makeStepProps({stepData: {}})} />);
+
+    // Regional sites already carry their region as a subdomain, so no app. prefix.
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Datadog Site'}),
       'us3.datadoghq.com (US3)'
     );
-
     expect(screen.getByRole('link', {name: /API Keys/})).toHaveAttribute(
       'href',
-      'https://app.us3.datadoghq.com/organization-settings/api-keys'
+      'https://us3.datadoghq.com/organization-settings/api-keys'
     );
     expect(screen.getByRole('link', {name: /Application Keys/})).toHaveAttribute(
       'href',
-      'https://app.us3.datadoghq.com/organization-settings/application-keys'
+      'https://us3.datadoghq.com/organization-settings/application-keys'
+    );
+
+    // Primary sites take the app. prefix.
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Datadog Site'}),
+      'datadoghq.com (US1)'
+    );
+    expect(screen.getByRole('link', {name: /API Keys/})).toHaveAttribute(
+      'href',
+      'https://app.datadoghq.com/organization-settings/api-keys'
+    );
+    expect(screen.getByRole('link', {name: /Application Keys/})).toHaveAttribute(
+      'href',
+      'https://app.datadoghq.com/organization-settings/application-keys'
     );
   });
 

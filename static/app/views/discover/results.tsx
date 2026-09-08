@@ -212,6 +212,7 @@ export class Results extends Component<Props, State> {
   componentDidMount() {
     const {organization, selection, location, isHomepage, navigate} = this.props;
     if (location.query[SHOW_UNPARAM_BANNER]) {
+      // oxlint-disable-next-line react/no-did-mount-set-state -- Legacy class lifecycle.
       this.setState({showUnparameterizedBanner: true});
       navigate(
         {
@@ -235,6 +236,7 @@ export class Results extends Component<Props, State> {
     const {eventView, confirmedQuery, savedQuery} = this.state;
 
     if (location.query.incompatible) {
+      // oxlint-disable-next-line react/no-did-update-set-state -- Legacy class lifecycle.
       this.setState({showQueryIncompatibleWithDataset: true});
       this.props.navigate(
         {
@@ -1150,7 +1152,7 @@ function DiscoverContextMenu({
       key: 'add-to-dashboard',
       label: t('Add to Dashboard'),
       disabled: deprecatingTransactionsDataset,
-      tooltipOptions: {isHoverable: true},
+      tooltipOptions: {},
       tooltip:
         deprecatingTransactionsDataset && getTransactionDeprecationMessage(tracesUrl),
       onAction: () => {
@@ -1365,7 +1367,6 @@ function SaveQueryButton({
                   deprecatingTransactionsDataset &&
                   getTransactionDeprecationMessage(tracesUrl)
                 }
-                isHoverable
               >
                 <Button
                   onClick={handleUpdate}
@@ -1382,7 +1383,6 @@ function SaveQueryButton({
                   currentDataset !== DiscoverDatasets.TRANSACTIONS ||
                   !organization.features.includes('discover-saved-queries-deprecation')
                 }
-                isHoverable
                 title={getTransactionDeprecationMessage(tracesUrl)}
               >
                 <SaveAsDropdown
@@ -1402,7 +1402,6 @@ function SaveQueryButton({
               currentDataset !== DiscoverDatasets.TRANSACTIONS ||
               !organization.features.includes('discover-saved-queries-deprecation')
             }
-            isHoverable
             title={getTransactionDeprecationMessage(tracesUrl)}
           >
             <SaveAsDropdown

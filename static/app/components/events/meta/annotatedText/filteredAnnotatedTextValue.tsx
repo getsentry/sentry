@@ -43,7 +43,7 @@ export function FilteredAnnotatedTextValue({value, meta}: Props) {
   }, [meta.rem, organization, projectDetails]);
 
   return (
-    <Tooltip title={tooltipText} isHoverable>
+    <Tooltip title={tooltipText}>
       <ValueElement value={value} meta={meta} />
     </Tooltip>
   );
