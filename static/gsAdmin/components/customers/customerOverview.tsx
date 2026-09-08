@@ -670,7 +670,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
     const blockEnterpriseNonSeerStart =
       isEnterprisePlan && !isSeerProductTrial(category, apiName);
     const enterpriseNonSeerStartTooltip =
-      'Gift usage for this SKU instead. Starting per-product trials for this product is disabled for enterprise plans.';
+      'Starting a trial for this product is disabled for enterprise plans. Use gifts as needed to add reserved volume.';
 
     const handleExtendTrial = () => {
       if (!activeProductTrial) {
