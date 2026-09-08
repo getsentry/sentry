@@ -1816,6 +1816,18 @@ EAP_FUNCTIONS = [
     "eps",
     "apdex",
     "user_misery",
+    "avg_if",
+    "count_if",
+    "sum_if",
+    "failure_count_if",
+    "failure_rate_if",
+    "division_if",
+    "count_op",
+    "p50_if",
+    "p75_if",
+    "p90_if",
+    "p95_if",
+    "p99_if",
 ]
 
 
