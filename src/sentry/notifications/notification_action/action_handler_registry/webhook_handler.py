@@ -42,6 +42,7 @@ class WebhookActionHandler(ActionHandler):
                 "enum": [None],
             },
         },
+        "required": ["target_identifier"],
     }
     data_schema = {}
 
