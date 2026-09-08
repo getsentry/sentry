@@ -2588,6 +2588,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "hybrid_cloud.org_member_async_flush_enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # List of event IDs to pass through
 register(
     "hybrid_cloud.audit_log_event_id_invalid_pass_list",

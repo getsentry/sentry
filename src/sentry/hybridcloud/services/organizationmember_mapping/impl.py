@@ -6,6 +6,7 @@
 
 from django.db import IntegrityError, router, transaction
 
+from sentry import options
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.services.organizationmember_mapping import (
     OrganizationMemberMappingService,
@@ -44,8 +45,20 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
                 except User.DoesNotExist:
                     return
                 if user is not None:
-                    for outbox in user.outboxes_for_update():
-                        outbox.save()
+                    async_flush_enabled = options.get("hybrid_cloud.org_member_async_flush_enabled")
+
+                    # There are cases where this user outbox flush can occur
+                    # within an RPC linked to another outbox flush, so we
+                    # defer flushing this change immediately. While this will
+                    # introduce some replication lag, it avoids additional
+                    # contention and potential deadlocks.
+                    if async_flush_enabled:
+                        with outbox_context(flush=False):
+                            for outbox in user.outboxes_for_update():
+                                outbox.save()
+                    else:
+                        for outbox in user.outboxes_for_update():
+                            outbox.save()
 
         orm_mapping: OrganizationMemberMapping = OrganizationMemberMapping(
             organization_id=organization_id

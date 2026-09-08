@@ -1,5 +1,10 @@
+from unittest.mock import patch
+
 from django.db import router, transaction
 
+from sentry.hybridcloud.models.outbox import ControlOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.hybridcloud.rpc.service import RpcResponseException
 from sentry.hybridcloud.services.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
@@ -127,6 +132,57 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
             == orgmember_mapping.invite_status
             == InviteStatus.REQUESTED_TO_BE_INVITED.value
         )
+
+    def test_upsert_does_not_drain_user_shard_inline(self) -> None:
+        user = self.create_user("deferred@example.com")
+        ControlOutbox.objects.filter(shard_identifier=user.id).delete()
+
+        organizationmember_mapping_service.upsert_mapping(
+            organization_id=self.organization.id,
+            organizationmember_id=222222,
+            mapping=RpcOrganizationMemberMappingUpdate(
+                role="member",
+                user_id=user.id,
+                email=None,
+                inviter_id=None,
+                invite_status=None,
+            ),
+        )
+
+        # The user outbox is written transactionally with the mapping, but a
+        # surviving row means it was not drained inline -- delivery is left to the
+        # scheduled drain instead of fanning out more RPCs inside this RPC handler.
+        assert ControlOutbox.objects.filter(
+            shard_identifier=user.id, category=OutboxCategory.USER_UPDATE.value
+        ).exists()
+
+    def test_upsert_succeeds_when_cell_replication_fails(self) -> None:
+        user = self.create_user("unreachable@example.com")
+
+        with patch(
+            "sentry.hybridcloud.rpc.caching.cell_caching_service.clear_key",
+            side_effect=RpcResponseException(
+                service_name="region_caching",
+                method_name="clear_key",
+                message="Received malformed 200 response of 0 byte(s)",
+            ),
+        ):
+            result = organizationmember_mapping_service.upsert_mapping(
+                organization_id=self.organization.id,
+                organizationmember_id=333333,
+                mapping=RpcOrganizationMemberMappingUpdate(
+                    role="member",
+                    user_id=user.id,
+                    email=None,
+                    inviter_id=None,
+                    invite_status=None,
+                ),
+            )
+
+        assert result.user_id == user.id
+        assert OrganizationMemberMapping.objects.filter(
+            organization_id=self.organization.id, organizationmember_id=333333
+        ).exists()
 
     def test_create_mapping_updates_org_members(self) -> None:
         assert self.user.is_active
