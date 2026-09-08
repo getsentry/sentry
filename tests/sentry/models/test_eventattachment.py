@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from unittest import mock
 from uuid import uuid4
 
@@ -48,12 +47,9 @@ class EventAttachmentDeleteTest(TestCase):
         mock_get_session: mock.Mock,
     ) -> None:
         attachment = self._create_v2_attachment()
+        attachment.date_expires = attachment.date_added
 
-        os.environ["_SENTRY_CLEANUP"] = "1"
-        try:
-            attachment.delete()
-        finally:
-            del os.environ["_SENTRY_CLEANUP"]
+        attachment.delete()
 
         mock_get_session.return_value.delete.assert_not_called()
         assert not EventAttachment.objects.filter(id=attachment.id).exists()
@@ -67,13 +63,13 @@ class PendingEventAttachmentDeleteTest(TestCase):
     blob is only safe while we still own the row.
     """
 
-    def _create_pending(self) -> PendingEventAttachment:
+    def _create_pending(self, prefix="eventattachments/v1") -> PendingEventAttachment:
         return PendingEventAttachment.objects.create(
             event_id=uuid4().hex,
             project_id=self.project.id,
             type="event.attachment",
             name="test.txt",
-            blob_path="eventattachments/v1/some-key",
+            blob_path=f"{prefix}/some-key",
         )
 
     @mock.patch("sentry.models.eventattachment.get_storage")
@@ -84,6 +80,20 @@ class PendingEventAttachmentDeleteTest(TestCase):
 
         assert not PendingEventAttachment.objects.filter(id=pending.id).exists()
         mock_get_storage.return_value.delete.assert_called_once_with("eventattachments/v1/some-key")
+
+    @mock.patch("sentry.models.eventattachment.get_session")
+    @mock.patch("sentry.models.eventattachment._get_organization", return_value=1)
+    def test_v2_delete_removes_objectstore(
+        self,
+        mock_get_org: mock.Mock,
+        mock_get_session: mock.Mock,
+    ) -> None:
+        pending = self._create_pending("v2")
+
+        pending.delete()
+
+        mock_get_session.return_value.delete.assert_called_once_with("some-key")
+        assert not PendingEventAttachment.objects.filter(id=pending.id).exists()
 
     @mock.patch("sentry.models.eventattachment.get_storage")
     def test_delete_keeps_the_blob_a_promotion_took_over(self, mock_get_storage: mock.Mock) -> None:
