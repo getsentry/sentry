@@ -55,8 +55,7 @@ function makeAssistantBlock(content: string | null): AutofixSection['blocks'][nu
 
 function makePrIterationBlock(
   iterationIndex: number,
-  feedback: {text: string; timestamp?: string; user?: any},
-  iterationOutcome?: string
+  feedback: {text: string; timestamp?: string; user?: any}
 ): AutofixSection['blocks'][number] {
   return {
     id: `block-pr-${iterationIndex}`,
@@ -67,7 +66,6 @@ function makePrIterationBlock(
       metadata: {
         step: 'pr_iteration',
         iteration_index: String(iterationIndex),
-        ...(iterationOutcome ? {iteration_outcome: iterationOutcome} : {}),
         feedback: JSON.stringify({
           text: feedback.text,
           timestamp: feedback.timestamp,
@@ -136,6 +134,17 @@ const mockAutofixWithRunState: ReturnType<typeof useExplorerAutofix> = {
     updated_at: '2026-01-01T00:00:00Z',
   },
 };
+
+// The backend derives each iteration's outcome and returns it on the response,
+// keyed by the iteration index.
+function makeAutofixWithOutcomes(
+  outcomes: Record<string, string>
+): ReturnType<typeof useExplorerAutofix> {
+  return {
+    ...mockAutofixWithRunState,
+    runState: {...mockAutofixWithRunState.runState!, pr_iteration_outcomes: outcomes},
+  };
+}
 
 function makeRootCauseArtifact(data: RootCauseArtifact | null) {
   return {
@@ -1625,12 +1634,12 @@ describe('ArtifactCard', () => {
       render(
         <CodeChangesCard
           groupId="1"
-          autofix={mockAutofix}
+          autofix={makeAutofixWithOutcomes({'0': 'no_changes'})}
           section={makeSection(
             'code_changes',
             'completed',
             [[makePatch('org/repo', 'src/app.py')]],
-            [makePrIterationBlock(0, {text: 'first pass'}, 'no_changes')]
+            [makePrIterationBlock(0, {text: 'first pass'})]
           )}
         />,
         {organization: prIterationOrganization}
@@ -1645,16 +1654,36 @@ describe('ArtifactCard', () => {
       ).toBeInTheDocument();
     });
 
-    it('does not tag block feedback whose iteration made changes', () => {
+    it('does not tag block feedback whose iteration pushed changes', () => {
       render(
         <CodeChangesCard
           groupId="1"
-          autofix={mockAutofix}
+          autofix={makeAutofixWithOutcomes({'0': 'changes_pushed'})}
           section={makeSection(
             'code_changes',
             'completed',
             [[makePatch('org/repo', 'src/app.py')]],
-            [makePrIterationBlock(0, {text: 'first pass'}, 'changes_made')]
+            [makePrIterationBlock(0, {text: 'first pass'})]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByText('first pass')).toBeInTheDocument();
+      expect(screen.queryByText('No changes')).not.toBeInTheDocument();
+      expect(screen.queryByText('Processing')).not.toBeInTheDocument();
+    });
+
+    it('does not tag block feedback whose iteration failed to push', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={makeAutofixWithOutcomes({'0': 'push_failed'})}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [makePrIterationBlock(0, {text: 'first pass'})]
           )}
         />,
         {organization: prIterationOrganization}
@@ -1689,18 +1718,18 @@ describe('ArtifactCard', () => {
       render(
         <CodeChangesCard
           groupId="1"
-          autofix={mockAutofix}
+          autofix={makeAutofixWithOutcomes({'0': 'no_changes'})}
           section={makeSection(
             'code_changes',
             'processing',
             [],
-            [makePrIterationBlock(0, {text: 'fix the CI failure'}, 'no_changes')]
+            [makePrIterationBlock(0, {text: 'fix the CI failure'})]
           )}
         />,
         {organization: prIterationOrganization}
       );
 
-      // The run status beats the stored outcome of the previous attempt.
+      // The run status beats the outcome reported for the previous attempt.
       expect(screen.getByText('fix the CI failure')).toBeInTheDocument();
       expect(screen.getByText('Processing')).toBeInTheDocument();
       expect(screen.queryByText('No changes')).not.toBeInTheDocument();

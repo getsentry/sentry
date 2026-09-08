@@ -34,12 +34,19 @@ const SOURCE_BADGE_SIZE = 14;
  * - `queued`: submitted while a run was processing, not yet picked up.
  * - `in_progress`: it's driving the iteration currently being processed.
  * - `no_changes`: the iteration it drove ended without a code change.
- * - `changes_made`: the iteration it drove pushed a code change.
+ * - `changes_pushed`: the iteration it drove pushed a code change.
+ * - `push_failed`: the iteration it drove made changes that never got pushed.
  *
- * The first two come from the run status and the block position. The last two
- * come from `iteration_outcome`, which seer writes onto the block.
+ * The first two come from the run status and the block position. The rest come
+ * from `pr_iteration_outcomes` on the autofix response, which the backend
+ * derives from the run state.
  */
-type FeedbackStatus = 'queued' | 'in_progress' | 'no_changes' | 'changes_made';
+type FeedbackStatus =
+  | 'queued'
+  | 'in_progress'
+  | 'no_changes'
+  | 'changes_pushed'
+  | 'push_failed';
 
 interface ParsedBaseFeedback {
   text: string;
@@ -101,7 +108,7 @@ type ParsedFeedback =
 // A parsed feedback enriched with the iteration context the caller supplies.
 type IterationFeedback = ParsedFeedback & {
   iterationIndex: number;
-  // Absent on iterations that ran before seer wrote an outcome.
+  // Absent when the response carries no outcome for the iteration.
   status?: FeedbackStatus;
 };
 
@@ -170,13 +177,13 @@ function parseFeedback(raw: string): ParsedFeedback[] {
   return items.map(parseFeedbackItem).filter(defined);
 }
 
-// Seer writes the outcome of a finished iteration onto the block that opens it.
-// Iterations that ran before seer wrote it carry no value, and no other value is
-// expected, so anything else reads as no outcome.
+// The response types the outcomes as plain strings, so narrow them here. A
+// backend older than this field, or newer than these names, reads as no outcome.
 function parseIterationOutcome(value: string | undefined): FeedbackStatus | undefined {
   switch (value) {
     case 'no_changes':
-    case 'changes_made':
+    case 'changes_pushed':
+    case 'push_failed':
       return value;
     default:
       return undefined;
@@ -191,9 +198,9 @@ function parseIterationOutcome(value: string | undefined): FeedbackStatus | unde
  * by `getOrderedAutofixSections`, so here we only surface the feedback text.
  * Feedback on a block at/after the current step marker drives the iteration
  * still running (when the section is processing); everything earlier takes the
- * outcome seer stored on the block. Feedback submitted mid-run that hasn't been
- * folded into a block yet is appended as `queued`. The list is returned
- * newest-first.
+ * outcome the backend derived for that iteration index. Feedback submitted
+ * mid-run that hasn't been folded into a block yet is appended as `queued`. The
+ * list is returned newest-first.
  */
 export function usePrIterationFeedback(
   section: AutofixSection,
@@ -204,6 +211,8 @@ export function usePrIterationFeedback(
     () => section.blocks.findLastIndex(block => defined(block.message.metadata?.step)),
     [section.blocks]
   );
+
+  const outcomes = autofix.runState?.pr_iteration_outcomes;
 
   const blockFeedback = useMemo<IterationFeedback[]>(() => {
     if (!enabled) {
@@ -226,7 +235,7 @@ export function usePrIterationFeedback(
       const status =
         section.status === 'processing' && blockIndex >= currentStepStart
           ? 'in_progress'
-          : parseIterationOutcome(metadata?.iteration_outcome);
+          : parseIterationOutcome(outcomes?.[String(iterationIndex)]);
 
       return parseFeedback(value).map(parsed => ({
         ...parsed,
@@ -234,7 +243,7 @@ export function usePrIterationFeedback(
         status,
       }));
     });
-  }, [section.blocks, section.status, currentStepStart, enabled]);
+  }, [section.blocks, section.status, currentStepStart, outcomes, enabled]);
 
   const latestIterationIndex = useMemo(
     () =>
@@ -476,8 +485,10 @@ function FeedbackItem({item}: {item: IterationFeedback}) {
   );
 }
 
-// `changes_made` gets no tag, because the pushed commit already shows on the PR.
-// `queued` gets no tag, because the timestamp cell reads "Queued".
+// `changes_pushed` gets no tag, because the pushed commit already shows on the
+// PR. `queued` gets no tag, because the timestamp cell reads "Queued".
+// `push_failed` gets no tag either: what to tell the user about a failed push is
+// still an open product decision.
 function FeedbackStatusTag({status}: {status: FeedbackStatus | undefined}) {
   switch (status) {
     case 'in_progress':
