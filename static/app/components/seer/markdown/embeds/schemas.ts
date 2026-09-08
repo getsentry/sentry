@@ -423,6 +423,9 @@ export const SEER_EMBED_SCHEMAS = {
       'The ONLY way to reference a saved Sentry issue view. ' +
       'Use the view ID exactly as the issue-views API returns it. ' +
       'Include the API-provided name when available. ' +
+      'Inline: renders a compact link. ' +
+      'Block: loads the saved filters and renders a live preview of matching issues. ' +
+      'Do not duplicate the issue titles, event counts, users, priorities, or assignees as text. ' +
       'Never use a markdown link for issue view references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -580,10 +583,17 @@ export const SEER_EMBED_SCHEMAS = {
   },
   spansQuery: {
     description:
-      'Link to an Explore > Traces (spans) query. ' +
-      'Use mode "samples" to show individual spans and "aggregate" to group and ' +
-      'chart them. In aggregate mode supply `groupBy` and `yAxes`. ' +
-      '`query` uses span search syntax, e.g. "span.op:http.client".',
+      'Preview an Explore > Traces (spans) query. ' +
+      'Use mode "samples" for individual spans and mode "aggregate" for grouped ' +
+      'results, supplying `groupBy` and `yAxes`. ' +
+      '`query` uses span search syntax, e.g. "span.op:http.client". ' +
+      'Inline renders a link; block renders the first five matching rows beneath ' +
+      'a timeseries chart of the same query. A query with `groupBy` charts the ' +
+      'top five groups as one series each, matching the rows below it; every ' +
+      'other query charts a single total for the period. Provide `yAxes` to pick ' +
+      'which aggregate is charted — samples mode, and any query naming none, ' +
+      'charts "count(span.duration)". When aggregate mode supplies no `groupBy` ' +
+      'there is only one row to show, so the chart replaces the table.',
     level: ['inline', 'block'],
     schema: z.object(exploreQueryFields),
     examples: [
@@ -592,8 +602,10 @@ export const SEER_EMBED_SCHEMAS = {
         data: {
           query: 'span.op:http.client',
           mode: 'samples',
+          fields: ['span.description', 'span.op', 'span.duration', 'timestamp'],
           sort: '-span.duration',
           statsPeriod: '24h',
+          title: 'Slow HTTP spans',
         },
       },
       {
@@ -603,7 +615,21 @@ export const SEER_EMBED_SCHEMAS = {
           mode: 'aggregate',
           groupBy: ['span.op'],
           yAxes: ['p95(span.duration)'],
+          sort: '-p95_span_duration',
           statsPeriod: '7d',
+          title: 'p95 by span op',
+        },
+      },
+      {
+        // No group-by columns, so there is only ever one row to show and the
+        // chart stands in for the table.
+        label: 'Total spans',
+        data: {
+          query: 'span.op:http.client',
+          mode: 'aggregate',
+          yAxes: ['count(span.duration)'],
+          statsPeriod: '24h',
+          title: 'Total spans',
         },
       },
     ],
@@ -639,10 +665,12 @@ export const SEER_EMBED_SCHEMAS = {
   },
   replaysQuery: {
     description:
-      'Link to the Session Replay list filtered by a search query. ' +
+      'Preview the Session Replay list filtered by a search query. ' +
       'Use this when pointing the user at a SET of replays — if you have a ' +
       'specific replay ID, use the `replay` embed instead. ' +
-      '`query` uses replay search syntax, e.g. "user.email:user@example.com".',
+      '`query` uses replay search syntax, e.g. "user.email:user@example.com". ' +
+      'Inline renders a link; block renders the first five matching replays ' +
+      'with their duration, error count and rage clicks.',
     level: ['inline', 'block'],
     schema: z.object({
       ...pageFilterFields,

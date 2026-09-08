@@ -10,7 +10,10 @@ See https://linear.app/getsentry/document/how-to-track-api-usage-df929656b848
 
 from __future__ import annotations
 
+import contextlib
+import contextvars
 import re
+from collections.abc import Generator
 from enum import StrEnum
 
 import sentry_sdk
@@ -42,6 +45,24 @@ class ClientKind(StrEnum):
     SDK = "sdk"
     SCRIPT = "script"
     UNKNOWN = "unknown"
+
+
+_client_kind_override: contextvars.ContextVar[ClientKind | None] = contextvars.ContextVar(
+    "client_kind_override", default=None
+)
+
+
+@contextlib.contextmanager
+def client_kind_scope(kind: ClientKind) -> Generator[None]:
+    """Declare the caller for every request dispatched inside this block.
+
+    Server-side only -- it bypasses the derivation in ``get_client_kind``.
+    """
+    token = _client_kind_override.set(kind)
+    try:
+        yield
+    finally:
+        _client_kind_override.reset(token)
 
 
 # `sentry-cli/2.42.1`. Checked before the SDK pattern, which it also matches.
@@ -89,6 +110,10 @@ def get_client_kind(request: Request, organization: Organization) -> ClientKind 
     """
     if not features.has(FEATURE_FLAG, organization, actor=request.user):
         return None
+
+    declared = _client_kind_override.get()
+    if declared is not None:
+        return declared
 
     auth = getattr(request, "auth", None)
     user = getattr(request, "user", None)
