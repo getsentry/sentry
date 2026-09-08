@@ -991,7 +991,7 @@
   },
   {
     "name": "logsQuery",
-    "description": "Link to an Explore > Logs query. Use mode \"samples\" to show individual log rows and \"aggregate\" to group and chart them. In aggregate mode supply `groupBy` and `yAxes`. `query` uses log search syntax, e.g. \"severity:error\".",
+    "description": "Preview an Explore > Logs query. Use mode \"samples\" to show individual log rows and \"aggregate\" to group and chart them. In aggregate mode supply `groupBy` and `yAxes`. `query` uses log search syntax, e.g. \"severity:error\". Inline renders a link; block renders the first five matching rows beneath a timeseries — one series per group when grouped, log volume otherwise. An aggregate that groups by nothing collapses to a single row, so there the chart replaces the table.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
