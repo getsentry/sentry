@@ -87,7 +87,7 @@ export function SeerAdminPage() {
         <Container width={{'screen:xs': '100%', 'screen:md': '50%'}}>
           <form.AppForm form={form}>
             <Container background="secondary" border="primary" radius="md" padding="lg">
-              <Stack gap="md" align="stretch">
+              <Stack gap="lg" align="stretch">
                 <Heading as="h3">Trigger Night Shift Run</Heading>
                 <Text as="p" variant="muted">
                   Dispatch a night shift run. Provide an organization ID to scope the run
