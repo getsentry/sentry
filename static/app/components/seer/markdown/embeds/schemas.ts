@@ -368,6 +368,9 @@ export const SEER_EMBED_SCHEMAS = {
       'Use `id` exactly as the alerts API returns it, and set `kind` to match: ' +
       '"metric" for a metric alert, "issue" for an issue alert, "uptime" for an ' +
       'uptime alert, "cron" for a cron alert. ' +
+      'For metric and cron alerts, also include `detectorId` from the detectors ' +
+      'API — their `id` comes from a separate legacy id space that monitor links ' +
+      'and previews cannot resolve. Uptime alerts need no `detectorId`. ' +
       'Include the API-provided name when available. ' +
       'Inline: renders a compact link. ' +
       'Block: renders alert conditions and configured actions, plus the ' +
@@ -379,20 +382,43 @@ export const SEER_EMBED_SCHEMAS = {
       id: z.string().min(1),
       kind: z.enum(['metric', 'issue', 'uptime', 'cron']),
       name: z.string().min(1).optional(),
+      // Optional so alert embeds stored before detectorId was added remain renderable.
+      detectorId: z
+        .string()
+        .min(1)
+        .optional()
+        .describe(
+          'Numeric detector id from the detectors API. Required for metric and ' +
+            'cron alerts, whose `id` is an alert rule id and a monitor GUID ' +
+            'respectively. Omit for uptime alerts, whose `id` is already a ' +
+            'detector id, and for issue alerts, which are automations.'
+        ),
     }),
     examples: [
       {
         label: 'Metric alert',
-        data: {id: '4521', kind: 'metric', name: 'Checkout p95 latency'},
+        data: {
+          id: '4521',
+          detectorId: '9812',
+          kind: 'metric',
+          name: 'Checkout p95 latency',
+        },
       },
       {label: 'Issue alert', data: {id: '881', kind: 'issue'}},
       {
+        // Uptime alerts are detectors already, so `id` is the detector id.
         label: 'Uptime alert',
         data: {id: '774', kind: 'uptime', name: 'Checkout availability'},
       },
       {
+        // A cron alert's `id` is a monitor GUID, never the detector id.
         label: 'Cron alert',
-        data: {id: '9931', kind: 'cron', name: 'nightly-sync'},
+        data: {
+          id: '3f8c1e2a-5b47-4d90-9a13-7c2e5f4b8d61',
+          detectorId: '9931',
+          kind: 'cron',
+          name: 'nightly-sync',
+        },
       },
     ],
   },
