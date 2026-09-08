@@ -70,7 +70,6 @@ class IntegrationProxyFailureMetricType(StrEnum):
     INVALID_CLIENT = "invalid_client"
     INVALID_MODE = "invalid_mode"
     INVALID_SENDER = "invalid_sender"
-    INVALID_REQUEST = "invalid_request"
     INVALID_IDENTITY = "invalid_identity"
     HOST_UNREACHABLE_ERROR = "host_unreachable_error"
     HOST_TIMEOUT_ERROR = "host_timeout_error"
@@ -78,7 +77,6 @@ class IntegrationProxyFailureMetricType(StrEnum):
     RATE_LIMITED_ERROR = "rate_limited_error"
     FORBIDDEN_ERROR = "forbidden_error"
     UNKNOWN_ERROR = "unknown_error"
-    FAILED_VALIDATION = "failed_validation"
 
 
 class _PassthroughContentNegotiation(BaseContentNegotiation):
@@ -190,7 +188,8 @@ class IntegrationProxyRequestValidator:
 
     def _validate_sender(self):
         """
-        Returns True if the sender is deemed sufficiently trustworthy. A sender is considered trustworthy if they:
+        Validates the sender of the request and raises an exception if the sender is not trustworthy.
+        A sender is considered trustworthy if they:
             - Have a valid signature
             - Can be mapped definitively to an integration and organization
             - Have a valid subnet signature
@@ -286,8 +285,8 @@ class IntegrationProxyRequestValidator:
 
     def _validate_and_set_client(self):
         """
-        Acquires the API client from the installation and sets it on the validator. Returns True only
-        if that client can actually proxy requests.
+        Acquires the API client from the installation and sets it on the validator.
+        Raises an exception if the client is not valid.
         """
         installation = self.integration_installation
         if installation is None:
