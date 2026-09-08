@@ -145,6 +145,31 @@ class DatabaseBackedOrganizationService(OrganizationService):
             member=membership,
         )
 
+    def get_organizations_by_ids(
+        self,
+        *,
+        cell_name: str,
+        organization_ids: list[int],
+        user_id: int | None = None,
+    ) -> list[RpcUserOrganizationContext]:
+        memberships: dict[int, RpcOrganizationMember] = {}
+        if user_id is not None:
+            memberships = {
+                member.organization_id: serialize_member(member)
+                for member in OrganizationMember.objects.filter(
+                    organization_id__in=organization_ids, user_id=user_id
+                )
+            }
+
+        return [
+            RpcUserOrganizationContext(
+                user_id=user_id,
+                organization=serialize_rpc_organization(org),
+                member=memberships.get(org.id),
+            )
+            for org in Organization.objects.filter(id__in=organization_ids)
+        ]
+
     def get_org_by_slug(
         self,
         *,
