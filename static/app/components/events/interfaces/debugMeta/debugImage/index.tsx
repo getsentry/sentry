@@ -28,7 +28,11 @@ export function DebugImage({image, isLast, onOpenImageDetailsModal}: Props) {
 
   return (
     <Grid
-      columns="0.6fr 2fr 1fr 0.4fr"
+      columns={{
+        zero: '0.6fr 1.5fr 0.6fr',
+        sm: '0.6fr 2fr 0.6fr',
+        xl: '0.6fr 2fr 1fr 0.4fr',
+      }}
       borderBottom={isLast ? undefined : 'primary'}
       padding="sm md"
     >
@@ -50,7 +54,12 @@ export function DebugImage({image, isLast, onOpenImageDetailsModal}: Props) {
           )}
         </Stack>
       </Flex>
-      <Flex align="center" minWidth="0" padding="sm md">
+      <Flex
+        align="center"
+        minWidth="0"
+        display={{zero: 'none', xl: 'flex'}}
+        padding="sm md"
+      >
         {unwind_status || debug_status ? (
           <Processings unwind_status={unwind_status} debug_status={debug_status} />
         ) : (
