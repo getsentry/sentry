@@ -17,12 +17,20 @@ from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import options
 from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.hybridcloud.models.outboxbackfillwatermark import (
+    BaseOutboxBackfillWatermark,
+    CellOutboxBackfillWatermark,
+    ControlOutboxBackfillWatermark,
+)
 from sentry.hybridcloud.outbox.base import CellOutboxProducingModel, ControlOutboxProducingModel
 from sentry.silo.base import SiloMode
 from sentry.users.models.user import User
 from sentry.utils import json, metrics, redis
 
 logger = logging.getLogger(__name__)
+
+WRITE_WATERMARK_TO_POSTGRES_OPTION = "hybrid_cloud.write_outbox_backfill_watermark_to_postgres"
+WATERMARK_DUAL_WRITE_ERROR_METRIC = "backfill_outboxes.watermark_dual_write_error"
 
 
 def _get_redis_client() -> RedisCluster[str] | StrictRedis[str]:
@@ -63,6 +71,49 @@ def read_processing_state(table_name: str) -> tuple[int, int] | None:
     if not (isinstance(lower, int) and isinstance(version, int)):
         raise TypeError("Expected processing data to be a tuple of (int, int)")
     return lower, version
+
+
+def _watermark_model(
+    model: type[ControlOutboxProducingModel] | type[CellOutboxProducingModel] | type[User],
+) -> type[BaseOutboxBackfillWatermark]:
+    current_mode = SiloMode.get_current_mode()
+    if current_mode == SiloMode.CONTROL:
+        return ControlOutboxBackfillWatermark
+    if current_mode == SiloMode.CELL:
+        return CellOutboxBackfillWatermark
+
+    # for monolith deployments, pick the table that would be written to in prod w/ split deployments
+    silo_limit = getattr(model._meta, "silo_limit", None)
+    if silo_limit is not None and silo_limit.modes == frozenset({SiloMode.CONTROL}):
+        return ControlOutboxBackfillWatermark
+    return CellOutboxBackfillWatermark
+
+
+def _write_postgres_watermark(
+    model: type[ControlOutboxProducingModel] | type[CellOutboxProducingModel] | type[User],
+    value: int,
+    version: int,
+) -> None:
+    if not options.get(WRITE_WATERMARK_TO_POSTGRES_OPTION):
+        return
+
+    table_name = model._meta.db_table
+    try:
+        _watermark_model(model).objects.update_or_create(
+            table_name=table_name,
+            defaults={"low_bound": value, "version": version},
+        )
+    except Exception:
+        # Mask failures since Redis is the source of truth
+        #
+        # TODO: update this so that when Postgres becomes promoted to the read-path,
+        # we don't swallow exceptions here. It will be conditional on the read-from-postgres flag.
+        metrics.incr(
+            WATERMARK_DUAL_WRITE_ERROR_METRIC,
+            tags=dict(table_name=table_name),
+            skip_internal=True,
+            sample_rate=1.0,
+        )
 
 
 def get_processing_state(table_name: str) -> tuple[int, int]:
@@ -186,11 +237,14 @@ def process_outbox_backfill_batch(
                     outbox.save()
 
     if not processing_state.has_more:
-        set_processing_state(model._meta.db_table, 0, model.replication_version + 1)
+        low_bound, version = 0, model.replication_version + 1
     else:
-        set_processing_state(
-            model._meta.db_table, processing_state.up + 1, processing_state.version
-        )
+        low_bound, version = processing_state.up + 1, processing_state.version
+
+    set_processing_state(model._meta.db_table, low_bound, version)
+
+    # This is the write site we keep after the migration to Postgres is done
+    _write_postgres_watermark(model, low_bound, version)
 
     return processing_state
 
@@ -293,7 +347,11 @@ def report_backfill_watermarks(silo_mode: SiloMode, force_synchronous: bool = Fa
             if state is None:
                 continue
 
-            # TODO: we'll dual-write to Postgres here
+            # This write site is used only to guarantee full, consistent sync between
+            # Redis and PG during the migration period because it runs every cycle guaranteed
+            # TODO: Once everything is cut over to PG, we'll remove this
+            lower, version = state
+            _write_postgres_watermark(model, lower, version)
     except Exception:
         metrics.incr(WATERMARK_REPORT_ERROR_METRIC, skip_internal=True, sample_rate=1.0)
         logger.exception("backfill_outboxes.watermark_report_failed")
