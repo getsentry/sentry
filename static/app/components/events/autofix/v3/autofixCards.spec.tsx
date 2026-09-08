@@ -1637,7 +1637,7 @@ describe('ArtifactCard', () => {
       );
 
       expect(screen.getByText('first pass')).toBeInTheDocument();
-      expect(screen.getByText('Seer cannot fix this failure')).toBeInTheDocument();
+      expect(screen.getByText('No changes')).toBeInTheDocument();
     });
 
     it('does not tag block feedback whose iteration made changes', () => {
@@ -1656,10 +1656,8 @@ describe('ArtifactCard', () => {
       );
 
       expect(screen.getByText('first pass')).toBeInTheDocument();
-      expect(screen.queryByText('Seer cannot fix this failure')).not.toBeInTheDocument();
-      expect(
-        screen.queryByText('Seer is working on this failure')
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText('No changes')).not.toBeInTheDocument();
+      expect(screen.queryByText('Processing')).not.toBeInTheDocument();
     });
 
     it('does not tag block feedback that carries no iteration outcome', () => {
@@ -1678,10 +1676,8 @@ describe('ArtifactCard', () => {
       );
 
       expect(screen.getByText('first pass')).toBeInTheDocument();
-      expect(screen.queryByText('Seer cannot fix this failure')).not.toBeInTheDocument();
-      expect(
-        screen.queryByText('Seer is working on this failure')
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText('No changes')).not.toBeInTheDocument();
+      expect(screen.queryByText('Processing')).not.toBeInTheDocument();
     });
 
     it('tags the current iteration feedback as in progress while processing', () => {
@@ -1701,8 +1697,8 @@ describe('ArtifactCard', () => {
 
       // The run status beats the stored outcome of the previous attempt.
       expect(screen.getByText('fix the CI failure')).toBeInTheDocument();
-      expect(screen.getByText('Seer is working on this failure')).toBeInTheDocument();
-      expect(screen.queryByText('Seer cannot fix this failure')).not.toBeInTheDocument();
+      expect(screen.getByText('Processing')).toBeInTheDocument();
+      expect(screen.queryByText('No changes')).not.toBeInTheDocument();
     });
 
     it('marks queued feedback with a queued label and no timestamp', () => {
@@ -1730,9 +1726,7 @@ describe('ArtifactCard', () => {
 
       expect(screen.getByText('Make the button blue')).toBeInTheDocument();
       expect(screen.getByText('Queued')).toBeInTheDocument();
-      expect(
-        screen.queryByText('Seer is working on this failure')
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText('Processing')).not.toBeInTheDocument();
     });
 
     it('disables reset once PRs exist when only automated CI iteration is enabled', () => {
