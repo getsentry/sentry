@@ -132,7 +132,7 @@ class PendingEventAttachmentDeleteTest(TestCase):
         assert len(mock_track_outcome.mock_calls) == 2
 
         outcomes_by_category = {
-            call.kwargs.pop("category"): call.kwargs for call in mock_track_outcome.mock_calls
+            call.kwargs["category"]: call.kwargs for call in mock_track_outcome.mock_calls
         }
 
         assert outcomes_by_category == {
@@ -145,6 +145,7 @@ class PendingEventAttachmentDeleteTest(TestCase):
                 "quantity": 42,
                 "reason": "missing_event",
                 "timestamp": pending.date_added,
+                "category": DataCategory.ATTACHMENT,
             },
             DataCategory.ATTACHMENT_ITEM: {
                 "event_id": pending.event_id,
@@ -155,6 +156,7 @@ class PendingEventAttachmentDeleteTest(TestCase):
                 "quantity": 1,
                 "reason": "missing_event",
                 "timestamp": pending.date_added,
+                "category": DataCategory.ATTACHMENT_ITEM,
             },
         }
 
