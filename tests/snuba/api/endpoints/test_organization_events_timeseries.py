@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -542,8 +543,8 @@ class OrganizationEventsTimeseriesAnnotationsTest(APITestCase, OutcomesSnubaTest
             }
         )
 
-    def _do_request(self, features):
-        data = {
+    def _do_request(self, features: dict[str, bool]):
+        data: dict[str, Any] = {
             "start": self.start,
             "end": self.end,
             "interval": "1h",
