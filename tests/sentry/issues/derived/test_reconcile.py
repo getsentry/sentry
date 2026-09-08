@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import cast
 from unittest.mock import patch
 
 from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
@@ -17,7 +18,7 @@ from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.locks import locks
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.action_log import capture_action_log
+from sentry.testutils.helpers.action_log import CapturedAction, capture_action_log
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.types.group import GroupSubStatus
@@ -86,12 +87,15 @@ class ReconcileGroupStatusTest(TestCase):
         ):
             reconcile_group_status(group.id)
 
-        captured = log.assert_logged(
-            ReconcileStatusAction,
-            group_id=group.id,
-            source=ActionSource.SYSTEM,
-            actor=SYSTEM_ACTOR,
-            status="closed",
+        captured = cast(
+            CapturedAction,
+            log.assert_logged(
+                ReconcileStatusAction,
+                group_id=group.id,
+                source=ActionSource.SYSTEM,
+                actor=SYSTEM_ACTOR,
+                status="closed",
+            ),
         )
         assert isinstance(captured.action, ReconcileStatusAction)
         assert captured.action.reason == "group_status:Resolved"
