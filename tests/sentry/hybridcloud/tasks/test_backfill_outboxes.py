@@ -1,7 +1,8 @@
 from collections.abc import Callable
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
+import pytest
 from django.apps import apps
 from django.db import router, transaction
 from django.test.utils import override_settings
@@ -11,10 +12,19 @@ from sentry.hybridcloud.models.apitokenreplica import ApiTokenReplica
 from sentry.hybridcloud.models.outbox import CellOutbox, ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.base import run_outbox_replications_for_self_hosted
 from sentry.hybridcloud.tasks.backfill_outboxes import (
+    WATERMARK_REPORT_ERROR_METRIC,
+    WATERMARK_STATE_METRIC,
+    WATERMARK_TARGET_VERSION_METRIC,
+    WATERMARK_VERSION_METRIC,
+    _backfill_models,
+    _get_redis_client,
+    _report_watermark_for_model,
     backfill_outboxes_for,
     get_backfill_key,
     get_processing_state,
     process_outbox_backfill_batch,
+    read_processing_state,
+    set_processing_state,
 )
 from sentry.models.apitoken import ApiToken
 from sentry.models.authidentity import AuthIdentity
@@ -34,6 +44,7 @@ from sentry.testutils.silo import (
     create_test_cells,
     no_silo_test,
 )
+from sentry.users.models.user import User
 from sentry.utils import redis
 
 
@@ -236,3 +247,277 @@ def test_run_outbox_replications_for_self_hosted() -> None:
 
     assert AuthProviderReplica.objects.count() == 1
     assert OrganizationMapping.objects.count() == 1
+
+
+def _gauge_values(metrics_mock: Any, name: str) -> dict[str, int]:
+    """Collect {table_name: value} from the gauge calls made on a mocked metrics module."""
+    found = {}
+    for call in metrics_mock.gauge.call_args_list:
+        if call.args[0] != name:
+            continue
+        found[call.kwargs["tags"]["table_name"]] = call.args[1]
+    return found
+
+
+def _counter_calls(metrics_mock: Any, name: str) -> int:
+    return sum(1 for call in metrics_mock.incr.call_args_list if call.args[0] == name)
+
+
+@django_db_all
+@no_silo_test
+def test_watermark_report_runs_without_budget() -> None:
+    """The pass sits above the budget branch, so a starved tick still reports."""
+    reset_processing_state()
+    set_processing_state(AuthProvider._meta.db_table, 41, 1)
+
+    with patch("sentry.hybridcloud.tasks.backfill_outboxes.metrics") as metrics_mock:
+        # No budget at all, so the backfill loop itself does nothing.
+        assert not backfill_outboxes_for(SiloMode.CONTROL, scheduled_count=10_000)
+
+    assert _gauge_values(metrics_mock, WATERMARK_STATE_METRIC)[AuthProvider._meta.db_table] == 41
+
+
+@django_db_all
+@no_silo_test
+def test_watermark_report_covers_a_finished_table() -> None:
+    """A table past its target version returns None from the loop, but must still report."""
+    reset_processing_state()
+    table_name = AuthProvider._meta.db_table
+    finished_version = AuthProvider.replication_version + 1
+    set_processing_state(table_name, 0, finished_version)
+
+    with patch("sentry.hybridcloud.tasks.backfill_outboxes.metrics") as metrics_mock:
+        # Budget of 1, so the loop really runs. Every control table is past its
+        # target version here, so the loop finds no work and writes nothing.
+        assert not backfill_outboxes_for(SiloMode.CONTROL, 0, 1)
+
+    # The loop did walk the tables: it created a key for every table that had none.
+    assert read_processing_state(ApiToken._meta.db_table) == (0, 1)
+    # It left the finished table alone.
+    assert read_processing_state(table_name) == (0, finished_version)
+    # The table is finished: its stored version is above every possible target.
+    assert _gauge_values(metrics_mock, WATERMARK_STATE_METRIC)[table_name] == 0
+    assert _gauge_values(metrics_mock, WATERMARK_VERSION_METRIC)[table_name] == finished_version
+    assert _gauge_values(metrics_mock, WATERMARK_TARGET_VERSION_METRIC)[table_name] == 0
+    assert _counter_calls(metrics_mock, WATERMARK_REPORT_ERROR_METRIC) == 0
+    # The report sits below the loop, so it sees the keys the loop just created. The loop
+    # walked every table on this cycle, so every table reports a pair.
+    assert _gauge_values(metrics_mock, WATERMARK_STATE_METRIC).keys() == {
+        model._meta.db_table for model in _backfill_models(SiloMode.CONTROL)
+    }
+
+
+@django_db_all
+@no_silo_test
+def test_watermark_report_survives_a_failing_backfill_loop() -> None:
+    """The loop above the report is unguarded. Its failure must not take the report away."""
+    reset_processing_state()
+    table_name = AuthProvider._meta.db_table
+    set_processing_state(table_name, 41, 1)
+
+    def boom(model: Any, batch_size: int, force_synchronous: bool = False) -> Any:
+        raise RuntimeError("the backfill loop is broken")
+
+    with (
+        patch("sentry.hybridcloud.tasks.backfill_outboxes.metrics") as metrics_mock,
+        patch(
+            "sentry.hybridcloud.tasks.backfill_outboxes.process_outbox_backfill_batch",
+            side_effect=boom,
+        ),
+        # The scheduler still sees the failure. Only the report is kept out of its way.
+        pytest.raises(RuntimeError),
+    ):
+        backfill_outboxes_for(SiloMode.CONTROL, 0, 10_000)
+
+    assert _gauge_values(metrics_mock, WATERMARK_STATE_METRIC)[table_name] == 41
+    assert _gauge_values(metrics_mock, WATERMARK_VERSION_METRIC)[table_name] == 1
+    assert _counter_calls(metrics_mock, WATERMARK_REPORT_ERROR_METRIC) == 0
+
+
+@django_db_all
+@no_silo_test
+def test_watermark_report_carries_the_value_the_cycle_left() -> None:
+    """The report runs after the loop, so a table the loop moved reports its new value."""
+    reset_processing_state()
+    models = _backfill_models(SiloMode.CONTROL)
+    for model in models:
+        set_processing_state(model._meta.db_table, 3, 1)
+    with outbox_context(flush=False):
+        for _ in range(5):
+            Factories.create_user()
+
+    with (
+        override_options(
+            {"outbox_replication.auth_user.replication_version": User.replication_version}
+        ),
+        patch("sentry.hybridcloud.tasks.backfill_outboxes.metrics") as metrics_mock,
+    ):
+        # A budget of 2 against 5 users: the loop advances auth_user, then breaks.
+        backfill_outboxes_for(SiloMode.CONTROL, 0, 2)
+
+    reported = _gauge_values(metrics_mock, WATERMARK_STATE_METRIC)
+    assert reported.keys() == {model._meta.db_table for model in models}
+    # Every table reports what Redis holds now, not what it held at the start of the cycle.
+    for table_name, value in reported.items():
+        assert read_processing_state(table_name) == (value, ANY)
+    # The cycle moved this one off the value it started on.
+    assert reported[User._meta.db_table] != 3
+    # A table the loop never reached still reports its stored value.
+    assert reported[AuthProvider._meta.db_table] == 3
+
+
+@django_db_all
+@no_silo_test
+def test_watermark_report_skips_a_table_the_loop_never_reached() -> None:
+    """A spent budget ends the walk early, so a later table has no watermark to report."""
+    reset_processing_state()
+    with outbox_context(flush=False):
+        for _ in range(5):
+            Factories.create_user()
+
+    with (
+        override_options(
+            {"outbox_replication.auth_user.replication_version": User.replication_version}
+        ),
+        patch("sentry.hybridcloud.tasks.backfill_outboxes.metrics") as metrics_mock,
+    ):
+        backfill_outboxes_for(SiloMode.CONTROL, 0, 2)
+
+    reported = set(_gauge_values(metrics_mock, WATERMARK_STATE_METRIC))
+    tables = {model._meta.db_table for model in _backfill_models(SiloMode.CONTROL)}
+    # The budget ran out on auth_user, so the tables after it were never given a key.
+    assert User._meta.db_table in reported
+    assert AuthProvider._meta.db_table not in reported
+    assert reported < tables
+
+
+@django_db_all
+@no_silo_test
+def test_watermark_report_creates_no_key() -> None:
+    """Reporting must not write. get_processing_state would create (0, 1) on a miss."""
+    reset_processing_state()
+    models = _backfill_models(SiloMode.CONTROL)
+    assert models
+
+    with patch("sentry.hybridcloud.tasks.backfill_outboxes.metrics") as metrics_mock:
+        backfill_outboxes_for(SiloMode.CONTROL, scheduled_count=10_000)
+
+    client = _get_redis_client()
+    for model in models:
+        assert client.get(get_backfill_key(model._meta.db_table)) is None
+
+    assert _counter_calls(metrics_mock, WATERMARK_REPORT_ERROR_METRIC) == 0
+    assert _gauge_values(metrics_mock, WATERMARK_STATE_METRIC) == {}
+
+
+@django_db_all
+@no_silo_test
+def test_watermark_report_leaves_a_stored_value_alone() -> None:
+    """An existing key keeps its exact stored bytes after the pass."""
+    reset_processing_state()
+    table_name = AuthProvider._meta.db_table
+    set_processing_state(table_name, 12345, 3)
+    client = _get_redis_client()
+    before = client.get(get_backfill_key(table_name))
+
+    backfill_outboxes_for(SiloMode.CONTROL, scheduled_count=10_000)
+
+    assert client.get(get_backfill_key(table_name)) == before
+    assert read_processing_state(table_name) == (12345, 3)
+
+
+@django_db_all
+@no_silo_test
+def test_watermark_report_continues_when_one_table_raises() -> None:
+    """One bad table must not stop the walk, and must not fail the scheduler tick."""
+    reset_processing_state()
+    broken_table = AuthProvider._meta.db_table
+    good_table = ApiToken._meta.db_table
+    set_processing_state(good_table, 7, 1)
+
+    real_read = read_processing_state
+
+    def fail_for_one(table_name: str) -> tuple[int, int] | None:
+        if table_name == broken_table:
+            raise ValueError("boom")
+        return real_read(table_name)
+
+    with (
+        patch("sentry.hybridcloud.tasks.backfill_outboxes.metrics") as metrics_mock,
+        patch(
+            "sentry.hybridcloud.tasks.backfill_outboxes.read_processing_state",
+            side_effect=fail_for_one,
+        ),
+    ):
+        # No exception escapes to the caller.
+        backfill_outboxes_for(SiloMode.CONTROL, scheduled_count=10_000)
+
+    assert _counter_calls(metrics_mock, WATERMARK_REPORT_ERROR_METRIC) == 1
+    # The walk carried on past the broken table.
+    assert _gauge_values(metrics_mock, WATERMARK_STATE_METRIC)[good_table] == 7
+
+
+@django_db_all
+@no_silo_test
+def test_watermark_report_does_not_fail_the_tick_on_a_registry_error() -> None:
+    """An error outside the per-table walk is caught too."""
+    reset_processing_state()
+
+    with (
+        patch("sentry.hybridcloud.tasks.backfill_outboxes.metrics") as metrics_mock,
+        patch(
+            "sentry.hybridcloud.tasks.backfill_outboxes._backfill_models",
+            side_effect=ValueError("boom"),
+        ),
+    ):
+        backfill_outboxes_for(SiloMode.CONTROL, scheduled_count=10_000)
+
+    assert _counter_calls(metrics_mock, WATERMARK_REPORT_ERROR_METRIC) == 1
+
+
+@django_db_all
+@no_silo_test
+def test_backfill_stops_at_the_budget() -> None:
+    """A spent budget must end the walk, not carry a non-positive batch size to later models.
+
+    process_outbox_backfill_batch treats batch_size <= 0 as an empty page, reads
+    has_more as False, and marks the table complete having produced nothing.
+    """
+    reset_processing_state()
+    with outbox_context(flush=False):
+        for _ in range(5):
+            Factories.create_user()
+
+    seen: list[int] = []
+    real = process_outbox_backfill_batch
+
+    def spy(model: Any, batch_size: int, force_synchronous: bool = False) -> Any:
+        seen.append(batch_size)
+        return real(model, batch_size, force_synchronous=force_synchronous)
+
+    with (
+        override_options(
+            {"outbox_replication.auth_user.replication_version": User.replication_version}
+        ),
+        patch(
+            "sentry.hybridcloud.tasks.backfill_outboxes.process_outbox_backfill_batch",
+            side_effect=spy,
+        ),
+    ):
+        backfill_outboxes_for(SiloMode.CONTROL, 0, 2)
+
+    assert seen, "the walk never reached a model"
+    assert [size for size in seen if size <= 0] == []
+
+
+@django_db_all
+@no_silo_test
+def test_watermark_report_hands_back_the_stored_pair() -> None:
+    """The dual write mirrors this pair, so the report has to return it."""
+    reset_processing_state()
+    table_name = AuthProvider._meta.db_table
+    set_processing_state(table_name, 8080, 2)
+
+    assert _report_watermark_for_model(AuthProvider, force_synchronous=False) == (8080, 2)
+    # An absent key reports itself and yields nothing to mirror.
+    assert _report_watermark_for_model(ApiToken, force_synchronous=False) is None

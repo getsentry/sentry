@@ -284,7 +284,7 @@ class GithubRequestParserTest(TestCase):
                 "installation": {"id": "1"},
                 "issue": {"id": "1"},
                 "action": "deleted",
-                "repository": {"id": "1"},
+                "repository": {"id": 1},
             },
             content_type="application/json",
             headers={"X-GITHUB-EVENT": GithubWebhookType.ISSUE.value},
@@ -298,7 +298,7 @@ class GithubRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}:issues",
+            mailbox_name=f"github:{integration.id}:1:issues",
             cell_names=[cell.name],
             destination_types={DestinationType.SENTRY_CELL: 1},
         )
@@ -397,9 +397,9 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
         check_run_parser = GithubRequestParser(
             request=check_run_request, response_handler=self.get_response
         )
-        assert push_parser.get_mailbox_identifier(
-            integration, {}
-        ) != check_run_parser.get_mailbox_identifier(integration, {})
+        assert str(push_parser.get_mailbox(integration, {})) != str(
+            check_run_parser.get_mailbox(integration, {})
+        )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)

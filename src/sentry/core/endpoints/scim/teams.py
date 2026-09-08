@@ -381,15 +381,18 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         return Response(body)
 
     def _should_manage_privileges(self, team: Team) -> bool:
+        if settings.SENTRY_MODE != SentryMode.SAAS:
+            return False
+        if team.organization.id != settings.SUPERUSER_ORG_ID:
+            return False
         return (
-            settings.SENTRY_MODE == SentryMode.SAAS
-            and team.organization.id == settings.SUPERUSER_ORG_ID
-            and team.slug
+            team.slug
             in (
                 settings.SENTRY_SCIM_STAFF_TEAM_SLUG,
                 settings.SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG,
                 settings.SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG,
             )
+            or team.slug in settings.SENTRY_SCIM_PERMISSION_TEAM_SLUGS.values()
         )
 
     def _add_members_operation(

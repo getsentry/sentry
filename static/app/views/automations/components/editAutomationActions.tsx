@@ -74,7 +74,7 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
           size="sm"
           onClick={toggleDisabled}
           disabled={!canEdit || isUpdating}
-          tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+          tooltipProps={{title: permissionTooltipText}}
         >
           {automation.enabled ? t('Disable') : t('Enable')}
         </Button>
@@ -82,7 +82,7 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
           variant="danger"
           onClick={handleDelete}
           disabled={!canEdit || isDeleting}
-          tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+          tooltipProps={{title: permissionTooltipText}}
           size="sm"
         >
           {t('Delete')}
@@ -103,7 +103,7 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
               size="sm"
               busy={form.isSaving}
               disabled={!canEdit}
-              tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+              tooltipProps={{title: permissionTooltipText}}
             >
               {t('Save')}
             </Button>

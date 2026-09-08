@@ -1,6 +1,5 @@
 import {DateTime} from 'sentry/components/dateTime';
-
-import {ResultGrid} from 'admin/components/resultGrid';
+import {ResultGrid} from 'sentry/components/resultGrid';
 
 type Props = {
   orgSlug: string;
@@ -12,7 +11,6 @@ export function CustomerAuditLog({orgSlug, targetId}: Props) {
     <ResultGrid
       path=""
       endpoint="/audit-logs/"
-      method="GET"
       defaultParams={{target_id: targetId, org_slug: orgSlug, per_page: 100}}
       useQueryString={false}
       hasPagination={false}

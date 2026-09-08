@@ -58,7 +58,6 @@ export default function ReplayComparisonModal({
             <Title>
               {t('Hydration Error')}
               <Tooltip
-                isHoverable
                 title={tct(
                   'This modal helps with debugging hydration errors by diffing the DOM before and after the app hydrated. [boldBefore:Before] refers to the HTML rendered on the server. [boldAfter:After] refers to the HTML rendered on the client. Read more about [link:resolving hydration errors].',
                   {

@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Container} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -11,9 +12,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {EmptyState} from 'sentry/views/explore/releases/detail/commitsAndFiles/emptyState';
 import {ReleaseCommit} from 'sentry/views/explore/releases/detail/commitsAndFiles/releaseCommit';
 import {RepositorySwitcher} from 'sentry/views/explore/releases/detail/commitsAndFiles/repositorySwitcher';
@@ -31,16 +29,11 @@ interface CommitsProps {
 }
 
 export function CommitsList({release, releaseRepos, projectSlug}: CommitsProps) {
-  const {
-    [ReleasesDrawerFields.COMMIT_CURSOR]: rdCiCursor,
-    [ReleasesDrawerFields.ACTIVE_REPO]: rdActiveRepo,
-  } = useLocationQuery({
-    fields: {
-      [ReleasesDrawerFields.COMMIT_CURSOR]: decodeScalar,
-      [ReleasesDrawerFields.ACTIVE_REPO]: decodeScalar,
-    },
-  });
-  const navigate = useNavigate();
+  const [rdCiCursor, setRdCiCursor] = useQueryState(
+    ReleasesDrawerFields.COMMIT_CURSOR,
+    parseAsString
+  );
+  const [rdActiveRepo] = useQueryState(ReleasesDrawerFields.ACTIVE_REPO, parseAsString);
   const activeReleaseRepo =
     releaseRepos.find(repo => repo.name === rdActiveRepo) ?? releaseRepos[0];
 
@@ -86,11 +79,8 @@ export function CommitsList({release, releaseRepos, projectSlug}: CommitsProps) 
           </Panel>
           <Pagination
             pageLinks={data?.headers.Link}
-            onCursor={(cursor, path, searchQuery) => {
-              navigate({
-                pathname: path,
-                query: {...searchQuery, [ReleasesDrawerFields.COMMIT_CURSOR]: cursor},
-              });
+            onCursor={cursor => {
+              setRdCiCursor(cursor ?? null);
             }}
           />
         </Fragment>

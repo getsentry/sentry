@@ -237,11 +237,6 @@ def set_project_sample_rates(org_id: int, rebalanced_projects: Iterable[Rebalanc
     return bool(changed)
 
 
-def has_project_rates(org_id: int) -> bool:
-    redis_client = get_redis_client_for_ds()
-    return bool(redis_client.exists(generate_project_sample_rates_cache_key(org_id)))
-
-
 def get_project_sample_rate(org_id: int, project_id: int) -> float | None:
     """The balanced sample rate of a project, or None when this pipeline has not stored one."""
     redis_client = get_redis_client_for_ds()

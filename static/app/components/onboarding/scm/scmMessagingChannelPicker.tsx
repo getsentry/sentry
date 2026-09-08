@@ -218,9 +218,12 @@ export function ScmMessagingChannelPicker({
           size="sm"
           variant="primary"
           disabled={!channel || !!channelError || isChannelLoading}
+          analyticsEventKey="onboarding.scm_messaging_confirm_and_continue_clicked"
+          analyticsEventName="Onboarding: SCM Messaging Confirm And Continue Clicked"
+          analyticsParams={{provider: providerKey}}
           onClick={handleSave}
         >
-          {t('Add destination')}
+          {t('Confirm and continue')}
         </Button>
       </Flex>
     </Stack>

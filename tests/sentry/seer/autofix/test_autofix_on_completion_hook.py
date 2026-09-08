@@ -353,6 +353,27 @@ class TestStoppingPointFromRun(TestCase):
         )
         assert _group_and_referrer_from_run(self.organization, 123) == (None, None)
 
+    @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
+    def test_referrer_falls_back_to_the_mirror_when_state_carries_a_group_id(
+        self, mock_trigger, mock_fetch_run_status
+    ) -> None:
+        self._create_run(
+            123,
+            extras={
+                "referrer": AutofixReferrer.NIGHT_SHIFT.value,
+                "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
+            },
+        )
+        mock_fetch_run_status.return_value = run_state(
+            blocks=[root_cause_memory_block()],
+            metadata={"group_id": self.group.id},
+        )
+
+        AutofixOnCompletionHook.execute(self.organization, 123)
+
+        assert mock_trigger.call_args.kwargs["referrer"] == AutofixReferrer.NIGHT_SHIFT
+
     @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
     def test_state_metadata_takes_precedence_over_the_run_mirror(self, mock_trigger) -> None:
         """A legacy run carries its own stopping point; the mirror must not override
@@ -1206,11 +1227,10 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
 class AutofixOnCompletionHookTest(TestCase):
     """Test the AutofixOnCompletionHook behavior."""
 
-    @patch("sentry.seer.autofix.on_completion_hook._group_and_referrer_from_run")
     @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
     @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
     def test_next_step_not_triggered_when_coding_disabled(
-        self, mock_trigger_autofix, mock_fetch_run_status, mock_run_context
+        self, mock_trigger_autofix, mock_fetch_run_status
     ):
         """Test that next step is not triggered if next step is CODE_CHANGES and sentry:enable_seer_coding is disabled."""
         self.organization.update_option("sentry:enable_seer_coding", False)
@@ -1228,8 +1248,6 @@ class AutofixOnCompletionHookTest(TestCase):
 
         # Execute the hook
         AutofixOnCompletionHook.execute(self.organization, 123)
-
-        mock_run_context.assert_not_called()
 
         # Verify: trigger_autofix_agent was NOT called (next step blocked)
         mock_trigger_autofix.assert_not_called()
