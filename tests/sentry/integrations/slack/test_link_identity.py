@@ -304,6 +304,28 @@ class SlackIntegrationUnlinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         assert not Identity.objects.filter(external_id="new-slack-id", user=self.user).exists()
         assert self.mock_webhook.call_count == 1
 
+    def test_unlinks_staging_identity(self) -> None:
+        # The Slack identity provider registers some identities as `slack_staging`; the
+        # resolved idp, not the view's `slack` slug, must scope the delete.
+        staging = self.create_provider_integration(
+            provider="slack_staging", external_id="TSTAGING", metadata=self.integration.metadata
+        )
+        self.create_organization_integration(
+            organization_id=self.organization.id, integration=staging
+        )
+        staging_idp = self.create_identity_provider(type="slack_staging", external_id="TSTAGING")
+        self.create_identity(
+            user=self.user, identity_provider=staging_idp, external_id="staging-slack-id"
+        )
+
+        response = self.client.post(
+            build_unlinking_url(staging.id, "staging-slack-id", self.channel_id, self.response_url)
+        )
+
+        assert response.status_code == 200
+        assert not Identity.objects.filter(idp=staging_idp, external_id="staging-slack-id").exists()
+        assert Identity.objects.filter(idp=self.idp, external_id=self.external_id).exists()
+
     def test_user_with_multiple_organizations(self) -> None:
         # Create a second organization where the user is _not_ a member.
         self.create_organization_integration(
