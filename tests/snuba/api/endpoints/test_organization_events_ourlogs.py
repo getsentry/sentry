@@ -64,6 +64,17 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         ]
         assert meta["dataset"] == self.dataset
 
+    def test_no_requested_fields(self) -> None:
+        response = self.do_request(
+            {
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "No columns selected"
+
     @pytest.mark.querybuilder
     def test_timestamp_order(self) -> None:
         logs = [
