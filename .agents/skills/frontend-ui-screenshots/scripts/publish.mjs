@@ -11,6 +11,9 @@ import {parseArgs} from 'node:util';
 const ARTIFACT_ROOT = path.resolve('.artifacts/ui-capture');
 const MARKER_START = '<!-- frontend-ui-screenshots:start -->';
 const MARKER_END = '<!-- frontend-ui-screenshots:end -->';
+// gh pr edit --attach requires gh 2.99.0
+const MINIMUM_GH_VERSION = '2.99.0';
+const GITHUB_ASSET_URL_PREFIX = 'https://github.com/user-attachments/assets/';
 
 function run(command, args, options = {}) {
   return execFileSync(command, args, {encoding: 'utf8', ...options}).trim();
@@ -18,6 +21,37 @@ function run(command, args, options = {}) {
 
 function runJson(command, args, options = {}) {
   return JSON.parse(run(command, args, options));
+}
+
+function compareVersions(left, right) {
+  const leftParts = left.split('.').map(Number);
+  const rightParts = right.split('.').map(Number);
+  for (let index = 0; index < Math.max(leftParts.length, rightParts.length); index += 1) {
+    const difference = (leftParts[index] ?? 0) - (rightParts[index] ?? 0);
+    if (difference !== 0) {
+      return difference;
+    }
+  }
+  return 0;
+}
+
+function currentGhVersion(versionOutput) {
+  const match = versionOutput.match(/gh version (\d+(?:\.\d+)+)/);
+  if (!match) {
+    throw new Error(
+      `Could not parse a GitHub CLI version from: ${versionOutput.split('\n')[0]}`
+    );
+  }
+  return match[1];
+}
+
+function assertGhSupportsAttach() {
+  const version = currentGhVersion(run('gh', ['--version']));
+  if (compareVersions(version, MINIMUM_GH_VERSION) < 0) {
+    throw new Error(
+      `GitHub CLI ${MINIMUM_GH_VERSION}+ is required to upload screenshots (--attach); found ${version}`
+    );
+  }
 }
 
 function resolveCurrentPullRequest() {
@@ -128,6 +162,37 @@ function attachArgs(pairs) {
 }
 
 // gh pr edit --attach rewrites local path refs in the body to asset URLs
+function assertAssetsUploaded(body, pairs) {
+  const table = extractMarkedTable(body);
+  if (!table) {
+    throw new Error('Uploaded content is missing the marked screenshot table');
+  }
+  const imageUrls = [...table.matchAll(/!\[[^\]]*\]\(([^)\s]+)\)/g)].map(
+    match => match[1]
+  );
+  const expected = pairs.length * 2;
+  if (imageUrls.length !== expected) {
+    throw new Error(
+      `Uploaded table has ${imageUrls.length} screenshot references, expected ${expected}`
+    );
+  }
+  const notAssets = imageUrls.filter(url => !url.startsWith(GITHUB_ASSET_URL_PREFIX));
+  const localPaths = pairs
+    .flatMap(pair => [pair.before, pair.after])
+    .filter(imagePath => body.includes(imagePath));
+  if (notAssets.length > 0 || localPaths.length > 0) {
+    throw new Error(
+      `GitHub did not replace every local screenshot path with a GitHub asset URL: ${[
+        ...new Set([...notAssets, ...localPaths]),
+      ].join(', ')}`
+    );
+  }
+}
+
+function extractMarkedTable(body) {
+  return body?.match(new RegExp(`${MARKER_START}[\\s\\S]*?${MARKER_END}`))?.[0] ?? null;
+}
+
 function updatePullRequestBody(pullRequest, pairs) {
   const table = renderTable(pairs);
   const markerPattern = new RegExp(`\\n?${MARKER_START}[\\s\\S]*?${MARKER_END}\\n?`, 'g');
@@ -157,6 +222,7 @@ function updatePullRequestBody(pullRequest, pairs) {
       `GitHub did not return all screenshot references: ${missing.join(', ')}`
     );
   }
+  assertAssetsUploaded(updated.body, pairs);
   return updated.url;
 }
 
@@ -191,6 +257,7 @@ function updateFileComment(pullRequest, pairs, commentPath) {
     'DELETE',
     `repos/${pullRequest.repository}/issues/comments/${uploaded.id}`,
   ]);
+  assertAssetsUploaded(uploaded.body, pairs);
   const reviewComments = runJson('gh', [
     'api',
     `repos/${pullRequest.repository}/pulls/${pullRequest.number}/comments?per_page=100`,
@@ -256,6 +323,7 @@ if (options['dry-run']) {
   );
   process.exit(0);
 }
+assertGhSupportsAttach();
 const pullRequestUrl = options['comment-path']
   ? updateFileComment(pullRequest, pairs, options['comment-path'])
   : updatePullRequestBody(pullRequest, pairs);
