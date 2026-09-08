@@ -154,9 +154,10 @@ class SafeRolloutComparator:
     def _callsite_use_experimental_data_allowlist_option(cls) -> str:
         """
         This is the callsite-level use-experimental-path rollout option. If the option value
-        contains a callsite, then that callsite will use the experimental-path data. This should
-        generally only be used once you've determined that there is a high rate of partial- or
-        exact- match at the callsite. Defaults to an empty list.
+        contains a callsite, then that callsite will use the experimental-path data. Use ``*`` to
+        enable the experimental path for all callsites. This should generally only be used once
+        you've determined that there is a high rate of partial- or exact-match. Defaults to an
+        empty list.
         """
         return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.use_experimental_data_callsite_allowlist"
 
@@ -331,15 +332,14 @@ class SafeRolloutComparator:
     def should_use_experimental_data(cls, callsite: str) -> bool:
         """
         This function controls whether you use the result of your experimental data. Useful for
-        allowlisting known-safe callsites.
+        allowlisting known-safe callsites. The special callsite ``*`` allows all callsites.
 
         Note: If you are transitioning from an existing, intended-to-be-equivalent dataset, you
         should instead use `check_and_choose` (which has this check built in and has better
         logging).
         """
-        use_experimental_data = callsite in options.get(
-            cls._callsite_use_experimental_data_allowlist_option()
-        )
+        allowlist = set(options.get(cls._callsite_use_experimental_data_allowlist_option()))
+        use_experimental_data = "*" in allowlist or callsite in allowlist
         tags: dict[str, str] = {
             "rollout_name": cls.ROLLOUT_NAME,
             "callsite": callsite,
