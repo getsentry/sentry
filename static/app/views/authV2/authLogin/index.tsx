@@ -22,6 +22,7 @@ import {AuthV2CookieState, useEnableAuthV2} from 'sentry/utils/useEnableAuthV2';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
+import {useBrandedAuthLoading} from 'sentry/views/authV2/useBrandedAuthLoading';
 
 import {EmailAuth} from './components/emailAuth';
 import {OrganizationSwitcher} from './components/organizationSwitcher';
@@ -165,6 +166,7 @@ export default function AuthLogin() {
     (orgSlug && isAuthOrganizationPending) ||
     (nextUri && !focusedOrgAuth && !hasAuthOrganizationError)
   );
+  useBrandedAuthLoading(!isLoginRenderable);
 
   useEffect(() => {
     if (!isLoginRenderable) {
