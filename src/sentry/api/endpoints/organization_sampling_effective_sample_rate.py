@@ -16,23 +16,14 @@ from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
-from sentry.dynamic_sampling.per_org.queries import (
-    get_eap_organization_volume,
-    get_generic_metrics_organization_volume,
-)
-from sentry.dynamic_sampling.types import OrganizationDataVolume
+from sentry.dynamic_sampling.per_org.queries import get_eap_organization_volume
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
 SAMPLE_RATE_WINDOW = timedelta(hours=24)
 
 
-def _effective_sample_rate(volume: OrganizationDataVolume | None) -> float | None:
-    return None if volume is None else volume.effective_sample_rate
-
-
 class OrganizationSamplingEffectiveSampleRateResponse(TypedDict):
-    effectiveSampleRate: float | None
     eapEffectiveSampleRate: float | None
 
 
@@ -40,14 +31,9 @@ class OrganizationSamplingEffectiveSampleRateResponse(TypedDict):
 class OrganizationSamplingEffectiveSampleRateEndpoint(OrganizationEndpoint):
     """Return the organization's effective sample rate over the last 24h.
 
-    The effective sample rate is computed as indexed / total. It is returned from two sources,
-    which do not have to agree:
-    - effectiveSampleRate comes from the generic metrics counters, where total is the number of
-      received segments and indexed is the number of segments with a keep decision. It measures
-      the sampling decision alone.
-    - eapEffectiveSampleRate comes from EAP, where total is the extrapolated number of received
-      segments and indexed is the number of stored segments. Segments that dynamic sampling kept
-      but that a quota or a pipeline drop removed later lower this rate.
+    The effective sample rate is the number of stored segments divided by the extrapolated
+    number of received segments, both read from EAP. Segments that dynamic sampling kept but
+    that a quota or a pipeline drop removed later lower this rate.
     """
 
     owner = ApiOwner.TELEMETRY_EXPERIENCE
@@ -82,14 +68,12 @@ class OrganizationSamplingEffectiveSampleRateEndpoint(OrganizationEndpoint):
         eap_volume = get_eap_organization_volume(
             organization, projects, time_interval=SAMPLE_RATE_WINDOW
         )
-        generic_metrics_volume = get_generic_metrics_organization_volume(
-            organization.id, time_interval=SAMPLE_RATE_WINDOW
-        )
 
         return Response(
             status=200,
             data={
-                "effectiveSampleRate": _effective_sample_rate(generic_metrics_volume),
-                "eapEffectiveSampleRate": _effective_sample_rate(eap_volume),
+                "eapEffectiveSampleRate": (
+                    None if eap_volume is None else eap_volume.effective_sample_rate
+                ),
             },
         )

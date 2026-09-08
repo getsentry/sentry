@@ -8,7 +8,6 @@ from enum import StrEnum
 from typing import Any, Protocol
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
-from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query, Request
 
 from sentry import options
 from sentry.dynamic_sampling.rules.utils import ProjectId
@@ -18,15 +17,10 @@ from sentry.models.project import Project
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.snuba.outcomes import QueryDefinition, run_outcomes_query_totals
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import LimitBy
 from sentry.snuba.spans_rpc import Spans
-from sentry.utils.snuba import raw_snql_query
 
 # The window recalibration measures an organization over.
 RECALIBRATION_TIME_INTERVAL = timedelta(minutes=5)
@@ -182,67 +176,6 @@ def get_outcomes_organization_volume(
         return None
 
     return OrganizationDataVolume(org_id=config.organization.id, total=total, indexed=None)
-
-
-def get_generic_metrics_organization_volume(
-    org_id: int,
-    time_interval: timedelta = RECALIBRATION_TIME_INTERVAL,
-    end: datetime | None = None,
-) -> OrganizationDataVolume | None:
-    """
-    The segments an organization received and kept according to the generic metrics
-    counters, which measure the sampling decision alone.
-    """
-    end_time = end or datetime.now(UTC)
-    start_time = end_time - time_interval
-
-    metric_id = indexer.resolve_shared_org(SpanMRI.COUNT_PER_ROOT_PROJECT.value)
-    is_segment_column = f"tags_raw[{indexer.resolve_shared_org('is_segment')}]"
-    decision_column = f"tags_raw[{indexer.resolve_shared_org('decision')}]"
-
-    query = Query(
-        match=Entity(EntityKey.GenericOrgMetricsCounters.value),
-        select=[
-            Function("sum", [Column("value")], "total_count"),
-            Function(
-                "sumIf",
-                [Column("value"), Function("equals", [Column(decision_column), "keep"])],
-                "keep_count",
-            ),
-            Column("org_id"),
-        ],
-        groupby=[Column("org_id")],
-        where=[
-            Condition(Column("timestamp"), Op.GTE, start_time),
-            Condition(Column("timestamp"), Op.LT, end_time),
-            Condition(Column("metric_id"), Op.EQ, metric_id),
-            Condition(Column("org_id"), Op.IN, [org_id]),
-            Condition(Column(is_segment_column), Op.EQ, "true"),
-        ],
-        granularity=Granularity(60),
-    )
-    request = Request(
-        dataset=Dataset.PerformanceMetrics.value,
-        app_id="dynamic_sampling",
-        query=query,
-        tenant_ids={
-            "use_case_id": UseCaseID.SPANS.value,
-            "cross_org_query": 1,
-        },
-    )
-    data = raw_snql_query(
-        request,
-        referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES.value,
-    )["data"]
-
-    if not data:
-        return None
-
-    total = int(data[0]["total_count"])
-    if total <= 0:
-        return None
-
-    return OrganizationDataVolume(org_id=org_id, total=total, indexed=int(data[0]["keep_count"]))
 
 
 def get_eap_project_volumes(

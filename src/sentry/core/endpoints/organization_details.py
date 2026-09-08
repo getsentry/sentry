@@ -76,10 +76,12 @@ from sentry.constants import (
 )
 from sentry.core.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
-from sentry.dynamic_sampling.per_org.scheduler import (
-    calculate_project_target_sample_rates,
-    run_calculations_per_org_task_entry,
+from sentry.dynamic_sampling.per_org.calculations import run_project_balancing
+from sentry.dynamic_sampling.per_org.configuration import (
+    CustomDynamicSamplingOrganizationConfiguration,
 )
+from sentry.dynamic_sampling.per_org.queries import get_eap_project_volumes
+from sentry.dynamic_sampling.per_org.scheduler import run_calculations_per_org_task_entry
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.dynamic_sampling.utils import (
     has_custom_dynamic_sampling,
@@ -1310,9 +1312,15 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         return self.respond(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
     def _compute_project_target_sample_rates(self, request: Request, organization: Organization):
+        """Seed the per-project target sample rates when an organization switches to project
+        mode, so that every project starts from the rate it was balanced at over the last 30
+        days against the organization-level target rate.
+        """
         # TODO: this will take a long time for organizations with a lot of projects
         #       so we need to refactor this into an async task we can run and observe
-        for rebalanced_item in calculate_project_target_sample_rates(organization):
+        config = CustomDynamicSamplingOrganizationConfiguration(organization)
+        project_volumes = get_eap_project_volumes(config, time_interval=timedelta(days=30))
+        for rebalanced_item in run_project_balancing(config, project_volumes):
             ProjectOption.objects.update_or_create(
                 project_id=rebalanced_item.id,
                 key="sentry:target_sample_rate",
