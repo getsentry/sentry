@@ -398,28 +398,6 @@ def _bump_notebook(run: InvestigationOrchestrationRun, investigation: Investigat
     investigation.save(update_fields=["version", "date_updated"])
 
 
-def _normalize_positions(run: InvestigationOrchestrationRun, moved: InvestigationBlock) -> None:
-    blocks = list(
-        InvestigationBlock.objects.filter(
-            investigation=run.investigation,
-            report_revision__isnull=False,
-            stable_agent_key__isnull=False,
-            deleted_at__isnull=True,
-        )
-        .exclude(id=moved.id)
-        .order_by("position", "id")
-    )
-    position = min(max(moved.position, 0), len(blocks))
-    blocks.insert(position, moved)
-    changed: list[InvestigationBlock] = []
-    for index, block in enumerate(blocks):
-        if block.position != index:
-            block.position = index
-            changed.append(block)
-    if changed:
-        InvestigationBlock.objects.bulk_update(changed, ["position", "date_updated"])
-
-
 def _default_display(kind: str) -> dict[str, Any]:
     if kind == InvestigationBlockKind.TEXT:
         return {"type": "markdown"}
@@ -460,15 +438,44 @@ def _upsert_report_block(
             kind=kind,
         )
     elif block.kind != kind:
-        raise serializers.ValidationError({"payload": "A report block cannot change kind."})
+        previous_execution = block.current_execution
+        if (
+            previous_execution is None
+            or previous_execution.input_snapshot.get("reportRevision", revision) >= revision
+        ):
+            raise serializers.ValidationError(
+                {"payload": "Changing a report block's kind requires a new report revision."}
+            )
+        # A steered replacement keeps the block identity and its execution history,
+        # but must not expose the previous kind's content as the new kind's output.
+        block.kind = kind
+        block.content = ""
+        block.generated_content = ""
+        block.prompt = ""
+        block.config = {}
+        block.display = {}
+        block.content_execution = None
+        block.result_execution = None
 
     if "position" in payload:
         block.position = payload["position"]
     title = payload.get("title", block.title)
     config = payload.get("config", block.config)
-    display = payload.get("display", block.display or _default_display(kind))
+    incoming_display = payload.get("display", {})
+    display = {**_default_display(kind), **block.display, **incoming_display}
     if kind == InvestigationBlockKind.QUERY:
-        display = {**display, "queryCollapsed": display.get("queryCollapsed", True)}
+        if incoming_display.get("type") in {"table", "chart"} and "version" not in incoming_display:
+            display["defaultView"] = incoming_display["type"]
+        if display["type"] == "chart":
+            chart = (payload.get("result") or {}).get("chart")
+            display.update(
+                {
+                    "type": chart["visualization"] if chart else "table",
+                    "defaultView": "chart" if chart else "table",
+                }
+            )
+            if chart:
+                display.update({"xAxis": "x", "yAxes": ["y"], "unit": chart["y_axis_unit"]})
 
     block.title = title
     block.config = deepcopy(config)
@@ -485,8 +492,47 @@ def _upsert_report_block(
     if block.pk:
         block.version += 1
     block.save()
-    _normalize_positions(run, block)
-
+    request_id = uuid5(
+        _REPORT_EXECUTION_NAMESPACE,
+        f"{run.id}:{revision}:{key}:{kind}",
+    )
+    execution = InvestigationBlockExecution.objects.filter(request_id=request_id).first()
+    result = (
+        payload["result"]
+        if kind == InvestigationBlockKind.QUERY and complete
+        else validate_text_result({"schemaVersion": 1, "markdown": block.generated_content})
+        if complete
+        else None
+    )
+    published_execution = (
+        block.result_execution if kind == InvestigationBlockKind.QUERY else block.content_execution
+    )
+    if published_execution is None and complete and payload.get("useInvestigationProjectScope"):
+        previous_block = (
+            InvestigationBlock.objects.filter(
+                investigation=investigation,
+                stable_agent_key=key,
+                kind=kind,
+                report_revision__lt=revision,
+            )
+            .select_related("content_execution", "result_execution")
+            .order_by("-report_revision")
+            .first()
+        )
+        if previous_block is not None:
+            published_execution = (
+                previous_block.result_execution
+                if kind == InvestigationBlockKind.QUERY
+                else previous_block.content_execution
+            )
+    scope_execution = execution
+    if (
+        scope_execution is None
+        and complete
+        and published_execution is not None
+        and published_execution.result == result
+    ):
+        scope_execution = published_execution
     project_ids = list(payload.get("projectIds") or [])
     if payload.get("useInvestigationProjectScope") is True:
         project_scope = run.source.get("projectScope")
@@ -494,12 +540,23 @@ def _upsert_report_block(
             raise serializers.ValidationError(
                 {"payload": "Investigation project scope is not available for this run."}
             )
-        scoped_project_ids = InvestigationProject.objects.filter(
-            investigation=investigation
-        ).values_list("project_id", flat=True)
+        # Scope selection can change while Seer runs. Reuse the resolved scope
+        # for an existing attempt or an unchanged output recovered by a snapshot.
+        scoped_project_ids = (
+            scope_execution.data_project_links.values_list("project_id", flat=True)
+            if scope_execution is not None
+            else InvestigationProject.objects.filter(investigation=investigation).values_list(
+                "project_id", flat=True
+            )
+        )
         project_ids = sorted(set(project_ids) | set(scoped_project_ids))
         if not project_ids:
             raise serializers.ValidationError({"payload": "Investigation project scope is empty."})
+    if execution is not None and execution.status == InvestigationBlockExecutionStatus.COMPLETED:
+        project_ids = sorted(
+            set(project_ids)
+            | set(execution.data_project_links.values_list("project_id", flat=True))
+        )
     projects = list(
         Project.objects.filter(
             organization_id=investigation.organization_id,
@@ -510,49 +567,45 @@ def _upsert_report_block(
         raise serializers.ValidationError(
             {"payload": "A result project is outside the investigation organization."}
         )
-    request_id = uuid5(
-        _REPORT_EXECUTION_NAMESPACE,
-        f"{run.id}:{revision}:{key}:{kind}",
-    )
     snapshot = {
         "orchestrationRunId": run.id,
         "reportRevision": revision,
         "stableAgentKey": key,
         "projectIds": project_ids,
     }
-    result = (
-        # The block upsert schema has already normalized this.
-        payload["result"]
-        if kind == InvestigationBlockKind.QUERY and complete
-        else validate_text_result(
-            {
-                "schemaVersion": 1,
-                "markdown": block.generated_content,
-            }
+    now = timezone.now()
+    completed_at = None
+    if complete:
+        completed_at = (
+            execution.completed_at
+            if execution is not None
+            and execution.status == InvestigationBlockExecutionStatus.COMPLETED
+            else now
         )
-        if complete
-        else None
-    )
+    defaults = {
+        "block": block,
+        "executor": InvestigationBlockExecutor.CODE_MODE,
+        "status": (
+            InvestigationBlockExecutionStatus.COMPLETED
+            if complete
+            else InvestigationBlockExecutionStatus.RUNNING
+        ),
+        "block_version": block.version,
+        "result_schema_version": 1,
+        "result": result,
+        "error": None,
+        "completed_at": completed_at,
+    }
     execution, _ = InvestigationBlockExecution.objects.update_or_create(
         request_id=request_id,
-        defaults={
-            "block": block,
-            "executor": InvestigationBlockExecutor.CODE_MODE,
-            "status": (
-                InvestigationBlockExecutionStatus.COMPLETED
-                if complete
-                else InvestigationBlockExecutionStatus.RUNNING
-            ),
-            "block_version": block.version,
+        defaults=defaults,
+        create_defaults={
+            **defaults,
             "input_snapshot": snapshot,
             "input_fingerprint": hashlib.sha256(
                 json.dumps(snapshot, sort_keys=True).encode()
             ).hexdigest(),
-            "result_schema_version": 1,
-            "result": result,
-            "error": None,
-            "started_at": timezone.now(),
-            "completed_at": timezone.now() if complete else None,
+            "started_at": now,
         },
     )
     InvestigationBlockExecutionProject.objects.filter(execution=execution).delete()
@@ -822,10 +875,10 @@ def _apply_event(
             ).first()
             if block is None:
                 raise serializers.ValidationError({"payload": "Report block was not found."})
+            # Seer sends absolute positions in the final plan, not insertions.
             block.position = payload["position"]
             block.version += 1
             block.save(update_fields=["position", "version", "date_updated"])
-            _normalize_positions(run, block)
             _bump_notebook(run, run.investigation)
         elif event.type == "report_completed":
             report = run.projection.setdefault("report", {})
@@ -869,6 +922,8 @@ def _apply_event(
         run.error = deepcopy(payload.get("error"))
         if _fail_report_executions(run, revision=_report_revision(run)):
             _bump_notebook(run, run.investigation)
+    else:
+        return False, "unsupported_event_type"
 
     run.heartbeat_at = timezone.now()
     return True, None
@@ -989,6 +1044,8 @@ def _apply_available_events(
                 try:
                     with transaction.atomic(using=database):
                         applied, ignored_reason = _apply_event(run, next_event)
+                        if applied:
+                            run.save()
                 except serializers.ValidationError as error:
                     run.refresh_from_db()
                     run.investigation.refresh_from_db()
@@ -1152,6 +1209,8 @@ def _synchronize_orchestration_projection(
     seer_run_id: int,
     projection: dict[str, Any],
     authoritative: bool,
+    expected_last_event_sequence: int | None = None,
+    expected_workflow_version: int | None = None,
 ) -> InvestigationOrchestrationRun:
     if (
         isinstance(seer_run_id, bool)
@@ -1169,6 +1228,11 @@ def _synchronize_orchestration_projection(
     database = router.db_for_write(InvestigationOrchestrationRun)
     with transaction.atomic(using=database):
         run = _lock_run_after_investigation(orchestration_run_id)
+        if authoritative and (
+            run.last_event_sequence != expected_last_event_sequence
+            or run.workflow_version != expected_workflow_version
+        ):
+            raise InvestigationOrchestrationEventConflict("Run changed while reconciling.")
         if run.seer_run is not None and run.seer_run.seer_run_state_id != seer_run_id:
             raise InvestigationOrchestrationEventConflict("Run ID does not match.")
         run.seer_run = _resolve_seer_run_mirror(
@@ -1180,14 +1244,20 @@ def _synchronize_orchestration_projection(
             generation >= run.generation
             and not _projection_is_stale(run, projection, event_generation=generation)
         ):
-            notebook_changed = _adopt_preserved_report_revision(run, projection)
+            notebook_writes_are_fenced = _notebook_writes_are_fenced(run)
+            notebook_changed = False
+            if not notebook_writes_are_fenced:
+                notebook_changed = _adopt_preserved_report_revision(run, projection)
             _set_projection(
                 run,
                 projection,
                 event_generation=generation,
                 authoritative_workflow_version=authoritative,
             )
-            if run.status == InvestigationOrchestrationStatus.CANCELLED:
+            if (
+                not notebook_writes_are_fenced
+                and run.status == InvestigationOrchestrationStatus.CANCELLED
+            ):
                 notebook_changed = bool(_cancel_workflow_report_executions(run)) or notebook_changed
             if notebook_changed:
                 _bump_notebook(run, run.investigation)
@@ -1230,12 +1300,16 @@ def reconcile_orchestration_projection(
     orchestration_run_id: int,
     seer_run_id: int,
     projection: dict[str, Any],
+    expected_last_event_sequence: int,
+    expected_workflow_version: int,
 ) -> InvestigationOrchestrationRun:
-    """Replace run state from an authoritative recovery response."""
+    """Apply recovery only if the event cursor and version observed before fetching still match."""
 
     return _synchronize_orchestration_projection(
         orchestration_run_id=orchestration_run_id,
         seer_run_id=seer_run_id,
         projection=projection,
         authoritative=True,
+        expected_last_event_sequence=expected_last_event_sequence,
+        expected_workflow_version=expected_workflow_version,
     )
