@@ -77,7 +77,6 @@ def deliver_autofix_rca_result(
 
         # Clear any stale delivery error_message now that this delivery has succeeded.
         extras.pop("error_message", None)
-        extras.pop("result", None)
 
         agent_run.update(
             using=using,

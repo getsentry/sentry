@@ -162,9 +162,6 @@ class TestDeliverAutofixRCAResult(TestCase):
             result=None,
             error="temporary error",
         )
-        self.agent_run.refresh_from_db()
-        self.agent_run.extras = {**self.agent_run.extras, "result": {"stale": True}}
-        self.agent_run.save(update_fields=["extras"])
 
         deliver_autofix_rca_result(
             organization_id=self.organization.id,
@@ -177,7 +174,6 @@ class TestDeliverAutofixRCAResult(TestCase):
         self.agent_run.refresh_from_db()
         assert self.agent_run.extras["status"] == "completed"
         assert "error_message" not in self.agent_run.extras
-        assert "result" not in self.agent_run.extras
 
     def test_night_shift_run_is_not_matched(self) -> None:
         seer_run = self.create_seer_run(organization=self.organization, type="feature_run")
