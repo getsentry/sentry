@@ -548,9 +548,11 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         original_execution.refresh_from_db()
         assert original_execution.block_id == block.id
         assert original_execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        assert original_execution.result is not None
         assert original_execution.result["markdown"] == "Original report"
         block.refresh_from_db()
         assert block.result_execution is not None
+        assert block.result_execution.result is not None
         assert block.result_execution.result["tableMarkdown"] == result["tableMarkdown"]
 
     def test_out_of_order_events_deduplicate_and_ignore_delayed_responses(self) -> None:
