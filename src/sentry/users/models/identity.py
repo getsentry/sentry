@@ -22,7 +22,6 @@ from sentry.db.models import (
 from sentry.db.models.fields.encryption import EncryptedJSONField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
-from sentry.db.models.scoped_lookups import ScopedLookup
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
@@ -57,9 +56,6 @@ class IdentityProvider(Model):
     """
 
     __relocation_scope__ = RelocationScope.Excluded
-    # external_id names one instance of a provider (a Slack workspace, a GitHub app), so it
-    # is only unique together with the provider type.
-    __scoped_lookups__ = {"external_id": ScopedLookup(requires=("type",))}
 
     type = models.CharField(max_length=64)
     config = models.JSONField(default=dict)
@@ -209,13 +205,6 @@ class Identity(Model):
     """
 
     __relocation_scope__ = RelocationScope.Excluded
-    # external_id is the provider's user id. The idp pins it exactly; the idp's type is
-    # accepted too, because the ids of the providers we link (Slack, Discord, Teams, Google)
-    # are unique across that provider's instances, so a type-scoped lookup is at worst
-    # ambiguous within one provider and never matches another provider's user.
-    __scoped_lookups__ = {
-        "external_id": ScopedLookup(requires=("idp",), substitutes={"idp": ("idp__type",)})
-    }
 
     idp = FlexibleForeignKey("sentry.IdentityProvider")
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)

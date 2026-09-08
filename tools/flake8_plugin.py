@@ -108,13 +108,17 @@ S020_eap_base_classes = frozenset(
 
 
 S025_msg = (
-    "S025 {model}.{column} is only unique together with {requires}; filter on {requires} too, "
-    "or use `.unscoped_lookup(reason=...)` for a deliberate cross-namespace query"
+    "S025 {model}.{column} is only unique together with {requires}; filter on {requires} too. "
+    "A lookup that must span providers takes `# noqa: S025` with a comment saying why"
 )
-# Mirrors ``__scoped_lookups__`` on the models: {model: {column: {required column: kwargs
-# that satisfy it}}}. tests/sentry/db/models/test_scoped_lookups.py fails when they drift.
-# The runtime guard in sentry.db.models.scoped_lookups is authoritative; this catches the
-# direct ``Model.objects.filter(...)`` call at commit time, before a test exists.
+S025_service_msg = (
+    "S025 {call} looks rows up by {column} without a provider; pass {requires} too. "
+    "A lookup that must span providers takes `# noqa: S025` with a comment saying why"
+)
+# Columns that are only unique together with the column naming the system that issued them,
+# per Meta.unique_together: {model: {column: {required column: kwargs that pin it}}}.
+# tests/tools/test_flake8_scoped_lookups.py checks every entry against the model's unique
+# keys and fields, so the table cannot drift from the schema.
 S025_SCOPED_LOOKUPS: dict[str, dict[str, dict[str, tuple[str, ...]]]] = {
     "sentry.integrations.models.integration.Integration": {
         "external_id": {"provider": ("provider",)},
@@ -132,6 +136,20 @@ S025_SCOPED_LOOKUPS: dict[str, dict[str, dict[str, tuple[str, ...]]]] = {
 S025_queryset_methods = frozenset(
     ("filter", "get", "exclude", "get_or_create", "update_or_create", "get_or_none")
 )
+# RPC services that compose the same lookups from keyword arguments:
+# {service: {method: (looked-up kwargs, kwargs that pin the provider)}}.
+S025_SERVICE_LOOKUPS: dict[str, dict[str, tuple[frozenset[str], frozenset[str]]]] = {
+    "repository_service": {
+        "get_repositories": (
+            frozenset({"external_id"}),
+            frozenset({"providers", "integration_id", "has_provider"}),
+        ),
+    },
+}
+# identity_service.get_identity(filter={...}) / get_identities(filter={...}) take a dict.
+S025_identity_filter_methods = frozenset(("get_identity", "get_identities"))
+S025_identity_lookup_keys = frozenset(("identity_ext_id", "identity_ext_ids"))
+S025_identity_provider_keys = frozenset(("provider_id", "provider_ext_id", "provider_type"))
 S025_lookup_suffixes = frozenset(
     (
         "exact",
@@ -591,6 +609,10 @@ def _s025_q_columns(expr: ast.expr) -> tuple[set[str], set[str]] | None:
     return None
 
 
+def _is_false_literal(expr: ast.expr) -> bool:
+    return isinstance(expr, ast.Constant) and expr.value is False
+
+
 def _s025_column(name: str) -> str | None:
     """A kwarg name with its lookup suffix stripped; ``None`` for a null test."""
     parts = name.split("__")
@@ -913,10 +935,52 @@ class SentryVisitor(ast.NodeVisitor):
             if self._s024_parses is None:
                 self._s024_parses = (node.lineno, node.col_offset)
 
+    def _s025_visit_service_call(self, node: ast.Call) -> None:
+        if not (isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name)):
+            return
+        service, method = node.func.value.id, node.func.attr
+        kwargs = {keyword.arg: keyword.value for keyword in node.keywords if keyword.arg}
+
+        if rule := S025_SERVICE_LOOKUPS.get(service, {}).get(method):
+            looked_up, pins = rule
+            present = looked_up & kwargs.keys()
+            # `has_provider=False` selects the provider-less rows, a namespace of its own;
+            # `has_provider=True` pins nothing.
+            pinned = {
+                name
+                for name in pins & kwargs.keys()
+                if name != "has_provider" or _is_false_literal(kwargs[name])
+            }
+            if present and not pinned:
+                msg = S025_service_msg.format(
+                    call=f"{service}.{method}()",
+                    column=", ".join(sorted(present)),
+                    requires=" or ".join(sorted(pins - {"has_provider"})),
+                )
+                self.errors.append((node.lineno, node.col_offset, msg))
+
+        if service == "identity_service" and method in S025_identity_filter_methods:
+            filter_arg = kwargs.get("filter")
+            if not isinstance(filter_arg, ast.Dict):
+                return  # a filter built elsewhere; not checkable here
+            keys = {
+                key.value
+                for key in filter_arg.keys
+                if isinstance(key, ast.Constant) and isinstance(key.value, str)
+            }
+            if keys & S025_identity_lookup_keys and not keys & S025_identity_provider_keys:
+                msg = S025_service_msg.format(
+                    call=f"{service}.{method}()",
+                    column=", ".join(sorted(keys & S025_identity_lookup_keys)),
+                    requires=" or ".join(sorted(S025_identity_provider_keys)),
+                )
+                self.errors.append((node.lineno, node.col_offset, msg))
+
     def _s025_visit_call(self, node: ast.Call) -> None:
-        # Test code asserts against single-provider fixtures; the guard is for production code.
+        # Test code asserts against single-provider fixtures; the rule is for production code.
         if _is_tests_path(self.filename) or id(node) in self._s025_seen:
             return
+        self._s025_visit_service_call(node)
 
         # Walk `Model.objects.a(...).b(...)` down to its receiver, collecting every call.
         calls: list[ast.Call] = []

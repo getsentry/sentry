@@ -1280,3 +1280,34 @@ def test_S025_positional_q_expressions() -> None:
     ]
     # A helper returning a Q is opaque here; the runtime guard owns that case.
     assert _s025('RepositoryModel.objects.filter(provider_match("x"), external_id="1")') == []
+
+
+def test_S025_repository_service_lookup() -> None:
+    call = "repository_service.get_repositories(organization_id=1, external_id=x{})"
+    assert _s025(call.format("")) == [
+        "S025 repository_service.get_repositories() looks rows up by external_id without a provider"
+    ]
+    assert _s025(call.format(", providers=p")) == []
+    assert _s025(call.format(", integration_id=1")) == []
+    assert _s025(call.format(", has_provider=False")) == []
+    assert _s025(call.format(", has_provider=True")) == [
+        "S025 repository_service.get_repositories() looks rows up by external_id without a provider"
+    ]
+    assert _s025("repository_service.get_repositories(organization_id=1, providers=p)") == []
+
+
+def test_S025_identity_service_filter() -> None:
+    call = 'identity_service.get_identity(filter={{"identity_ext_id": uid{}}})'
+    assert _s025(call.format("")) == [
+        "S025 identity_service.get_identity() looks rows up by identity_ext_id without a provider"
+    ]
+    assert _s025(call.format(', "provider_id": idp.id')) == []
+    assert _s025(call.format(', "provider_type": "slack"')) == []
+    assert (
+        _s025(
+            'identity_service.get_identities(filter={"identity_ext_ids": ids, "provider_ext_id": e})'
+        )
+        == []
+    )
+    # A filter built elsewhere is opaque here.
+    assert _s025("identity_service.get_identity(filter=f)") == []
