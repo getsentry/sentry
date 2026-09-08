@@ -35,6 +35,8 @@ export interface QueryEmbedColumn<Row> {
    * isn't forced into a text context that would mangle it.
    */
   render: (row: Row) => ReactNode;
+  /** Header text. Defaults to `key`, which is what a field-named column wants. */
+  label?: ReactNode;
 }
 
 /**
@@ -95,7 +97,7 @@ export function QueryEmbedTable<Row>({
         <SimpleTable.HeaderRow>
           {columns.map(column => (
             <SimpleTable.HeaderCell key={column.key}>
-              <Text ellipsis>{column.key}</Text>
+              <Text ellipsis>{column.label ?? column.key}</Text>
             </SimpleTable.HeaderCell>
           ))}
         </SimpleTable.HeaderRow>

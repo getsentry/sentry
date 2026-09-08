@@ -661,10 +661,12 @@ export const SEER_EMBED_SCHEMAS = {
   },
   replaysQuery: {
     description:
-      'Link to the Session Replay list filtered by a search query. ' +
+      'Preview the Session Replay list filtered by a search query. ' +
       'Use this when pointing the user at a SET of replays — if you have a ' +
       'specific replay ID, use the `replay` embed instead. ' +
-      '`query` uses replay search syntax, e.g. "user.email:user@example.com".',
+      '`query` uses replay search syntax, e.g. "user.email:user@example.com". ' +
+      'Inline renders a link; block renders the first five matching replays ' +
+      'with their duration, error count and rage clicks.',
     level: ['inline', 'block'],
     schema: z.object({
       ...pageFilterFields,
