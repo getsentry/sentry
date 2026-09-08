@@ -55,14 +55,21 @@ export default createMiddleware({
 });
 `;
 
-const getSdkMiddlewareLinkSetup = () => `
+const getAppConfigSetup = (params: DocsParams) => `
+import { withSentry } from "@sentry/solidstart";
 import { defineConfig } from "@solidjs/start/config";
 
-export default defineConfig({
-  middleware: "./src/middleware.ts"
-  // Other configuration options
-  // ...
-});
+export default defineConfig(
+  withSentry({${
+    params.isPerformanceSelected
+      ? `
+    middleware: "./src/middleware.ts",`
+      : ''
+  }
+    // Other configuration options
+    // ...
+  }),
+);
 `;
 
 const getSdkRouterWrappingSetup = () => `
@@ -84,7 +91,7 @@ export default function App() {
 const getSdkRun = () => `
 {
   "scripts": {
-    "start": "NODE_OPTIONS='--import ./public/instrument.server.mjs' vinxi start"
+    "start": "NODE_OPTIONS='--import ./.output/server/instrument.server.mjs' vinxi start"
   }
 }
 `;
@@ -173,7 +180,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'For the server, create an instrument file [code:instrument.server.mjs], initialize the Sentry SDK and deploy it alongside your application. For example by placing it in the [code:public] folder.',
+            'For the server, create an instrument file [code:src/instrument.server.ts] and initialize the Sentry SDK in it:',
             {code: <code />}
           ),
         },
@@ -181,18 +188,12 @@ export const onboarding: OnboardingConfig = {
           type: 'code',
           tabs: [
             {
-              label: 'JavaScript',
+              label: 'TypeScript',
               language: 'javascript',
+              filename: 'src/instrument.server.ts',
               code: getSdkServerSetupSnippet(params),
             },
           ],
-        },
-        {
-          type: 'text',
-          text: tct(
-            'Note: Placing [code:instrument.server.mjs] inside the [code:public] folder makes it accessible to the outside world. Consider blocking requests to this file or finding a more appropriate location which your backend can access.',
-            {code: <code />}
-          ),
         },
         ...((params.isPerformanceSelected
           ? [
@@ -215,22 +216,6 @@ export const onboarding: OnboardingConfig = {
                     label: 'TypeScript',
                     language: 'javascript',
                     code: getSdkMiddlewareSetup(),
-                  },
-                ],
-              },
-              {
-                type: 'text',
-                text: tct('And including it in the [code:app.config.ts] file', {
-                  code: <code />,
-                }),
-              },
-              {
-                type: 'code',
-                tabs: [
-                  {
-                    label: 'TypeScript',
-                    language: 'javascript',
-                    code: getSdkMiddlewareLinkSetup(),
                   },
                 ],
               },
@@ -261,7 +246,25 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Add an [code:--import] flag to the [code:NODE_OPTIONS] environment variable wherever you run your application to import [code:public/instrument.server.mjs]. For example, update your [code:scripts] entry in [code:package.json]',
+            'Wrap your config in [code:app.config.ts] with [code:withSentry], so that the build includes your instrument file in the server output.',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'TypeScript',
+              language: 'javascript',
+              filename: 'app.config.ts',
+              code: getAppConfigSetup(params),
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'Build your application, then add an [code:--import] flag to the [code:NODE_OPTIONS] environment variable wherever you run it, pointing at the instrument file the build creates at [code:.output/server/instrument.server.mjs]. For example, update your [code:scripts] entry in [code:package.json]',
             {
               code: <code />,
             }
