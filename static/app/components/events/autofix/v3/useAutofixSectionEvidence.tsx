@@ -59,5 +59,5 @@ export function useAutofixSectionEvidence({section}: UseAutofixSectionEvidence) 
 
       return evidence;
     });
-  }, [organization, projects, section.blocks]);
+  }, [organization, projects, section.blocks, isEmployee]);
 }

@@ -39,12 +39,25 @@ describe('AutofixEvidence', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({id: '1', slug: 'test-project'});
 
-  function resolveProps(
-    toolCall: ToolCall,
-    toolLink?: ToolLink
-  ): EvidenceButtonProps | null {
+  function resolveProps({
+    toolCall,
+    toolLink,
+    isEmployee,
+  }: {
+    toolCall: ToolCall;
+    toolLink?: ToolLink;
+    isEmployee?: boolean;
+  }): EvidenceButtonProps | null {
     const resolver = AUTOFIX_EVIDENCE_PROPS_RESOLVER[toolCall.function];
-    return resolver?.({organization, projects: [project], toolCall, toolLink}) ?? null;
+    return (
+      resolver?.({
+        organization,
+        projects: [project],
+        toolCall,
+        toolLink,
+        isEmployee: isEmployee ?? false,
+      }) ?? null
+    );
   }
 
   beforeEach(() => {
@@ -53,22 +66,20 @@ describe('AutofixEvidence', () => {
 
   describe('null rendering', () => {
     it('returns null when toolLink is missing', () => {
-      expect(resolveProps(makeToolCall('telemetry_live_search'))).toBeNull();
+      const toolCall = makeToolCall('telemetry_live_search');
+      expect(resolveProps({toolCall})).toBeNull();
     });
 
     it('returns null when toolLink kind is unknown', () => {
-      expect(
-        resolveProps(makeToolCall('telemetry_live_search'), makeToolLink('unknown_kind'))
-      ).toBeNull();
+      const toolCall = makeToolCall('telemetry_live_search');
+      const toolLink = makeToolLink('unknown_kind');
+      expect(resolveProps({toolCall, toolLink})).toBeNull();
     });
 
     it('returns null for unknown toolCall function with valid toolLink', () => {
-      expect(
-        resolveProps(
-          makeToolCall('unknown_function'),
-          makeToolLink('telemetry_live_search', {query: 'test'})
-        )
-      ).toBeNull();
+      const toolCall = makeToolCall('unknown_function');
+      const toolLink = makeToolLink('telemetry_live_search', {query: 'test'});
+      expect(resolveProps({toolCall, toolLink})).toBeNull();
     });
   });
 
@@ -79,7 +90,7 @@ describe('AutofixEvidence', () => {
         dataset: 'spans',
         query: 'test',
       });
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -97,7 +108,7 @@ describe('AutofixEvidence', () => {
         dataset: 'issues',
         query: 'test',
       });
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -115,7 +126,7 @@ describe('AutofixEvidence', () => {
         dataset: 'errors',
         query: 'test',
       });
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -133,7 +144,7 @@ describe('AutofixEvidence', () => {
         dataset: 'logs',
         query: 'test',
       });
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -152,7 +163,7 @@ describe('AutofixEvidence', () => {
         query: 'test',
         trace_metric: {name: 'tool.duration', type: 'distribution', unit: 'second'},
       });
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -171,7 +182,7 @@ describe('AutofixEvidence', () => {
         query: 'test',
         trace_metric: {name: 'tool.duration', type: 'distribution', unit: 'second'},
       });
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -186,7 +197,7 @@ describe('AutofixEvidence', () => {
     it('defaults to "Query: Spans" when dataset is undefined', () => {
       const toolCall = makeToolCall('telemetry_live_search');
       const toolLink = makeToolLink('telemetry_live_search', {query: 'test'});
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -206,7 +217,7 @@ describe('AutofixEvidence', () => {
         trace_id: 'abc123def4567890',
         span_id: '11223344aabbccdd',
       });
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -223,7 +234,7 @@ describe('AutofixEvidence', () => {
       const toolLink = makeToolLink('get_trace_waterfall', {
         trace_id: 'abc123def4567890',
       });
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -243,7 +254,7 @@ describe('AutofixEvidence', () => {
         event_id: 'abcd1234efgh5678',
         issue_id: '12345',
       });
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -261,7 +272,7 @@ describe('AutofixEvidence', () => {
         issue_id: '12345',
         event_id: 'abcd1234efgh5678',
       });
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -274,12 +285,9 @@ describe('AutofixEvidence', () => {
     });
 
     it('returns null when event_id is missing for get_issue_details', () => {
-      expect(
-        resolveProps(
-          makeToolCall('get_issue_details'),
-          makeToolLink('get_issue_details', {issue_id: '12345'})
-        )
-      ).toBeNull();
+      const toolCall = makeToolCall('get_issue_details');
+      const toolLink = makeToolLink('get_issue_details', {issue_id: '12345'});
+      expect(resolveProps({toolCall, toolLink})).toBeNull();
     });
   });
 
@@ -289,7 +297,7 @@ describe('AutofixEvidence', () => {
       const toolLink = makeToolLink('get_replay_details', {
         replay_id: 'aabbccdd11223344',
       });
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -309,7 +317,7 @@ describe('AutofixEvidence', () => {
         profile_id: 'prof1234abcd5678',
         project_id: '1',
       });
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -331,7 +339,7 @@ describe('AutofixEvidence', () => {
       const toolLink = makeToolLink('code_search', {
         code_url: 'https://github.com/org/repo/blob/main/src/foo/bar.py',
       });
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -355,7 +363,7 @@ describe('AutofixEvidence', () => {
       const toolLink = makeToolLink('code_search', {
         code_url: 'https://github.com/org/repo/blob/main/src/foo/thisisalongfilename.py',
       });
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -374,62 +382,52 @@ describe('AutofixEvidence', () => {
     });
 
     it('returns null when mode is not read_file', () => {
-      expect(
-        resolveProps(
-          makeToolCall('code_search', {mode: 'search', query: 'foo'}),
-          makeToolLink('code_search', {code_url: 'https://github.com/org/repo'})
-        )
-      ).toBeNull();
+      const toolCall = makeToolCall('code_search', {mode: 'search', query: 'foo'});
+      const toolLink = makeToolLink('code_search', {
+        code_url: 'https://github.com/org/repo',
+      });
+      expect(resolveProps({toolCall, toolLink})).toBeNull();
     });
 
     it('returns null when mode is missing', () => {
-      expect(
-        resolveProps(
-          makeToolCall('code_search', {path: 'src/foo/bar.py'}),
-          makeToolLink('code_search', {
-            code_url: 'https://github.com/org/repo/blob/main/src/foo/bar.py',
-          })
-        )
-      ).toBeNull();
+      const toolCall = makeToolCall('code_search', {path: 'src/foo/bar.py'});
+      const toolLink = makeToolLink('code_search', {
+        code_url: 'https://github.com/org/repo/blob/main/src/foo/bar.py',
+      });
+      expect(resolveProps({toolCall, toolLink})).toBeNull();
     });
 
     it('returns null when toolLink is missing', () => {
-      expect(
-        resolveProps(
-          makeToolCall('code_search', {mode: 'read_file', path: 'src/foo/bar.py'})
-        )
-      ).toBeNull();
+      const toolCall = makeToolCall('code_search', {
+        mode: 'read_file',
+        path: 'src/foo/bar.py',
+      });
+      expect(resolveProps({toolCall})).toBeNull();
     });
 
     it('returns null when code_url is missing from toolLink params', () => {
-      expect(
-        resolveProps(
-          makeToolCall('code_search', {mode: 'read_file', path: 'src/foo/bar.py'}),
-          makeToolLink('code_search', {})
-        )
-      ).toBeNull();
+      const toolCall = makeToolCall('code_search', {
+        mode: 'read_file',
+        path: 'src/foo/bar.py',
+      });
+      const toolLink = makeToolLink('code_search', {});
+      expect(resolveProps({toolCall, toolLink})).toBeNull();
     });
 
     it('returns null when path is missing from args', () => {
-      expect(
-        resolveProps(
-          makeToolCall('code_search', {mode: 'read_file'}),
-          makeToolLink('code_search', {
-            code_url: 'https://github.com/org/repo/blob/main/src/foo/bar.py',
-          })
-        )
-      ).toBeNull();
+      const toolCall = makeToolCall('code_search', {mode: 'read_file'});
+      const toolLink = makeToolLink('code_search', {
+        code_url: 'https://github.com/org/repo/blob/main/src/foo/bar.py',
+      });
+      expect(resolveProps({toolCall, toolLink})).toBeNull();
     });
 
     it('returns null when args is invalid JSON', () => {
-      expect(
-        resolveProps(
-          {id: 'tc-1', function: 'code_search', args: '{invalid json'},
-          makeToolLink('code_search', {
-            code_url: 'https://github.com/org/repo/blob/main/src/foo/bar.py',
-          })
-        )
-      ).toBeNull();
+      const toolCall = {id: 'tc-1', function: 'code_search', args: '{invalid json'};
+      const toolLink = makeToolLink('code_search', {
+        code_url: 'https://github.com/org/repo/blob/main/src/foo/bar.py',
+      });
+      expect(resolveProps({toolCall, toolLink})).toBeNull();
     });
   });
 
@@ -439,7 +437,7 @@ describe('AutofixEvidence', () => {
     it('renders filename with code_url link', () => {
       const toolCall = makeToolCall('read_file', {path: 'src/foo/bar.py'});
       const toolLink = makeToolLink('read_file', {code_url: CODE_URL});
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -462,7 +460,7 @@ describe('AutofixEvidence', () => {
         start_line: 10,
         end_line: 10,
       });
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -485,7 +483,7 @@ describe('AutofixEvidence', () => {
         start_line: 10,
         end_line: 20,
       });
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -508,7 +506,7 @@ describe('AutofixEvidence', () => {
       const toolLink = makeToolLink('read_file', {
         code_url: 'https://github.com/org/repo/blob/main/src/foo/thisisalongfilename.py',
       });
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -521,45 +519,32 @@ describe('AutofixEvidence', () => {
     });
 
     it('returns null when toolLink is missing', () => {
-      expect(
-        resolveProps(makeToolCall('read_file', {path: 'src/foo/bar.py'}))
-      ).toBeNull();
+      const toolCall = makeToolCall('read_file', {path: 'src/foo/bar.py'});
+      expect(resolveProps({toolCall})).toBeNull();
     });
 
     it('returns null when path is missing from args', () => {
-      expect(
-        resolveProps(
-          makeToolCall('read_file', {}),
-          makeToolLink('read_file', {code_url: CODE_URL})
-        )
-      ).toBeNull();
+      const toolCall = makeToolCall('read_file', {});
+      const toolLink = makeToolLink('read_file', {code_url: CODE_URL});
+      expect(resolveProps({toolCall, toolLink})).toBeNull();
     });
 
     it('returns null when path is not a string', () => {
-      expect(
-        resolveProps(
-          makeToolCall('read_file', {path: 123}),
-          makeToolLink('read_file', {code_url: CODE_URL})
-        )
-      ).toBeNull();
+      const toolCall = makeToolCall('read_file', {path: 123});
+      const toolLink = makeToolLink('read_file', {code_url: CODE_URL});
+      expect(resolveProps({toolCall, toolLink})).toBeNull();
     });
 
     it('returns null when code_url is missing from toolLink params', () => {
-      expect(
-        resolveProps(
-          makeToolCall('read_file', {path: 'src/foo/bar.py'}),
-          makeToolLink('read_file', {})
-        )
-      ).toBeNull();
+      const toolCall = makeToolCall('read_file', {path: 'src/foo/bar.py'});
+      const toolLink = makeToolLink('read_file', {});
+      expect(resolveProps({toolCall, toolLink})).toBeNull();
     });
 
     it('returns null when args is invalid JSON', () => {
-      expect(
-        resolveProps(
-          {id: 'tc-1', function: 'read_file', args: '{invalid json'},
-          makeToolLink('read_file', {code_url: CODE_URL})
-        )
-      ).toBeNull();
+      const toolCall = {id: 'tc-1', function: 'read_file', args: '{invalid json'};
+      const toolLink = makeToolLink('read_file', {code_url: CODE_URL});
+      expect(resolveProps({toolCall, toolLink})).toBeNull();
     });
   });
 
@@ -569,7 +554,7 @@ describe('AutofixEvidence', () => {
         description: 'Run tests',
         command: 'pytest tests/ -q',
       });
-      const props = resolveProps(toolCall);
+      const props = resolveProps({toolCall});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -586,7 +571,7 @@ describe('AutofixEvidence', () => {
         description: 'Run tests',
         command: 'pytest tests/ -q',
       });
-      const props = resolveProps(toolCall);
+      const props = resolveProps({toolCall});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -602,7 +587,7 @@ describe('AutofixEvidence', () => {
 
     it('falls back to the command when description is absent', () => {
       const toolCall = makeToolCall('bash', {command: 'pytest -q'});
-      const props = resolveProps(toolCall);
+      const props = resolveProps({toolCall});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -618,7 +603,7 @@ describe('AutofixEvidence', () => {
       const toolCall = makeToolCall('bash', {
         description: 'this is a very long description that should be truncated',
       });
-      const props = resolveProps(toolCall);
+      const props = resolveProps({toolCall});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -631,13 +616,13 @@ describe('AutofixEvidence', () => {
     });
 
     it('returns null when neither description nor command is present', () => {
-      expect(resolveProps(makeToolCall('bash'))).toBeNull();
+      const toolCall = makeToolCall('bash');
+      expect(resolveProps({toolCall})).toBeNull();
     });
 
     it('returns null when args is invalid JSON', () => {
-      expect(
-        resolveProps({id: 'tc-1', function: 'bash', args: '{invalid json'})
-      ).toBeNull();
+      const toolCall = {id: 'tc-1', function: 'bash', args: '{invalid json'};
+      expect(resolveProps({toolCall})).toBeNull();
     });
   });
 
@@ -656,7 +641,7 @@ describe('AutofixEvidence', () => {
         commit_url: COMMIT_URL,
         sha: FULL_SHA,
       });
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -679,7 +664,7 @@ describe('AutofixEvidence', () => {
         commit_url: COMMIT_URL,
         sha: shortSha,
       });
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -699,7 +684,7 @@ describe('AutofixEvidence', () => {
         start_date: START_DATE,
         end_date: END_DATE,
       });
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -724,7 +709,7 @@ describe('AutofixEvidence', () => {
         end_date: END_DATE,
         file_path: 'src/foo/bar.py',
       });
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -745,7 +730,7 @@ describe('AutofixEvidence', () => {
         end_date: END_DATE,
         file_path: 'src/components/thisisalongfilename.tsx',
       });
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -767,7 +752,7 @@ describe('AutofixEvidence', () => {
         start_date: START_DATE,
         end_date: END_DATE,
       });
-      const props = resolveProps(toolCall, toolLink);
+      const props = resolveProps({toolCall, toolLink});
       render(
         <AutofixEvidence
           evidenceButtonProps={props!}
@@ -780,66 +765,52 @@ describe('AutofixEvidence', () => {
     });
 
     it('returns null when toolLink is missing', () => {
-      expect(resolveProps(makeToolCall('git_search'))).toBeNull();
+      const toolCall = makeToolCall('git_search');
+      expect(resolveProps({toolCall})).toBeNull();
     });
 
     it('returns null when toolLink params are empty', () => {
-      expect(
-        resolveProps(makeToolCall('git_search'), makeToolLink('git_search', {}))
-      ).toBeNull();
+      const toolCall = makeToolCall('git_search');
+      const toolLink = makeToolLink('git_search', {});
+      expect(resolveProps({toolCall, toolLink})).toBeNull();
     });
 
     it('returns null when commit_url is present but sha is missing', () => {
-      expect(
-        resolveProps(
-          makeToolCall('git_search'),
-          makeToolLink('git_search', {commit_url: COMMIT_URL})
-        )
-      ).toBeNull();
+      const toolCall = makeToolCall('git_search');
+      const toolLink = makeToolLink('git_search', {commit_url: COMMIT_URL});
+      expect(resolveProps({toolCall, toolLink})).toBeNull();
     });
 
     it('returns null when sha is present but commit_url is missing', () => {
-      expect(
-        resolveProps(
-          makeToolCall('git_search'),
-          makeToolLink('git_search', {sha: FULL_SHA})
-        )
-      ).toBeNull();
+      const toolCall = makeToolCall('git_search');
+      const toolLink = makeToolLink('git_search', {sha: FULL_SHA});
+      expect(resolveProps({toolCall, toolLink})).toBeNull();
     });
 
     it('returns null when commits_url path is missing end_date', () => {
-      expect(
-        resolveProps(
-          makeToolCall('git_search'),
-          makeToolLink('git_search', {
-            commits_url: COMMITS_URL,
-            repo_name: REPO_NAME,
-            start_date: START_DATE,
-          })
-        )
-      ).toBeNull();
+      const toolCall = makeToolCall('git_search');
+      const toolLink = makeToolLink('git_search', {
+        commits_url: COMMITS_URL,
+        repo_name: REPO_NAME,
+        start_date: START_DATE,
+      });
+      expect(resolveProps({toolCall, toolLink})).toBeNull();
     });
 
     it('returns null when commits_url path is missing repo_name', () => {
-      expect(
-        resolveProps(
-          makeToolCall('git_search'),
-          makeToolLink('git_search', {
-            commits_url: COMMITS_URL,
-            start_date: START_DATE,
-            end_date: END_DATE,
-          })
-        )
-      ).toBeNull();
+      const toolCall = makeToolCall('git_search');
+      const toolLink = makeToolLink('git_search', {
+        commits_url: COMMITS_URL,
+        start_date: START_DATE,
+        end_date: END_DATE,
+      });
+      expect(resolveProps({toolCall, toolLink})).toBeNull();
     });
 
     it('returns null when commit_url is not a string', () => {
-      expect(
-        resolveProps(
-          makeToolCall('git_search'),
-          makeToolLink('git_search', {commit_url: 123, sha: FULL_SHA})
-        )
-      ).toBeNull();
+      const toolCall = makeToolCall('git_search');
+      const toolLink = makeToolLink('git_search', {commit_url: 123, sha: FULL_SHA});
+      expect(resolveProps({toolCall, toolLink})).toBeNull();
     });
   });
 });
