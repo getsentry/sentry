@@ -13,6 +13,8 @@ import {
   isMultiSeriesEventsStats,
 } from 'sentry/views/dashboards/utils/isEventsStats';
 import {transformEventsStatsToSeries} from 'sentry/views/dashboards/utils/transformEventsStatsToSeries';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {formatTimeSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesName';
 
 /**
  * Matches the height `ChartContent` renders into, so the chart's loading state
@@ -69,6 +71,48 @@ export function seriesFromEventsStats(
       y: point.value,
     })),
   }));
+}
+
+/**
+ * Adapts an `/organizations/$org/events-timeseries/` response, which the Logs
+ * and Metrics surfaces chart through. Its values arrive already normalized, so
+ * the only work is dropping the gaps: a null means the interval had no data
+ * rather than a zero, and plotting it as zero would draw a dip that never
+ * happened. A series left with no points is dropped entirely, since the chart
+ * schema requires at least one.
+ */
+export function seriesFromTimeSeries(timeSeries: TimeSeries[]): ChartSeries {
+  return timeSeries
+    .map(series => ({
+      label: formatTimeSeriesName(series),
+      data: series.values
+        .filter(item => item.value !== null)
+        .map(item => ({
+          // The chart schema wants an offset-bearing ISO 8601 string here, not
+          // the epoch milliseconds the endpoint returns.
+          x: new Date(item.timestamp).toISOString(),
+          y: item.value!,
+        })),
+    }))
+    .filter(series => series.data.length > 0);
+}
+
+/**
+ * The endpoint reports what it measured, so take the unit from the response
+ * rather than re-deriving it from the aggregate's name.
+ */
+export function chartUnitFromTimeSeries(timeSeries: TimeSeries[]): ChartUnit {
+  switch (timeSeries[0]?.meta.valueType) {
+    case 'duration':
+      return 'duration';
+    case 'percentage':
+    case 'percent_change':
+      return 'percentage';
+    case 'size':
+      return 'bytes';
+    default:
+      return 'number';
+  }
 }
 
 interface QueryEmbedChartProps {
