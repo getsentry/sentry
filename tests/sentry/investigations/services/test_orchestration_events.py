@@ -16,6 +16,7 @@ from sentry.investigations.models import (
     InvestigationOrchestrationStatus,
 )
 from sentry.investigations.services.orchestration import (
+    accept_orchestration_command,
     create_agentic_manual_investigation,
 )
 from sentry.investigations.services.orchestration_events import (
@@ -295,6 +296,8 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         reconcile_orchestration_projection(
             orchestration_run_id=self.orchestration_run.id,
             seer_run_id=self.seer_run_id,
+            expected_last_event_sequence=0,
+            expected_workflow_version=3,
             projection=self.projection(
                 workflow_version=2,
                 generation=2,
@@ -306,6 +309,58 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.orchestration_run.workflow_version == 2
         assert self.orchestration_run.generation == 2
         assert self.orchestration_run.phase == "planning"
+        assert self.orchestration_run.last_event_sequence == 0
+
+    def test_reconcile_projection_rejects_an_intervening_event(self) -> None:
+        self.orchestration_run.update(
+            workflow_version=2,
+            projection=self.projection(workflow_version=2),
+        )
+        self.deliver(
+            self.event(
+                1,
+                "workflow_updated",
+                {"projection": self.projection(workflow_version=2, phase="planning")},
+            )
+        )
+
+        with pytest.raises(InvestigationOrchestrationEventConflict):
+            reconcile_orchestration_projection(
+                orchestration_run_id=self.orchestration_run.id,
+                seer_run_id=self.seer_run_id,
+                expected_last_event_sequence=0,
+                expected_workflow_version=2,
+                projection=self.projection(),
+            )
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 2
+        assert self.orchestration_run.projection["workflowVersion"] == 2
+        assert self.orchestration_run.phase == "planning"
+        assert self.orchestration_run.last_event_sequence == 1
+
+    def test_reconcile_projection_rejects_an_intervening_command(self) -> None:
+        accept_orchestration_command(
+            investigation=self.investigation,
+            request_id=uuid4(),
+            expected_workflow_version=1,
+            command_type="cancel",
+            payload={},
+            actor_id=self.user.id,
+        )
+
+        with pytest.raises(InvestigationOrchestrationEventConflict):
+            reconcile_orchestration_projection(
+                orchestration_run_id=self.orchestration_run.id,
+                seer_run_id=self.seer_run_id,
+                expected_last_event_sequence=0,
+                expected_workflow_version=1,
+                projection=self.projection(),
+            )
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 2
+        assert self.orchestration_run.projection["workflowVersion"] == 2
         assert self.orchestration_run.last_event_sequence == 0
 
     def test_workflow_failure_fails_the_run_without_a_projection(self) -> None:
@@ -399,9 +454,16 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                 generation=2,
             )
         )
-        stale = self.deliver(self.event(2, "report_clear", {"reportRevision": 4}, generation=1))
+        stale = self.deliver(
+            self.event(2, "workflow_updated", {"projection": self.projection()}, generation=1)
+        )
         future_without_projection = self.deliver(
-            self.event(3, "report_clear", {"reportRevision": 5}, generation=3)
+            self.event(
+                3,
+                "workflow_failed",
+                {"error": {"code": "seer_failed", "message": "Seer gave up."}},
+                generation=3,
+            )
         )
 
         assert stale.application_status == InvestigationOrchestrationEventStatus.IGNORED
@@ -410,6 +472,10 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         )
         self.orchestration_run.refresh_from_db()
         assert self.orchestration_run.generation == 2
+        assert self.orchestration_run.workflow_version == 2
+        assert self.orchestration_run.projection["generation"] == 2
+        assert self.orchestration_run.status == InvestigationOrchestrationStatus.PROCESSING
+        assert self.orchestration_run.error is None
         assert self.orchestration_run.notebook_revision == 0
         assert self.orchestration_run.last_event_sequence == 3
 
@@ -459,7 +525,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             project=self.project,
         )
         unlinked_project = self.create_project(organization=self.organization)
-        projection = self.projection()
+        projection = self.projection(workflow_version=3)
         projection["hypotheses"] = [
             {
                 "id": "hypothesis-1",
@@ -482,11 +548,23 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             }
         ]
 
-        delivered = self.deliver(self.event(1, "workflow_updated", {"projection": projection}))
+        invalid_event = self.event(2, "workflow_updated", {"projection": projection})
+        waiting = self.deliver(invalid_event)
+        assert waiting.application_status == InvestigationOrchestrationEventStatus.PENDING
+
+        applied = self.deliver(
+            self.event(1, "workflow_updated", {"projection": self.projection(workflow_version=2)})
+        )
+        assert applied.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        assert applied.last_applied_sequence == 2
+
+        delivered = self.deliver(invalid_event)
 
         assert delivered.application_status == InvestigationOrchestrationEventStatus.FAILED
         self.orchestration_run.refresh_from_db()
         assert self.orchestration_run.projection["hypotheses"] == []
+        assert self.orchestration_run.projection["workflowVersion"] == 2
+        assert self.orchestration_run.workflow_version == 2
 
     def test_projection_accepts_evidence_from_an_investigation_project(self) -> None:
         self.create_investigation_project(

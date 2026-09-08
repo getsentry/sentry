@@ -389,6 +389,8 @@ def _apply_available_events(
                 try:
                     with transaction.atomic(using=database):
                         applied, ignored_reason = _apply_event(run, next_event)
+                        if applied:
+                            run.save()
                 except serializers.ValidationError as error:
                     run.refresh_from_db()
                     run.investigation.refresh_from_db()
@@ -552,6 +554,8 @@ def _synchronize_orchestration_projection(
     seer_run_id: int,
     projection: dict[str, Any],
     authoritative: bool,
+    expected_last_event_sequence: int | None = None,
+    expected_workflow_version: int | None = None,
 ) -> InvestigationOrchestrationRun:
     if (
         isinstance(seer_run_id, bool)
@@ -569,6 +573,11 @@ def _synchronize_orchestration_projection(
     database = router.db_for_write(InvestigationOrchestrationRun)
     with transaction.atomic(using=database):
         run = _lock_run_after_investigation(orchestration_run_id)
+        if authoritative and (
+            run.last_event_sequence != expected_last_event_sequence
+            or run.workflow_version != expected_workflow_version
+        ):
+            raise InvestigationOrchestrationEventConflict("Run changed while reconciling.")
         if run.seer_run is not None and run.seer_run.seer_run_state_id != seer_run_id:
             raise InvestigationOrchestrationEventConflict("Run ID does not match.")
         run.seer_run = _resolve_seer_run_mirror(
@@ -625,12 +634,16 @@ def reconcile_orchestration_projection(
     orchestration_run_id: int,
     seer_run_id: int,
     projection: dict[str, Any],
+    expected_last_event_sequence: int,
+    expected_workflow_version: int,
 ) -> InvestigationOrchestrationRun:
-    """Replace run state from an authoritative recovery response."""
+    """Apply recovery only if the event cursor and version observed before fetching still match."""
 
     return _synchronize_orchestration_projection(
         orchestration_run_id=orchestration_run_id,
         seer_run_id=seer_run_id,
         projection=projection,
         authoritative=True,
+        expected_last_event_sequence=expected_last_event_sequence,
+        expected_workflow_version=expected_workflow_version,
     )
