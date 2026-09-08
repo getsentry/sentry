@@ -134,7 +134,6 @@ export function OverflowDemo() {
     <ThinkingBlock title="Analyzed source code" startTime={start} endTime={end}>
       <Text size="sm" monospace variant="muted">
 
-
 The user is asking about a missing span in the DSL output. Let me search the spans
 dataset first, scoped to the `ml-service` project, filtering on `span.description`
 containing `DSL` and looking at the last 24 hours of data. I'll also check whether the
@@ -153,10 +152,10 @@ narrowed `traces_sampler` would produce exactly this shape of missing data. Wort
 comparing against a sibling service on the same SDK version to rule out a platform-level
 regression before I go digging through the instrumentation code.
 
-
       </Text>
     </ThinkingBlock>
-  );
+
+);
 }
 
 <Storybook.Demo>
