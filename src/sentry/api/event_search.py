@@ -17,12 +17,14 @@ from sentry.search.events.constants import (
     DURATION_UNITS,
     NOT_HAS_FILTER_ERROR_MESSAGE,
     OPERATOR_NEGATION_MAP,
+    REGEX_OPERATOR,
     SEARCH_MAP,
     SEMVER_ALIAS,
     SEMVER_BUILD_ALIAS,
     SIZE_UNITS,
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
+    UNSUPPORTED_REGEX_SYNTAX,
     WILDCARD_OPERATOR_MAP,
 )
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS
@@ -188,7 +190,7 @@ array_includes_filter = negation? array_includes_key sep wildcard_op? operator? 
 
 # NOTE: These wildcard operators are internal implementation details and
 # should not be included in product docs. Users should use `*` instead.
-wildcard_op            = wildcard_unicode (contains / starts_with / ends_with) wildcard_unicode
+wildcard_op            = wildcard_unicode (contains / starts_with / ends_with / matches) wildcard_unicode
 
 # See: https://stackoverflow.com/a/39617181/790169
 in_value_termination = in_value_char (!in_value_end in_value_char)* in_value_end
@@ -232,6 +234,7 @@ wildcard_unicode     = "\uF00D"
 contains             = "Contains"
 starts_with          = "StartsWith"
 ends_with            = "EndsWith"
+matches              = "Matches"
 comma                = ","
 spaces               = " "*
 
@@ -417,6 +420,34 @@ def get_wildcard_op(node: Node | Sequence[Node]) -> str:
     return ""
 
 
+def has_regex_op(node: Node | Sequence[Node]) -> bool:
+    return get_wildcard_op(node) == REGEX_OPERATOR
+
+
+def quote_regex_pattern(pattern: str) -> str:
+    """Regex patterns are always quoted when serialized back to a query string, because the
+    unquoted value grammar rejects the parentheses and spaces that patterns routinely contain."""
+    escaped = pattern.replace('"', '\\"')
+    return f'"{escaped}"'
+
+
+def validate_regex_pattern(key: str, pattern: str) -> None:
+    if not pattern:
+        raise InvalidSearchQuery(f"{key}: Empty regex pattern")
+
+    unsupported = UNSUPPORTED_REGEX_SYNTAX.search(pattern)
+    if unsupported is not None:
+        raise InvalidSearchQuery(
+            f"{key}: Invalid regex: `{unsupported.group()}` is not supported. "
+            "Backreferences and lookaround are unavailable."
+        )
+
+    try:
+        re.compile(pattern)
+    except re.error as exc:
+        raise InvalidSearchQuery(f"{key}: Invalid regex: {exc.msg}")
+
+
 def add_leading_wildcard(value: str) -> str:
     if value.startswith('"') and value.endswith('"'):
         return f"*{value[1:-1]}"
@@ -525,10 +556,15 @@ class SearchValue(NamedTuple):
     raw_value: str | float | datetime | Sequence[float] | Sequence[str]
     # Used for top events where we don't want to modify the raw value at all
     use_raw_value: bool = False
+    is_regex: bool = False
 
     @property
     def value(self) -> Any:
         if self.use_raw_value:
+            return self.raw_value
+        elif self.is_regex:
+            # Escape sequences are meaningful to the regex engine, so the pattern passes through
+            # untouched. `\*` is a literal asterisk here, not an escaped wildcard.
             return self.raw_value
         elif self.is_wildcard() and isinstance(self.raw_value, str):
             return translate_wildcard(self.raw_value)
@@ -548,17 +584,27 @@ class SearchValue(NamedTuple):
         # we do that because a simple str() would not be usable for strings
         # str(["a","b"]) == "['a', 'b']" but we would like "[a,b]"
         if isinstance(self.raw_value, (list, tuple)):
-            ret_val = ", ".join(str(x) for x in self.raw_value)
+            values = (
+                [quote_regex_pattern(str(x)) for x in self.raw_value]
+                if self.is_regex
+                else [str(x) for x in self.raw_value]
+            )
+            ret_val = ", ".join(values)
             ret_val = f"[{ret_val}]"
             return ret_val
         elif isinstance(self.raw_value, datetime):
             return self.raw_value.isoformat()
+        elif self.is_regex:
+            return quote_regex_pattern(str(self.value))
         else:
             return str(self.value)
 
     def is_wildcard(self) -> bool:
         # If we're using the raw value only it'll never be a wildcard
         if self.use_raw_value:
+            return False
+        # A `*` in a regex is a quantifier, not a wildcard
+        if self.is_regex:
             return False
         if self.is_str_sequence():
             return isinstance(self.raw_value, list) and any(
@@ -664,12 +710,14 @@ class SearchFilter(NamedTuple):
         return f"{self.key.name}{self.operator}{self.value.raw_value}"
 
     def to_query_string(self) -> str:
+        # The marker sits between the `:` and the operator, matching the grammar's ordering
+        marker = REGEX_OPERATOR if self.value.is_regex else ""
         if self.operator == "IN":
-            return f"{self.key.name}:{self.value.to_query_string()}"
+            return f"{self.key.name}:{marker}{self.value.to_query_string()}"
         elif self.operator == "NOT IN":
-            return f"!{self.key.name}:{self.value.to_query_string()}"
+            return f"!{self.key.name}:{marker}{self.value.to_query_string()}"
         else:
-            return f"{self.key.name}:{self.operator}{self.value.to_query_string()}"
+            return f"{self.key.name}:{marker}{self.operator}{self.value.to_query_string()}"
 
     @property
     def is_negation(self) -> bool:
@@ -1442,7 +1490,12 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
 
         operator = handle_negation(negation, operator)
 
-        if has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, list):
+        if has_regex_op(wildcard_op) and isinstance(search_value.raw_value, list):
+            for value in search_value.raw_value:
+                if isinstance(value, str):
+                    validate_regex_pattern(search_key.name, value)
+            search_value = search_value._replace(is_regex=True)
+        elif has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, list):
             wildcarded_values = []
             found_wildcard_op = get_wildcard_op(wildcard_op)
             for value in search_value.raw_value:
@@ -1481,7 +1534,10 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
 
         operator_s = handle_negation(negation, operator_s)
 
-        if has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, str):
+        if has_regex_op(wildcard_op) and isinstance(search_value.raw_value, str):
+            validate_regex_pattern(search_key.name, search_value.raw_value)
+            search_value = search_value._replace(is_regex=True)
+        elif has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, str):
             wildcarded_value = gen_wildcard_value(
                 search_value.raw_value, get_wildcard_op(wildcard_op)
             )
@@ -1940,7 +1996,10 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             raise InvalidSearchQuery("In Array Queries, only EQUAL/NOT_EQUAL operators are allowed")
         operator_s = handle_negation(negation, operator_s)
 
-        if has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, str):
+        if has_regex_op(wildcard_op) and isinstance(search_value.raw_value, str):
+            validate_regex_pattern(search_key.name, search_value.raw_value)
+            search_value = search_value._replace(is_regex=True)
+        elif has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, str):
             wildcard_value = gen_wildcard_value(
                 search_value.raw_value, get_wildcard_op(wildcard_op)
             )

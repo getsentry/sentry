@@ -55,6 +55,24 @@ LITERAL_OPERATOR_MAP = {
 }
 IN_OPERATORS = ["IN", "NOT IN"]
 
+# ComparisonFilter.OP_REGEXP is not in a published sentry-protos release yet, so it is referenced
+# by its wire value. Op is an open proto3 enum, so this serializes identically to the generated
+# member. Replace with ComparisonFilter.OP_REGEXP once the dependency is bumped.
+# https://github.com/getsentry/sentry-protos/pull/420
+OP_REGEXP: ComparisonFilter.Op.ValueType = getattr(
+    ComparisonFilter, "OP_REGEXP", ComparisonFilter.Op.ValueType(13)
+)
+
+# Snuba applies the same type rules to OP_REGEXP as to OP_LIKE: the pattern matches string
+# values, or the string elements of a string array.
+REGEXP_ATTRIBUTE_TYPES = frozenset(
+    {
+        AttributeKey.TYPE_STRING,
+        AttributeKey.TYPE_ARRAY,
+        AttributeKey.TYPE_ARRAY_STRING,
+    }
+)
+
 AGGREGATION_OPERATOR_MAP = {
     "=": AggregationComparisonFilter.OP_EQUALS,
     "!=": AggregationComparisonFilter.OP_NOT_EQUALS,

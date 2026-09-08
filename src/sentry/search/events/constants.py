@@ -327,6 +327,13 @@ WILDCARD_OPERATOR_MAP = {
     "ends_with": f"{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}",
 }
 
+# Deliberately kept out of WILDCARD_OPERATOR_MAP: it shares the marker encoding, but a regex
+# pattern must reach the backend verbatim rather than being rewritten into a wildcard pattern.
+REGEX_OPERATOR = f"{WILDCARD_UNICODE}Matches{WILDCARD_UNICODE}"
+
+# RE2, which backs the ClickHouse `match` this compiles to, has no backreferences or lookarounds.
+UNSUPPORTED_REGEX_SYNTAX = re.compile(r"\\[1-9]|\(\?[=!<]")
+
 MAX_SEARCH_RELEASES = 1000
 SEMVER_EMPTY_RELEASE = "____SENTRY_EMPTY_RELEASE____"
 SEMVER_WILDCARDS = frozenset(["X", "*"])
