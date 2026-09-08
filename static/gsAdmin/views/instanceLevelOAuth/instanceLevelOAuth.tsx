@@ -3,9 +3,9 @@ import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 
 import {DateTime} from 'sentry/components/dateTime';
+import {ResultGrid} from 'sentry/components/resultGrid';
 
 import {PageHeader} from 'admin/components/pageHeader';
-import {ResultGrid} from 'admin/components/resultGrid';
 import {NewInstanceLevelOAuthClient} from 'admin/views/instanceLevelOAuth/components/newInstanceLevelOAuthClient';
 
 const getRow = (row: any) => [
@@ -38,7 +38,6 @@ export function InstanceLevelOAuth() {
         inPanel
         path="/_admin/instance-level-oauth/"
         endpoint="/_admin/instance-level-oauth/"
-        method="GET"
         columns={[
           <th key="name">Name</th>,
           <th key="id" style={{width: 500, textAlign: 'center'}}>
