@@ -602,7 +602,7 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
       mappedValue =
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         flatOptions.find(option => compare(option.value, props.value)) ??
-        toOption(props.value as OptionType['value']) ??
+        toOption(props.value) ??
         mappedValue;
     }
   }
