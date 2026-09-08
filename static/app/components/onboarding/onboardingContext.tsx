@@ -54,6 +54,14 @@ type OnboardingSessionState = {
 };
 
 /**
+ * Session shape from before the created project carried its messaging
+ * destination. Read once on load to lift the slug; never written.
+ */
+type LegacyOnboardingSessionState = OnboardingSessionState & {
+  createdProjectSlug?: string;
+};
+
+/**
  * Prefer using `useOnboardingContext` hook instead of directly using this context.
  */
 const OnboardingContext = createContext<OnboardingContextProps>({
@@ -90,10 +98,34 @@ type ProviderProps = {
 };
 
 export function OnboardingContextProvider({children, initialValue}: ProviderProps) {
-  const [onboarding, setOnboarding, removeOnboarding] = useSessionStorage(
-    ONBOARDING_SESSION_KEY,
-    initialValue
-  );
+  const [onboarding, setOnboarding, removeOnboarding] = useSessionStorage<
+    LegacyOnboardingSessionState | undefined
+  >(ONBOARDING_SESSION_KEY, initialValue);
+
+  // A session written before createdProject existed holds only the slug under
+  // createdProjectSlug. Lift it once on load so the docs step still resolves
+  // the real slug and the reuse check still finds the project. Those sessions
+  // never recorded the destination, so it lifts as undefined: a submission
+  // that stages a destination then creates a fresh project rather than
+  // reusing one whose workflow may target another channel. Declared before
+  // the stale-repo guard so that guard's clear of the derived state wins.
+  // Drop this once sessions written before it shipped are gone.
+  const hadLegacyCreatedProjectSlug = useRef(!!onboarding?.createdProjectSlug);
+  useEffect(() => {
+    if (hadLegacyCreatedProjectSlug.current) {
+      hadLegacyCreatedProjectSlug.current = false;
+      setOnboarding(prev => {
+        const {createdProjectSlug, ...rest}: LegacyOnboardingSessionState = prev ?? {};
+        if (rest.createdProject || !createdProjectSlug) {
+          return rest;
+        }
+        return {
+          ...rest,
+          createdProject: {slug: createdProjectSlug, messagingSelection: undefined},
+        };
+      });
+    }
+  }, [setOnboarding]);
 
   // An optimistic repo (empty id, see useScmRepoSelection) persisted by a
   // refresh mid-resolution can never fetch detection and would hold the
