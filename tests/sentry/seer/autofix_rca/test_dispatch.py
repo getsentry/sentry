@@ -55,6 +55,7 @@ class TestTriggerAutofixRCAFeature(TestCase):
         assert run_kwargs["flush"] is True
         payload = run_kwargs["payload"]
         assert payload["group_id"] == self.group.id
+        assert payload["project_id"] == self.group.project_id
         assert payload["short_id"] == (self.group.qualified_short_id or str(self.group.id))
         assert payload["title"] == self.group.title
         assert payload["tweaks"]["user_context"] == "an upstream triage summary"

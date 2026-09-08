@@ -28,6 +28,7 @@ class AutofixRCAPayload(BaseModel):
         extra = "ignore"
 
     group_id: int
+    project_id: int
     short_id: str
     title: str
     culprit: str
