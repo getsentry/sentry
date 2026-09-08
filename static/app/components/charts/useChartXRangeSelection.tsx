@@ -8,17 +8,9 @@ import {
 } from 'react';
 import {createPortal} from 'react-dom';
 import type {BrushComponentOption, EChartsOption, ToolboxComponentOption} from 'echarts';
-// FOOTGUN: this imports the full `echarts` bundle (not `echarts/core`), whose
-// entry calls `use()` on *every* feature — including `LegacyGridContainLabel`.
-// ECharts' feature registry is a process-wide singleton shared with
-// `echarts/core`, so this flips every `grid.containLabel` chart in the app
-// (e.g., anything built on `BaseChart`) onto the legacy grid layout, which
-// reserves space differently than ECharts 6's default `outerBounds` layout.
-// If you switch this to `echarts/core`, audit `containLabel` charts for shifted
-// axis padding. See heatMapWidget/utils/heatMapAxes.tsx for one place this bit us.
-import * as echarts from 'echarts';
 import type EChartsReact from 'echarts-for-react';
 import type {EChartsInstance} from 'echarts-for-react';
+import {connect, disconnect} from 'echarts/core';
 
 import {getToolBox} from 'sentry/components/charts/components/toolBox';
 import type {EChartBrushEndHandler, EChartBrushStartHandler} from 'sentry/types/echarts';
@@ -197,7 +189,7 @@ export function useChartXRangeSelection({
       // box drawn for all of the charts in the group. We are going for chart specific box selections,
       // so we disconnect the group while drawing.
       if (chartsGroupName) {
-        echarts?.disconnect(chartsGroupName);
+        disconnect(chartsGroupName);
       }
 
       chartInstance.dispatchAction({type: 'hideTip'});
@@ -430,7 +422,7 @@ export function useChartXRangeSelection({
       // We re-connect the group after drawing the box, so that the cursor is synced across all charts again.
       // Check the onBrushStart handler for more details.
       if (chartsGroupName) {
-        echarts?.connect(chartsGroupName);
+        connect(chartsGroupName);
       }
     }
 

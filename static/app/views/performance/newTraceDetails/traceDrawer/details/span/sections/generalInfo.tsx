@@ -2,10 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {InfoTip} from '@sentry/scraps/info';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
 import {Content} from 'sentry/components/keyValueData';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -203,10 +204,7 @@ export function GeneralInfo(props: GeneralnfoProps) {
       subjectNode: (
         <TraceDrawerComponents.FlexBox style={{gap: '5px'}}>
           {t('Self Time')}
-          <QuestionTooltip
-            title={t('Applicable to the children of this event only')}
-            size="xs"
-          />
+          <InfoTip title={t('Applicable to the children of this event only')} size="xs" />
         </TraceDrawerComponents.FlexBox>
       ),
       value: <SpanSelfTime node={props.node} />,

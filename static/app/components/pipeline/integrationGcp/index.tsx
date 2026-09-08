@@ -4,6 +4,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {InlineCode} from '@sentry/scraps/code';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
@@ -30,7 +31,6 @@ import type {
 import {
   describeService,
   getFailedServices,
-  getProjectErrorDetail,
   getStatusLabel,
   getStatusVariant,
 } from 'sentry/utils/seer/gcpConnection';
@@ -38,6 +38,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 const GCP_PROJECT_ID_RE = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/;
 const MAX_PROJECTS = 20;
+
+const REQUIRED_PROJECT_ROLES = [
+  'roles/mcp.toolUser',
+  'roles/logging.viewer',
+  'roles/monitoring.viewer',
+  'roles/cloudtrace.user',
+];
 
 function GcpSaGenerationStep({
   advance,
@@ -51,7 +58,7 @@ function GcpSaGenerationStep({
     <Stack gap="lg">
       <Text>
         {t(
-          'Sentry has generated a service account for your organization. Follow the steps below to grant it access to your GCP projects, then click Continue.'
+          'Sentry has generated a service account for your organization. Grant it access to your GCP projects using the steps below, then click Continue to enter your connection details.'
         )}
       </Text>
       <Stack gap="sm">
@@ -59,29 +66,46 @@ function GcpSaGenerationStep({
         <TextCopyInput>{sentrySaEmail}</TextCopyInput>
       </Stack>
       <Stack gap="sm">
-        <Text bold>{t('Setup Instructions')}</Text>
-        <Stack as="ol" gap="sm">
+        <Text bold>{t('Set up in Google Cloud')}</Text>
+        <Stack as="ol" gap="md">
           <li>
-            <Text>
-              {t(
-                'Create a service account in your GCP project for Sentry to impersonate.'
-              )}
-            </Text>
+            <Stack gap="xs">
+              <Text>{t('Create a service account for Sentry to impersonate.')}</Text>
+              <Text variant="muted" size="sm">
+                {t('One service account covers every project you connect.')}
+              </Text>
+            </Stack>
           </li>
           <li>
-            <Text>
-              {t(
-                'Grant your service account the required viewer roles on each GCP project you want to connect.'
-              )}
-            </Text>
+            <Stack gap="xs">
+              <Text>
+                {t(
+                  'Grant that service account these roles on each project you want to connect:'
+                )}
+              </Text>
+              <Stack as="ul" gap="2xs">
+                {REQUIRED_PROJECT_ROLES.map(role => (
+                  <li key={role}>
+                    <InlineCode>{role}</InlineCode>
+                  </li>
+                ))}
+              </Stack>
+            </Stack>
           </li>
           <li>
-            <Text>
-              {tct(
-                'Grant the Sentry service account above the [role] role on your service account.',
-                {role: <strong>{t('Service Account Token Creator')}</strong>}
-              )}
-            </Text>
+            <Stack gap="xs">
+              <Text>
+                {tct(
+                  'Grant the Sentry service account above the [role] role on the service account you just created.',
+                  {role: <InlineCode>roles/iam.serviceAccountTokenCreator</InlineCode>}
+                )}
+              </Text>
+              <Text variant="muted" size="sm">
+                {t(
+                  'Grant this on the service account itself, not on the project. Granting it on the project leaves Sentry unable to impersonate the account.'
+                )}
+              </Text>
+            </Stack>
           </li>
         </Stack>
       </Stack>
@@ -285,7 +309,7 @@ function GcpVerificationStep({
         projects: result.projects.map(project => ({
           gcpProjectId: project.gcpProjectId,
           connectionStatus: project.connectionStatus,
-          errorDetail: getProjectErrorDetail(project),
+          errorDetail: project.errorDetail ?? null,
         })),
       });
       return;

@@ -2,7 +2,6 @@ from collections.abc import Sequence
 from typing import TypedDict
 
 from django.db import router, transaction
-from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
@@ -46,7 +45,6 @@ class NotificationActionInputData(TypedDict, total=False):
     target_type: int
 
 
-@extend_schema_serializer(exclude_fields=["sentry_app_id", "target_type"])
 class NotificationActionSerializer(CamelSnakeModelSerializer):
     """
     Django Rest Framework serializer for incoming NotificationAction API payloads
@@ -95,11 +93,13 @@ Required if **service_type** is `slack` or `opsgenie`.
     # TODO: Include in documentation when any notification action works with sentry_app_id
     sentry_app_id = serializers.IntegerField(
         required=False,
+        help_text="ID of the custom integration to notify, when the target is a Sentry app.",
     )
     # TODO: Include in documentation when any notification action works with anything other than "specific"
     target_type = serializers.CharField(
         required=False,
         default="specific",
+        help_text="How the notification target is addressed.",
     )
 
     def validate_integration_id(self, integration_id: int) -> int:

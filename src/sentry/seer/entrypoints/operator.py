@@ -881,6 +881,8 @@ class SeerOperatorCompletionHook(AgentOnCompletionHook):
             try:
                 state = fetch_run_status(run_id, organization)
                 for block in reversed(state.blocks):
+                    if block.message.role == "user":
+                        break
                     if block.message.role == "assistant" and block.message.content:
                         summary = block.message.content
                         break

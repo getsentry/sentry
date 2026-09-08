@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
@@ -10,7 +9,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useLeaveTeam} from 'sentry/views/settings/organizationTeams/hooks/useLeaveTeam';
@@ -147,9 +145,6 @@ function YourTeamRow({
   team: Team;
 }) {
   const organization = useOrganization();
-  const theme = useTheme();
-  const isMobile = useMedia(`(max-width: ${theme.breakpoints.sm})`);
-
   const {mutate: leaveTeam, isPending} = useLeaveTeam({organization, team});
 
   const teamRoleName = useMemo(() => {
@@ -198,13 +193,13 @@ function YourTeamRow({
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end" data-column-name="actions">
         {isPending ? (
-          <Button size={isMobile ? 'xs' : 'sm'} disabled>
+          <Button size={{zero: 'xs', xl: 'sm'}} disabled>
             {'\u2026'}
           </Button>
         ) : (
           <Button
             aria-label={t('Leave Team')}
-            size={isMobile ? 'xs' : 'sm'}
+            size={{zero: 'xs', xl: 'sm'}}
             onClick={() => leaveTeam()}
             disabled={isIdpProvisioned}
             tooltipProps={{title: buttonHelpText}}

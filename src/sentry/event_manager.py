@@ -97,7 +97,12 @@ from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashrepor
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.event import EventDict
-from sentry.models.eventattachment import CRASH_REPORT_TYPES, EventAttachment, get_crashreport_key
+from sentry.models.eventattachment import (
+    CRASH_REPORT_TYPES,
+    EventAttachment,
+    PendingEventAttachment,
+    get_crashreport_key,
+)
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
@@ -176,6 +181,10 @@ CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 HIGH_SEVERITY_THRESHOLD = 0.1
 
 SEER_ERROR_COUNT_KEY = ERROR_COUNT_CACHE_KEY("sentry.seer.severity-failures")
+
+
+# How long attachments may live if their corresponding event is not ingested.
+PENDING_ATTACHMENT_TTL = timedelta(hours=1)
 
 
 @dataclass
@@ -608,6 +617,21 @@ class EventManager:
         # this because of indiv. attachments.
         if not is_reprocessed and attachments:
             save_attachments(cache_key, attachments, job)
+
+        # Attachments that were ingested before this event became a pending attachment;
+        # now that the event exists, they can be promoted to real attachments.
+        #
+        # NOTE: this might work with is_reprocessed, but let's be conservative for now.
+        # Reprocessed events keep their existing attachments and have their `group_id`
+        # fixed up in `post_process_group` instead.
+        if not is_reprocessed:
+            safe_execute(
+                save_pending_attachments,
+                project=project,
+                event_id=job["event"].event_id,
+                group_id=group_info.group.id,
+                source="event_manager",
+            )
 
         metric_tags = {"from_relay": str("_relay_processed" in job["data"])}
 
@@ -2399,6 +2423,7 @@ def save_attachment(
     key_id: int | None = None,
     group_id: int | None = None,
     start_time: float | None = None,
+    is_pending: bool = False,
 ) -> None:
     """
     Persists a cached event attachments into the file store.
@@ -2481,7 +2506,7 @@ def save_attachment(
 
     file = EventAttachment.putfile(project.id, attachment)
 
-    EventAttachment.objects.create(
+    db_fields = dict(
         # lookup:
         project_id=project.id,
         group_id=group_id,
@@ -2496,6 +2521,24 @@ def save_attachment(
         blob_path=file.blob_path,
         date_expires=datetime.now(timezone.utc) + timedelta(days=attachment.retention_days),
     )
+
+    if is_pending and features.has("projects:defer-attachment-storage", project):
+        if group_id is not None:
+            logger.warning("group_id %s with is_pending=True", group_id)
+
+        # The event this attachment belongs to has not been ingested (yet), so we do not
+        # know whether it will be accepted at all. Park the attachment in
+        # `PendingEventAttachment` with a short TTL; `save_pending_attachments` promotes it
+        # to an `EventAttachment` (and emits the outcome) once the event is saved.
+        metrics.incr("attachments.pending.create")
+        db_fields.pop("group_id")
+        db_fields["date_expires_retention"] = db_fields["date_expires"]
+        db_fields["date_expires"] = datetime.now(timezone.utc) + PENDING_ATTACHMENT_TTL
+        PendingEventAttachment.objects.create(**db_fields)
+
+        return
+
+    EventAttachment.objects.create(**db_fields)
 
     track_outcome(
         org_id=project.organization_id,
@@ -2533,6 +2576,107 @@ def save_attachments(cache_key: str | None, attachments: list[Attachment], job: 
             key_id=job["key_id"],
             group_id=event.group_id,
             start_time=job["start_time"],
+            is_pending=False,  # we have an event
+        )
+
+
+def save_pending_attachments(
+    *, project: Project, event_id: str, group_id: int, source: str
+) -> None:
+    """
+    Promote any :class:`PendingEventAttachment` rows for ``event_id`` into real
+    :class:`EventAttachment` rows, now that the event they belong to has been saved.
+
+    Pending attachments are written by the standalone attachment consumer when the
+    attachment arrives before its event (see :func:`save_attachment`). They carry a
+    short TTL in ``date_expires`` and the real retention date in
+    ``date_expires_retention``; promoting them restores the retention date and
+    attaches the ``group_id``.
+
+    Outcomes are only emitted here, on promotion: an attachment whose event never
+    arrives expires without ever being accepted. That is what keeps the race described
+    in :func:`sentry.tasks.post_process.update_existing_attachments` from costing the
+    customer money -- an attachment we drop is an attachment we never billed for.
+
+    Safe to call more than once for the same event, and called from two places for
+    exactly that reason: once when the event is saved, and again in post-processing.
+    ``source`` tags the metric so the two can be told apart.
+    """
+    if not features.has("projects:defer-attachment-storage", project):
+        return
+
+    # This runs for every error event of a flagged project, and almost none of them have
+    # a pending attachment. Probe outside a transaction so the common case stays a single
+    # unlocked SELECT rather than a BEGIN/COMMIT round trip.
+    if not PendingEventAttachment.objects.filter(project_id=project.id, event_id=event_id).exists():
+        return
+
+    with transaction.atomic(router.db_for_write(EventAttachment)):
+        # Claim the rows under lock. The insert and the delete below are in the same
+        # transaction, so a concurrent promoter -- a duplicate `event_id`, or a sweep over
+        # rows the ingest-time promotion missed -- re-checks under the lock and finds them
+        # gone instead of inserting a second copy and billing the customer twice.
+        #
+        # The row locks live until this block commits, not for as long as the queryset
+        # object does, so materializing the queryset here is precisely what takes them.
+        # Leaving it lazy would take no locks at all.
+        #
+        # `order_by("id")` keeps the lock order deterministic between two callers claiming
+        # overlapping sets of rows.
+        pending_attachments = list(
+            PendingEventAttachment.objects.filter(project_id=project.id, event_id=event_id)
+            .order_by("id")
+            .select_for_update()
+        )
+        if not pending_attachments:
+            return
+
+        # Pair this against `attachments.pending.create` to see how many pending
+        # attachments are actually making it back out of the table, and split it by
+        # `source` to see how many only got there on the second attempt.
+        metrics.incr(
+            "attachments.pending.persist",
+            amount=len(pending_attachments),
+            tags={"source": source},
+        )
+
+        EventAttachment.objects.bulk_create(
+            EventAttachment(
+                project_id=pending.project_id,
+                group_id=group_id,
+                event_id=pending.event_id,
+                type=pending.type,
+                name=pending.name,
+                content_type=pending.content_type,
+                size=pending.size,
+                sha1=pending.sha1,
+                blob_path=pending.blob_path,
+                date_added=pending.date_added,
+                date_expires=pending.date_expires_retention,
+            )
+            for pending in pending_attachments
+        )
+        # NOTE: A queryset delete does not run `Model.delete`, so the blobs referenced by
+        # these rows survive. That is intentional: the `EventAttachment` rows created above
+        # have taken ownership of them.
+        PendingEventAttachment.objects.filter(
+            id__in=[pending.id for pending in pending_attachments]
+        ).delete()
+
+    for pending in pending_attachments:
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            # NOTE: the standalone attachment consumer does not know the DSN that was used,
+            # so pending attachments are never attributed to a key.
+            key_id=None,
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            # Bill the attachment at the time it was ingested, not at promotion time.
+            timestamp=pending.date_added,
+            event_id=event_id,
+            category=DataCategory.ATTACHMENT,
+            quantity=pending.size or 1,
         )
 
 

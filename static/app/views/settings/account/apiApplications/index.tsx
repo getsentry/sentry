@@ -144,7 +144,7 @@ const ApplicationsTable = styled(SimpleTable)`
     padding-left: 0;
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     grid-template-columns: minmax(0, 1fr) max-content;
 
     [data-column-name='age'] {

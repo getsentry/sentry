@@ -87,7 +87,11 @@ export function getTitle(event: Event | BaseGroup | GroupTombstoneHelper | Simpl
 
       return {
         subtitle: culprit,
-        title: metadata.type || metadata.function || '<unknown>',
+        // A synthetic exception's type is a platform label, so the crash location identifies
+        // the issue better. Mirrors `ErrorEvent.compute_title` on the server.
+        title: metadata.synthetic
+          ? metadata.function || metadata.type || '<unknown>'
+          : metadata.type || metadata.function || '<unknown>',
       };
     }
     case EventOrGroupType.CSP:

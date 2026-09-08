@@ -61,10 +61,6 @@ export default function ProjectTeams() {
     });
   };
 
-  const canCreateTeam =
-    organization.access.includes('org:write') &&
-    organization.access.includes('team:write') &&
-    organization.access.includes('project:write');
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
 
   if (isError) {
@@ -99,7 +95,6 @@ export default function ProjectTeams() {
 
         <TeamSelectForProject
           disabled={!hasWriteAccess}
-          canCreateTeam={canCreateTeam}
           organization={organization}
           project={project}
           selectedTeams={projectTeams ?? []}

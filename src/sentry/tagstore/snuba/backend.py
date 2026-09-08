@@ -1039,8 +1039,6 @@ class SnubaTagStorage(TagStorage):
         )
 
         group_id_filter = f"group_id:[{','.join(str(gid) for gid in group_id_list)}]"
-        tag_filter = build_escaped_term_filter(key, [str(value)])
-        query_string = f"{group_id_filter} {tag_filter}"
 
         snuba_params = SnubaParams(
             start=resolved_start,
@@ -1051,6 +1049,9 @@ class SnubaTagStorage(TagStorage):
         )
 
         try:
+            tag_filter = build_escaped_term_filter(key, [str(value)])
+            query_string = f"{group_id_filter} {tag_filter}"
+
             result = Occurrences.run_table_query(
                 params=snuba_params,
                 query_string=query_string,
@@ -1426,8 +1427,6 @@ class SnubaTagStorage(TagStorage):
         now = datetime.now(tz=timezone.utc)
         resolved_start = start if start is not None else now - timedelta(days=90)
 
-        query_string = build_escaped_term_filter("release", [str(v) for v in versions])
-
         snuba_params = SnubaParams(
             start=resolved_start,
             end=now,
@@ -1437,6 +1436,8 @@ class SnubaTagStorage(TagStorage):
         )
 
         try:
+            query_string = build_escaped_term_filter("release", [str(v) for v in versions])
+
             result = Occurrences.run_table_query(
                 params=snuba_params,
                 query_string=query_string,

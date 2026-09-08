@@ -13,9 +13,8 @@ from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import are_equal_with_epsilon, sample_rate_to_float
 from sentry.dynamic_sampling.tasks.constants import (
     DEFAULT_REDIS_CACHE_KEY_TTL,
-    MAX_REBALANCE_FACTOR,
-    MIN_REBALANCE_FACTOR,
     adjusted_factor_ttl_ms,
+    bounded_rebalance_factor,
 )
 from sentry.dynamic_sampling.tasks.helpers import (
     recalibrate_orgs as legacy_recalibration_cache,
@@ -73,8 +72,9 @@ def write_recalibration_factor(org_id: int, factor: float | None) -> bool:
         metrics.incr("dynamic_sampling.per_org.recalibration.factor_write_skipped")
         return False
 
-    if MIN_REBALANCE_FACTOR <= factor <= MAX_REBALANCE_FACTOR:
-        set_adjusted_factor(org_id, factor)
+    bounded_factor = bounded_rebalance_factor(factor)
+    if bounded_factor is not None:
+        set_adjusted_factor(org_id, bounded_factor)
     else:
         delete_adjusted_factor(org_id)
     return True
@@ -106,7 +106,8 @@ def set_adjusted_factor(org_id: int, adjusted_factor: float) -> None:
         delete_adjusted_factor(org_id)
 
 
-def get_adjusted_factor(org_id: int, source: str) -> float:
+def read_adjusted_factor(org_id: int, source: str) -> float | None:
+    """The stored factor of an organization, or None when it has none stored."""
     redis_client = get_redis_client_for_ds()
     cache_key = generate_recalibrate_orgs_cache_key(org_id)
 
@@ -122,6 +123,11 @@ def get_adjusted_factor(org_id: int, source: str) -> float:
         "dynamic_sampling.per_org.recalibration.get_adjusted_factor",
         tags={"source": source, "result": "hit" if factor is not None else "miss"},
     )
+    return factor
+
+
+def get_adjusted_factor(org_id: int, source: str) -> float:
+    factor = read_adjusted_factor(org_id, source)
     return 1.0 if factor is None else factor
 
 

@@ -131,7 +131,7 @@ export function DashboardActionBar({
               variant="primary"
               data-test-id="dashboard-commit"
               disabled={hasReachedDashboardLimit || isLoading}
-              tooltipProps={{isHoverable: true, title: limitMessage}}
+              tooltipProps={{title: limitMessage}}
             >
               {t('Save and Finish')}
             </Button>
@@ -219,7 +219,6 @@ function AddWidgetDropdown({
         tooltipProps: {title: tooltip},
         variant: 'primary',
       }}
-      position="bottom-end"
     />
   );
 }

@@ -112,9 +112,8 @@ function shouldEscapeTagValue(
   value: string,
   options: EscapeTagValueOptions = {}
 ): boolean {
-  const {allowArrayValue = true, forceQuote = false} = options;
+  const {allowArrayValue = true} = options;
   return (
-    forceQuote ||
     SHOULD_ESCAPE_REGEX.test(value) ||
     (allowArrayValue && value.startsWith('[') && value.endsWith(']'))
   );
@@ -122,7 +121,6 @@ function shouldEscapeTagValue(
 
 interface EscapeTagValueOptions {
   allowArrayValue?: boolean;
-  forceQuote?: boolean;
 }
 
 export function escapeTagValue(

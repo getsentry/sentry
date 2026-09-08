@@ -16,7 +16,13 @@ from sentry.integrations.gcp.integration import (
     GcpVerificationApiStep,
     GcpVerificationInputSerializer,
 )
-from sentry.integrations.gcp.utils import validate_gcp_project_id
+from sentry.integrations.gcp.utils import (
+    GCP_STATUS_UNVERIFIED,
+    parse_customer_sa_email,
+    parse_gcp_project_ids,
+    resolve_project_error_detail,
+    validate_gcp_project_id,
+)
 from sentry.integrations.models.gcp_service_account import GcpServiceAccount
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.pipeline.types import PipelineStepAction, PipelineStepResult
@@ -69,12 +75,27 @@ class GcpIntegrationTest(TestCase):
         }
 
     def _create_installed_integration(
-        self, *, sa_email: str = _SA_EMAIL, projects: list[str] | None = None
+        self,
+        *,
+        sa_email: str = _SA_EMAIL,
+        projects: list[str] | None = None,
+        connection_status: str = "connected",
     ) -> GcpIntegration:
+        project_ids = projects or ["my-gcp-project"]
         gcp_config = {
             "sentry_sa_email": sa_email,
             "customer_sa_email": _CUSTOMER_SA,
-            "projects": projects or ["my-gcp-project"],
+            "projects": project_ids,
+            "connection_status": connection_status,
+            "project_statuses": [
+                {
+                    "gcp_project_id": project_id,
+                    "connection_status": connection_status,
+                    "error_detail": None,
+                }
+                for project_id in project_ids
+            ],
+            "last_verified_at": "2026-08-01T00:00:00+00:00",
         }
         integration = self.create_integration(
             organization=self.organization,
@@ -543,27 +564,130 @@ class GcpIntegrationTest(TestCase):
         assert isinstance(installation, GcpIntegration)
         assert installation.gcp_config is None
 
-    # -- Config immutability --
+    # -- Editing integration configuration --
 
-    def test_update_organization_config_is_noop(self) -> None:
-        installation = self._create_installed_integration()
-
-        installation.update_organization_config({"sentry_sa_email": "evil@attacker.com"})
-
+    def _stored_config(self) -> dict[str, Any]:
         oi = OrganizationIntegration.objects.get(organization_id=self.organization.id)
-        assert oi.config["sentry_sa_email"] == _SA_EMAIL
-        assert oi.config["customer_sa_email"] == _CUSTOMER_SA
-        assert oi.config["projects"] == ["my-gcp-project"]
+        assert isinstance(oi.config, dict)
+        return oi.config
 
-    def test_get_organization_config_returns_disabled_fields(self) -> None:
+    def test_update_config_changes_customer_sa_email_and_marks_unverified(self) -> None:
         installation = self._create_installed_integration()
-        fields = installation.get_organization_config()
 
-        assert len(fields) == 3
-        names = [f["name"] for f in fields]
-        assert names == ["sentry_sa_email", "customer_sa_email", "projects"]
-        for field in fields:
-            assert field["disabled"] is True
+        installation.update_organization_config({"customer_sa_email": "new@customer.com"})
+
+        config = self._stored_config()
+        assert config["customer_sa_email"] == "new@customer.com"
+        assert config["sentry_sa_email"] == _SA_EMAIL
+        assert config["connection_status"] == GCP_STATUS_UNVERIFIED
+        assert config["last_verified_at"] is None
+        assert config["project_statuses"] == [
+            {
+                "gcp_project_id": "my-gcp-project",
+                "connection_status": GCP_STATUS_UNVERIFIED,
+                "error_detail": None,
+            }
+        ]
+
+    def test_update_config_parses_dedupes_and_trims_projects(self) -> None:
+        installation = self._create_installed_integration()
+
+        installation.update_organization_config(
+            {"projects": " project-prod , project-staging ,project-prod"}
+        )
+
+        config = self._stored_config()
+        assert config["projects"] == ["project-prod", "project-staging"]
+        assert [p["gcp_project_id"] for p in config["project_statuses"]] == [
+            "project-prod",
+            "project-staging",
+        ]
+        assert config["connection_status"] == GCP_STATUS_UNVERIFIED
+
+    def test_update_config_reordering_projects_is_not_a_change(self) -> None:
+        installation = self._create_installed_integration(
+            projects=["project-prod", "project-staging"]
+        )
+
+        installation.update_organization_config({"projects": "project-staging, project-prod"})
+
+        config = self._stored_config()
+        assert config["projects"] == ["project-prod", "project-staging"]
+        assert config["connection_status"] == "connected"
+        assert config["last_verified_at"] == "2026-08-01T00:00:00+00:00"
+
+    def test_update_config_changing_the_project_set_marks_unverified(self) -> None:
+        installation = self._create_installed_integration(
+            projects=["project-prod", "project-staging"]
+        )
+
+        installation.update_organization_config({"projects": "project-staging, project-new"})
+
+        config = self._stored_config()
+        assert config["connection_status"] == GCP_STATUS_UNVERIFIED
+        assert config["last_verified_at"] is None
+
+    def test_update_config_rejects_invalid_project_id(self) -> None:
+        installation = self._create_installed_integration()
+
+        with pytest.raises(IntegrationConfigurationError, match="Invalid GCP project ID"):
+            installation.update_organization_config({"projects": "INVALID"})
+
+        assert self._stored_config()["projects"] == ["my-gcp-project"]
+
+    def test_update_config_rejects_empty_projects(self) -> None:
+        installation = self._create_installed_integration()
+
+        with pytest.raises(IntegrationConfigurationError, match="At least one GCP project ID"):
+            installation.update_organization_config({"projects": "  ,  "})
+
+    def test_update_config_rejects_empty_customer_sa_email(self) -> None:
+        installation = self._create_installed_integration()
+
+        with pytest.raises(IntegrationConfigurationError, match="is required"):
+            installation.update_organization_config({"customer_sa_email": "   "})
+
+        assert self._stored_config()["customer_sa_email"] == _CUSTOMER_SA
+
+    def test_update_config_ignores_sentry_sa_email(self) -> None:
+        installation = self._create_installed_integration()
+        installation.update_organization_config(
+            {
+                "sentry_sa_email": "evil@attacker.iam.gserviceaccount.com",
+                "customer_sa_email": "new@customer.com",
+            }
+        )
+        assert self._stored_config()["sentry_sa_email"] == _SA_EMAIL
+
+    def test_update_config_noop_when_nothing_changed(self) -> None:
+        installation = self._create_installed_integration()
+        installation.update_organization_config(
+            {"customer_sa_email": _CUSTOMER_SA, "projects": "my-gcp-project"}
+        )
+
+        config = self._stored_config()
+        assert config["connection_status"] == "connected"
+        assert config["last_verified_at"] == "2026-08-01T00:00:00+00:00"
+
+    def test_update_config_requires_existing_config(self) -> None:
+        self._create_installed_integration()
+        oi = OrganizationIntegration.objects.get(organization_id=self.organization.id)
+        oi.update(config={})
+
+        installation = oi.integration.get_installation(organization_id=self.organization.id)
+        assert isinstance(installation, GcpIntegration)
+
+        with pytest.raises(IntegrationConfigurationError, match="not configured"):
+            installation.update_organization_config({"customer_sa_email": "new@customer.com"})
+
+    def test_get_organization_config_only_locks_the_sentry_sa(self) -> None:
+        installation = self._create_installed_integration()
+        fields = {f["name"]: f for f in installation.get_organization_config()}
+
+        assert list(fields) == ["sentry_sa_email", "customer_sa_email", "projects"]
+        assert fields["sentry_sa_email"]["disabled"] is True
+        assert "disabled" not in fields["customer_sa_email"]
+        assert "disabled" not in fields["projects"]
 
     def test_get_config_data_flattens_projects(self) -> None:
         installation = self._create_installed_integration(
@@ -574,6 +698,39 @@ class GcpIntegrationTest(TestCase):
         assert data["sentry_sa_email"] == _SA_EMAIL
         assert data["customer_sa_email"] == _CUSTOMER_SA
         assert data["projects"] == "project-a, project-b, project-c"
+
+    def test_get_config_data_exposes_the_connection_status(self) -> None:
+        installation = self._create_installed_integration()
+        data = installation.get_config_data()
+
+        assert data["connection_status"] == "connected"
+        assert data["last_verified_at"] == "2026-08-01T00:00:00+00:00"
+        assert data["project_statuses"] == [
+            {
+                "gcp_project_id": "my-gcp-project",
+                "connection_status": "connected",
+                "error_detail": None,
+            }
+        ]
+
+    def test_get_config_data_defaults_to_unverified(self) -> None:
+        self._create_installed_integration()
+        oi = OrganizationIntegration.objects.get(organization_id=self.organization.id)
+        oi.update(
+            config={
+                "sentry_sa_email": _SA_EMAIL,
+                "customer_sa_email": _CUSTOMER_SA,
+                "projects": ["my-gcp-project"],
+            }
+        )
+
+        installation = oi.integration.get_installation(organization_id=self.organization.id)
+        assert isinstance(installation, GcpIntegration)
+        data = installation.get_config_data()
+
+        assert data["connection_status"] == GCP_STATUS_UNVERIFIED
+        assert data["project_statuses"] == []
+        assert data["last_verified_at"] is None
 
     def test_get_config_data_empty_without_config(self) -> None:
         self._create_installed_integration()
@@ -659,6 +816,82 @@ class GcpIntegrationTest(TestCase):
             "my-cool-project-name-here-12",
         ]:
             validate_gcp_project_id(project_id)
+
+    def test_parse_gcp_project_ids_accepts_a_list(self) -> None:
+        assert parse_gcp_project_ids(["project-a", "project-b"]) == ["project-a", "project-b"]
+
+    def test_parse_gcp_project_ids_rejects_unusable_input(self) -> None:
+        with pytest.raises(IntegrationConfigurationError, match="comma-separated list"):
+            parse_gcp_project_ids(42)
+
+    def test_parse_customer_sa_email_trims(self) -> None:
+        assert parse_customer_sa_email("  cust@customer.com  ") == "cust@customer.com"
+
+    def test_parse_customer_sa_email_requires_a_value(self) -> None:
+        with pytest.raises(IntegrationConfigurationError, match="is required"):
+            parse_customer_sa_email("   ")
+
+    def test_parse_customer_sa_email_rejects_overlong_values(self) -> None:
+        with pytest.raises(IntegrationConfigurationError, match="at most"):
+            parse_customer_sa_email("a" * 250 + "@customer.com")
+
+    def test_resolve_project_error_detail_prefers_the_project_level_message(self) -> None:
+        detail = resolve_project_error_detail(
+            {
+                "gcp_project_id": "project-a",
+                "connection_status": "permission_denied",
+                "error_detail": "SA impersonation chain failed",
+                "services": [
+                    {"service": "logging", "status": "permission_denied", "error_detail": "nope"}
+                ],
+            }
+        )
+        assert detail == "SA impersonation chain failed"
+
+    def test_resolve_project_error_detail_rolls_up_failing_services(self) -> None:
+        detail = resolve_project_error_detail(
+            {
+                "gcp_project_id": "project-a",
+                "connection_status": "error",
+                "error_detail": None,
+                "services": [
+                    {"service": "logging", "status": "connected", "error_detail": None},
+                    {
+                        "service": "monitoring",
+                        "status": "api_disabled",
+                        "error_detail": "API is disabled",
+                    },
+                    {
+                        "service": "cloudtrace",
+                        "status": "project_not_found",
+                        "error_detail": "Project not found",
+                    },
+                ],
+            }
+        )
+        assert detail == ("Cloud Monitoring: API is disabled; Cloud Trace: Project not found")
+
+    def test_resolve_project_error_detail_handles_unknown_service(self) -> None:
+        detail = resolve_project_error_detail(
+            {
+                "gcp_project_id": "project-a",
+                "connection_status": "error",
+                "error_detail": None,
+                "services": [{"service": "brand-new", "status": "error", "error_detail": None}],
+            }
+        )
+        assert detail == "brand-new: Unknown error"
+
+    def test_resolve_project_error_detail_is_none_when_connected(self) -> None:
+        detail = resolve_project_error_detail(
+            {
+                "gcp_project_id": "project-a",
+                "connection_status": "connected",
+                "error_detail": None,
+                "services": [{"service": "logging", "status": "connected", "error_detail": None}],
+            }
+        )
+        assert detail is None
 
     def test_validate_gcp_project_id_rejects_invalid_ids(self) -> None:
         for project_id in [
