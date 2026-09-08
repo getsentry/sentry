@@ -309,10 +309,10 @@ class SetClientKindAttributesTest(TestCase):
         for call in sdk.set_attribute.call_args_list:
             assert call.args[0] != ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL
 
-    def test_skips_transaction_attributes_from_the_internal_api_client(self) -> None:
-        # `ApiClient` dispatches in-process with a synthetic request carrying no user
-        # agent, cookies or token. Recording its UNKNOWN would clobber the enclosing
-        # transaction's own attribution, since these attributes are isolation-scoped.
+    def test_records_for_the_internal_api_client_too(self) -> None:
+        # These attributes are isolation-scoped, so a nested `ApiClient` dispatch writes
+        # onto its caller's transaction. That is what lets an entrypoint declare a kind
+        # its nested dispatches cannot derive for themselves.
         request = make_request(auth=api_token(), user_agent="curl/8.7.1")
         mark_from_api_client(request)
         with (
@@ -321,8 +321,7 @@ class SetClientKindAttributesTest(TestCase):
             mock.patch("sentry.api.client_kind.start_span"),
         ):
             set_client_kind_attributes(request, self.organization)
-        sdk.set_tag.assert_not_called()
-        sdk.set_attribute.assert_not_called()
+        assert sdk.set_tag.call_args_list == [mock.call("client_kind_test", "script")]
 
 
 class AttributionSpanTest(TestCase):

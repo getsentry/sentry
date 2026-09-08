@@ -175,14 +175,6 @@ def set_client_kind_attributes(request: Request, organization: Organization) -> 
 
     _record_attribution_span(request, client_kind, client_host, user_agent)
 
-    # `sentry.api.client.ApiClient` dispatches endpoints in-process with a synthetic
-    # request that carries no user agent, cookies or token, so it classifies as
-    # UNKNOWN. These attributes are isolation-scoped, so recording that would overwrite
-    # the enclosing transaction's own classification -- or invent one for a Celery task
-    # that never served an API request. The outer caller is the one worth attributing.
-    if getattr(request, "__from_api_client__", False):
-        return
-
     # `_test` suffix while this is a POC, to keep it out of the way of a
     # real `client_kind` attribute later.
     sentry_sdk.set_tag("client_kind_test", client_kind.value)
