@@ -52,7 +52,7 @@ class TestDeliverAutofixRCAResult(TestCase):
         mock_logger.warning.assert_called_once()
         assert "autofix_rca.delivery.missing_run" in mock_logger.warning.call_args.args[0]
 
-    def test_completed_result_is_persisted(self) -> None:
+    def test_completed_result_is_not_persisted_and_routing_metadata_is_preserved(self) -> None:
         self.agent_run.extras = {
             **self.agent_run.extras,
             "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
@@ -69,7 +69,7 @@ class TestDeliverAutofixRCAResult(TestCase):
 
         self.agent_run.refresh_from_db()
         assert self.agent_run.extras["status"] == "completed"
-        assert self.agent_run.extras["result"] == VALID_RESULT
+        assert "result" not in self.agent_run.extras
         assert self.agent_run.extras["referrer"] == AutofixReferrer.WEB.value
         assert self.agent_run.extras["stopping_point"] == AutofixStoppingPoint.OPEN_PR.value
 
@@ -118,7 +118,7 @@ class TestDeliverAutofixRCAResult(TestCase):
 
         self.agent_run.refresh_from_db()
         assert self.agent_run.extras["status"] == "completed"
-        assert self.agent_run.extras["result"] == VALID_RESULT
+        assert "result" not in self.agent_run.extras
 
     def test_delivery_claim_uses_row_lock(self) -> None:
         using = router.db_for_write(SeerAgentRun)
@@ -162,6 +162,10 @@ class TestDeliverAutofixRCAResult(TestCase):
             result=None,
             error="temporary error",
         )
+        self.agent_run.refresh_from_db()
+        self.agent_run.extras = {**self.agent_run.extras, "result": {"stale": True}}
+        self.agent_run.save(update_fields=["extras"])
+
         deliver_autofix_rca_result(
             organization_id=self.organization.id,
             run_uuid=self.agent_run.run.uuid,
@@ -173,7 +177,7 @@ class TestDeliverAutofixRCAResult(TestCase):
         self.agent_run.refresh_from_db()
         assert self.agent_run.extras["status"] == "completed"
         assert "error_message" not in self.agent_run.extras
-        assert self.agent_run.extras["result"] == VALID_RESULT
+        assert "result" not in self.agent_run.extras
 
     def test_night_shift_run_is_not_matched(self) -> None:
         seer_run = self.create_seer_run(organization=self.organization, type="feature_run")
