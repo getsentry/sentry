@@ -51,7 +51,10 @@ function show(variant: ToastVariant, message: ReactNode, options: ToastOptions =
         removeActiveToast(variant, dismissedToast.id);
         onDismiss?.();
       },
-      onAutoClose: dismissedToast => removeActiveToast(variant, dismissedToast.id),
+      onAutoClose: dismissedToast => {
+        removeActiveToast(variant, dismissedToast.id);
+        onDismiss?.();
+      },
       ...(id === undefined ? {} : {id}),
     }
   );

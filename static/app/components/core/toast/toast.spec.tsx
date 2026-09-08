@@ -76,16 +76,18 @@ describe('Toast', () => {
 
   it('dismisses automatically after the configured duration', async () => {
     jest.useFakeTimers();
+    const onDismiss = jest.fn();
 
     try {
       render(<div />);
-      act(() => void toast.message('Temporary', {duration: 1000}));
+      act(() => void toast.message('Temporary', {duration: 1000, onDismiss}));
       expect(await screen.findByRole('status')).toHaveTextContent('Temporary');
 
       act(() => jest.advanceTimersByTime(1000));
       act(() => jest.runAllTimers());
 
       expect(screen.queryByRole('status')).not.toBeInTheDocument();
+      expect(onDismiss).toHaveBeenCalledTimes(1);
     } finally {
       jest.useRealTimers();
     }
