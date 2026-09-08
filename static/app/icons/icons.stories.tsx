@@ -1965,7 +1965,6 @@ function IconCard(props: IconCardProps) {
   return (
     <Tooltip
       maxWidth={640}
-      isHoverable
       title={
         <Stack gap="md">
           <CodeBlock language="jsx" code={snippets.all} />

@@ -6,12 +6,20 @@ export enum AgentIntegration {
   LANGCHAIN = 'langchain',
   LANGGRAPH = 'langgraph',
   LITTELLM = 'litellm',
+  // Flue is a TypeScript agent framework (by the Astro team) that ships an
+  // official Sentry blueprint. It runs on both Node and Cloudflare.
+  FLUE = 'flue',
   MASTRA = 'mastra',
   PYDANTIC_AI = 'pydantic_ai',
   VERCEL_AI = 'vercel_ai',
+  // Node-only: Vercel's filesystem-first framework for durable backend AI
+  // agents, built on top of the Vercel AI SDK.
+  EVE = 'eve',
   // Cloudflare-only: the Workers AI binding (env.AI) auto-instruments once the
   // Worker is wrapped with Sentry.
   WORKERS_AI = 'workers_ai',
+  // Cloudflare-only: the Agents SDK, instrumented via instrumentAgentWithSentry.
+  CLOUDFLARE_AGENTS = 'cloudflare_agents',
   MANUAL = 'manual',
 }
 
@@ -23,10 +31,13 @@ export const AGENT_INTEGRATION_LABELS = {
   [AgentIntegration.LANGCHAIN]: 'LangChain',
   [AgentIntegration.LANGGRAPH]: 'LangGraph',
   [AgentIntegration.LITTELLM]: 'LiteLLM',
+  [AgentIntegration.FLUE]: 'Flue',
   [AgentIntegration.MASTRA]: 'Mastra',
   [AgentIntegration.PYDANTIC_AI]: 'Pydantic AI',
   [AgentIntegration.VERCEL_AI]: 'Vercel AI SDK',
+  [AgentIntegration.EVE]: 'Eve',
   [AgentIntegration.WORKERS_AI]: 'Workers AI',
+  [AgentIntegration.CLOUDFLARE_AGENTS]: 'Cloudflare Agents SDK',
   [AgentIntegration.MANUAL]: 'Other',
 };
 
@@ -38,10 +49,14 @@ export const AGENT_INTEGRATION_ICONS: Record<AgentIntegration, string> = {
   [AgentIntegration.LANGCHAIN]: 'langchain',
   [AgentIntegration.LANGGRAPH]: 'langchain',
   [AgentIntegration.LITTELLM]: 'litellm',
+  [AgentIntegration.FLUE]: 'astro',
   [AgentIntegration.MASTRA]: 'mastra',
   [AgentIntegration.PYDANTIC_AI]: 'pydantic-ai',
   [AgentIntegration.VERCEL_AI]: 'vercel',
+  // Eve is a Vercel framework, so it reuses the Vercel icon.
+  [AgentIntegration.EVE]: 'vercel',
   [AgentIntegration.WORKERS_AI]: 'cloudflare',
+  [AgentIntegration.CLOUDFLARE_AGENTS]: 'cloudflare',
   [AgentIntegration.MANUAL]: 'default',
 };
 
@@ -57,9 +72,19 @@ export const PYTHON_AGENT_INTEGRATIONS = [
   AgentIntegration.MANUAL,
 ];
 
+/**
+ * Every agent SDK offered for Node-based projects, regardless of runtime. The
+ * onboarding no longer filters this list by the selected runtime; instead a
+ * runtime-specific SDK drives the runtime selection (see
+ * INTEGRATION_DEPLOYMENT_TARGETS).
+ */
 export const NODE_AGENT_INTEGRATIONS = [
   AgentIntegration.VERCEL_AI,
+  AgentIntegration.EVE,
+  AgentIntegration.WORKERS_AI,
+  AgentIntegration.CLOUDFLARE_AGENTS,
   AgentIntegration.ANTHROPIC,
+  AgentIntegration.FLUE,
   AgentIntegration.GOOGLE_GENAI,
   AgentIntegration.LANGCHAIN,
   AgentIntegration.LANGGRAPH,
@@ -96,19 +121,35 @@ export const DEPLOYMENT_TARGET_ICONS: Record<DeploymentTarget, string> = {
 };
 
 /**
- * Integrations documented for the Cloudflare deployment target. Mirrors the
- * Node list minus Mastra, whose `@mastra/sentry` exporter is not part of the
- * Cloudflare `withSentry` flow.
+ * Agent SDKs that only work on a single Node deployment runtime. Selecting one
+ * of these pins the runtime accordingly (and locks the runtime selector), rather
+ * than the runtime filtering which SDKs are shown.
+ *
+ * - Workers AI is the Cloudflare Workers AI binding (env.AI), Cloudflare-only.
+ * - The Cloudflare Agents SDK runs only on the Cloudflare runtime.
+ * - Mastra's `@mastra/sentry` exporter is not part of the Cloudflare `withSentry`
+ *   flow, so it is Node-only.
+ * - Eve is a Vercel backend framework that runs on Node, so it is Node-only.
  *
  * @see https://docs.sentry.io/platforms/javascript/guides/cloudflare/agent-tracing/
  */
-export const CLOUDFLARE_AGENT_INTEGRATIONS = [
-  AgentIntegration.VERCEL_AI,
-  AgentIntegration.WORKERS_AI,
-  AgentIntegration.ANTHROPIC,
-  AgentIntegration.GOOGLE_GENAI,
-  AgentIntegration.LANGCHAIN,
-  AgentIntegration.LANGGRAPH,
-  AgentIntegration.OPENAI,
-  AgentIntegration.MANUAL,
-];
+const INTEGRATION_DEPLOYMENT_TARGETS: Partial<
+  Record<AgentIntegration, DeploymentTarget>
+> = {
+  [AgentIntegration.WORKERS_AI]: DeploymentTarget.CLOUDFLARE,
+  [AgentIntegration.CLOUDFLARE_AGENTS]: DeploymentTarget.CLOUDFLARE,
+  [AgentIntegration.MASTRA]: DeploymentTarget.NODE,
+  [AgentIntegration.EVE]: DeploymentTarget.NODE,
+};
+
+/**
+ * Returns the runtime a given SDK is pinned to, or undefined when the SDK works
+ * on any runtime and the user is free to pick the deployment target.
+ */
+export function getIntegrationDeploymentTarget(
+  integration: string | undefined
+): DeploymentTarget | undefined {
+  return integration
+    ? INTEGRATION_DEPLOYMENT_TARGETS[integration as AgentIntegration]
+    : undefined;
+}

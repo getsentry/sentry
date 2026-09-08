@@ -178,7 +178,6 @@ function AssigneeAvatar({
       <SuggestedAvatarStack
         size={26}
         owners={suggestedActors}
-        tooltipOptions={{isHoverable: true}}
         tooltip={
           <Stack gap="xs" align="start">
             <Text as="div" align="left" wrap="nowrap">
@@ -199,7 +198,6 @@ function AssigneeAvatar({
 
   return (
     <Tooltip
-      isHoverable
       skipWrapper
       title={
         <Stack gap="xs" align="start">
@@ -604,11 +602,7 @@ export function AssigneeSelectorDropdown({
           disabled={loading}
           ref={ref as Ref<HTMLButtonElement>}
           size="xs"
-          tooltipProps={
-            showLabel
-              ? undefined
-              : {isHoverable: true, maxWidth: 300, title: tooltipTitle}
-          }
+          tooltipProps={showLabel ? undefined : {maxWidth: 300, title: tooltipTitle}}
         />
       );
 
@@ -617,7 +611,7 @@ export function AssigneeSelectorDropdown({
       }
 
       return (
-        <Tooltip isHoverable maxWidth={300} skipWrapper title={tooltipTitle}>
+        <Tooltip maxWidth={300} skipWrapper title={tooltipTitle}>
           <Flex as="label" align="center" gap="sm" htmlFor={triggerProps.id}>
             {avatarButton}
             <AssigneeLabel ellipsis>{triggerLabel}</AssigneeLabel>

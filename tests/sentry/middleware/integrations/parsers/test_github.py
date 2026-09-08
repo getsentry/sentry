@@ -397,9 +397,9 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
         check_run_parser = GithubRequestParser(
             request=check_run_request, response_handler=self.get_response
         )
-        assert push_parser.get_mailbox_identifier(
-            integration, {}
-        ) != check_run_parser.get_mailbox_identifier(integration, {})
+        assert str(push_parser.get_mailbox(integration, {})) != str(
+            check_run_parser.get_mailbox(integration, {})
+        )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)

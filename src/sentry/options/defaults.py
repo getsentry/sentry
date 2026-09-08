@@ -2459,6 +2459,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Killswitch for the legacy dynamic sampling pipeline. When set to True, the four
+# scheduled jobs (sliding_window_org, boost_low_volume_projects,
+# boost_low_volume_transactions, recalibrate_orgs) exit before they do any work.
+register(
+    "dynamic-sampling.legacy.killswitch",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Deterministic % rollout of the per-org dynamic sampling pipeline, keyed on
 # organization id. A value of 0.0 disables the pipeline for every org; 1.0
 # enables it for every org. Intermediate values select a stable hash-based
@@ -3972,6 +3981,15 @@ register(
 # Fraction of attachments that are being stored exclusively in the new objectstore.
 register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Fraction of expiring pending attachments that are checked for a matching event before
+# being deleted. Each check costs one nodestore read.
+register(
+    "attachments.pending.premature_deletion_check_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 register(
     "sentry.send_onboarding_task_metrics",
@@ -4390,6 +4408,14 @@ register(
 # Kill switch for Objectstore Debug Files migration
 register(
     "debug-files.objectstore-migration.enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitch for token-level remapping of compound Dart exception types.
+register(
+    "dart.compound-type-deobfuscation.enabled",
     default=True,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,

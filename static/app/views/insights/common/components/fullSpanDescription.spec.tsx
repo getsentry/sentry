@@ -94,7 +94,7 @@ describe('FullSpanDescription', () => {
             span_id: spanId,
             'span.description':
               '{"insert": "my_cool_collection😎", "a": {}, "uh_oh":"the_query_is_truncated", "ohno*',
-            'db.system': 'mongodb',
+            'db.system.name': 'mongodb',
           },
         ],
       },
