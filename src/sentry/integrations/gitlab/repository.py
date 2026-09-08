@@ -115,18 +115,19 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
             if e.code != 404:
                 raise installation.raise_error(e)
             return False
-        # A temporarily disabled hook re-enables itself once GitLab's backoff expires, but
-        # nothing short of replacing it revives one GitLab disabled for good.
-        if hook.get("alert_status") != "disabled":
-            logger.info(
-                "gitlab.repository.webhook_updated",
-                extra={**log_extra, "gitlab.repository.webhook_id": webhook_id},
-            )
+        # GitLab stops delivering to a hook after repeated failed deliveries. A temporarily
+        # disabled hook re-enables itself once the backoff expires, but nothing short of
+        # replacing it revives one disabled for good.
+        alert_status = hook.get("alert_status")
+        log_extra = {
+            **log_extra,
+            "gitlab.repository.webhook_id": webhook_id,
+            "gitlab.repository.alert_status": alert_status,
+        }
+        if alert_status != "disabled":
+            logger.info("gitlab.repository.webhook_updated", extra=log_extra)
             return True
-        logger.info(
-            "gitlab.repository.webhook_disabled",
-            extra={**log_extra, "gitlab.repository.webhook_id": webhook_id},
-        )
+        logger.info("gitlab.repository.replacing_webhook_disabled_by_gitlab", extra=log_extra)
         try:
             client.delete_project_webhook(project_id, webhook_id)
         except ApiError as e:
