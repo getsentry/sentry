@@ -26,6 +26,37 @@ function focusInputAtEnd(input: HTMLInputElement) {
   input.setSelectionRange(end, end);
 }
 
+/** True when the element is not display:none / hidden (works in jsdom and browsers). */
+function isRenderedVisibly(el: HTMLElement) {
+  let node: HTMLElement | null = el;
+  while (node) {
+    if (node.hidden || node.getAttribute('aria-hidden') === 'true') {
+      return false;
+    }
+    if (node.style.display === 'none' || node.style.visibility === 'hidden') {
+      return false;
+    }
+    node = node.parentElement;
+  }
+  return true;
+}
+
+function findOpenSuggestionListbox(root: HTMLElement) {
+  const openCombobox = root.querySelector('[role="combobox"][aria-expanded="true"]');
+  if (!openCombobox) {
+    return null;
+  }
+
+  const listboxId = openCombobox.getAttribute('aria-controls');
+  const listbox = listboxId
+    ? document.getElementById(listboxId)
+    : root.querySelector('[role="listbox"]');
+  if (!(listbox instanceof HTMLElement) || !isRenderedVisibly(listbox)) {
+    return null;
+  }
+  return {openCombobox, listbox};
+}
+
 /**
  * Grows a series filter bar or equation builder to the remaining window width while
  * focused so a long query has room to be read and edited, then collapses it back into
@@ -61,7 +92,29 @@ export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
   }, []);
 
   const isSuggestionMenuOpen = useCallback(() => {
-    return Boolean(ref.current?.querySelector('[role="combobox"][aria-expanded="true"]'));
+    const root = ref.current;
+    if (!root) {
+      return false;
+    }
+
+    // Prefer a visibly rendered listbox over aria-expanded alone: ComboBox opens the
+    // React Aria menu state on focus (aria-expanded=true) even when there are no
+    // options to show and the overlay is display:none.
+    return findOpenSuggestionListbox(root) !== null;
+  }, []);
+
+  /**
+   * Enter accepts a suggestion only after the user highlights one (ArrowUp/Down sets
+   * aria-activedescendant). An open menu alone must not block dismiss — the listbox
+   * used to autofocus the first option on open, which made Enter always "accept".
+   */
+  const isAcceptingAutocompleteSuggestion = useCallback(() => {
+    const root = ref.current;
+    if (!root) {
+      return false;
+    }
+    const openMenu = findOpenSuggestionListbox(root);
+    return Boolean(openMenu?.openCombobox.getAttribute('aria-activedescendant'));
   }, []);
 
   const collapseAfterBlur = useCallback(() => {
@@ -123,15 +176,19 @@ export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
 
   const collapseOnEnter = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => {
-      // Accepting an autocomplete suggestion also uses Enter, so stay expanded while a
-      // menu is open.
-      if (
-        event.key !== 'Enter' ||
-        event.nativeEvent.isComposing ||
-        isSuggestionMenuOpen()
-      ) {
+      if (event.key !== 'Enter' || event.nativeEvent.isComposing) {
         return;
       }
+
+      // Arrow-highlighted suggestion: let the ComboBox handle Enter to accept it.
+      if (isAcceptingAutocompleteSuggestion()) {
+        return;
+      }
+
+      // Stop the ComboBox from treating Enter as "select focused option" when the
+      // menu is open but nothing was intentionally highlighted, then dismiss.
+      event.preventDefault();
+      event.stopPropagation();
 
       const active = document.activeElement;
       if (active instanceof HTMLElement && ref.current?.contains(active)) {
@@ -139,7 +196,7 @@ export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
       }
       collapseToDefaultWidth();
     },
-    [collapseToDefaultWidth, isSuggestionMenuOpen]
+    [collapseToDefaultWidth, isAcceptingAutocompleteSuggestion]
   );
 
   return (

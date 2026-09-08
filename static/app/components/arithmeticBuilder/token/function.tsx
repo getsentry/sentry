@@ -1,5 +1,5 @@
 import type {ChangeEvent, FocusEvent, RefObject} from 'react';
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {type AriaGridListOptions} from '@react-aria/gridlist';
@@ -11,6 +11,7 @@ import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 
 import {
+  ConditionalFilterArgumentInput,
   isSearchFilterParameter,
   unwrapSearchFilterArgument,
 } from 'sentry/components/arithmeticBuilder/conditionalFilter';
@@ -20,7 +21,6 @@ import type {
   TokenAttribute,
   TokenFunction,
 } from 'sentry/components/arithmeticBuilder/token';
-import {ConditionalFilterArgumentInput} from 'sentry/components/arithmeticBuilder/token/conditionalFilterInput';
 import {DeleteButton} from 'sentry/components/arithmeticBuilder/token/deleteButton';
 import {
   ArgumentGridCell,
@@ -43,12 +43,13 @@ function resolveArgumentDisplayLabel(
     | {defaultLabel?: string; kind?: string; name?: string}
     | null
     | undefined,
-  fallbackLabel: string
+  fallbackLabel: string,
+  hasConditionalAggregates: boolean
 ): string {
   if (parameterDefinition?.kind === 'column' && parameterDefinition.defaultLabel) {
     return parameterDefinition.defaultLabel;
   }
-  if (isSearchFilterParameter(parameterDefinition)) {
+  if (hasConditionalAggregates && isSearchFilterParameter(parameterDefinition)) {
     return unwrapSearchFilterArgument(fallbackLabel);
   }
   return fallbackLabel;
@@ -138,7 +139,7 @@ function ArgumentsGrid({
   token: functionToken,
   rowRef,
 }: ArgumentsGridProps) {
-  const {dispatch, getFieldDefinition} = useArithmeticBuilder();
+  const {dispatch, getFieldDefinition, hasConditionalAggregates} = useArithmeticBuilder();
 
   const resolveArgumentLabel = useCallback(
     (index: number, fallbackLabel: string) => {
@@ -146,9 +147,13 @@ function ArgumentsGrid({
         functionToken.function,
         functionToken.attributes.map(attr => attr.text)
       )?.parameters?.[index];
-      return resolveArgumentDisplayLabel(fieldDefinition, fallbackLabel);
+      return resolveArgumentDisplayLabel(
+        fieldDefinition,
+        fallbackLabel,
+        hasConditionalAggregates
+      );
     },
-    [getFieldDefinition, functionToken]
+    [getFieldDefinition, functionToken, hasConditionalAggregates]
   );
 
   const [args, setArguments] = useState(
@@ -161,9 +166,15 @@ function ArgumentsGrid({
   );
 
   const argsRef = useRef(args);
-  argsRef.current = args;
   const functionTokenRef = useRef(functionToken);
-  functionTokenRef.current = functionToken;
+
+  useEffect(() => {
+    argsRef.current = args;
+  }, [args]);
+
+  useEffect(() => {
+    functionTokenRef.current = functionToken;
+  }, [functionToken]);
 
   const commitArgumentsIfChanged = useCallback(() => {
     const nextArgs = argsRef.current.map(argument => argument.value).join(',');
@@ -181,19 +192,17 @@ function ArgumentsGrid({
   }, [dispatch]);
 
   const updateArgumentAtIndex = (index: number, argument: string) => {
-    setArguments(prev => {
-      const next = prev.map((item, i) =>
-        index === i
-          ? {
-              ...item,
-              value: argument,
-              label: resolveArgumentLabel(index, prettifyTagKey(argument)),
-            }
-          : item
-      );
-      argsRef.current = next;
-      return next;
-    });
+    const next = argsRef.current.map((item, i) =>
+      index === i
+        ? {
+            ...item,
+            value: argument,
+            label: resolveArgumentLabel(index, prettifyTagKey(argument)),
+          }
+        : item
+    );
+    argsRef.current = next;
+    setArguments(next);
   };
 
   if (!args.length) {
@@ -307,7 +316,7 @@ function ArgumentsGridList({
 }
 
 function InternalInput(props: FunctionArgumentInputProps) {
-  const {getFieldDefinition} = useArithmeticBuilder();
+  const {getFieldDefinition, hasConditionalAggregates} = useArithmeticBuilder();
   const parameterDefinition = useMemo(
     () =>
       getFieldDefinition(
@@ -317,7 +326,7 @@ function InternalInput(props: FunctionArgumentInputProps) {
     [getFieldDefinition, props.argumentIndex, props.functionToken]
   );
 
-  if (isSearchFilterParameter(parameterDefinition)) {
+  if (hasConditionalAggregates && isSearchFilterParameter(parameterDefinition)) {
     return <ConditionalFilterArgumentInput {...props} />;
   }
 
@@ -348,6 +357,7 @@ function FunctionArgumentInput(props: FunctionArgumentInputProps) {
     functionArguments: builderFunctionArguments,
     getFieldDefinition,
     getSuggestedKey,
+    hasConditionalAggregates,
   } = useArithmeticBuilder();
 
   const parameterDefinition = useMemo(
@@ -361,8 +371,12 @@ function FunctionArgumentInput(props: FunctionArgumentInputProps) {
 
   const resolveDisplayLabel = useCallback(
     (fallback: string): string =>
-      resolveArgumentDisplayLabel(parameterDefinition, fallback),
-    [parameterDefinition]
+      resolveArgumentDisplayLabel(
+        parameterDefinition,
+        fallback,
+        hasConditionalAggregates
+      ),
+    [hasConditionalAggregates, parameterDefinition]
   );
 
   const initialLabel = resolveDisplayLabel(argument.label);

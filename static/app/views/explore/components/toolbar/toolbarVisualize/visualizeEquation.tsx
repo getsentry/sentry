@@ -3,7 +3,7 @@ import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
@@ -80,13 +80,13 @@ export function VisualizeEquation({
         <DragReorderButton iconSize="sm" {...listeners} />
       )}
       {label}
-      <Stack flex="1" minWidth="0" overflow="visible">
+      <Flex flex="1" minWidth="0" overflow="visible">
         {hasConditionalAggregates ? (
           <ExpandableFilterSearchBar>{equationBuilder}</ExpandableFilterSearchBar>
         ) : (
           equationBuilder
         )}
-      </Stack>
+      </Flex>
       {onDelete && (
         <Button
           variant="transparent"

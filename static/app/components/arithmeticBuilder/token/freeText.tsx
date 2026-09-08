@@ -73,7 +73,12 @@ export function ArithmeticTokenFreeText({
       aria-invalid={false}
       collapsed={isCollapsed}
     >
-      <GridCell {...gridCellProps} onClick={stopPropagation} collapsed={isCollapsed}>
+      <GridCell
+        {...gridCellProps}
+        onClick={stopPropagation}
+        collapsed={isCollapsed}
+        showPlaceholder={showPlaceholder}
+      >
         <InternalInput
           showPlaceholder={showPlaceholder}
           nextAllowedTokenKinds={nextAllowedTokenKinds}
@@ -642,8 +647,8 @@ function stopPropagation(evt: MouseEvent<HTMLElement>) {
 }
 
 const GridCell = styled('div', {
-  shouldForwardProp: prop => prop !== 'collapsed',
-})<{collapsed?: boolean}>`
+  shouldForwardProp: prop => prop !== 'collapsed' && prop !== 'showPlaceholder',
+})<{collapsed?: boolean; showPlaceholder?: boolean}>`
   position: relative;
   display: flex;
   align-items: stretch;
@@ -651,8 +656,11 @@ const GridCell = styled('div', {
   width: 100%;
 
   input {
-    padding: 0 ${p => (p.collapsed ? 0 : p.theme.space.xs)};
-    min-width: ${p => (p.collapsed ? 0 : '9px')};
+    /* Collapsed empty spacers between tokens stay zero-width so they do not wrap.
+     * The empty trailing field still needs the same horizontal inset as
+     * SearchQueryBuilder so the placeholder lines up with the aggregate filter. */
+    padding: 0 ${p => (p.collapsed && !p.showPlaceholder ? 0 : p.theme.space.xs)};
+    min-width: ${p => (p.collapsed && !p.showPlaceholder ? 0 : '9px')};
     width: 100%;
     height: 100%;
     min-height: 100%;

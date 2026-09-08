@@ -1,9 +1,8 @@
 import {
   formatConditionalFilterClause,
-  formatConditionalFilterTagValue,
   getConditionalFilterEditContext,
   replaceConditionalFilterClause,
-} from 'sentry/components/arithmeticBuilder/conditionalFilter';
+} from 'sentry/components/arithmeticBuilder/conditionalFilter/conditionalFilter';
 
 describe('getConditionalFilterEditContext', () => {
   it('treats the full string as one clause when there are no boolean operators', () => {
@@ -146,6 +145,44 @@ describe('getConditionalFilterEditContext', () => {
       editText: '',
     });
   });
+
+  it('shows an empty key query right after an open parenthesis', () => {
+    expect(getConditionalFilterEditContext('(', 1)).toMatchObject({
+      phase: 'key',
+      editText: '',
+      replaceStart: 1,
+      replaceEnd: 1,
+    });
+  });
+
+  it('keeps key mode when typing after an open parenthesis', () => {
+    expect(getConditionalFilterEditContext('(span', 5)).toMatchObject({
+      phase: 'key',
+      editText: 'span',
+      replaceStart: 1,
+      replaceEnd: 5,
+    });
+  });
+
+  it('keeps value mode for a key typed after an open parenthesis', () => {
+    expect(getConditionalFilterEditContext('(span.op:', 9)).toMatchObject({
+      phase: 'value',
+      filterKey: 'span.op',
+      editText: '',
+      replaceStart: 1,
+      replaceEnd: 9,
+    });
+  });
+
+  it('ignores a trailing close parenthesis when reading the filter key', () => {
+    const value = '(span.op:db)';
+    expect(getConditionalFilterEditContext(value, value.length - 1)).toMatchObject({
+      phase: 'value',
+      filterKey: 'span.op',
+      editText: 'db',
+      valueQuery: 'db',
+    });
+  });
 });
 
 describe('replaceConditionalFilterClause', () => {
@@ -164,22 +201,36 @@ describe('replaceConditionalFilterClause', () => {
       newValue: 'organization.slug:sentry span.op:',
     });
   });
+
+  it('preserves a leading parenthesis when selecting a key suggestion', () => {
+    expect(replaceConditionalFilterClause('(', 1, 'span.op:')).toEqual({
+      newCursorIndex: 9,
+      newValue: '(span.op:',
+    });
+  });
+
+  it('preserves grouping parentheses when selecting a value suggestion', () => {
+    expect(replaceConditionalFilterClause('(span.op:)', 9, 'span.op:db')).toEqual({
+      newCursorIndex: 11,
+      newValue: '(span.op:db)',
+    });
+  });
 });
 
-describe('formatConditionalFilterTagValue', () => {
+describe('formatConditionalFilterClause', () => {
   it('quotes values that contain spaces', () => {
-    expect(formatConditionalFilterTagValue('hello there')).toBe('"hello there"');
     expect(formatConditionalFilterClause('organization.slug', 'hello there')).toBe(
       'organization.slug:"hello there"'
     );
   });
 
   it('leaves simple values unquoted', () => {
-    expect(formatConditionalFilterTagValue('sentry')).toBe('sentry');
+    expect(formatConditionalFilterClause('organization.slug', 'sentry')).toBe(
+      'organization.slug:sentry'
+    );
   });
 
   it('preserves bracketed list syntax', () => {
-    expect(formatConditionalFilterTagValue('[value1, value2]')).toBe('[value1, value2]');
     expect(formatConditionalFilterClause('span.op', '[db, http]')).toBe(
       'span.op:[db, http]'
     );

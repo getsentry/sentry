@@ -9,8 +9,8 @@ import {
   isFilterKeySuggestion,
   replaceConditionalFilterClause,
   unwrapSearchFilterArgument,
-} from 'sentry/components/arithmeticBuilder/conditionalFilter';
-import {useConditionalFilterAutocomplete} from 'sentry/components/arithmeticBuilder/conditionalFilterAutocomplete';
+} from 'sentry/components/arithmeticBuilder/conditionalFilter/conditionalFilter';
+import {useConditionalFilterAutocomplete} from 'sentry/components/arithmeticBuilder/conditionalFilter/conditionalFilterAutocomplete';
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
 import {
   ArgumentGridCell,

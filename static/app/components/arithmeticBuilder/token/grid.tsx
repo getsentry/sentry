@@ -235,9 +235,15 @@ const TokenGridWrapper = styled('div')`
   box-sizing: border-box;
   width: 100%;
   min-height: 100%;
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.sm};
+  /* Match SearchQueryBuilder so equation and aggregate filter rows share height.
+   * +1px accounts for the border; keep horizontal padding so empty-field clicks
+   * still land on this grid and route into an input. */
+  padding-top: calc(${p => p.theme.space.xs} + 1px);
+  padding-bottom: calc(${p => p.theme.space.xs} + 1px);
+  padding-left: ${p => p.theme.space.sm};
+  padding-right: ${p => p.theme.space.sm};
   display: flex;
-  align-items: center;
+  align-items: stretch;
   row-gap: ${p => p.theme.space.xs};
   flex-wrap: wrap;
   cursor: text;

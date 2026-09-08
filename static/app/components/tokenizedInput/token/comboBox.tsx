@@ -23,11 +23,12 @@ import {
   itemIsSectionWithKey,
   ListBox,
 } from '@sentry/scraps/compactSelect';
-import {Input, useAutosizeInput} from '@sentry/scraps/input';
+import {useAutosizeInput} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
+import {UnstyledInput} from 'sentry/components/tokenizedInput/token/unstyledInput';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
 interface ComboBoxProps {
@@ -366,6 +367,10 @@ export function ComboBox({
     <Flex align="stretch" width="100%" height="100%" position="relative">
       <UnstyledInput
         {...inputProps}
+        // Reflect the visible popup, not React Aria's open state alone. ComboBox opens
+        // on focus even when there are no options, and callers (e.g. expandable equation
+        // bars) use aria-expanded to decide whether Enter should dismiss.
+        aria-expanded={isMenuVisible}
         size="md"
         ref={mergeRefs(
           ref,
@@ -456,25 +461,6 @@ function useUpdateOverlayPositionOnContentChange({
     };
   }, [contentRef, isOpen, updateOverlayPosition]);
 }
-
-const UnstyledInput = styled(Input)`
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  flex-grow: 1;
-  padding: 0;
-  height: auto;
-  min-height: auto;
-  resize: none;
-  min-width: 1px;
-  border-radius: 0;
-
-  &:focus {
-    outline: none;
-    border: none;
-    box-shadow: none;
-  }
-`;
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
   display: ${p => (p.visible ? 'block' : 'none')};

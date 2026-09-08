@@ -27,6 +27,7 @@ interface ArithmeticBuilderProps {
   disabled?: boolean;
   /**
    * Fetches tag values for `_if` combinator filter arguments in equations.
+   * Only used when `hasConditionalAggregates` is on.
    */
   getFilterTagValues?: GetTagValues;
   /**
@@ -36,6 +37,11 @@ interface ArithmeticBuilderProps {
    * to a known column.
    */
   getSuggestedKey?: (key: string) => string | null;
+  /**
+   * Enables the EAP filter-first `_if` argument editor. Should follow
+   * `explore-conditional-aggregates`.
+   */
+  hasConditionalAggregates?: boolean;
   /**
    * When provided, the arithmetic builder will use the references to suggest
    * keys for the user instead of aggregations and function arguments.
@@ -55,6 +61,7 @@ export function ArithmeticBuilder({
   getFieldDefinition,
   getFilterTagValues,
   getSuggestedKey,
+  hasConditionalAggregates = false,
   className,
   disabled,
   references,
@@ -82,8 +89,9 @@ export function ArithmeticBuilder({
       }),
       functionArguments,
       getFieldDefinition,
-      getFilterTagValues,
+      getFilterTagValues: hasConditionalAggregates ? getFilterTagValues : undefined,
       getSuggestedKey,
+      hasConditionalAggregates,
       references,
     };
   }, [
@@ -94,6 +102,7 @@ export function ArithmeticBuilder({
     getFieldDefinition,
     getFilterTagValues,
     getSuggestedKey,
+    hasConditionalAggregates,
     references,
   ]);
 
@@ -115,7 +124,7 @@ export function ArithmeticBuilder({
 }
 
 const Wrapper = styled(Input.withComponent('div'))<{state: 'valid' | 'invalid'}>`
-  min-height: 38px;
+  min-height: ${p => p.theme.form.md.minHeight};
   padding: 0;
   height: auto;
   width: 100%;

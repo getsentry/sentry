@@ -52,8 +52,9 @@ interface ExploreEquationBuilderConfig {
     key: string,
     attributeTexts?: readonly string[]
   ) => FieldDefinition | null;
-  getFilterTagValues: GetTagValues;
   getSuggestedKey: (key: string) => string | null;
+  hasConditionalAggregates: boolean;
+  getFilterTagValues?: GetTagValues;
 }
 
 export function useExploreEquationBuilderConfig({
@@ -106,6 +107,7 @@ export function useExploreEquationBuilderConfig({
     functionArguments,
     getFieldDefinition,
     getSuggestedKey,
-    getFilterTagValues,
+    getFilterTagValues: hasConditionalAggregates ? getFilterTagValues : undefined,
+    hasConditionalAggregates,
   };
 }

@@ -44,7 +44,7 @@ const BRACKETED_LIST_VALUE_RE = /^\[[^\]]*\]$/;
 /**
  * Quote a tag value when it contains spaces or other special search characters.
  */
-export function formatConditionalFilterTagValue(value: string): string {
+function formatConditionalFilterTagValue(value: string): string {
   if (value === '') {
     return '""';
   }
@@ -207,6 +207,34 @@ export type ConditionalFilterEditContext = {
 };
 
 /**
+ * Grouping `(` / `)` around a clause (e.g. `(span.op:db)`) must not be treated as part
+ * of the filter key or value, or autocomplete filters itself to nothing after `(`.
+ */
+function getClauseInnerBounds(clause: string): {innerEnd: number; innerStart: number} {
+  let innerStart = 0;
+  let innerEnd = clause.length;
+
+  while (innerStart < innerEnd && clause[innerStart] === '(') {
+    innerStart++;
+    while (innerStart < innerEnd && clause[innerStart] === ' ') {
+      innerStart++;
+    }
+  }
+
+  const innerSoFar = clause.slice(innerStart, innerEnd);
+  if (!hasUnclosedQuote(innerSoFar)) {
+    while (innerEnd > innerStart && clause[innerEnd - 1] === ')') {
+      innerEnd--;
+      while (innerEnd > innerStart && clause[innerEnd - 1] === ' ') {
+        innerEnd--;
+      }
+    }
+  }
+
+  return {innerStart, innerEnd};
+}
+
+/**
  * Decide whether the cursor is editing a filter key or value, and which substring
  * a suggestion should replace.
  *
@@ -217,6 +245,9 @@ export type ConditionalFilterEditContext = {
  *
  * Once a value is complete (`key:value `, or `key:"quoted"`), subsequent text is a
  * new key and key autocomplete is shown.
+ *
+ * Leading/trailing grouping parentheses are preserved outside the replace range so
+ * suggestions still work inside `(...)`.
  */
 export function getConditionalFilterEditContext(
   value: string,
@@ -225,19 +256,31 @@ export function getConditionalFilterEditContext(
   const {clause, clauseStart, clauseEnd, clauseCursorIndex} =
     getConditionalFilterClauseAtCursor(value, cursorIndex);
 
-  const colonIndex = clause.indexOf(':');
-  if (colonIndex === -1 || clauseCursorIndex <= colonIndex) {
+  const {innerStart, innerEnd} = getClauseInnerBounds(clause);
+  const inner = clause.slice(innerStart, innerEnd);
+  const innerCursorIndex = Math.max(
+    0,
+    Math.min(clauseCursorIndex, clause.length) - innerStart
+  );
+  const clampedInnerCursor = Math.max(0, Math.min(innerCursorIndex, inner.length));
+  const absoluteInnerStart = clauseStart + innerStart;
+  // Keep trailing grouping `)` outside replacements; leading `(` stay before replaceStart.
+  const absoluteInnerEnd = clauseStart + innerEnd;
+  const absoluteClauseEnd = clauseEnd;
+
+  const colonIndex = inner.indexOf(':');
+  if (colonIndex === -1 || clampedInnerCursor <= colonIndex) {
     return {
       phase: 'key',
-      editText: clause.slice(0, clauseCursorIndex).trim(),
-      replaceStart: clauseStart,
-      replaceEnd: clauseEnd,
+      editText: inner.slice(0, clampedInnerCursor).trim(),
+      replaceStart: absoluteInnerStart,
+      replaceEnd: absoluteInnerEnd,
     };
   }
 
-  const filterKey = clause.slice(0, colonIndex).trim();
-  const valuePart = clause.slice(colonIndex + 1);
-  const cursorInValue = Math.max(0, clauseCursorIndex - (colonIndex + 1));
+  const filterKey = inner.slice(0, colonIndex).trim();
+  const valuePart = inner.slice(colonIndex + 1);
+  const cursorInValue = Math.max(0, clampedInnerCursor - (colonIndex + 1));
   const beforeCursor = valuePart.slice(0, cursorInValue);
 
   // Unclosed quotes → keep editing the value (including spaces inside the quote).
@@ -247,8 +290,8 @@ export function getConditionalFilterEditContext(
       editText: beforeCursor,
       filterKey,
       valueQuery: stripQuotesForValueSearch(beforeCursor),
-      replaceStart: clauseStart,
-      replaceEnd: clauseEnd,
+      replaceStart: absoluteInnerStart,
+      replaceEnd: absoluteInnerEnd,
     };
   }
 
@@ -261,12 +304,12 @@ export function getConditionalFilterEditContext(
         0,
         beforeCursor.length - spaces.length - nextKey.length
       );
-      const keyStartInClause = colonIndex + 1 + quotedValue.length + spaces.length;
+      const keyStartInInner = colonIndex + 1 + quotedValue.length + spaces.length;
       return {
         phase: 'key',
         editText: nextKey,
-        replaceStart: clauseStart + keyStartInClause,
-        replaceEnd: clauseEnd,
+        replaceStart: absoluteInnerStart + keyStartInInner,
+        replaceEnd: absoluteClauseEnd,
       };
     }
   }
@@ -275,12 +318,12 @@ export function getConditionalFilterEditContext(
   const unquotedMatch = beforeCursor.match(/^(\S+)(\s+)(.*)$/);
   if (unquotedMatch) {
     const [, completedValue, spaces, nextKey = ''] = unquotedMatch;
-    const keyStartInClause = colonIndex + 1 + completedValue!.length + spaces!.length;
+    const keyStartInInner = colonIndex + 1 + completedValue!.length + spaces!.length;
     return {
       phase: 'key',
       editText: nextKey,
-      replaceStart: clauseStart + keyStartInClause,
-      replaceEnd: clauseEnd,
+      replaceStart: absoluteInnerStart + keyStartInInner,
+      replaceEnd: absoluteClauseEnd,
     };
   }
 
@@ -290,8 +333,8 @@ export function getConditionalFilterEditContext(
     editText: beforeCursor,
     filterKey,
     valueQuery: beforeCursor,
-    replaceStart: clauseStart,
-    replaceEnd: clauseEnd,
+    replaceStart: absoluteInnerStart,
+    replaceEnd: absoluteInnerEnd,
   };
 }
 

@@ -1,6 +1,6 @@
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useConditionalFilterAutocomplete} from 'sentry/components/arithmeticBuilder/conditionalFilterAutocomplete';
+import {useConditionalFilterAutocomplete} from 'sentry/components/arithmeticBuilder/conditionalFilter/conditionalFilterAutocomplete';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {FieldKind} from 'sentry/utils/fields';
 
@@ -52,6 +52,23 @@ describe('useConditionalFilterAutocomplete', () => {
         functionArguments,
         getFilterTagValues,
         selectionIndex: 3,
+      })
+    );
+
+    expect(result.current.items.map(item => item.label)).toEqual(['span.op:']);
+    expect(getFilterTagValues).not.toHaveBeenCalled();
+  });
+
+  it('shows key suggestions after an open parenthesis', () => {
+    const getFilterTagValues = jest.fn().mockResolvedValue([{value: 'db'}]);
+
+    const {result} = renderHookWithProviders(() =>
+      useConditionalFilterAutocomplete({
+        enabled: true,
+        filterValue: '(',
+        functionArguments,
+        getFilterTagValues,
+        selectionIndex: 1,
       })
     );
 

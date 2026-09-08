@@ -95,8 +95,48 @@ describe('ExpandableFilterSearchBar', () => {
     });
   });
 
-  it('stays expanded on Enter while a suggestion menu is open', async () => {
-    render(<SearchBarStub defaultValue="" role="combobox" aria-expanded="true" />);
+  it('collapses the equation builder on Enter when no suggestion is highlighted', async () => {
+    render(
+      <EquationBuilderStub
+        defaultValue=""
+        role="combobox"
+        aria-expanded="true"
+        aria-controls="equation-listbox"
+      >
+        <ul id="equation-listbox" role="listbox">
+          <li role="option">avg</li>
+        </ul>
+      </EquationBuilderStub>
+    );
+
+    const input = screen.getByTestId('arithmetic-builder-input');
+    await userEvent.click(input);
+    await flushAnimationFrames();
+    expect(isExpanded(input)).toBe(true);
+
+    // Suggestions may be open without a highlight — Enter dismisses.
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => {
+      expect(isExpanded(input)).toBe(false);
+    });
+  });
+
+  it('stays expanded on Enter while a suggestion is highlighted', async () => {
+    render(
+      <SearchBarStub
+        defaultValue=""
+        role="combobox"
+        aria-expanded="true"
+        aria-activedescendant="option-1"
+        aria-controls="listbox-1"
+      >
+        <ul id="listbox-1" role="listbox">
+          <li id="option-1" role="option">
+            span.op
+          </li>
+        </ul>
+      </SearchBarStub>
+    );
 
     const input = screen.getByTestId('query-builder-input');
     await userEvent.click(input);
@@ -108,7 +148,18 @@ describe('ExpandableFilterSearchBar', () => {
   });
 
   it('stays expanded after blur while a suggestion menu is open', async () => {
-    render(<SearchBarStub defaultValue="" role="combobox" aria-expanded="true" />);
+    render(
+      <SearchBarStub
+        defaultValue=""
+        role="combobox"
+        aria-expanded="true"
+        aria-controls="listbox-1"
+      >
+        <ul id="listbox-1" role="listbox">
+          <li role="option">span.op</li>
+        </ul>
+      </SearchBarStub>
+    );
 
     const input = screen.getByTestId('query-builder-input');
     await userEvent.click(input);
@@ -119,7 +170,6 @@ describe('ExpandableFilterSearchBar', () => {
     await flushAnimationFrames();
     expect(isExpanded(input)).toBe(true);
   });
-
   it('collapses after blur when no suggestion menu is open', async () => {
     render(<SearchBarStub defaultValue="" role="combobox" aria-expanded="false" />);
 

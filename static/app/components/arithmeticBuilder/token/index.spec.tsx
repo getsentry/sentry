@@ -94,8 +94,11 @@ function Tokens(props: TokensProp) {
         aggregations,
         functionArguments,
         getFieldDefinition: getSpanFieldDefinition,
-        getFilterTagValues: props.getFilterTagValues,
+        getFilterTagValues: hasConditionalAggregates
+          ? props.getFilterTagValues
+          : undefined,
         getSuggestedKey,
+        hasConditionalAggregates,
         references: props.references,
       }}
     >
@@ -215,6 +218,25 @@ describe('token', () => {
           name: 'avg_if(``,span.duration)',
         })
       ).toBeInTheDocument();
+    });
+
+    it('does not render the EAP filter argument input when the feature is off', async () => {
+      render(
+        <Tokens
+          expression="avg_if(`span.op:db`,span.duration)"
+          hasConditionalAggregates={false}
+        />
+      );
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg_if(`span.op:db`,span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      expect(
+        screen.queryByRole('combobox', {name: 'Add a filter'})
+      ).not.toBeInTheDocument();
     });
 
     it('allows selecting function with no arguments using mouse', async () => {

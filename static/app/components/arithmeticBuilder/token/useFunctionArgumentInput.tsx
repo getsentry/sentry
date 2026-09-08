@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent, Node} from '@react-types/shared';
 
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
 import {
   TokenKind,
@@ -14,6 +16,7 @@ import {
 import {nextTokenKeyOfKind} from 'sentry/components/arithmeticBuilder/tokenizer';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
+import {UnstyledInput} from 'sentry/components/tokenizedInput/token/unstyledInput';
 import {defined} from 'sentry/utils/defined';
 
 type FunctionArgumentValue = {label: string; value: string};
@@ -256,29 +259,33 @@ export function useFunctionArgumentInput({
   };
 }
 
-export const ArgumentGridRow = styled('div')`
-  display: flex;
-  align-items: center;
-  position: relative;
-  height: 100%;
-  flex: 0 1 auto;
-  max-width: fit-content;
-`;
+export function ArgumentGridRow(props: FlexProps) {
+  return (
+    <Flex
+      align="center"
+      position="relative"
+      height="100%"
+      flex="0 1 auto"
+      maxWidth="fit-content"
+      {...props}
+    />
+  );
+}
 
-export const ArgumentGridCell = styled('div')`
-  display: flex;
-  align-items: center;
-  height: 100%;
-
-  > div input {
-    max-width: 130px !important;
-    min-width: 0 !important;
-    white-space: nowrap !important;
+const StyledArgumentGridCell = styled(Flex)`
+  ${UnstyledInput} {
+    max-width: 130px;
+    min-width: 0;
+    white-space: nowrap;
   }
 
   /* The expandable equation/filter field sets data-expanded while focused. Lift
      the cap so long arguments are fully readable; stay truncated when collapsed. */
-  [data-expanded='true'] & > div input {
-    max-width: none !important;
+  [data-expanded='true'] & ${UnstyledInput} {
+    max-width: none;
   }
 `;
+
+export function ArgumentGridCell(props: FlexProps) {
+  return <StyledArgumentGridCell align="center" height="100%" {...props} />;
+}

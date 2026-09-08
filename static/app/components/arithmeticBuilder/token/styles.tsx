@@ -36,9 +36,6 @@ export const Row = styled('div', {
     min-width: 0;
     max-width: none;
     flex-basis: 0;
-    align-self: stretch;
-    height: auto;
-    min-height: 24px;
   }
 
   &[aria-invalid='true'] {
