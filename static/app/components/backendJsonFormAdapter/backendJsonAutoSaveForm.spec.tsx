@@ -127,6 +127,26 @@ describe('BackendJsonAutoSaveForm', () => {
     );
   });
 
+  it('displays a stored value that is not in the choices when creatable', () => {
+    render(
+      <BackendJsonAutoSaveForm
+        field={{
+          name: 'projects',
+          type: 'select',
+          label: 'Projects',
+          multiple: true,
+          creatable: true,
+          choices: [['suggested', 'Suggested project']],
+        }}
+        initialValue={['my-own-project']}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
+
+    expect(screen.getByText('my-own-project')).toBeInTheDocument();
+  });
+
   it('renders table field with add button', () => {
     render(
       <BackendJsonAutoSaveForm
