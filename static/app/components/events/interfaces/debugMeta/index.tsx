@@ -226,7 +226,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
             columns={{
               zero: '0.6fr 1.5fr 0.6fr',
               sm: '0.6fr 2fr 0.6fr',
-              xl: '0.6fr 2fr 1fr 0.4fr',
+              md: '0.6fr 2fr 1fr 0.4fr',
             }}
             background="secondary"
             borderBottom="primary"
@@ -241,7 +241,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
               align="center"
               display={{
                 zero: 'none',
-                xl: 'flex',
+                md: 'flex',
               }}
               minWidth="0"
               paddingTop="md"
