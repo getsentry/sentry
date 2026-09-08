@@ -113,7 +113,11 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
             conditions = stored.conditions if stored else None
 
         raw_data_type = attrs.get("data_type") or (stored.data_type if stored else None)
-        if conditions is None or raw_data_type is None:
+        if raw_data_type is None:
+            raise serializers.ValidationError(
+                {"dataType": "This filter has no data type. Send dataType to update it."}
+            )
+        if conditions is None:
             return attrs
 
         data_type = CustomInboundFilterDataType(raw_data_type)
