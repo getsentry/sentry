@@ -126,9 +126,9 @@ export interface ScmMessagingProviderRowProps {
   activeRow: ScmMessagingActiveRow;
   messagingSetup: ScmMessagingSetup;
   onActiveRowChange: (row: ScmMessagingActiveRow) => void;
+  onContinue: () => void;
   onInstallComplete: (providerKey: ScmMessagingProviderKey) => void;
   onMessagingSetupChange: (setup: ScmMessagingSetup) => void;
-  onContinue: () => void;
   resolvedProvider: ScmMessagingResolvedProvider;
   /**
    * True while the parent's integrations query is actively refetching (e.g.
