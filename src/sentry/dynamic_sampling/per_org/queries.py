@@ -193,26 +193,17 @@ def get_generic_metrics_organization_volume(
     time_interval: timedelta = RECALIBRATION_TIME_INTERVAL,
     end: datetime | None = None,
 ) -> OrganizationDataVolume | None:
-    """
-    The segments an organization received and kept according to the generic metrics
-    counters, which measure the sampling decision alone.
-    """
+    """The segments an organization received according to the generic metrics counters."""
     end_time = end or datetime.now(UTC)
     start_time = end_time - time_interval
 
     metric_id = indexer.resolve_shared_org(SpanMRI.COUNT_PER_ROOT_PROJECT.value)
     is_segment_column = f"tags_raw[{indexer.resolve_shared_org('is_segment')}]"
-    decision_column = f"tags_raw[{indexer.resolve_shared_org('decision')}]"
 
     query = Query(
         match=Entity(EntityKey.GenericOrgMetricsCounters.value),
         select=[
             Function("sum", [Column("value")], "total_count"),
-            Function(
-                "sumIf",
-                [Column("value"), Function("equals", [Column(decision_column), "keep"])],
-                "keep_count",
-            ),
             Column("org_id"),
         ],
         groupby=[Column("org_id")],
@@ -246,7 +237,7 @@ def get_generic_metrics_organization_volume(
     if total <= 0:
         return None
 
-    return OrganizationDataVolume(org_id=org_id, total=total, indexed=int(data[0]["keep_count"]))
+    return OrganizationDataVolume(org_id=org_id, total=total, indexed=None)
 
 
 def get_generic_metrics_transaction_volumes(

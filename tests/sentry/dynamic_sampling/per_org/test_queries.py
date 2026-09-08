@@ -806,7 +806,7 @@ class GenericMetricsOrganizationVolumeTest(BaseMetricsLayerTestCase, TestCase, S
             org_id=org.id,
         )
 
-    def test_counts_the_received_and_kept_segments(self) -> None:
+    def test_counts_the_received_segments(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         self._store(org, project.id, decision="drop", is_segment="true", value=2)
@@ -814,7 +814,7 @@ class GenericMetricsOrganizationVolumeTest(BaseMetricsLayerTestCase, TestCase, S
         self._store(org, project.id, decision="keep", is_segment="false", value=5)
 
         assert get_generic_metrics_organization_volume(org.id) == OrganizationDataVolume(
-            org_id=org.id, total=3, indexed=1
+            org_id=org.id, total=3, indexed=None
         )
 
     def test_an_org_without_volume_reads_as_none(self) -> None:
