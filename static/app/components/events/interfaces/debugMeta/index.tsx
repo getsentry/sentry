@@ -222,88 +222,84 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
           filterSelections={filterSelections}
         />
         <Container border="primary" radius="md" overflow="hidden" marginTop="sm">
-          <Header
-            columns={{
-              zero: '0.6fr 1.5fr 0.6fr',
-              sm: '0.6fr 2fr 0.6fr',
-              xl: '0.6fr 2fr 1fr 0.4fr',
-            }}
-            background="secondary"
-            borderBottom="primary"
-          >
-            <Flex align="center" minWidth="0" padding="md lg">
-              {t('Status')}
-            </Flex>
-            <Flex align="center" minWidth="0" paddingTop="md" paddingBottom="md">
-              {t('Image')}
-            </Flex>
-            <Flex
-              align="center"
-              display={{
-                zero: 'none',
-                xl: 'flex',
-              }}
-              minWidth="0"
-              paddingTop="md"
-              paddingBottom="md"
-            >
-              {t('Processing')}
-            </Flex>
-            <div />
-          </Header>
-          {filteredImages.length ? (
-            <ScrollArea
-              ref={setScrollContainer}
-              style={{height: lockHeight ? MAX_HEIGHT : undefined, maxHeight: MAX_HEIGHT}}
-            >
-              <div style={{height: totalSize, position: 'relative'}}>
-                {virtualizer.getVirtualItems().map(row => (
-                  <div
-                    key={row.key}
-                    ref={virtualizer.measureElement}
-                    data-index={row.index}
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      transform: `translateY(${row.start}px)`,
-                    }}
-                  >
-                    <DebugImage
-                      image={filteredImages[row.index]!}
-                      isLast={row.index === filteredImages.length - 1}
-                      onOpenImageDetailsModal={openDetails}
-                    />
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          ) : (
-            <Stack
-              align="center"
-              justify="center"
-              gap="md"
-              padding="lg"
-              style={lockHeight ? {height: MAX_HEIGHT} : undefined}
-            >
-              <Text align="center" variant="muted">
-                {searchTerm
-                  ? t('No images match your search query')
-                  : t('There are no images to be displayed')}
-              </Text>
-              {searchTerm && (
-                <Button
-                  size="sm"
-                  onClick={() =>
-                    filterSelections.length ? setFilterSelections([]) : setSearchTerm('')
-                  }
+          <Container overflowX="auto">
+            <Container minWidth="800px">
+              <Header
+                columns="0.6fr 2fr 1fr 0.4fr"
+                background="secondary"
+                borderBottom="primary"
+              >
+                <Flex align="center" minWidth="0" padding="md lg">
+                  {t('Status')}
+                </Flex>
+                <Flex align="center" minWidth="0" paddingTop="md" paddingBottom="md">
+                  {t('Image')}
+                </Flex>
+                <Flex align="center" minWidth="0" paddingTop="md" paddingBottom="md">
+                  {t('Processing')}
+                </Flex>
+                <div />
+              </Header>
+              {filteredImages.length ? (
+                <ScrollArea
+                  ref={setScrollContainer}
+                  style={{
+                    height: lockHeight ? MAX_HEIGHT : undefined,
+                    maxHeight: MAX_HEIGHT,
+                  }}
                 >
-                  {filterSelections.length ? t('Reset filter') : t('Clear search')}
-                </Button>
+                  <div style={{height: totalSize, position: 'relative'}}>
+                    {virtualizer.getVirtualItems().map(row => (
+                      <div
+                        key={row.key}
+                        ref={virtualizer.measureElement}
+                        data-index={row.index}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          transform: `translateY(${row.start}px)`,
+                        }}
+                      >
+                        <DebugImage
+                          image={filteredImages[row.index]!}
+                          isLast={row.index === filteredImages.length - 1}
+                          onOpenImageDetailsModal={openDetails}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              ) : (
+                <Stack
+                  align="center"
+                  justify="center"
+                  gap="md"
+                  padding="lg"
+                  style={lockHeight ? {height: MAX_HEIGHT} : undefined}
+                >
+                  <Text align="center" variant="muted">
+                    {searchTerm
+                      ? t('No images match your search query')
+                      : t('There are no images to be displayed')}
+                  </Text>
+                  {searchTerm && (
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        filterSelections.length
+                          ? setFilterSelections([])
+                          : setSearchTerm('')
+                      }
+                    >
+                      {filterSelections.length ? t('Reset filter') : t('Clear search')}
+                    </Button>
+                  )}
+                </Stack>
               )}
-            </Stack>
-          )}
+            </Container>
+          </Container>
         </Container>
       </Fragment>
     </FoldSection>
