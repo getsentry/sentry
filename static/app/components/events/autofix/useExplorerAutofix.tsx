@@ -211,7 +211,6 @@ export interface ExplorerAutofixState {
     id: string;
     input_type: 'file_change_approval' | 'ask_user_question';
   } | null;
-  // The outcome of each PR iteration, keyed by the iteration index as a string.
   pr_iteration_outcomes?: Record<string, string>;
   pr_iteration_paused?: boolean;
   queued_feedback?: RawFeedback[];
