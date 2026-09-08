@@ -1,4 +1,4 @@
-import type {ChangeEvent, FocusEvent, MouseEvent} from 'react';
+import type {ChangeEvent, FocusEvent, KeyboardEvent, MouseEvent} from 'react';
 import {useCallback, useLayoutEffect, useRef, useState} from 'react';
 import {Item, Section} from '@react-stately/collections';
 
@@ -52,6 +52,15 @@ export function ConditionalFilterArgumentInput(props: FunctionArgumentInputProps
   // Apply after React commits the controlled value. A lone rAF + focus() races in
   // Chrome and resets the caret before (or when) focus returns from the listbox.
   const pendingCaretRef = useRef<{pos: number; value: string} | null>(null);
+  const clickSelectionRafRef = useRef<number | null>(null);
+
+  const {comboBoxFilterValue, editPhase, items} = useConditionalFilterAutocomplete({
+    enabled: isCurrentlyEditing,
+    filterValue: inputValue,
+    functionArguments: builderFunctionArguments,
+    getFilterTagValues,
+    selectionIndex,
+  });
 
   useLayoutEffect(() => {
     const pendingCaret = pendingCaretRef.current;
@@ -70,13 +79,24 @@ export function ConditionalFilterArgumentInput(props: FunctionArgumentInputProps
     setSelectionIndex(pendingCaret.pos);
   }, [inputRef, inputValue]);
 
-  const {comboBoxFilterValue, editPhase, items} = useConditionalFilterAutocomplete({
-    enabled: isCurrentlyEditing,
-    filterValue: inputValue,
-    functionArguments: builderFunctionArguments,
-    getFilterTagValues,
-    selectionIndex,
-  });
+  // Suggestion updates re-render the controlled input and can reset the DOM caret.
+  // Keep the caret aligned with selectionIndex so key↔value autocomplete stays correct.
+  useLayoutEffect(() => {
+    if (!isCurrentlyEditing) {
+      return;
+    }
+    const input = inputRef.current;
+    if (!input || document.activeElement !== input) {
+      return;
+    }
+    if (
+      input.selectionStart === selectionIndex &&
+      input.selectionEnd === selectionIndex
+    ) {
+      return;
+    }
+    input.setSelectionRange(selectionIndex, selectionIndex);
+  }, [displayValue, inputRef, isCurrentlyEditing, items, selectionIndex]);
 
   const shouldFilterComboBoxResults = !(editPhase === 'value' && getFilterTagValues);
 
@@ -96,18 +116,34 @@ export function ConditionalFilterArgumentInput(props: FunctionArgumentInputProps
   const onClick = useCallback(
     (evt: MouseEvent<HTMLInputElement>) => {
       const input = evt.currentTarget;
-      requestAnimationFrame(() => {
+      if (clickSelectionRafRef.current !== null) {
+        window.cancelAnimationFrame(clickSelectionRafRef.current);
+      }
+      // Read the caret after the browser places it; cancel if keyUp/change updates first.
+      clickSelectionRafRef.current = window.requestAnimationFrame(() => {
+        clickSelectionRafRef.current = null;
         updateSelectionIndex(input);
       });
     },
     [updateSelectionIndex]
   );
 
-  const onKeyUp = useCallback(() => {
-    updateSelectionIndex();
-  }, [updateSelectionIndex]);
+  const onKeyUp = useCallback(
+    (evt: KeyboardEvent<HTMLInputElement>) => {
+      if (clickSelectionRafRef.current !== null) {
+        window.cancelAnimationFrame(clickSelectionRafRef.current);
+        clickSelectionRafRef.current = null;
+      }
+      updateSelectionIndex(evt.currentTarget);
+    },
+    [updateSelectionIndex]
+  );
 
   const onInputChange = useCallback((evt: ChangeEvent<HTMLInputElement>) => {
+    if (clickSelectionRafRef.current !== null) {
+      window.cancelAnimationFrame(clickSelectionRafRef.current);
+      clickSelectionRafRef.current = null;
+    }
     setInputValue(evt.target.value);
     setCurrentValue(evt.target.value);
     setSelectionIndex(evt.target.selectionStart ?? 0);
@@ -207,7 +243,7 @@ export function ConditionalFilterArgumentInput(props: FunctionArgumentInputProps
           onInputFocus={onInputFocus}
           onKeyDown={onKeyDown}
           onKeyDownCapture={onKeyDownCapture}
-          onKeyUp={onKeyUp}
+          onInputKeyUp={onKeyUp}
           onOptionSelected={onOptionSelected}
           data-test-id={dataTestId}
         >

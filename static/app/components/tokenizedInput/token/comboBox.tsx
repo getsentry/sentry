@@ -3,6 +3,7 @@ import type {
   ClipboardEvent,
   FocusEvent,
   FocusEventHandler,
+  KeyboardEventHandler,
   MouseEventHandler,
   Ref,
 } from 'react';
@@ -49,9 +50,14 @@ interface ComboBoxProps {
   onInputCommit?: (value: string) => void;
   onInputEscape?: () => void;
   onInputFocus?: FocusEventHandler<HTMLInputElement>;
+  /**
+   * Native keyup on the input. Callers that need the caret after arrow-key
+   * movement (e.g. equation filter autocomplete) should use this rather than
+   * onKeyDown, which fires before the browser updates selection.
+   */
+  onInputKeyUp?: KeyboardEventHandler<HTMLInputElement>;
   onKeyDown?: (evt: KeyboardEvent) => void;
   onKeyDownCapture?: (evt: React.KeyboardEvent<HTMLInputElement>) => void;
-  onKeyUp?: (e: KeyboardEvent) => void;
   onOpenChange?: (newOpenState: boolean) => void;
   onOptionSelected?: (option: SelectOptionWithKey<string>) => void;
   onPaste?: (e: ClipboardEvent<HTMLInputElement>) => void;
@@ -118,12 +124,12 @@ export function ComboBox({
   onInputChange,
   onKeyDown,
   onKeyDownCapture,
-  onKeyUp,
   onPaste,
   placeholder,
   tabIndex,
   ref,
   keepMenuOpenOnSelect,
+  onInputKeyUp,
   shouldFilterResults = true,
 }: ComboBoxProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -276,13 +282,6 @@ export function ComboBox({
     [inputValue, onInputCommit, onInputEscape, state, isOpen, onKeyDown]
   );
 
-  const handleComboBoxKeyUp = useCallback(
-    (evt: KeyboardEvent) => {
-      onKeyUp?.(evt);
-    },
-    [onKeyUp]
-  );
-
   const {inputProps, listBoxProps} = useSearchTokenCombobox<
     SelectOptionOrSectionWithKey<string>
   >(
@@ -296,7 +295,6 @@ export function ComboBox({
       onFocus: handleComboBoxFocus,
       onBlur: handleComboBoxBlur,
       onKeyDown: handleComboBoxKeyDown,
-      onKeyUp: handleComboBoxKeyUp,
     },
     state
   );
@@ -355,6 +353,14 @@ export function ComboBox({
     [inputProps, state, onClick]
   );
 
+  const handleInputKeyUp: KeyboardEventHandler<HTMLInputElement> = useCallback(
+    evt => {
+      inputProps.onKeyUp?.(evt);
+      onInputKeyUp?.(evt);
+    },
+    [inputProps, onInputKeyUp]
+  );
+
   useUpdateOverlayPositionOnContentChange({
     contentRef: popoverRef,
     updateOverlayPosition,
@@ -387,6 +393,7 @@ export function ComboBox({
         onPaste={onPaste}
         disabled={false}
         onKeyDownCapture={onKeyDownCapture}
+        onKeyUp={handleInputKeyUp}
         data-test-id={dataTestId}
       />
       <StyledPositionWrapper

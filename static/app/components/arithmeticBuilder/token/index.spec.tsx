@@ -1191,8 +1191,10 @@ describe('token', () => {
       ).getByRole('combobox', {name: 'Add a filter'});
 
       await userEvent.click(filterArg);
+      expect(filterArg).toHaveFocus();
+      // Move to the start of the key so autocomplete switches out of value mode.
       (filterArg as HTMLInputElement).setSelectionRange(0, 0);
-      fireEvent.keyUp(filterArg, {key: 'ArrowLeft', code: 'ArrowLeft'});
+      fireEvent.keyUp(filterArg, {key: 'Home', code: 'Home'});
       await waitFor(() => {
         expect(screen.getByRole('option', {name: 'span.op:'})).toBeInTheDocument();
       });
