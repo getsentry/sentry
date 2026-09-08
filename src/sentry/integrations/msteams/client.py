@@ -14,7 +14,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, IntegrationError
 from sentry.silo.base import SiloMode, control_silo_function
 
 # five minutes which is industry standard clock skew tolerance
@@ -90,6 +90,14 @@ class MsTeamsPreInstallClient(MsTeamsClientABC):
 # MsTeamsClient is used with an existing integration object and handles token refreshing
 class MsTeamsClient(MsTeamsClientABC, IntegrationProxyClient):
     integration_name = IntegrationProviderSlug.MSTEAMS.value
+
+    def request(self, *args, **kwargs):
+        try:
+            return super().request(*args, **kwargs)
+        except ApiError as error:
+            if error.json and error.json.get("error", {}).get("code") == "ConversationNotFound":
+                raise ApiInvalidRequestError(error.text, url=error.url) from error
+            raise
 
     def __init__(self, integration: Integration | RpcIntegration):
         self.integration = integration

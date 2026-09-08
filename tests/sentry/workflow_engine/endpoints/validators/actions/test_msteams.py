@@ -63,6 +63,29 @@ class TestMSTeamsActionValidator(TestCase):
         }
 
     @mock.patch("sentry.integrations.msteams.actions.form.find_channel_id")
+    def test_validate__conversation_not_found(self, mock_find_channel_id: mock.MagicMock) -> None:
+        mock_find_channel_id.side_effect = ApiInvalidRequestError(
+            '{"error":{"code":"ConversationNotFound","message":"Conversation not found."}}'
+        )
+
+        validator = BaseActionValidator(
+            data=self.valid_data,
+            context={"organization": self.organization},
+        )
+
+        assert validator.is_valid() is False
+        assert validator.errors == {
+            "all": [
+                ErrorDetail(
+                    string=(
+                        'The channel or user "cathy-sentry" could not be found in the msteams Team.'
+                    ),
+                    code="invalid",
+                )
+            ]
+        }
+
+    @mock.patch("sentry.integrations.msteams.actions.form.find_channel_id")
     def test_validate__badsyntax_channel(self, mock_find_channel_id: mock.MagicMock) -> None:
         mock_find_channel_id.side_effect = ApiInvalidRequestError(
             '{"error":{"code":"BadSyntax","message":"Bad format of conversation ID"}}'

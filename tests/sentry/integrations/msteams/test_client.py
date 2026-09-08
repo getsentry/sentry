@@ -10,7 +10,8 @@ from requests import Request
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.msteams.client import MsTeamsClient, OAuthMsTeamsClient
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.integrations.msteams.metrics import record_lifecycle_termination_level
+from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_PATH,
@@ -143,6 +144,26 @@ class MsTeamsClientTest(TestCase):
             ),
         ]
         assert self.metrics.incr.mock_calls == calls
+
+    @responses.activate
+    def test_invalid_request_records_halt(self) -> None:
+        lifecycle = mock.MagicMock()
+
+        record_lifecycle_termination_level(lifecycle, ApiInvalidRequestError("Invalid request"))
+
+        lifecycle.record_halt.assert_called_once()
+        lifecycle.record_failure.assert_not_called()
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.client.IntegrationProxyClient.request")
+    def test_conversation_not_found_is_invalid_request(self, mock_request: mock.MagicMock) -> None:
+        mock_request.side_effect = ApiError(
+            '{"error":{"code":"ConversationNotFound","message":"Conversation not found."}}',
+            code=404,
+        )
+
+        with pytest.raises(ApiInvalidRequestError):
+            self.msteams_client.get_channel_list("foobar")
 
     @responses.activate
     def test_api_client_from_integration_installation(self) -> None:

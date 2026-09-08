@@ -42,15 +42,10 @@ class MsTeamsNotifyServiceForm(forms.Form):
 
         try:
             channel_id = find_channel_id(integration, channel)
-        except ApiInvalidRequestError as error:
-            # MS Teams may return BadSyntax while resolving the channel/conversation.
-            # Treat that as a user-correctable channel validation failure rather than
-            # bubbling ApiInvalidRequestError out of action validation / test-fire.
-            error_code = (error.json or {}).get("error", {}).get("code")
-            if error_code == "BadSyntax":
-                channel_id = None
-            else:
-                raise
+        except ApiInvalidRequestError:
+            # Invalid requests mean the stored team or conversation can no longer be
+            # used, so surface the problem as validation instead of failing test-fire.
+            channel_id = None
 
         if channel_id is None and integration_id is not None:
             params = {

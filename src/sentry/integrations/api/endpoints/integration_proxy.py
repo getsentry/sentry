@@ -28,6 +28,7 @@ from sentry.metrics.base import Tags
 from sentry.shared_integrations.exceptions import (
     ApiForbiddenError,
     ApiHostError,
+    ApiInvalidRequestError,
     ApiRateLimitedError,
     ApiTimeoutError,
     ApiUnauthorized,
@@ -70,6 +71,7 @@ class IntegrationProxyFailureMetricType(StrEnum):
     INVALID_IDENTITY = "invalid_identity"
     HOST_UNREACHABLE_ERROR = "host_unreachable_error"
     HOST_TIMEOUT_ERROR = "host_timeout_error"
+    API_INVALID_REQUEST_ERROR = "api_invalid_request_error"
     UNAUTHORIZED_ERROR = "unauthorized_error"
     RATE_LIMITED_ERROR = "rate_limited_error"
     FORBIDDEN_ERROR = "forbidden_error"
@@ -345,9 +347,13 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             if self.integration is not None:
                 lifecycle.add_extras({"provider": self.integration.provider})
 
-            response = self._call_third_party_api(
-                request=request, full_url=full_url, headers=headers
-            )
+            try:
+                response = self._call_third_party_api(
+                    request=request, full_url=full_url, headers=headers
+                )
+            except ApiInvalidRequestError as error:
+                lifecycle.record_halt(error)
+                raise
 
         self._add_metric(
             metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
@@ -376,6 +382,12 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         elif isinstance(exc, ApiTimeoutError):
             logger.info("hybrid_cloud.integration_proxy.host_timeout_error", extra=self.log_extra)
             self._add_failure_metric(IntegrationProxyFailureMetricType.HOST_TIMEOUT_ERROR)
+            return self.respond(status=exc.code)
+        elif isinstance(exc, ApiInvalidRequestError):
+            logger.info(
+                "hybrid_cloud.integration_proxy.api_invalid_request_error", extra=self.log_extra
+            )
+            self._add_failure_metric(IntegrationProxyFailureMetricType.API_INVALID_REQUEST_ERROR)
             return self.respond(status=exc.code)
         elif isinstance(exc, ApiUnauthorized):
             logger.info("hybrid_cloud.integration_proxy.unauthorized_error", extra=self.log_extra)
