@@ -39,7 +39,10 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     set_transactions_resampling_rates,
 )
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
+from sentry.dynamic_sampling.tasks.utils import (
+    dynamic_sampling_task,
+    legacy_pipeline_killswitched,
+)
 from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.dynamic_sampling.utils import has_dynamic_sampling, is_project_mode_sampling
 from sentry.models.options.project_option import ProjectOption
@@ -90,6 +93,9 @@ class ProjectTransactionsTotals(ProjectIdentity, total=True):
 )
 @dynamic_sampling_task
 def boost_low_volume_transactions() -> None:
+    if legacy_pipeline_killswitched("boost_low_volume_transactions"):
+        return
+
     num_big_trans = int(
         options.get("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions")
     )

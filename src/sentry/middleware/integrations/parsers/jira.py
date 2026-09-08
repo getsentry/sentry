@@ -28,7 +28,6 @@ from sentry.integrations.utils.atlassian_connect import (
     parse_integration_from_request,
 )
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +96,4 @@ class JiraRequestParser(BaseRequestParser):
         """The Connect descriptor registers only `jira:issue_updated`, so the issue is
         the only axis a Jira mailbox can be split on.
         """
-        try:
-            return int(get_path(data, "issue", "id"))
-        except (TypeError, ValueError):
-            return None
+        return self.bucket_key_at(data, "issue", "id")

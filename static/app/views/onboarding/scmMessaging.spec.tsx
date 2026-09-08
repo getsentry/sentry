@@ -208,6 +208,7 @@ describe('ScmMessaging', () => {
           messagingSetup={selectedMessagingSetup}
           onMessagingSetupChange={jest.fn()}
           selectedPlatform={selectedPlatform}
+          onComplete={jest.fn()}
         />
       </QueryClientProvider>
     );
@@ -237,6 +238,7 @@ describe('ScmMessaging', () => {
           messagingSetup={selectedMessagingSetup}
           onMessagingSetupChange={jest.fn()}
           selectedPlatform={selectedPlatform}
+          onComplete={jest.fn()}
         />
       </QueryClientProvider>
     );
@@ -280,6 +282,7 @@ describe('ScmMessaging', () => {
           messagingSetup={selectedMessagingSetup}
           onMessagingSetupChange={jest.fn()}
           selectedPlatform={selectedPlatform}
+          onComplete={jest.fn()}
         />
       </QueryClientProvider>
     );
@@ -409,6 +412,7 @@ describe('ScmMessaging', () => {
           messagingSetup={selectedMessagingSetup}
           onMessagingSetupChange={onMessagingSetupChange}
           selectedPlatform={selectedPlatform}
+          onComplete={jest.fn()}
         />
       </QueryClientProvider>
     );
@@ -440,6 +444,7 @@ describe('ScmMessaging', () => {
             messagingSetup={messagingSetup}
             onMessagingSetupChange={setMessagingSetup}
             selectedPlatform={selectedPlatform}
+            onComplete={jest.fn()}
           />
         </Fragment>
       );
@@ -475,6 +480,7 @@ describe('ScmMessaging', () => {
             messagingSetup={messagingSetup}
             onMessagingSetupChange={setMessagingSetup}
             selectedPlatform={selectedPlatform}
+            onComplete={jest.fn()}
           />
         </Fragment>
       );
@@ -641,6 +647,7 @@ describe('ScmMessaging', () => {
           messagingSetup={setup}
           onMessagingSetupChange={setSetup}
           selectedPlatform={selectedPlatform}
+          onComplete={jest.fn()}
         />
       );
     }
@@ -823,6 +830,7 @@ describe('ScmMessaging', () => {
               messagingSetup={setup}
               onMessagingSetupChange={setSetup}
               selectedPlatform={selectedPlatform}
+              onComplete={jest.fn()}
             />
           </Fragment>
         );
