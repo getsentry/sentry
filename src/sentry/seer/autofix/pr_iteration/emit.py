@@ -130,7 +130,11 @@ def open_pr_iteration_details(
 
 
 def trigger_pr_iteration_details(
-    *, log_ctx: PrIterationLogContext, run_id: int, organization_id: int
+    *,
+    log_ctx: PrIterationLogContext,
+    run_id: int,
+    organization_id: int,
+    trigger_source: str | None,
 ) -> int | None:
     """Claim the waiting iteration for the drain that is about to pop the queue.
 
@@ -144,7 +148,11 @@ def trigger_pr_iteration_details(
             return None
 
         iteration = _claim_untriggered(seer_run)
-        return None if iteration is None else iteration.id
+        if iteration is None:
+            return None
+
+        update_iteration(iteration, trigger_source=trigger_source)
+        return iteration.id
     except Exception:
         log_ctx.error("autofix.pr_iteration.details.trigger_failed")
         return None
