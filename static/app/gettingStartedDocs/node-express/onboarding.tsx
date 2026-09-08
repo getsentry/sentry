@@ -114,7 +114,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'The [code:expressIntegration] captures errors from your route handlers automatically. You do not have to add an error handler.',
+            'The default [code:expressIntegration] captures errors from your route handlers automatically. You do not have to add an error handler.',
             {code: <code />}
           ),
         },
