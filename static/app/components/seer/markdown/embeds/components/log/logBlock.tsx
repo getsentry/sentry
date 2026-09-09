@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
+import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -18,6 +18,7 @@ import type {PageFilterDatetime} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {toSplicedSorted} from 'sentry/utils/array/toSplicedSorted';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {TagVariant} from 'sentry/utils/theme/types';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
@@ -39,6 +40,7 @@ import {
 import {
   getLogRowTimestampMillis,
   getLogSeverityLevel,
+  SeverityLevel,
   severityLevelToText,
 } from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -125,6 +127,31 @@ function toLogAttributes(
     {name: OurLogKnownFieldKey.TIMESTAMP, type: 'str', value: details.timestamp},
     (a, b) => a.name.localeCompare(b.name)
   );
+}
+
+/**
+ * `Tag` offers the semantic variants rather than the logs table's per-level
+ * colors. That is the right trade here: those finer shades exist to be scanned
+ * down a column of rows, and a single embedded row has no column.
+ */
+function severityTagVariant(level: SeverityLevel): TagVariant {
+  switch (level) {
+    case SeverityLevel.FATAL:
+    case SeverityLevel.ERROR:
+      return 'danger';
+    case SeverityLevel.WARN:
+      return 'warning';
+    case SeverityLevel.INFO:
+      return 'info';
+    case SeverityLevel.TRACE:
+    case SeverityLevel.DEBUG:
+    case SeverityLevel.DEFAULT:
+    case SeverityLevel.UNKNOWN:
+      return 'muted';
+    default:
+      unreachable(level);
+      return 'muted';
+  }
 }
 
 function rowTimestampMillis(row: OurLogsResponseItem | undefined): number | null {
@@ -318,9 +345,7 @@ export default function LogBlock(props: LogData) {
         ) : (
           <Stack gap="lg">
             <Flex align="baseline" gap="sm">
-              <SeverityTag logColors={logColors}>
-                {severityLevelToText(level)}
-              </SeverityTag>
+              <Tag variant={severityTagVariant(level)}>{severityLevelToText(level)}</Tag>
               <Text monospace size="sm">
                 {String(message ?? '')}
               </Text>
@@ -342,16 +367,3 @@ export default function LogBlock(props: LogData) {
     </Container>
   );
 }
-
-const SeverityTag = styled('span')<{logColors: ReturnType<typeof getLogColors>}>`
-  flex-shrink: 0;
-  border: 1px solid ${p => p.logColors.border};
-  background: ${p => p.logColors.backgroundLight};
-  color: ${p => p.logColors.color};
-  border-radius: ${p => p.theme.radius.sm};
-  padding: 0 ${p => p.theme.space.xs};
-  font-size: ${p => p.theme.font.size.sm};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  text-transform: uppercase;
-  white-space: nowrap;
-`;
