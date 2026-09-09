@@ -32,7 +32,7 @@ export const LOG_AGGREGATE_WINDOW_MS = 60 * 60 * 1000;
 /**
  * Used only when neither Seer nor the id tells us when the log happened.
  */
-export const LOG_FALLBACK_STATS_PERIOD = '14d';
+const LOG_FALLBACK_STATS_PERIOD = '14d';
 
 /**
  * Seer may report a project id as a number, but everything downstream -- the
