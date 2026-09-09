@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import type {ColumnKey} from 'sentry/components/featureFlags/featureFlagsLogTable';
 import {FeatureFlagsLogTable} from 'sentry/components/featureFlags/featureFlagsLogTable';
@@ -9,8 +10,6 @@ import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
@@ -21,19 +20,19 @@ const BASE_COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
   {key: 'createdAt', name: t('Date')},
 ];
 
+const auditLogParsers = {
+  cursor: parseAsString.withDefault(''),
+  end: parseAsString.withDefault(''),
+  flag: parseAsString.withDefault(''),
+  sort: parseAsString.withDefault('-created_at'),
+  start: parseAsString.withDefault(''),
+  statsPeriod: parseAsString.withDefault(''),
+  utc: parseAsString.withDefault(''),
+};
+
 export function OrganizationFeatureFlagsAuditLogTable() {
   const organization = useOrganization();
-  const locationQuery = useLocationQuery({
-    fields: {
-      cursor: decodeScalar,
-      end: decodeScalar,
-      flag: decodeScalar,
-      sort: (value: any) => decodeScalar(value, '-created_at'),
-      start: decodeScalar,
-      statsPeriod: decodeScalar,
-      utc: decodeScalar,
-    },
-  });
+  const [locationQuery] = useQueryStates(auditLogParsers);
 
   const query = useMemo(() => {
     const filteredFields = Object.fromEntries(

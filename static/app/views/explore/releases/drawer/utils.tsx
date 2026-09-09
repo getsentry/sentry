@@ -1,6 +1,7 @@
 import omit from 'lodash/omit';
+import {parseAsString} from 'nuqs';
 
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 
 export enum ReleasesDrawerFields {
   DRAWER = 'rd',
@@ -23,26 +24,26 @@ export enum ReleasesDrawerFields {
 }
 
 /**
- * For use with `useLocationQuery` to decode the releases drawer query parameters.
+ * For use with nuqs' `useQueryStates` to read the releases drawer query parameters.
  */
-export const RELEASES_DRAWER_FIELD_MAP = {
-  [ReleasesDrawerFields.DRAWER]: decodeScalar,
-  [ReleasesDrawerFields.CHART]: decodeScalar,
-  [ReleasesDrawerFields.COMMIT_CURSOR]: decodeScalar,
-  [ReleasesDrawerFields.END]: decodeScalar,
-  [ReleasesDrawerFields.ENVIRONMENT]: decodeList,
-  [ReleasesDrawerFields.EVENT_ID]: decodeScalar,
-  [ReleasesDrawerFields.FILES_CURSOR]: decodeScalar,
-  [ReleasesDrawerFields.FLAGS_CURSOR]: decodeScalar,
-  [ReleasesDrawerFields.LIST_CURSOR]: decodeScalar,
-  [ReleasesDrawerFields.PROJECT]: decodeList,
-  [ReleasesDrawerFields.RELEASE]: decodeScalar,
-  [ReleasesDrawerFields.RELEASE_PROJECT_ID]: decodeScalar,
-  [ReleasesDrawerFields.START]: decodeScalar,
-  [ReleasesDrawerFields.SOURCE]: decodeScalar,
+export const RELEASES_DRAWER_PARSERS = {
+  [ReleasesDrawerFields.DRAWER]: parseAsString.withDefault(''),
+  [ReleasesDrawerFields.CHART]: parseAsString.withDefault(''),
+  [ReleasesDrawerFields.COMMIT_CURSOR]: parseAsString.withDefault(''),
+  [ReleasesDrawerFields.END]: parseAsString.withDefault(''),
+  [ReleasesDrawerFields.ENVIRONMENT]: parseAsStringArray,
+  [ReleasesDrawerFields.EVENT_ID]: parseAsString.withDefault(''),
+  [ReleasesDrawerFields.FILES_CURSOR]: parseAsString.withDefault(''),
+  [ReleasesDrawerFields.FLAGS_CURSOR]: parseAsString.withDefault(''),
+  [ReleasesDrawerFields.LIST_CURSOR]: parseAsString.withDefault(''),
+  [ReleasesDrawerFields.PROJECT]: parseAsStringArray,
+  [ReleasesDrawerFields.RELEASE]: parseAsString.withDefault(''),
+  [ReleasesDrawerFields.RELEASE_PROJECT_ID]: parseAsString.withDefault(''),
+  [ReleasesDrawerFields.START]: parseAsString.withDefault(''),
+  [ReleasesDrawerFields.SOURCE]: parseAsString.withDefault(''),
 };
 
-const RELEASES_DRAWER_FIELD_KEYS = Object.keys(RELEASES_DRAWER_FIELD_MAP);
+const RELEASES_DRAWER_FIELD_KEYS = Object.keys(RELEASES_DRAWER_PARSERS);
 
 /**
  * Removes the releases drawer parameters from the location query.

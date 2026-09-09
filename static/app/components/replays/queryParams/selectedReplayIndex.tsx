@@ -1,21 +1,19 @@
 import {createContext, useCallback, useContext} from 'react';
+import {parseAsInteger, useQueryState} from 'nuqs';
 
-import {decodeInteger} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 const SelectedReplayIndexContext = createContext(0);
 
 export function SelectedReplayIndexProvider({children}: {children: React.ReactNode}) {
-  const {selected_replay_index: selectedReplayIndex} = useLocationQuery({
-    fields: {
-      selected_replay_index: decodeInteger,
-    },
-  });
+  const [selectedReplayIndex] = useQueryState(
+    'selected_replay_index',
+    parseAsInteger.withDefault(0)
+  );
 
   return (
-    <SelectedReplayIndexContext.Provider value={selectedReplayIndex ?? 0}>
+    <SelectedReplayIndexContext.Provider value={selectedReplayIndex}>
       {children}
     </SelectedReplayIndexContext.Provider>
   );

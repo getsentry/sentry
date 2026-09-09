@@ -1,10 +1,12 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {defined} from 'sentry/utils/defined';
-import {decodeScalar, type decodeList, type decodeSorts} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {parseAsSorts} from 'sentry/utils/url/parseAsSort';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useUrlBatchContext} from 'sentry/utils/url/urlParamBatchContext';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 
 interface UseQueryParamStateWithScalarDecoder<T> {
   fieldName: string;
@@ -58,15 +60,22 @@ export function useQueryParamState<T = string>({
 ] {
   const {batchUrlParamUpdates} = useUrlBatchContext();
 
+  // The caller picks a decoder, so the matching nuqs parser is resolved at
+  // runtime. Parsers have to keep a stable identity across renders.
+  const parser = useMemo(() => {
+    if (decoder === decodeList) {
+      return parseAsStringArray;
+    }
+    if (decoder === decodeSorts) {
+      return parseAsSorts;
+    }
+    return parseAsString.withDefault('');
+  }, [decoder]);
+
   // The URL query params give us our initial state
-  const parsedQueryParams = useLocationQuery({
-    fields: {
-      [fieldName]: decoder ?? decodeScalar,
-    },
-  });
+  const [decodedValue] = useQueryState(fieldName, parser as typeof parseAsSorts);
 
   const deserializeValue = useCallback((): T | undefined => {
-    const decodedValue = parsedQueryParams[fieldName];
     if (!defined(decodedValue)) {
       return undefined;
     }
@@ -77,7 +86,7 @@ export function useQueryParamState<T = string>({
         // When the deserializer isn't provided, we should return the value
         // if T is a string, number, boolean, or array, or else return undefined
         (decodedValue as T);
-  }, [parsedQueryParams, fieldName, deserializer]);
+  }, [decodedValue, deserializer]);
 
   const [localState, setLocalState] = useState<T | undefined>(deserializeValue);
 

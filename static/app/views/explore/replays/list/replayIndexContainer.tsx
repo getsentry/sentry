@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -8,13 +9,23 @@ import {useReplayTableSort} from 'sentry/components/replays/table/useReplayTable
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import {replayListApiOptions} from 'sentry/utils/replays/replayListApiOptions';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ReplayIndexTable} from 'sentry/views/explore/replays/list/replayIndexTable';
+
+const replayListParsers = {
+  cursor: parseAsString.withDefault(''),
+  end: parseAsString.withDefault(''),
+  environment: parseAsStringArray,
+  project: parseAsStringArray,
+  query: parseAsString.withDefault(''),
+  start: parseAsString.withDefault(''),
+  statsPeriod: parseAsString.withDefault(''),
+  utc: parseAsString.withDefault(''),
+};
 
 interface Props {
   showDeadRageClickCards: boolean;
@@ -31,18 +42,7 @@ export function ReplayIndexContainer({
   const navigate = useNavigate();
 
   const {sortQuery} = useReplayTableSort();
-  const query = useLocationQuery({
-    fields: {
-      cursor: decodeScalar,
-      end: decodeScalar,
-      environment: decodeList,
-      project: decodeList,
-      query: decodeScalar,
-      start: decodeScalar,
-      statsPeriod: decodeScalar,
-      utc: decodeScalar,
-    },
-  });
+  const [query] = useQueryStates(replayListParsers);
   const replayListOptions = replayListApiOptions({
     options: {query: {...query, sort: sortQuery}},
     organization,
