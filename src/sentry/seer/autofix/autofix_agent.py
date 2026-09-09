@@ -512,6 +512,55 @@ def trigger_autofix_rca_in_seer(
     return feature_run
 
 
+def trigger_autofix_solution_in_seer(
+    group: Group,
+    *,
+    run_id: int,
+    referrer: AutofixReferrer,
+    user_context: str | None,
+    insert_index: int | None,
+    user: User | RpcUser | AnonymousUser | None,
+    enable_bash_tools: bool,
+) -> SeerRun:
+    """Continue the Autofix solution step in Seer and emit the legacy start events."""
+    # Local import avoids a circular import (dispatch imports this module).
+    from sentry.seer.autofix.solution.dispatch import trigger_autofix_solution_feature
+
+    feature_run = trigger_autofix_solution_feature(
+        group,
+        run_id=run_id,
+        referrer=referrer,
+        user_context=user_context,
+        insert_index=insert_index,
+        user=user,
+        enable_bash_tools=enable_bash_tools,
+    )
+    feature_run_id = feature_run.seer_run_state_id
+    if feature_run_id is None:
+        # flush=True populates this on success; guard defensively.
+        raise SeerApiError("autofix_solution feature run has no run id", 500)
+
+    logger.info(
+        "autofix.trigger.routed_to_solution_feature",
+        extra={
+            "group_id": group.id,
+            "organization_id": group.organization.id,
+            "previous_run_id": run_id,
+            "run_id": feature_run_id,
+            "referrer": referrer.value,
+        },
+    )
+
+    _handle_step_started_events(
+        group,
+        AutofixStep.SOLUTION,
+        feature_run_id,
+        str(feature_run.uuid),
+        referrer,
+    )
+    return feature_run
+
+
 def trigger_autofix_agent(
     group: Group,
     step: AutofixStep,
@@ -589,6 +638,20 @@ def trigger_autofix_agent(
     run_state: SeerRunState | None = None
     if run_id is not None:
         run_state = _get_group_run_state(client, group, run_id)
+
+    use_seer_solution_feature = features.has(
+        "organizations:autofix-solution-in-seer", group.organization, actor=user
+    )
+    if step == AutofixStep.SOLUTION and run_id is not None and use_seer_solution_feature:
+        return trigger_autofix_solution_in_seer(
+            group,
+            run_id=run_id,
+            referrer=referrer,
+            user_context=user_context,
+            insert_index=insert_index,
+            user=user,
+            enable_bash_tools=enable_bash_tools,
+        )
 
     iteration_index: int | None = None
     if is_iteration_step:

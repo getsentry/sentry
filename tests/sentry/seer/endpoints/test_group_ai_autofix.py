@@ -410,18 +410,19 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_continue_with_sentry_run_id_resolves_to_numeric_id(self, mock_trigger_explorer):
         group = self.create_group()
-        run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
-        mock_trigger_explorer.return_value = run
+        previous_run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
+        continued_run = self.create_seer_run(organization=self.organization, seer_run_state_id=556)
+        mock_trigger_explorer.return_value = continued_run
 
         self.login_as(user=self.user)
         response = self.client.post(
             self._get_url(group.id),
-            data={"step": "solution", "sentry_run_id": str(run.uuid)},
+            data={"step": "solution", "sentry_run_id": str(previous_run.uuid)},
             format="json",
         )
 
         assert response.status_code == 202, response.data
-        assert response.data == {"run_id": 555, "sentry_run_id": str(run.uuid)}
+        assert response.data == {"run_id": 556, "sentry_run_id": str(continued_run.uuid)}
         assert mock_trigger_explorer.call_args.kwargs["run_id"] == 555
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")

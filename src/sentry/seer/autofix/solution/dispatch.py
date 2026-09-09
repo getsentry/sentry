@@ -5,19 +5,15 @@ from typing import Any, Literal
 
 from django.contrib.auth.models import AnonymousUser
 
-from sentry import quotas
-from sentry.constants import DataCategory
 from sentry.models.group import Group
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_utils import AgentRunOptions, collect_user_org_context
 from sentry.seer.agent.on_completion_hook import extract_hook_definition
-from sentry.seer.autofix.autofix_agent import NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.feature.models import FEATURE_ID, AutofixPayload, AutofixStepArgs
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix.steps import AutofixStep
-from sentry.seer.autofix.utils import AutofixStoppingPoint, is_free_cohort_org
-from sentry.seer.models.run import SeerRun
+from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
@@ -25,51 +21,56 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
-def trigger_autofix_rca_feature(
+def trigger_autofix_solution_feature(
     group: Group,
     *,
+    run_id: int,
     referrer: AutofixReferrer,
     user_context: str | None = None,
-    stopping_point: AutofixStoppingPoint | None = None,
+    insert_index: int | None = None,
     intelligence_level: Literal["low", "medium", "high"] = "medium",
-    reasoning_effort: Literal["low", "medium", "high"] | None = "medium",
+    reasoning_effort: Literal["low", "medium", "high"] | None = None,
     flush: bool = True,
-    allow_free_cohort: bool = False,
     user: User | RpcUser | AnonymousUser | None = None,
     enable_bash_tools: bool = False,
 ) -> SeerRun:
-    # Free cohort orgs bypass quota only when called from night shift
-    # (allow_free_cohort=True). Not exposed via the API.
-    skip_quota = allow_free_cohort and is_free_cohort_org(group.organization)
-    if not skip_quota:
-        has_budget: bool = quotas.backend.check_seer_quota(
-            org_id=group.organization.id,
-            data_category=DataCategory.SEER_AUTOFIX,
-        )
-        if not has_budget:
-            logger.warning(
-                "autofix_feature.dispatch.quota_denied",
-                extra={
-                    "group_id": group.id,
-                    "organization_id": group.organization.id,
-                    "referrer": referrer.value,
-                },
-            )
-            raise NoSeerQuotaException()
+    """Continue an Autofix run with Seer's solution feature.
 
+    Solution is a continuation, so quota was already consumed by the run's
+    root-cause kickoff.
+    """
     payload = AutofixPayload(
         group_id=group.id,
-        step=AutofixStep.ROOT_CAUSE,
+        step=AutofixStep.SOLUTION,
         short_id=group.qualified_short_id or str(group.id),
         title=group.title or "Unknown error",
         culprit=group.culprit or "unknown",
         on_completion_hook=extract_hook_definition(AutofixOnCompletionHook, call_on_failure=True),
         args=AutofixStepArgs(
+            run_id=run_id,
+            insert_index=insert_index,
             intelligence_level=intelligence_level,
             reasoning_effort=reasoning_effort,
             user_context=user_context,
         ),
     )
+
+    previous_extras = (
+        SeerAgentRun.objects.filter(
+            run__organization_id=group.organization.id,
+            run__seer_run_state_id=run_id,
+            group_id=group.id,
+        )
+        .values_list("extras", flat=True)
+        .first()
+        or {}
+    )
+    extras: dict[str, Any] = {
+        "referrer": referrer.value,
+        "previous_run_id": run_id,
+    }
+    if stopping_point := previous_extras.get("stopping_point"):
+        extras["stopping_point"] = stopping_point
 
     client = SeerAgentClient(
         organization=group.organization,
@@ -78,18 +79,10 @@ def trigger_autofix_rca_feature(
         user=user,
         enable_bash_tools=enable_bash_tools,
     )
-
-    # Store the stopping point here for delivery to use when advancing steps.
-    extras: dict[str, Any] = {
-        "referrer": referrer.value,
-    }
-    if stopping_point is not None:
-        extras["stopping_point"] = stopping_point.value
-
     run = client.start_feature_run(
         feature_id=FEATURE_ID,
         payload=payload.dict(),
-        title=f"Autofix RCA — {payload.short_id}",
+        title=f"Autofix Solution — {payload.short_id}",
         flush=flush,
         extras=extras,
         referrer=referrer.value,
@@ -100,27 +93,16 @@ def trigger_autofix_rca_feature(
         ),
     )
 
-    if not skip_quota:
-        quotas.backend.record_seer_run(
-            group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
-        )
-
-    metrics.incr("autofix_rca.feature.trigger", tags={"referrer": referrer.value})
+    metrics.incr("autofix_solution.feature.trigger", tags={"referrer": referrer.value})
 
     logger.info(
-        "autofix_rca.dispatch.started",
+        "autofix_solution.dispatch.started",
         extra={
             "group_id": group.id,
             "organization_id": group.organization.id,
+            "previous_run_id": run_id,
             "run_id": run.seer_run_state_id,
             "referrer": referrer.value,
-            "stopping_point": stopping_point,
-            "intelligence_level": intelligence_level,
-            "reasoning_effort": reasoning_effort,
-            "flush": flush,
-            "allow_free_cohort": allow_free_cohort,
-            "user_context": user_context,
-            "enable_bash_tools": enable_bash_tools,
         },
     )
 

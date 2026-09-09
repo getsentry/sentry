@@ -695,6 +695,108 @@ class TestTriggerAutofixAgent(TestCase):
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.solution.dispatch.trigger_autofix_solution_feature")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_solution_routes_to_feature_when_flagged(
+        self,
+        mock_client_class,
+        mock_feature,
+        mock_broadcast,
+        mock_check_quota,
+        mock_record_run,
+    ):
+        mock_client_class.return_value.get_run.return_value = self._make_run_state()
+        feature_run = self.create_seer_run(
+            organization=self.group.organization,
+            type="feature_run",
+            seer_run_state_id=778,
+        )
+        mock_feature.return_value = feature_run
+
+        with self.feature("organizations:autofix-solution-in-seer"):
+            result = trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.SOLUTION,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=777,
+                user_context="Keep compatibility",
+                insert_index=3,
+            )
+
+        assert result == feature_run
+        mock_feature.assert_called_once_with(
+            self.group,
+            run_id=777,
+            referrer=AutofixReferrer.UNKNOWN,
+            user_context="Keep compatibility",
+            insert_index=3,
+            user=None,
+            enable_bash_tools=False,
+        )
+        mock_client_class.return_value.continue_run.assert_not_called()
+        mock_broadcast.assert_called_once()
+        assert (
+            mock_broadcast.call_args.kwargs["event_name"] == SeerActionType.SOLUTION_STARTED.value
+        )
+        assert mock_broadcast.call_args.kwargs["payload"] == {
+            "run_id": 778,
+            "sentry_run_id": str(feature_run.uuid),
+            "group_id": self.group.id,
+        }
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.solution.dispatch.trigger_autofix_solution_feature")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_solution_uses_legacy_continuation_without_flag(
+        self, mock_client_class, mock_feature, mock_check_quota, mock_record_run
+    ):
+        mock_client = mock_client_class.return_value
+        mock_client.get_run.return_value = self._make_run_state()
+        run = self.create_seer_run(
+            organization=self.group.organization,
+            seer_run_state_id=777,
+        )
+        mock_client.continue_run.return_value = run
+
+        result = trigger_autofix_agent(
+            group=self.group,
+            step=AutofixStep.SOLUTION,
+            referrer=AutofixReferrer.UNKNOWN,
+            run_id=777,
+        )
+
+        assert result == run
+        mock_feature.assert_not_called()
+        mock_client.continue_run.assert_called_once()
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.solution.dispatch.trigger_autofix_solution_feature")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_solution_without_prior_run_uses_legacy_start(
+        self, mock_client_class, mock_feature, mock_check_quota, mock_record_run
+    ):
+        run = self.create_seer_run(
+            organization=self.group.organization,
+            seer_run_state_id=777,
+        )
+        mock_client_class.return_value.start_run.return_value = run
+
+        with self.feature("organizations:autofix-solution-in-seer"):
+            result = trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.SOLUTION,
+                referrer=AutofixReferrer.UNKNOWN,
+            )
+
+        assert result == run
+        mock_feature.assert_not_called()
+        mock_client_class.return_value.start_run.assert_called_once()
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.feature.rca_dispatch.trigger_autofix_rca_feature")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_root_cause_uses_legacy_flow_without_flag(
