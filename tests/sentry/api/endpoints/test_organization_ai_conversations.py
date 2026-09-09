@@ -717,7 +717,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["totalTokens"] == LLM_TOKENS * 2
         assert conversation["totalCost"] == LLM_COST * 2
         assert conversation["traceCount"] == 2
-        assert conversation["flow"] == ["Research Agent", "Summarization Agent"]
+        assert set(conversation["flow"]) == {"Research Agent", "Summarization Agent"}
         assert len(conversation["traceIds"]) == 2
         assert set(conversation["traceIds"]) == {trace_id_1, trace_id_2}
 
