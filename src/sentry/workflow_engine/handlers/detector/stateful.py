@@ -341,6 +341,16 @@ class StatefulDetectorHandler(
         """
         return {}
 
+    @abc.abstractmethod
+    def extract_dedupe_value(self, data_packet: DataPacket[DataPacketType]) -> int:
+        """
+        Extracts the de-duplication value from a passed data packet. This duplication
+        value is used to determine if we've already processed data to this point or not.
+
+        This is normally a timestamp, but could be any sortable value; (e.g. a sequence number, timestamp, etc).
+        """
+        pass
+
     def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
         """
         A hook that allows for additional fingerprinting to be added to the detectors issue occurrences.

@@ -141,9 +141,6 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
                 value = self.extract_value(data_packet)
                 return build_mock_occurrence_and_event(self, value, PriorityLevel(priority))
 
-            def extract_dedupe_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
-                return data_packet.packet.get("dedupe", 0)
-
         class MockDetectorWithUpdateHandler(DetectorHandler[dict[str, Any], int]):
             def evaluate(
                 self, data_packet: DataPacket[dict[str, Any]]
@@ -182,9 +179,6 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
 
             def extract_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
                 return data_packet.packet.get("value", 0)
-
-            def extract_dedupe_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
-                return data_packet.packet.get("dedupe", 0)
 
         class HandlerGroupType(GroupType):
             type_id = 2
