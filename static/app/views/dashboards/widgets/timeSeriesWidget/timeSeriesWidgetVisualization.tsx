@@ -533,6 +533,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     if (plottable.needsColor) {
       // For any timeseries in need of a color, pull from the chart palette
       color = palette[seriesColorIndex % palette.length]!; // Mod the index in case the number of plottables exceeds the palette length
+      // oxlint-disable-next-line react/immutability
       seriesColorIndex += 1;
     }
 

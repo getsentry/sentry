@@ -422,6 +422,7 @@ export function Chart({
     // add top-padding to the chart in full screen so that the legend
     // and graph do not overlap
     if (renderingContext?.isFullscreen) {
+      // oxlint-disable-next-line react/immutability
       grid = {...grid, top: '20px'};
     }
 

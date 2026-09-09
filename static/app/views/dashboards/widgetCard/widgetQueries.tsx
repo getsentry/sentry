@@ -125,6 +125,7 @@ export function WidgetQueries({
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       rawResults = rawResults as EventsStats;
       if (rawResults.isMetricsData !== undefined) {
+        // oxlint-disable-next-line react/immutability
         isSeriesMetricsDataResults.push(rawResults.isMetricsData);
       }
       if (rawResults.isMetricsExtractedData !== undefined) {
@@ -178,6 +179,7 @@ export function WidgetQueries({
   const isTableMetricsExtractedDataResults: boolean[] = [];
   const afterFetchTableData = (rawResults: TableResult) => {
     if (rawResults.meta?.isMetricsData !== undefined) {
+      // oxlint-disable-next-line react/immutability
       isTableMetricsDataResults.push(rawResults.meta.isMetricsData);
     }
     if (rawResults.meta?.isMetricsExtractedData !== undefined) {

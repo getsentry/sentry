@@ -115,6 +115,7 @@ function StoryDefinitionFilePath(props: {node: PropTreeNode}) {
               variant="transparent"
               icon={<IconChevron direction={expanded ? 'down' : 'right'} />}
               onClick={() => {
+                // oxlint-disable-next-line react/immutability
                 props.node.expanded = !expanded;
                 setExpanded(props.node.expanded);
               }}
@@ -228,8 +229,11 @@ function usePropTree(props: Props, query: string): PropTreeNode[] {
   const nodes = useMemo(() => {
     if (!query) {
       for (const {node} of root) {
+        // oxlint-disable-next-line react/immutability
         node.visible = true;
+        // oxlint-disable-next-line react/immutability
         node.expanded = true;
+        // oxlint-disable-next-line react/immutability
         node.result = null;
       }
 
@@ -250,8 +254,11 @@ function usePropTree(props: Props, query: string): PropTreeNode[] {
 
     // Mark all as not matching
     for (const {node} of root) {
+      // oxlint-disable-next-line react/immutability
       node.visible = false;
+      // oxlint-disable-next-line react/immutability
       node.expanded = false;
+      // oxlint-disable-next-line react/immutability
       node.result = null;
     }
 
@@ -266,22 +273,28 @@ function usePropTree(props: Props, query: string): PropTreeNode[] {
       const match = fzf(name, lowerCaseQuery, false);
 
       if (match.score > 0) {
+        // oxlint-disable-next-line react/immutability
         node.result = match;
+        // oxlint-disable-next-line react/immutability
         node.visible = true;
 
         if (Object.keys(node.children).length > 0) {
+          // oxlint-disable-next-line react/immutability
           node.expanded = true;
           for (const child of Object.values(node.children)) {
             child.visible = true;
           }
         }
         for (const p of path) {
+          // oxlint-disable-next-line react/immutability
           p.visible = true;
+          // oxlint-disable-next-line react/immutability
           p.expanded = true;
           // The entire path needs to contain max score of its child results so that
           // the entire path to it can be sorted by this score. The side effect of this is that results from the same
           // tree path with a lower score will be placed higher in the tree if that same path has a higher score anywhere
           // in the tree. This isn't ideal, but given that it favors the most relevant results, it makes it a good starting point.
+          // oxlint-disable-next-line react/immutability
           p.result = match.score > (p.result?.score ?? 0) ? match : p.result;
         }
       }
