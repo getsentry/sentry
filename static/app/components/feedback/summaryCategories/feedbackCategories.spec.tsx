@@ -39,17 +39,12 @@ describe('FeedbackCategories', () => {
     },
   ];
 
-  function renderFeedbackCategories(query = '') {
-    return render(<FeedbackCategories />, {
-      organization: mockOrganization,
-      initialRouterConfig: {
-        location: {
-          pathname: '/test',
-          query: {query},
-        },
-      },
-    });
-  }
+  const initialRouterConfig = {
+    location: {
+      pathname: '/test',
+      query: {query: ''},
+    },
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -68,7 +63,10 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      renderFeedbackCategories();
+      render(<FeedbackCategories />, {
+        organization: mockOrganization,
+        initialRouterConfig,
+      });
 
       expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
     });
@@ -85,7 +83,10 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      const {container} = renderFeedbackCategories();
+      const {container} = render(<FeedbackCategories />, {
+        organization: mockOrganization,
+        initialRouterConfig,
+      });
 
       await waitForElementToBeRemoved(() => screen.queryByTestId('loading-placeholder'));
 
@@ -104,7 +105,10 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      const {container} = renderFeedbackCategories();
+      const {container} = render(<FeedbackCategories />, {
+        organization: mockOrganization,
+        initialRouterConfig,
+      });
 
       await waitForElementToBeRemoved(() => screen.queryByTestId('loading-placeholder'));
 
@@ -123,7 +127,10 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      renderFeedbackCategories();
+      render(<FeedbackCategories />, {
+        organization: mockOrganization,
+        initialRouterConfig,
+      });
 
       expect(await screen.findByText('User Interface')).toBeInTheDocument();
       expect(await screen.findByText('Performance')).toBeInTheDocument();
@@ -144,7 +151,10 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      const {router} = renderFeedbackCategories();
+      const {router} = render(<FeedbackCategories />, {
+        organization: mockOrganization,
+        initialRouterConfig,
+      });
 
       await userEvent.click(await screen.findByText('User Interface'));
 
@@ -167,7 +177,16 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      const {router} = renderFeedbackCategories(initialQuery);
+      const {router} = render(<FeedbackCategories />, {
+        organization: mockOrganization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {query: initialQuery},
+          },
+        },
+      });
 
       await userEvent.click(await screen.findByText('User Interface'));
 
@@ -191,7 +210,16 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      const {router} = renderFeedbackCategories(initialQuery);
+      const {router} = render(<FeedbackCategories />, {
+        organization: mockOrganization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {query: initialQuery},
+          },
+        },
+      });
 
       await userEvent.click(await screen.findByText('User Interface'));
 
@@ -236,7 +264,10 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      const {router} = renderFeedbackCategories();
+      const {router} = render(<FeedbackCategories />, {
+        organization: mockOrganization,
+        initialRouterConfig,
+      });
 
       await userEvent.click(await screen.findByText('Performance*'));
 
@@ -268,7 +299,10 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      const {router} = renderFeedbackCategories();
+      const {router} = render(<FeedbackCategories />, {
+        organization: mockOrganization,
+        initialRouterConfig,
+      });
 
       await userEvent.click(await screen.findByText('User "Interface"'));
 
@@ -303,7 +337,10 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      const {router} = renderFeedbackCategories();
+      const {router} = render(<FeedbackCategories />, {
+        organization: mockOrganization,
+        initialRouterConfig,
+      });
 
       await userEvent.click(await screen.findByText('API* "Integration"'));
 
@@ -335,7 +372,10 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      const {router} = renderFeedbackCategories();
+      const {router} = render(<FeedbackCategories />, {
+        organization: mockOrganization,
+        initialRouterConfig,
+      });
 
       await userEvent.click(await screen.findByText('Standalone* "Category"'));
 
@@ -365,7 +405,10 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      const {router} = renderFeedbackCategories();
+      const {router} = render(<FeedbackCategories />, {
+        organization: mockOrganization,
+        initialRouterConfig,
+      });
 
       await userEvent.click(await screen.findByText('Test* "Category"'));
 
