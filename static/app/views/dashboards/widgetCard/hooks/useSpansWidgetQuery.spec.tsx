@@ -5,7 +5,7 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
 import {useSpansSeriesQuery, useSpansTableQuery} from './useSpansWidgetQuery';
 
@@ -268,6 +268,91 @@ describe('useSpansSeriesQuery', () => {
       expect(result.current.errorMessage).toBeDefined();
     });
     expect(result.current.loading).toBe(false);
+  });
+
+  it('skips the request when every aggregate has an invalid _if filter', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          name: 'test',
+          fields: ['avg_if(``,span.duration)'],
+          aggregates: ['avg_if(``,span.duration)'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {},
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useSpansSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.errorMessage).toBe('Invalid series filter');
+    });
+    expect(result.current.loading).toBe(false);
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+
+  it('filters invalid _if aggregates out of a mixed series request', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          name: 'test',
+          fields: ['avg(span.duration)', 'avg_if(``,span.duration)'],
+          aggregates: ['avg(span.duration)', 'avg_if(``,span.duration)'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {
+        data: [
+          [1, [{count: 100}]],
+          [2, [{count: 200}]],
+        ],
+      },
+    });
+
+    renderHookWithProviders(() =>
+      useSpansSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
+    );
+
+    await waitFor(() => {
+      expect(mockRequest).toHaveBeenCalled();
+    });
+    expect(mockRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          yAxis: ['avg(span.duration)'],
+        }),
+      })
+    );
   });
 });
 

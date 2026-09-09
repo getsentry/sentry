@@ -5,6 +5,10 @@ import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilde
 import {getSelectedAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregate';
 import {hasUnresolvedTraceMetric} from 'sentry/views/dashboards/widgetBuilder/utils/hasUnresolvedTraceMetric';
 import {doesMetricSupportHeatMapVisualization} from 'sentry/views/explore/metrics/constants';
+import {
+  areAllAggregatesInvalidConditionalFilters,
+  getConditionalFilterInvalidSeriesMessageForAggregates,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 
 /**
  * Returns a user-facing error message if the widget has a static config
@@ -58,6 +62,18 @@ export function getWidgetConfigError(
     if (!doesMetricSupportHeatMapVisualization(traceMetric)) {
       return t('Heatmaps can only visualize distribution metrics.');
     }
+  }
+
+  if (
+    widget.widgetType === WidgetType.SPANS &&
+    widget.queries.length > 0 &&
+    widget.queries.every(query =>
+      areAllAggregatesInvalidConditionalFilters(query.aggregates ?? [])
+    )
+  ) {
+    return getConditionalFilterInvalidSeriesMessageForAggregates(
+      widget.queries[0]!.aggregates ?? []
+    );
   }
 
   return undefined;

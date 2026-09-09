@@ -6,14 +6,11 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
-import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {IconHide} from 'sentry/icons/iconHide';
-import {t} from 'sentry/locale';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
 import {
   ToolbarFooter,
   ToolbarSection,
@@ -25,7 +22,6 @@ import {
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {VisualizeEquation as VisualizeEquationInput} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeEquation';
-import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
@@ -45,7 +41,6 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   applyConditionalFilter,
   buildConditionalAggregate,
-  CONDITIONAL_FILTER_AGGREGATE_INVALID_MESSAGE,
   parseConditionalAggregate,
   supportsConditionalAggregateFilter,
 } from 'sentry/views/explore/utils/conditionalAggregate';
@@ -180,7 +175,6 @@ function ToolbarVisualizeItem({
 }: VisualizeDropdownProps) {
   const [search, setSearch] = useState<string | undefined>(undefined);
   const [debouncedSearch] = useDebouncedValue(search, {wait: 200});
-  const {selection} = usePageFilters();
   const organization = useOrganization();
   const hasConditionalAggregates = organization.features.includes(
     'explore-conditional-aggregates'
@@ -294,17 +288,6 @@ function ToolbarVisualizeItem({
     [onReplace, parsedFunction, visualize]
   );
 
-  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
-    projects: selection.projects,
-    initialQuery: filter,
-    onSearch: onFilterSearch,
-    searchSource: 'explore-conditional-aggregate',
-    placeholder: t('Filter spans for this series'),
-    // Attribute-only, same as metrics / samples-mode search: never offer visualize
-    // aggregates (p95, count, …) as series-filter keys.
-    supportedAggregates: [],
-  });
-
   const showFilterSearchBar =
     hasConditionalAggregates &&
     supportsConditionalAggregateFilter(parsedFunction?.name ?? '');
@@ -324,23 +307,10 @@ function ToolbarVisualizeItem({
       onClose={() => setSearch(undefined)}
       filterSearchBar={
         showFilterSearchBar ? (
-          <TraceItemSearchQueryBuilder
-            {...spanSearchQueryBuilderProps}
-            showSearchIcon={false}
-            // This spans toolbar clips menus that are not portaled, and the full width
-            // filter key menu anchors itself inside the bar, so it has to be turned off for
-            // portaling to cover every menu.
-            portalTarget={document.body}
-            disableFullWidthFilterKeyMenu
-            // Same "Invalid key" UX as metrics: aggregates are not valid series-filter
-            // keys (metrics gets this from validate; we list visualize aggregates).
-            invalidFilterKeys={[
-              ...(spanSearchQueryBuilderProps.invalidFilterKeys ?? []),
-              ...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-            ]}
-            invalidMessages={{
-              [InvalidReason.INVALID_KEY]: CONDITIONAL_FILTER_AGGREGATE_INVALID_MESSAGE,
-            }}
+          <ConditionalAggregateFilterBar
+            initialQuery={filter}
+            onSearch={onFilterSearch}
+            searchSource="explore-conditional-aggregate"
           />
         ) : undefined
       }

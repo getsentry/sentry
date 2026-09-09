@@ -16,6 +16,7 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {
+  useSpanItemAttributes,
   useTraceItemDatasetAttributes,
   useTraceMetricItemAttributes,
 } from 'sentry/views/explore/hooks/useTraceItemAttributes';
@@ -23,6 +24,26 @@ import {
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/hooks/useTraceItemAttributes');
 jest.mock('sentry/utils/useNavigate');
+jest.mock('sentry/views/explore/components/traceItemSearchQueryBuilder', () => {
+  const actual = jest.requireActual(
+    'sentry/views/explore/components/traceItemSearchQueryBuilder'
+  );
+  return {
+    ...actual,
+    TraceItemSearchQueryBuilder: (props: {
+      initialQuery?: string;
+      onSearch?: (query: string) => void;
+      placeholder?: string;
+    }) => (
+      <input
+        aria-label={props.placeholder ?? 'Filter spans for this series'}
+        defaultValue={props.initialQuery ?? ''}
+        onChange={event => props.onSearch?.(event.target.value)}
+        placeholder={props.placeholder}
+      />
+    ),
+  };
+});
 
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';
@@ -30,66 +51,77 @@ const DASHBOARD_WIDGET_BUILDER_ROUTE = '/organizations/:orgId/dashboards/new/wid
 
 describe('Visualize', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
+  let organizationWithConditionalAggregates!: ReturnType<typeof OrganizationFixture>;
   let mockNavigate!: jest.Mock;
 
   beforeEach(() => {
     organization = OrganizationFixture({
       features: ['performance-view'],
     });
+    organizationWithConditionalAggregates = OrganizationFixture({
+      features: ['performance-view', 'explore-conditional-aggregates'],
+    });
 
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
+    const mockAttributes = (_options: unknown, type?: string) => {
+      if (type === 'number') {
+        const tags: TagCollection = {
+          'span.duration': {
+            key: 'span.duration',
+            name: 'span.duration',
+            kind: FieldKind.MEASUREMENT,
+            secondaryAliases: [],
+          },
+          'span.self_time': {
+            key: 'span.self_time',
+            name: 'span.self_time',
+            kind: FieldKind.MEASUREMENT,
+            secondaryAliases: [],
+          },
+        };
+        return {attributes: tags, isLoading: false, secondaryAliases: {}};
+      }
+
+      if (type === 'boolean') {
+        const tags: TagCollection = {
+          'span.status': {
+            key: 'span.status',
+            name: 'span.status',
+            kind: FieldKind.BOOLEAN,
+          },
+        };
+        return {attributes: tags, isLoading: false, secondaryAliases: {}};
+      }
+
+      const tags: TagCollection = {
+        'span.op': {
+          key: 'span.op',
+          name: 'span.op',
+          kind: FieldKind.TAG,
+        },
+        'span.description': {
+          key: 'span.description',
+          name: 'span.description',
+          kind: FieldKind.TAG,
+        },
+      };
+
+      return {
+        attributes: tags,
+        secondaryAliases: {},
+        isLoading: false,
+      };
+    };
+
     jest
       .mocked(useTraceItemDatasetAttributes)
-      .mockImplementation((_traceItemType, _options, type?) => {
-        if (type === 'number') {
-          const tags: TagCollection = {
-            'span.duration': {
-              key: 'span.duration',
-              name: 'span.duration',
-              kind: FieldKind.MEASUREMENT,
-              secondaryAliases: [],
-            },
-            'span.self_time': {
-              key: 'span.self_time',
-              name: 'span.self_time',
-              kind: FieldKind.MEASUREMENT,
-              secondaryAliases: [],
-            },
-          };
-          return {attributes: tags, isLoading: false, secondaryAliases: {}};
-        }
-
-        if (type === 'boolean') {
-          const tags: TagCollection = {
-            'span.status': {
-              key: 'span.status',
-              name: 'span.status',
-              kind: FieldKind.BOOLEAN,
-            },
-          };
-          return {attributes: tags, isLoading: false, secondaryAliases: {}};
-        }
-
-        const tags: TagCollection = {
-          'span.op': {
-            key: 'span.op',
-            name: 'span.op',
-            kind: FieldKind.TAG,
-          },
-          'span.description': {
-            key: 'span.description',
-            name: 'span.description',
-            kind: FieldKind.TAG,
-          },
-        };
-
-        return {
-          attributes: tags,
-          secondaryAliases: {},
-          isLoading: false,
-        };
-      });
+      .mockImplementation((_traceItemType, _options, type?) =>
+        mockAttributes(_options, type)
+      );
+    jest
+      .mocked(useSpanItemAttributes)
+      .mockImplementation((_options, type?) => mockAttributes(_options, type));
 
     jest.mocked(useTraceMetricItemAttributes).mockReturnValue({
       attributes: {},
@@ -99,6 +131,15 @@ describe('Visualize', () => {
 
     mockNavigate = jest.fn();
     jest.mocked(useNavigate).mockReturnValue(mockNavigate);
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
   });
 
   afterEach(() => {
@@ -1559,11 +1600,18 @@ describe('Visualize', () => {
       // Closing and reopening resets the search, so the previously fetched
       // attribute should not linger in the options when there is no query.
       await userEvent.keyboard('{Escape}');
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('listbox', {name: 'Column Selection'})
+        ).not.toBeInTheDocument();
+      });
       await userEvent.click(screen.getByRole('button', {name: 'Column Selection'}));
       const reopenedListbox = await screen.findByRole('listbox', {
         name: 'Column Selection',
       });
-      expect(within(reopenedListbox).getByText('span.duration')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(within(reopenedListbox).getByText('span.duration')).toBeInTheDocument();
+      });
       expect(
         within(reopenedListbox).queryByText('measurements.app_start_cold')
       ).not.toBeInTheDocument();
@@ -2008,6 +2056,247 @@ describe('Visualize', () => {
     expect(
       screen.queryByRole('button', {name: 'Column Selection'})
     ).not.toBeInTheDocument();
+  });
+
+  it('shows a per-series filter search bar for spans aggregates', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithConditionalAggregates,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['avg(span.duration)'],
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    expect(
+      await screen.findByRole('textbox', {name: 'Filter spans for this series'})
+    ).toBeInTheDocument();
+  });
+
+  it('loads Explore-style _if aggregates into base dropdowns with a filter', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithConditionalAggregates,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['avg_if(`span.op:db`,span.self_time)'],
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toHaveTextContent('avg');
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'span.self_time'
+    );
+    expect(
+      screen.getByRole('textbox', {name: 'Filter spans for this series'})
+    ).toHaveValue('span.op:db');
+  });
+
+  it('applies visualize filters as _if aggregates', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithConditionalAggregates,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['avg(span.duration)'],
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    const searchInput = await screen.findByRole('textbox', {
+      name: 'Filter spans for this series',
+    });
+
+    await userEvent.clear(searchInput);
+    await userEvent.type(searchInput, 'span.op:db');
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            yAxis: ['avg_if(`span.op:db`,span.duration)'],
+          }),
+        }),
+        expect.anything()
+      );
+    });
+  });
+
+  it('preserves field aliases when applying a series filter', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithConditionalAggregates,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.TABLE,
+              field: ['{"field":"avg(span.duration)","alias":"Latency"}'],
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    const searchInput = await screen.findByRole('textbox', {
+      name: 'Filter spans for this series',
+    });
+
+    await userEvent.clear(searchInput);
+    await userEvent.type(searchInput, 'span.op:db');
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: ['{"field":"avg_if(`span.op:db`,span.duration)","alias":"Latency"}'],
+          }),
+        }),
+        expect.anything()
+      );
+    });
+  });
+
+  it('hides the filter search bar for no-argument spans aggregates', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithConditionalAggregates,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['failure_rate()'],
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toHaveTextContent('failure_rate');
+    expect(
+      screen.queryByRole('textbox', {name: 'Filter spans for this series'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('preserves the series filter when changing the column', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithConditionalAggregates,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['avg_if(`span.op:db`,span.duration)'],
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Column Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'span.self_time'}));
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            yAxis: ['avg_if(`span.op:db`,span.self_time)'],
+          }),
+        }),
+        expect.anything()
+      );
+    });
+  });
+
+  it('preserves the series filter when changing the aggregate', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithConditionalAggregates,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['avg_if(`span.op:db`,span.duration)'],
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'p95'}));
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            yAxis: ['p95_if(`span.op:db`,span.duration)'],
+          }),
+        }),
+        expect.anything()
+      );
+    });
   });
 
   it('defaults count_unique argument to span.op', async () => {

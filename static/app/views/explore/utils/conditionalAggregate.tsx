@@ -10,9 +10,13 @@ import {
 } from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
 import {
+  generateFieldAsString,
+  isEquation,
   parseFunction,
   stripEquationPrefix,
+  type AggregationKeyWithAlias,
   type ParsedFunction,
+  type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
@@ -105,6 +109,35 @@ export function parseConditionalAggregate(yAxis: string): ConditionalAggregate |
     // Drop the backtick-wrapped filter; remaining args are the aggregate columns.
     arguments: parsed.arguments.slice(1),
     filter: parsed.filter,
+  };
+}
+
+/**
+ * Normalize an exploded QueryFieldValue so Explore-style `_if` names
+ * (e.g. `count_unique_if`) become the base aggregate for column filtering.
+ *
+ * Discover-style forms like `count_if(column,equals,value)` are left unchanged.
+ */
+export function withBaseConditionalAggregateField(
+  field: QueryFieldValue
+): QueryFieldValue {
+  if (field.kind !== 'function') {
+    return field;
+  }
+
+  const parsed = parseConditionalAggregate(generateFieldAsString(field));
+  if (!parsed || parsed.name === field.function[0]) {
+    return field;
+  }
+
+  return {
+    ...field,
+    function: [
+      parsed.name as AggregationKeyWithAlias,
+      parsed.arguments[0] ?? '',
+      parsed.arguments[1],
+      parsed.arguments[2],
+    ],
   };
 }
 
@@ -278,4 +311,53 @@ export function areAllVisualizesInvalidConditionalFilters(
       !isVisualizeEquation(visualize) &&
       !isConditionalAggregateYAxisValid(visualize.yAxis)
   );
+}
+
+/**
+ * Dashboard equivalent of {@link areAllVisualizesInvalidConditionalFilters} for a
+ * widget query's `aggregates` list. Equations are ignored (same as Explore).
+ */
+export function areAllAggregatesInvalidConditionalFilters(
+  aggregates: readonly string[]
+): boolean {
+  if (!aggregates.length) {
+    return false;
+  }
+  return aggregates.every(
+    yAxis => !isEquation(yAxis) && !isConditionalAggregateYAxisValid(yAxis)
+  );
+}
+
+/**
+ * Error message for the first invalid non-equation `_if` aggregate in a dashboard
+ * widget query. Falls back to the generic series-filter message.
+ */
+export function getConditionalFilterInvalidSeriesMessageForAggregates(
+  aggregates: readonly string[]
+): string {
+  for (const yAxis of aggregates) {
+    if (isEquation(yAxis)) {
+      continue;
+    }
+    if (!isConditionalAggregateYAxisValid(yAxis)) {
+      return getConditionalFilterInvalidSeriesMessageForYAxis(yAxis);
+    }
+  }
+  return CONDITIONAL_FILTER_INVALID_SERIES_MESSAGE;
+}
+
+/**
+ * Keep aggregates that are safe to send in a series request. Invalid `_if` filters
+ * are dropped; equations keep prior Explore behavior (include only when every
+ * nested `_if` is valid).
+ */
+export function getValidAggregatesForSeriesRequest(
+  aggregates: readonly string[]
+): string[] {
+  return aggregates.filter(yAxis => {
+    if (isEquation(yAxis)) {
+      return areConditionalAggregateFiltersInExpressionValid(yAxis);
+    }
+    return isConditionalAggregateYAxisValid(yAxis);
+  });
 }
