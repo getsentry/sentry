@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.models.organization import Organization
 from sentry.models.team import Team, TeamStatus
 from sentry.utils.sdk import bind_organization_context
 
@@ -70,3 +71,13 @@ class TeamEndpoint(Endpoint):
 
         kwargs["team"] = team
         return (args, kwargs)
+
+    def client_kind_organization(
+        self, request: Request, kwargs: dict[str, Any]
+    ) -> Organization | None:
+        """A team endpoint reports against its team's organization.
+
+        No extra query: `convert_args` already `select_related`s the organization.
+        """
+        team = kwargs.get("team")
+        return team.organization if team is not None else None

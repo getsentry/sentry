@@ -11,6 +11,7 @@ from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.team import TeamEndpoint
 from sentry.api.client_kind import (
     ATTRIBUTION_SPAN_OP,
     FEATURE_FLAG,
@@ -23,6 +24,7 @@ from sentry.api.client_kind import (
 )
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken
+from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.seer.agent_token import AGENT_TOKEN_KIND
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
@@ -492,6 +494,26 @@ class ClientKindOrganizationTest(TestCase):
 
     def test_a_project_endpoint_with_no_project_is_none(self) -> None:
         assert ProjectEndpoint().client_kind_organization(make_request(), {}) is None
+
+    def test_a_team_endpoint_reports_its_teams_organization(self) -> None:
+        endpoint = TeamEndpoint()
+        assert (
+            endpoint.client_kind_organization(make_request(), {"team": self.team})
+            == self.organization
+        )
+
+    def test_a_team_endpoint_with_no_team_is_none(self) -> None:
+        assert TeamEndpoint().client_kind_organization(make_request(), {}) is None
+
+    def test_an_issue_endpoint_reports_its_groups_organization(self) -> None:
+        endpoint = GroupEndpoint()
+        assert (
+            endpoint.client_kind_organization(make_request(), {"group": self.group})
+            == self.organization
+        )
+
+    def test_an_issue_endpoint_with_no_group_is_none(self) -> None:
+        assert GroupEndpoint().client_kind_organization(make_request(), {}) is None
 
 
 class DispatchWiringTest(APITestCase):
