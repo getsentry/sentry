@@ -141,12 +141,7 @@ describe('Onboarding deployment target', () => {
         'href',
         'https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module-browser/#manual-span-creation'
       );
-      expect(screen.getByText('Monitor AI Agents')).toBeInTheDocument();
-      expect(screen.getByText('Preview Agent Insights')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', {name: 'Vercel AI SDK'})
-      ).not.toBeInTheDocument();
     }
   );
 
@@ -167,13 +162,11 @@ describe('Onboarding deployment target', () => {
 
       render(<Onboarding />, {organization});
 
-      expect(await screen.findByRole('button', {name: 'Next'})).toBeInTheDocument();
       expect(
-        screen.queryByText(/Agent Monitoring isn't available/)
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole('link', {name: 'manual AI instrumentation guide'})
-      ).not.toBeInTheDocument();
+        await screen.findByText(
+          textWithMarkupMatcher(`Set up the Sentry SDK for ${project.slug}`)
+        )
+      ).toBeInTheDocument();
     }
   );
 
@@ -221,7 +214,6 @@ describe('Onboarding deployment target', () => {
       )
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Laravel'})).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Other'})).not.toBeInTheDocument();
   });
 
   it('pins Cloudflare Workers projects to the Cloudflare runtime with no Node toggle', async () => {

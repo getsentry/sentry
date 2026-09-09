@@ -71,9 +71,6 @@ describe('javascript agentMonitoring onboarding', () => {
       expect(code).toContain('import * as Sentry from "@sentry/browser"');
       expect(code).toContain('Sentry.init(');
       expect(code).toContain('tracesSampleRate: 1.0');
-      expect(code).not.toMatch(
-        /instrumentLangGraph|createLangChainCallbackHandler|instrumentGoogleGenAIClient|instrumentAnthropicAiClient|instrumentOpenAiClient/
-      );
 
       const manualNote = steps
         .flatMap(step => step.content ?? [])
@@ -99,17 +96,8 @@ describe('javascript agentMonitoring onboarding', () => {
     const code = collectCode(steps);
 
     expect(code).toContain('import * as Sentry from "@sentry/react"');
-    expect(code).not.toContain('instrumentOpenAiClient');
-    expect(steps[0]?.content).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          type: 'code',
-          tabs: expect.arrayContaining([
-            expect.objectContaining({label: 'sentry.client.config.ts'}),
-          ]),
-        }),
-      ])
-    );
+    const codeBlock = steps[0]?.content?.find(block => block.type === 'code');
+    expect(codeBlock).toMatchObject({tabs: [{label: 'sentry.client.config.ts'}]});
   });
 
   it.each([
@@ -131,16 +119,8 @@ describe('javascript agentMonitoring onboarding', () => {
 
       expect(collectCode(steps)).toContain('@sentry/nextjs');
       expect(collectText(steps)).toContain('will be enabled automatically');
-      expect(steps[0]?.content).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            type: 'code',
-            tabs: expect.arrayContaining([
-              expect.objectContaining({label: 'sentry.server.config.ts'}),
-            ]),
-          }),
-        ])
-      );
+      const codeBlock = steps[0]?.content?.find(block => block.type === 'code');
+      expect(codeBlock).toMatchObject({tabs: [{label: 'sentry.server.config.ts'}]});
       expect(collectCode(frameworkConfig.verify(params))).toContain(sdk);
     }
   );

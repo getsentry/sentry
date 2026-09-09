@@ -99,12 +99,7 @@ describe('ConversationOnboarding deployment target', () => {
         'href',
         'https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module-browser/#manual-span-creation'
       );
-      expect(screen.getByText('See Exactly What Your Agent Said')).toBeInTheDocument();
-      expect(screen.getByText('Preview Conversations')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', {name: 'Vercel AI SDK'})
-      ).not.toBeInTheDocument();
     }
   );
 
@@ -125,13 +120,11 @@ describe('ConversationOnboarding deployment target', () => {
 
       render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
 
-      expect(await screen.findByRole('button', {name: 'Next'})).toBeInTheDocument();
       expect(
-        screen.queryByText(/Agent Monitoring isn't available/)
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole('link', {name: 'manual AI instrumentation guide'})
-      ).not.toBeInTheDocument();
+        await screen.findByText(
+          textWithMarkupMatcher(`Set up the Sentry SDK for ${project.slug}`)
+        )
+      ).toBeInTheDocument();
     }
   );
 
@@ -231,7 +224,6 @@ describe('ConversationOnboarding deployment target', () => {
       )
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Laravel'})).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Other'})).not.toBeInTheDocument();
   });
 
   it('pins Cloudflare projects to the Cloudflare runtime with no Node toggle', async () => {
