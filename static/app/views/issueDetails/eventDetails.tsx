@@ -67,7 +67,8 @@ const FloatingEventNavigation = styled(Sticky)`
   isolation: isolate;
   background: ${p => p.theme.tokens.background.primary};
   z-index: ${p => p.theme.zIndex.header};
-  border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
+  border-radius: var(--issue-event-header-radius, ${p => p.theme.radius.md})
+    var(--issue-event-header-radius, ${p => p.theme.radius.md}) 0 0;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 
   &::before {
@@ -77,9 +78,8 @@ const FloatingEventNavigation = styled(Sticky)`
     z-index: 0;
     background: ${p => p.theme.tokens.background.primary};
     border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-    opacity: 0;
+    opacity: var(--issue-event-header-opacity, 0);
     pointer-events: none;
-    transition: opacity ${p => p.theme.motion.smooth.slow};
     will-change: opacity;
   }
 
@@ -89,12 +89,13 @@ const FloatingEventNavigation = styled(Sticky)`
   }
 
   &[data-stuck] {
-    border-radius: 0;
+    border-radius: var(--issue-event-header-radius, 0px)
+      var(--issue-event-header-radius, 0px) 0 0;
     /* Content dropdowns should scroll underneath the floating event navigation. */
     z-index: ${p => p.theme.zIndex.stickyHeader};
 
     &::before {
-      opacity: 1;
+      opacity: var(--issue-event-header-opacity, 1);
     }
   }
 `;

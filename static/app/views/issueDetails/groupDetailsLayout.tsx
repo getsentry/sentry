@@ -55,16 +55,18 @@ function EventDetailsSection({children}: {children: React.ReactNode}) {
   const {isSidebarOpen} = useIssueDetails();
 
   return (
-    <Stack
+    <EventSection
       as="section"
       background="secondary"
       borderRight={isSidebarOpen ? {zero: 'none', '4xl': 'primary'} : 'none'}
       borderBottom={{zero: 'primary', '4xl': 'none'}}
     >
       {children}
-    </Stack>
+    </EventSection>
   );
 }
+
+const STICKY_BACKGROUND_FADE_DISTANCE = 24;
 
 function StickyIssueEventNavigation({
   event,
@@ -78,25 +80,70 @@ function StickyIssueEventNavigation({
   const navigationRef = useRef<HTMLDivElement>(null);
   const {dispatch} = useIssueDetails();
 
+  const updateBackgroundOpacity = useCallback(() => {
+    const navigation = navigationRef.current;
+    const section = navigation?.parentElement;
+    if (!navigation || !section) {
+      return;
+    }
+
+    // The section keeps scrolling after the navigation sticks. Their distance
+    // gives us progress without remembering a potentially stale scroll position.
+    const distance =
+      navigation.getBoundingClientRect().top - section.getBoundingClientRect().top;
+    const opacity = String(
+      Math.min(1, Math.max(0, distance / STICKY_BACKGROUND_FADE_DISTANCE))
+    );
+    if (section.style.getPropertyValue('--issue-event-header-opacity') !== opacity) {
+      section.style.setProperty('--issue-event-header-opacity', opacity);
+    }
+  }, []);
+
   const updateNavigationHeight = useCallback(() => {
     dispatch({
       type: 'UPDATE_EVENT_NAVIGATION_HEIGHT',
       height: navigationRef.current?.offsetHeight ?? 0,
     });
-  }, [dispatch]);
+    updateBackgroundOpacity();
+  }, [dispatch, updateBackgroundOpacity]);
 
   useLayoutEffect(() => {
+    const section = navigationRef.current?.parentElement;
+    let frame: number | undefined;
+    const scheduleUpdate = () => {
+      if (frame !== undefined) {
+        return;
+      }
+      frame = requestAnimationFrame(() => {
+        frame = undefined;
+        updateBackgroundOpacity();
+      });
+    };
+
     updateNavigationHeight();
+    // Capture also handles scrolling inside the app's content pane.
+    document.addEventListener('scroll', scheduleUpdate, {capture: true, passive: true});
+    window.addEventListener('resize', scheduleUpdate);
 
     return () => {
+      document.removeEventListener('scroll', scheduleUpdate, true);
+      window.removeEventListener('resize', scheduleUpdate);
+      if (frame !== undefined) {
+        cancelAnimationFrame(frame);
+      }
+      section?.style.removeProperty('--issue-event-header-opacity');
       dispatch({type: 'UPDATE_EVENT_NAVIGATION_HEIGHT', height: 0});
     };
-  }, [dispatch, updateNavigationHeight]);
+  }, [dispatch, updateBackgroundOpacity, updateNavigationHeight]);
 
   useResizeObserver({ref: navigationRef, onResize: updateNavigationHeight});
 
   return (
-    <NavigationSidebarWrapper ref={navigationRef} hasToggleSidebar={hasToggleSidebar}>
+    <NavigationSidebarWrapper
+      ref={navigationRef}
+      hasToggleSidebar={hasToggleSidebar}
+      data-issue-event-navigation
+    >
       <IssueEventNavigation event={event} group={group} />
       {/* Since the event details header is disabled, display the sidebar toggle here */}
       {hasToggleSidebar && <ToggleSidebar size="sm" />}
@@ -186,6 +233,16 @@ export function GroupDetailsLayout({
   );
 }
 
+const EventSection = styled(Stack)`
+  /* Both sticky rows inherit the same scroll progress. */
+  &:has(> [data-issue-event-navigation]) {
+    --issue-event-header-opacity: 0;
+    --issue-event-header-radius: calc(
+      ${p => p.theme.radius.md} * (1 - var(--issue-event-header-opacity))
+    );
+  }
+`;
+
 const NavigationSidebarWrapper = styled(Sticky, {
   shouldForwardProp: prop => prop !== 'hasToggleSidebar',
 })<{hasToggleSidebar: boolean}>`
@@ -203,9 +260,8 @@ const NavigationSidebarWrapper = styled(Sticky, {
     inset: 0;
     z-index: 0;
     background: ${p => p.theme.tokens.background.primary};
-    opacity: 0;
+    opacity: var(--issue-event-header-opacity, 0);
     pointer-events: none;
-    transition: opacity ${p => p.theme.motion.smooth.fast};
     will-change: opacity;
   }
 
@@ -216,10 +272,6 @@ const NavigationSidebarWrapper = styled(Sticky, {
 
   &[data-stuck] {
     z-index: ${p => p.theme.zIndex.stickyHeader};
-
-    &::before {
-      opacity: 1;
-    }
   }
 `;
 
