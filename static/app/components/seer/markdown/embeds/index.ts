@@ -2,6 +2,8 @@ import {AgentWriteApprovalEmbed} from './components/agentWriteApproval';
 import {Alert} from './components/alert/alert';
 import {Autofix, AutofixRef} from './components/autofix';
 import {Chart} from './components/chart';
+import {Conversation} from './components/conversation/conversation';
+import {ConversationsQuery} from './components/conversation/conversationsQuery';
 import {Dashboard} from './components/dashboard';
 import {Docs} from './components/docs';
 import {Dsn} from './components/dsn';
@@ -29,6 +31,8 @@ const embeds = [
   Autofix,
   AutofixRef,
   Chart,
+  Conversation,
+  ConversationsQuery,
   Dashboard,
   Docs,
   Dsn,
