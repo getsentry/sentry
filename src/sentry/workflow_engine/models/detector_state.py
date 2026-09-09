@@ -30,6 +30,12 @@ class DetectorState(DefaultFieldsModel):
     # The detectors priority level from the last detector evaluation
     state = models.CharField(max_length=200, default=DetectorPriorityLevel.OK)
 
+    # Identifies the current activation: the stretch of time since this detector
+    # last moved from OK to a non-OK priority. Handlers that opt in rotate their
+    # issue fingerprint on it, so each activation opens a new Group. Null means
+    # the detector has not rotated yet and keeps the legacy `detector:<id>` key.
+    activation_id = models.UUIDField(null=True)
+
     @property
     def priority_level(self) -> DetectorPriorityLevel:
         """Returns the state as a DetectorPriorityLevel enum."""
