@@ -2623,9 +2623,11 @@ register(
 )
 
 # Webhook processing controls
+# Most threads a skip-on-failure claim delivers on, bounded by the records it
+# claimed.
 register(
     "hybridcloud.webhookpayload.worker_threads",
-    default=4,
+    default=16,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Remove the rows a claim-bounded drain finishes with — delivered, attempts
