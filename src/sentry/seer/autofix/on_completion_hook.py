@@ -313,11 +313,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 "autofix.pr_iteration.failed_tool_call",
                 amount=amount,
                 tags={"tool": function},
+                sample_rate=1.0,
             )
 
         cls._iteration_log_context(organization, group, state).info(
             "autofix.pr_iteration.failed_tool_calls",
-            failed_tool_functions=[call.function for call in failed],
             failed_tool_counts=dict(counts),
         )
 

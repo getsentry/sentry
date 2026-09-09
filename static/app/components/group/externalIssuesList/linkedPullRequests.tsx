@@ -1,8 +1,9 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Avatar, UserAvatar} from '@sentry/scraps/avatar';
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -71,9 +72,42 @@ export function getLinkedPullRequestActivityIds(group: Group) {
 
 interface LinkedPullRequestsProps {
   group: Group;
+  collapseBeforeLatestRegression?: boolean;
   showChecksAndReview?: boolean;
   showEmptyState?: boolean;
   variant?: 'compact' | 'default';
+}
+
+export function partitionLinkedPullRequests(
+  pullRequests: LinkedPullRequest[],
+  latestRegressionAt: string | null | undefined
+) {
+  const latestRegressionTimestamp = latestRegressionAt
+    ? Date.parse(latestRegressionAt)
+    : Number.NaN;
+
+  if (Number.isNaN(latestRegressionTimestamp)) {
+    return {currentPullRequests: pullRequests, historicalPullRequests: []};
+  }
+
+  const currentPullRequests: LinkedPullRequest[] = [];
+  const historicalPullRequests: LinkedPullRequest[] = [];
+
+  for (const pullRequest of pullRequests) {
+    const dateLinkedTimestamp = Date.parse(pullRequest.dateLinked);
+    const isTerminal = pullRequest.status === 'closed' || pullRequest.status === 'merged';
+    if (
+      isTerminal &&
+      !Number.isNaN(dateLinkedTimestamp) &&
+      dateLinkedTimestamp < latestRegressionTimestamp
+    ) {
+      historicalPullRequests.push(pullRequest);
+    } else {
+      currentPullRequests.push(pullRequest);
+    }
+  }
+
+  return {currentPullRequests, historicalPullRequests};
 }
 
 function LinkedPullRequestRow({
@@ -347,6 +381,7 @@ export function linkedPullRequestsApiOptions({
 }
 
 export function LinkedPullRequests({
+  collapseBeforeLatestRegression = false,
   group,
   showChecksAndReview = true,
   showEmptyState,
@@ -378,17 +413,54 @@ export function LinkedPullRequests({
     return null;
   }
 
+  const {currentPullRequests, historicalPullRequests} = collapseBeforeLatestRegression
+    ? partitionLinkedPullRequests(data.pullRequests, data.latestRegressionAt)
+    : {currentPullRequests: data.pullRequests, historicalPullRequests: []};
+
+  return (
+    <Stack gap="sm" width="100%">
+      {currentPullRequests.length > 0 && (
+        <PullRequestList
+          ariaLabel={t('Linked pull requests')}
+          group={group}
+          pullRequests={currentPullRequests}
+          variant={variant}
+        />
+      )}
+      {historicalPullRequests.length > 0 && (
+        <HistoricalPullRequests
+          key={group.id}
+          group={group}
+          pullRequests={historicalPullRequests}
+          variant={variant}
+        />
+      )}
+    </Stack>
+  );
+}
+
+function PullRequestList({
+  ariaLabel,
+  group,
+  pullRequests,
+  variant,
+}: {
+  ariaLabel: string;
+  group: Group;
+  pullRequests: LinkedPullRequest[];
+  variant: 'compact' | 'default';
+}) {
   return (
     <Stack
       as="ul"
-      aria-label={t('Linked pull requests')}
+      aria-label={ariaLabel}
       border="primary"
       radius="md"
       overflow="hidden"
       margin="0"
       padding="0"
     >
-      {data.pullRequests.map((pullRequest, index) => (
+      {pullRequests.map((pullRequest, index) => (
         <Container
           as="li"
           key={`${pullRequest.repository.id}:${pullRequest.id}`}
@@ -403,6 +475,34 @@ export function LinkedPullRequests({
         </Container>
       ))}
     </Stack>
+  );
+}
+
+function HistoricalPullRequests({
+  group,
+  pullRequests,
+  variant,
+}: {
+  group: Group;
+  pullRequests: LinkedPullRequest[];
+  variant: 'compact' | 'default';
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <Disclosure size="sm" expanded={expanded} onExpandedChange={setExpanded}>
+      <Disclosure.Title>
+        {expanded ? t('Hide other PRs') : t('Show other PRs')}
+      </Disclosure.Title>
+      <Disclosure.Content>
+        <PullRequestList
+          ariaLabel={t('Other linked pull requests')}
+          group={group}
+          pullRequests={pullRequests}
+          variant={variant}
+        />
+      </Disclosure.Content>
+    </Disclosure>
   );
 }
 
