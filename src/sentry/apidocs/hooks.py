@@ -43,13 +43,13 @@ EXCLUSION_PATH_PREFIXES = [
 def __get_line_count_for_team_stats(team_stats: Mapping):
     """
     Returns number of lines it takes to write ownership for each team.
-    For example returns 7 for:
+    For example returns 15 for:
     enterprise: {
         block_start: {line_number_for_enterprise},
         public=[ExamplePublicEndpoint::GET],
         private=[ExamplePrivateEndpoint::GET],
         experimental=[ExampleExperimentalEndpoint::GET],
-        unknown=[ExampleUnknownEndpoint::GET]
+        public_experimental=[ExamplePublicExperimentalEndpoint::GET]
     }
     """
 
@@ -79,6 +79,9 @@ def __write_ownership_data(ownership_data: dict[ApiOwner, dict]):
             ApiPublishStatus.EXPERIMENTAL.value: sorted(
                 ownership_data[team][ApiPublishStatus.EXPERIMENTAL]
             ),
+            ApiPublishStatus.PUBLIC_EXPERIMENTAL.value: sorted(
+                ownership_data[team][ApiPublishStatus.PUBLIC_EXPERIMENTAL]
+            ),
         }
         index += __get_line_count_for_team_stats(ownership_data[team])
     dir = os.path.dirname(os.path.realpath(__file__))
@@ -104,9 +107,14 @@ class CustomGenerator(SchemaGenerator):
 # Collected during preprocessing, used in postprocessing
 _ENDPOINT_SERVERS: dict[str, list[dict[str, Any]]] = {}
 
+# (path, lowercased method) pairs published as PUBLIC_EXPERIMENTAL. Preprocessing only
+# filters endpoint tuples, so the marker has to be stamped onto the operation later.
+_EXPERIMENTAL_OPERATIONS: set[tuple[str, str]] = set()
+
 
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
     _ENDPOINT_SERVERS.clear()
+    _EXPERIMENTAL_OPERATIONS.clear()
 
     filtered = []
     ownership_data: dict[ApiOwner, dict] = {}
@@ -122,6 +130,7 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
                 ApiPublishStatus.PUBLIC: set(),
                 ApiPublishStatus.PRIVATE: set(),
                 ApiPublishStatus.EXPERIMENTAL: set(),
+                ApiPublishStatus.PUBLIC_EXPERIMENTAL: set(),
             }
 
         # Fail if endpoint is unowned
@@ -143,13 +152,13 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
 
         elif callback.view_class.publish_status:
             # endpoints that are documented via tooling
-            if (
-                method in callback.view_class.publish_status
-                and callback.view_class.publish_status[method] is ApiPublishStatus.PUBLIC
-            ):
+            status = callback.view_class.publish_status.get(method)
+            if status is not None and status.is_published:
                 # only pass declared public methods of the endpoint
                 # to the rest of the OpenAPI build pipeline
                 filtered.append((path, path_regex, method, callback))
+                if status is ApiPublishStatus.PUBLIC_EXPERIMENTAL:
+                    _EXPERIMENTAL_OPERATIONS.add((path, method.lower()))
 
         else:
             # if an endpoint doesn't have any registered public methods, don't check it.
@@ -230,6 +239,12 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
         if path in result["paths"]:
             for method_info in result["paths"][path].values():
                 method_info["servers"] = servers
+
+    # Must run before _fix_issue_paths, which rewrites the path keys this is keyed on.
+    for path, method in _EXPERIMENTAL_OPERATIONS:
+        method_info = result["paths"].get(path, {}).get(method)
+        if method_info is not None:
+            method_info["x-sentry-experimental"] = True
 
     _fix_issue_paths(result)
     _fix_nullable_enums(result)

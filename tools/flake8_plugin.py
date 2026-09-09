@@ -115,12 +115,12 @@ S021_msg = (
     "Missing from the annotation: {}."
 )
 S022_missing_msg = (
-    "S022 PUBLIC endpoint methods must declare their response shape. This "
+    "S022 Published endpoint methods must declare their response shape. This "
     "method has no return annotation; use Response[YourTypedDict], a union of "
     "Response[T] arms, Response[None], or a non-DRF response type."
 )
 S022_bare_msg = (
-    "S022 PUBLIC endpoint methods must declare their response shape. Bare "
+    "S022 Published endpoint methods must declare their response shape. Bare "
     "`Response` opts the body out of type checking; use Response[YourTypedDict], "
     "a union of Response[T] arms, or Response[None]."
 )
@@ -234,6 +234,9 @@ def _collect_eap_suite_class_names(tree: ast.AST) -> set[str]:
 
 
 HTTP_METHODS = frozenset({"get", "post", "put", "patch", "delete", "head", "options"})
+# ApiPublishStatus members whose `is_published` is true. Mirrored by name because this
+# plugin reads source with ast and must not import from src/sentry.
+PUBLISHED_STATUSES = frozenset({"PUBLIC", "PUBLIC_EXPERIMENTAL"})
 
 
 def publish_status(cls: ast.ClassDef) -> dict[str, str]:
@@ -750,7 +753,7 @@ class SentryVisitor(ast.NodeVisitor):
     def _check_S022(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         if not self._publish_status or node.name not in HTTP_METHODS:
             return
-        if self._publish_status.get(node.name.upper()) != "PUBLIC":
+        if self._publish_status.get(node.name.upper()) not in PUBLISHED_STATUSES:
             return
         if node.returns is None:
             self.errors.append((node.lineno, node.col_offset, S022_missing_msg))
