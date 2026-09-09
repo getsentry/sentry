@@ -312,6 +312,7 @@ class PrIterationDetailsTest(TestCase):
                 run_id=RUN_ID,
                 referrer="github_pr_comment",
                 iteration_index=0,
+                trigger_source="feedback",
                 feedback_count=2,
                 queued_count=3,
                 dropped_count=1,
