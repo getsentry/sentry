@@ -1,6 +1,6 @@
 from collections.abc import Generator
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
@@ -23,7 +23,6 @@ from sentry.issues.derived.promote import (
     PromotionFailed,
     PromotionResult,
     _generation_cache,
-    _read_live_generated_at,
     build_and_promote_batch,
     build_and_promote_derived_data,
     promote_to_live,
@@ -56,14 +55,41 @@ def _hide_first_row_read() -> Generator[None]:
     Opens the TOCTOU window between that probe and the INSERT, so the
     INSERT loses the create race and raises IntegrityError.
     """
+    from sentry.issues.derived.promote import _LivePromotionState, _read_live_promotion_state
+
     seen = iter([True])
 
-    def hide_once(group_id: int) -> datetime | None:
+    def hide_once(group_id: int) -> _LivePromotionState | None:
         if next(seen, False):
             return None
-        return _read_live_generated_at(group_id)
+        return _read_live_promotion_state(group_id)
 
-    with patch("sentry.issues.derived.promote._read_live_generated_at", hide_once):
+    with patch("sentry.issues.derived.promote._read_live_promotion_state", hide_once):
+        yield
+
+
+@contextmanager
+def _force_promote_cas_miss(*, times: int | None = None) -> Generator[None]:
+    """Make promote_to_live's CAS UPDATE match 0 rows so classification runs.
+
+    ``times=None`` misses forever; ``times=N`` misses N promote CAS updates.
+    """
+    from django.db.models.query import QuerySet
+
+    real_update = QuerySet.update
+    remaining = times
+
+    def cas_miss(self: object, **kwargs: object) -> int:
+        nonlocal remaining
+        if "generated_at" in kwargs and "cursor_id" in kwargs:
+            if remaining is None:
+                return 0
+            if remaining > 0:
+                remaining -= 1
+                return 0
+        return real_update(self, **kwargs)  # type: ignore[arg-type]
+
+    with patch.object(QuerySet, "update", cas_miss):
         yield
 
 
@@ -210,6 +236,54 @@ class PromoteToLiveTest(TestCase):
         )
         processing._drain_log(candidate, PIPELINE, time_limit=timedelta(minutes=5), persist=False)
         assert promote_to_live(candidate) is PromotionResult.SUPERSEDED
+
+    def test_promote_equal_cursor_newer_generated_at_is_race_lost(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        process_group_log(group.id)
+        live = GroupDerivedData.objects.get(group_id=group.id)
+
+        candidate = GroupDerivedData(
+            group_id=group.id,
+            generated_at=live.generated_at + timedelta(seconds=1),
+            cursor_date=live.cursor_date,
+            cursor_id=live.cursor_id,
+            data=live.data.copy(),
+            pipeline_hash=PIPELINE.pipeline_hash,
+            view_count=live.view_count,
+        )
+        with _force_promote_cas_miss():
+            assert promote_to_live(candidate) is PromotionResult.RACE_LOST
+
+    def test_promote_equal_cursor_same_generated_at_is_superseded(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        process_group_log(group.id)
+        live = GroupDerivedData.objects.get(group_id=group.id)
+
+        candidate = GroupDerivedData(
+            group_id=group.id,
+            generated_at=live.generated_at,
+            cursor_date=live.cursor_date,
+            cursor_id=live.cursor_id,
+            data=live.data.copy(),
+            pipeline_hash=PIPELINE.pipeline_hash,
+            view_count=live.view_count,
+        )
+        with _force_promote_cas_miss():
+            assert promote_to_live(candidate) is PromotionResult.SUPERSEDED
+
+    def test_build_and_promote_equal_cursor_cas_miss_retries_then_promotes(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        process_group_log(group.id)
+
+        with _force_promote_cas_miss(times=1):
+            build_and_promote_derived_data(group.id, time_limit=timedelta(minutes=5))
+
+        live = GroupDerivedData.objects.get(group_id=group.id)
+        assert live.view_count == 1
+        assert live.pipeline_hash == PIPELINE.pipeline_hash
 
     def test_promote_create_race_returns_superseded_when_winner_is_newer(self) -> None:
         group = self.create_group()

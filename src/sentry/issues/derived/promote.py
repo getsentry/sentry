@@ -81,13 +81,20 @@ class PromotionFailed(Exception):
         super().__init__(f"group {group_id}: {result.value} after {attempts} attempts")
 
 
-def _read_live_generated_at(group_id: int) -> datetime | None:
-    """Return the live row's ``generated_at``, or None if the row is absent."""
-    return (
+class _LivePromotionState(NamedTuple):
+    generated_at: datetime
+    cursor_date: datetime
+    cursor_id: int
+
+
+def _read_live_promotion_state(group_id: int) -> _LivePromotionState | None:
+    """Return the live row's promotion CAS fields, or None if absent."""
+    row = (
         GroupDerivedData.objects.filter(group_id=group_id)
-        .values_list("generated_at", flat=True)
+        .values_list("generated_at", "cursor_date", "cursor_id")
         .get_or_none()
     )
+    return _LivePromotionState(*row) if row is not None else None
 
 
 def _classify_failed_create(group_id: int, generated_at: datetime) -> PromotionResult:
@@ -97,8 +104,8 @@ def _classify_failed_create(group_id: int, generated_at: datetime) -> PromotionR
     Group, so the error is either a concurrent writer winning the create
     race or the group having been deleted underneath us.
     """
-    live_generated_at = _read_live_generated_at(group_id)
-    if live_generated_at is None:
+    live = _read_live_promotion_state(group_id)
+    if live is None:
         # No visible winner. If the group is gone, that's the FK
         # violation. Otherwise we lost to some other race (e.g. a
         # concurrent GDD delete between our INSERT and this read);
@@ -107,7 +114,7 @@ def _classify_failed_create(group_id: int, generated_at: datetime) -> PromotionR
             return PromotionResult.GROUP_MISSING
         return PromotionResult.RACE_LOST
 
-    if live_generated_at > generated_at:
+    if live.generated_at > generated_at:
         return PromotionResult.SUPERSEDED
     # The winner is same-or-older generation, so its cursor position
     # tells us nothing about the log tail. Not CURSOR_BEHIND: that name
@@ -129,11 +136,13 @@ def promote_to_live(
     group's log. On success, all state fields (including ``generated_at``)
     are stamped.
 
-    Returns SUPERSEDED if the row has a newer ``generated_at``.
+    Returns SUPERSEDED if the row has a newer ``generated_at``, or if live
+    already holds the same cursor tip (log position covered).
     Returns CURSOR_BEHIND if the cursor guard failed against a same or
     older generation whose cursor is genuinely ahead.
     Returns RACE_LOST if we lost a create race to a same-or-older
-    generation whose cursor may not be ahead — the caller should retry
+    generation whose cursor may not be ahead, or same tip with our newer
+    ``generated_at`` (retry to stamp it) — the caller should retry
     unconditionally rather than treating "no new log entries" as fatal.
     Returns GROUP_MISSING if the group has been deleted.
 
@@ -157,10 +166,10 @@ def promote_to_live(
     if updated:
         return PromotionResult.PROMOTED
 
-    # Check why we failed: row missing or newer generation?
-    live_generated_at = _read_live_generated_at(candidate.group_id)
+    # Check why we failed: row missing, newer generation, or same tip?
+    live = _read_live_promotion_state(candidate.group_id)
 
-    if live_generated_at is None:
+    if live is None:
         # Row doesn't exist — try to create it. enforce_constraints so a
         # violation surfaces here instead of floating up to an
         # enclosing transaction's commit.
@@ -176,7 +185,12 @@ def promote_to_live(
             return _classify_failed_create(candidate.group_id, generated_at)
         return PromotionResult.PROMOTED
 
-    if live_generated_at > generated_at:
+    if live.generated_at > generated_at:
+        return PromotionResult.SUPERSEDED
+    if live.cursor_date == candidate.cursor_date and live.cursor_id == candidate.cursor_id:
+        # Same tip: retry if we still have a newer generated_at to stamp.
+        if live.generated_at < generated_at:
+            return PromotionResult.RACE_LOST
         return PromotionResult.SUPERSEDED
     return PromotionResult.CURSOR_BEHIND
 
