@@ -48,9 +48,9 @@ from sentry.issues.action_log import (
     resolve_action_source,
 )
 from sentry.issues.action_log.read_metrics import (
-    ActivityReadEndpoint,
     ActivityReadReason,
     ActivityReadResult,
+    activity_read_endpoint,
     record_activity_read,
 )
 from sentry.issues.action_log.types import ViewAction
@@ -348,13 +348,12 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 }
             )
 
-            if should_serve_action_log_activity(
-                group.project, request.user, endpoint=ActivityReadEndpoint.GROUP_DETAILS
-            ):
+            endpoint = activity_read_endpoint(request)
+            if should_serve_action_log_activity(group.project, request.user, endpoint=endpoint):
                 action_log = GroupActionLogEntry.objects.get_actions_for_group(group, 99)
                 if action_log:
                     record_activity_read(
-                        ActivityReadEndpoint.GROUP_DETAILS,
+                        endpoint,
                         ActivityReadResult.GALE,
                     )
                     # swap action log data in under the activity name
@@ -364,7 +363,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     )
                 else:
                     record_activity_read(
-                        ActivityReadEndpoint.GROUP_DETAILS,
+                        endpoint,
                         ActivityReadResult.FELL_BACK,
                         ActivityReadReason.EMPTY_LOG,
                     )

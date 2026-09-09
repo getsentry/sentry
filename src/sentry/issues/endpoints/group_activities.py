@@ -10,9 +10,9 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.groupactionlogentry import serialize_first_seen_entry
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.action_log.read_metrics import (
-    ActivityReadEndpoint,
     ActivityReadReason,
     ActivityReadResult,
+    activity_read_endpoint,
     record_activity_read,
 )
 from sentry.issues.derived.gate import should_serve_action_log_activity
@@ -39,13 +39,12 @@ class GroupActivitiesEndpoint(GroupEndpoint):
         """
         Retrieve all the Activities for a Group
         """
-        if should_serve_action_log_activity(
-            group.project, request.user, endpoint=ActivityReadEndpoint.GROUP_ACTIVITIES
-        ):
+        endpoint = activity_read_endpoint(request)
+        if should_serve_action_log_activity(group.project, request.user, endpoint=endpoint):
             action_log = GroupActionLogEntry.objects.get_actions_for_group(group, 99)
             if action_log:
                 record_activity_read(
-                    ActivityReadEndpoint.GROUP_ACTIVITIES,
+                    endpoint,
                     ActivityReadResult.GALE,
                 )
                 serialized = serialize(action_log, request.user)
@@ -56,7 +55,7 @@ class GroupActivitiesEndpoint(GroupEndpoint):
                     }
                 )
             record_activity_read(
-                ActivityReadEndpoint.GROUP_ACTIVITIES,
+                endpoint,
                 ActivityReadResult.FELL_BACK,
                 ActivityReadReason.EMPTY_LOG,
             )

@@ -1,18 +1,10 @@
 from enum import StrEnum
 
+from rest_framework.request import Request
+
 from sentry.utils import metrics
 
 ACTIVITY_READ_METRIC = "issues.action_log.activity_read"
-
-
-class ActivityReadEndpoint(StrEnum):
-    """Read paths that can serve Activity-shaped responses from the action log."""
-
-    GROUP_DETAILS = "group_details"
-    GROUP_ACTIVITIES = "group_activities"
-    GROUP_INDEX_UPDATE = "group_index_update"
-    GROUP_NOTES = "group_notes"
-    GROUP_NOTES_DETAILS = "group_notes_details"
 
 
 class ActivityReadResult(StrEnum):
@@ -31,12 +23,25 @@ class ActivityReadReason(StrEnum):
     EMPTY_LOG = "empty_log"
 
 
+def activity_read_endpoint(request: Request) -> str:
+    """The route being served, for the `endpoint` tag."""
+    if request.resolver_match is None or request.resolver_match.url_name is None:
+        return "unknown"
+    return request.resolver_match.url_name
+
+
 def record_activity_read(
-    endpoint: ActivityReadEndpoint,
+    endpoint: str,
     result: ActivityReadResult,
     reason: ActivityReadReason | None = None,
 ) -> None:
-    tags = {"endpoint": endpoint.value, "result": result.value}
+    """
+    Record the outcome of one attempt to serve activity from the action log.
+
+    Called once per read: by ``should_serve_action_log_activity`` when the gate closes,
+    otherwise by the caller once it knows whether the read produced anything.
+    """
+    tags = {"endpoint": endpoint, "result": result.value}
     if reason is not None:
         tags["reason"] = reason.value
     metrics.incr(ACTIVITY_READ_METRIC, sample_rate=1.0, tags=tags)

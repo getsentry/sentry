@@ -2,7 +2,6 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry import features
 from sentry.issues.action_log.read_metrics import (
-    ActivityReadEndpoint,
     ActivityReadReason,
     ActivityReadResult,
     record_activity_read,
@@ -36,9 +35,15 @@ def should_serve_action_log_activity(
     project: Project,
     actor: User | RpcUser | AnonymousUser | None = None,
     *,
-    endpoint: ActivityReadEndpoint,
+    endpoint: str,
 ) -> bool:
-    """Whether the action log can back this project's Activity-shaped responses."""
+    """
+    Whether the action log can back this project's Activity-shaped responses.
+
+    Records the read outcome itself when it returns False, because only it knows which
+    condition closed the gate. Returning True records nothing: the caller goes on to read
+    the log, so the caller reports whether that produced anything.
+    """
     if not features.has("projects:issue-action-log-activity", project, actor=actor):
         record_activity_read(endpoint, ActivityReadResult.FLAG_OFF)
         return False

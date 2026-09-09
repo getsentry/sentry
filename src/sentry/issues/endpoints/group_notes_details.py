@@ -23,8 +23,8 @@ from sentry.issues.action_log import (
     resolve_action_source,
 )
 from sentry.issues.action_log.read_metrics import (
-    ActivityReadEndpoint,
     ActivityReadResult,
+    activity_read_endpoint,
     record_activity_read,
 )
 from sentry.issues.action_log.types import CommentDeleteAction, CommentEditAction
@@ -85,13 +85,14 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             group_id=group.id,
             idempotency_key=activity_action_idempotency_key(note),
         ).first()
+        endpoint = activity_read_endpoint(request)
         serve_from_log = should_serve_action_log_activity(
-            group.project, request.user, endpoint=ActivityReadEndpoint.GROUP_NOTES_DETAILS
+            group.project, request.user, endpoint=endpoint
         )
         if serve_from_log:
             # The log is authoritative for existence whether or not the entry is
             # there: a missing one means the comment is already gone.
-            record_activity_read(ActivityReadEndpoint.GROUP_NOTES_DETAILS, ActivityReadResult.GALE)
+            record_activity_read(endpoint, ActivityReadResult.GALE)
         if original_comment_log_action is None and serve_from_log:
             raise ResourceDoesNotExist
 
@@ -174,13 +175,12 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
                 group_id=group.id,
                 idempotency_key=activity_action_idempotency_key(note),
             ).first()
+            endpoint = activity_read_endpoint(request)
             serve_from_log = should_serve_action_log_activity(
-                group.project, request.user, endpoint=ActivityReadEndpoint.GROUP_NOTES_DETAILS
+                group.project, request.user, endpoint=endpoint
             )
             if serve_from_log:
-                record_activity_read(
-                    ActivityReadEndpoint.GROUP_NOTES_DETAILS, ActivityReadResult.GALE
-                )
+                record_activity_read(endpoint, ActivityReadResult.GALE)
             if original_comment_log_action is None and serve_from_log:
                 raise ResourceDoesNotExist
 

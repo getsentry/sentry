@@ -3,7 +3,6 @@ from typing import Any
 import pytest
 
 from sentry.issues.action_log import SYSTEM_ACTOR, GroupActionActor, publish_action
-from sentry.issues.action_log.read_metrics import ActivityReadEndpoint
 from sentry.issues.action_log.types import (
     ActionSource,
     ArchiveAction,
@@ -117,27 +116,17 @@ class TestCaptureActionLog(TestCase):
 
 class TestActionLogActivityEnabled(TestCase):
     def test_opens_and_closes_the_gate(self) -> None:
-        assert not should_serve_action_log_activity(
-            self.project, self.user, endpoint=ActivityReadEndpoint.GROUP_DETAILS
-        )
+        assert not should_serve_action_log_activity(self.project, self.user, endpoint="test")
 
         with action_log_activity_enabled():
-            assert should_serve_action_log_activity(
-                self.project, self.user, endpoint=ActivityReadEndpoint.GROUP_DETAILS
-            )
+            assert should_serve_action_log_activity(self.project, self.user, endpoint="test")
 
-        assert not should_serve_action_log_activity(
-            self.project, self.user, endpoint=ActivityReadEndpoint.GROUP_DETAILS
-        )
+        assert not should_serve_action_log_activity(self.project, self.user, endpoint="test")
 
     @action_log_activity_enabled()
     def test_works_as_a_decorator(self) -> None:
-        assert should_serve_action_log_activity(
-            self.project, self.user, endpoint=ActivityReadEndpoint.GROUP_DETAILS
-        )
+        assert should_serve_action_log_activity(self.project, self.user, endpoint="test")
 
     @action_log_activity_enabled()
     def test_applies_to_every_project(self) -> None:
-        assert should_serve_action_log_activity(
-            self.create_project(), self.user, endpoint=ActivityReadEndpoint.GROUP_DETAILS
-        )
+        assert should_serve_action_log_activity(self.create_project(), self.user, endpoint="test")
