@@ -346,6 +346,13 @@ _CONTAINER_OPS = frozenset(
 _COPY_METHODS = frozenset(("copy", "dict"))
 
 
+def _is_request(node: ast.expr) -> bool:
+    """The handler's request argument, as `request` or `self.request`."""
+    if isinstance(node, ast.Name):
+        return node.id == "request"
+    return isinstance(node, ast.Attribute) and node.attr == "request"
+
+
 def _unwrap_copy(node: ast.expr) -> ast.expr:
     """Strip `.copy()` / `.dict()` so `request.GET.copy()` still reads as the source."""
     while (
@@ -627,7 +634,9 @@ class _InputCtx:
         node = _unwrap_copy(node)
         if isinstance(node, ast.Name):
             return node.id in locals_
-        return isinstance(node, ast.Attribute) and node.attr in attrs
+        # The attribute has to hang off the request. `serializer.data` and
+        # `response.data` are outputs, not parameters a client sent.
+        return isinstance(node, ast.Attribute) and node.attr in attrs and _is_request(node.value)
 
     def is_query(self, node: ast.expr) -> bool:
         return self._is(node, _QUERY_ATTRS, self.query_locals)
@@ -978,7 +987,9 @@ class SentryVisitor(ast.NodeVisitor):
                 self._s024_parses = (node.lineno, node.col_offset)
 
     def visit_Subscript(self, node: ast.Subscript) -> None:
-        if self._input_stack:
+        # Load only: `request.data["title"] = ...` writes a value, it does not
+        # read a parameter the client sent.
+        if self._input_stack and isinstance(node.ctx, ast.Load):
             ctx = self._input_stack[-1]
             source = ctx.source_of(node.value)
             if source is not None:

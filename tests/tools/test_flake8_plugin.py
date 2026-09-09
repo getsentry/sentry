@@ -1534,3 +1534,42 @@ class E(Endpoint):
     assert len(declared_only) == 1 and "S025" in declared_only[0]
     shaped_only = _run_input(src, SHAPED)
     assert len(shaped_only) == 1 and "S026" in shaped_only[0]
+
+
+def test_S026_serializer_and_response_data_are_not_request_body() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"POST": ApiPublishStatus.PUBLIC}
+
+    def post(self, request) -> Response[X]:
+        serializer.data["title"]
+        response.data["title"]
+        return serializer.data.get("slug")
+"""
+    assert _run_input(src, SHAPED) == []
+
+
+def test_S026_request_via_self_is_still_a_read() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return self.request.GET.get("truncate")
+"""
+    assert len(_run_input(src, SHAPED)) == 1
+
+
+def test_S026_subscript_write_is_not_a_read() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"POST": ApiPublishStatus.PUBLIC}
+
+    def post(self, request) -> Response[X]:
+        request.data["title"] = "default"
+        del request.data["scratch"]
+        return request.data["title"]
+"""
+    errors = _run_input(src, SHAPED)
+    assert len(errors) == 1
+    assert "t.py:7:" in errors[0]
