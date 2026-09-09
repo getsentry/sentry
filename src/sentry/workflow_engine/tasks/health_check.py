@@ -112,8 +112,9 @@ def health_check_project_detectors() -> None:
 def ensure_default_detectors_for_org(organization_id: int) -> None:
     from sentry.workflow_engine.defaults.detectors import ensure_default_organization_detectors
 
-    organization = Organization.objects.get(id=organization_id, status=ObjectStatus.ACTIVE)
-    ensure_default_organization_detectors(organization)
+    organization = Organization.objects.get_or_none(id=organization_id, status=ObjectStatus.ACTIVE)
+    if organization:
+        ensure_default_organization_detectors(organization)
 
 
 @instrumented_task(
@@ -125,5 +126,6 @@ def ensure_default_detectors_for_org(organization_id: int) -> None:
 def ensure_default_detectors_for_project(project_id: int) -> None:
     from sentry.workflow_engine.defaults.detectors import ensure_default_detectors
 
-    project = Project.objects.get(id=project_id, status=ObjectStatus.ACTIVE)
-    ensure_default_detectors(project)
+    project = Project.objects.get_or_none(id=project_id, status=ObjectStatus.ACTIVE)
+    if project:
+        ensure_default_detectors(project)
