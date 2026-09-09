@@ -1,6 +1,9 @@
 """The serializer stub gives `validated_data` a declared shape.
 
-Exercised through mypy, because the mechanism is a stub with nothing to import.
+Exercised through mypy under the repo's own config, because the mechanism is a
+stub with nothing to import and CI resolves it the same way. If the stub ever
+stops being found, `validated_data` falls back to `Any` and these cases would
+pass without checking anything, so `test_stub_is_in_effect` guards that.
 """
 
 from __future__ import annotations
@@ -53,6 +56,13 @@ def _check(body: str) -> str:
         )
         out = proc.stdout.decode()
         return "\n".join(line for line in out.splitlines() if "case.py" in line)
+
+
+def test_stub_is_in_effect() -> None:
+    # Without the stub `validated_data` is Any, so returning it as int is fine
+    # and every other case here would pass vacuously.
+    out = _check("def f(v: MonitorValidator) -> int:\n    return v.validated_data['name']\n")
+    assert "Incompatible return value type" in out
 
 
 def test_declared_key_resolves_to_its_type() -> None:
