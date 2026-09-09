@@ -3,6 +3,7 @@ import {initializeData as _initializeData} from 'sentry-test/performance/initial
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -53,7 +54,6 @@ function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
               allowedCharts={allowedCharts}
               rowChartSettings={[]}
               withStaticFilters={withStaticFilters}
-              forceDefaultChartSetting
               {...data}
               {...rest}
             />
@@ -77,6 +77,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
   let issuesListMock: jest.Mock;
 
   beforeEach(() => {
+    localStorageWrapper.removeItem('landing-chart-container');
     ConfigStore.init();
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
