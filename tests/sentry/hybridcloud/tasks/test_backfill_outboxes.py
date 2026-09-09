@@ -276,7 +276,7 @@ def _counter_calls(metrics_mock: Any, name: str) -> int:
 def test_watermark_report_runs_without_budget() -> None:
     """The pass sits above the budget branch, so a starved tick still reports."""
     reset_processing_state()
-    set_processing_state(AuthProvider, 41, 1)
+    set_processing_state(AuthProvider._meta.db_table, 41, 1)
 
     with patch("sentry.hybridcloud.tasks.backfill_outboxes.metrics") as metrics_mock:
         # No budget at all, so the backfill loop itself does nothing.
@@ -292,7 +292,7 @@ def test_watermark_report_covers_a_finished_table() -> None:
     reset_processing_state()
     table_name = AuthProvider._meta.db_table
     finished_version = AuthProvider.replication_version + 1
-    set_processing_state(AuthProvider, 0, finished_version)
+    set_processing_state(table_name, 0, finished_version)
 
     with patch("sentry.hybridcloud.tasks.backfill_outboxes.metrics") as metrics_mock:
         # Budget of 1, so the loop really runs. Every control table is past its
@@ -321,7 +321,7 @@ def test_watermark_report_survives_a_failing_backfill_loop() -> None:
     """The loop above the report is unguarded. Its failure must not take the report away."""
     reset_processing_state()
     table_name = AuthProvider._meta.db_table
-    set_processing_state(AuthProvider, 41, 1)
+    set_processing_state(table_name, 41, 1)
 
     def boom(model: Any, batch_size: int, force_synchronous: bool = False) -> Any:
         raise RuntimeError("the backfill loop is broken")
@@ -349,7 +349,7 @@ def test_watermark_report_carries_the_value_the_cycle_left() -> None:
     reset_processing_state()
     models = _backfill_models(SiloMode.CONTROL)
     for model in models:
-        set_processing_state(model, 3, 1)
+        set_processing_state(model._meta.db_table, 3, 1)
     with outbox_context(flush=False):
         for _ in range(5):
             Factories.create_user()
@@ -424,7 +424,7 @@ def test_watermark_report_leaves_a_stored_value_alone() -> None:
     """An existing key keeps its exact stored bytes after the pass."""
     reset_processing_state()
     table_name = AuthProvider._meta.db_table
-    set_processing_state(AuthProvider, 12345, 3)
+    set_processing_state(table_name, 12345, 3)
     client = _get_redis_client()
     before = client.get(get_backfill_key(table_name))
 
@@ -441,7 +441,7 @@ def test_watermark_report_continues_when_one_table_raises() -> None:
     reset_processing_state()
     broken_table = AuthProvider._meta.db_table
     good_table = ApiToken._meta.db_table
-    set_processing_state(ApiToken, 7, 1)
+    set_processing_state(good_table, 7, 1)
 
     real_read = read_processing_state
 
@@ -523,7 +523,8 @@ def test_backfill_stops_at_the_budget() -> None:
 def test_watermark_report_hands_back_the_stored_pair() -> None:
     """The dual write mirrors this pair, so the report has to return it."""
     reset_processing_state()
-    set_processing_state(AuthProvider, 8080, 2)
+    table_name = AuthProvider._meta.db_table
+    set_processing_state(table_name, 8080, 2)
 
     assert _report_watermark_for_model(AuthProvider, force_synchronous=False) == (8080, 2)
     # An absent key reports itself and yields nothing to mirror.
@@ -537,18 +538,18 @@ def test_dual_write_mirrors_every_key_on_a_starved_tick() -> None:
 
     reset_processing_state()
     seeded = {
-        AuthProvider: (41, 1),
-        ApiToken: (77, 2),
+        AuthProvider._meta.db_table: (41, 1),
+        ApiToken._meta.db_table: (77, 2),
     }
-    for model, (lower, version) in seeded.items():
-        set_processing_state(model, lower, version)
+    for table_name, (lower, version) in seeded.items():
+        set_processing_state(table_name, lower, version)
 
     with override_options({WRITE_WATERMARK_TO_POSTGRES_OPTION: True}):
         # No budget at all, so the backfill loop itself does nothing.
         assert not backfill_outboxes_for(SiloMode.CONTROL, scheduled_count=10_000)
 
-    for model, pair in seeded.items():
-        row = ControlOutboxBackfillWatermark.objects.get(table_name=model._meta.db_table)
+    for table_name, pair in seeded.items():
+        row = ControlOutboxBackfillWatermark.objects.get(table_name=table_name)
         assert (row.low_bound, row.version) == pair
 
     # A table with no Redis key has nothing to mirror, so it gets no row.
@@ -562,7 +563,7 @@ def test_dual_write_mirrors_a_finished_table() -> None:
     reset_processing_state()
     table_name = AuthProvider._meta.db_table
     finished_version = AuthProvider.replication_version + 1
-    set_processing_state(AuthProvider, 0, finished_version)
+    set_processing_state(table_name, 0, finished_version)
 
     with override_options({WRITE_WATERMARK_TO_POSTGRES_OPTION: True}):
         # Budget of 1, so the loop really runs and finds no work for this table.
@@ -656,12 +657,12 @@ def test_dual_write_off_leaves_the_redis_state_identical() -> None:
     reset_processing_state()
     table_name = AuthProvider._meta.db_table
 
-    set_processing_state(AuthProvider, 4242, 3)
+    set_processing_state(table_name, 4242, 3)
     backfill_outboxes_for(SiloMode.CONTROL, 0, 1)
     without_option = read_processing_state(table_name)
 
     reset_processing_state()
-    set_processing_state(AuthProvider, 4242, 3)
+    set_processing_state(table_name, 4242, 3)
     with override_options({WRITE_WATERMARK_TO_POSTGRES_OPTION: True}):
         backfill_outboxes_for(SiloMode.CONTROL, 0, 1)
 
@@ -686,7 +687,7 @@ def test_a_read_never_creates_a_postgres_row() -> None:
 def test_a_failed_postgres_write_does_not_break_the_pass() -> None:
     reset_processing_state()
     table_name = AuthProvider._meta.db_table
-    set_processing_state(AuthProvider, 99, 2)
+    set_processing_state(table_name, 99, 2)
 
     with (
         override_options({WRITE_WATERMARK_TO_POSTGRES_OPTION: True}),
@@ -712,9 +713,9 @@ def test_dual_write_updates_the_row_in_place() -> None:
     table_name = AuthProvider._meta.db_table
 
     with override_options({WRITE_WATERMARK_TO_POSTGRES_OPTION: True}):
-        set_processing_state(AuthProvider, 10, 1)
+        set_processing_state(table_name, 10, 1)
         assert not backfill_outboxes_for(SiloMode.CONTROL, scheduled_count=10_000)
-        set_processing_state(AuthProvider, 20, 2)
+        set_processing_state(table_name, 20, 2)
         assert not backfill_outboxes_for(SiloMode.CONTROL, scheduled_count=10_000)
 
     rows = list(ControlOutboxBackfillWatermark.objects.filter(table_name=table_name))
@@ -728,8 +729,8 @@ def test_dual_write_picks_the_table_by_the_silo_of_the_model() -> None:
     reset_processing_state()
 
     with override_options({WRITE_WATERMARK_TO_POSTGRES_OPTION: True}):
-        _write_postgres_watermark(AuthProvider, 11, 1)
-        _write_postgres_watermark(Organization, 22, 1)
+        _write_postgres_watermark(AuthProvider._meta.db_table, 11, 1)
+        _write_postgres_watermark(Organization._meta.db_table, 22, 1)
 
     assert (
         ControlOutboxBackfillWatermark.objects.get(table_name=AuthProvider._meta.db_table).low_bound
@@ -747,7 +748,7 @@ def test_dual_write_uses_the_control_table_in_control_silo() -> None:
     reset_processing_state()
 
     with override_options({WRITE_WATERMARK_TO_POSTGRES_OPTION: True}):
-        _write_postgres_watermark(AuthProvider, 7, 1)
+        _write_postgres_watermark(AuthProvider._meta.db_table, 7, 1)
 
     row = ControlOutboxBackfillWatermark.objects.get(table_name=AuthProvider._meta.db_table)
     assert (row.low_bound, row.version) == (7, 1)
@@ -759,7 +760,7 @@ def test_dual_write_uses_the_cell_table_in_cell_silo() -> None:
     reset_processing_state()
 
     with override_options({WRITE_WATERMARK_TO_POSTGRES_OPTION: True}):
-        _write_postgres_watermark(Organization, 8, 1)
+        _write_postgres_watermark(Organization._meta.db_table, 8, 1)
 
     row = CellOutboxBackfillWatermark.objects.get(table_name=Organization._meta.db_table)
     assert (row.low_bound, row.version) == (8, 1)
