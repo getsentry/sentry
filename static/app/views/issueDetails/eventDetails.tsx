@@ -66,7 +66,8 @@ function StickyEventNav({event, group}: {event: Event; group: Group}) {
 const FloatingEventNavigation = styled(Sticky)`
   isolation: isolate;
   background: ${p => p.theme.tokens.background.primary};
-  z-index: ${p => p.theme.zIndex.header};
+  /* Keep content underneath throughout the scroll-driven fade. */
+  z-index: ${p => p.theme.zIndex.stickyHeader};
   border-radius: var(--issue-event-header-radius, ${p => p.theme.radius.md})
     var(--issue-event-header-radius, ${p => p.theme.radius.md}) 0 0;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
@@ -74,7 +75,8 @@ const FloatingEventNavigation = styled(Sticky)`
   &::before {
     content: '';
     position: absolute;
-    inset: 0 calc(-1 * var(--issue-details-inset, ${p => p.theme.space['2xl']}));
+    /* Align the fill's divider with the sticky row's border. */
+    inset: 0 calc(-1 * var(--issue-details-inset, ${p => p.theme.space['2xl']})) -1px;
     z-index: 0;
     background: ${p => p.theme.tokens.background.primary};
     border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
@@ -91,9 +93,6 @@ const FloatingEventNavigation = styled(Sticky)`
   &[data-stuck] {
     border-radius: var(--issue-event-header-radius, 0px)
       var(--issue-event-header-radius, 0px) 0 0;
-    /* Content dropdowns should scroll underneath the floating event navigation. */
-    z-index: ${p => p.theme.zIndex.stickyHeader};
-
     &::before {
       opacity: var(--issue-event-header-opacity, 1);
     }

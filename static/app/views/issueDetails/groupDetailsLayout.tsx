@@ -247,6 +247,7 @@ const NavigationSidebarWrapper = styled(Sticky, {
   shouldForwardProp: prop => prop !== 'hasToggleSidebar',
 })<{hasToggleSidebar: boolean}>`
   isolation: isolate;
+  z-index: ${p => p.theme.zIndex.stickyHeader};
   display: flex;
   gap: ${p => p.theme.space.xs};
   padding: ${p =>
@@ -268,10 +269,6 @@ const NavigationSidebarWrapper = styled(Sticky, {
   & > * {
     position: relative;
     z-index: 1;
-  }
-
-  &[data-stuck] {
-    z-index: ${p => p.theme.zIndex.stickyHeader};
   }
 `;
 
