@@ -592,7 +592,7 @@ const config = defineConfig({
     'react/error-boundaries': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/exhaustive-effect-dependencies': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/function-component-definition': 'error',
-    'react/globals': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/globals': 'error',
     'react/hooks': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/immutability': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/incompatible-library': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
