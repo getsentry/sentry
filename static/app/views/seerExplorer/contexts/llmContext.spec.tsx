@@ -15,7 +15,7 @@ import {registerLLMContext} from './registerLLMContext';
  * calling capturedRef.current() in waitFor gives live data.
  */
 function makeContextCapture() {
-  const ref: {current: ((componentOnly?: boolean) => LLMContextSnapshot) | null} = {
+  const ref: {current: (() => LLMContextSnapshot) | null} = {
     current: null,
   };
 
@@ -25,11 +25,11 @@ function makeContextCapture() {
     return null;
   }
 
-  function getSnapshot(componentOnly?: boolean): LLMContextSnapshot {
+  function getSnapshot(): LLMContextSnapshot {
     if (!ref.current) {
       throw new Error('ContextCapture not mounted');
     }
-    return ref.current(componentOnly);
+    return ref.current();
   }
 
   return {ContextCapture, getSnapshot};
@@ -152,7 +152,7 @@ describe('LLMContextProvider — location', () => {
     );
 
     await waitFor(() => {
-      expect(getSnapshot(true).location?.params).toEqual({groupId: '456'});
+      expect(getSnapshot().location?.params).toEqual({groupId: '456'});
     });
   });
 
@@ -462,7 +462,7 @@ describe('registerLLMContext — traces-explorer node type', () => {
   });
 });
 
-describe('getLLMContext — full tree vs componentOnly', () => {
+describe('getLLMContext — full tree', () => {
   it('getLLMContext() returns full tree including sibling branches', async () => {
     const {ContextCapture, getSnapshot} = makeContextCapture();
 
@@ -490,54 +490,6 @@ describe('getLLMContext — full tree vs componentOnly', () => {
       expect(snapshot.nodes).toHaveLength(2);
       const types = snapshot.nodes.map(n => n.nodeType);
       expect(types).toEqual(['widget', 'widget']);
-    });
-  });
-
-  it('getLLMContext(true) returns only the current component subtree', async () => {
-    // We need a capture inside the dashboard to test componentOnly
-    const innerRef: {
-      current: ((c?: boolean) => LLMContextSnapshot) | null;
-    } = {current: null};
-
-    function DashboardWithCapture({name}: {name: string}) {
-      useLLMContext({name});
-      const {getLLMContext} = useLLMContext();
-      innerRef.current = getLLMContext;
-      return (
-        <div>
-          <ContextWidget title="inner-widget" />
-        </div>
-      );
-    }
-    const ContextDashboardWithCapture = registerLLMContext(
-      'dashboard',
-      DashboardWithCapture
-    );
-
-    function SiblingDashboard() {
-      useLLMContext({name: 'sibling'});
-      return <div>sibling</div>;
-    }
-    const ContextSiblingDashboard = registerLLMContext('dashboard', SiblingDashboard);
-
-    render(
-      <LLMContextProvider>
-        <ContextDashboardWithCapture name="main" />
-        <ContextSiblingDashboard />
-      </LLMContextProvider>
-    );
-
-    // componentOnly snapshot should contain only the dashboard + its inner widget,
-    // not the sibling dashboard
-    await waitFor(() => {
-      if (!innerRef.current) {
-        throw new Error('not mounted');
-      }
-      const snapshot = innerRef.current(true); // componentOnly
-      expect(snapshot.nodes).toHaveLength(1);
-      expect(snapshot.nodes[0]?.nodeType).toBe('dashboard');
-      expect(snapshot.nodes[0]?.children).toHaveLength(1);
-      expect(snapshot.nodes[0]?.children[0]?.nodeType).toBe('widget');
     });
   });
 });

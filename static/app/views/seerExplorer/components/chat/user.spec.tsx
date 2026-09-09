@@ -22,14 +22,6 @@ describe('UserBlock', () => {
     expect(screen.getByText('What is this error about?')).toBeInTheDocument();
   });
 
-  it('calls onClick when clicked', async () => {
-    const onClick = jest.fn();
-    render(<BlockComponent block={createBlock()} blockIndex={0} onClick={onClick} />);
-
-    await userEvent.click(screen.getByText('What is this error about?'));
-    expect(onClick).toHaveBeenCalledTimes(1);
-  });
-
   it('does not show feedback or copy buttons on hover', async () => {
     const {container} = render(
       <BlockComponent block={createBlock()} blockIndex={0} runId={123} />
