@@ -63,7 +63,7 @@ export type AddAlert = (alert: GlobalAlert) => void;
 interface GlobalAlertContextValue {
   addAlert: AddAlert;
   alerts: readonly StoredGlobalAlert[];
-  closeAlert: (alert: StoredGlobalAlert, muteDurationSeconds?: number) => void;
+  closeAlert: (alert: StoredGlobalAlert) => void;
 }
 
 const MUTED_STORAGE_KEY = 'alerts:muted';
