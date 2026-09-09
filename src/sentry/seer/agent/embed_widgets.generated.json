@@ -549,7 +549,7 @@
         }
       }
     ],
-    "featureFlag": "organizations:seer-agent-autofix"
+    "featureFlag": ["organizations:seat-based-seer-enabled", "organizations:seer-added"]
   },
   {
     "name": "alert",
@@ -1703,6 +1703,6 @@
         }
       }
     ],
-    "featureFlag": "organizations:seer-agent-autofix"
+    "featureFlag": ["organizations:seat-based-seer-enabled", "organizations:seer-added"]
   }
 ]
