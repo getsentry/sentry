@@ -1,8 +1,11 @@
+import {useCallback, useLayoutEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useResizeObserver} from '@react-aria/utils';
 
 import {Container, Stack} from '@sentry/scraps/layout';
 
+import {Sticky} from 'sentry/components/sticky';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -52,14 +55,99 @@ function EventDetailsSection({children}: {children: React.ReactNode}) {
   const {isSidebarOpen} = useIssueDetails();
 
   return (
-    <Stack
+    <EventSection
       as="section"
       background="secondary"
       borderRight={isSidebarOpen ? {zero: 'none', '4xl': 'primary'} : 'none'}
       borderBottom={{zero: 'primary', '4xl': 'none'}}
     >
       {children}
-    </Stack>
+    </EventSection>
+  );
+}
+
+const STICKY_BACKGROUND_FADE_DISTANCE = 24;
+
+function StickyIssueEventNavigation({
+  event,
+  group,
+  hasToggleSidebar,
+}: {
+  event: Event | undefined;
+  group: Group;
+  hasToggleSidebar: boolean;
+}) {
+  const navigationRef = useRef<HTMLDivElement>(null);
+  const {dispatch} = useIssueDetails();
+
+  const updateBackgroundOpacity = useCallback(() => {
+    const navigation = navigationRef.current;
+    const section = navigation?.parentElement;
+    if (!navigation || !section) {
+      return;
+    }
+
+    // The section keeps scrolling after the navigation sticks. Their distance
+    // gives us progress without remembering a potentially stale scroll position.
+    const distance =
+      navigation.getBoundingClientRect().top - section.getBoundingClientRect().top;
+    const opacity = String(
+      Math.min(1, Math.max(0, distance / STICKY_BACKGROUND_FADE_DISTANCE))
+    );
+    if (section.style.getPropertyValue('--issue-event-header-opacity') !== opacity) {
+      section.style.setProperty('--issue-event-header-opacity', opacity);
+    }
+  }, []);
+
+  const updateNavigationHeight = useCallback(() => {
+    dispatch({
+      type: 'UPDATE_EVENT_NAVIGATION_HEIGHT',
+      height: navigationRef.current?.offsetHeight ?? 0,
+    });
+    updateBackgroundOpacity();
+  }, [dispatch, updateBackgroundOpacity]);
+
+  useLayoutEffect(() => {
+    const section = navigationRef.current?.parentElement;
+    let frame: number | undefined;
+    const scheduleUpdate = () => {
+      if (frame !== undefined) {
+        return;
+      }
+      frame = requestAnimationFrame(() => {
+        frame = undefined;
+        updateBackgroundOpacity();
+      });
+    };
+
+    updateNavigationHeight();
+    // Capture also handles scrolling inside the app's content pane.
+    document.addEventListener('scroll', scheduleUpdate, {capture: true, passive: true});
+    window.addEventListener('resize', scheduleUpdate);
+
+    return () => {
+      document.removeEventListener('scroll', scheduleUpdate, true);
+      window.removeEventListener('resize', scheduleUpdate);
+      if (frame !== undefined) {
+        cancelAnimationFrame(frame);
+      }
+      section?.style.removeProperty('--issue-event-header-opacity');
+      dispatch({type: 'UPDATE_EVENT_NAVIGATION_HEIGHT', height: 0});
+    };
+  }, [dispatch, updateBackgroundOpacity, updateNavigationHeight]);
+
+  useResizeObserver({ref: navigationRef, onResize: updateNavigationHeight});
+
+  return (
+    <NavigationSidebarWrapper
+      ref={navigationRef}
+      hasToggleSidebar={hasToggleSidebar}
+      data-issue-event-navigation
+    >
+      <IssueEventNavigation event={event} group={group} />
+      {/* Since the event details header is disabled, display the sidebar toggle here */}
+      {hasToggleSidebar && <ToggleSidebar size="sm" />}
+    </NavigationSidebarWrapper>
   );
 }
 
@@ -126,11 +214,11 @@ export function GroupDetailsLayout({
                   <EventDetailsSection>
                     {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING &&
                       issueTypeConfig.header.eventNavigation.enabled && (
-                        <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
-                          <IssueEventNavigation event={event} group={group} />
-                          {/* Since the event details header is disabled, display the sidebar toggle here */}
-                          {!hasFilterBar && <ToggleSidebar size="sm" />}
-                        </NavigationSidebarWrapper>
+                        <StickyIssueEventNavigation
+                          event={event}
+                          group={group}
+                          hasToggleSidebar={!hasFilterBar}
+                        />
                       )}
                     <ContentPadding>{children}</ContentPadding>
                   </EventDetailsSection>
@@ -145,16 +233,43 @@ export function GroupDetailsLayout({
   );
 }
 
-const NavigationSidebarWrapper = styled('div')<{
-  hasToggleSidebar: boolean;
-}>`
-  position: relative;
+const EventSection = styled(Stack)`
+  /* Both sticky rows inherit the same scroll progress. */
+  &:has(> [data-issue-event-navigation]) {
+    --issue-event-header-opacity: 0;
+    --issue-event-header-radius: calc(
+      ${p => p.theme.radius.md} * (1 - var(--issue-event-header-opacity))
+    );
+  }
+`;
+
+const NavigationSidebarWrapper = styled(Sticky, {
+  shouldForwardProp: prop => prop !== 'hasToggleSidebar',
+})<{hasToggleSidebar: boolean}>`
+  isolation: isolate;
+  z-index: ${p => p.theme.zIndex.stickyHeader};
   display: flex;
   gap: ${p => p.theme.space.xs};
   padding: ${p =>
     p.hasToggleSidebar
       ? `${p.theme.space.md} 0 ${p.theme.space.sm} var(--issue-details-inset, ${p.theme.space['2xl']})`
       : `${p.theme.space.sm} var(--issue-details-inset, ${p.theme.space['2xl']}) ${p.theme.space.xs} var(--issue-details-inset, ${p.theme.space['2xl']})`};
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: ${p => p.theme.tokens.background.primary};
+    opacity: var(--issue-event-header-opacity, 0);
+    pointer-events: none;
+    will-change: opacity;
+  }
+
+  & > * {
+    position: relative;
+    z-index: 1;
+  }
 `;
 
 const ContentPadding = styled('div')`

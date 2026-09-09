@@ -161,7 +161,6 @@ const EventInfoJumpToWrapper = styled('div')<{hasProcessingError: boolean}>`
   align-items: center;
   padding: 0 ${p => p.theme.space.lg};
   min-height: ${MIN_NAV_HEIGHT}px;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 
   @media (max-width: ${p =>
     p.hasProcessingError ? p.theme.breakpoints.lg : p.theme.breakpoints.sm}) {
