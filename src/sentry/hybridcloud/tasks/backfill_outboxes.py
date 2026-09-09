@@ -139,9 +139,6 @@ def read_processing_state(table_name: str) -> tuple[int, int] | None:
 
 
 def get_processing_state(table_name: str) -> tuple[int, int]:
-    """
-    The watermark pair the backfill works from.
-    """
     postgres_enabled = _read_from_postgres_enabled()
 
     if postgres_enabled:
