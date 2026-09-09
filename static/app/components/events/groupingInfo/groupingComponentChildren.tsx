@@ -16,14 +16,17 @@ type Props = {
 export function GroupingComponentChildren({component, showNonContributing}: Props) {
   return (
     <Fragment>
-      {component.values
-        .filter((value: any) => groupingComponentFilter(value, showNonContributing))
-        .map((value: any, index: number) => (
+      {component.values.map((value, index) =>
+        groupingComponentFilter(value, showNonContributing) ? (
           <GroupingComponentListItem
             // value.id is not a unique value
-            key={typeof value === 'object' ? `${value.id}-${index}` : `${value}-${index}`}
+            key={
+              typeof value === 'object' && value !== null
+                ? `${value.id}-${index}`
+                : `${value}-${index}`
+            }
           >
-            {typeof value === 'object' ? (
+            {typeof value === 'object' && value !== null ? (
               <GroupingComponent
                 component={value}
                 showNonContributing={showNonContributing}
@@ -39,7 +42,8 @@ export function GroupingComponentChildren({component, showNonContributing}: Prop
               </GroupingValue>
             )}
           </GroupingComponentListItem>
-        ))}
+        ) : null
+      )}
     </Fragment>
   );
 }

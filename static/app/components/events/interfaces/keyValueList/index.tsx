@@ -40,6 +40,7 @@ export function KeyValueList({
             {
               key,
               subject,
+              subjectNode,
               value = null,
               meta,
               subjectIcon,
@@ -74,7 +75,7 @@ export function KeyValueList({
 
             return (
               <tr key={`${key}-${idx}`}>
-                <td className="key">{subject}</td>
+                <td className="key">{subjectNode ?? subject}</td>
                 <td className="val" data-test-id={subjectDataTestId}>
                   <Tablevalue>
                     {actionButton ? (
