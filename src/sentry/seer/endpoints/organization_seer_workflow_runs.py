@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from typing import TypedDict
+
+from drf_spectacular.utils import extend_schema
+from rest_framework import serializers
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,21 +22,37 @@ from sentry.models.organization import Organization
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunShard
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.seer.monitor_cleanup import FEATURE
+from sentry.seer.workflows.monitor_cleanup import start_monitor_cleanup
+
+MANUAL_WORKFLOW_HANDLERS = {
+    SeerWorkflowStrategy.DUPLICATE_MONITORS: start_monitor_cleanup,
+}
 
 
-class OrganizationSeerWorkflowsPermission(OrganizationPermission):
+class WorkflowRunCreateSerializer(serializers.Serializer):
+    strategy = serializers.ChoiceField(choices=list(MANUAL_WORKFLOW_HANDLERS))
+
+
+class WorkflowRunCreateResponse(TypedDict):
+    runId: str
+    url: str
+
+
+class OrganizationSeerWorkflowRunsPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read"],
+        "POST": ["org:read"],
     }
 
 
 @cell_silo_endpoint
-class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
+class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
-    permission_classes = (OrganizationSeerWorkflowsPermission,)
+    permission_classes = (OrganizationSeerWorkflowRunsPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
         triage_enabled = features.has("organizations:seer-night-shift", organization)
@@ -71,4 +91,24 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
             order_by="-date_added",
             on_results=lambda x: serialize(x, request.user),
             paginator_cls=OffsetPaginator,
+        )
+
+    @extend_schema(
+        operation_id="Start a Seer workflow run",
+        request=WorkflowRunCreateSerializer,
+        responses={202: WorkflowRunCreateResponse},
+    )
+    def post(self, request: Request, organization: Organization) -> Response:
+        serializer = WorkflowRunCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({"detail": serializer.errors}, status=400)
+        strategy = serializer.validated_data["strategy"]
+        projects = self.get_projects(request, organization, include_all_accessible=True)
+        run = MANUAL_WORKFLOW_HANDLERS[strategy](request, organization, projects)
+        return Response(
+            {
+                "runId": str(run.id),
+                "url": f"/organizations/{organization.slug}/issues/autofix/workflows/?runId={run.id}&expandLatest={strategy}",
+            },
+            status=202,
         )

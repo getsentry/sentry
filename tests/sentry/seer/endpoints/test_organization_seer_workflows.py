@@ -16,8 +16,8 @@ from sentry.tasks.seer.monitor_cleanup import collect_monitor_cleanup_result, fi
 from sentry.testutils.cases import APITestCase
 
 
-class OrganizationSeerWorkflowsTest(APITestCase):
-    endpoint = "sentry-api-0-organization-seer-workflows"
+class OrganizationSeerWorkflowRunsTest(APITestCase):
+    endpoint = "sentry-api-0-organization-seer-workflow-runs"
 
     def setUp(self) -> None:
         super().setUp()
@@ -336,7 +336,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
 
 
 class OrganizationSeerMonitorCleanupTest(APITestCase):
-    endpoint = "sentry-api-0-organization-seer-monitor-cleanup"
+    endpoint = "sentry-api-0-organization-seer-workflow-runs"
     method = "post"
 
     def setUp(self) -> None:
@@ -353,10 +353,12 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
     def trigger(self):
         with (
             self.feature(FEATURE),
-            patch("sentry.seer.endpoints.organization_seer_monitor_cleanup.dispatch_run"),
+            patch("sentry.seer.workflows.monitor_cleanup.dispatch_run"),
             self.tasks(),
         ):
-            return self.get_success_response(self.organization.slug, status_code=202)
+            return self.get_success_response(
+                self.organization.slug, strategy="duplicate_monitors", status_code=202
+            )
 
     def artifact(self, duplicate_id: str | None = None):
         return MonitorCleanupArtifact(
@@ -384,12 +386,36 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert f"runId={run.id}" in response.data["url"]
 
     def test_requires_feature(self) -> None:
-        self.get_error_response(self.organization.slug, status_code=404)
+        self.get_error_response(
+            self.organization.slug, strategy="duplicate_monitors", status_code=404
+        )
+
+    def test_rejects_unknown_strategy(self) -> None:
+        with self.feature(FEATURE):
+            response = self.get_error_response(
+                self.organization.slug, strategy="unknown", status_code=400
+            )
+        assert "strategy" in response.data["detail"]
+        assert not SeerNightShiftRun.objects.filter(organization=self.organization).exists()
+
+    def test_rejects_strategy_without_manual_handler(self) -> None:
+        with self.feature(FEATURE):
+            response = self.get_error_response(
+                self.organization.slug, strategy="agentic_triage", status_code=400
+            )
+        assert "strategy" in response.data["detail"]
+        assert not SeerNightShiftRun.objects.filter(organization=self.organization).exists()
+
+    def test_requires_strategy(self) -> None:
+        with self.feature(FEATURE):
+            response = self.get_error_response(self.organization.slug, status_code=400)
+        assert "strategy" in response.data["detail"]
+        assert not SeerNightShiftRun.objects.filter(organization=self.organization).exists()
 
     def test_requires_organization_access(self) -> None:
         other = self.create_organization()
         with self.feature(FEATURE):
-            self.get_error_response(other.slug, status_code=403)
+            self.get_error_response(other.slug, strategy="duplicate_monitors", status_code=403)
 
     def test_scans_only_accessible_projects_as_member(self) -> None:
         member = self.create_user()
@@ -410,7 +436,9 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         self.keep.delete()
         self.duplicate.delete()
         with self.feature(FEATURE):
-            self.get_error_response(self.organization.slug, status_code=400)
+            self.get_error_response(
+                self.organization.slug, strategy="duplicate_monitors", status_code=400
+            )
 
     def test_validates_and_persists_result_once(self) -> None:
         run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
@@ -495,7 +523,8 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         self.login_as(member)
         with self.feature(FEATURE):
             response = self.client.get(
-                f"/api/0/organizations/{self.organization.slug}/seer/workflows/", {"runId": run.id}
+                f"/api/0/organizations/{self.organization.slug}/seer/workflow-runs/",
+                {"runId": run.id},
             )
         assert response.status_code == 200
         assert response.data == []
