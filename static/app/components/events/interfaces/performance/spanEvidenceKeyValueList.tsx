@@ -505,7 +505,6 @@ function SlowDBQueryEvidence({
 }: SpanEvidenceKeyValueListProps) {
   const span = offendingSpans[0]!;
   const sentryTags = 'sentry_tags' in span ? span.sentry_tags : undefined;
-  const groupHash = sentryTags?.group ?? span.hash ?? '';
   const hasExplore = organization.features.includes('visibility-explore-view');
 
   const codeFilepath = getAttributeValue(span.data ?? {}, 'code.file.path', 'string');
@@ -538,7 +537,7 @@ function SlowDBQueryEvidence({
         <SpanSummaryLink
           op={span.op}
           category={sentryTags?.category}
-          group={groupHash}
+          group={sentryTags?.group}
           organization={organization}
         />
         {hasExplore && span.description && (
