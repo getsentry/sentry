@@ -8,7 +8,6 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {MetricsEquationVisualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -18,8 +17,6 @@ import {
   defaultMetricQuery,
   type BaseMetricQuery,
 } from 'sentry/views/explore/metrics/metricQuery';
-
-jest.mock('sentry/utils/useNavigate');
 
 let parseOverride: any = null;
 jest.mock('sentry/views/explore/metrics/parseAggregateExpression', () => {
@@ -51,8 +48,6 @@ jest.mock('sentry/views/explore/metrics/hooks/useStableLabels', () => {
     },
   };
 });
-
-const mockedUseNavigate = jest.mocked(useNavigate);
 
 const EQUATION_FEATURES = ['tracemetrics-enabled'];
 
@@ -90,12 +85,16 @@ function setupMockApis() {
   });
 }
 
-describe('MetricsEquationVisualize', () => {
-  let mockNavigate!: jest.Mock;
+/**
+ * A query param holding a single value comes back as a string rather than a
+ * one-element array, so normalise before comparing to a serialized list.
+ */
+function queryList(value: string | string[] | undefined | null) {
+  return value === undefined || value === null ? [] : [value].flat();
+}
 
+describe('MetricsEquationVisualize', () => {
   beforeEach(() => {
-    mockNavigate = jest.fn();
-    mockedUseNavigate.mockReturnValue(mockNavigate);
     setupMockApis();
   });
 
@@ -106,7 +105,7 @@ describe('MetricsEquationVisualize', () => {
   });
 
   it('selects a row and syncs yAxis to widget builder', async () => {
-    render(<MetricsEquationVisualize />, {
+    const {router} = render(<MetricsEquationVisualize />, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
       additionalWrapper: WidgetBuilderProvider,
       initialRouterConfig: {
@@ -133,18 +132,13 @@ describe('MetricsEquationVisualize', () => {
     await userEvent.click(radioButtons[1]!);
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            yAxis: serializeFields([
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'beta_metric', 'counter', 'none'],
-              },
-            ]),
-          }),
-        }),
-        expect.anything()
+      expect(queryList(router.location.query.yAxis)).toEqual(
+        serializeFields([
+          {
+            kind: FieldValueKind.FUNCTION,
+            function: ['sum', 'value', 'beta_metric', 'counter', 'none'],
+          },
+        ])
       );
     });
   });

@@ -11,7 +11,6 @@ import {
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -22,7 +21,6 @@ import {
 
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/hooks/useTraceItemAttributes');
-jest.mock('sentry/utils/useNavigate');
 
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';
@@ -30,7 +28,6 @@ const DASHBOARD_WIDGET_BUILDER_ROUTE = '/organizations/:orgId/dashboards/new/wid
 
 describe('Visualize', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
-  let mockNavigate!: jest.Mock;
 
   beforeEach(() => {
     organization = OrganizationFixture({
@@ -96,9 +93,6 @@ describe('Visualize', () => {
       isLoading: false,
       secondaryAliases: {},
     });
-
-    mockNavigate = jest.fn();
-    jest.mocked(useNavigate).mockReturnValue(mockNavigate);
   });
 
   afterEach(() => {
@@ -516,7 +510,7 @@ describe('Visualize', () => {
   });
 
   it('properly transitions between aggregates of higher to no parameter count', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <Visualize />
       </WidgetBuilderProvider>,
@@ -545,14 +539,13 @@ describe('Visualize', () => {
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
       'count'
     );
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: expect.objectContaining({field: ['count()']})}),
-      expect.anything()
-    );
+    await waitFor(() => {
+      expect(router.location.query).toEqual(expect.objectContaining({field: 'count()'}));
+    });
   });
 
   it('properly transitions between aggregates of higher to lower parameter count', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <Visualize />
       </WidgetBuilderProvider>,
@@ -582,12 +575,11 @@ describe('Visualize', () => {
       'count_miserable'
     );
     expect(screen.getByDisplayValue('300')).toBeInTheDocument();
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({field: ['count_miserable(user,300)']}),
-      }),
-      expect.anything()
-    );
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({field: 'count_miserable(user,300)'})
+      );
+    });
   });
 
   it('adds the default value for an aggregate with 2 parameters', async () => {
@@ -904,7 +896,7 @@ describe('Visualize', () => {
   });
 
   it('shifts the selected aggregate up when it is the last one and removed', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <Visualize />
       </WidgetBuilderProvider>,
@@ -931,12 +923,9 @@ describe('Visualize', () => {
     // The second field is now selected, but the URL param for selectedAggregate
     // is cleared, so the last field is selected
     expect(await screen.findByRole('radio', {name: 'field1'})).toBeChecked();
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({selectedAggregate: undefined}),
-      }),
-      expect.anything()
-    );
+    await waitFor(() => {
+      expect(router.location.query).not.toHaveProperty('selectedAggregate');
+    });
   });
 
   it('only shows the relevant options for the release dataset', async () => {
@@ -1703,7 +1692,7 @@ describe('Visualize', () => {
     });
 
     it('adds equations', async () => {
-      render(
+      const {router} = render(
         <WidgetBuilderProvider>
           <Visualize />
         </WidgetBuilderProvider>,
@@ -1745,16 +1734,15 @@ describe('Visualize', () => {
       });
       await userEvent.type(input, '{ArrowDown}{Enter}');
 
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({field: ['equation|( avg(span.duration)']}),
-        }),
-        expect.anything()
-      );
+      await waitFor(() => {
+        expect(router.location.query).toEqual(
+          expect.objectContaining({field: 'equation|( avg(span.duration)'})
+        );
+      });
     });
 
     it('adds equations line chart', async () => {
-      render(
+      const {router} = render(
         <WidgetBuilderProvider>
           <Visualize />
         </WidgetBuilderProvider>,
@@ -1796,12 +1784,11 @@ describe('Visualize', () => {
       });
       await userEvent.type(input, '{ArrowDown}{Enter}');
 
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({field: ['equation|( avg(span.duration)']}),
-        }),
-        expect.anything()
-      );
+      await waitFor(() => {
+        expect(router.location.query).toEqual(
+          expect.objectContaining({field: 'equation|( avg(span.duration)'})
+        );
+      });
     });
   });
 
@@ -2223,7 +2210,7 @@ describe('Visualize', () => {
       },
     });
 
-    render(<Visualize />, {
+    const {router} = render(<Visualize />, {
       organization,
       additionalWrapper: WidgetBuilderProvider,
       initialRouterConfig: {
@@ -2252,13 +2239,10 @@ describe('Visualize', () => {
     ).toHaveTextContent('span.description');
     expect(await screen.findByRole('listbox')).toBeInTheDocument();
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(router.location.query).toEqual(
         expect.objectContaining({
-          query: expect.objectContaining({
-            field: ['span.description', 'sum(value,alpha_metric,counter,none)'],
-          }),
-        }),
-        expect.anything()
+          field: ['span.description', 'sum(value,alpha_metric,counter,none)'],
+        })
       );
     });
 
@@ -2266,16 +2250,13 @@ describe('Visualize', () => {
     await userEvent.click(await screen.findByRole('option', {name: 'alpha_metric'}));
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(router.location.query).toEqual(
         expect.objectContaining({
-          query: expect.objectContaining({
-            field: [
-              'sum(value,alpha_metric,counter,none)',
-              'sum(value,alpha_metric,counter,none)',
-            ],
-          }),
-        }),
-        expect.anything()
+          field: [
+            'sum(value,alpha_metric,counter,none)',
+            'sum(value,alpha_metric,counter,none)',
+          ],
+        })
       );
     });
   });
