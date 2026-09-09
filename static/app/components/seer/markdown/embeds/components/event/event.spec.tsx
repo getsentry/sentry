@@ -89,8 +89,10 @@ describe('Seer event embed', () => {
 
     renderEventEmbed({view: 'tags'});
 
-    expect(await screen.findByText('Tags')).toBeInTheDocument();
-    expect(await screen.findByText('Chrome')).toBeInTheDocument();
+    expect(await screen.findByTestId('seer-event-tags')).toBeInTheDocument();
+    // Sorted by key, the same tree the log embed renders its attributes in.
+    expect(screen.getByTestId('tree-key-browser')).toHaveTextContent('browser');
+    expect(screen.getByTestId('tree-key-level')).toHaveTextContent('level');
     expect(screen.getByRole('link', {name: 'All tags for this issue'})).toHaveAttribute(
       'href',
       `/organizations/org-slug/issues/${ISSUE_ID}/distributions/`
@@ -102,15 +104,13 @@ describe('Seer event embed', () => {
 
     renderEventEmbed({view: 'tags'});
 
-    // Wait on the rows themselves -- the summary above renders the same tag values
-    // before the tree has loaded its project.
-    expect(await screen.findAllByTestId('tag-tree-row')).toHaveLength(2);
-    // The row menu writes project highlight tags and builds its links out of the
-    // host page's `location.query`, so the embed renders the rows without it.
-    expect(screen.queryAllByLabelText('Tag Actions Menu')).toHaveLength(0);
+    expect(await screen.findAllByTestId('attribute-tree-row')).toHaveLength(2);
+    // The row menu builds its links out of the host page's `location.query`, so
+    // the embed renders the rows without it.
+    expect(screen.queryAllByLabelText('Attribute Actions Menu')).toHaveLength(0);
   });
 
-  it('renders a plain tag list when the event has no project slug', async () => {
+  it('renders the tag tree even when the event has no project slug', async () => {
     mockEvent({
       projectSlug: undefined,
       contexts: {},
@@ -119,9 +119,20 @@ describe('Seer event embed', () => {
 
     renderEventEmbed({view: 'tags'});
 
-    expect(await screen.findByText('Tags')).toBeInTheDocument();
-    expect(await screen.findByText('server_name')).toBeInTheDocument();
+    // The tree renders off the tags alone, so a response without a project slug
+    // no longer falls back to a bare list.
+    expect(await screen.findByTestId('seer-event-tags')).toBeInTheDocument();
+    expect(screen.getByTestId('tree-key-server_name')).toHaveTextContent('server_name');
     expect(screen.getByText('web-01')).toBeInTheDocument();
+  });
+
+  it('tells the reader when the event has no tags', async () => {
+    mockEvent({contexts: {}, tags: []});
+
+    renderEventEmbed({view: 'tags'});
+
+    expect(await screen.findByText('This event has no tags.')).toBeInTheDocument();
+    expect(screen.queryByTestId('seer-event-tags')).not.toBeInTheDocument();
   });
 
   it('renders the distribution of a single tag for view "tag"', async () => {

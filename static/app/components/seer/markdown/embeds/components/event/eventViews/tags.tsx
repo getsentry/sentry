@@ -1,83 +1,92 @@
-import {Fragment} from 'react';
+import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {EventTags} from 'sentry/components/events/eventTags';
+import {EmbedSection} from 'sentry/components/seer/markdown/embeds/components/embedSection';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {
+  INERT_LOCATION,
+  INERT_NAVIGATE,
+} from 'sentry/components/seer/markdown/embeds/inertRouting';
 import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
+import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
+import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 
 /**
- * The tag row menu writes project highlight tags and builds its links from the host
- * page's `location.query`; an embed must reach neither. Hoisted so the reference stays
- * stable -- `EventTagsTree` memoizes its columns against it.
+ * Dropped from the tree the way issue details drops it: the replay is its own
+ * embed, and the bare id is not something to read.
  */
-const READ_ONLY_ROW_CONFIG = {disableActions: true} as const;
+const HIDDEN_TAG_KEYS = ['replayId'];
 
 interface EventTagsViewProps {
   /** Link to the issue's tag distributions page. Derived once by the block. */
   distributionsHref: string;
   event: Event;
-  /** From `event.projectSlug`; undefined when the events API omitted it. */
-  projectSlug: string | undefined;
 }
 
 /**
- * Fallback for events served without a project slug -- `EventTags` needs one to
- * load the detailed project it renders tag rows against, so show the raw pairs
- * rather than an empty section.
+ * Every tag on the event, as the same tree the log embed renders its attributes
+ * in. Deliberately not `EventTags`: that one picks its own column count off the
+ * container, fetches the detailed project to render a row, and reports mobile
+ * device classifications to analytics -- three things an embed of a single event
+ * should not be doing, and none of which the tree here needs.
  */
-function PlainTagList({event}: {event: Event}) {
-  const tags = event.tags ?? [];
+export function EventTagsView({event, distributionsHref}: EventTagsViewProps) {
+  const organization = useOrganization();
+  const theme = useTheme();
 
-  if (tags.length === 0) {
-    return <Text variant="muted">{t('This event has no tags.')}</Text>;
-  }
-
-  return (
-    <Grid columns={{zero: 'minmax(0, 1fr)', sm: 'max-content minmax(0, 1fr)'}} gap="xs">
-      {tags.map(tag => (
-        <Fragment key={tag.key}>
-          <Text bold ellipsis size="sm">
-            {tag.key}
-          </Text>
-          <Text ellipsis size="sm" variant="muted">
-            {tag.value ?? ''}
-          </Text>
-        </Fragment>
-      ))}
-    </Grid>
+  const attributes = useMemo<TraceItemResponseAttribute[]>(
+    () =>
+      (event.tags ?? [])
+        .filter(tag => !HIDDEN_TAG_KEYS.includes(tag.key))
+        .map(tag => ({name: tag.key, type: 'str' as const, value: tag.value ?? ''}))
+        .toSorted((a, b) => a.name.localeCompare(b.name)),
+    [event.tags]
   );
-}
 
-export function EventTagsView({
-  event,
-  projectSlug,
-  distributionsHref,
-}: EventTagsViewProps) {
+  const rendererExtra = useMemo<RenderFunctionBaggage>(
+    () => ({
+      location: INERT_LOCATION,
+      navigate: INERT_NAVIGATE,
+      organization,
+      projectSlug: event.projectSlug,
+      theme,
+    }),
+    [event.projectSlug, organization, theme]
+  );
+
   return (
-    <Stack gap="md">
-      <Flex align="center" gap="md" justify="between" wrap="wrap">
-        <Text bold size="xs" uppercase variant="muted">
-          {t('Tags')}
-        </Text>
+    <EmbedSection
+      title={t('Tags')}
+      action={
         <ResourceLink
           icon={IconIssues}
           href={distributionsHref}
           title={t('All tags for this issue')}
         />
-      </Flex>
-      {projectSlug ? (
-        <EventTags
-          event={event}
-          projectSlug={projectSlug}
-          config={READ_ONLY_ROW_CONFIG}
-        />
+      }
+    >
+      {attributes.length === 0 ? (
+        <Text variant="muted">{t('This event has no tags.')}</Text>
       ) : (
-        <PlainTagList event={event} />
+        <Container data-test-id="seer-event-tags" width="100%">
+          <AttributesTree
+            attributes={attributes}
+            // A single column keeps the tree readable at the width Seer renders in.
+            columnCount={1}
+            // The row actions filter the page the tree normally lives in, which
+            // an embed has no query params to write to.
+            config={{disableActions: true}}
+            rendererExtra={rendererExtra}
+          />
+        </Container>
       )}
-    </Stack>
+    </EmbedSection>
   );
 }
