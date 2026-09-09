@@ -7,8 +7,8 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
 
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {MetricsEquationVisualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -18,8 +18,6 @@ import {
   defaultMetricQuery,
   type BaseMetricQuery,
 } from 'sentry/views/explore/metrics/metricQuery';
-
-jest.mock('sentry/utils/useNavigate');
 
 let parseOverride: any = null;
 jest.mock('sentry/views/explore/metrics/parseAggregateExpression', () => {
@@ -51,8 +49,6 @@ jest.mock('sentry/views/explore/metrics/hooks/useStableLabels', () => {
     },
   };
 });
-
-const mockedUseNavigate = jest.mocked(useNavigate);
 
 const EQUATION_FEATURES = ['tracemetrics-enabled'];
 
@@ -91,11 +87,8 @@ function setupMockApis() {
 }
 
 describe('MetricsEquationVisualize', () => {
-  let mockNavigate!: jest.Mock;
-
   beforeEach(() => {
-    mockNavigate = jest.fn();
-    mockedUseNavigate.mockReturnValue(mockNavigate);
+    setWindowLocation('http://localhost/');
     setupMockApis();
   });
 
@@ -106,7 +99,18 @@ describe('MetricsEquationVisualize', () => {
   });
 
   it('selects a row and syncs yAxis to widget builder', async () => {
-    render(<MetricsEquationVisualize />, {
+    // UrlParamBatchProvider reads window.location, which is separate from the test router.
+    setWindowLocation(
+      `http://localhost${DASHBOARD_WIDGET_BUILDER_PATHNAME}?${new URLSearchParams({
+        dataset: WidgetType.TRACEMETRICS,
+        displayType: DisplayType.LINE,
+        field: 'project',
+        yAxis:
+          'equation|sum(value,alpha_metric,counter,none) + sum(value,beta_metric,counter,none)',
+      })}`
+    );
+
+    const {router} = render(<MetricsEquationVisualize />, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
       additionalWrapper: WidgetBuilderProvider,
       initialRouterConfig: {
@@ -115,6 +119,7 @@ describe('MetricsEquationVisualize', () => {
           query: {
             dataset: WidgetType.TRACEMETRICS,
             displayType: DisplayType.LINE,
+            field: ['project'],
             yAxis: [
               'equation|sum(value,alpha_metric,counter,none) + sum(value,beta_metric,counter,none)',
             ],
@@ -133,18 +138,15 @@ describe('MetricsEquationVisualize', () => {
     await userEvent.click(radioButtons[1]!);
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(router.location.query).toEqual(
         expect.objectContaining({
-          query: expect.objectContaining({
-            yAxis: serializeFields([
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'beta_metric', 'counter', 'none'],
-              },
-            ]),
-          }),
-        }),
-        expect.anything()
+          yAxis: serializeFields([
+            {
+              kind: FieldValueKind.FUNCTION,
+              function: ['sum', 'value', 'beta_metric', 'counter', 'none'],
+            },
+          ])[0],
+        })
       );
     });
   });
