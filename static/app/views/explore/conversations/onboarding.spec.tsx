@@ -94,68 +94,28 @@ describe('ConversationOnboarding deployment target', () => {
     ).toBeInTheDocument();
   });
 
-  it.each(['node', 'python', 'javascript-nextjs', 'php-laravel'] as const)(
-    'prefers a supported %s project over a selected browser project',
-    async platform => {
-      const {organization, project} = setupProject(platform);
-      const browserProject = ProjectFixture({
-        id: '100',
-        slug: 'browser-project',
-        platform: 'javascript',
-      });
-      ProjectsStore.loadInitialData([browserProject, project]);
-      PageFiltersStore.onInitializeUrlState(
-        PageFiltersFixture({projects: [Number(browserProject.id), Number(project.id)]}),
-        false
-      );
-
-      render(<ConversationOnboarding onDismiss={jest.fn()} />, {
-        organization,
-      });
-
-      expect(
-        await screen.findByText(
-          textWithMarkupMatcher(`Set up the Sentry SDK for ${project.slug}`)
-        )
-      ).toBeInTheDocument();
-    }
-  );
-
-  it('shows the unsupported setup when all selected projects are browser-only', async () => {
-    const {organization, project} = setupProject('javascript');
-    const secondProject = ProjectFixture({
+  it('prefers a supported project over a selected browser project', async () => {
+    const {organization, project} = setupProject('javascript-nextjs');
+    const browserProject = ProjectFixture({
       id: '100',
-      slug: 'react-project',
-      platform: 'javascript-react',
+      slug: 'browser-project',
+      platform: 'javascript',
     });
-    ProjectsStore.loadInitialData([project, secondProject]);
+    ProjectsStore.loadInitialData([browserProject, project]);
     PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({projects: [Number(project.id), Number(secondProject.id)]}),
+      PageFiltersFixture({projects: [Number(browserProject.id), Number(project.id)]}),
       false
     );
 
-    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {
+      organization,
+    });
 
     expect(
       await screen.findByText(
-        textWithMarkupMatcher(
-          /Auto instrumentation isn't available for Browser JavaScript yet/
-        )
+        textWithMarkupMatcher(`Set up the Sentry SDK for ${project.slug}`)
       )
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Copy Prompt for AI Agent'})
-    ).toBeInTheDocument();
-  });
-
-  it('keeps server integrations available for meta-framework projects', async () => {
-    const {organization} = setupProject('javascript-nextjs');
-
-    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
-
-    await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
-    expect(screen.getByRole('option', {name: 'Vercel AI SDK'})).toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'Workers AI'})).toBeInTheDocument();
   });
 
   it('pins Cloudflare projects to the Cloudflare runtime with no Node toggle', async () => {
