@@ -10,6 +10,12 @@ import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 export const LOG_EMBED_REFERRER = 'seer-log-embed';
 
 /**
+ * The trace-item details endpoint keeps an allowlist of referrers, so the block
+ * keeps the one the logs table already registered rather than its own.
+ */
+export const LOG_DETAILS_REFERRER = 'api.explore.log-item-details';
+
+/**
  * Padding around the log's own timestamp when looking the single row up, to
  * absorb clock skew between when the SDK minted the id and when the log was
  * ingested. Matches the window the pinned-log lookup uses.

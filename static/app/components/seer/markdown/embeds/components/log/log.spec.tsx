@@ -122,6 +122,19 @@ describe('Seer log embed', () => {
     );
   });
 
+  it('renders on a page that never initialized page filters', async () => {
+    // Seer renders from the organization layout, so it appears on plenty of
+    // pages that mount no PageFiltersContainer -- the stories page among them.
+    // `init()` leaves `isReady` false, which is all such a page ever has.
+    PageFiltersStore.init();
+    const details = mockLogDetails();
+
+    renderLog();
+
+    expect(await screen.findByText('Payment provider timed out')).toBeInTheDocument();
+    expect(details).toHaveBeenCalled();
+  });
+
   it('renders the attribute tree for view "attributes"', async () => {
     mockLogDetails();
 

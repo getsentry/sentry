@@ -22,9 +22,10 @@ import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import type {
-  TraceItemDetailsResponse,
-  TraceItemResponseAttribute,
+import {
+  useTraceItemDetails,
+  type TraceItemDetailsResponse,
+  type TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
@@ -34,16 +35,17 @@ import {
   type EventsLogsResult,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
-import {useExploreLogsTableRow} from 'sentry/views/explore/logs/useLogsQuery';
 import {
   getLogRowTimestampMillis,
   getLogSeverityLevel,
   severityLevelToText,
 } from 'sentry/views/explore/logs/utils';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 import {
   getLogPageFilters,
   getLogTimestampMs,
+  LOG_DETAILS_REFERRER,
   LOG_EMBED_REFERRER,
   LOG_LOOKUP_WINDOW_MS,
   toDateQueryParams,
@@ -216,10 +218,18 @@ export default function LogBlock(props: LogData) {
   const lookupTimestampMs =
     getLogTimestampMs({id, projectId, timestamp}) ?? rowTimestampMillis(row);
 
-  const detailsQuery = useExploreLogsTableRow({
-    logId: id,
+  // Deliberately not `useExploreLogsTableRow`: that hook additionally waits on
+  // the host page's `usePageFilters().isReady`, which the logs table needs and
+  // an embed carrying its own trace, project and timestamp does not. Seer
+  // renders from the organization layout, so it appears on plenty of pages that
+  // mount no `PageFiltersContainer` -- there the gate never opens and the block
+  // spins forever.
+  const detailsQuery = useTraceItemDetails({
+    traceItemId: id,
     projectId: resolvedProjectId ?? '',
     traceId: resolvedTraceId ?? '',
+    traceItemType: TraceItemDataset.LOGS,
+    referrer: LOG_DETAILS_REFERRER,
     // The details endpoint takes unix seconds, not an ISO string.
     timestamp: lookupTimestampMs === null ? undefined : lookupTimestampMs / 1000,
     enabled: Boolean(resolvedProjectId && resolvedTraceId),
