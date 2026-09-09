@@ -197,6 +197,7 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity) -> 
             feature_id=SEER_FEATURE_ID,
             payload=payload.dict(),
             title=title,
+            referrer=SEER_FEATURE_ID,
             flush=False,
             extras=extras,
         )

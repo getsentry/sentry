@@ -182,6 +182,20 @@ class BaseRequestParserTest(TestCase):
         with override_mailbox_bucket_count(1):
             assert str(parser.get_mailbox(integration, {})) == f"test_provider:{integration.id}"
 
+    def test_bucket_key_at_coerces_or_falls_back(self) -> None:
+        at = BaseRequestParser.bucket_key_at
+
+        assert at({"issue": {"id": 10237}}, "issue", "id") == 10237
+        assert at({"issue": {"id": "10237"}}, "issue", "id") == 10237
+
+        # Anything unusable falls back rather than raising at the modulo.
+        assert at({}, "issue", "id") is None
+        assert at({"issue": {}}, "issue", "id") is None
+        assert at({"issue": "PROJ-1"}, "issue", "id") is None
+        assert at({"issue": {"id": None}}, "issue", "id") is None
+        assert at({"issue": {"id": "not-a-number"}}, "issue", "id") is None
+        assert at({"issue": {"id": ["10237"]}}, "issue", "id") is None
+
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch("sentry.integrations.middleware.hybrid_cloud.parser.maybe_trigger_drain")
     def test_get_response_from_webhookpayload_triggers_drain_per_mailbox(

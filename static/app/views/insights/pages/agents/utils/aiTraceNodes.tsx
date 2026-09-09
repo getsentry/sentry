@@ -28,8 +28,7 @@ function getAttributeValue(
     return Number(attribute.value);
   }
   if (attribute.type === 'bool') {
-    /* @ts-expect-error - tags are always returned as strings */
-    return attribute.value === 'true';
+    return String(attribute.value) === 'true';
   }
   return attribute.value;
 }
