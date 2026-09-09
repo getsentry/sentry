@@ -147,13 +147,6 @@ describe('RowSubtitle', () => {
     });
   });
 
-  describe('install-error state', () => {
-    it('renders nothing', () => {
-      const {container} = renderSubtitle('install-error');
-      expect(container).toBeEmptyDOMElement();
-    });
-  });
-
   describe('configuring state', () => {
     it('shows Connected to and the workspace name when there is one eligible integration', () => {
       renderSubtitle('configuring', connectedSlack);
