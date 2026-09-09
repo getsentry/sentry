@@ -137,18 +137,19 @@ function mockProviderQueries(integrations: OrganizationIntegration[] = []) {
   }
 }
 
-function renderMessaging(
-  onMessagingSetupChange = jest.fn(),
-  messagingSetup: ScmMessagingSetup = selectedMessagingSetup,
+function renderMessaging({
+  createdProject: existingProject,
+  messagingSetup = selectedMessagingSetup,
   onComplete = jest.fn(),
-  onProjectCreated = jest.fn()
-) {
+  onCreatedProjectChange = jest.fn(),
+  onMessagingSetupChange = jest.fn(),
+}: Partial<React.ComponentProps<typeof ScmMessaging>> = {}) {
   return render(
     <ScmMessaging
-      createdProjectSlug={undefined}
+      createdProject={existingProject}
       messagingSetup={messagingSetup}
+      onCreatedProjectChange={onCreatedProjectChange}
       onMessagingSetupChange={onMessagingSetupChange}
-      onProjectCreated={onProjectCreated}
       selectedFeatures={selectedFeatures}
       selectedPlatform={selectedPlatform}
       selectedRepository={undefined}
@@ -192,7 +193,7 @@ describe('ScmMessaging', () => {
     mockChannelValidate(true);
     const onMessagingSetupChange = jest.fn();
 
-    renderMessaging(onMessagingSetupChange);
+    renderMessaging({onMessagingSetupChange});
 
     await waitFor(() =>
       expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
@@ -209,7 +210,7 @@ describe('ScmMessaging', () => {
     });
     const onMessagingSetupChange = jest.fn();
 
-    renderMessaging(onMessagingSetupChange);
+    renderMessaging({onMessagingSetupChange});
 
     expect(
       await screen.findByText(
@@ -224,7 +225,7 @@ describe('ScmMessaging', () => {
     mockIntegration({organizationIntegrationStatus: 'disabled'});
     const onMessagingSetupChange = jest.fn();
 
-    renderMessaging(onMessagingSetupChange);
+    renderMessaging({onMessagingSetupChange});
 
     expect(
       await screen.findByText(
@@ -243,10 +244,10 @@ describe('ScmMessaging', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <ScmMessaging
-          createdProjectSlug={undefined}
+          createdProject={undefined}
           messagingSetup={selectedMessagingSetup}
+          onCreatedProjectChange={jest.fn()}
           onMessagingSetupChange={jest.fn()}
-          onProjectCreated={jest.fn()}
           selectedFeatures={selectedFeatures}
           selectedPlatform={selectedPlatform}
           selectedRepository={undefined}
@@ -277,10 +278,10 @@ describe('ScmMessaging', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <ScmMessaging
-          createdProjectSlug={undefined}
+          createdProject={undefined}
           messagingSetup={selectedMessagingSetup}
+          onCreatedProjectChange={jest.fn()}
           onMessagingSetupChange={jest.fn()}
-          onProjectCreated={jest.fn()}
           selectedFeatures={selectedFeatures}
           selectedPlatform={selectedPlatform}
           selectedRepository={undefined}
@@ -325,10 +326,10 @@ describe('ScmMessaging', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <ScmMessaging
-          createdProjectSlug={undefined}
+          createdProject={undefined}
           messagingSetup={selectedMessagingSetup}
+          onCreatedProjectChange={jest.fn()}
           onMessagingSetupChange={jest.fn()}
-          onProjectCreated={jest.fn()}
           selectedFeatures={selectedFeatures}
           selectedPlatform={selectedPlatform}
           selectedRepository={undefined}
@@ -381,7 +382,7 @@ describe('ScmMessaging', () => {
     const validateRequest = mockChannelValidate(false);
     const onMessagingSetupChange = jest.fn();
 
-    renderMessaging(onMessagingSetupChange);
+    renderMessaging({onMessagingSetupChange});
 
     await waitFor(() => expect(validateRequest).toHaveBeenCalled());
     expect(
@@ -415,7 +416,7 @@ describe('ScmMessaging', () => {
       match: [MockApiClient.matchQuery({channel: '1234567890'})],
     });
 
-    renderMessaging(jest.fn(), discordSetup);
+    renderMessaging({messagingSetup: discordSetup});
 
     await waitFor(() =>
       expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
@@ -459,10 +460,10 @@ describe('ScmMessaging', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <ScmMessaging
-          createdProjectSlug={undefined}
+          createdProject={undefined}
           messagingSetup={selectedMessagingSetup}
+          onCreatedProjectChange={jest.fn()}
           onMessagingSetupChange={onMessagingSetupChange}
-          onProjectCreated={jest.fn()}
           selectedFeatures={selectedFeatures}
           selectedPlatform={selectedPlatform}
           selectedRepository={undefined}
@@ -495,10 +496,10 @@ describe('ScmMessaging', () => {
             Touch context
           </button>
           <ScmMessaging
-            createdProjectSlug={undefined}
+            createdProject={undefined}
             messagingSetup={messagingSetup}
+            onCreatedProjectChange={jest.fn()}
             onMessagingSetupChange={setMessagingSetup}
-            onProjectCreated={jest.fn()}
             selectedFeatures={selectedFeatures}
             selectedPlatform={selectedPlatform}
             selectedRepository={undefined}
@@ -535,10 +536,10 @@ describe('ScmMessaging', () => {
             New reference
           </button>
           <ScmMessaging
-            createdProjectSlug={undefined}
+            createdProject={undefined}
             messagingSetup={messagingSetup}
+            onCreatedProjectChange={jest.fn()}
             onMessagingSetupChange={setMessagingSetup}
-            onProjectCreated={jest.fn()}
             selectedFeatures={selectedFeatures}
             selectedPlatform={selectedPlatform}
             selectedRepository={undefined}
@@ -569,7 +570,7 @@ describe('ScmMessaging', () => {
       }),
     ]);
 
-    renderMessaging(jest.fn(), {mode: 'unconfigured'});
+    renderMessaging({messagingSetup: {mode: 'unconfigured'}});
 
     expect(await screen.findByText('slack')).toBeInTheDocument();
     expect(screen.getByText('discord')).toBeInTheDocument();
@@ -577,14 +578,14 @@ describe('ScmMessaging', () => {
   });
 
   it('Continue is not rendered when no destination is configured', () => {
-    renderMessaging(jest.fn(), {mode: 'unconfigured'});
+    renderMessaging({messagingSetup: {mode: 'unconfigured'}});
     expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
   });
 
   it('Continue is disabled while revalidation is in flight', async () => {
     mockIntegration();
     mockChannelValidate(true);
-    renderMessaging(jest.fn(), selectedMessagingSetup);
+    renderMessaging();
 
     // Revalidation is still in flight on first paint — Continue is visible but disabled.
     expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
@@ -598,7 +599,7 @@ describe('ScmMessaging', () => {
   it('Continue is disabled while the saved channel is stale', async () => {
     mockIntegration();
     mockChannelValidate(false);
-    renderMessaging(jest.fn(), selectedMessagingSetup);
+    renderMessaging();
 
     expect(
       await screen.findByText(
@@ -613,7 +614,7 @@ describe('ScmMessaging', () => {
       url: '/organizations/org-slug/integrations/15/',
       statusCode: 500,
     });
-    renderMessaging(jest.fn(), selectedMessagingSetup);
+    renderMessaging();
 
     expect(
       await screen.findByText(
@@ -641,8 +642,8 @@ describe('ScmMessaging', () => {
       body: AutomationFixture({id: 'workflow-id'}),
     });
     const onComplete = jest.fn();
-    const onProjectCreated = jest.fn();
-    renderMessaging(jest.fn(), selectedMessagingSetup, onComplete, onProjectCreated);
+    const onCreatedProjectChange = jest.fn();
+    renderMessaging({onComplete, onCreatedProjectChange});
 
     // Continue is visible immediately but disabled until revalidation succeeds.
     const continueButton = screen.getByRole('button', {name: 'Continue'});
@@ -691,8 +692,11 @@ describe('ScmMessaging', () => {
         }),
       })
     );
-    expect(onProjectCreated).toHaveBeenCalledWith(createdProject.slug);
-    expect(onProjectCreated.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(onCreatedProjectChange).toHaveBeenCalledWith({
+      slug: createdProject.slug,
+      messagingSelection: {provider: 'slack', integrationId: '15', channel: '#alerts'},
+    });
+    expect(onCreatedProjectChange.mock.invocationCallOrder[0]).toBeLessThan(
       onComplete.mock.invocationCallOrder[0]!
     );
   });
@@ -710,13 +714,13 @@ describe('ScmMessaging', () => {
     });
     const onMessagingSetupChange = jest.fn();
     const onComplete = jest.fn();
-    const onProjectCreated = jest.fn();
-    renderMessaging(
+    const onCreatedProjectChange = jest.fn();
+    renderMessaging({
       onMessagingSetupChange,
-      {mode: 'unconfigured'},
+      messagingSetup: {mode: 'unconfigured'},
       onComplete,
-      onProjectCreated
-    );
+      onCreatedProjectChange,
+    });
 
     await userEvent.click(screen.getByRole('button', {name: 'Set up later'}));
 
@@ -734,7 +738,10 @@ describe('ScmMessaging', () => {
       })
     );
     expect(createWorkflowRequest).not.toHaveBeenCalled();
-    expect(onProjectCreated).toHaveBeenCalledWith(createdProject.slug);
+    expect(onCreatedProjectChange).toHaveBeenCalledWith({
+      slug: createdProject.slug,
+      messagingSelection: undefined,
+    });
   });
 
   it('stays on the step with the destination staged when project creation fails', async () => {
@@ -748,13 +755,8 @@ describe('ScmMessaging', () => {
     });
     const onMessagingSetupChange = jest.fn();
     const onComplete = jest.fn();
-    const onProjectCreated = jest.fn();
-    renderMessaging(
-      onMessagingSetupChange,
-      selectedMessagingSetup,
-      onComplete,
-      onProjectCreated
-    );
+    const onCreatedProjectChange = jest.fn();
+    renderMessaging({onMessagingSetupChange, onComplete, onCreatedProjectChange});
 
     const continueButton = await screen.findByRole('button', {name: 'Continue'});
     await waitFor(() => expect(continueButton).toBeEnabled());
@@ -763,7 +765,7 @@ describe('ScmMessaging', () => {
     await waitFor(() => expect(createProjectRequest).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(continueButton).toBeEnabled());
     expect(onMessagingSetupChange).not.toHaveBeenCalled();
-    expect(onProjectCreated).not.toHaveBeenCalled();
+    expect(onCreatedProjectChange).not.toHaveBeenCalled();
     expect(onComplete).not.toHaveBeenCalled();
   });
 
@@ -778,7 +780,7 @@ describe('ScmMessaging', () => {
     });
     const onMessagingSetupChange = jest.fn();
     const onComplete = jest.fn();
-    renderMessaging(onMessagingSetupChange, selectedMessagingSetup, onComplete);
+    renderMessaging({onMessagingSetupChange, onComplete});
 
     const setupLaterButton = screen.getByRole('button', {name: 'Set up later'});
     await waitFor(() => expect(setupLaterButton).toBeEnabled());
@@ -815,8 +817,8 @@ describe('ScmMessaging', () => {
       method: 'DELETE',
     });
     const onComplete = jest.fn();
-    const onProjectCreated = jest.fn();
-    renderMessaging(jest.fn(), selectedMessagingSetup, onComplete, onProjectCreated);
+    const onCreatedProjectChange = jest.fn();
+    renderMessaging({onComplete, onCreatedProjectChange});
 
     const continueButton = await screen.findByRole('button', {name: 'Continue'});
     await waitFor(() => expect(continueButton).toBeEnabled());
@@ -824,8 +826,92 @@ describe('ScmMessaging', () => {
 
     await waitFor(() => expect(rollbackRequest).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(continueButton).toBeEnabled());
-    expect(onProjectCreated).not.toHaveBeenCalled();
+    expect(onCreatedProjectChange).not.toHaveBeenCalled();
     expect(onComplete).not.toHaveBeenCalled();
+  });
+
+  describe('project reuse on back-navigation', () => {
+    // The destination selectedMessagingSetup stages, as the snapshot records it.
+    const stagedSelection = {provider: 'slack', integrationId: '15', channel: '#alerts'};
+
+    function mockCreateProject() {
+      return MockApiClient.addMockResponse({
+        url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+        method: 'POST',
+        body: createdProject,
+      });
+    }
+
+    function mockCreateWorkflow() {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/`,
+        body: [IssueStreamDetectorFixture({projectId: createdProject.id})],
+      });
+      return MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/workflows/`,
+        method: 'POST',
+        body: AutomationFixture({id: 'new-workflow'}),
+      });
+    }
+
+    beforeEach(() => {
+      ProjectsStore.loadInitialData([createdProject]);
+    });
+
+    it('completes without any requests when the destination is unchanged', async () => {
+      mockIntegration();
+      mockChannelValidate(true);
+      const createProjectRequest = mockCreateProject();
+      const createWorkflowRequest = mockCreateWorkflow();
+      const onComplete = jest.fn();
+      const onCreatedProjectChange = jest.fn();
+      renderMessaging({
+        createdProject: {slug: createdProject.slug, messagingSelection: stagedSelection},
+        onComplete,
+        onCreatedProjectChange,
+      });
+
+      const continueButton = screen.getByRole('button', {name: 'Continue'});
+      await waitFor(() => expect(continueButton).toBeEnabled());
+      await userEvent.click(continueButton);
+
+      await waitFor(() =>
+        expect(onComplete).toHaveBeenCalledWith(selectedPlatform, {
+          product: selectedFeatures,
+        })
+      );
+      expect(createProjectRequest).not.toHaveBeenCalled();
+      expect(createWorkflowRequest).not.toHaveBeenCalled();
+      expect(onCreatedProjectChange).not.toHaveBeenCalled();
+    });
+
+    it('Set up later completes without any requests whatever the project was created for', async () => {
+      mockIntegration();
+      mockChannelValidate(true);
+      const createProjectRequest = mockCreateProject();
+      const createWorkflowRequest = mockCreateWorkflow();
+      const onComplete = jest.fn();
+      const onCreatedProjectChange = jest.fn();
+      renderMessaging({
+        createdProject: {
+          slug: createdProject.slug,
+          messagingSelection: {...stagedSelection, channel: '#ops'},
+        },
+        onComplete,
+        onCreatedProjectChange,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Set up later'}));
+
+      await waitFor(() =>
+        expect(onComplete).toHaveBeenCalledWith(selectedPlatform, {
+          product: selectedFeatures,
+        })
+      );
+      expect(createProjectRequest).not.toHaveBeenCalled();
+      expect(createWorkflowRequest).not.toHaveBeenCalled();
+      expect(onCreatedProjectChange).not.toHaveBeenCalled();
+    });
   });
 
   it('clears an ineligible destination with an explanation', async () => {
@@ -849,7 +935,7 @@ describe('ScmMessaging', () => {
     });
     const onMessagingSetupChange = jest.fn();
 
-    renderMessaging(onMessagingSetupChange, msteamsSetup);
+    renderMessaging({onMessagingSetupChange, messagingSetup: msteamsSetup});
 
     expect(
       await screen.findByText(
@@ -893,10 +979,10 @@ describe('ScmMessaging', () => {
       const [setup, setSetup] = useState(initial);
       return (
         <ScmMessaging
-          createdProjectSlug={undefined}
+          createdProject={undefined}
           messagingSetup={setup}
+          onCreatedProjectChange={jest.fn()}
           onMessagingSetupChange={setSetup}
-          onProjectCreated={jest.fn()}
           selectedFeatures={selectedFeatures}
           selectedPlatform={selectedPlatform}
           selectedRepository={undefined}
@@ -912,7 +998,7 @@ describe('ScmMessaging', () => {
         body: {results: []},
       });
 
-      renderMessaging(jest.fn(), {mode: 'unconfigured'});
+      renderMessaging({messagingSetup: {mode: 'unconfigured'}});
 
       // All three rows visible initially.
       expect(await screen.findByText('slack')).toBeInTheDocument();
@@ -941,7 +1027,7 @@ describe('ScmMessaging', () => {
 
     it('a saved destination hides sibling rows and keeps the footer', async () => {
       mockExclusiveSlackProviders();
-      renderMessaging(jest.fn(), exclusiveSlackSetup);
+      renderMessaging({messagingSetup: exclusiveSlackSetup});
 
       expect(await screen.findByText('slack')).toBeInTheDocument();
       expect(screen.queryByText('discord')).not.toBeInTheDocument();
@@ -1065,7 +1151,7 @@ describe('ScmMessaging', () => {
 
     it('Cancel from removing keeps siblings hidden and restores the footer', async () => {
       mockExclusiveSlackProviders();
-      renderMessaging(jest.fn(), exclusiveSlackSetup);
+      renderMessaging({messagingSetup: exclusiveSlackSetup});
 
       expect(await screen.findByText('slack')).toBeInTheDocument();
       expect(screen.queryByText('discord')).not.toBeInTheDocument();
@@ -1127,10 +1213,10 @@ describe('ScmMessaging', () => {
               Clear destination
             </button>
             <ScmMessaging
-              createdProjectSlug={undefined}
+              createdProject={undefined}
               messagingSetup={setup}
+              onCreatedProjectChange={jest.fn()}
               onMessagingSetupChange={setSetup}
-              onProjectCreated={jest.fn()}
               selectedFeatures={selectedFeatures}
               selectedPlatform={selectedPlatform}
               selectedRepository={undefined}
@@ -1171,7 +1257,7 @@ describe('ScmMessaging', () => {
         body: {results: []},
       });
 
-      renderMessaging(jest.fn(), {mode: 'unconfigured'});
+      renderMessaging({messagingSetup: {mode: 'unconfigured'}});
 
       expect(
         await screen.findByRole('button', {name: /Connect slack/i})
