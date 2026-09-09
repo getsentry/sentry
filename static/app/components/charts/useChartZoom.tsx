@@ -2,7 +2,7 @@ import {useCallback, useEffect, useMemo, useRef} from 'react';
 import type {DataZoomComponentOption, ECharts, ToolboxComponentOption} from 'echarts';
 
 import {CHART_ZOOM_MERGE_OPTIONS} from 'sentry/components/charts/chartZoomConfig';
-import {DataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
+import {dataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
 import {getToolBox} from 'sentry/components/charts/components/toolBox';
 import {activateZoomAreaSelect} from 'sentry/components/charts/utils';
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
@@ -304,7 +304,7 @@ export function useChartZoom({
   const dataZoomProp = useMemo<DataZoomComponentOption[]>(() => {
     // Keep the inside dataZoom model even when disabled so synced charts can
     // still receive x-range changes without this hook writing URL state.
-    const zoomInside = DataZoomInside({
+    const zoomInside = dataZoomInside({
       id: 'useChartZoom-inside',
       xAxisIndex,
     });
