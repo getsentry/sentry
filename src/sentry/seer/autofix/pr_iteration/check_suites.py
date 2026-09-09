@@ -815,42 +815,16 @@ class CheckRunsSweep:
 @dataclass
 class _SweepCost:
     requests: int = 0
-    rate_limit_remaining: int | None = None
-    rate_limit_limit: int | None = None
-
-    def observe(self, page: PaginatedActionResult[list[CheckRun]]) -> None:
-        headers = page["raw"]["headers"] or {}
-        self.rate_limit_remaining = _header_int(headers, "x-ratelimit-remaining")
-        self.rate_limit_limit = _header_int(headers, "x-ratelimit-limit")
 
     def log_extra(self) -> dict[str, object]:
-        return {
-            "sweep_requests": self.requests,
-            "rate_limit_remaining": self.rate_limit_remaining,
-            "rate_limit_limit": self.rate_limit_limit,
-        }
+        return {"sweep_requests": self.requests}
 
     def record(self, *, outcome: str) -> None:
         metrics.distribution(
-            "autofix.pr_iteration.check_runs_sweep.requests",
+            "autofix.pr_iteration.check_runs_sweep.cost",
             self.requests,
             tags={"outcome": outcome},
         )
-        if self.rate_limit_remaining is not None:
-            metrics.gauge(
-                "autofix.pr_iteration.check_runs_sweep.rate_limit_remaining",
-                self.rate_limit_remaining,
-            )
-
-
-def _header_int(headers: Mapping[str, str], name: str) -> int | None:
-    raw = headers.get(name)
-    if raw is None:
-        return None
-    try:
-        return int(raw)
-    except (TypeError, ValueError):
-        return None
 
 
 def sweep_check_runs(
@@ -871,9 +845,7 @@ def sweep_check_runs(
 
     def fetch(pagination: PaginationParams) -> PaginatedActionResult[list[CheckRun]]:
         cost.requests += 1
-        page = scm_actions.list_check_runs_for_ref(scm, head_sha, pagination=pagination)
-        cost.observe(page)
-        return page
+        return scm_actions.list_check_runs_for_ref(scm, head_sha, pagination=pagination)
 
     total = incomplete = failed = 0
     try:
