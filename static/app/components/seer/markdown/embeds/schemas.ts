@@ -442,11 +442,25 @@ export const SEER_EMBED_SCHEMAS = {
       'Use the saved query ID exactly as the API returns it and set `dataset` ' +
       'to the dataset it was saved against. ' +
       'Include the API-provided name when available. ' +
-      'Never use a markdown link for saved query references.',
+      'Never use a markdown link for saved query references. ' +
+      'Inline renders a link; block fetches the saved query and shows its ' +
+      "name, filter, group-by and visualize, linking to the query's own " +
+      'parameters rather than just its id.',
     level: ['inline', 'block'],
     schema: z.object({
       id: z.string().min(1),
-      dataset: z.enum(['spans', 'logs', 'metrics', 'replays']),
+      // Every value the saved query API can report, not just the four Explore
+      // surfaces. `segment_spans` and `ai_conversations` are what the API
+      // returns for a good share of real saved queries, and an embed whose
+      // props fail to parse renders nothing at all.
+      dataset: z.enum([
+        'spans',
+        'segment_spans',
+        'logs',
+        'metrics',
+        'replays',
+        'ai_conversations',
+      ]),
       name: z.string().min(1).optional(),
     }),
     examples: [
