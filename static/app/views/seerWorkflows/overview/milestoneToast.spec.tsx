@@ -171,11 +171,11 @@ describe('useMilestoneAdvanceToasts', () => {
       <Harness data={response({autofix_root_cause: [run()]})} dataSettled={false} />,
       {organization}
     );
-    rerender(<Harness data={response({autofix_code_changes: [run()]})} dataSettled />);
+    rerender(<Harness data={response({autofix_code_changes: [run()]})} />);
 
     expect(addSuccessMessage).not.toHaveBeenCalled();
 
-    rerender(<Harness data={response({has_pull_request: [run()]})} dataSettled />);
+    rerender(<Harness data={response({has_pull_request: [run()]})} />);
 
     expect(addSuccessMessage).toHaveBeenCalledTimes(1);
   });

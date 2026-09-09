@@ -27,6 +27,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -122,14 +123,14 @@ export function NewProviderForm({
     onSubmit: ({value, formApi}) => {
       return mutation.mutateAsync(schema.parse(value)).catch(error => {
         if (error instanceof RequestError) {
-          setFieldErrors(formApi, error);
+          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
         }
       });
     },
   });
 
   return (
-    <FormSearch route="/settings/feature-flags/change-tracking/new-provider/">
+    <FormSearch route="/settings/:orgId/feature-flags/change-tracking/new-provider/">
       <form.AppForm form={form}>
         <form.AppField name="provider">
           {field => (

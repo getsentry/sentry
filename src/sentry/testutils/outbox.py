@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import contextlib
 import functools
+from collections.abc import Generator
 from typing import Any
+from unittest import mock
 
 from django.conf import settings
 from django.core.handlers.wsgi import WSGIRequest
@@ -47,7 +49,7 @@ def outbox_runner(wrapped: Any | None = None) -> Any:
 
     outbox_models = [
         OutboxBase.from_outbox_name(outbox_name)
-        for outbox_names in settings.SENTRY_OUTBOX_MODELS.values()
+        for outbox_names in settings.SENTRY_HYBRIDCLOUD_OUTBOX_MODELS.values()
         for outbox_name in outbox_names
     ]
     outbox_models.append(GroupActionLogOutbox)
@@ -62,6 +64,21 @@ def outbox_runner(wrapped: Any | None = None) -> Any:
                 break
         else:
             raise OutboxRecursionLimitError
+
+
+@contextlib.contextmanager
+def override_mailbox_bucket_count(count: int) -> Generator[None]:
+    """Pin how wide a parser splits an integration's mailbox.
+
+    The split is sized from the integration's recent webhook rate, so a test that
+    asserts on a bucket number would otherwise have to send enough webhooks to earn
+    one first.
+    """
+    with mock.patch(
+        "sentry.integrations.middleware.hybrid_cloud.parser.mailbox_bucket_count",
+        return_value=count,
+    ):
+        yield
 
 
 def assert_no_webhook_payloads() -> None:

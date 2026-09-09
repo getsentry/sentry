@@ -259,3 +259,78 @@ class HandleProcessingErrorsTest(TestCase):
                 error_types=[ProcessingErrorType.CHECKIN_INVALID_GUID.value],
             ),
         )
+
+    def test_killswitched_errors_are_never_stored(self) -> None:
+        monitor = self.create_monitor()
+        handle_processing_errors(
+            build_checkin_item(
+                message_overrides={"project_id": self.project.id},
+                payload_overrides={"monitor_slug": monitor.slug},
+            ),
+            ProcessingErrorsException(
+                [{"type": ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED}], monitor=monitor
+            ),
+        )
+
+        assert get_errors_for_monitor(monitor) == []
+
+    @mock.patch("sentry.monitors.processing_errors.manager.random.random", return_value=0.5)
+    def test_rate_limited_errors_are_sampled_out(self, mock_random) -> None:
+        monitor = self.create_monitor()
+        handle_processing_errors(
+            build_checkin_item(
+                message_overrides={"project_id": self.project.id},
+                payload_overrides={"monitor_slug": monitor.slug},
+            ),
+            ProcessingErrorsException(
+                [{"type": ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED}], monitor=monitor
+            ),
+        )
+
+        assert get_errors_for_monitor(monitor) == []
+
+    @mock.patch("sentry.monitors.processing_errors.manager.random.random", return_value=0.0)
+    def test_rate_limited_errors_are_sampled_in(self, mock_random) -> None:
+        monitor = self.create_monitor()
+        handle_processing_errors(
+            build_checkin_item(
+                message_overrides={"project_id": self.project.id},
+                payload_overrides={"monitor_slug": monitor.slug},
+            ),
+            ProcessingErrorsException(
+                [{"type": ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED}], monitor=monitor
+            ),
+        )
+
+        assert len(get_errors_for_monitor(monitor)) == 1
+
+    @mock.patch("sentry.monitors.processing_errors.manager.random.random", return_value=0.5)
+    def test_throttled_type_alongside_a_real_error_is_stored(self, mock_random) -> None:
+        monitor = self.create_monitor()
+        handle_processing_errors(
+            build_checkin_item(
+                message_overrides={"project_id": self.project.id},
+                payload_overrides={"monitor_slug": monitor.slug},
+            ),
+            ProcessingErrorsException(
+                [
+                    {"type": ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED},
+                    {"type": ProcessingErrorType.CHECKIN_INVALID_GUID},
+                ],
+                monitor=monitor,
+            ),
+        )
+
+        assert len(get_errors_for_monitor(monitor)) == 1
+
+    def test_no_errors_is_not_stored(self) -> None:
+        monitor = self.create_monitor()
+        handle_processing_errors(
+            build_checkin_item(
+                message_overrides={"project_id": self.project.id},
+                payload_overrides={"monitor_slug": monitor.slug},
+            ),
+            ProcessingErrorsException([], monitor=monitor),
+        )
+
+        assert get_errors_for_monitor(monitor) == []

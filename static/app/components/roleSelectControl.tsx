@@ -14,7 +14,9 @@ type OptionType = {
   value: string;
 };
 
-type Props = DistributedOmit<ControlProps<OptionType>, 'value'> & {
+type SingleSelectProps = Exclude<ControlProps<OptionType>, {multiple: true}>;
+
+type Props = DistributedOmit<SingleSelectProps, 'isMulti' | 'value'> & {
   disableUnallowed: boolean;
   roles: BaseRole[];
   value?: string | null;

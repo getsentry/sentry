@@ -85,7 +85,6 @@ type Options = {
 
 type FetchTeamOptions = {
   cursor?: State['nextCursor'];
-  ids?: string[];
   lastSearch?: State['lastSearch'];
   limit?: Options['limit'];
   search?: State['lastSearch'];
@@ -99,7 +98,7 @@ type FetchTeamOptions = {
 async function fetchTeams(
   api: Client,
   orgId: string,
-  {slugs, ids, search, limit, lastSearch, cursor}: FetchTeamOptions = {}
+  {slugs, search, limit, lastSearch, cursor}: FetchTeamOptions = {}
 ) {
   const query: {
     cursor?: typeof cursor;
@@ -109,10 +108,6 @@ async function fetchTeams(
 
   if (slugs !== undefined && slugs.length > 0) {
     query.query = slugs.map(slug => `slug:${slug}`).join(' ');
-  }
-
-  if (ids !== undefined && ids.length > 0) {
-    query.query = ids.map(id => `id:${id}`).join(' ');
   }
 
   if (search) {

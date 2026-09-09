@@ -290,7 +290,7 @@ function TruncatedPathLink(props: TruncatedPathLinkProps) {
   return (
     <Flex as="span" gap="sm" align="baseline" padding="0 0 md 0">
       <Text bold>{props.method || 'GET'}</Text>
-      <ExternalLink openInNewTab href={props.fullUrl} title={props.fullUrl}>
+      <ExternalLink href={props.fullUrl} title={props.fullUrl}>
         <Flex gap="xs" align="baseline">
           {flexProps => (
             <Text {...flexProps} variant="primary">

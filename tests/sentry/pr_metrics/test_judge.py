@@ -171,7 +171,9 @@ class UpdatePrMetricsTest(TestCase):
         assert row.conversation_sentiment is None
         assert row.conversation_comments_total is None
         assert row.conversation_metadata is None
-        mock_metrics.incr.assert_any_call("pr_metrics.update.invalid_conversation_analysis")
+        mock_metrics.incr.assert_any_call(
+            "pr_metrics.update.invalid_conversation_analysis", sample_rate=1.0
+        )
 
     @patch("sentry.pr_metrics.judge.metrics")
     @patch("sentry.analytics.record")
@@ -192,7 +194,9 @@ class UpdatePrMetricsTest(TestCase):
         row = _last_row(mock_record)
         assert row.conversation_sentiment is None
         assert row.conversation_metadata is None
-        mock_metrics.incr.assert_any_call("pr_metrics.update.invalid_conversation_analysis")
+        mock_metrics.incr.assert_any_call(
+            "pr_metrics.update.invalid_conversation_analysis", sample_rate=1.0
+        )
 
     @patch("sentry.pr_metrics.judge.metrics")
     @patch("sentry.analytics.record")
@@ -207,7 +211,9 @@ class UpdatePrMetricsTest(TestCase):
         assert result.dict() == {"success": True}
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
         assert _last_row(mock_record).diagnosis_labels is None
-        mock_metrics.incr.assert_any_call("pr_metrics.update.invalid_diagnosis_labels")
+        mock_metrics.incr.assert_any_call(
+            "pr_metrics.update.invalid_diagnosis_labels", sample_rate=1.0
+        )
 
     @patch("sentry.pr_metrics.judge.metrics")
     @patch("sentry.analytics.record")
@@ -218,7 +224,9 @@ class UpdatePrMetricsTest(TestCase):
 
         assert result.dict() == {"success": True}
         assert _last_row(mock_record).diagnosis_labels is None
-        mock_metrics.incr.assert_any_call("pr_metrics.update.invalid_diagnosis_labels")
+        mock_metrics.incr.assert_any_call(
+            "pr_metrics.update.invalid_diagnosis_labels", sample_rate=1.0
+        )
 
     @patch("sentry.analytics.record")
     def test_judge_enrichment_absent_is_back_compat(self, mock_record: Any) -> None:
@@ -728,7 +736,7 @@ class ForwardPrToSeerJudgeTest(TestCase):
         assert timestamps == sorted(timestamps)
         # Hitting the cap is observable: it emits a metric and a warning so a
         # persistently high rate can argue for raising the cap.
-        mock_metrics.incr.assert_any_call("pr_metrics.judge.check_rows_capped")
+        mock_metrics.incr.assert_any_call("pr_metrics.judge.check_rows_capped", sample_rate=1.0)
         mock_logger.warning.assert_any_call(
             "pr_metrics.judge.check_rows_capped",
             extra={
@@ -764,5 +772,5 @@ class ForwardPrToSeerJudgeTest(TestCase):
         mock_request.return_value = self._response(404)
         forward_pr_to_seer_judge(self.pull_request, self.repo)
         mock_metrics.incr.assert_any_call(
-            "pr_metrics.judge.forward_failed", tags={"reason": "client_error"}
+            "pr_metrics.judge.forward_failed", tags={"reason": "client_error"}, sample_rate=1.0
         )

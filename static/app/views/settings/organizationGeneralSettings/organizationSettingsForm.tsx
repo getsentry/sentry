@@ -1,6 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
-import {mutationOptions, queryOptions} from '@tanstack/react-query';
-import {useMutation} from '@tanstack/react-query';
+import {mutationOptions, queryOptions, useMutation} from '@tanstack/react-query';
 import uniqBy from 'lodash/uniqBy';
 import {z} from 'zod';
 
@@ -37,6 +36,7 @@ import {
 import {useMembers} from 'sentry/utils/members/useMembers';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DATA_STORAGE_DOCS_LINK} from 'sentry/views/organizationCreate';
@@ -466,7 +466,10 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
         .then(() => slugForm.reset())
         .catch(error => {
           if (error instanceof RequestError) {
-            setFieldErrors(formApi, error);
+            setFieldErrors(
+              formApi,
+              requestErrorToFieldErrors(error, formApi.state.values)
+            );
           }
         }),
   });

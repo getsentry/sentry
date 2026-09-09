@@ -67,6 +67,7 @@ class CodeChangeFilePayload(TypedDict):
 
 class RootCausePayload(TypedDict):
     oneLineDescription: str | None
+    headline: str | None
 
 
 class ProposedFixPayload(TypedDict):

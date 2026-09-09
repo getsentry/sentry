@@ -18,6 +18,7 @@ import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 export type ReprocessEventModalOptions = {
@@ -68,7 +69,12 @@ export function ReprocessingEventModal({
         })
         .catch((error: unknown) => {
           const handled =
-            error instanceof RequestError ? setFieldErrors(formApi, error) : false;
+            error instanceof RequestError
+              ? setFieldErrors(
+                  formApi,
+                  requestErrorToFieldErrors(error, formApi.state.values)
+                )
+              : false;
           if (!handled) {
             addErrorMessage(t('Failed to reprocess. Please check your input.'));
           }

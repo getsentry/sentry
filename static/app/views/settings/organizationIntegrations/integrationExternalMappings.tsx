@@ -2,12 +2,13 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Pagination} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconAdd, IconArrow, IconDelete} from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
@@ -26,6 +27,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
+
+const MAPPING_COLUMNS: TableColumnConfig[] = [
+  {key: 'externalName', width: '1fr'},
+  {key: 'arrow', width: 'max-content'},
+  {key: 'sentryName', width: '1fr'},
+  {key: 'actions', width: '66px'},
+];
 
 type CodeOwnersAssociationMappings = Record<
   string,
@@ -169,7 +177,7 @@ export function IntegrationExternalMappings(props: Props) {
         />
       </Confirm>
     ) : (
-      <QuestionTooltip
+      <InfoTip
         title={t('This %s mapping suggestion was generated from a CODEOWNERS file', type)}
         size="sm"
       />
@@ -179,6 +187,7 @@ export function IntegrationExternalMappings(props: Props) {
   return (
     <Fragment>
       <MappingTable
+        columns={MAPPING_COLUMNS}
         data-test-id="mapping-table"
         header={
           <SimpleTable.HeaderRow>
@@ -231,7 +240,6 @@ export function IntegrationExternalMappings(props: Props) {
 
 const MappingTable = styled(SimpleTable)`
   overflow: visible;
-  grid-template-columns: 1fr max-content 1fr 66px;
 
   [role='columnheader'] {
     padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};

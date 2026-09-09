@@ -54,6 +54,7 @@ from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.locks import locks
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import Organization
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import (
     RpcOrganization,
@@ -126,7 +127,7 @@ def _sso_verification_required(email: str) -> bool:
     force_emails = options.get("auth.email-verification-at-signup.force-in-experiment") or []
     in_allowlist = any(glob_star_match(p, email) for p in force_emails)
 
-    return features.has("auth:email-verification-at-sso-signup") or in_allowlist
+    return options.get("auth.email-verification-at-signup.sso-enabled") or in_allowlist
 
 
 @dataclass
@@ -248,7 +249,9 @@ class AuthIdentityHandler:
         try:
             self._login(user)
         except self._NotCompletedSecurityChecks:
-            return HttpResponseRedirect(self._get_login_redirect(subdomain))
+            return HttpResponseRedirect(
+                self._get_login_redirect(subdomain, default_to_organization=False)
+            )
 
         state.clear()
 
@@ -257,10 +260,20 @@ class AuthIdentityHandler:
             auth.set_active_org(self.request, self.organization.slug)
         return HttpResponseRedirect(self._get_login_redirect(subdomain))
 
-    def _get_login_redirect(self, subdomain: str | None) -> str:
+    def _get_login_redirect(
+        self, subdomain: str | None, *, default_to_organization: bool = True
+    ) -> str:
         # TODO(domains) Passing this method the organization should let us consolidate and simplify subdomain
         # state tracking.
-        login_redirect_url = auth.get_login_redirect(self.request)
+        if default_to_organization:
+            default_redirect_url = (
+                reverse("issues")
+                if subdomain is not None
+                else Organization.get_url(self.organization.slug)
+            )
+            login_redirect_url = auth.get_login_redirect(self.request, default=default_redirect_url)
+        else:
+            login_redirect_url = auth.get_login_redirect(self.request)
         if subdomain is not None:
             url_prefix = generate_organization_url(subdomain)
             login_redirect_url = absolute_uri(login_redirect_url, url_prefix=url_prefix)
@@ -300,6 +313,7 @@ class AuthIdentityHandler:
             if invite_helper.invite_approved:
                 rpc_om = invite_helper.accept_invite(user)
                 assert rpc_om
+                self._set_linked_flag(rpc_om)
                 return user, rpc_om
 
             # It's possible the user has an _invite request_ that hasn't been approved yet,
@@ -345,6 +359,55 @@ class AuthIdentityHandler:
         )
 
         return om
+
+    def _email_verified_via_pending_invite(self) -> bool:
+        """
+        A valid, approved invite token for this org in the session proves the user clicked a
+        link mailed to the invited address, treat that as sufficient proof of email ownership.
+        Not literally the same guarantee as completing the signup verification flow:
+        the invite token's own trust window (INVITE_DAYS_VALID) can outlive a single pipeline session,
+        so a click from days earlier still qualifies.
+
+        Best-effort: this only ever relaxes the verification requirement, so any failure here must fall back to
+        requiring verification as usual rather than block account creation.
+        """
+        try:
+            if self.request.user.is_authenticated:
+                # An existing (logged in) user that is invited to a new org and declines to link to the existing account
+                # ends up here.
+                # In a more complicated scenario (ex: user A is a member of org 1, user B is invited to org 1.
+                # User A's session is still active and they try to accept user B's invite - edge case but possible),
+                # if the existing (logged in) user is already a member of the org that is on the invitation,
+                # _get_invite() (used by invite_helper) looks up the invite by request.user_id first, which returns
+                # the membership for the logged-in user, not the invite that is in the session.
+                # To prevent this mix-up, bail if there is an auth'd user AND that user is already
+                # a member of the org on the invitation.
+                already_a_member = (
+                    organization_service.check_membership_by_id(
+                        user_id=self.request.user.id, organization_id=self.organization.id
+                    )
+                    is not None
+                )
+                if already_a_member:
+                    return False
+
+            invite_helper = ApiInviteHelper.from_session_or_email(
+                request=self.request,
+                organization_id=self.organization.id,
+                email=self.identity["email"],
+                logger=logger,
+            )
+            if (
+                invite_helper is None
+                or not invite_helper.valid_token
+                or not invite_helper.invite_approved
+            ):
+                return False
+            member = invite_helper.invite_context.member
+            return member is not None and member.email.lower() == self.identity["email"].lower()
+        except Exception:
+            logger.exception("sso.login-pipeline.invite-verification-check-failed")
+            return False
 
     def _get_auth_identity(self, **params: Any) -> AuthIdentity | None:
         try:
@@ -697,7 +760,10 @@ class AuthIdentityHandler:
                 messages.add_message(self.request, messages.ERROR, ERR_MERGE_FAILED)
                 return self._build_confirmation_response(is_new_account)
             elif op == "newuser":
-                is_trusted = is_email_verified_by_trusted_provider(self.provider.key, self.identity)
+                is_trusted = (
+                    is_email_verified_by_trusted_provider(self.provider.key, self.identity)
+                    or self._email_verified_via_pending_invite()
+                )
                 if not is_trusted and _sso_verification_required(self.identity["email"]):
                     return self._send_sso_verification_email_and_redirect(
                         self.identity["email"], state

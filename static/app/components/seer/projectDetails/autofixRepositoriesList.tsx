@@ -3,14 +3,15 @@ import {useInfiniteQuery, useMutation, useQueryClient} from '@tanstack/react-que
 import seerConfigBug1 from 'getsentry-images/spot/seer-config-bug-1.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading} from '@sentry/scraps/text';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {AddAutofixRepoModal} from 'sentry/components/seer/legacy/addAutofixRepoModal';
 import {AutofixRepositoriesItem} from 'sentry/components/seer/projectDetails/autofixRepositoriesItem';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -26,6 +27,12 @@ import {
 } from 'sentry/utils/seer/seerProjectRepos';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+const REPOSITORY_COLUMNS: TableColumnConfig[] = [
+  {key: 'repositories', width: '1fr'},
+  {key: 'integration', width: 'max-content'},
+  {key: 'actions', width: 'max-content'},
+];
+
 interface Props {
   canWrite: boolean;
   includeInstructions: boolean;
@@ -35,8 +42,7 @@ interface Props {
 const getTableHeaders = (organization: Organization): React.ReactNode[] => [
   <Flex key="connected-repositories" align="center" gap="md">
     {t('Connected Repositories')}
-    <QuestionTooltip
-      isHoverable
+    <InfoTip
       size="xs"
       title={tct(
         'Seer will only be able to see code from, and make PRs to, the repos connected here. The [link:GitHub integration] is required for Seer to access these repos.',
@@ -160,6 +166,7 @@ export function AutofixRepositoriesList({canWrite, includeInstructions, project}
       </Flex>
 
       <StyledSimpleTable
+        columns={REPOSITORY_COLUMNS}
         header={
           <SimpleTable.HeaderRow>
             {tableHeaders.map((header, i) => (
@@ -186,5 +193,4 @@ export function AutofixRepositoriesList({canWrite, includeInstructions, project}
 
 const StyledSimpleTable = styled(SimpleTable)`
   margin-bottom: 0;
-  grid-template-columns: 1fr repeat(2, max-content);
 `;

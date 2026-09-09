@@ -9,6 +9,10 @@ import {t, tct} from 'sentry/locale';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
 import {
+  INTERVAL_CHOICES,
+  Interval,
+} from 'sentry/views/automations/components/actionFilters/constants';
+import {
   IssueAlertNotificationOptions,
   type IssueAlertNotificationProps,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
@@ -17,6 +21,13 @@ enum MetricValues {
   ERRORS = 0,
   USERS = 1,
 }
+
+const DEFAULT_CUSTOM_ALERT_ACTION_INTERVAL_MINUTES = 24 * 60;
+const HIGH_PRIORITY_ALERT_ACTION_INTERVAL_MINUTES = 0;
+
+type ProjectCreationAlertConditionType =
+  | IssueAlertConditionType.EVENT_FREQUENCY
+  | IssueAlertConditionType.EVENT_UNIQUE_USER_FREQUENCY;
 
 export enum RuleAction {
   DEFAULT_ALERT = 0,
@@ -36,7 +47,9 @@ function parseRuleAction(val: number | string) {
   throw new RangeError('Supplied alert creation action is not handled');
 }
 
-function metricValueToConditionType(metricValue: MetricValues): IssueAlertConditionType {
+function metricValueToConditionType(
+  metricValue: MetricValues
+): ProjectCreationAlertConditionType {
   switch (metricValue) {
     case MetricValues.ERRORS:
       return IssueAlertConditionType.EVENT_FREQUENCY;
@@ -52,27 +65,24 @@ export const METRIC_CHOICES = [
   {value: MetricValues.USERS, label: t('users affected by')},
 ];
 
-export const INTERVAL_CHOICES = [
-  {value: '1m', label: t('one minute')},
-  {value: '5m', label: t('5 minutes')},
-  {value: '15m', label: t('15 minutes')},
-  {value: '1h', label: t('one hour')},
-  {value: '1d', label: t('one day')},
-  {value: '1w', label: t('one week')},
-  {value: '30d', label: t('30 days')},
-];
-
 export const DEFAULT_ISSUE_ALERT_OPTIONS_VALUES = {
   alertSetting: RuleAction.DEFAULT_ALERT,
-  interval: '1m',
+  interval: Interval.FIVE_MINUTES,
   metric: MetricValues.ERRORS,
   threshold: '10',
 };
 
+type ProjectCreationAlertCondition = {
+  id: ProjectCreationAlertConditionType;
+  interval: string;
+  value: string;
+};
+
 export type RequestDataFragment = Pick<
   IssueAlertRule,
-  'actionMatch' | 'actions' | 'conditions' | 'frequency' | 'name'
+  'actions' | 'frequency' | 'name'
 > & {
+  conditions: ProjectCreationAlertCondition[];
   defaultRules: boolean;
   shouldCreateCustomRule: boolean;
   shouldCreateRule: boolean;
@@ -80,7 +90,7 @@ export type RequestDataFragment = Pick<
 
 export interface AlertRuleOptions {
   alertSetting: RuleAction;
-  interval: string;
+  interval: Interval;
   metric: MetricValues;
   threshold: string;
 }
@@ -113,8 +123,10 @@ export function getRequestDataFragment({
         fallthroughType: 'ActiveMembers',
       },
     ],
-    actionMatch: 'all',
-    frequency: 5,
+    frequency:
+      alertSetting === RuleAction.CUSTOMIZED_ALERTS
+        ? DEFAULT_CUSTOM_ALERT_ACTION_INTERVAL_MINUTES
+        : HIGH_PRIORITY_ALERT_ACTION_INTERVAL_MINUTES,
   };
 }
 
@@ -138,7 +150,7 @@ export function IssueAlertOptions({
     [RuleAction.DEFAULT_ALERT, t('Alert me on high priority issues')],
     [
       RuleAction.CUSTOMIZED_ALERTS,
-      tct('When there are more than [threshold][metric] a unique error in [interval]', {
+      tct('When there are more than [threshold][metric] a unique error [interval]', {
         threshold: (
           // 80px is just enough to see 6 digits at a time
           <div style={{width: '80px'}}>
@@ -169,6 +181,7 @@ export function IssueAlertOptions({
         interval: (
           <div style={{width: '140px'}} onClick={e => e.preventDefault()}>
             <Select
+              aria-label={t('Alert interval')}
               value={interval}
               options={INTERVAL_CHOICES}
               onChange={(option: (typeof INTERVAL_CHOICES)[number]) => {

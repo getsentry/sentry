@@ -3,19 +3,30 @@ from datetime import datetime, timezone
 from time import time
 from typing import Any
 from unittest.mock import patch
+from uuid import uuid4
 
 import orjson
 import pytest
 import requests.exceptions
 import responses
 from cryptography.fernet import Fernet
+from django.contrib.auth.models import AnonymousUser
 from django.test import override_settings
 from django.urls import reverse
+from rest_framework.request import Request
+from rest_framework.test import APIRequestFactory
 from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsResponse
 
+from sentry.api.client_kind import FEATURE_FLAG as CLIENT_KIND_FEATURE_FLAG
+from sentry.api.client_kind import ClientKind, get_client_kind
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.investigations.models import (
+    InvestigationOrchestrationEvent,
+    InvestigationOrchestrationEventStatus,
+)
+from sentry.investigations.services.orchestration import create_agentic_manual_investigation
 from sentry.models.activity import Activity
 from sentry.models.project import Project
 from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
@@ -30,7 +41,9 @@ from sentry.seer.endpoints.seer_rpc import (
     get_repo_installation_id,
     has_repo_code_mappings,
     refresh_monitoring_provider_token,
+    seer_method_registry,
 )
+from sentry.seer.models.run import SeerRunType
 from sentry.seer.sentry_data_models import (
     GitHubEnterpriseConfigErrorResponse,
     GitHubEnterpriseConfigSuccessResponse,
@@ -100,6 +113,45 @@ class TestSeerRpc(APITestCase):
         assert response.status_code == 200
         assert "projects" in response.data
         assert project.id in [p["id"] for p in response.data["projects"]]
+
+    def test_dispatch_declares_seer_as_the_client_kind(self) -> None:
+        org = self.create_organization()
+        captured: list[ClientKind] = []
+
+        def fake_method(**kwargs: Any) -> dict[str, Any]:
+            nested = Request(APIRequestFactory().get("/"))
+            nested.user = AnonymousUser()
+            nested.auth = None
+            captured.append(get_client_kind(nested))
+            return {"features": []}
+
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        with (
+            self.feature(CLIENT_KIND_FEATURE_FLAG),
+            patch.dict(seer_method_registry, {"get_organization_features": fake_method}),
+        ):
+            response = self.client.post(
+                path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+            )
+
+        assert response.status_code == 200
+        assert captured == [ClientKind.SEER]
+
+    def test_client_kind_scope_does_not_outlive_the_dispatch(self) -> None:
+        org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        with self.feature(CLIENT_KIND_FEATURE_FLAG):
+            response = self.client.post(
+                path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+            )
+            assert response.status_code == 200
+
+            nested = Request(APIRequestFactory().get("/"))
+            nested.user = AnonymousUser()
+            nested.auth = None
+            assert get_client_kind(nested) == ClientKind.UNKNOWN
 
     def test_snuba_rate_limit_returns_429(self) -> None:
         """Test that SnubaRPCRateLimitExceeded returns 429 to Seer for retry."""
@@ -882,6 +934,7 @@ class TestGetOrganizationFeatures(APITestCase):
 @with_feature("organizations:seer-infra-telemetry")
 @cell_silo_test
 class TestGetMonitoringProviderConnections(APITestCase):
+    @with_feature("organizations:seer-infra-telemetry-user-level-auth")
     def test_returns_connections(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="org-uuid-1")
         identity = self.create_identity(
@@ -1113,6 +1166,243 @@ class TestSeerRpcViewerContextAuth(APITestCase):
         )
         assert response.status_code == 200
         assert "features" in response.data
+
+    def test_investigation_event_is_scoped_applied_and_idempotent(self) -> None:
+        organization = self.create_organization(owner=self.user)
+        investigation, run = create_agentic_manual_investigation(
+            organization=organization,
+            user_id=self.user.id,
+            title=None,
+            source={"type": "manual", "prompt": "Investigate latency"},
+            project_ids=[],
+            filters={},
+        )
+        event_id = uuid4()
+        projection = {
+            **run.projection,
+            "runId": 42,
+            "status": "processing",
+            "heartbeatAt": "2025-01-01T00:00:00+00:00",
+        }
+        event = {
+            "schemaVersion": 1,
+            "eventId": str(event_id),
+            "runId": 42,
+            "investigationId": investigation.id,
+            "sequence": 1,
+            "generation": 1,
+            "type": "workflow_updated",
+            "payload": {"projection": projection},
+        }
+        path = self._get_path("deliver_investigation_event")
+        data: dict[str, Any] = {
+            "args": {"org_id": organization.id, "event": event},
+            "meta": {},
+        }
+        headers: dict[str, Any] = {
+            "HTTP_AUTHORIZATION": self._hmac_header(path, data),
+            "HTTP_X_VIEWER_CONTEXT": self._vc_header(
+                organization_id=organization.id,
+                user_id=self.user.id,
+            ),
+        }
+
+        response = self.client.post(path, data=data, **headers)
+
+        assert response.status_code == 200, response.data
+        assert response.data == {
+            "accepted": True,
+            "duplicate": False,
+            "applicationStatus": "applied",
+            "lastAppliedSequence": 1,
+            "nextExpectedSequence": 2,
+            "notebookRevision": 0,
+        }
+        run.refresh_from_db()
+        # Seer's id lives on the mirror row, adopted from the event.
+        assert run.seer_run is not None
+        assert run.seer_run.seer_run_state_id == 42
+        assert run.seer_run.type == SeerRunType.INVESTIGATION.value
+        assert run.seer_run.organization_id == organization.id
+        # The reducer applies the event, so the sequence advances.
+        assert run.last_event_sequence == 1
+        stored = InvestigationOrchestrationEvent.objects.get(
+            orchestration_run=run,
+            event_id=event_id,
+        )
+        assert stored.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        assert stored.payload == {
+            "schemaVersion": 1,
+            "runId": 42,
+            "investigationId": investigation.id,
+            "generation": 1,
+            "payload": {"projection": projection},
+        }
+
+        duplicate = self.client.post(path, data=data, **headers)
+
+        assert duplicate.status_code == 200
+        assert duplicate.data["duplicate"] is True
+        assert duplicate.data["applicationStatus"] == "applied"
+        assert InvestigationOrchestrationEvent.objects.filter(orchestration_run=run).count() == 1
+
+        conflicting_data = {
+            **data,
+            "args": {
+                **data["args"],
+                "event": {
+                    **event,
+                    "payload": {"projection": {**projection, "status": "failed"}},
+                },
+            },
+        }
+        conflicting = self.client.post(
+            path,
+            data=conflicting_data,
+            HTTP_AUTHORIZATION=self._hmac_header(path, conflicting_data),
+            HTTP_X_VIEWER_CONTEXT=headers["HTTP_X_VIEWER_CONTEXT"],
+        )
+        assert conflicting.status_code == 409
+
+        wrong_run_data = {
+            **data,
+            "args": {
+                **data["args"],
+                "event": {
+                    **event,
+                    "eventId": str(uuid4()),
+                    "runId": 43,
+                    "sequence": 2,
+                },
+            },
+        }
+        wrong_run = self.client.post(
+            path,
+            data=wrong_run_data,
+            HTTP_AUTHORIZATION=self._hmac_header(path, wrong_run_data),
+            HTTP_X_VIEWER_CONTEXT=headers["HTTP_X_VIEWER_CONTEXT"],
+        )
+        assert wrong_run.status_code == 400
+
+        sequence_collision_data = {
+            **data,
+            "args": {
+                **data["args"],
+                "event": {**event, "eventId": str(uuid4())},
+            },
+        }
+        sequence_collision = self.client.post(
+            path,
+            data=sequence_collision_data,
+            HTTP_AUTHORIZATION=self._hmac_header(path, sequence_collision_data),
+            HTTP_X_VIEWER_CONTEXT=headers["HTTP_X_VIEWER_CONTEXT"],
+        )
+        assert sequence_collision.status_code == 409
+        assert InvestigationOrchestrationEvent.objects.filter(orchestration_run=run).count() == 1
+
+    def test_investigation_event_requires_signed_viewer_context(self) -> None:
+        organization = self.create_organization(owner=self.user)
+        path = self._get_path("deliver_investigation_event")
+        data: dict[str, Any] = {
+            "args": {
+                "org_id": organization.id,
+                "event": {
+                    "schemaVersion": 1,
+                    "eventId": str(uuid4()),
+                    "runId": 1,
+                    "investigationId": 1,
+                    "sequence": 1,
+                    "generation": 1,
+                    "type": "workflow_failed",
+                    "payload": {"error": {"message": "failed"}},
+                },
+            },
+            "meta": {},
+        }
+
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_AUTHORIZATION=self._hmac_header(path, data),
+        )
+
+        assert response.status_code == 403
+
+    def test_investigation_event_rejects_mismatched_viewer_organization(self) -> None:
+        organization = self.create_organization(owner=self.user)
+        path = self._get_path("deliver_investigation_event")
+        data: dict[str, Any] = {
+            "args": {
+                "org_id": organization.id,
+                "event": {
+                    "schemaVersion": 1,
+                    "eventId": str(uuid4()),
+                    "runId": 1,
+                    "investigationId": 1,
+                    "sequence": 1,
+                    "generation": 1,
+                    "type": "workflow_failed",
+                    "payload": {},
+                },
+            },
+            "meta": {},
+        }
+
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_AUTHORIZATION=self._hmac_header(path, data),
+            HTTP_X_VIEWER_CONTEXT=self._vc_header(
+                organization_id=self.create_organization().id,
+                user_id=self.user.id,
+            ),
+        )
+
+        assert response.status_code == 403
+
+    def test_investigation_event_cannot_cross_organization_scope(self) -> None:
+        organization = self.create_organization(owner=self.user)
+        other_organization = self.create_organization()
+        investigation = self.create_investigation(
+            organization=other_organization,
+            created_by=self.user,
+            source={"type": "manual"},
+        )
+        run = self.create_investigation_orchestration_run(
+            investigation=investigation,
+            source={"type": "manual"},
+            projection={},
+        )
+        path = self._get_path("deliver_investigation_event")
+        data: dict[str, Any] = {
+            "args": {
+                "org_id": organization.id,
+                "event": {
+                    "schemaVersion": 1,
+                    "eventId": str(uuid4()),
+                    "runId": 42,
+                    "investigationId": investigation.id,
+                    "sequence": 1,
+                    "generation": 1,
+                    "type": "workflow_updated",
+                    "payload": {},
+                },
+            },
+            "meta": {},
+        }
+
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_AUTHORIZATION=self._hmac_header(path, data),
+            HTTP_X_VIEWER_CONTEXT=self._vc_header(
+                organization_id=organization.id,
+                user_id=self.user.id,
+            ),
+        )
+
+        assert response.status_code == 400
+        assert not run.events.exists()
 
     def test_org_less_viewer_context_is_rejected(self) -> None:
         # A validly-signed but org-less viewer context carries no org to enforce

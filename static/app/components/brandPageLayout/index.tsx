@@ -1,6 +1,8 @@
+import {Activity} from 'react';
+
 import artworkBackground from 'sentry-images/brandPageLayout/background.avif';
 import artworkImage from 'sentry-images/brandPageLayout/full-art.avif';
-import artworkOutline from 'sentry-images/brandPageLayout/outline.svg';
+import artworkOutline from 'sentry-images/brandPageLayout/outline.webp';
 
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {slot} from '@sentry/scraps/slot';
@@ -15,6 +17,7 @@ interface BrandPageLayoutProps {
   children: React.ReactNode;
   artwork?: React.ReactNode;
   background?: React.ReactNode;
+  isArtworkActive?: boolean;
 }
 
 /**
@@ -32,6 +35,7 @@ function BrandPageLayoutRoot({
   ),
   background = <BrandPageBackground />,
   children,
+  isArtworkActive = true,
 }: BrandPageLayoutProps) {
   return (
     <BrandPageLayoutSlot.Provider>
@@ -62,7 +66,9 @@ function BrandPageLayoutRoot({
             overflow="visible"
             pointerEvents="none"
           >
-            {artwork}
+            <Activity mode={isArtworkActive ? 'visible' : 'hidden'} name="Brand artwork">
+              {artwork}
+            </Activity>
           </Container>
         </Container>
 

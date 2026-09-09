@@ -1,5 +1,4 @@
-import {useMutation} from '@tanstack/react-query';
-import {useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';

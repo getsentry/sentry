@@ -27,6 +27,7 @@ import {
 } from 'sentry/utils/integrationUtil';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -299,7 +300,7 @@ function ModalMappingForm({
     onSubmit: ({value, formApi}) =>
       mutation.mutateAsync(value).catch(error => {
         if (error instanceof RequestError) {
-          setFieldErrors(formApi, error);
+          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
         }
       }),
   });

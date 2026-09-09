@@ -157,7 +157,7 @@ export function SeerProjectTable() {
                 )}
               </Text>
               <Flex>
-                <AddProjectButton />
+                <AddProjectButton disabled={!canWrite} />
               </Flex>
             </Stack>
           </Flex>
@@ -195,7 +195,7 @@ export function SeerProjectTable() {
               }
             />
           </InputGroup>
-          <AddProjectButton />
+          <AddProjectButton disabled={!canWrite} />
         </Flex>
       </Stack>
       <ListItemCheckboxProvider
@@ -401,7 +401,7 @@ function AgentSelectCell({
   );
 }
 
-function AddProjectButton() {
+function AddProjectButton({disabled}: {disabled: boolean}) {
   const {openModal} = useModal();
 
   const [isLoadingModal, setIsLoadingModal] = useState(false);
@@ -430,7 +430,7 @@ function AddProjectButton() {
       }}
       icon={<IconAdd />}
       busy={isLoadingModal}
-      disabled={isLoadingModal}
+      disabled={disabled || isLoadingModal}
     >
       {t('Add Project')}
     </Button>

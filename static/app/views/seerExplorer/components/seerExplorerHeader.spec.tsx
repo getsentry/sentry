@@ -23,6 +23,8 @@ function defaultProps(overrides = {}) {
     onCopyLinkClick: jest.fn(),
     overrideCtxEngEnable: false,
     onOverrideCtxEngEnableToggle: jest.fn(),
+    overrideBashModeEnabled: false,
+    onOverrideBashModeToggle: jest.fn(),
     showThinking: false,
     onShowThinkingToggle: jest.fn(),
     isPipSupported: false,
@@ -76,6 +78,26 @@ describe('SeerExplorerHeader', () => {
       expect(
         screen.queryByRole('menuitemradio', {name: /Context Engine/})
       ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: /Force bash mode on/})
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders the force bash mode toggle behind its own flag', async () => {
+      const onOverrideBashModeToggle = jest.fn();
+      await renderHeader(
+        {overrideBashModeEnabled: true, onOverrideBashModeToggle},
+        orgWith('seer-explorer-allow-bash-mode')
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
+
+      expect(screen.getByRole('checkbox')).toBeChecked();
+
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: /Force bash mode on/})
+      );
+      expect(onOverrideBashModeToggle).toHaveBeenCalled();
     });
 
     it('reflects the toggle state and fires the handler', async () => {

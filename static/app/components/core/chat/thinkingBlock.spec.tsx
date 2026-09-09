@@ -2,6 +2,39 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ThinkingBlock} from '@sentry/scraps/chat';
 
+// `ClippedBox` measures content via `ResizeObserver`. Browser callbacks are asynchronous,
+// but this mock invokes the callback synchronously so a clip decision is available
+// immediately without waiting on a real browser layout pass.
+function mockContentHeight(height: number) {
+  const previous = window.ResizeObserver;
+
+  class MockResizeObserver {
+    callback: ResizeObserverCallback;
+    constructor(callback: ResizeObserverCallback) {
+      this.callback = callback;
+    }
+    observe(element: Element) {
+      this.callback(
+        [
+          {
+            target: element,
+            // @ts-expect-error partial mock: only `blockSize` is read.
+            contentBoxSize: [{blockSize: height}],
+          },
+        ],
+        this
+      );
+    }
+    unobserve() {}
+    disconnect() {}
+  }
+
+  window.ResizeObserver = MockResizeObserver;
+  return () => {
+    window.ResizeObserver = previous;
+  };
+}
+
 describe('ThinkingBlock', () => {
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => jest.useRealTimers());
@@ -55,6 +88,48 @@ describe('ThinkingBlock', () => {
     expect(screen.getByText('inner content')).not.toBeVisible();
   });
 
+  it('can be manually collapsed while thinking is active', async () => {
+    jest.useRealTimers();
+    const start = new Date();
+
+    render(
+      <ThinkingBlock title="Thinking" startTime={start}>
+        <div>inner content</div>
+      </ThinkingBlock>
+    );
+
+    expect(screen.getByText('inner content')).toBeVisible();
+
+    await userEvent.click(screen.getByText('Thinking'));
+    expect(screen.getByText('inner content')).not.toBeVisible();
+  });
+
+  it('auto-collapses when thinking completes even if user re-expanded', async () => {
+    jest.useRealTimers();
+    const start = new Date();
+
+    const {rerender} = render(
+      <ThinkingBlock title="Thinking" startTime={start}>
+        <div>inner content</div>
+      </ThinkingBlock>
+    );
+
+    // collapse then re-expand while still active
+    await userEvent.click(screen.getByText('Thinking'));
+    expect(screen.getByText('inner content')).not.toBeVisible();
+    await userEvent.click(screen.getByText('Thinking'));
+    expect(screen.getByText('inner content')).toBeVisible();
+
+    // thinking completes → auto-collapse
+    rerender(
+      <ThinkingBlock title="Thinking" startTime={start} endTime={new Date()}>
+        <div>inner content</div>
+      </ThinkingBlock>
+    );
+
+    expect(screen.getByText('inner content')).not.toBeVisible();
+  });
+
   it('can be manually toggled after collapsing', async () => {
     jest.useRealTimers();
     const start = new Date();
@@ -68,8 +143,31 @@ describe('ThinkingBlock', () => {
 
     expect(screen.getByText('inner content')).not.toBeVisible();
 
-    await userEvent.click(screen.getByText('Done'));
+    await userEvent.click(screen.getByText('See thinking and tool calls'));
     expect(screen.getByText('inner content')).toBeVisible();
+  });
+
+  it('shows summary title when completed instead of the last streamed title', () => {
+    jest.useRealTimers();
+    const start = new Date();
+
+    const {rerender} = render(
+      <ThinkingBlock title="Querying spans..." startTime={start}>
+        <div>content</div>
+      </ThinkingBlock>
+    );
+
+    expect(screen.getByText('Querying spans')).toBeInTheDocument();
+    expect(screen.queryByText('See thinking and tool calls')).not.toBeInTheDocument();
+
+    rerender(
+      <ThinkingBlock title="Querying spans..." startTime={start} endTime={new Date()}>
+        <div>content</div>
+      </ThinkingBlock>
+    );
+
+    expect(screen.getByText('See thinking and tool calls')).toBeInTheDocument();
+    expect(screen.queryByText('Querying spans')).not.toBeInTheDocument();
   });
 
   it('formats minutes for long durations', () => {
@@ -83,5 +181,49 @@ describe('ThinkingBlock', () => {
     );
 
     expect(screen.getByText('1.5min')).toBeInTheDocument();
+  });
+
+  it('does not clip short thinking content, and shows no expand affordance', () => {
+    jest.useRealTimers();
+    const restore = mockContentHeight(20);
+
+    render(
+      <ThinkingBlock title="Thinking..." startTime={new Date()}>
+        <div>Short thought</div>
+      </ThinkingBlock>
+    );
+
+    const content = screen.getByText('Short thought');
+    expect(content).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Show More'})).not.toBeInTheDocument();
+    // Measurement (mocked synchronous) proved the content is short, so it must not
+    // stay inert from the default clipped assumption.
+    expect(content.closest('[inert]')).toBeNull();
+    restore();
+  });
+
+  it('clips long thinking content behind a click-to-expand affordance', async () => {
+    jest.useRealTimers();
+    const restore = mockContentHeight(500);
+
+    render(
+      <ThinkingBlock title="Thinking..." startTime={new Date()}>
+        <div>A very long chain of reasoning</div>
+      </ThinkingBlock>
+    );
+
+    const expandButton = screen.getByRole('button', {name: 'Show More'});
+    expect(expandButton).toBeInTheDocument();
+    // The content itself still renders (it is clipped via `max-height`, not removed).
+    const content = screen.getByText('A very long chain of reasoning');
+    expect(content).toBeInTheDocument();
+    // Clipped content is inert from the first render, before the (asynchronous in
+    // real browsers) measurement, so hidden links/buttons are unreachable by keyboard.
+    expect(content.closest('[inert]')).not.toBeNull();
+
+    await userEvent.click(expandButton);
+    expect(screen.queryByRole('button', {name: 'Show More'})).not.toBeInTheDocument();
+    expect(content.closest('[inert]')).toBeNull();
+    restore();
   });
 });

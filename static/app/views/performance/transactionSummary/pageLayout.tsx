@@ -349,7 +349,7 @@ export function redirectToPerformanceHomepage(
   // If there is no transaction name, redirect to the Performance landing page
   navigate(
     normalizeUrl({
-      pathname: getPerformanceBaseUrl(organization.slug, 'backend'),
+      pathname: getPerformanceBaseUrl(organization.slug),
       query: {
         ...location.query,
       },

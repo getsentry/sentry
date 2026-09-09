@@ -203,6 +203,42 @@ class MilestonesFromStateTest(TestCase):
             "root_cause_artifact": {"one_line_description": "boom"}
         }
 
+    def test_root_cause_extras_hold_headline_when_present(self) -> None:
+        block = MemoryBlock(
+            id="b",
+            message=Message(role="assistant", content="c"),
+            timestamp="2026-02-10T00:00:00Z",
+            artifacts=[
+                Artifact(
+                    key="root_cause",
+                    data={"one_line_description": "boom", "headline": "Checkout crashes"},
+                    reason="r",
+                )
+            ],
+        )
+        result = milestones_from_state(_state(blocks=[block]))
+        assert result[SeerRunMilestoneType.ROOT_CAUSE] == {
+            "root_cause_artifact": {"one_line_description": "boom", "headline": "Checkout crashes"}
+        }
+
+    def test_root_cause_extras_omit_blank_headline(self) -> None:
+        block = MemoryBlock(
+            id="b",
+            message=Message(role="assistant", content="c"),
+            timestamp="2026-02-10T00:00:00Z",
+            artifacts=[
+                Artifact(
+                    key="root_cause",
+                    data={"one_line_description": "boom", "headline": ""},
+                    reason="r",
+                )
+            ],
+        )
+        result = milestones_from_state(_state(blocks=[block]))
+        assert result[SeerRunMilestoneType.ROOT_CAUSE] == {
+            "root_cause_artifact": {"one_line_description": "boom"}
+        }
+
     def test_solution_extras_hold_one_line_summary(self) -> None:
         block = MemoryBlock(
             id="b",

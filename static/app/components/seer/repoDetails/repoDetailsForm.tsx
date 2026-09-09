@@ -1,5 +1,4 @@
-import {mutationOptions} from '@tanstack/react-query';
-import {useQueryClient} from '@tanstack/react-query';
+import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';

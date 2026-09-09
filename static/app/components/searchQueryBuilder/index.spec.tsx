@@ -45,7 +45,10 @@ import {
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {getHasTag} from 'sentry/utils/tag';
 
-jest.unmock('@tanstack/react-pacer');
+jest.mock('@tanstack/react-pacer', () => ({
+  ...jest.requireActual('@tanstack/react-pacer'),
+  useDebouncedValue: <T,>(value: T) => [value] as const,
+}));
 
 const FILTER_KEYS: TagCollection = {
   [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
@@ -3248,6 +3251,7 @@ describe('SearchQueryBuilder', () => {
           <SearchQueryBuilder
             {...defaultProps}
             onChange={mockOnChange}
+            /* oxlint-disable-next-line react/jsx-curly-brace-presence -- Preserve the escaped string exactly. */
             initialQuery={'browser.name:[foo*,bar\\*,Chrome]'}
           />
         );
@@ -3267,7 +3271,11 @@ describe('SearchQueryBuilder', () => {
 
       it('renders an escaped asterisk with the escape visible in the filter chip', async () => {
         render(
-          <SearchQueryBuilder {...defaultProps} initialQuery={'browser.name:foo\\*'} />
+          <SearchQueryBuilder
+            {...defaultProps}
+            /* oxlint-disable-next-line react/jsx-curly-brace-presence -- Preserve the escaped string exactly. */
+            initialQuery={'browser.name:foo\\*'}
+          />
         );
 
         expect(

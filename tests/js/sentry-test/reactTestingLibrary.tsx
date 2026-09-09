@@ -7,7 +7,7 @@ import {
   type RouteObject,
   type To,
 } from 'react-router-dom';
-import {cache} from '@emotion/css'; // eslint-disable-line @emotion/no-vanilla
+import {cache} from '@emotion/css'; // eslint-disable-line @sentry/no-vanilla-emotion
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import {
   createMemoryHistory,
@@ -405,6 +405,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
   let memoryRouter: Router | null = null;
 
   function Wrapper({children}: {children?: React.ReactNode}) {
+    // oxlint-disable-next-line react/globals -- Test helper exposes the router built inside the wrapper.
     memoryRouter = makeRouter({
       children: <AllTheProviders>{children}</AllTheProviders>,
       history,

@@ -129,10 +129,13 @@ class AuthOAuth2Test(AuthProviderTestCase):
                     resp = self.client.get(resp["Location"])
 
             assert resp.status_code == 302
-            assert resp["Location"] == f"{customer_domain}/auth/login/"
+            expected_location = (
+                f"{customer_domain}/issues/" if customer_domain else "/organizations/baz/issues/"
+            )
+            assert resp["Location"] == expected_location
             resp = self.client.get(resp["Location"], follow=True)
             assert resp.status_code == 200
-            assert resp.redirect_chain == [("/organizations/baz/issues/", 302)]
+            assert resp.redirect_chain == []
             assert resp.context["user"].id == self.user.id
 
             assert urlopen.called

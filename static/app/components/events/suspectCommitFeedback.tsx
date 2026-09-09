@@ -49,7 +49,7 @@ export function SuspectCommitFeedback({
       <Flex gap="2xs">
         <Button
           size="zero"
-          icon={<IconThumb direction="up" size="xs" />}
+          icon={<IconThumb size="xs" />}
           onClick={() => handleFeedback(true)}
           aria-label={t('Yes, this suspect commit is correct')}
         />

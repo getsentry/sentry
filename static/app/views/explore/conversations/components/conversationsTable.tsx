@@ -19,6 +19,7 @@ import {
   GridEditable,
   type GridColumnHeader,
   type GridColumnOrder,
+  type GridColumnSort,
 } from 'sentry/components/tables/gridEditable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconFire, IconUser} from 'sentry/icons';
@@ -29,6 +30,7 @@ import {markdownToPlainText} from 'sentry/utils/marked/marked';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
@@ -36,6 +38,7 @@ import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversatio
 import {
   useConversations,
   type Conversation,
+  type ConversationSortField,
   type ConversationUser,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
 import {getConversationDetailUrl} from 'sentry/views/explore/conversations/utils/urlParams';
@@ -89,6 +92,21 @@ const COLUMN_DEFAULTS: Record<ColumnKey, {name: string; width: number}> = {
 };
 
 const RIGHT_ALIGNED_COLUMNS = new Set<ColumnKey>(['age']);
+
+const SORT_FIELD_BY_COLUMN: Partial<Record<ColumnKey, ConversationSortField>> = {
+  duration: 'generationDuration',
+  messages: 'llmCalls',
+  errors: 'errors',
+  cost: 'totalCost',
+  age: 'age',
+};
+
+// Persisted per-column widths. Only the widths are stored, keyed by column:
+// names are translated, and keying by column (rather than storing the whole
+// column array) keeps a stored layout usable when columns change.
+const COLUMN_WIDTHS_STORAGE_KEY = 'conversation-table-column-widths';
+
+type ColumnWidths = Partial<Record<ColumnKey, number>>;
 
 // Plain-text title/first-message is ellipsized to this length before rendering.
 const CELL_MAX_CHARS = 256;
@@ -148,30 +166,73 @@ export function collapseToolsColumnWhenUnused(
   );
 }
 
+/**
+ * Reads the persisted column widths, dropping anything that isn't a width we
+ * would have written: unknown columns, and values below the grid's own resize
+ * floor (which includes a persisted COL_WIDTH_UNDEFINED). Dropped columns fall
+ * back to their default width.
+ */
+export function parseStoredColumnWidths(value?: unknown): ColumnWidths {
+  if (typeof value !== 'object' || value === null) {
+    return {};
+  }
+  const stored = value as Record<string, unknown>;
+  const widths: ColumnWidths = {};
+  for (const key of COLUMN_ORDER) {
+    const width = stored[key];
+    if (
+      typeof width === 'number' &&
+      Number.isFinite(width) &&
+      width >= COL_WIDTH_MINIMUM
+    ) {
+      widths[key] = width;
+    }
+  }
+  return widths;
+}
+
 export function ConversationsTable() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const {data, isFetching, error, pageLinks, setCursor, isDirectHit} = useConversations();
+  const {
+    data,
+    isFetching,
+    error,
+    pageLinks,
+    setCursor,
+    unsetCursor,
+    isDirectHit,
+    sort,
+    setSort,
+    sortingEnabled,
+  } = useConversations();
   useConversationDirectHitRedirect({isDirectHit, conversations: data});
 
   const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
 
-  const [columnOrder, setColumnOrder] = useState<Array<GridColumnOrder<ColumnKey>>>(() =>
-    COLUMN_ORDER.map(key => ({
-      key,
-      name: COLUMN_DEFAULTS[key].name,
-      width: COLUMN_DEFAULTS[key].width,
-    }))
+  const [storedWidths, setStoredWidths] = useLocalStorageState<ColumnWidths>(
+    COLUMN_WIDTHS_STORAGE_KEY,
+    parseStoredColumnWidths
+  );
+
+  const columnOrder = useMemo<Array<GridColumnOrder<ColumnKey>>>(
+    () =>
+      COLUMN_ORDER.map(key => ({
+        key,
+        name: COLUMN_DEFAULTS[key].name,
+        width: storedWidths[key] ?? COLUMN_DEFAULTS[key].width,
+      })),
+    [storedWidths]
   );
 
   const handleResizeColumn = useCallback(
-    (columnIndex: number, nextColumn: GridColumnOrder<ColumnKey>) => {
-      setColumnOrder(current =>
-        current.map((column, index) => (index === columnIndex ? nextColumn : column))
-      );
+    (_columnIndex: number, nextColumn: GridColumnOrder<ColumnKey>) => {
+      // Keyed by column rather than by index so a stored width survives a
+      // change to the column order.
+      setStoredWidths(current => ({...current, [nextColumn.key]: nextColumn.width}));
     },
-    []
+    [setStoredWidths]
   );
 
   const hasNoTools = useMemo(
@@ -233,6 +294,27 @@ export function ConversationsTable() {
     []
   );
 
+  const getColumnSort = useCallback(
+    (column: GridColumnOrder<ColumnKey>): GridColumnSort | undefined => {
+      const field = SORT_FIELD_BY_COLUMN[column.key];
+      if (!sortingEnabled || !field) {
+        return undefined;
+      }
+
+      const direction =
+        sort === field ? 'asc' : sort === `-${field}` ? 'desc' : undefined;
+      return {
+        align: RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'right' : undefined,
+        direction,
+        onSort: () => {
+          setSort(direction === 'desc' ? field : `-${field}`);
+          unsetCursor();
+        },
+      };
+    },
+    [setSort, sort, sortingEnabled, unsetCursor]
+  );
+
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<ColumnKey>, dataRow: Conversation) => (
       <BodyCell column={column} conversation={dataRow} />
@@ -248,12 +330,12 @@ export function ConversationsTable() {
           error={error}
           data={data}
           columnOrder={displayedColumns}
-          columnSortBy={[]}
           stickyHeader
           // GridEditable's Panel body has a default bottom margin; drop it so
           // the Stack's `lg` gap is the only spacing before the pagination.
           bodyStyle={{marginBottom: 0}}
           grid={{
+            getColumnSort,
             renderHeadCell,
             renderBodyCell,
             onResizeColumn: handleResizeColumn,
@@ -399,7 +481,7 @@ function ConversationUserLabel({user}: {user: Conversation['user']}) {
   }
 
   return (
-    <Tooltip title={<UserNotInstrumentedTooltip />} isHoverable skipWrapper>
+    <Tooltip title={<UserNotInstrumentedTooltip />} skipWrapper>
       <Flex align="center" gap="xs">
         <UserIcon size="xs" />
         <Text size="sm" variant="muted">

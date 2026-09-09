@@ -13,16 +13,16 @@ export type GapSpanType = {
 
 interface SpanSourceCodeAttributes {
   'code.column'?: number;
-  'code.filepath'?: string;
+  'code.file.path'?: string;
   'code.function'?: string;
-  'code.lineno'?: number;
+  'code.line.number'?: number;
   'code.namespace'?: string;
 }
 
 interface SpanDatabaseAttributes {
   'db.name'?: string;
   'db.operation'?: string;
-  'db.system'?: string;
+  'db.system.name'?: string;
   'db.user'?: string;
 }
 
@@ -232,7 +232,7 @@ export type OrphanTreeDepth = {
 
 export type TreeDepthType = SpanTreeDepth | OrphanTreeDepth;
 
-export type IndexedFusedSpan = {
+type IndexedFusedSpan = {
   dataKeys: string[];
   dataValues: string[];
   indexed: string[];

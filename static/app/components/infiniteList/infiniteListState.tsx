@@ -27,7 +27,7 @@ export function InfiniteListState<Data>({
     return loadingMessage();
   }
   if (status === 'error') {
-    return ErrorMessage({error: error!});
+    return <ErrorMessage error={error!} />;
   }
 
   // It's fetching in the background if:

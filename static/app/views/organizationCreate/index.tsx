@@ -22,6 +22,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getSignupLocalities} from 'sentry/utils/cells';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {
@@ -127,7 +128,10 @@ function OrganizationCreate() {
 
       return mutation.mutateAsync(data).catch((error: unknown) => {
         // Surface field-specific errors inline; otherwise show a toast.
-        if (error instanceof RequestError && setFieldErrors(formApi, error)) {
+        if (
+          error instanceof RequestError &&
+          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values))
+        ) {
           clearIndicators();
           return;
         }

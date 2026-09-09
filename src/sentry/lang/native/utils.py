@@ -1,14 +1,12 @@
-import logging
 import re
 import time
 from collections.abc import Mapping
 from typing import Any, overload
 
 from sentry.attachments import CachedAttachment, get_attachments_for_event
+from sentry.lang.native.gpu import GPU_CRASH_DUMP_ATTACHMENT_TYPE
 from sentry.stacktraces.processing import StacktraceInfo
 from sentry.utils.safe import get_path
-
-logger = logging.getLogger(__name__)
 
 # Regex to guess whether we're dealing with Windows or Unix paths.
 WINDOWS_PATH_RE = re.compile(r"^([a-z]:\\|\\\\)", re.IGNORECASE)
@@ -163,6 +161,50 @@ def is_applecrashreport_event(data):
     """
     exceptions = get_path(data, "exception", "values", filter=True)
     return get_path(exceptions, 0, "mechanism", "type") == "applecrashreport"
+
+
+def find_gpu_crash_dump_attachment(data: Any) -> CachedAttachment | None:
+    """Return the `.nv-gpudmp` GPU crash dump attachment for this event, or None.
+
+    Relay classifies it as `event.nv_gpudmp` when it splits the GPU crash onto
+    its own event, so matching that type alone is enough.
+    """
+    return get_event_attachment(data, GPU_CRASH_DUMP_ATTACHMENT_TYPE)
+
+
+# CPU crash-report attachment types. Their presence means the event is the CPU
+# crash (symbolicator's job), not the GPU event Relay split off.
+_CPU_CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport", "playstation.prosperodump")
+
+
+def is_gpu_crash_event(data: Any) -> bool:
+    """True for a GPU crash event that teapot should symbolicate.
+
+    Relay splits a GPU dump onto its own event — a `.nv-gpudmp` and no CPU crash
+    report — for opted-in orgs. When an org hasn't opted in, Relay leaves the dump
+    on the CPU crash event; a crash report on the same event means "leave it to
+    CPU symbolication", so we must not route it to teapot.
+    """
+    if find_gpu_crash_dump_attachment(data) is None:
+        return False
+    return all(get_event_attachment(data, ty) is None for ty in _CPU_CRASH_REPORT_TYPES)
+
+
+# Shader debug info accompanies the `.nv-gpudmp`, one `.nvdbg` per shader. Relay
+# classifies each as `event.nv_shader_debug`; teapot recovers the shader's
+# `shader_debug_info_uid` from the attachment filename at decode time.
+SHADER_DEBUG_INFO_ATTACHMENT_TYPE = "event.nv_shader_debug"
+
+
+def find_all_shader_debug_attachments(data: Any) -> list[CachedAttachment]:
+    """Return every shader-debug-info (`.nvdbg`) attachment for this event.
+
+    Relay already selected the right set and typed each `event.nv_shader_debug`,
+    so we forward them all untouched — no filename parsing or uid matching here.
+    """
+    return [
+        a for a in get_attachments_for_event(data) if a.type == SHADER_DEBUG_INFO_ATTACHMENT_TYPE
+    ]
 
 
 class Backoff:

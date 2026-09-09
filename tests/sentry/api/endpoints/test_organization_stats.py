@@ -10,6 +10,31 @@ from sentry.utils.outcomes import Outcome
 
 @freeze_time(before_now(days=1).replace(hour=1, minute=10))
 class OrganizationStatsTest(APITestCase, OutcomesSnubaTest):
+    def test_rejects_unsupported_group(self) -> None:
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-organization-stats", args=[self.organization.slug])
+
+        response = self.client.get(url, {"group": "category"})
+
+        assert response.status_code == 400
+        assert response.data["detail"] == (
+            "group=category is not supported. Use group=organization for organization-wide "
+            "statistics or group=project for statistics separated by project."
+        )
+
+    def test_rejects_unsupported_stat_for_group(self) -> None:
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-organization-stats", args=[self.organization.slug])
+
+        response = self.client.get(url, {"stat": "generated"})
+
+        assert response.status_code == 400
+        assert response.data["detail"] == (
+            "stat=generated is not supported with group=organization. Use stat=received, "
+            "stat=rejected, or stat=blacklisted. stat=generated is only supported with "
+            "group=project."
+        )
+
     def test_simple(self) -> None:
         self.login_as(user=self.user)
 

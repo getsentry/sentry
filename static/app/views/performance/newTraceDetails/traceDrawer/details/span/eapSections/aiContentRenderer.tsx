@@ -76,7 +76,8 @@ function JsonTree({value}: {value: unknown}) {
 
 // Renders ```json code blocks as an interactive JSON tree, falling back to a
 // highlighted code block when the content isn't valid JSON. Only fenced code
-// blocks are handled; inline `code` spans are left untouched.
+// blocks are handled; inline `code` spans are left untouched. Unknown {% tag %}
+// tokens fall through to default Markdown, which echoes their original source.
 const markdownComponents: MarkdownProps['components'] = {
   CodeBlock: ({children, lang, Default}) => {
     if (lang?.toLowerCase() === 'json') {
@@ -104,7 +105,6 @@ interface AIContentRendererProps {
    * defaults to clipped and JSON defaults to flowing (matching prior behavior).
    */
   clip?: boolean;
-  collapsibleXmlTags?: boolean;
   inline?: boolean;
   maxJsonDepth?: number;
 }
@@ -212,7 +212,6 @@ export function AIContentRenderer({
   inline = false,
   maxJsonDepth = 2,
   autoCollapseLimit,
-  collapsibleXmlTags = true,
   clip,
 }: AIContentRendererProps) {
   const detection = useMemo(() => detectAIContentType(text), [text]);
@@ -237,18 +236,13 @@ export function AIContentRenderer({
 
     case 'markdown-with-xml':
       if (inline) {
-        return (
-          <MarkdownWithXmlRenderer text={text} collapsibleXmlTags={collapsibleXmlTags} />
-        );
+        return <MarkdownWithXmlRenderer text={text} collapsibleXmlTags />;
       }
       return (
         <TraceDrawerComponents.MultilineText
           clip={clipText}
           renderFormatted={rawText => (
-            <MarkdownWithXmlRenderer
-              text={rawText}
-              collapsibleXmlTags={collapsibleXmlTags}
-            />
+            <MarkdownWithXmlRenderer text={rawText} collapsibleXmlTags />
           )}
         >
           {text}

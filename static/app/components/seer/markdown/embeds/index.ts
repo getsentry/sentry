@@ -1,17 +1,21 @@
 import {AgentWriteApprovalEmbed} from './components/agentWriteApproval';
-import {Alert} from './components/alert';
-import {Autofix} from './components/autofix';
+import {Alert} from './components/alert/alert';
+import {Autofix, AutofixRef} from './components/autofix';
 import {Chart} from './components/chart';
+import {Conversation} from './components/conversation/conversation';
+import {ConversationsQuery} from './components/conversationsQuery';
 import {Dashboard} from './components/dashboard';
 import {Docs} from './components/docs';
 import {Dsn} from './components/dsn';
 import {ErrorsQuery} from './components/errorsQuery';
+import {SeerEvent} from './components/event/event';
 import {Issue, Issues} from './components/issue';
 import {IssuesQuery} from './components/issuesQuery';
 import {LogsQuery} from './components/logsQuery';
 import {MetricsQuery} from './components/metricsQuery';
-import {Monitor} from './components/monitor';
+import {Monitor} from './components/monitor/monitor';
 import {Profile} from './components/profile';
+import {Release} from './components/release';
 import {Replay} from './components/replay';
 import {ReplaysQuery} from './components/replaysQuery';
 import {SavedIssueView} from './components/savedIssueView';
@@ -26,7 +30,10 @@ const embeds = [
   AgentWriteApprovalEmbed,
   Alert,
   Autofix,
+  AutofixRef,
   Chart,
+  Conversation,
+  ConversationsQuery,
   Dashboard,
   Docs,
   Dsn,
@@ -38,10 +45,12 @@ const embeds = [
   MetricsQuery,
   Monitor,
   Profile,
+  Release,
   Replay,
   ReplaysQuery,
   SavedIssueView,
   SavedQuery,
+  SeerEvent,
   SpansQuery,
   Timestamp,
   Trace,

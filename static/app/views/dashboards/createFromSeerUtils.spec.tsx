@@ -1,5 +1,5 @@
-import {applySeerWidgetDefaults} from 'sentry/views/dashboards/createFromSeerUtils';
 import {
+  applySeerWidgetDefaults,
   extractDashboardFromSession,
   splitDashboardPrompt,
   statusIsTerminal,

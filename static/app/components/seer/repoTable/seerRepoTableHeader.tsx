@@ -14,6 +14,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import type {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
+import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
@@ -249,18 +250,7 @@ export function SeerRepoTableHeader({
             <SimpleTable.HeaderCell
               key={key}
               handleSortClick={
-                sortKey
-                  ? () =>
-                      onSortClick({
-                        field: sortKey,
-                        kind:
-                          sortKey === sort.field
-                            ? sort.kind === 'asc'
-                              ? 'desc'
-                              : 'asc'
-                            : 'desc',
-                      })
-                  : undefined
+                sortKey ? () => onSortClick(getNextSort(sortKey, sort)) : undefined
               }
               sort={sort?.field === sortKey ? sort.kind : undefined}
             >

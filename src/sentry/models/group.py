@@ -372,6 +372,10 @@ def get_oldest_or_latest_event(
 # recommended event whose session replay is verified to exist.
 RECOMMENDED_EVENT_REPLAY_CANDIDATES = 10
 
+# Upping the inner limit to 10k samples if the verify_replay_exists flag is set.
+RECOMMENDED_EVENT_INNER_LIMIT = 1000
+RECOMMENDED_EVENT_REPLAY_INNER_LIMIT = 10000
+
 
 def get_recommended_event(
     group: Group,
@@ -409,6 +413,11 @@ def get_recommended_event(
         return None
 
     limit = RECOMMENDED_EVENT_REPLAY_CANDIDATES if verify_replay_exists else 1
+    inner_limit = (
+        RECOMMENDED_EVENT_REPLAY_INNER_LIMIT
+        if verify_replay_exists
+        else RECOMMENDED_EVENT_INNER_LIMIT
+    )
 
     events = eventstore.backend.get_events_snql(
         organization_id=group.project.organization_id,
@@ -421,7 +430,7 @@ def get_recommended_event(
         referrer="Group.get_helpful",
         dataset=dataset,
         tenant_ids={"organization_id": group.project.organization_id},
-        inner_limit=1000,
+        inner_limit=inner_limit,
     )
 
     if not events:

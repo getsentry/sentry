@@ -1,9 +1,9 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {OrganizationSampleRateInput} from 'sentry/views/settings/dynamicSampling/organizationSampleRateInput';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
@@ -37,11 +37,10 @@ export function ProjectsPreviewTable({
   onTargetSampleRateChange,
   targetSampleRateError,
 }: ProjectsPreviewTableProps) {
-  const debouncedTargetSampleRate = useDebouncedValue(
-    targetSampleRate,
+  const [debouncedTargetSampleRate] = useDebouncedValue(targetSampleRate, {
     // For longer lists we debounce the input to avoid too many re-renders
-    sampleCounts.length > 100 ? 200 : 0
-  );
+    wait: sampleCounts.length > 100 ? 200 : 0,
+  });
 
   const balancingItems = useMemo(
     () =>

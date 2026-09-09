@@ -1,7 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {useMutation} from '@tanstack/react-query';
-import {useQuery} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid, Stack, type GridProps} from '@sentry/scraps/layout';

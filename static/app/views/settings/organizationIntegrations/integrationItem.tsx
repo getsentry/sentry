@@ -19,7 +19,7 @@ export function IntegrationItem({integration, requiresUpgrade}: Props) {
   return (
     <Flex align="center">
       <div>
-        <IntegrationIcon size={32} integration={integration} />
+        <IntegrationIcon integration={integration} />
       </div>
       <Stack align={undefined} justify="center" paddingLeft="md" minWidth={0}>
         <Flex align="center" gap="xs">
@@ -28,7 +28,6 @@ export function IntegrationItem({integration, requiresUpgrade}: Props) {
           </Text>
           {requiresUpgrade && (
             <Tooltip
-              isHoverable
               containerDisplayMode="flex"
               title={tct(
                 "There's a new update for your [displayName] integration, please update your [noun]",

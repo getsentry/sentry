@@ -1,5 +1,6 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 
@@ -7,7 +8,6 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {AggregationKey} from 'sentry/utils/fields';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {
   ToolbarFooter,
   ToolbarSection,
@@ -111,7 +111,7 @@ export function LogsToolbar() {
 
 function ToolbarVisualize() {
   const [search, setSearch] = useState<string | undefined>(undefined);
-  const debouncedSearch = useDebouncedValue(search, 200);
+  const [debouncedSearch] = useDebouncedValue(search, {wait: 200});
 
   const {attributes: stringTags, isLoading: stringTagsLoading} = useLogItemAttributes(
     {search: debouncedSearch},
@@ -287,7 +287,7 @@ function VisualizeDropdown({
 
 function ToolbarGroupBy() {
   const [search, setSearch] = useState<string | undefined>(undefined);
-  const debouncedSearch = useDebouncedValue(search, 200);
+  const [debouncedSearch] = useDebouncedValue(search, {wait: 200});
 
   const {attributes: numberTags, isLoading: numberTagsLoading} = useLogItemAttributes(
     {search: debouncedSearch},

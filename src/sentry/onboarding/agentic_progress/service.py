@@ -16,6 +16,7 @@ from sentry_redis_tools.clients import RedisCluster, StrictRedis
 from sentry.utils import json, redis
 
 from .model import (
+    STAGE_INDEX,
     InvalidOnboardingRun,
     OnboardingRun,
     OnboardingRunTerminal,
@@ -49,6 +50,12 @@ class RegisteredRun(NamedTuple):
 class UpdatedRun(NamedTuple):
     run: OnboardingRun
     changed: bool
+
+
+class ProgressUpdatedRun(NamedTuple):
+    run: OnboardingRun
+    changed: bool
+    stage_status_changed: bool
 
 
 class ClientRunClaim(NamedTuple):
@@ -131,7 +138,7 @@ class OnboardingProgressService:
         user_id: int,
         organization_id: int,
         update: ProgressUpdate[Any],
-    ) -> UpdatedRun:
+    ) -> ProgressUpdatedRun:
         if len(token) != TOKEN_LENGTH or not token.isalnum():
             raise RunNotFound
         token_hash = self._hash_token(token)
@@ -139,14 +146,22 @@ class OnboardingProgressService:
         if run_id is None:
             raise RunNotFound
 
+        stage_status_changed = False
+
         def mutate(run: OnboardingRun) -> OnboardingRun:
+            nonlocal stage_status_changed
             if run.token_hash != token_hash:
                 raise RunNotFound
             if run.user_id != user_id or run.organization_id != organization_id:
                 raise RunOwnershipMismatch
-            return apply_update(run, update, datetime.now(timezone.utc))
+            stage_index = STAGE_INDEX[update.stage]
+            previous_status = run.stages[stage_index].status
+            updated = apply_update(run, update, datetime.now(timezone.utc))
+            stage_status_changed = previous_status is not updated.stages[stage_index].status
+            return updated
 
-        return self._atomic_update(run_id, mutate)
+        run, changed = self._atomic_update(run_id, mutate)
+        return ProgressUpdatedRun(run, changed, stage_status_changed)
 
     def cancel(self, *, run_id: str, user_id: int, organization_id: int) -> OnboardingRun:
         def mutate(run: OnboardingRun) -> OnboardingRun:

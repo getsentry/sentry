@@ -85,6 +85,7 @@ def start_merge_groups(
     name="sentry.tasks.merge.merge_groups",
     namespace=issues_merge_tasks,
     retry=Retry(delay=60 * 5),
+    processing_deadline_duration=300,
     silo_mode=SiloMode.CELL,
 )
 @track_group_async_operation
@@ -103,6 +104,7 @@ def merge_groups(
     from sentry.models.groupassignee import GroupAssignee
     from sentry.models.groupenvironment import GroupEnvironment
     from sentry.models.grouphash import GroupHash
+    from sentry.models.grouplink import GroupLink
     from sentry.models.groupmeta import GroupMeta
     from sentry.models.groupredirect import GroupRedirect
     from sentry.models.grouprulestatus import GroupRuleStatus
@@ -178,6 +180,7 @@ def merge_groups(
             GroupAssignee,
             GroupEnvironment,
             GroupHash,
+            GroupLink,
             GroupRuleStatus,
             GroupSubscription,
             EventAttachment,

@@ -1,3 +1,5 @@
+import {createContext, useContext, type ReactNode} from 'react';
+
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {AutofixStartCardContent} from 'sentry/components/events/autofix/v3/autofixStartCard';
 import {ProgressState, type Group} from 'sentry/types/group';
@@ -8,7 +10,7 @@ import {IssuePreviewAutofixSummary} from 'sentry/views/issueList/pages/inbox/iss
 
 type IssuePreviewSeerState = 'configure' | 'start' | 'summary';
 
-export function useIssuePreviewSeer(group: Group, project: Project) {
+function useIssuePreviewSeerState(group: Group, project: Project) {
   const aiConfig = useAiConfig(group, project);
   const autofix = useExplorerAutofix(group, {
     enabled: aiConfig.hasAutofix,
@@ -42,7 +44,35 @@ export function useIssuePreviewSeer(group: Group, project: Project) {
   };
 }
 
-type PreviewSeer = ReturnType<typeof useIssuePreviewSeer>;
+type PreviewSeer = ReturnType<typeof useIssuePreviewSeerState>;
+
+const IssuePreviewSeerContext = createContext<PreviewSeer | null>(null);
+
+export function IssuePreviewSeerProvider({
+  children,
+  group,
+  project,
+}: {
+  children: ReactNode;
+  group: Group;
+  project: Project;
+}) {
+  const previewSeer = useIssuePreviewSeerState(group, project);
+
+  return (
+    <IssuePreviewSeerContext.Provider value={previewSeer}>
+      {children}
+    </IssuePreviewSeerContext.Provider>
+  );
+}
+
+export function useIssuePreviewSeer() {
+  const previewSeer = useContext(IssuePreviewSeerContext);
+  if (!previewSeer) {
+    throw new Error('useIssuePreviewSeer must be used within IssuePreviewSeerProvider');
+  }
+  return previewSeer;
+}
 
 export function IssuePreviewSeerContent({
   group,

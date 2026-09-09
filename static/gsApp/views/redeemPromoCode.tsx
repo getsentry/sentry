@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -58,7 +59,7 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
     },
     onError: error => {
       if (error instanceof RequestError) {
-        setFieldErrors(form, error);
+        setFieldErrors(form, requestErrorToFieldErrors(error, form.state.values));
 
         // non-field errors can be camelcase or snake case
         const nonFieldErrors =

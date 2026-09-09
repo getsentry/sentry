@@ -1,9 +1,9 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ReplayTooltipTime} from 'sentry/components/replays/replayTooltipTime';
 import {t} from 'sentry/locale';
 
@@ -23,7 +23,7 @@ function ReplayDiffTooltip({
   startTimestampMs: number;
 }) {
   return (
-    <QuestionTooltip
+    <InfoTip
       size="xs"
       title={
         <LeftAligned>

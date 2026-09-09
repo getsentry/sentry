@@ -5,6 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
+import {blockRendersToolContent} from 'sentry/views/seerExplorer/components/chat/toolUse';
 import type {
   AgentWriteApproval,
   Block,
@@ -1217,6 +1218,39 @@ describe('ToolUseBlock', () => {
       });
     }
 
+    it('drops in-flight narration once the call reports back', () => {
+      // Progress describes work in flight. Seer clears it when the call settles, but an older
+      // seer or a failed clear must not leave narration rendering as settled rows.
+      const settled = executeBlock(null);
+      settled.loading = false;
+      settled.progress = [
+        {token: 'call-1', progress: 1, message: 'Searching for the issue'},
+      ];
+      settled.tool_results = [
+        {
+          tool_call_id: 'call-1',
+          tool_call_function: 'sentry_api_execute',
+          content: 'ok',
+          structuredContent: null,
+        },
+      ];
+
+      render(<BlockComponent block={settled} blockIndex={0} />);
+
+      expect(screen.queryByText('Searching for the issue')).not.toBeInTheDocument();
+    });
+
+    it('still shows narration while the call is in flight', () => {
+      const running = executeBlock(null);
+      running.progress = [
+        {token: 'call-1', progress: 1, message: 'Searching for the issue'},
+      ];
+
+      render(<BlockComponent block={running} blockIndex={0} />);
+
+      expect(screen.getByText('Searching for the issue')).toBeInTheDocument();
+    });
+
     it('keeps the placeholder up while a search runs, which reports no calls', () => {
       render(<BlockComponent block={runningBlock()} blockIndex={0} />);
       expect(screen.getByRole('status', {name: 'Loading'})).toBeInTheDocument();
@@ -1452,25 +1486,97 @@ describe('ToolUseBlock', () => {
       );
     });
 
-    it('keeps the request detail collapsed until the row is expanded', async () => {
-      const block = codeModeCallsBlock([issueCall]);
+    it('decomposes the request query into inline input chips, no disclosure', () => {
+      const block = codeModeCallsBlock([
+        {
+          ...issueCall,
+          path: '/api/0/organizations/{organization_id_or_slug}/events/',
+          resolved_path:
+            '/api/0/organizations/test-org/events/?dataset=spans&project=ml-service',
+          title: 'Query spans',
+        },
+      ]);
       render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
 
-      const detail = screen.getByText('GET /api/0/organizations/test-org/issues/123/');
-      expect(detail).not.toBeVisible();
-
-      await userEvent.click(screen.getByRole('button', {name: /Retrieve an issue/}));
-
-      expect(detail).toBeVisible();
+      // A tool call is not a disclosure: the request reads as always-visible input chips rather
+      // than a raw line hidden behind an expand toggle on the title.
+      expect(screen.queryByRole('button', {name: /Query spans/})).not.toBeInTheDocument();
+      expect(screen.getByText('Input:')).toBeInTheDocument();
+      expect(screen.getByText('dataset')).toBeInTheDocument();
+      expect(screen.getByText('spans')).toBeInTheDocument();
+      expect(screen.getByText('project')).toBeInTheDocument();
+      expect(screen.getByText('ml-service')).toBeInTheDocument();
     });
 
-    it('surfaces a failed call through a notification', () => {
+    it('shows the HTTP status code in the trailing chip and the error under Output', () => {
       const block = codeModeCallsBlock([
         {...issueCall, status: 500, title: 'Retrieve an issue'},
       ]);
       render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
 
+      // Status code trails the title; the error prints under Output, mirroring Input.
+      expect(screen.getByText('500')).toBeInTheDocument();
+      expect(screen.getByText('Output:')).toBeInTheDocument();
       expect(screen.getByText('Returned HTTP 500')).toBeInTheDocument();
     });
+  });
+});
+
+describe('blockRendersToolContent', () => {
+  // The predicate exists to agree with `ToolCallList`; every case here is one the list suppresses,
+  // so counting it opens a box with an empty body.
+  function codeModeBlock(
+    id: string,
+    structuredContent: Record<string, unknown> | null
+  ): Block {
+    return {
+      id,
+      message: {
+        role: 'tool_use',
+        content: null,
+        tool_calls: [{id: `${id}-call`, function: 'sentry_api_execute', args: '{}'}],
+      },
+      timestamp: '2024-01-01T00:01:00Z',
+      loading: false,
+      tool_results: [
+        {
+          tool_call_id: `${id}-call`,
+          tool_call_function: 'sentry_api_execute',
+          content: 'ok',
+          structuredContent,
+        },
+      ],
+    };
+  }
+
+  it('ignores links that only reported an error', () => {
+    // `ToolCallList` filters `is_error` links out, so a result carrying nothing else renders no row.
+    const block = codeModeBlock('t1', {
+      links: [{kind: 'get_issue_details', params: {is_error: true}}],
+    });
+
+    expect(blockRendersToolContent(block, [block])).toBe(false);
+  });
+
+  it('counts a link that did not error', () => {
+    const block = codeModeBlock('t1', {
+      links: [{kind: 'get_issue_details', params: {issueId: '4521'}}],
+    });
+
+    expect(blockRendersToolContent(block, [block])).toBe(true);
+  });
+
+  it('ignores todos superseded by a later block', () => {
+    // Only the block holding the newest snapshot renders the checklist.
+    const stale = codeModeBlock('t1', {
+      todos: [{id: '1', text: 'old', status: 'completed'}],
+    });
+    const newest = codeModeBlock('t2', {
+      todos: [{id: '2', text: 'new', status: 'pending'}],
+    });
+    const blocks = [stale, newest];
+
+    expect(blockRendersToolContent(stale, blocks)).toBe(false);
+    expect(blockRendersToolContent(newest, blocks)).toBe(true);
   });
 });

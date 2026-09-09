@@ -68,11 +68,10 @@ export function SeerDrawerHeader({
             variant="transparent"
           />
           {isSentryEmployee && onEnableBashToolsChange && (
-            <Tooltip title={t('Enable bash mode for the autofix analysis')} skipWrapper>
+            <Tooltip title={t('Force bash mode on for the autofix analysis')} skipWrapper>
               <Flex align="center" gap="xs">
                 <Text size="xs">{t('Bash')}</Text>
                 <Switch
-                  size="sm"
                   checked={enableBashTools ?? false}
                   onChange={() => onEnableBashToolsChange(!enableBashTools)}
                   aria-label={t('Enable bash tools')}

@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {createContext, useCallback, useContext, useEffect, useMemo, useRef} from 'react';
 import type {EChartsType} from 'echarts';
-import * as echarts from 'echarts';
+import {connect, getInstanceByDom} from 'echarts/core';
 
 import {uniqueId} from 'sentry/utils/guid';
 
@@ -38,7 +38,7 @@ export function WidgetSyncContextProvider({
           if (!entry.target.isConnected) {
             continue;
           }
-          const chart = echarts.getInstanceByDom(entry.target as HTMLElement);
+          const chart = getInstanceByDom(entry.target as HTMLElement);
           if (!chart) {
             continue;
           }
@@ -50,7 +50,7 @@ export function WidgetSyncContextProvider({
           }
         }
 
-        echarts?.connect(stableGroupName);
+        connect(stableGroupName);
       });
     }
     return observerRef.current;
@@ -74,7 +74,7 @@ export function WidgetSyncContextProvider({
 
       // Set the group immediately for charts that may already be visible
       chart.group = stableGroupName;
-      echarts?.connect(stableGroupName);
+      connect(stableGroupName);
 
       // Return a function to unregister the chart
       return () => {

@@ -74,7 +74,7 @@ export function MetricQueryRows({
     }
   }, [equationSnapshot, metricQueries, selectedLabel]);
   const referenceMap = useMetricReferences(metricQueries);
-  const addAggregate = useAddMetricQuery({type: 'aggregate'});
+  const addAggregate = useAddMetricQuery({});
 
   const aggregateSource = getTraceMetricAggregateSource(
     state.displayType,

@@ -27,7 +27,12 @@ from sentry.apidocs.parameters import DiscoverSavedQueryParams, GlobalParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
-from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.discover.models import (
+    DatasetSourcesTypes,
+    DiscoverSavedQuery,
+    DiscoverSavedQueryLastVisited,
+    DiscoverSavedQueryTypes,
+)
 from sentry.models.organization import Organization
 
 
@@ -89,7 +94,8 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
         self.check_object_permissions(request, query)
 
         return Response(
-            serialize(query, serializer=DiscoverSavedQueryModelSerializer()), status=200
+            serialize(query, request.user, serializer=DiscoverSavedQueryModelSerializer()),
+            status=200,
         )
 
     @extend_schema(
@@ -189,6 +195,11 @@ class DiscoverSavedQueryVisitEndpoint(DiscoverSavedQueryBase):
     def has_feature(self, organization, request):
         return features.has("organizations:discover-query", organization, actor=request.user)
 
+    def has_migrate_feature(self, organization, request):
+        return features.has(
+            "organizations:discover-queries-in-all-queries", organization, actor=request.user
+        )
+
     def post(self, request: Request, organization, query) -> Response:
         """
         Update last_visited and increment visits counter
@@ -201,5 +212,13 @@ class DiscoverSavedQueryVisitEndpoint(DiscoverSavedQueryBase):
         query.visits = F("visits") + 1
         query.last_visited = timezone.now()
         query.save(update_fields=["visits", "last_visited"])
+
+        if self.has_migrate_feature(organization, request) and request.user.is_authenticated:
+            DiscoverSavedQueryLastVisited.objects.update_or_create(
+                organization=organization,
+                user_id=request.user.id,
+                discover_saved_query=query,
+                defaults={"last_visited": timezone.now()},
+            )
 
         return Response(status=204)

@@ -55,7 +55,7 @@ LATEST_RELEASE_TTAS = {
     "java-android": 608689,
     "java-log4j2": 4733,
     "java-logback": 51312,
-    "java-logging": 11843950,
+    "java-logging": 7776000,
     "javascript": 11035,
     "javascript-angular": 5156,
     "javascript-angularjs": 11592,

@@ -72,7 +72,6 @@ describe('RawStacktraceContent', () => {
           },
           platform: 'java',
           exception,
-          isMinified: false,
         })
       ).toBe('com.example.app.CustomException: Original error message');
     });
@@ -164,7 +163,6 @@ describe('RawStacktraceContent', () => {
           },
           platform: 'java',
           exception,
-          isMinified: false,
         })
       ).toBe('IllegalStateException: Oops!');
     });
@@ -233,8 +231,6 @@ describe('RawStacktraceContent', () => {
           data,
           platform: 'javascript',
           exception,
-          rawTrace: true,
-          newestFirst: true,
         })
       ).toBe(
         `Error: an error occurred
@@ -252,7 +248,6 @@ describe('RawStacktraceContent', () => {
           platform: 'javascript',
           exception,
           rawTrace: false,
-          newestFirst: true,
         })
       ).toBe(
         `Error: an error occurred
@@ -269,7 +264,6 @@ describe('RawStacktraceContent', () => {
           data,
           platform: 'javascript',
           exception,
-          rawTrace: true,
           newestFirst: false,
         })
       ).toBe(
@@ -347,8 +341,6 @@ Error: an error occurred`
           data,
           platform: 'python',
           exception,
-          rawTrace: true,
-          newestFirst: true,
         })
       ).toBe(
         `Traceback (most recent call last):
@@ -367,7 +359,6 @@ Error: an error occurred`
           platform: 'python',
           exception,
           rawTrace: false,
-          newestFirst: true,
         })
       ).toBe(
         `Traceback (most recent call first):
@@ -385,7 +376,6 @@ Error: an error occurred
           data,
           platform: 'python',
           exception,
-          rawTrace: true,
           newestFirst: false,
         })
       ).toBe(

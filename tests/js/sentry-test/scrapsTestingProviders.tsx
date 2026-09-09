@@ -3,6 +3,7 @@ import {
   type TranslationContextValue,
 } from '@sentry/scraps/translationContext';
 
+import {SentryFormErrorProvider} from 'sentry/scrapsProviders/formError';
 import {SentryLinkBehaviorProvider} from 'sentry/scrapsProviders/link';
 
 const testTranslation: TranslationContextValue = {
@@ -13,8 +14,10 @@ const testTranslation: TranslationContextValue = {
 
 export function ScrapsTestingProviders({children}: {children: React.ReactNode}) {
   return (
-    <TranslationContextProvider value={testTranslation}>
-      <SentryLinkBehaviorProvider>{children}</SentryLinkBehaviorProvider>
-    </TranslationContextProvider>
+    <SentryFormErrorProvider>
+      <TranslationContextProvider value={testTranslation}>
+        <SentryLinkBehaviorProvider>{children}</SentryLinkBehaviorProvider>
+      </TranslationContextProvider>
+    </SentryFormErrorProvider>
   );
 }

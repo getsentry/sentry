@@ -133,6 +133,7 @@ describe('InboxPage', () => {
   });
 
   beforeEach(() => {
+    Element.prototype.scrollIntoView = jest.fn();
     jest.mocked(useMedia).mockReturnValue(false);
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
@@ -343,7 +344,7 @@ describe('InboxPage', () => {
     expect(await screen.findByText('Diagnosed issue')).toBeInTheDocument();
     const assignedIssue = await screen.findByText('Assigned issue');
     expect(assignedIssue).toBeVisible();
-    expect(screen.getByRole('heading', {name: 'Inbox', level: 1})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: /Inbox/, level: 1})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Issues', level: 2})).toBeInTheDocument();
 
     for (const [index, query] of [
@@ -424,6 +425,7 @@ describe('InboxPage', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/pull-requests/`,
       body: {
+        latestRegressionAt: '2026-07-20T12:00:00Z',
         pullRequests: [
           {
             ...PullRequestFixture({
@@ -432,7 +434,7 @@ describe('InboxPage', () => {
             }),
             attribution: null,
             checksStatus: null,
-            dateLinked: '2026-07-20T12:00:00Z',
+            dateLinked: '2026-07-20T13:00:00Z',
             reviewStatus: null,
             status: 'closed',
           },
@@ -454,7 +456,29 @@ describe('InboxPage', () => {
             }),
             attribution: null,
             checksStatus: null,
-            dateLinked: '2026-07-20T12:00:00Z',
+            dateLinked: '2026-07-20T11:00:00Z',
+            reviewStatus: null,
+            status: 'merged',
+          },
+          {
+            ...PullRequestFixture({
+              id: '13',
+              externalUrl: 'https://github.com/org/repository/pull/13',
+            }),
+            attribution: null,
+            checksStatus: null,
+            dateLinked: '2026-07-20T13:00:00Z',
+            reviewStatus: null,
+            status: 'draft',
+          },
+          {
+            ...PullRequestFixture({
+              id: '14',
+              externalUrl: 'https://github.com/org/repository/pull/14',
+            }),
+            attribution: null,
+            checksStatus: null,
+            dateLinked: '2026-07-20T14:00:00Z',
             reviewStatus: null,
             status: 'merged',
           },
@@ -469,10 +493,16 @@ describe('InboxPage', () => {
       await within(fixSection).findByRole('link', {name: 'Pull request #10, Open'})
     ).toHaveAttribute('href', 'https://github.com/org/repository/pull/10');
     expect(
-      within(fixSection).getByRole('link', {name: 'Pull request #11, Merged'})
-    ).toHaveAttribute('href', 'https://github.com/org/repository/pull/11');
+      within(fixSection).getByRole('link', {name: 'Pull request #13, Draft'})
+    ).toHaveAttribute('href', 'https://github.com/org/repository/pull/13');
+    expect(
+      within(fixSection).queryByRole('link', {name: 'Pull request #11, Merged'})
+    ).not.toBeInTheDocument();
     expect(
       within(fixSection).queryByRole('link', {name: 'Pull request #12, Closed'})
+    ).not.toBeInTheDocument();
+    expect(
+      within(fixSection).queryByRole('link', {name: 'Pull request #14, Merged'})
     ).not.toBeInTheDocument();
     expect(diagnosedPullRequests).not.toHaveBeenCalled();
     expect(assignedPullRequests).not.toHaveBeenCalled();
@@ -723,7 +753,7 @@ describe('InboxPage', () => {
     expect(fixAppliedEmptyMessage).toBeVisible();
   });
 
-  it('filters sections by the selected assignee', async () => {
+  it('filters sections without scrolling the selected issue into view', async () => {
     mockSuccessfulSections();
     mockIssuePreview();
     const myTeamsRequests = [
@@ -763,6 +793,11 @@ describe('InboxPage', () => {
     expect(myTeamsFilter).not.toBeChecked();
     expect(allFilter).not.toBeChecked();
     expect(await screen.findByText('Fix proposed issue')).toBeInTheDocument();
+    await userEvent.click(
+      within(screen.getByRole('region', {name: 'Fix Proposed'})).getByRole('link', {
+        name: /Fix proposed issue/,
+      })
+    );
 
     await userEvent.click(myTeamsFilter);
 
@@ -779,6 +814,13 @@ describe('InboxPage', () => {
     for (const request of allRequests) {
       await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
     }
+    expect(
+      await within(screen.getByRole('region', {name: 'Fix Proposed'})).findByRole(
+        'link',
+        {name: /Fix proposed issue/}
+      )
+    ).toHaveAttribute('aria-current', 'true');
+    expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
   });
 
   it('marks an issue as seen and clears its unread indicator when previewed', async () => {
@@ -984,6 +1026,7 @@ describe('InboxPage', () => {
 
     expect(router.location.query.preview).toBe(fixProposedGroup.id);
     expect(issueLink).toHaveAttribute('aria-current', 'true');
+    expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
     expect(
       await within(preview).findByRole('heading', {
         name: 'Fix proposed issue',
@@ -995,12 +1038,47 @@ describe('InboxPage', () => {
     expect(within(preview).getByLabelText('2,600 events')).toHaveTextContent(
       '2.6KEvents'
     );
+    expect(within(preview).getByRole('button', {name: 'Open Issue'})).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/${fixProposedGroup.id}/?referrer=inbox`
+    );
+    expect(
+      within(preview).getByRole('link', {name: /Fix proposed issue/})
+    ).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/${fixProposedGroup.id}/?referrer=inbox`
+    );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Back to inbox'}));
     expect(router.location.query.preview).toBeUndefined();
     expect(
       within(preview).queryByRole('heading', {name: 'Fix proposed issue'})
     ).not.toBeInTheDocument();
+  });
+
+  it('scrolls an initially selected issue into view', async () => {
+    mockSuccessfulSections();
+    mockIssuePreview();
+
+    render(<InboxPage />, {
+      organization,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {
+            ...initialRouterConfig.location.query,
+            preview: fixProposedGroup.id,
+          },
+        },
+      },
+    });
+
+    const issueLink = await within(
+      screen.getByRole('region', {name: 'Fix Proposed'})
+    ).findByRole('link', {name: /Fix proposed issue/});
+    expect(issueLink).toHaveAttribute('aria-current', 'true');
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({block: 'center'});
   });
 
   it('starts finding the root cause in Autofix when there is no Autofix state', async () => {

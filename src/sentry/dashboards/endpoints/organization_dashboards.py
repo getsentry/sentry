@@ -5,24 +5,14 @@ from typing import Required, TypedDict
 
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
-from django.db.models import (
-    Case,
-    Exists,
-    F,
-    IntegerField,
-    OrderBy,
-    OuterRef,
-    Subquery,
-    Value,
-    When,
-)
+from django.db.models import Case, Exists, F, IntegerField, OrderBy, OuterRef, Subquery, Value, When
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from sentry import features, options, quotas, roles
+from sentry import audit_log, features, options, quotas, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -104,6 +94,7 @@ class PrebuiltDashboard(TypedDict, total=False):
     title: Required[str]
     hidden: bool
     pre_favorited: bool
+    required_feature_flags: list[str]
 
 
 # Prebuilt dashboards store minimal fields in the database. The actual dashboard and widget settings are
@@ -240,6 +231,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.NODE_RUNTIME_METRICS,
         "title": "Node.js Runtime Metrics",
+        "required_feature_flags": ["organizations:tracemetrics-enabled"],
     },
 ]
 
@@ -263,6 +255,10 @@ def get_enabled_prebuilt_dashboards(
         dashboard
         for dashboard in all_prebuilt_dashboards
         if dashboard["prebuilt_id"] in enabled_prebuilt_dashboard_ids
+        and all(
+            features.has(feature, organization)
+            for feature in dashboard.get("required_feature_flags", [])
+        )
     ]
 
 
@@ -755,9 +751,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                     )
 
                 dashboard = serializer.save()
-
-            body: DashboardDetailsResponse = serialize(dashboard, request.user)
-            return Response(body, status=201)
         except IntegrityError:
             if retry >= MAX_RETRIES:
                 return Response("Dashboard title already taken", status=409)
@@ -769,3 +762,16 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             return self.post(request, organization, retry=retry + 1)
         except UnableToAcquireLock:
             return Response("Unable to create dashboard, please try again", status=503)
+
+        # Audit only after a successful create so title-conflict retries cannot
+        # emit multiple create entries.
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=dashboard.id,
+            event=audit_log.get_event_id("DASHBOARD_ADD"),
+            data=dashboard.get_audit_log_data(),
+        )
+
+        body: DashboardDetailsResponse = serialize(dashboard, request.user)
+        return Response(body, status=201)

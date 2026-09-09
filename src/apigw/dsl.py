@@ -1,10 +1,11 @@
-from typing import Any
+from typing import Any, Awaitable
 from urllib.parse import urlparse
 
 from sentry.types.cell import Cell as Cell
 from sentry.types.cell import CellResolutionError as CellResolutionError
 from sentry.types.cell import get_cell_by_name as get_cell_by_name
 
+from . import cache
 from .db import pgq_from_djq
 
 
@@ -21,12 +22,17 @@ def cell_for_organization_query(org_id_or_slug: str) -> tuple[str, Any]:
     return q, qp
 
 
-async def get_cell_for_organization(db: Any, org_id_or_slug: str) -> Cell:
-    q, qp = cell_for_organization_query(org_id_or_slug)
-    cell_name = await db.fetchval(q, *qp)
-    if not cell_name:
-        raise CellResolutionError(f"Organization {org_id_or_slug} has no associated mapping.")
-    return get_cell_by_name(cell_name)
+def get_cell_for_organization(db_ctx: Any, org_id_or_slug: str) -> Awaitable[Cell]:
+    @cache("orgcell")
+    async def _cell_for_org(org_id_or_slug: str) -> Cell:
+        q, qp = cell_for_organization_query(org_id_or_slug)
+        async with db_ctx.acquire() as db:
+            cell_name = await db.fetchval(q, *qp)
+        if not cell_name:
+            raise CellResolutionError(f"Organization {org_id_or_slug} has no associated mapping.")
+        return get_cell_by_name(cell_name)
+
+    return _cell_for_org(org_id_or_slug)
 
 
 def get_cell_from_dsn(dsn: str, fallback: str) -> Cell:

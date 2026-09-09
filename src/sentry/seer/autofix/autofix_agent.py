@@ -4,7 +4,6 @@ import logging
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
-from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 import sentry_sdk
@@ -36,7 +35,10 @@ from sentry.seer.autofix.artifact_schemas import (
 )
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
+from sentry.seer.autofix.pr_iteration.constants import (
+    MANUAL_FLAG,
+    REVIEW_REQUEST_FLAG,
+)
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.prompts import (
     PromptBuilder,
@@ -45,6 +47,7 @@ from sentry.seer.autofix.prompts import (
     root_cause_prompt,
     solution_prompt,
 )
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.types import AutofixHandoffResponse
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -84,38 +87,6 @@ class NoSeerQuotaException(Exception):
 
 class PrIterationNoPullRequestException(Exception):
     pass
-
-
-class PrIterationNotEnabledException(Exception):
-    pass
-
-
-class AutofixStep(StrEnum):
-    """Available autofix steps."""
-
-    ROOT_CAUSE = "root_cause"
-    SOLUTION = "solution"
-    CODE_CHANGES = "code_changes"
-    PR_ITERATION = "pr_iteration"
-
-    @staticmethod
-    def from_autofix_stopping_point(
-        autofix_stopping_point: AutofixStoppingPoint,
-    ) -> AutofixStep:
-        match autofix_stopping_point:
-            case AutofixStoppingPoint.ROOT_CAUSE:
-                return AutofixStep.ROOT_CAUSE
-            case AutofixStoppingPoint.SOLUTION:
-                return AutofixStep.SOLUTION
-            case AutofixStoppingPoint.CODE_CHANGES:
-                return AutofixStep.CODE_CHANGES
-            case AutofixStoppingPoint.OPEN_PR:
-                # This depends on the last step being
-                # code changes and we should look for
-                # the PR elsewhere in the agent results
-                return AutofixStep.CODE_CHANGES
-            case _:
-                raise ValueError(f"Unsupported AutofixStoppingPoint: {autofix_stopping_point}")
 
 
 class StepConfig:
@@ -493,6 +464,54 @@ def _build_base_shas_metadata(group: Group, referrer: AutofixReferrer) -> str | 
     return json.dumps(base_shas)
 
 
+def trigger_autofix_rca_in_seer(
+    group: Group,
+    *,
+    referrer: AutofixReferrer,
+    user_context: str | None,
+    stopping_point: AutofixStoppingPoint | None,
+    allow_free_cohort: bool,
+    user: User | RpcUser | AnonymousUser | None,
+    enable_bash_tools: bool,
+) -> SeerRun:
+    """Start the RCA-in-Seer feature run and emit the legacy start events."""
+    # Local import avoids a circular import (dispatch imports this module).
+    from sentry.seer.autofix.feature.rca_dispatch import trigger_autofix_rca_feature
+
+    feature_run = trigger_autofix_rca_feature(
+        group,
+        referrer=referrer,
+        user_context=user_context,
+        stopping_point=stopping_point,
+        allow_free_cohort=allow_free_cohort,
+        user=user,
+        enable_bash_tools=enable_bash_tools,
+    )
+    feature_run_id = feature_run.seer_run_state_id
+    if feature_run_id is None:
+        # flush=True populates this on success; guard defensively.
+        raise SeerApiError("autofix_rca feature run has no run id", 500)
+
+    logger.info(
+        "autofix.trigger.routed_to_rca_feature",
+        extra={
+            "group_id": group.id,
+            "organization_id": group.organization.id,
+            "run_id": feature_run_id,
+            "referrer": referrer.value,
+        },
+    )
+
+    _handle_step_started_events(
+        group,
+        AutofixStep.ROOT_CAUSE,
+        feature_run_id,
+        str(feature_run.uuid),
+        referrer,
+    )
+    return feature_run
+
+
 def trigger_autofix_agent(
     group: Group,
     step: AutofixStep,
@@ -506,6 +525,7 @@ def trigger_autofix_agent(
     enable_bash_tools: bool = False,
     actor_user_id: int | None = None,
     commit_author: SeerCommitAuthor | None = None,
+    iteration_id: int | None = None,
     allow_free_cohort: bool = False,
 ) -> SeerRun:
     """
@@ -524,8 +544,8 @@ def trigger_autofix_agent(
     # (allow_free_cohort=True). The API endpoint never sets this flag,
     # so manual triggers still require quota.
     if run_id is None:
-        skip_quota = allow_free_cohort and is_free_cohort_org(group.organization)
-        if not skip_quota:
+        skip_quota_check = allow_free_cohort and is_free_cohort_org(group.organization)
+        if not skip_quota_check:
             has_budget: bool = quotas.backend.check_seer_quota(
                 org_id=group.organization.id,
                 data_category=DataCategory.SEER_AUTOFIX,
@@ -540,11 +560,11 @@ def trigger_autofix_agent(
         and features.has("organizations:autofix-should-run-repo-checks", group.organization)
     )
 
-    if step == AutofixStep.ROOT_CAUSE and run_id is None:
-        # Local import avoids a circular import (dispatch imports this module).
-        from sentry.seer.autofix_rca.dispatch import trigger_autofix_rca_feature
-
-        feature_run = trigger_autofix_rca_feature(
+    use_seer_rca_feature = features.has(
+        "organizations:autofix-rca-in-seer", group.organization, actor=user
+    )
+    if step == AutofixStep.ROOT_CAUSE and run_id is None and use_seer_rca_feature:
+        return trigger_autofix_rca_in_seer(
             group,
             referrer=referrer,
             user_context=user_context,
@@ -553,38 +573,9 @@ def trigger_autofix_agent(
             user=user,
             enable_bash_tools=enable_bash_tools,
         )
-        feature_run_id = feature_run.seer_run_state_id
-        if feature_run_id is None:
-            # flush=True populates this on success; guard defensively.
-            raise SeerApiError("autofix_rca feature run has no run id", 500)
-
-        logger.info(
-            "autofix.trigger.routed_to_rca_feature",
-            extra={
-                "group_id": group.id,
-                "organization_id": group.organization.id,
-                "run_id": feature_run_id,
-                "referrer": referrer.value,
-            },
-        )
-
-        _handle_step_started_events(
-            group,
-            AutofixStep.ROOT_CAUSE,
-            feature_run_id,
-            str(feature_run.uuid),
-            referrer,
-        )
-        return feature_run
 
     config = STEP_CONFIGS[step]
 
-    # Either flag enables the PR_ITERATION step itself: automated CI iteration runs
-    # under `autofix-pr-iteration`, human-triggered iteration under the `-manual`
-    # variant. Both reach this function via `trigger_autofix_agent`.
-    pr_iteration_enabled = features.has(
-        "organizations:autofix-pr-iteration", group.organization
-    ) or features.has("organizations:autofix-pr-iteration-manual", group.organization)
     is_iteration_step = step == AutofixStep.PR_ITERATION
 
     client = get_autofix_agent_client(
@@ -601,9 +592,6 @@ def trigger_autofix_agent(
 
     iteration_index: int | None = None
     if is_iteration_step:
-        if not pr_iteration_enabled:
-            raise PrIterationNotEnabledException()
-
         if run_state is None or not run_state.repo_pr_states:
             raise PrIterationNoPullRequestException()
 
@@ -636,6 +624,9 @@ def trigger_autofix_agent(
     if iteration_index is not None:
         prompt_metadata["iteration_index"] = str(iteration_index)
 
+    if iteration_id is not None:
+        prompt_metadata["iteration_id"] = str(iteration_id)
+
     if step == AutofixStep.ROOT_CAUSE:
         base_shas = _build_base_shas_metadata(group, referrer)
         if base_shas:
@@ -662,10 +653,11 @@ def trigger_autofix_agent(
         )
         run_id = run.seer_run_state_id
 
-        # Make sure to log billing event for seer autofix whenever a new run is started
-        quotas.backend.record_seer_run(
-            group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
-        )
+        if not skip_quota_check:
+            # Make sure to log billing event for seer autofix whenever a new run is started
+            quotas.backend.record_seer_run(
+                group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
+            )
     else:
         run = client.continue_run(
             run_id=run_id,
@@ -1008,9 +1000,12 @@ def build_pr_description_suffix(group: Group, run_id: int) -> str | None:
             linear_id = external_issue.display_name.replace("#", "-")
             lines.append(f"Fixes [{linear_id}]({external_issue.web_url})")
 
-    if features.has("organizations:autofix-pr-iteration-manual", group.organization):
+    if features.has(MANUAL_FLAG, group.organization):
         lines.append(
-            "\n<sub>Comment `@sentry <feedback>` on this PR to have Autofix iterate on the changes.</sub>"
+            # One command per line, and one `<sub>` tag per line: a blank line
+            # would close the tag and leave the next line full size.
+            "\n<sub>`@sentry <feedback>`: Autofix iterates on these changes</sub>"
+            "\n<sub>`@sentry stop iterating`: Autofix stops iterating on this run</sub>"
         )
 
     seer_run = SeerRun.objects.filter(

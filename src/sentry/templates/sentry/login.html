@@ -162,7 +162,7 @@
         : null;
     const domainAttribute = cookieDomain ? `; Domain=${cookieDomain}` : '';
 
-    document.cookie = `sentry_react_auth=1; Path=/auth/; SameSite=Lax${domainAttribute}`;
+    document.cookie = `sentry_react_auth=1; Path=/auth/; SameSite=None; Secure${domainAttribute}`;
     window.location.reload();
   };
 </script>

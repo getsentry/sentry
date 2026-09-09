@@ -59,6 +59,11 @@ class AuthOrganizationLoginView(AuthLoginView):
 
     @method_decorator(never_cache)
     def handle(self, request: HttpRequest, organization_slug) -> HttpResponseBase:
+        if request.method == "GET":
+            customer_domain_redirect = self.get_customer_domain_login_redirect(request)
+            if customer_domain_redirect is not None:
+                return customer_domain_redirect
+
         if should_render_react_auth(request):
             return self.handle_react(request)
 

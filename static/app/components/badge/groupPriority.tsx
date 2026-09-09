@@ -2,21 +2,18 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
-import bannerStar from 'sentry-images/spot/banner-star.svg';
-
 import {Tag} from '@sentry/scraps/badge';
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {usePrompt} from 'sentry/actionCreators/prompts';
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconChevron, IconClose} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Activity} from 'sentry/types/group';
 import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
@@ -24,6 +21,7 @@ import type {AvatarUser} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useNewIssuePriorityAndAssigneeUI} from 'sentry/utils/useNewIssuePriorityAndAssigneeUI';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type GroupPriorityDropdownProps = {
@@ -47,6 +45,12 @@ const PRIORITY_KEY_TO_LABEL: Record<PriorityLevel, string> = {
 };
 
 const PRIORITY_OPTIONS = [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW];
+
+const GROUP_PRIORITY_BARS: Record<PriorityLevel, 1 | 2 | 3> = {
+  [PriorityLevel.HIGH]: 3,
+  [PriorityLevel.MEDIUM]: 2,
+  [PriorityLevel.LOW]: 1,
+};
 
 function useLastEditedBy({
   groupId,
@@ -91,7 +95,7 @@ export function makeGroupPriorityDropdownOptions({
   return PRIORITY_OPTIONS.map(priority => ({
     textValue: PRIORITY_KEY_TO_LABEL[priority],
     key: priority,
-    label: <GroupPriorityBadge showLabel priority={priority} />,
+    label: <GroupPriorityBadge priority={priority} />,
     onAction: () => onChange(priority),
   }));
 }
@@ -101,8 +105,7 @@ export function GroupPriorityBadge({
   showLabel = true,
   children,
 }: GroupPriorityBadgeProps) {
-  const bars =
-    priority === PriorityLevel.HIGH ? 3 : priority === PriorityLevel.MEDIUM ? 2 : 1;
+  const bars = GROUP_PRIORITY_BARS[priority];
   const label = PRIORITY_KEY_TO_LABEL[priority] ?? t('Unknown');
 
   return (
@@ -139,52 +142,6 @@ const DataConsentLearnMore = OverrideOrDefault({
   defaultComponent: null,
 });
 
-function GroupPriorityLearnMore() {
-  const organization = useOrganization();
-  const {isLoading, isError, isPromptDismissed, dismissPrompt} = usePrompt({
-    feature: 'issue_priority',
-    organization,
-  });
-
-  if (isLoading || isError) {
-    return null;
-  }
-
-  if (isPromptDismissed) {
-    return <DataConsentLearnMore />;
-  }
-
-  return (
-    <LearnMoreWrapper>
-      <BannerStar1 src={bannerStar} />
-      <BannerStar2 src={bannerStar} />
-      <BannerStar3 src={bannerStar} />
-      <p>
-        <strong>{t('Time to prioritize')}</strong>
-      </p>
-      <p>
-        {t(
-          'Use priority to make your issue stream more actionable. Sentry will automatically assign a priority score to new issues.'
-        )}
-      </p>
-      <LinkButton
-        href="https://docs.sentry.io/product/issues/issue-priority/"
-        external
-        size="xs"
-      >
-        {t('Learn more')}
-      </LinkButton>
-      <DismissButton
-        size="zero"
-        variant="transparent"
-        icon={<IconClose size="xs" />}
-        aria-label={t('Dismiss')}
-        onClick={() => dismissPrompt()}
-      />
-    </LearnMoreWrapper>
-  );
-}
-
 export function GroupPriorityDropdown({
   groupId,
   value,
@@ -192,10 +149,14 @@ export function GroupPriorityDropdown({
   lastEditedBy,
   disabled = false,
 }: GroupPriorityDropdownProps) {
+  const shouldUseNewUI = useNewIssuePriorityAndAssigneeUI();
   const options: MenuItemProps[] = useMemo(
     () => makeGroupPriorityDropdownOptions({onChange}),
     [onChange]
   );
+  const tooltip = disabled
+    ? t('You cannot manually update the priority of a metric issue.')
+    : t('Update the priority of this issue.');
 
   return (
     <DropdownMenu
@@ -206,23 +167,34 @@ export function GroupPriorityDropdown({
         </Flex>
       }
       minMenuWidth={230}
-      trigger={(triggerProps, isOpen) => (
-        <DropdownButton
-          {...triggerProps}
-          aria-label={t('Modify issue priority')}
-          size="zero"
-          disabled={disabled}
-          tooltipProps={{
-            title: disabled
-              ? t('You cannot manually update the priority of a metric issue.')
-              : t('Update the priority of this issue.'),
-          }}
-        >
-          <GroupPriorityBadge showLabel={false} priority={value}>
-            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" variant="muted" />
-          </GroupPriorityBadge>
-        </DropdownButton>
-      )}
+      trigger={(triggerProps, isOpen) =>
+        shouldUseNewUI ? (
+          <Button
+            {...triggerProps}
+            aria-label={t(
+              'Modify issue priority: %s',
+              PRIORITY_KEY_TO_LABEL[value] ?? t('Unknown')
+            )}
+            disabled={disabled}
+            icon={<IconCellSignal bars={GROUP_PRIORITY_BARS[value]} />}
+            size="xs"
+            tooltipProps={{title: tooltip}}
+            variant="secondary"
+          />
+        ) : (
+          <DropdownButton
+            {...triggerProps}
+            aria-label={t('Modify issue priority')}
+            size="zero"
+            disabled={disabled}
+            tooltipProps={{title: tooltip}}
+          >
+            <GroupPriorityBadge showLabel={false} priority={value}>
+              <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" variant="muted" />
+            </GroupPriorityBadge>
+          </DropdownButton>
+        )
+      }
       items={options}
       menuFooter={
         <Fragment>
@@ -235,7 +207,7 @@ export function GroupPriorityDropdown({
               })}
             </TruncatedFooterText>
           </StyledFooter>
-          <GroupPriorityLearnMore />
+          <DataConsentLearnMore />
         </Fragment>
       }
       shouldCloseOnInteractOutside={target =>
@@ -283,49 +255,4 @@ const TruncatedFooterText = styled('div')`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-`;
-
-const LearnMoreWrapper = styled('div')`
-  position: relative;
-  max-width: 230px;
-  color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.font.size.sm};
-  padding: ${p => p.theme.space.lg};
-  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
-  border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
-  overflow: hidden;
-  background: linear-gradient(
-    269.35deg,
-    ${p => p.theme.tokens.background.tertiary} 0.32%,
-    rgba(245, 243, 247, 0) 99.69%
-  );
-
-  p {
-    margin: 0 0 ${p => p.theme.space.xs} 0;
-  }
-`;
-
-const DismissButton = styled(Button)`
-  position: absolute;
-  top: ${p => p.theme.space.md};
-  right: ${p => p.theme.space.lg};
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const BannerStar1 = styled('img')`
-  position: absolute;
-  bottom: 10px;
-  right: 100px;
-`;
-const BannerStar2 = styled('img')`
-  position: absolute;
-  top: 10px;
-  right: 60px;
-  transform: rotate(-20deg) scale(0.8);
-`;
-const BannerStar3 = styled('img')`
-  position: absolute;
-  bottom: 30px;
-  right: 20px;
-  transform: rotate(60deg) scale(0.85);
 `;

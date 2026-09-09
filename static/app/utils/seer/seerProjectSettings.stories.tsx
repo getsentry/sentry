@@ -1,6 +1,11 @@
 import {Fragment, useState} from 'react';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {infiniteQueryOptions, useInfiniteQuery} from '@tanstack/react-query';
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  infiniteQueryOptions,
+  useInfiniteQuery,
+} from '@tanstack/react-query';
 import {parseAsArrayOf, parseAsString, useQueryState} from 'nuqs';
 
 import {Checkbox} from '@sentry/scraps/checkbox';

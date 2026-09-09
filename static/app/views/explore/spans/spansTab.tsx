@@ -28,6 +28,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
+import {ExploreShareButton} from 'sentry/views/explore/components/exploreShareButton';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import {
   ExploreBodyContent,
@@ -69,10 +70,15 @@ import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/sp
 import {TracesExportModalButton} from 'sentry/views/explore/spans/tracesExportModalButton';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {Onboarding} from 'sentry/views/performance/onboarding';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 // eslint-disable-next-line boundaries/dependencies
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
@@ -185,6 +191,7 @@ function SpanTabContentSectionInner({
   setControlSectionExpanded,
 }: SpanTabContentSectionProps) {
   const {isReady, selection} = usePageFilters();
+  const selectedProjects = useSelectedProjectsForLLMContext();
   const query = useQueryParamsQuery();
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
@@ -208,13 +215,16 @@ function SpanTabContentSectionInner({
     contextHint:
       'Sentry traces explorer page. Users search spans/traces by attributes and view samples, aggregates, or breakdowns. ' +
       'You can search live telemetry for spans/traces/errors/logs/metrics, get a trace waterfall by trace ID, ' +
-      'list telemetry index nodes by keyword to discover span/function types, and query node dependencies for upstream/downstream call graphs.',
+      'list telemetry index nodes by keyword to discover span/function types, and query node dependencies for upstream/downstream call graphs. ' +
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     searchQuery: query,
     activeTab: tab,
     visualizes: visualizes.map(v => v.yAxis),
     groupBys: groupBys.filter(g => g !== ''),
     sortBys: activeSortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
     currentSelectedDateRange: selection.datetime,
+    ...toLLMContextProjectFields(selectedProjects),
   });
 
   const queryType =
@@ -316,6 +326,7 @@ function SpanTabContentSectionInner({
           {controlSectionExpanded ? null : t('Advanced')}
         </ChevronButton>
         <Flex gap="xs">
+          <ExploreShareButton traceItemDataset={TraceItemDataset.SPANS} />
           <TracesExportModalButton
             aggregatesTableResult={aggregatesTableResult}
             spansTableResult={spansTableResult}

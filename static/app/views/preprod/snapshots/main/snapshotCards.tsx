@@ -414,7 +414,7 @@ function MetadataInfoButton({
       onDoubleClick={e => e.stopPropagation()}
       onClick={e => e.stopPropagation()}
     >
-      <Tooltip title={<MetadataTooltip json={json} />} maxWidth={480} isHoverable>
+      <Tooltip title={<MetadataTooltip json={json} />} maxWidth={480}>
         <InfoIconButton
           type="button"
           aria-label={t('Copy metadata as JSON')}

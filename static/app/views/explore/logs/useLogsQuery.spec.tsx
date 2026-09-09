@@ -1004,7 +1004,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
     });
 
     const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
-      additionalWrapper: createWrapper({autoRefresh: 'enabled'}),
+      additionalWrapper: createWrapper({}),
       organization,
     });
 
@@ -1091,7 +1091,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
     });
 
     const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
-      additionalWrapper: createWrapper({autoRefresh: 'enabled'}),
+      additionalWrapper: createWrapper({}),
       organization,
     });
 
