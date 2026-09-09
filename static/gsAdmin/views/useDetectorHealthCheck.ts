@@ -1,4 +1,3 @@
-import {useQuery} from '@tanstack/react-query';
 import {useMutation} from '@tanstack/react-query';
 
 import {
@@ -32,7 +31,7 @@ export function useDetectorHealthCheck({
   const url = getApiUrl('/organizations/$organizationIdOrSlug/detectors/health-check/', {
     path: {organizationIdOrSlug: orgSlug},
   });
-  const data = projectIds.length ? {} : {projects: projectIds};
+  const data = projectIds.length ? {projects: projectIds} : {};
 
   return useMutation({
     mutationFn: () => {

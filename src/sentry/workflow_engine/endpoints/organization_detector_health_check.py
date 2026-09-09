@@ -74,7 +74,7 @@ class OrganizationDetectorHealthCheckEndpoint(OrganizationEndpoint):
     ) -> Response[ValidationErrorResponse] | Response[DetectorHealthCheckResponse]:
         serializer = InboundHealthCheckSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(as_validation_errors(serializer.errors), status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         organization_detectors_map = ensure_default_organization_detectors(organization)
 
