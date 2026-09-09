@@ -6,7 +6,7 @@ import classNames from 'classnames';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 
@@ -199,8 +199,8 @@ export function DeprecatedLine({
       <StrictClick onClick={isExpandable ? toggleContext : undefined}>
         <DefaultLine
           align="center"
+          columns="minmax(0, 1fr) max-content"
           data-test-id="title"
-          justify="between"
           minHeight="40px"
           padding="sm lg"
           position="relative"
@@ -213,41 +213,26 @@ export function DeprecatedLine({
           {isExpandable ? <InteractionStateLayer /> : null}
           <Text italic={!data.inApp} variant={data.inApp ? 'inherit' : 'muted'}>
             {({className: layoutClassName}) => (
-              <Flex
-                className={layoutClassName}
-                data-line-title
-                align="center"
-                flex={1}
-                justify="between"
-                minWidth={0}
-              >
-                <Flex align="center" minWidth={0}>
-                  <div>
-                    <LeadHint
-                      nextFrame={nextFrame}
-                      event={event}
-                      isExpanded={isExpanded}
-                      leadsToApp={leadsToApp}
-                    />
-                    <DefaultTitle
-                      frame={data}
-                      platform={propPlatform ?? 'other'}
-                      isHoverPreviewed={isHoverPreviewed}
-                      meta={frameMeta}
-                      isPotentiallyThirdParty={isPotentiallyThirdPartyFrame(data, event)}
-                    />
-                  </div>
-                </Flex>
+              <Flex className={layoutClassName} align="center" minWidth={0}>
+                <div>
+                  <LeadHint
+                    nextFrame={nextFrame}
+                    event={event}
+                    isExpanded={isExpanded}
+                    leadsToApp={leadsToApp}
+                  />
+                  <DefaultTitle
+                    frame={data}
+                    platform={propPlatform ?? 'other'}
+                    isHoverPreviewed={isHoverPreviewed}
+                    meta={frameMeta}
+                    isPotentiallyThirdParty={isPotentiallyThirdPartyFrame(data, event)}
+                  />
+                </div>
               </Flex>
             )}
           </Text>
-          <Flex
-            data-frame-actions
-            align="center"
-            flexShrink={0}
-            gap="md"
-            marginLeft="auto"
-          >
+          <Flex align="center" gap="xs md" justify="end" wrap="wrap">
             <RepeatsIndicator timesRepeated={timesRepeated} />
             {anrCulprit ? (
               <Tag variant="warning" onClick={scrollToSuspectRootCause}>
@@ -399,7 +384,7 @@ function RepeatsIndicator({timesRepeated}: {timesRepeated: number}) {
   );
 }
 
-const DefaultLine = styled(Flex)<{
+const DefaultLine = styled(Grid)<{
   isExpandable: boolean;
   isExpanded: boolean;
   isSubFrame: boolean;
@@ -416,19 +401,8 @@ const DefaultLine = styled(Flex)<{
 
   @container (max-width: ${p => p.theme.container.xl}) {
     &:has([data-has-setup]) {
-      flex-wrap: wrap;
+      grid-template-columns: 1fr;
       row-gap: ${p => p.theme.space.xs};
-
-      > [data-line-title] {
-        flex-basis: 100%;
-      }
-
-      > [data-frame-actions] {
-        flex-basis: 100%;
-        justify-content: flex-end;
-        flex-wrap: wrap;
-        row-gap: ${p => p.theme.space.xs};
-      }
     }
   }
 `;
