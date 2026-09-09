@@ -11,13 +11,38 @@ import {
 } from './utils';
 
 const getVerifySnippet = (params: Params) => {
+  const sentryImport =
+    params.isLogsSelected || params.isMetricsSelected
+      ? `import * as Sentry from "@sentry/vue";
+
+`
+      : '';
+  const logsCode = params.isLogsSelected
+    ? `      // Send a log before throwing the error
+      Sentry.logger.info('User triggered test error', {
+        action: 'test_error_button_click',
+      });
+`
+    : '';
   const metricsCode = params.isMetricsSelected
-    ? `  // Send a test metric before calling undefined function
-  Sentry.metrics.count('test_counter', 1);
+    ? `      // Send a test metric before throwing the error
+      Sentry.metrics.count('test_counter', 1);
 `
     : '';
 
-  return `${metricsCode}myUndefinedFunction();`;
+  return `<script>
+${sentryImport}export default {
+  methods: {
+    triggerError() {
+${logsCode}${metricsCode}      throw new Error('Sentry Test Error');
+    },
+  },
+};
+</script>
+
+<template>
+  <button type="button" @click="triggerError">Break the world</button>
+</template>`;
 };
 
 export const onboarding: OnboardingConfig<PlatformOptions> = {
@@ -68,16 +93,18 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
       content: [
         {
           type: 'text',
-          text: t(
-            "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+          text: tct(
+            'Add this button to a Vue component, such as [code:App.vue], then click "Break the world" to send a test error to Sentry. If you selected Logs or Metrics, clicking the button sends those too.',
+            {code: <code />}
           ),
         },
         {
           type: 'code',
           tabs: [
             {
-              label: 'JavaScript',
-              language: 'javascript',
+              label: 'Vue',
+              language: 'html',
+              filename: 'App.vue',
               code: getVerifySnippet(params),
             },
           ],
