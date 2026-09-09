@@ -1,6 +1,6 @@
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {CheckStatusBucket} from 'sentry/views/detectors/components/uptime/types';
 
@@ -21,10 +21,7 @@ type Result = Record<string, CheckStatusBucket[]>;
 /**
  * Fetches Uptime Monitor stats
  */
-export function useUptimeMonitorStats(
-  {detectorIds, timeWindowConfig}: Options,
-  options: Partial<UseApiQueryOptions<Result>> = {}
-) {
+export function useUptimeMonitorStats({detectorIds, timeWindowConfig}: Options) {
   const {start, end, rollupConfig} = timeWindowConfig;
 
   const selectionQuery = {
@@ -50,7 +47,6 @@ export function useUptimeMonitorStats(
     {
       staleTime: 0,
       enabled: rollupConfig.totalBuckets > 0,
-      ...options,
     }
   );
 }
