@@ -1,11 +1,4 @@
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useState,
-} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
@@ -102,7 +95,6 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
   const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
   const [filterSelections, setFilterSelections] = useState<FilterSelections>([]);
   const [filtersInitialized, setFiltersInitialized] = useState(false);
-  const [lockHeight, setLockHeight] = useState(false);
   const {searchTerm, setSearchTerm} = useDebugMetaSearch();
 
   const {allImages, filterOptions} = useMemo(() => {
@@ -171,11 +163,6 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
   });
 
   const totalSize = virtualizer.getTotalSize();
-  useLayoutEffect(() => {
-    if (!lockHeight && totalSize > MAX_HEIGHT) {
-      setLockHeight(true);
-    }
-  }, [totalSize, lockHeight]);
 
   const openDetails = useCallback(
     (image: ImageWithCombinedStatus) => {
@@ -254,7 +241,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
           {filteredImages.length ? (
             <ScrollArea
               ref={setScrollContainer}
-              style={{height: lockHeight ? MAX_HEIGHT : undefined, maxHeight: MAX_HEIGHT}}
+              style={{height: Math.min(totalSize, MAX_HEIGHT)}}
             >
               <div style={{height: totalSize, position: 'relative'}}>
                 {virtualizer.getVirtualItems().map(row => (
@@ -280,13 +267,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
               </div>
             </ScrollArea>
           ) : (
-            <Stack
-              align="center"
-              justify="center"
-              gap="md"
-              padding="lg"
-              style={lockHeight ? {height: MAX_HEIGHT} : undefined}
-            >
+            <Stack align="center" justify="center" gap="md" padding="lg">
               <Text align="center" variant="muted">
                 {searchTerm
                   ? t('No images match your search query')
