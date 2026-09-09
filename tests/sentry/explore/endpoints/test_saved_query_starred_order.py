@@ -140,6 +140,22 @@ class SavedQueryStarredOrderTest(APITestCase):
             ("discover", self.discover_y.id),
         ]
 
+    def test_rejects_duplicate_refs(self) -> None:
+        with self.feature(self.feature_flags):
+            response = self.client.put(
+                self.url,
+                data={
+                    "queries": [
+                        self.ref(self.discover_x),
+                        self.ref(self.discover_x),
+                        self.ref(self.explore_a),
+                        self.ref(self.explore_b),
+                    ]
+                },
+            )
+
+        assert response.status_code == 400
+
     def test_empty_list_is_a_noop_when_nothing_is_starred(self) -> None:
         DiscoverSavedQueryStarred.objects.all().delete()
         ExploreSavedQueryStarred.objects.all().delete()
