@@ -35,11 +35,7 @@ export function SnapshotStatusBadge({
   }
   if (comparisonState === 'no_base_build') {
     return (
-      <Tooltip
-        title={t(
-          'The base commit did not produce snapshots to compare against. Did its snapshot job fail? Try rebasing this branch on a commit with a successful snapshot job.'
-        )}
-      >
+      <Tooltip title={t('No base snapshot was found for comparison.')}>
         <Tag variant="danger">{t('No base build')}</Tag>
       </Tooltip>
     );
