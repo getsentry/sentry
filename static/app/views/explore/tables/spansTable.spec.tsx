@@ -90,9 +90,7 @@ describe('addValidatedFieldTypesToMeta', () => {
 });
 
 describe('SpansTable', () => {
-  const {organization, project} = initializeOrg({
-    organization: {features: ['explore-span-item-details']},
-  });
+  const {organization, project} = initializeOrg();
 
   const eventView = EventView.fromNewQueryWithLocation(
     {
@@ -154,12 +152,10 @@ describe('SpansTable', () => {
   });
 
   function renderTable({
-    features = ['explore-span-item-details'],
     requestIdentityKey,
     tableResult,
     tableRows = rows,
   }: {
-    features?: string[];
     requestIdentityKey?: string;
     tableResult?: SpansTableResult['result'];
     tableRows?: Array<Record<string, unknown>>;
@@ -176,7 +172,7 @@ describe('SpansTable', () => {
     const renderResult = render(
       renderSpansTable(tableResult ?? makeQueryResult(tableRows)),
       {
-        organization: {...organization, features},
+        organization,
         additionalWrapper: Wrapper,
         initialRouterConfig: {
           location: {
@@ -231,17 +227,6 @@ describe('SpansTable', () => {
       {pointerEventsCheck: 0}
     );
   }
-
-  it('does not render or fetch span details when the feature is disabled', () => {
-    const detailsMock = mockSpanDetails(firstRow, []);
-
-    renderTable({features: []});
-
-    expect(
-      screen.queryByRole('button', {name: 'Show span details'})
-    ).not.toBeInTheDocument();
-    expect(detailsMock).not.toHaveBeenCalled();
-  });
 
   it('independently expands span details only after clicking the chevrons', async () => {
     const firstDetailsMock = mockSpanDetails(firstRow, [
