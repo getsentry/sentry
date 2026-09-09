@@ -296,24 +296,6 @@ class Endpoint(APIView):
     def convert_args(self, request: Request, *args, **kwargs):
         return (args, kwargs)
 
-    def client_kind_organization(
-        self, request: Request, kwargs: dict[str, Any]
-    ) -> Organization | RpcOrganization | None:
-        """The organization whose `client_kind` opt-in governs this request, if any.
-
-        Reads the `organization` that `convert_args` resolved, the kwarg every
-        organization-scoped base populates. Bases that resolve one some other way
-        override this -- `ProjectEndpoint` reads it off the project. Returning None
-        means the request goes unattributed, which is the right answer for an
-        endpoint with no organization in scope.
-        """
-        organization = kwargs.get("organization")
-        # Type-checked rather than trusted: `kwargs` is whatever an arbitrary
-        # `convert_args` put there, and a non-organization would reach `features.has`.
-        if isinstance(organization, (Organization, RpcOrganization)):
-            return organization
-        return None
-
     def permission_denied(self, request, message=None, code=None):
         """
         Raise a specific superuser exception if the user can become superuser
@@ -517,10 +499,13 @@ class Endpoint(APIView):
                     self.kwargs = kwargs
 
                     # Resolved solely to check the opt-in; everything else is
-                    # derived from the request.
-                    client_kind_organization = self.client_kind_organization(request, kwargs)
-                    if client_kind_organization is not None and features.has(
-                        CLIENT_KIND_FEATURE_FLAG, client_kind_organization, actor=request.user
+                    # derived from the request. Both sources are conventions rather
+                    # than contracts, so the result is type-checked before use.
+                    organization = kwargs.get("organization") or getattr(
+                        request, "organization", None
+                    )
+                    if isinstance(organization, (Organization, RpcOrganization)) and features.has(
+                        CLIENT_KIND_FEATURE_FLAG, organization, actor=request.user
                     ):
                         set_client_kind_attributes(request)
                 else:

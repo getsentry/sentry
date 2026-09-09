@@ -110,16 +110,6 @@ class GroupEndpoint(Endpoint):
 
         return (args, kwargs)
 
-    def client_kind_organization(
-        self, request: Request, kwargs: dict[str, Any]
-    ) -> Organization | None:
-        """An issue endpoint reports against its group's organization.
-
-        No extra query: `convert_args` already `select_related`s `project__organization`.
-        """
-        group = kwargs.get("group")
-        return group.project.organization if group is not None else None
-
     def get_external_issue_ids(self, group: Group) -> QuerySet[Any]:
         return GroupLink.objects.filter(
             project_id=group.project_id, group_id=group.id, linked_type=GroupLink.LinkedType.issue

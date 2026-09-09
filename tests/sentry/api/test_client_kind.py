@@ -9,9 +9,6 @@ from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
-from sentry.api.base import Endpoint
-from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.bases.team import TeamEndpoint
 from sentry.api.client_kind import (
     ATTRIBUTION_SPAN_OP,
     FEATURE_FLAG,
@@ -24,8 +21,6 @@ from sentry.api.client_kind import (
 )
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken
-from sentry.issues.endpoints.bases.group import GroupEndpoint
-from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.seer.agent_token import AGENT_TOKEN_KIND
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
 from sentry.testutils.cases import APITestCase, TestCase
@@ -424,90 +419,48 @@ class ClientKindScopeTest(TestCase):
         assert mock.call("client_kind_test", "seer") in sdk.set_attribute.call_args_list
 
 
-class ClientKindOrganizationTest(TestCase):
-    """The resolver `Endpoint.dispatch` uses to find the org that governs the opt-in."""
-
-    def test_default_reads_the_organization_convert_args_resolved(self) -> None:
-        endpoint = Endpoint()
-        assert (
-            endpoint.client_kind_organization(make_request(), {"organization": self.organization})
-            is self.organization
-        )
-
-    def test_default_accepts_the_rpc_organization_a_control_silo_endpoint_resolves(self) -> None:
-        rpc_organization = serialize_rpc_organization(self.organization)
-        endpoint = Endpoint()
-        assert (
-            endpoint.client_kind_organization(make_request(), {"organization": rpc_organization})
-            is rpc_organization
-        )
-
-    def test_default_is_none_for_an_endpoint_with_no_organization(self) -> None:
-        assert Endpoint().client_kind_organization(make_request(), {}) is None
-
-    def test_default_ignores_a_kwarg_that_is_not_an_organization(self) -> None:
-        """`kwargs` is whatever an arbitrary `convert_args` put there, so it is checked.
-
-        Without this a base naming the kwarg differently would hand a slug to
-        `features.has` rather than simply reporting nothing.
-        """
-        assert (
-            Endpoint().client_kind_organization(make_request(), {"organization": "my-org"}) is None
-        )
-
-    def test_a_project_endpoint_reports_its_projects_organization(self) -> None:
-        endpoint = ProjectEndpoint()
-        assert (
-            endpoint.client_kind_organization(make_request(), {"project": self.project})
-            == self.organization
-        )
-
-    def test_a_project_endpoint_with_no_project_is_none(self) -> None:
-        assert ProjectEndpoint().client_kind_organization(make_request(), {}) is None
-
-    def test_a_team_endpoint_reports_its_teams_organization(self) -> None:
-        endpoint = TeamEndpoint()
-        assert (
-            endpoint.client_kind_organization(make_request(), {"team": self.team})
-            == self.organization
-        )
-
-    def test_a_team_endpoint_with_no_team_is_none(self) -> None:
-        assert TeamEndpoint().client_kind_organization(make_request(), {}) is None
-
-    def test_an_issue_endpoint_reports_its_groups_organization(self) -> None:
-        endpoint = GroupEndpoint()
-        assert (
-            endpoint.client_kind_organization(make_request(), {"group": self.group})
-            == self.organization
-        )
-
-    def test_an_issue_endpoint_with_no_group_is_none(self) -> None:
-        assert GroupEndpoint().client_kind_organization(make_request(), {}) is None
-
-
 class DispatchWiringTest(APITestCase):
-    """Coverage reaches endpoints beyond the events base this started on."""
+    """Coverage reaches endpoints beyond the events base this started on.
 
-    endpoint = "sentry-api-0-project-details"
+    Driven through real requests rather than a resolver seam: `Endpoint.dispatch`
+    reads the organization straight off `kwargs`/`request`, so the only honest way
+    to pin which endpoint families are covered is to call them.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+
+    def tags_for(self, url: str, *, enabled: bool = True) -> list[Any]:
+        with (
+            self.feature(FEATURE_FLAG if enabled else {FEATURE_FLAG: False}),
+            mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
+        ):
+            assert self.client.get(url).status_code == 200
+        return sdk.set_tag.call_args_list
+
+    def test_an_organization_endpoint_records_the_caller(self) -> None:
+        url = f"/api/0/organizations/{self.organization.slug}/"
+        assert mock.call("client_kind_test", "frontend") in self.tags_for(url)
 
     def test_a_project_endpoint_records_the_caller(self) -> None:
-        self.login_as(self.user)
-        with (
-            self.feature(FEATURE_FLAG),
-            mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
-        ):
-            self.get_success_response(self.organization.slug, self.project.slug)
-        assert mock.call("client_kind_test", "frontend") in sdk.set_tag.call_args_list
+        url = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/"
+        assert mock.call("client_kind_test", "frontend") in self.tags_for(url)
+
+    def test_a_team_endpoint_records_the_caller(self) -> None:
+        url = f"/api/0/teams/{self.organization.slug}/{self.team.slug}/"
+        assert mock.call("client_kind_test", "frontend") in self.tags_for(url)
+
+    def test_an_issue_endpoint_records_the_caller(self) -> None:
+        # Team and issue endpoints resolve their organization off the related object
+        # rather than into an `organization` kwarg, so they are the families most
+        # likely to silently fall out of coverage.
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
+        assert mock.call("client_kind_test", "frontend") in self.tags_for(url)
 
     def test_records_nothing_when_the_organization_has_not_opted_in(self) -> None:
-        self.login_as(self.user)
-        with (
-            self.feature({FEATURE_FLAG: False}),
-            mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
-        ):
-            self.get_success_response(self.organization.slug, self.project.slug)
-        assert sdk.set_tag.call_args_list == []
+        url = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/"
+        assert self.tags_for(url, enabled=False) == []
 
     def test_a_declared_kind_does_not_bypass_the_opt_in(self) -> None:
         """A declared caller must not also grant the organization's opt-in.
@@ -517,11 +470,6 @@ class DispatchWiringTest(APITestCase):
         `client_kind_scope` declaration from reporting for an org that never enabled
         the feature.
         """
-        self.login_as(self.user)
-        with (
-            self.feature({FEATURE_FLAG: False}),
-            client_kind_scope(ClientKind.SEER),
-            mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
-        ):
-            self.get_success_response(self.organization.slug, self.project.slug)
-        assert sdk.set_tag.call_args_list == []
+        url = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/"
+        with client_kind_scope(ClientKind.SEER):
+            assert self.tags_for(url, enabled=False) == []
