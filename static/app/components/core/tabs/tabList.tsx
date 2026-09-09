@@ -294,7 +294,6 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
     orientation,
     size,
     keyboardActivation = 'manual',
-    disableOverflow,
     ...otherRootProps
   } = rootProps;
 
@@ -333,7 +332,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
     tabItemsRef,
     tabItems: props.items,
     // Overflow only applies to horizontal tab lists.
-    disabled: disableOverflow || orientation !== 'horizontal',
+    disabled: orientation !== 'horizontal',
   });
 
   const overflowMenuItems = useMemo(() => {
