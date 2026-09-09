@@ -57,10 +57,10 @@ import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
 import {formatYAxisValue} from './formatters/formatYAxisValue';
 import type {Plottable} from './plottables/plottable';
 import {assignPlottablesToYAxes} from './assignPlottablesToYAxes';
+import {createReleaseSeriesOptions} from './createReleaseSeriesOptions';
+import {createTimeSeriesWidgetYAxisOptions} from './createTimeSeriesWidgetYAxisOptions';
 import {generateTimezoneAlignedTicks} from './generateTimezoneAlignedTicks';
-import {ReleaseSeries} from './releaseSeries';
 import {FALLBACK_TYPE} from './settings';
-import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
 
 const {warn} = Sentry.logger;
 
@@ -194,7 +194,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const axisRangeProp = getAxisRange(props.axisRange) ?? 'auto';
 
-  const leftYAxis = TimeSeriesWidgetYAxis(
+  const leftYAxis = createTimeSeriesWidgetYAxisOptions(
     {
       axisLabel: {
         hideOverlap: true,
@@ -208,7 +208,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   );
 
   const rightYAxis = rightYAxisType
-    ? TimeSeriesWidgetYAxis(
+    ? createTimeSeriesWidgetYAxisOptions(
         {
           axisLabel: {
             hideOverlap: true,
@@ -409,7 +409,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     props.releases && props.showReleaseAs !== 'none'
       ? hasReleaseBubbles
         ? releaseBubbleSeries
-        : ReleaseSeries(
+        : createReleaseSeriesOptions(
             theme,
             props.releases,
             function onReleaseClick(release: Release) {

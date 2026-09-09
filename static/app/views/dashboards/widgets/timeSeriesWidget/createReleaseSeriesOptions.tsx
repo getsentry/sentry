@@ -8,7 +8,7 @@ import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 
-export function ReleaseSeries(
+export function createReleaseSeriesOptions(
   theme: Theme,
   releases: Release[],
   onClick: (release: Release) => void,
