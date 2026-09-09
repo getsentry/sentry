@@ -637,14 +637,15 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
   };
 
   const isEnterprisePlan = !!customer.planDetails?.isEnterprise;
-  const isSeerProductTrial = (category: DataCategory, apiName: string) =>
+  // Every Seer product trial (whether triggered via a plan category or the
+  // Seer/Legacy Seer add-on) resolves to one of these billed categories, so a
+  // single category check covers both entry points.
+  const isSeerProductTrial = (category: DataCategory) =>
     [
       DataCategory.SEER_USER,
       DataCategory.SEER_AUTOFIX,
       DataCategory.SEER_SCANNER,
-    ].includes(category) ||
-    apiName === AddOnCategory.SEER ||
-    apiName === AddOnCategory.LEGACY_SEER;
+    ].includes(category);
 
   const getTrialManagementActions = (
     category: DataCategory,
@@ -667,8 +668,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
       hasActiveProductTrial || categoryHasUsedProductTrial(category);
     // Enterprise plans: only Seer product trials can be started from _admin.
     // Allow Trial and Stop/Extend stay available for any in-flight non-Seer trial.
-    const blockEnterpriseNonSeerStart =
-      isEnterprisePlan && !isSeerProductTrial(category, apiName);
+    const blockEnterpriseNonSeerStart = isEnterprisePlan && !isSeerProductTrial(category);
     const enterpriseNonSeerStartTooltip =
       'Starting a trial for this product is disabled for enterprise plans. Use gifts as needed to add reserved volume.';
 
