@@ -1,0 +1,180 @@
+import pytest
+
+from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryStarred
+from sentry.explore import utils
+from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryStarred
+from sentry.explore.types import SavedQueryRef, SavedQueryType
+from sentry.models.organization import Organization
+from sentry.testutils.cases import TestCase
+
+
+class StarredHelpersTestBase(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.org = self.create_organization(owner=self.user)
+        self.other_user = self.create_user()
+        self.create_member(organization=self.org, user=self.other_user)
+
+    def discover_star(
+        self,
+        position: int | None,
+        *,
+        starred: bool = True,
+        user_id: int | None = None,
+        organization: Organization | None = None,
+    ) -> DiscoverSavedQueryStarred:
+        organization = organization or self.org
+        query = DiscoverSavedQuery.objects.create(
+            organization=organization, name=f"discover {position}", query={}
+        )
+        return DiscoverSavedQueryStarred.objects.create(
+            organization=organization,
+            user_id=user_id or self.user.id,
+            discover_saved_query=query,
+            position=position,
+            starred=starred,
+        )
+
+    def explore_star(
+        self,
+        position: int | None,
+        *,
+        starred: bool = True,
+        user_id: int | None = None,
+        organization: Organization | None = None,
+    ) -> ExploreSavedQueryStarred:
+        organization = organization or self.org
+        query = ExploreSavedQuery.objects.create(
+            organization=organization, name=f"explore {position}", query={}
+        )
+        return ExploreSavedQueryStarred.objects.create(
+            organization=organization,
+            user_id=user_id or self.user.id,
+            explore_saved_query=query,
+            position=position,
+            starred=starred,
+        )
+
+    def ordered_refs(self, user_id: int | None = None) -> list[SavedQueryRef]:
+        """
+        Every positioned row the user has, across both tables, ordered by position.
+        """
+        user_id = user_id or self.user.id
+        rows: list[tuple[int, SavedQueryRef]] = []
+        for discover_row in DiscoverSavedQueryStarred.objects.filter(
+            organization=self.org, user_id=user_id, position__isnull=False
+        ):
+            assert discover_row.position is not None
+            rows.append(
+                (
+                    discover_row.position,
+                    SavedQueryRef(SavedQueryType.DISCOVER, discover_row.discover_saved_query_id),
+                )
+            )
+        for explore_row in ExploreSavedQueryStarred.objects.filter(
+            organization=self.org, user_id=user_id, position__isnull=False
+        ):
+            assert explore_row.position is not None
+            rows.append(
+                (
+                    explore_row.position,
+                    SavedQueryRef(SavedQueryType.EXPLORE, explore_row.explore_saved_query_id),
+                )
+            )
+        return [ref for _, ref in sorted(rows)]
+
+
+class NextPositionTest(StarredHelpersTestBase):
+    def test_no_starred_queries(self) -> None:
+        assert utils.next_starred_position(self.org, self.user.id) == 1
+
+    def test_highest_position_in_discover(self) -> None:
+        self.discover_star(4)
+        self.explore_star(2)
+
+        assert utils.next_starred_position(self.org, self.user.id) == 5
+
+    def test_highest_position_in_explore(self) -> None:
+        self.discover_star(2)
+        self.explore_star(4)
+
+        assert utils.next_starred_position(self.org, self.user.id) == 5
+
+    def test_ignores_null_positions(self) -> None:
+        self.discover_star(1)
+        self.explore_star(None, starred=False)
+
+        assert utils.next_starred_position(self.org, self.user.id) == 2
+
+
+class ShiftPositionsTest(StarredHelpersTestBase):
+    def test_negative_delta_closes_a_gap(self) -> None:
+        below = self.discover_star(1)
+        above = self.explore_star(3)
+        above2 = self.explore_star(4)
+
+        utils.shift_starred_positions_by_one(self.org, self.user.id, from_position=1)
+
+        below.refresh_from_db()
+        above.refresh_from_db()
+        above2.refresh_from_db()
+        assert below.position == 1
+        assert above.position == 2
+        assert above2.position == 3
+
+
+class ReorderTest(StarredHelpersTestBase):
+    def test_normalizes_positions(self) -> None:
+        discover1 = self.discover_star(2)
+        explore1 = self.explore_star(5)
+        discover2 = self.discover_star(5)
+
+        refs = [
+            SavedQueryRef(SavedQueryType.DISCOVER, discover1.discover_saved_query_id),
+            SavedQueryRef(SavedQueryType.EXPLORE, explore1.explore_saved_query_id),
+            SavedQueryRef(SavedQueryType.DISCOVER, discover2.discover_saved_query_id),
+        ]
+
+        utils.reorder_starred_queries(self.org, self.user.id, refs)
+
+        explore1.refresh_from_db()
+        discover1.refresh_from_db()
+        discover2.refresh_from_db()
+        assert discover1.position == 1
+        assert explore1.position == 2
+        assert discover2.position == 3
+
+    def test_moves_a_query_from_the_end_to_the_front(self) -> None:
+        first = self.explore_star(1)
+        second = self.explore_star(2)
+        third = self.discover_star(3)
+
+        refs = [
+            SavedQueryRef(SavedQueryType.DISCOVER, third.discover_saved_query_id),
+            SavedQueryRef(SavedQueryType.EXPLORE, first.explore_saved_query_id),
+            SavedQueryRef(SavedQueryType.EXPLORE, second.explore_saved_query_id),
+        ]
+
+        utils.reorder_starred_queries(self.org, self.user.id, refs)
+
+        assert self.ordered_refs() == refs
+
+    def test_rejects_duplicate_ref(self) -> None:
+        discover = self.discover_star(1)
+        self.explore_star(2)
+
+        ref = SavedQueryRef(SavedQueryType.DISCOVER, discover.discover_saved_query_id)
+
+        with pytest.raises(ValueError, match="multiple positions"):
+            utils.reorder_starred_queries(self.org, self.user.id, [ref, ref])
+
+    def test_rejects_missing_refs(self) -> None:
+        # The failure mode this module exists to prevent: a caller that knows about one
+        # product sends only its own queries, and the other product's positions are lost.
+        self.discover_star(1)
+        explore = self.explore_star(2)
+
+        explore_ref = SavedQueryRef(SavedQueryType.EXPLORE, explore.explore_saved_query_id)
+
+        with pytest.raises(ValueError, match="Mismatch between existing and provided"):
+            utils.reorder_starred_queries(self.org, self.user.id, [explore_ref])

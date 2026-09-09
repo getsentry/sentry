@@ -388,7 +388,7 @@ export function ExternalIssueForm({
       >
         <Stack area="content" align="stretch" gap="lg" minWidth={0}>
           <Heading as="h2">{title}</Heading>
-          <Tabs value={action} onChange={handleClick} disableOverflow>
+          <Tabs value={action} onChange={handleClick}>
             <TabList>
               <TabList.Item key="create">{t('Create')}</TabList.Item>
               <TabList.Item key="link">{t('Link')}</TabList.Item>
