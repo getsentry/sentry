@@ -5,17 +5,7 @@ from typing import Required, TypedDict
 
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
-from django.db.models import (
-    Case,
-    Exists,
-    F,
-    IntegerField,
-    OrderBy,
-    OuterRef,
-    Subquery,
-    Value,
-    When,
-)
+from django.db.models import Case, Exists, F, IntegerField, OrderBy, OuterRef, Subquery, Value, When
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
@@ -258,20 +248,17 @@ def get_enabled_prebuilt_dashboards(
         "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
         organization,
     )
-    all_prebuilt_dashboards = [
-        dashboard
-        for dashboard in PREBUILT_DASHBOARDS
-        if all(
-            features.has(feature, organization)
-            for feature in dashboard.get("required_feature_flags", [])
-        )
-    ]
+    all_prebuilt_dashboards = [dashboard for dashboard in PREBUILT_DASHBOARDS]
     if should_sync_all_registered_prebuilt_dashboards:
         return all_prebuilt_dashboards
     return [
         dashboard
         for dashboard in all_prebuilt_dashboards
         if dashboard["prebuilt_id"] in enabled_prebuilt_dashboard_ids
+        and all(
+            features.has(feature, organization)
+            for feature in dashboard.get("required_feature_flags", [])
+        )
     ]
 
 
