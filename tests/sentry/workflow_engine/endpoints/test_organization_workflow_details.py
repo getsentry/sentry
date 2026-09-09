@@ -2,6 +2,8 @@ from contextlib import AbstractContextManager
 from unittest import mock
 
 import responses
+from django.test import override_settings
+from rest_framework.test import APIClient
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
@@ -12,6 +14,7 @@ from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.rule import Rule
+from sentry.seer import agent_token
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import TaskRunner
@@ -36,6 +39,8 @@ from tests.sentry.workflow_engine.test_base import (
     MockActionValidatorTranslator,
     ProjectAccessTestMixin,
 )
+
+AGENT_TOKEN_SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
 
 
 class OrganizationWorkflowDetailsBaseTest(APITestCase):
@@ -235,6 +240,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             status_code=400,
         )
 
+    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_all_projects_workflow_requires_org_write(self) -> None:
         detector = ensure_default_all_projects_detector(self.organization.id)
         self.create_detector_workflow(workflow=self.workflow, detector=detector)
@@ -254,6 +260,32 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         self.workflow.refresh_from_db()
         assert self.workflow.name != "Unauthorized update"
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    def test_all_projects_workflow_agent_token_advertises_org_write(self) -> None:
+        detector = ensure_default_all_projects_detector(self.organization.id)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        token, _ = agent_token.encode_agent_token(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            scopes=["org:read"],
+            session_id="workflow-update",
+        )
+        client = APIClient()
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = client.put(
+                f"/api/0/organizations/{self.organization.slug}/workflows/{self.workflow.id}/",
+                data={**self.valid_workflow, "name": "Unauthorized update"},
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token}",
+            )
+
+        assert response.status_code == 403, response.content
+        assert (
+            response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="org:write"'
+        )
 
     def test_update_action_filter_with_string_encoded_id(self) -> None:
         dcg = DataConditionGroup.objects.create(

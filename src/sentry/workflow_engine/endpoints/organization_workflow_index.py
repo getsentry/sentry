@@ -76,7 +76,7 @@ from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation impo
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
     is_workflow_connected_to_all_projects_detector,
-    should_include_all_projects_detector_workflows,
+    should_include_all_projects_detector_workflows_or_raise,
 )
 from sentry.workflow_engine.models import DetectorWorkflow, Workflow
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
@@ -136,7 +136,7 @@ class OrganizationWorkflowEndpoint(OrganizationEndpoint):
         workflow = kwargs["workflow"]
         organization = kwargs["organization"]
         if is_workflow_connected_to_all_projects_detector(workflow):
-            if not should_include_all_projects_detector_workflows(request, organization):
+            if not should_include_all_projects_detector_workflows_or_raise(request, organization):
                 raise PermissionDenied
             return args, kwargs
 
@@ -246,7 +246,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         all_projects_detector = get_all_projects_detector(organization.id)
         if all_projects_detector:
             all_projects_workflows_q = Q(detectorworkflow__detector_id=all_projects_detector.id)
-            if should_include_all_projects_detector_workflows(request, organization):
+            if should_include_all_projects_detector_workflows_or_raise(request, organization):
                 accessible_workflows |= all_projects_workflows_q
             else:
                 queryset = queryset.exclude(all_projects_workflows_q)
