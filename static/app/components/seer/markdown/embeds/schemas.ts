@@ -442,11 +442,25 @@ export const SEER_EMBED_SCHEMAS = {
       'Use the saved query ID exactly as the API returns it and set `dataset` ' +
       'to the dataset it was saved against. ' +
       'Include the API-provided name when available. ' +
-      'Never use a markdown link for saved query references.',
+      'Never use a markdown link for saved query references. ' +
+      'Inline renders a link; block fetches the saved query and shows its ' +
+      "name, filter, group-by and visualize, linking to the query's own " +
+      'parameters rather than just its id.',
     level: ['inline', 'block'],
     schema: z.object({
       id: z.string().min(1),
-      dataset: z.enum(['spans', 'logs', 'metrics', 'replays']),
+      // Every value the saved query API can report, not just the four Explore
+      // surfaces. `segment_spans` and `ai_conversations` are what the API
+      // returns for a good share of real saved queries, and an embed whose
+      // props fail to parse renders nothing at all.
+      dataset: z.enum([
+        'spans',
+        'segment_spans',
+        'logs',
+        'metrics',
+        'replays',
+        'ai_conversations',
+      ]),
       name: z.string().min(1).optional(),
     }),
     examples: [
@@ -461,6 +475,8 @@ export const SEER_EMBED_SCHEMAS = {
       'The ONLY way to reference a Sentry trace (the trace waterfall view). ' +
       'Use the 32-character trace ID. Provide `timestamp` when known so the ' +
       'waterfall opens on the right time range, and `spanId` to focus a span. ' +
+      'Inline: renders a compact link. Block: renders the live trace waterfall. ' +
+      'Do not duplicate the waterfall spans or duration details as text. ' +
       'Never use a markdown link for trace references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -470,7 +486,8 @@ export const SEER_EMBED_SCHEMAS = {
     }),
     examples: [
       {
-        label: 'Trace',
+        label: 'Trace waterfall',
+        level: 'block',
         data: {
           traceId: 'a1b2c3d4e5f678901234567890abcdef',
           timestamp: '2026-08-25T16:37:12Z',
@@ -636,10 +653,14 @@ export const SEER_EMBED_SCHEMAS = {
   },
   logsQuery: {
     description:
-      'Link to an Explore > Logs query. ' +
+      'Preview an Explore > Logs query. ' +
       'Use mode "samples" to show individual log rows and "aggregate" to group ' +
       'and chart them. In aggregate mode supply `groupBy` and `yAxes`. ' +
-      '`query` uses log search syntax, e.g. "severity:error".',
+      '`query` uses log search syntax, e.g. "severity:error". ' +
+      'Inline renders a link; block renders the first five matching rows ' +
+      'beneath a timeseries — one series per group when grouped, log volume ' +
+      'otherwise. An aggregate that groups by nothing collapses to a single ' +
+      'row, so there the chart replaces the table.',
     level: ['inline', 'block'],
     schema: z.object(exploreQueryFields),
     examples: [
