@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -17,11 +17,6 @@ export function GroupingComponentFrames({
 }: GroupingComponentFramesProps) {
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const isCollapsible = items.length > 2;
-
-  useEffect(() => {
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-    setCollapsed(initialCollapsed);
-  }, [initialCollapsed]);
 
   return (
     <Fragment>
@@ -42,6 +37,7 @@ export function GroupingComponentFrames({
                 variant="link"
                 icon={<IconAdd legacySize="8px" />}
                 onClick={() => setCollapsed(false)}
+                aria-expanded={false}
               >
                 {tct('show [numberOfFrames] similar', {
                   numberOfFrames: items.length - 2,
@@ -61,6 +57,7 @@ export function GroupingComponentFrames({
             variant="link"
             icon={<IconSubtract legacySize="8px" />}
             onClick={() => setCollapsed(true)}
+            aria-expanded
           >
             {tct('collapse [numberOfFrames] similar', {
               numberOfFrames: items.length - 2,
