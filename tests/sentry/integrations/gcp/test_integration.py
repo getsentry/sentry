@@ -593,7 +593,7 @@ class GcpIntegrationTest(TestCase):
         installation = self._create_installed_integration()
 
         installation.update_organization_config(
-            {"projects": " project-prod , project-staging ,project-prod"}
+            {"projects": [" project-prod ", "project-staging", "project-prod"]}
         )
 
         config = self._stored_config()
@@ -609,7 +609,7 @@ class GcpIntegrationTest(TestCase):
             projects=["project-prod", "project-staging"]
         )
 
-        installation.update_organization_config({"projects": "project-staging, project-prod"})
+        installation.update_organization_config({"projects": ["project-staging", "project-prod"]})
 
         config = self._stored_config()
         assert config["projects"] == ["project-prod", "project-staging"]
@@ -621,17 +621,23 @@ class GcpIntegrationTest(TestCase):
             projects=["project-prod", "project-staging"]
         )
 
-        installation.update_organization_config({"projects": "project-staging, project-new"})
+        installation.update_organization_config({"projects": ["project-staging", "project-new"]})
 
         config = self._stored_config()
         assert config["connection_status"] == GCP_STATUS_UNVERIFIED
         assert config["last_verified_at"] is None
 
+    def test_update_config_rejects_a_string_of_projects(self) -> None:
+        installation = self._create_installed_integration()
+
+        with pytest.raises(IntegrationConfigurationError, match="must be a list"):
+            installation.update_organization_config({"projects": "project-prod, project-staging"})
+
     def test_update_config_rejects_invalid_project_id(self) -> None:
         installation = self._create_installed_integration()
 
         with pytest.raises(IntegrationConfigurationError, match="Invalid GCP project ID"):
-            installation.update_organization_config({"projects": "INVALID"})
+            installation.update_organization_config({"projects": ["INVALID"]})
 
         assert self._stored_config()["projects"] == ["my-gcp-project"]
 
@@ -639,7 +645,7 @@ class GcpIntegrationTest(TestCase):
         installation = self._create_installed_integration()
 
         with pytest.raises(IntegrationConfigurationError, match="At least one GCP project ID"):
-            installation.update_organization_config({"projects": "  ,  "})
+            installation.update_organization_config({"projects": ["  ", ""]})
 
     def test_update_config_rejects_empty_customer_sa_email(self) -> None:
         installation = self._create_installed_integration()
@@ -662,7 +668,7 @@ class GcpIntegrationTest(TestCase):
     def test_update_config_noop_when_nothing_changed(self) -> None:
         installation = self._create_installed_integration()
         installation.update_organization_config(
-            {"customer_sa_email": _CUSTOMER_SA, "projects": "my-gcp-project"}
+            {"customer_sa_email": _CUSTOMER_SA, "projects": ["my-gcp-project"]}
         )
 
         config = self._stored_config()
@@ -689,7 +695,15 @@ class GcpIntegrationTest(TestCase):
         assert "disabled" not in fields["customer_sa_email"]
         assert "disabled" not in fields["projects"]
 
-    def test_get_config_data_flattens_projects(self) -> None:
+    def test_projects_field_is_a_creatable_multi_select(self) -> None:
+        installation = self._create_installed_integration()
+        fields = {f["name"]: f for f in installation.get_organization_config()}
+
+        assert fields["projects"]["type"] == "select"
+        assert fields["projects"]["multiple"] is True
+        assert fields["projects"]["creatable"] is True
+
+    def test_get_config_data_returns_projects_as_a_list(self) -> None:
         installation = self._create_installed_integration(
             projects=["project-a", "project-b", "project-c"]
         )
@@ -697,7 +711,7 @@ class GcpIntegrationTest(TestCase):
 
         assert data["sentry_sa_email"] == _SA_EMAIL
         assert data["customer_sa_email"] == _CUSTOMER_SA
-        assert data["projects"] == "project-a, project-b, project-c"
+        assert data["projects"] == ["project-a", "project-b", "project-c"]
 
     def test_get_config_data_exposes_the_connection_status(self) -> None:
         installation = self._create_installed_integration()
@@ -821,7 +835,7 @@ class GcpIntegrationTest(TestCase):
         assert parse_gcp_project_ids(["project-a", "project-b"]) == ["project-a", "project-b"]
 
     def test_parse_gcp_project_ids_rejects_unusable_input(self) -> None:
-        with pytest.raises(IntegrationConfigurationError, match="comma-separated list"):
+        with pytest.raises(IntegrationConfigurationError, match="must be a list"):
             parse_gcp_project_ids(42)
 
     def test_parse_customer_sa_email_trims(self) -> None:

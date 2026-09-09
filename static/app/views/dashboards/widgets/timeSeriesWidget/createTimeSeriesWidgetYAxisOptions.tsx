@@ -7,7 +7,7 @@ import {Y_AXIS_INTEGER_TOLERANCE} from './settings';
 
 type TimeSeriesWidgetYAxisProps = YAXisComponentOption;
 
-export function TimeSeriesWidgetYAxis(
+export function createTimeSeriesWidgetYAxisOptions(
   props: TimeSeriesWidgetYAxisProps,
   yAxisFieldType: string,
   yAxisRange: AxisRange

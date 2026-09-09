@@ -39,6 +39,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
+from sentry.api.client_kind import ClientKind, client_kind_scope
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
 from sentry.api.utils import get_date_range_from_params
 from sentry.auth.exceptions import IdentityNotValid
@@ -391,7 +392,8 @@ class SeerRpcServiceEndpoint(Endpoint):
         self._enforce_investigation_event_viewer_context(request, method_name, arguments)
 
         try:
-            result = self._dispatch_to_local_method(method_name, arguments)
+            with client_kind_scope(ClientKind.SEER):
+                result = self._dispatch_to_local_method(method_name, arguments)
         except RpcResolutionException as e:
             sentry_sdk.capture_exception()
             raise NotFound from e
