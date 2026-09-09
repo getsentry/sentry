@@ -383,7 +383,7 @@ function AddToDashboardModal({
           value: 'new',
           disabled: hasReachedDashboardLimit || isLoading,
           tooltip: hasReachedDashboardLimit ? limitMessage : undefined,
-          tooltipOptions: {position: 'right', isHoverable: true},
+          tooltipOptions: {position: 'right'},
         } satisfies SelectValue<string>,
         ...dashboards
           .filter(dashboard =>

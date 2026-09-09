@@ -305,7 +305,6 @@ export function ArchiveActions({
         tooltipProps={{
           delay: 1000,
           disabled,
-          isHoverable: true,
           title: tct(
             'We’ll nag you with a notification if the issue gets worse. All archived issues can be found in the Archived tab. [docs:Read the docs]',
             {

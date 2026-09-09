@@ -439,7 +439,7 @@ describe('ConfigureIntegration GCP re-verification', () => {
       ],
       configData: {
         customer_sa_email: CUSTOMER_SA,
-        projects: 'project-prod, project-staging',
+        projects: ['project-prod', 'project-staging'],
         connection_status: connectionStatus,
         project_statuses: [],
         last_verified_at: '2026-08-30T00:00:00+00:00',
@@ -547,7 +547,7 @@ describe('ConfigureIntegration GCP re-verification', () => {
     const {verifyRequest, setStoredConfig} = setup();
 
     // A sibling field was saved elsewhere, so what this render closed over is stale.
-    setStoredConfig({projects: 'project-prod, project-staging, project-new'});
+    setStoredConfig({projects: ['project-prod', 'project-staging', 'project-new']});
 
     await saveNewSaEmail('new-sa@my-project.iam.gserviceaccount.com');
 

@@ -89,7 +89,6 @@ function ArtifactsTableRow({
             }
           )}
           disabled={hasRole}
-          isHoverable
         >
           <LinkButton
             size="sm"

@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1163_drop_organizationmapping_require_email_verification"),
+        ("sentry", "1165_create_outbox_backfill_watermark"),
     ]
 
     operations = [
