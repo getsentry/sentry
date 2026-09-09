@@ -193,15 +193,8 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
         self, group_key: DetectorGroupKey = None, activation_id: UUID | None = None
     ) -> list[str]:
         """
-        Scopes the fingerprint to the current activation, so each firing opens its own issue.
-
-        This replaces the fingerprint rather than extending it. `save_issue_from_occurrence`
-        resolves an occurrence to the first entry that already has a `GroupHash` and then
-        back-fills the rest, so a second entry would match every activation's issue back to
-        the first one and defeat the rotation.
-
-        A detector with no activation id has not rotated yet and keeps the legacy key, which
-        is what lets issues that are already open still resolve.
+        Use a custom fingerprint that uses the activation id
+        This ensures that every instance of OK --> non-OK creates a new issue
         """
         detector_key = self.state_manager.build_key(group_key)
 
