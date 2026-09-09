@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal, Self
 
 from pydantic import BaseModel, Field
 
@@ -19,17 +19,27 @@ class AutofixRCATweaks(BaseModel):
 
     intelligence_level: Literal["low", "medium", "high"] = "medium"
     reasoning_effort: Literal["low", "medium", "high"] | None = "medium"
-    # Free-form context a user attached to the issue
+    # Not to be confused with user_org_context, this is free-form context added by the user to the rca run.
     user_context: str | None = None
 
 
 class RepoPin(BaseModel):
     class Config:
-        allow_mutation = False
         extra = "forbid"
 
-    base_sha: str
-    base_branch: str
+    sha: str
+    branch: str
+
+    @classmethod
+    def parse_obj(cls, obj: Any) -> Self:
+        # Allow "base_sha" as alias for "sha" and "base_branch" as alias for "branch"
+        if "base_sha" in obj and "sha" not in obj:
+            obj = dict(obj)
+            obj["sha"] = obj.pop("base_sha")
+        if "base_branch" in obj and "branch" not in obj:
+            obj = dict(obj)
+            obj["branch"] = obj.pop("base_branch")
+        return super().parse_obj(obj)
 
 
 RepoPins = dict[str, RepoPin]

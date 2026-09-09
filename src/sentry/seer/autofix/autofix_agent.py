@@ -476,9 +476,9 @@ def trigger_autofix_rca_in_seer(
 ) -> SeerRun:
     """Start the RCA-in-Seer feature run and emit the legacy start events."""
     # Local import avoids a circular import (dispatch imports this module).
-    from sentry.seer.autofix.feature.rca_dispatch import trigger_autofix_rca_feature
+    from sentry.seer.autofix.feature.dispatch import trigger_autofix_feature
 
-    feature_run = trigger_autofix_rca_feature(
+    feature_run = trigger_autofix_feature(
         group,
         referrer=referrer,
         user_context=user_context,
@@ -486,14 +486,15 @@ def trigger_autofix_rca_in_seer(
         allow_free_cohort=allow_free_cohort,
         user=user,
         enable_bash_tools=enable_bash_tools,
+        repo_pins=_build_base_shas_metadata(group, referrer),
     )
     feature_run_id = feature_run.seer_run_state_id
     if feature_run_id is None:
         # flush=True populates this on success; guard defensively.
-        raise SeerApiError("autofix_rca feature run has no run id", 500)
+        raise SeerApiError("autofix feature run has no run id", 500)
 
     logger.info(
-        "autofix.trigger.routed_to_rca_feature",
+        "autofix.trigger.routed_to_feature",
         extra={
             "group_id": group.id,
             "organization_id": group.organization.id,
@@ -572,7 +573,6 @@ def trigger_autofix_agent(
             allow_free_cohort=allow_free_cohort,
             user=user,
             enable_bash_tools=enable_bash_tools,
-            base_shas=_build_base_shas_metadata(group, referrer),
         )
 
     config = STEP_CONFIGS[step]
