@@ -15,14 +15,18 @@ logger = logging.getLogger(__name__)
 
 
 def create_organization_workflows(organization: Organization, **kwargs: Any) -> None:
-    log_name = "organization_created.create_organization_workflows"
-    log_extra = {"organization_id": organization.id}
-    logger.info(f"{log_name}.start", extra=log_extra)
+    logger.info(
+        "organization_created.create_organization_workflows.start",
+        extra={"organization_id": organization.id},
+    )
     try:
         workflows = ensure_default_organization_workflows(organization)
         logger.info(
-            f"{log_name}.success",
-            extra={**log_extra, "workflow_ids": [workflow.id for workflow in workflows]},
+            "organization_created.create_organization_workflows.success",
+            extra={
+                "organization_id": organization.id,
+                "workflow_ids": [workflow.id for workflow in workflows],
+            },
         )
     except (
         UnableToAcquireLockApiError,
@@ -30,7 +34,11 @@ def create_organization_workflows(organization: Organization, **kwargs: Any) -> 
         Workflow.MultipleObjectsReturned,
     ) as e:
         sentry_sdk.capture_exception(e)
-        logger.info(f"{log_name}.failure", extra=log_extra, exc_info=e)
+        logger.info(
+            "organization_created.create_organization_workflows.failure",
+            extra={"organization_id": organization.id},
+            exc_info=e,
+        )
 
 
 organization_created.connect(
