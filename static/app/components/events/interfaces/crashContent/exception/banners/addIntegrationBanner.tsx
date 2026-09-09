@@ -90,7 +90,7 @@ const IntegrationBannerImage = styled('img')`
   right: 4rem;
   pointer-events: none;
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     display: none;
   }
 `;

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import sortBy from 'lodash/sortBy';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {ValueLink} from 'sentry/components/keyValueData';
 import type {KeyValueListData} from 'sentry/types/group';
@@ -78,7 +78,14 @@ export function KeyValueList({
                 <td className="val" data-test-id={subjectDataTestId}>
                   <Tablevalue>
                     {actionButton ? (
-                      <ValueWithButtonContainer>
+                      <ValueWithButtonContainer
+                        align="center"
+                        background="secondary"
+                        columns={{zero: '1fr', xl: '1fr max-content'}}
+                        gap="md"
+                        margin="2xs 0"
+                        radius="md"
+                      >
                         {valueContainer}
                         <Flex align="start" height="100%">
                           {actionButton}
@@ -118,22 +125,12 @@ const Tablevalue = styled('div')`
     display: inline-block;
   }
 `;
-const ValueWithButtonContainer = styled('div')`
-  display: grid;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
+const ValueWithButtonContainer = styled(Grid)`
   font-size: ${p => p.theme.font.size.sm};
-  background: ${p => p.theme.tokens.background.secondary};
   padding: ${p => p.theme.space.md} 10px;
-  margin: ${p => p.theme.space['2xs']} 0;
-  border-radius: ${p => p.theme.radius.md};
   pre {
     padding: 0 !important;
     margin: 0 !important;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr max-content;
   }
 `;
 

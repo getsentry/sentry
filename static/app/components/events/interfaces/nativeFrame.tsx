@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -277,11 +277,14 @@ export function NativeFrame({
     <StackTraceFrame data-test-id="stack-trace-frame">
       <StrictClick onClick={handleToggleContext}>
         <RowHeader
+          as="span"
           expandable={!!expandable}
           isInAppFrame={frame.inApp}
           isSubFrame={!!isSubFrame}
+          minHeight={{xl: '32px'}}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
+          padding={{zero: 'md', xl: 'xs lg'}}
         >
           {expandable ? <InteractionStateLayer /> : null}
           <SymbolicatorIcon>
@@ -352,7 +355,7 @@ export function NativeFrame({
               </Tooltip>
             </AddressCell>
           </Flex>
-          <FunctionNameCell>
+          <FunctionNameCell column={{zero: '2 / 6', xl: 'auto'}}>
             {functionName ? (
               <Tooltip title={frame?.rawFunction ?? frame?.symbol} delay={tooltipDelay}>
                 <AnnotatedText value={functionName.value} meta={functionName.meta} />
@@ -378,13 +381,13 @@ export function NativeFrame({
               </Tooltip>
             )}
           </FunctionNameCell>
-          <GroupingCell>
+          <Container row={{zero: '2 / 3', xl: 'auto'}}>
             {isUsedForGrouping && (
               <Tooltip title={t('This frame is repeated in every event of this issue')}>
                 <IconRefresh size="sm" variant="primary" />
               </Tooltip>
             )}
-          </GroupingCell>
+          </Container>
           {hiddenFrameCount ? (
             <ShowHideButton
               analyticsEventName="Stacktrace Frames: toggled"
@@ -424,11 +427,17 @@ export function NativeFrame({
                 />
               </ErrorBoundary>
             )}
-            <TypeCell>
+            <Container
+              column={{zero: '5 / 6', xl: 'auto'}}
+              row={{zero: '1 / 2', xl: 'auto'}}
+            >
               {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
-            </TypeCell>
+            </Container>
           </Flex>
-          <ExpandCell>
+          <Container
+            column={{zero: '6 / 7', xl: 'auto'}}
+            row={{zero: '1 / 2', xl: 'auto'}}
+          >
             {expandable && (
               <ToggleButton
                 type="button"
@@ -438,7 +447,7 @@ export function NativeFrame({
                 icon={<IconChevron size="sm" direction={expanded ? 'up' : 'down'} />}
               />
             )}
-          </ExpandCell>
+          </Container>
         </RowHeader>
       </StrictClick>
       {expanded && (
@@ -469,32 +478,8 @@ const AddressCell = styled('div')`
   ${p => p.onClick && 'color:' + p.theme.tokens.interactive.link.accent.rest};
 `;
 
-const FunctionNameCell = styled('div')`
+const FunctionNameCell = styled(Container)`
   word-break: break-all;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-column: 2/6;
-  }
-`;
-
-const GroupingCell = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-row: 2/3;
-  }
-`;
-
-const TypeCell = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-column: 5/6;
-    grid-row: 1/2;
-  }
-`;
-
-const ExpandCell = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-column: 6/7;
-    grid-row: 1/2;
-  }
 `;
 
 const ToggleButton = styled(Button)`
@@ -526,14 +511,13 @@ const FileName = styled('span')`
   border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
 `;
 
-const RowHeader = styled('span')<{
+const RowHeader = styled(Grid)<{
   expandable: boolean;
   isInAppFrame: boolean;
   isSubFrame: boolean;
 }>`
   position: relative;
-  display: grid;
-  grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${p => p.theme.space.xl}; /* Adjusted to account for the extra element */
+  grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${p => p.theme.space.xl};
   grid-template-rows: 1fr; /* Ensures a single row */
   align-items: center;
   align-content: center;
@@ -543,16 +527,9 @@ const RowHeader = styled('span')<{
       ? p.theme.colors.surface200
       : p.theme.tokens.background.secondary};
   font-size: ${p => p.theme.font.size.sm};
-  padding: ${p => p.theme.space.md};
   color: ${p => (p.isInAppFrame ? '' : p.theme.tokens.content.secondary)};
   font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
   ${p => p.expandable && 'cursor: pointer;'};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${p => p.theme.space.xl}; /* Matches the updated desktop layout */
-    padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
-    min-height: 32px;
-  }
 `;
 
 const StackTraceFrame = styled('li')`

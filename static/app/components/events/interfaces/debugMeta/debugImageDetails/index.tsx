@@ -383,15 +383,15 @@ export const modalCss = (theme: Theme) => css`
     overflow: initial;
   }
 
-  @media (min-width: ${theme.breakpoints.sm}) {
+  @container (min-width: ${theme.container.xl}) {
     width: 90%;
   }
 
-  @media (min-width: ${theme.breakpoints.xl}) {
+  @container (min-width: ${theme.container['5xl']}) {
     width: 70%;
   }
 
-  @media (min-width: ${theme.breakpoints['2xl']}) {
+  @container (min-width: 2560px) {
     width: 50%;
   }
 `;

@@ -425,7 +425,7 @@ const DefaultLine = styled('div')<{
     font-family: ${p => p.theme.font.family.sans};
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     &:has([data-has-setup]) {
       flex-wrap: wrap;
       row-gap: ${p => p.theme.space.xs};

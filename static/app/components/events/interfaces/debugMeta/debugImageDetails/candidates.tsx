@@ -7,7 +7,7 @@ import pick from 'lodash/pick';
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {SearchBarAction} from 'sentry/components/events/interfaces/searchBarAction';
@@ -315,9 +315,17 @@ export class Candidates extends Component<Props, State> {
     const {emptyMessage, emptyAction} = this.getEmptyMessage();
 
     return (
-      <Wrapper>
-        <Header>
-          <Title>
+      <Grid>
+        <Flex direction={{zero: 'column', xl: 'row'}} wrap={{xl: 'wrap'}}>
+          <Title
+            align="center"
+            columns="repeat(2, max-content)"
+            flex={1}
+            gap="xs"
+            height="32px"
+            marginBottom={{zero: '0', xl: 'md'}}
+            paddingRight="3xl"
+          >
             {t('Debug File Candidates')}
             <InfoTip
               title={tct(
@@ -342,7 +350,7 @@ export class Candidates extends Component<Props, State> {
               onFilterChange={this.handleChangeFilter}
             />
           )}
-        </Header>
+        </Flex>
         <StyledSimpleTable
           hasActions={haveCandidatesAtLeastOneAction}
           header={
@@ -377,38 +385,14 @@ export class Candidates extends Component<Props, State> {
               />
             ))}
         </StyledSimpleTable>
-      </Wrapper>
+      </Grid>
     );
   }
 }
 
-const Wrapper = styled('div')`
-  display: grid;
-`;
-
-const Header = styled('div')`
-  display: flex;
-  flex-direction: column;
-  @media (min-width: ${props => props.theme.breakpoints.sm}) {
-    flex-wrap: wrap;
-    flex-direction: row;
-  }
-`;
-
-const Title = styled('div')`
-  padding-right: ${p => p.theme.space['3xl']};
-  display: grid;
-  gap: ${p => p.theme.space.xs};
-  grid-template-columns: repeat(2, max-content);
-  align-items: center;
+const Title = styled(Grid)`
   font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.colors.gray500};
-  height: 32px;
-  flex: 1;
-
-  @media (min-width: ${props => props.theme.breakpoints.sm}) {
-    margin-bottom: ${p => p.theme.space.md};
-  }
 `;
 
 const StyledSimpleTable = styled(SimpleTable, {
@@ -419,7 +403,7 @@ const StyledSimpleTable = styled(SimpleTable, {
 
   height: 100%;
 
-  @media (min-width: ${props => props.theme.breakpoints['2xl']}) {
+  @container (min-width: ${props => props.theme.container['5xl']}) {
     overflow: visible;
   }
 `;
