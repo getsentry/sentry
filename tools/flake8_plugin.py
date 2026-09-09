@@ -107,6 +107,81 @@ S020_eap_base_classes = frozenset(
 )
 
 
+S025_msg = (
+    "S025 {model}.{column} is only unique together with {requires}; filter on {requires} too. "
+    "A lookup that must span providers takes `# noqa: S025` with a comment saying why"
+)
+S025_service_msg = (
+    "S025 {call} looks rows up by {column} without a provider; pass {requires} too. "
+    "A lookup that must span providers takes `# noqa: S025` with a comment saying why"
+)
+# Columns that are only unique together with the column naming the system that issued them,
+# per Meta.unique_together: {model: {column: {required column: kwargs that pin it}}}.
+# tests/tools/test_flake8_scoped_lookups.py checks every entry against the model's unique
+# keys and fields, so the table cannot drift from the schema.
+S025_SCOPED_LOOKUPS: dict[str, dict[str, dict[str, tuple[str, ...]]]] = {
+    "sentry.integrations.models.integration.Integration": {
+        "external_id": {"provider": ("provider",)},
+    },
+    "sentry.models.repository.Repository": {
+        "external_id": {"provider": ("provider", "integration_id")},
+    },
+    "sentry.users.models.identity.Identity": {
+        "external_id": {"idp": ("idp", "idp_id", "idp__type")},
+    },
+    "sentry.users.models.identity.IdentityProvider": {
+        "external_id": {"type": ("type",)},
+    },
+    "sentry.integrations.models.external_actor.ExternalActor": {
+        "external_name": {"provider": ("provider", "integration_id")},
+    },
+    "sentry.integrations.models.integration_external_project.IntegrationExternalProject": {
+        "external_id": {"organization_integration_id": ("organization_integration_id",)},
+    },
+    "sentry.models.organizationcontributors.OrganizationContributors": {
+        "external_identifier": {"provider": ("provider",), "hostname": ("hostname",)},
+    },
+}
+S025_queryset_methods = frozenset(
+    ("filter", "get", "get_or_create", "update_or_create", "get_or_none")
+)
+# RPC services that compose the same lookups from keyword arguments:
+# {service: {method: (looked-up kwargs, kwargs that pin the provider)}}.
+S025_SERVICE_LOOKUPS: dict[str, dict[str, tuple[frozenset[str], frozenset[str]]]] = {
+    "repository_service": {
+        "get_repositories": (
+            frozenset({"external_id"}),
+            frozenset({"providers", "integration_id", "has_provider"}),
+        ),
+    },
+}
+# identity_service.get_identity(filter={...}) / get_identities(filter={...}) take a dict.
+S025_identity_filter_methods = frozenset(("get_identity", "get_identities"))
+S025_identity_lookup_keys = frozenset(("identity_ext_id", "identity_ext_ids"))
+S025_identity_provider_keys = frozenset(("provider_id", "provider_ext_id", "provider_type"))
+S025_lookup_suffixes = frozenset(
+    (
+        "exact",
+        "iexact",
+        "contains",
+        "icontains",
+        "in",
+        "gt",
+        "gte",
+        "lt",
+        "lte",
+        "startswith",
+        "istartswith",
+        "endswith",
+        "iendswith",
+        "range",
+        "isnull",
+        "regex",
+        "iregex",
+    )
+)
+
+
 # --- S015: do not hardcode current or future UTC year as test "now" ---
 # Flag year >= current UTC year at lint time. Module/class scope + freeze_time(datetime(...)).
 S021_msg = (
@@ -517,6 +592,46 @@ def _repo_relative(filename: str) -> str:
     return normalized.lstrip("./")
 
 
+def _s025_q_columns(expr: ast.expr) -> tuple[set[str], set[str]] | None:
+    """(pinned, looked up) kwarg names of a positional ``Q(...)`` expression.
+
+    Pinned names constrain every row the expression matches: ``|`` keeps only what both
+    sides pin, ``&`` both. Looked-up names are everything the expression filters on at all.
+    ``None`` for anything not built from ``Q(...)`` literals, e.g. a helper returning a ``Q``.
+    """
+    if isinstance(expr, ast.Call) and isinstance(expr.func, ast.Name) and expr.func.id == "Q":
+        names = {keyword.arg for keyword in expr.keywords if keyword.arg is not None}
+        pinned, looked_up = set(names), set(names)
+        for arg in expr.args:
+            inner = _s025_q_columns(arg)
+            if inner is None:
+                return None
+            pinned |= inner[0]
+            looked_up |= inner[1]
+        return pinned, looked_up
+    if isinstance(expr, ast.BinOp) and isinstance(expr.op, (ast.BitOr, ast.BitAnd)):
+        left, right = _s025_q_columns(expr.left), _s025_q_columns(expr.right)
+        if left is None or right is None:
+            return None
+        pinned = left[0] & right[0] if isinstance(expr.op, ast.BitOr) else left[0] | right[0]
+        return pinned, left[1] | right[1]
+    return None
+
+
+def _is_false_literal(expr: ast.expr) -> bool:
+    return isinstance(expr, ast.Constant) and expr.value is False
+
+
+def _s025_column(name: str) -> str | None:
+    """A kwarg name with its lookup suffix stripped; ``None`` for a null test."""
+    parts = name.split("__")
+    if len(parts) > 1 and parts[-1] in S025_lookup_suffixes:
+        if parts[-1] == "isnull":
+            return None  # `IS NULL` tests do not look a row up
+        parts = parts[:-1]
+    return "__".join(parts)
+
+
 class SentryVisitor(ast.NodeVisitor):
     def __init__(
         self,
@@ -543,9 +658,15 @@ class SentryVisitor(ast.NodeVisitor):
         self._publish_status: dict[str, str] | None = None
         self._class_stack: list[str] = []
         self._function_stack: list[str] = []
+        # S025: `from a.b import C as D` -> {"D": "a.b.C"}, to resolve `D.objects...`.
+        self._s025_imports: dict[str, str] = {}
+        # S025: inner calls of a chain already reported with their outermost call.
+        self._s025_seen: set[int] = set()
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         if node.module and not node.level:
+            for alias in node.names:
+                self._s025_imports[alias.asname or alias.name] = f"{node.module}.{alias.name}"
             if node.module.split(".")[0] in S003_modules:
                 self.errors.append((node.lineno, node.col_offset, S003_msg))
             elif node.module == "sentry.models":
@@ -823,8 +944,112 @@ class SentryVisitor(ast.NodeVisitor):
             if self._s024_parses is None:
                 self._s024_parses = (node.lineno, node.col_offset)
 
+    def _s025_visit_service_call(self, node: ast.Call) -> None:
+        if not (isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name)):
+            return
+        service, method = node.func.value.id, node.func.attr
+        kwargs = {keyword.arg: keyword.value for keyword in node.keywords if keyword.arg}
+
+        if rule := S025_SERVICE_LOOKUPS.get(service, {}).get(method):
+            looked_up, pins = rule
+            present = looked_up & kwargs.keys()
+            # `has_provider=False` selects the provider-less rows, a namespace of its own;
+            # `has_provider=True` pins nothing.
+            pinned = {
+                name
+                for name in pins & kwargs.keys()
+                if name != "has_provider" or _is_false_literal(kwargs[name])
+            }
+            if present and not pinned:
+                msg = S025_service_msg.format(
+                    call=f"{service}.{method}()",
+                    column=", ".join(sorted(present)),
+                    requires=" or ".join(sorted(pins - {"has_provider"})),
+                )
+                self.errors.append((node.lineno, node.col_offset, msg))
+
+        if service == "identity_service" and method in S025_identity_filter_methods:
+            filter_arg = kwargs.get("filter")
+            if not isinstance(filter_arg, ast.Dict):
+                return  # a filter built elsewhere; not checkable here
+            keys = {
+                key.value
+                for key in filter_arg.keys
+                if isinstance(key, ast.Constant) and isinstance(key.value, str)
+            }
+            if keys & S025_identity_lookup_keys and not keys & S025_identity_provider_keys:
+                msg = S025_service_msg.format(
+                    call=f"{service}.{method}()",
+                    column=", ".join(sorted(keys & S025_identity_lookup_keys)),
+                    requires=" or ".join(sorted(S025_identity_provider_keys)),
+                )
+                self.errors.append((node.lineno, node.col_offset, msg))
+
+    def _s025_visit_call(self, node: ast.Call) -> None:
+        # Test code asserts against single-provider fixtures; the rule is for production code.
+        if _is_tests_path(self.filename) or id(node) in self._s025_seen:
+            return
+        self._s025_visit_service_call(node)
+
+        # Walk `Model.objects.a(...).b(...)` down to its receiver, collecting every call.
+        calls: list[ast.Call] = []
+        receiver: ast.expr = node
+        while isinstance(receiver, ast.Call) and isinstance(receiver.func, ast.Attribute):
+            calls.append(receiver)
+            receiver = receiver.func.value
+        if not (
+            isinstance(receiver, ast.Attribute)
+            and receiver.attr == "objects"
+            and isinstance(receiver.value, ast.Name)
+        ):
+            return
+        self._s025_seen.update(id(call) for call in calls)
+
+        model = self._s025_imports.get(receiver.value.id, "")
+        rules = S025_SCOPED_LOOKUPS.get(model)
+        if rules is None:
+            return
+
+        # Every column the chain looks up, against the columns it pins on every matching
+        # row: `Q(a) | Q(b)` looks up both but pins neither, and `exclude()` does neither.
+        # A path across a relation (`idp__type`) is never a scoped column itself and pins
+        # only what a rule names.
+        looked_up: set[str] = set()
+        pinned: set[str] = set()
+        for call in calls:
+            assert isinstance(call.func, ast.Attribute)
+            if call.func.attr not in S025_queryset_methods:
+                continue
+            for keyword in call.keywords:
+                if keyword.arg is not None:
+                    looked_up.add(keyword.arg)
+                    pinned.add(keyword.arg)
+            for arg in call.args:
+                # A helper returning a Q, or a `*args` splat, pins nothing: a `# noqa` with
+                # the reason at the call site beats a silent pass.
+                if q_columns := _s025_q_columns(arg):
+                    pinned |= q_columns[0]
+                    looked_up |= q_columns[1]
+        looked_up = {column for column in map(_s025_column, looked_up) if column is not None}
+        pinned = {column for column in map(_s025_column, pinned) if column is not None}
+        if pinned & {"id", "pk"}:
+            return
+
+        for column, requires in rules.items():
+            if column not in looked_up:
+                continue
+            missing = [
+                required for required, accepted in requires.items() if not (set(accepted) & pinned)
+            ]
+            if missing:
+                msg = S025_msg.format(
+                    model=model.rsplit(".", 1)[-1], column=column, requires=", ".join(missing)
+                )
+                self.errors.append((node.lineno, node.col_offset, msg))
+
     def visit_Call(self, node: ast.Call) -> None:
         self._s024_visit_call(node)
+        self._s025_visit_call(node)
         if _is_tests_path(self.filename):
             if (
                 isinstance(node.func, ast.Name)
