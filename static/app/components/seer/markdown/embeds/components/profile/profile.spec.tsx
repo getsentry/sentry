@@ -50,6 +50,38 @@ function makeProfileSchema() {
   };
 }
 
+const DEEP_PROFILE_DEPTH = 40;
+
+/**
+ * Deep enough to overflow the 200px preview, with two samples that share no
+ * root frame -- the shape that made the preview open on the deepest rows.
+ */
+function makeDeepProfileSchema() {
+  return {
+    ...makeProfileSchema(),
+    profiles: [
+      {
+        name: 'main',
+        startValue: 0,
+        endValue: 1000,
+        unit: 'milliseconds',
+        threadID: 0,
+        type: 'sampled',
+        weights: [500, 500],
+        samples: [
+          [DEEP_PROFILE_DEPTH, DEEP_PROFILE_DEPTH + 1],
+          Array.from({length: DEEP_PROFILE_DEPTH}, (_, i) => i),
+        ],
+      },
+    ],
+    shared: {
+      frames: Array.from({length: DEEP_PROFILE_DEPTH + 2}, (_, i) => ({
+        name: `frame${i}`,
+      })),
+    },
+  };
+}
+
 function renderProfileBlock(body: unknown = makeProfileSchema(), statusCode = 200) {
   MockApiClient.addMockResponse({url: PROFILE_URL, body, statusCode});
 
@@ -96,6 +128,27 @@ describe('profile embed', () => {
       '/organizations/org-slug/explore/profiles/profile/javascript/7f3c2b1a9d8e4f60/flamegraph/'
     );
     expect(screen.getByRole('button', {name: 'Open in Profiling'})).toBeInTheDocument();
+  });
+
+  it('opens the preview at the root of a deep profile in both views', async () => {
+    renderProfileBlock(makeDeepProfileSchema());
+    await screen.findByTestId('seer-profile-flamechart');
+
+    // The viewport the preview settled on is observable through the deep link's
+    // `fov` rect: "x,y,width,height", so y === 0 means it starts at the root.
+    const viewportY = () =>
+      decodeURIComponent(
+        screen.getByRole('button', {name: 'Open in Profiling'}).getAttribute('href') ?? ''
+      ).replace(/^.*fov=[^,]*,([^,]*).*$/, '$1');
+
+    expect(viewportY()).toBe('0');
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Time-ordered'}));
+
+    await waitFor(() => {
+      expect(screen.getByRole('radio', {name: 'Time-ordered'})).toBeChecked();
+    });
+    expect(viewportY()).toBe('0');
   });
 
   it('deep-links the previewed viewport under the sort it was captured with', async () => {

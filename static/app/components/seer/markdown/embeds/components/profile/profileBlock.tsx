@@ -26,6 +26,7 @@ import {
 import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+import {formatTo} from 'sentry/utils/profiling/units/units';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -300,9 +301,14 @@ export default function ProfileBlock({projectSlug, profileId}: EmbedOutput<'prof
                     position="relative"
                   >
                     <FlamegraphPreview
+                      anchorAtRoot
                       flamegraph={flamegraph}
                       relativeStartTimestamp={0}
-                      relativeStopTimestamp={flamegraph.configSpace.width}
+                      relativeStopTimestamp={formatTo(
+                        flamegraph.configSpace.width,
+                        flamegraph.unit,
+                        'second'
+                      )}
                       updateFlamegraphView={setCanvasView}
                     />
                   </Container>
