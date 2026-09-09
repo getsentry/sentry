@@ -168,7 +168,8 @@ function useOverflowTabs({
         }
         const nextUsed =
           used + (tabWidthsRef.current.get(key) ?? 0) + (index === 0 ? 0 : gap);
-        // Always keep the first tab to avoid an empty tab bar.
+        // Always keep the first tab visible so the tab bar never collapses to
+        // only the overflow trigger.
         if (index === 0 || nextUsed <= budget) {
           used = nextUsed;
         } else {
@@ -371,7 +372,12 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
   }, [state.collection, overflowTabs]);
 
   return (
-    <Container position="relative" style={outerWrapStyles} ref={outerWrapRef}>
+    <Container
+      position="relative"
+      width={orientation === 'horizontal' ? '100%' : undefined}
+      style={outerWrapStyles}
+      ref={outerWrapRef}
+    >
       <TabListWrap
         {...tabListProps}
         orientation={orientation}

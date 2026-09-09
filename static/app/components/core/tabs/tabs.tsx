@@ -103,6 +103,12 @@ const TabsWrap = styled('div', {shouldForwardProp: tabsShouldForwardProp})<{
   min-width: 0;
 
   ${p =>
+    p.orientation === 'horizontal' &&
+    css`
+      width: 100%;
+    `}
+
+  ${p =>
     p.orientation === 'vertical' &&
     css`
       height: 100%;
