@@ -475,6 +475,8 @@ export const SEER_EMBED_SCHEMAS = {
       'The ONLY way to reference a Sentry trace (the trace waterfall view). ' +
       'Use the 32-character trace ID. Provide `timestamp` when known so the ' +
       'waterfall opens on the right time range, and `spanId` to focus a span. ' +
+      'Inline: renders a compact link. Block: renders the live trace waterfall. ' +
+      'Do not duplicate the waterfall spans or duration details as text. ' +
       'Never use a markdown link for trace references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -484,7 +486,8 @@ export const SEER_EMBED_SCHEMAS = {
     }),
     examples: [
       {
-        label: 'Trace',
+        label: 'Trace waterfall',
+        level: 'block',
         data: {
           traceId: 'a1b2c3d4e5f678901234567890abcdef',
           timestamp: '2026-08-25T16:37:12Z',

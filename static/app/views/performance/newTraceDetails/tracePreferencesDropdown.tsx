@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import type {Placement} from '@popperjs/core';
 
 import {
   CompactSelect,
@@ -31,6 +32,12 @@ interface TracePreferencesDropdownProps {
   onCompressedTimelineChange: () => void;
   onMissingInstrumentationChange: () => void;
   rootEventResults: TraceRootEventQueryResults;
+  /**
+   * Placements Popper may fall back to when the default `bottom-start` would overflow the
+   * menu's clipping container. `useOverlay` sets `flipVariations: false`, so without this the
+   * menu never re-aligns on its own. Pass a stable reference.
+   */
+  fallbackPlacements?: Placement[];
 }
 
 export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
@@ -88,6 +95,12 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
     props.compressedTimeline,
     props.missingInstrumentation,
   ]);
+
+  const fallbackPlacements = props.fallbackPlacements;
+  const flipOptions = useMemo(
+    () => (fallbackPlacements ? {fallbackPlacements} : undefined),
+    [fallbackPlacements]
+  );
 
   const onAutogroupChange = props.onAutogroupChange;
   const onMissingInstrumentationChange = props.onMissingInstrumentationChange;
@@ -156,6 +169,7 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
       }
       onChange={onChange}
       menuWidth={300}
+      flipOptions={flipOptions}
     />
   );
 }
