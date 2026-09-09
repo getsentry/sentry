@@ -8,12 +8,11 @@ import {Heading} from '@sentry/scraps/text';
 
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-
-export type CustomerUpdateAction = (data: Record<string, unknown>) => Promise<unknown>;
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 interface ChangeContractEndDateModalProps extends ModalRenderProps {
   contractPeriodEnd: string;
-  onAction: CustomerUpdateAction;
+  onAction: (data: Record<string, unknown>) => Promise<unknown>;
 }
 
 const schema = z.object({
@@ -37,11 +36,10 @@ function ChangeContractEndDateModal({
         .then(() => closeModal())
         .catch((error: unknown) => {
           if (error instanceof RequestError) {
-            const fieldError = error.responseJSON?.contractPeriodEnd;
-            const message = Array.isArray(fieldError) ? fieldError[0] : fieldError;
-            if (typeof message === 'string') {
-              setFieldErrors(formApi, {contractPeriodEnd: {message}});
-            }
+            setFieldErrors(
+              formApi,
+              requestErrorToFieldErrors(error, formApi.state.values)
+            );
           }
         }),
   });

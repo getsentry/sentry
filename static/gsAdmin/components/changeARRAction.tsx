@@ -9,7 +9,7 @@ import {NumberField} from 'sentry/components/forms/fields/numberField';
 type Props = {
   // TODO(ts): Type customer when available
   customer: any;
-  onAction: (data: Record<string, unknown>) => Promise<unknown>;
+  onAction: (data: any) => void;
 };
 
 export function ChangeARRAction(props: Props) {
@@ -48,9 +48,8 @@ class ChangeARRModal extends Component<ModalProps, ModalState> {
 
   onAction = () => {
     this.props.closeModal();
-    if (!this.state.error) {
-      this.props.onAction({customPrice: this.state.newAcv * 100}).catch(() => {});
-    }
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    !this.state.error && this.props.onAction({customPrice: this.state.newAcv * 100});
   };
 
   render() {

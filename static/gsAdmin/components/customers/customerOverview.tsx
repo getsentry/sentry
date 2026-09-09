@@ -20,10 +20,7 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 import {ChangeARRAction} from 'admin/components/changeARRAction';
-import {
-  ChangeContractEndDateAction,
-  type CustomerUpdateAction,
-} from 'admin/components/changeContractEndDateAction';
+import {ChangeContractEndDateAction} from 'admin/components/changeContractEndDateAction';
 import {CustomerContact} from 'admin/components/customerContact';
 import {CustomerStatus} from 'admin/components/customerStatus';
 import {DetailLabel} from 'admin/components/detailLabel';
@@ -65,6 +62,8 @@ import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
 import {titleCase} from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
+
+type CustomerUpdateAction = (data: Record<string, unknown>) => Promise<unknown>;
 
 type SubscriptionSummaryProps = {
   customer: Subscription;
@@ -615,6 +614,12 @@ function DynamicSampling({organization}: {organization: Organization}) {
 }
 
 export function CustomerOverview({customer, onAction, organization}: Props) {
+  const runAction = (data: Record<string, unknown>) => {
+    onAction(data).catch(() => {
+      // The mutation's onError callback surfaces the failure to the user.
+    });
+  };
+
   let orgUrl = `/organizations/${organization.slug}/issues/`;
   const configFeatures = ConfigStore.get('features');
   if (configFeatures.has('system:multi-region')) {
@@ -670,7 +675,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
       [action]: true,
     };
 
-    onAction(data).catch(() => {});
+    runAction(data);
   };
 
   const getTrialManagementActions = (
@@ -708,7 +713,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             {...deps}
           />
         ),
-        onConfirm: data => onAction(data).catch(() => {}),
+        onConfirm: runAction,
       });
     };
 
@@ -821,7 +826,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             {customer.type === 'invoiced' && customer.billingInterval === 'annual' && (
               <span>
                 {' | '}
-                <ChangeARRAction customer={customer} onAction={onAction} />
+                <ChangeARRAction customer={customer} onAction={runAction} />
               </span>
             )}
           </DetailLabel>
