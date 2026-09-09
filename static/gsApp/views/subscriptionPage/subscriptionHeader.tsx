@@ -33,7 +33,9 @@ export function SubscriptionHeader(props: Props) {
   const {subscription, organization} = props;
   const hasBillingPerms = hasPermissions(organization, 'org:billing');
   const isDisabled = isDisabledByPartner(subscription);
-  const planIcon = getPlanIcon(subscription.planDetails);
+  const planIcon = subscription.planDetails
+    ? getPlanIcon(subscription.planDetails)
+    : null;
 
   return (
     <Stack gap="xl" background="secondary">
@@ -51,7 +53,9 @@ export function SubscriptionHeader(props: Props) {
               ? cloneElement(planIcon, {size: 'md'} as SVGIconProps)
               : null}
             <Text size="2xl" bold>
-              {tct('[planName] plan', {planName: subscription.planDetails.name})}
+              {subscription.planDetails?.name
+                ? tct('[planName] plan', {planName: subscription.planDetails.name})
+                : t('Subscription')}
             </Text>
           </Flex>
           <Flex gap="md">

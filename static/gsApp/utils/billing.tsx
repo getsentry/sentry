@@ -541,7 +541,7 @@ export function getProductIcon(product: AddOnCategory, size?: SVGIconProps['size
  * Returns true if the subscription can use pay-as-you-go.
  */
 export function supportsPayg(subscription: Subscription) {
-  return subscription.planDetails.allowOnDemand && subscription.supportsOnDemand;
+  return !!subscription.planDetails?.allowOnDemand && subscription.supportsOnDemand;
 }
 
 /**
