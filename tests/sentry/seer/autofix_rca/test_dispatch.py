@@ -19,9 +19,14 @@ class TestTriggerAutofixRCAFeature(TestCase):
 
     def test_dispatches_feature_run(self) -> None:
         fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
+        expected_context = {"org_slug": self.organization.slug, "all_org_projects": []}
 
         with (
             patch("sentry.seer.autofix_rca.dispatch.SeerAgentClient") as MockClient,
+            patch(
+                "sentry.seer.autofix_rca.dispatch.collect_user_org_context",
+                return_value=expected_context,
+            ) as mock_collect_context,
             patch("sentry.seer.autofix_rca.dispatch.quotas") as mock_quotas,
         ):
             mock_quotas.backend.check_seer_quota.return_value = True
@@ -50,19 +55,23 @@ class TestTriggerAutofixRCAFeature(TestCase):
         assert run_kwargs["flush"] is True
         payload = run_kwargs["payload"]
         assert payload["group_id"] == self.group.id
+        assert payload["project_id"] == self.group.project_id
         assert payload["short_id"] == (self.group.qualified_short_id or str(self.group.id))
         assert payload["title"] == self.group.title
         assert payload["tweaks"]["user_context"] == "an upstream triage summary"
         # Seer persists this hook on the Explorer run so later PR iteration
         # completions continue through the Autofix completion flow.
         assert payload["on_completion_hook"] == {
-            "module_path": AutofixOnCompletionHook.get_module_path()
+            "module_path": AutofixOnCompletionHook.get_module_path(),
+            "call_on_failure": True,
         }
         assert run_kwargs["extras"] == {
             "referrer": AutofixReferrer.NIGHT_SHIFT.value,
             "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
         }
         assert run_kwargs["referrer"] == AutofixReferrer.NIGHT_SHIFT.value
+        assert run_kwargs["user_org_context"] == expected_context
+        mock_collect_context.assert_called_once_with(None, self.group.organization)
 
         # A new run consumes Seer autofix budget.
         mock_quotas.backend.record_seer_run.assert_called_once()
@@ -81,6 +90,26 @@ class TestTriggerAutofixRCAFeature(TestCase):
                 )
 
         MockClient.return_value.start_feature_run.assert_not_called()
+        mock_quotas.backend.record_seer_run.assert_not_called()
+
+    def test_free_cohort_skips_quota_check_and_usage_recording(self) -> None:
+        fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
+
+        with (
+            patch("sentry.seer.autofix_rca.dispatch.SeerAgentClient") as MockClient,
+            patch("sentry.seer.autofix_rca.dispatch.quotas") as mock_quotas,
+            patch("sentry.seer.autofix_rca.dispatch.is_free_cohort_org", return_value=True),
+        ):
+            MockClient.return_value.start_feature_run.return_value = fake_run
+
+            run = trigger_autofix_rca_feature(
+                self.group,
+                referrer=AutofixReferrer.NIGHT_SHIFT,
+                allow_free_cohort=True,
+            )
+
+        assert run is fake_run
+        mock_quotas.backend.check_seer_quota.assert_not_called()
         mock_quotas.backend.record_seer_run.assert_not_called()
 
     def test_allows_async_dispatch(self) -> None:

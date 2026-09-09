@@ -3,10 +3,8 @@ from typing import Literal, Never, cast
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import TraceItemAttributeNamesRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType as ProtoTraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ExistsFilter, TraceItemFilter
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -38,7 +36,7 @@ from sentry.models.organization import Organization
 from sentry.search.eap import constants
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
-from sentry.utils import snuba_rpc
+from sentry.search.eap.utils import attribute_name_exists
 
 AttributeType = Literal["string", "number", "boolean"]
 
@@ -65,19 +63,8 @@ def attribute_exists_in_storage(
         item_type, ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN
     )
 
-    rpc_request = TraceItemAttributeNamesRequest(
-        meta=meta,
-        limit=10000,
-        type=attr_type,
-        # Exact-name filter, so a shared prefix can't cause a false negative.
-        intersecting_attributes_filter=TraceItemFilter(
-            exists_filter=ExistsFilter(key=AttributeKey(type=attr_type, name=internal_name))
-        ),
-    )
     with handle_query_errors():
-        rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
-
-    return any(attribute.name == internal_name for attribute in rpc_response.attributes)
+        return attribute_name_exists(meta, attr_type, internal_name)
 
 
 @cell_silo_endpoint

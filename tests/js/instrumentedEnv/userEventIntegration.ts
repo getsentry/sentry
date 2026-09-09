@@ -1,4 +1,5 @@
-import {fill, isThenable, loadModule} from '@sentry/core';
+import {fill, isThenable} from '@sentry/core';
+import {loadModule} from '@sentry/core/server';
 import * as Sentry from '@sentry/react';
 
 export function instrumentUserEvent(): void {

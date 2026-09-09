@@ -9,7 +9,6 @@ import {t} from 'sentry/locale';
 type Props = ModalRenderProps & {
   featureName: string;
   features: string | string[];
-  message?: string;
 };
 
 export function FeatureDisabledModal({
@@ -19,7 +18,6 @@ export function FeatureDisabledModal({
   CloseButton,
   features,
   featureName,
-  message,
 }: Props) {
   return (
     <Fragment>
@@ -28,7 +26,6 @@ export function FeatureDisabledModal({
         <FeatureDisabled
           featureName={featureName}
           features={features}
-          message={message}
           alert={false}
           hideHelpToggle
         />

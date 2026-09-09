@@ -9,7 +9,7 @@ from sentry import quotas
 from sentry.constants import DataCategory
 from sentry.models.group import Group
 from sentry.seer.agent.client import SeerAgentClient
-from sentry.seer.agent.client_utils import AgentRunOptions
+from sentry.seer.agent.client_utils import AgentRunOptions, collect_user_org_context
 from sentry.seer.agent.on_completion_hook import extract_hook_definition
 from sentry.seer.autofix.autofix_agent import NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
@@ -46,14 +46,23 @@ def trigger_autofix_rca_feature(
             data_category=DataCategory.SEER_AUTOFIX,
         )
         if not has_budget:
+            logger.warning(
+                "autofix_rca.dispatch.quota_denied",
+                extra={
+                    "group_id": group.id,
+                    "organization_id": group.organization.id,
+                    "referrer": referrer.value,
+                },
+            )
             raise NoSeerQuotaException()
 
     payload = AutofixRCAPayload(
         group_id=group.id,
+        project_id=group.project_id,
         short_id=group.qualified_short_id or str(group.id),
         title=group.title or "Unknown error",
         culprit=group.culprit or "unknown",
-        on_completion_hook=extract_hook_definition(AutofixOnCompletionHook),
+        on_completion_hook=extract_hook_definition(AutofixOnCompletionHook, call_on_failure=True),
         tweaks=AutofixRCATweaks(
             intelligence_level=intelligence_level,
             reasoning_effort=reasoning_effort,
@@ -83,15 +92,17 @@ def trigger_autofix_rca_feature(
         flush=flush,
         extras=extras,
         referrer=referrer.value,
+        user_org_context=collect_user_org_context(user, group.organization),
         agent_run_options=AgentRunOptions(
             is_context_engine_enabled=False,
             enable_frontend_code_search=False,
         ),
     )
 
-    quotas.backend.record_seer_run(
-        group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
-    )
+    if not skip_quota:
+        quotas.backend.record_seer_run(
+            group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
+        )
 
     metrics.incr("autofix_rca.feature.trigger", tags={"referrer": referrer.value})
 
@@ -102,6 +113,13 @@ def trigger_autofix_rca_feature(
             "organization_id": group.organization.id,
             "run_id": run.seer_run_state_id,
             "referrer": referrer.value,
+            "stopping_point": stopping_point,
+            "intelligence_level": intelligence_level,
+            "reasoning_effort": reasoning_effort,
+            "flush": flush,
+            "allow_free_cohort": allow_free_cohort,
+            "user_context": user_context,
+            "enable_bash_tools": enable_bash_tools,
         },
     )
 

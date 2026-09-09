@@ -7,6 +7,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -20,6 +21,12 @@ import {LogsDirectExportModalButton} from 'sentry/views/explore/logs/exports/log
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
+const mockDownloadFromHref = jest.fn();
+
+jest.mock('sentry/utils/downloadFromHref', () => ({
+  downloadFromHref: (...args: unknown[]) => mockDownloadFromHref(...args),
+}));
+
 describe('LogsDirectExportModalButton', () => {
   const {organization, project} = initializeOrg({
     organization: {features: ['ourlogs-enabled']},
@@ -30,6 +37,7 @@ describe('LogsDirectExportModalButton', () => {
       id: 'log-1',
       [OurLogKnownFieldKey.PROJECT_ID]: project.id,
       [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+      [OurLogKnownFieldKey.MESSAGE]: `${'x'.repeat(256)}...`,
     }),
   ];
 
@@ -94,8 +102,10 @@ describe('LogsDirectExportModalButton', () => {
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
-    await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+    await userEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {name: 'Export'})
+    );
 
     await waitFor(() => {
       expect(exportRequest).toHaveBeenCalledWith(
@@ -109,5 +119,38 @@ describe('LogsDirectExportModalButton', () => {
         })
       );
     });
+  });
+
+  it('exports through the server rather than the rows the table truncated for display', async () => {
+    const exportRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/data-export/`,
+      method: 'POST',
+      body: {},
+    });
+
+    render(
+      <LogsQueryParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        source="location"
+      >
+        <LogsDirectExportModalButton
+          error={null}
+          isLoading={false}
+          tableData={tableData}
+        />
+      </LogsQueryParamsProvider>,
+      {initialRouterConfig}
+    );
+    renderGlobalModal();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+    await userEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {name: 'Export'})
+    );
+
+    await waitFor(() => {
+      expect(exportRequest).toHaveBeenCalled();
+    });
+    expect(mockDownloadFromHref).not.toHaveBeenCalled();
   });
 });

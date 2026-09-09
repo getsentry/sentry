@@ -120,7 +120,8 @@ export const SEER_EMBED_SCHEMAS = {
       'Use the dashboard ID exactly as returned by the dashboard API. ' +
       'Include the API-provided title when available. ' +
       'Inline: renders a compact link. ' +
-      'Block: renders a standalone dashboard reference. ' +
+      'Block: renders a live preview of the dashboard widgets. Do not duplicate ' +
+      'the widget titles, queries, visualizations, or values as text. ' +
       'Never use a markdown link for dashboard references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -230,6 +231,27 @@ export const SEER_EMBED_SCHEMAS = {
           id: '4c1f2e3d1234567890',
           eventTimestamp: '2026-08-25T16:37:12Z',
         },
+      },
+    ],
+  },
+  release: {
+    description:
+      'The ONLY way to reference a Sentry release. ' +
+      'Use `version` exactly as the releases API returns it. ' +
+      'Provide `projectId` when the release belongs to a specific project. ' +
+      'Inline: renders a compact link. ' +
+      'Block: renders release metadata, new issues, commit authors, the last commit, ' +
+      'and recent deploys. Do not duplicate that data as text. ' +
+      'Never use a markdown link for release references.',
+    level: ['inline', 'block'],
+    schema: z.object({
+      version: z.string().min(1),
+      projectId: idString.optional(),
+    }),
+    examples: [
+      {
+        label: 'Release',
+        data: {version: 'example-app@1.2.3', projectId: '1'},
       },
     ],
   },
@@ -347,6 +369,10 @@ export const SEER_EMBED_SCHEMAS = {
       '"metric" for a metric alert, "issue" for an issue alert, "uptime" for an ' +
       'uptime alert, "cron" for a cron alert. ' +
       'Include the API-provided name when available. ' +
+      'Inline: renders a compact link. ' +
+      'Block: renders alert conditions and configured actions, plus the ' +
+      'underlying rule configuration for metric, uptime, and cron alerts. ' +
+      'Do not duplicate those details as text. ' +
       'Never use a markdown link for alert references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -360,26 +386,46 @@ export const SEER_EMBED_SCHEMAS = {
         data: {id: '4521', kind: 'metric', name: 'Checkout p95 latency'},
       },
       {label: 'Issue alert', data: {id: '881', kind: 'issue'}},
+      {
+        label: 'Uptime alert',
+        data: {id: '774', kind: 'uptime', name: 'Checkout availability'},
+      },
+      {
+        label: 'Cron alert',
+        data: {id: '9931', kind: 'cron', name: 'nightly-sync'},
+      },
     ],
   },
   monitor: {
     description:
-      'The ONLY way to reference a Sentry monitor (cron, uptime, or metric ' +
-      'detector). Use the detector ID exactly as the monitors API returns it. ' +
+      'The ONLY way to reference a Sentry monitor (error, metric, cron, uptime, ' +
+      'or mobile build detector). Use the numeric id from the detectors API ' +
+      '(get_organization_detector / list_organization_detectors) — do NOT use the ' +
+      '"id" field from the monitors API, which is a GUID and will not work here. ' +
       'Include the API-provided name when available. ' +
+      'Inline: renders a compact link. ' +
+      'Block: loads the live monitor and renders its type-specific configuration/rules. ' +
       'Never use a markdown link for monitor references.',
     level: ['inline', 'block'],
     schema: z.object({
       id: z.string().min(1),
       name: z.string().min(1).optional(),
     }),
-    examples: [{label: 'Monitor', data: {id: '9931', name: 'nightly-billing-sync'}}],
+    examples: [
+      {
+        label: 'Monitor',
+        data: {id: '9931', name: 'nightly-billing-sync'},
+      },
+    ],
   },
   savedIssueView: {
     description:
       'The ONLY way to reference a saved Sentry issue view. ' +
       'Use the view ID exactly as the issue-views API returns it. ' +
       'Include the API-provided name when available. ' +
+      'Inline: renders a compact link. ' +
+      'Block: loads the saved filters and renders a live preview of matching issues. ' +
+      'Do not duplicate the issue titles, event counts, users, priorities, or assignees as text. ' +
       'Never use a markdown link for issue view references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -396,11 +442,25 @@ export const SEER_EMBED_SCHEMAS = {
       'Use the saved query ID exactly as the API returns it and set `dataset` ' +
       'to the dataset it was saved against. ' +
       'Include the API-provided name when available. ' +
-      'Never use a markdown link for saved query references.',
+      'Never use a markdown link for saved query references. ' +
+      'Inline renders a link; block fetches the saved query and shows its ' +
+      "name, filter, group-by and visualize, linking to the query's own " +
+      'parameters rather than just its id.',
     level: ['inline', 'block'],
     schema: z.object({
       id: z.string().min(1),
-      dataset: z.enum(['spans', 'logs', 'metrics', 'replays']),
+      // Every value the saved query API can report, not just the four Explore
+      // surfaces. `segment_spans` and `ai_conversations` are what the API
+      // returns for a good share of real saved queries, and an embed whose
+      // props fail to parse renders nothing at all.
+      dataset: z.enum([
+        'spans',
+        'segment_spans',
+        'logs',
+        'metrics',
+        'replays',
+        'ai_conversations',
+      ]),
       name: z.string().min(1).optional(),
     }),
     examples: [
@@ -476,14 +536,23 @@ export const SEER_EMBED_SCHEMAS = {
   },
   errorsQuery: {
     description:
-      'Link to an errors (Discover) query results page. ' +
-      'Use this for tabular error exploration across events. ' +
-      '`query` uses event search syntax and `fields` are the table columns. ' +
-      'Provide `yAxes` to chart aggregates alongside the table.',
+      'Preview an errors (Discover) query. ' +
+      'Use mode "samples" to show individual error events and "aggregate" to ' +
+      'group and chart them. ' +
+      '`query` uses event search syntax. In samples mode `fields` are ' +
+      'non-aggregate table columns; in aggregate mode `fields` must include the ' +
+      'group-by columns and at least one aggregate function, such as "count()" ' +
+      'or "count_unique(user)". ' +
+      'Inline renders a link; block renders the first five matching rows beneath ' +
+      'a timeseries chart of the total across the period — the chart is never ' +
+      'broken out per group. When aggregate mode names only aggregates and no ' +
+      'group-by columns, the chart replaces the table. Provide `yAxes` to pick ' +
+      'which aggregate is charted; samples mode charts the event count.',
     level: ['inline', 'block'],
     schema: z.object({
       ...pageFilterFields,
       query: z.string().default(''),
+      mode: z.enum(['samples', 'aggregate']).default('samples'),
       fields: z.array(z.string()).optional(),
       yAxes: z.array(z.string()).optional(),
       sort: z.string().optional(),
@@ -491,22 +560,54 @@ export const SEER_EMBED_SCHEMAS = {
     }),
     examples: [
       {
-        label: 'Errors by URL',
+        label: 'Recent errors',
         data: {
           query: 'event.type:error',
-          fields: ['title', 'count()', 'url'],
+          mode: 'samples',
+          fields: ['title', 'project', 'user.display', 'timestamp'],
           statsPeriod: '24h',
-          title: 'Checkout errors',
+          title: 'Recent errors',
+        },
+      },
+      {
+        label: 'Errors by title',
+        data: {
+          query: '',
+          mode: 'aggregate',
+          fields: ['title', 'project', 'count_unique(user)'],
+          sort: '-count_unique_user',
+          statsPeriod: '1h',
+          yAxes: ['count()'],
+          title: 'Errors by title',
+        },
+      },
+      {
+        // No group-by columns, so there is only ever one row to show and the
+        // chart stands in for the table.
+        label: 'Total errors',
+        data: {
+          query: 'event.type:error',
+          mode: 'aggregate',
+          fields: ['count()'],
+          statsPeriod: '24h',
+          title: 'Total errors',
         },
       },
     ],
   },
   spansQuery: {
     description:
-      'Link to an Explore > Traces (spans) query. ' +
-      'Use mode "samples" to show individual spans and "aggregate" to group and ' +
-      'chart them. In aggregate mode supply `groupBy` and `yAxes`. ' +
-      '`query` uses span search syntax, e.g. "span.op:http.client".',
+      'Preview an Explore > Traces (spans) query. ' +
+      'Use mode "samples" for individual spans and mode "aggregate" for grouped ' +
+      'results, supplying `groupBy` and `yAxes`. ' +
+      '`query` uses span search syntax, e.g. "span.op:http.client". ' +
+      'Inline renders a link; block renders the first five matching rows beneath ' +
+      'a timeseries chart of the same query. A query with `groupBy` charts the ' +
+      'top five groups as one series each, matching the rows below it; every ' +
+      'other query charts a single total for the period. Provide `yAxes` to pick ' +
+      'which aggregate is charted — samples mode, and any query naming none, ' +
+      'charts "count(span.duration)". When aggregate mode supplies no `groupBy` ' +
+      'there is only one row to show, so the chart replaces the table.',
     level: ['inline', 'block'],
     schema: z.object(exploreQueryFields),
     examples: [
@@ -515,8 +616,10 @@ export const SEER_EMBED_SCHEMAS = {
         data: {
           query: 'span.op:http.client',
           mode: 'samples',
+          fields: ['span.description', 'span.op', 'span.duration', 'timestamp'],
           sort: '-span.duration',
           statsPeriod: '24h',
+          title: 'Slow HTTP spans',
         },
       },
       {
@@ -526,17 +629,35 @@ export const SEER_EMBED_SCHEMAS = {
           mode: 'aggregate',
           groupBy: ['span.op'],
           yAxes: ['p95(span.duration)'],
+          sort: '-p95_span_duration',
           statsPeriod: '7d',
+          title: 'p95 by span op',
+        },
+      },
+      {
+        // No group-by columns, so there is only ever one row to show and the
+        // chart stands in for the table.
+        label: 'Total spans',
+        data: {
+          query: 'span.op:http.client',
+          mode: 'aggregate',
+          yAxes: ['count(span.duration)'],
+          statsPeriod: '24h',
+          title: 'Total spans',
         },
       },
     ],
   },
   logsQuery: {
     description:
-      'Link to an Explore > Logs query. ' +
+      'Preview an Explore > Logs query. ' +
       'Use mode "samples" to show individual log rows and "aggregate" to group ' +
       'and chart them. In aggregate mode supply `groupBy` and `yAxes`. ' +
-      '`query` uses log search syntax, e.g. "severity:error".',
+      '`query` uses log search syntax, e.g. "severity:error". ' +
+      'Inline renders a link; block renders the first five matching rows ' +
+      'beneath a timeseries — one series per group when grouped, log volume ' +
+      'otherwise. An aggregate that groups by nothing collapses to a single ' +
+      'row, so there the chart replaces the table.',
     level: ['inline', 'block'],
     schema: z.object(exploreQueryFields),
     examples: [
@@ -558,10 +679,12 @@ export const SEER_EMBED_SCHEMAS = {
   },
   replaysQuery: {
     description:
-      'Link to the Session Replay list filtered by a search query. ' +
+      'Preview the Session Replay list filtered by a search query. ' +
       'Use this when pointing the user at a SET of replays — if you have a ' +
       'specific replay ID, use the `replay` embed instead. ' +
-      '`query` uses replay search syntax, e.g. "user.email:user@example.com".',
+      '`query` uses replay search syntax, e.g. "user.email:user@example.com". ' +
+      'Inline renders a link; block renders the first five matching replays ' +
+      'with their duration, error count and rage clicks.',
     level: ['inline', 'block'],
     schema: z.object({
       ...pageFilterFields,
@@ -578,10 +701,16 @@ export const SEER_EMBED_SCHEMAS = {
   },
   metricsQuery: {
     description:
-      'Link to an Explore > Metrics query for a single trace metric. ' +
+      'Preview an Explore > Metrics query for a single trace metric. ' +
       'Requires the metric `name` and `type` exactly as the metrics API returns ' +
       'them. Use mode "aggregate" with `groupBy`/`yAxes` to chart the metric, or ' +
-      '"samples" to list raw points.',
+      '"samples" to list raw points. ' +
+      'Name `yAxes` the short way, e.g. "p95(value)" — the embed qualifies them ' +
+      'with the metric itself. Omit `yAxes` to use the default aggregate for the ' +
+      "metric's type. " +
+      'Inline renders a link; block renders a timeseries chart with the first ' +
+      'five matching rows beneath it. An aggregate that groups by nothing ' +
+      'collapses to a single row, so there the chart replaces the table.',
     level: ['inline', 'block'],
     schema: z.object({
       ...exploreQueryFields,

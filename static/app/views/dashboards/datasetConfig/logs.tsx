@@ -14,6 +14,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {AggregationKey, attributeTypeFromKind} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {WIDGET_BUILDER_ATTRIBUTE_STALE_TIME} from 'sentry/views/dashboards/constants';
 import {
   handleOrderByReset,
   type DatasetConfig,
@@ -157,21 +158,44 @@ function LogsSearchBar({
 }
 
 function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
-  const {pageFilters, widgetQuery} = props;
+  const {filterKeySearch, pageFilters, widgetQuery} = props;
   const organization = useOrganization();
   const supportsArrays = organization.features.includes('trace-item-array-query-support');
+  const logsEnabled = isLogsEnabled(organization);
+  const attributeOptions = {
+    enabled: logsEnabled,
+    search: filterKeySearch,
+    staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
+  };
 
-  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'string');
-  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'number');
-  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'boolean');
-  const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
-    useLogItemAttributes(
-      {enabled: isLogsEnabled(organization) && supportsArrays},
-      'array'
-    );
+  const {
+    attributes: stringAttributes,
+    isLoading: stringAttributesLoading,
+    secondaryAliases: stringSecondaryAliases,
+  } = useLogItemAttributes(attributeOptions, 'string');
+  const {
+    attributes: numberAttributes,
+    isLoading: numberAttributesLoading,
+    secondaryAliases: numberSecondaryAliases,
+  } = useLogItemAttributes(attributeOptions, 'number');
+  const {
+    attributes: booleanAttributes,
+    isLoading: booleanAttributesLoading,
+    secondaryAliases: booleanSecondaryAliases,
+  } = useLogItemAttributes(attributeOptions, 'boolean');
+  const {
+    attributes: arrayAttributes,
+    isLoading: arrayAttributesLoading,
+    secondaryAliases: arraySecondaryAliases,
+  } = useLogItemAttributes(
+    {...attributeOptions, enabled: logsEnabled && supportsArrays},
+    'array'
+  );
+  const isFetchingFilterKeys =
+    stringAttributesLoading ||
+    numberAttributesLoading ||
+    booleanAttributesLoading ||
+    arrayAttributesLoading;
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
@@ -192,6 +216,7 @@ function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): Search
     getFilterKeySections: () => filterKeySections,
     getFilterKeys: () => filterKeys,
     getTagValues,
+    isFetchingFilterKeys,
   };
 }
 
@@ -299,16 +324,8 @@ function filterYAxisOptions() {
   };
 }
 
-function getGroupByFieldOptions(
-  organization: Organization,
-  tags?: TagCollection,
-  customMeasurements?: CustomMeasurementCollection
-) {
-  const primaryFieldOptions = getPrimaryFieldOptions(
-    organization,
-    tags,
-    customMeasurements
-  );
+function getGroupByFieldOptions(organization: Organization, tags?: TagCollection) {
+  const primaryFieldOptions = getPrimaryFieldOptions(organization, tags);
   const yAxisFilter = filterYAxisOptions();
   const filterGroupByOptions = (option: FieldValueOption) => !yAxisFilter(option);
 

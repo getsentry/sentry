@@ -1,12 +1,7 @@
 from abc import ABC, abstractmethod
-from collections import namedtuple
-from typing import Any
 
 from sentry.dynamic_sampling.rules.utils import PolymorphicRule
 from sentry.models.project import Project
-
-BiasData = dict[str, Any]
-BiasParams = namedtuple("BiasParams", "project base_sample_rate")
 
 
 class Bias(ABC):
