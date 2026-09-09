@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import addIntegrationProvider from 'sentry-images/spot/add-integration-provider.svg';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconClose} from 'sentry/icons';
@@ -72,22 +72,24 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
           src={addIntegrationProvider}
         />
       </Container>
-      <Button
-        css={theme => css`
-          position: absolute;
-          display: block;
-          top: ${theme.space.xl};
-          right: ${theme.space.xl};
-          color: ${theme.colors.white};
-          cursor: pointer;
-          z-index: 1;
-        `}
-        variant="link"
-        aria-label={t('Dismiss')}
-        icon={<IconClose variant="muted" />}
-        size="xs"
-        onClick={onDismiss}
-      />
+      <Flex
+        align="start"
+        inset="0"
+        justify="end"
+        padding="xl"
+        pointerEvents="none"
+        position="absolute"
+      >
+        <Container pointerEvents="auto">
+          <Button
+            variant="link"
+            aria-label={t('Dismiss')}
+            icon={<IconClose variant="muted" />}
+            size="xs"
+            onClick={onDismiss}
+          />
+        </Container>
+      </Flex>
     </Container>
   );
 }
