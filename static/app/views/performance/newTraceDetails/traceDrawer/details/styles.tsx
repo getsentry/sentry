@@ -338,7 +338,6 @@ function TableRow({
           <StyledPre>
             <span className="val-string">{children}</span>
           </StyledPre>
-          <TableRowButtonContainer>{null}</TableRowButtonContainer>
         </TableValueRow>
       </ValueTd>
     </tr>
@@ -724,10 +723,6 @@ const TableValueRow = styled('div')`
 const StyledPre = styled('pre')`
   margin: 0 !important;
   background-color: transparent !important;
-`;
-
-const TableRowButtonContainer = styled('div')`
-  padding: 8px 10px;
 `;
 
 const ValueTd = styled('td')`
@@ -1345,7 +1340,6 @@ export const TraceDrawerComponents = {
   Duration,
   TableRow,
   LAZY_RENDER_PROPS,
-  TableRowButtonContainer,
   TableValueRow,
   IssuesLink,
   SectionCard,

@@ -22,7 +22,6 @@ export function makeTransactionProfilingLink(
     organization: options.organization,
     projectSlug: options.projectSlug,
     profileId,
-    query: {},
   });
 }
 
