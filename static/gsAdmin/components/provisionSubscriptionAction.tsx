@@ -77,16 +77,15 @@ function toDollars(cents: number | null | undefined, decimals = 0) {
  */
 function toAnnualDollars(
   cents: number | null | undefined,
-  billingInterval: string | null | undefined,
-  decimals = 0
+  billingInterval: string | null | undefined
 ) {
   if (typeof cents !== 'number') {
     return cents;
   }
   if (billingInterval === 'monthly') {
-    return toDollars(cents * 12, decimals);
+    return toDollars(cents * 12);
   }
-  return toDollars(cents, decimals);
+  return toDollars(cents);
 }
 
 /**
@@ -101,11 +100,11 @@ function toCpeCents(dollars: number | null | undefined) {
   return parseInt(((dollars * 100) / CPE_MULTIPLIER_TO_CENTS).toFixed(0), 10);
 }
 
-function toCents(dollars: number | null | undefined, decimals = 0) {
+function toCents(dollars: number | null | undefined) {
   if (typeof dollars !== 'number') {
     return dollars;
   }
-  return parseFloat((dollars * 100).toFixed(decimals));
+  return parseFloat((dollars * 100).toFixed(0));
 }
 
 /**

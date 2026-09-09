@@ -1,6 +1,5 @@
 import type {PromptData} from 'sentry/actionCreators/prompts';
 import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
@@ -132,7 +131,6 @@ type FormatOptions = {
  * quantities for the data categories that we sell.
  *
  * Note: reservedQuantity for Attachments should be in GIGABYTES
- * If isReservedBudget is true, the reservedQuantity is in cents
  */
 export function formatReservedWithUnits(
   reservedQuantity: number | null,
@@ -141,13 +139,8 @@ export function formatReservedWithUnits(
     isAbbreviated: false,
     useUnitScaling: false,
     isGifted: false,
-  },
-  isReservedBudget = false
-): string {
-  if (isReservedBudget) {
-    return displayPriceWithCents({cents: reservedQuantity ?? 0});
   }
-
+): string {
   const categoryInfo = getCategoryInfoFromPlural(dataCategory);
   const unitType = categoryInfo?.formatting.unitType ?? 'count';
 
@@ -530,9 +523,9 @@ export function getPlanIcon(plan: Plan) {
   return <IconUser />;
 }
 
-export function getProductIcon(product: AddOnCategory, size?: SVGIconProps['size']) {
+export function getProductIcon(product: AddOnCategory) {
   if ([AddOnCategory.LEGACY_SEER, AddOnCategory.SEER].includes(product)) {
-    return <IconSeer size={size} />;
+    return <IconSeer />;
   }
   return null;
 }
