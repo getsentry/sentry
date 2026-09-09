@@ -2416,8 +2416,13 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY in prebuilt_ids_in_response
 
     def test_node_runtime_metrics_prebuilt_dashboard_sync(self) -> None:
-        """The Node.js Runtime Metrics prebuilt dashboard syncs when enabled via options."""
-        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+        """The Node.js Runtime Metrics dashboard syncs when metrics and its option are enabled."""
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:tracemetrics-enabled",
+            ]
+        ):
             with override_options(
                 {"dashboards.prebuilt-dashboard-ids": [PrebuiltDashboardId.NODE_RUNTIME_METRICS]}
             ):
@@ -2436,6 +2441,23 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             if d.get("prebuiltId") == PrebuiltDashboardId.NODE_RUNTIME_METRICS
         ]
         assert len(prebuilt_in_response) == 1
+
+    def test_node_runtime_metrics_prebuilt_dashboard_not_synced_without_metrics(self) -> None:
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            with override_options(
+                {"dashboards.prebuilt-dashboard-ids": [PrebuiltDashboardId.NODE_RUNTIME_METRICS]}
+            ):
+                response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        assert not Dashboard.objects.filter(
+            organization=self.organization,
+            prebuilt_id=PrebuiltDashboardId.NODE_RUNTIME_METRICS,
+        ).exists()
+        assert all(
+            dashboard.get("prebuiltId") != PrebuiltDashboardId.NODE_RUNTIME_METRICS
+            for dashboard in response.data
+        )
 
     def test_endpoint_creates_pre_favorited_prebuilt_dashboards(self) -> None:
         assert (
