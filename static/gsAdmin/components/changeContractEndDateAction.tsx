@@ -1,67 +1,69 @@
-import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import moment from 'moment-timezone';
+import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
-import {InputField} from 'sentry/components/forms/fields/inputField';
-import {Form} from 'sentry/components/forms/form';
-import type {OnSubmitCallback} from 'sentry/components/forms/types';
 
 interface ChangeContractEndDateModalProps extends ModalRenderProps {
   contractPeriodEnd: string;
-  onAction: (data: Record<string, any>) => Promise<unknown> | unknown;
+  onAction: (data: Record<string, unknown>) => Promise<unknown>;
 }
+
+const schema = z.object({
+  contractPeriodEnd: z.iso.date('Enter a valid end date'),
+});
 
 function ChangeContractEndDateModal({
   contractPeriodEnd,
   onAction,
   Header,
   Body,
+  Footer,
   closeModal,
 }: ChangeContractEndDateModalProps) {
-  const onSubmit: OnSubmitCallback = async (formData, onSubmitSuccess, onSubmitError) => {
-    try {
-      const postData: Record<string, any> = {contractPeriodEnd};
-
-      for (const key in formData) {
-        if (formData[key] !== '' && formData[key] !== null) {
-          postData[key] = formData[key];
-        }
-      }
-
-      await onAction(postData);
-      onSubmitSuccess(postData);
-      closeModal();
-    } catch (err: any) {
-      onSubmitError(err?.responseJSON ?? err);
-    }
-  };
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {contractPeriodEnd},
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) =>
+      onAction(value)
+        .then(() => closeModal())
+        .catch(() => {}),
+  });
 
   return (
-    <Fragment>
+    <form.AppForm form={form}>
       <Header closeButton>
         <Heading as="h3">Update Contract End Date</Heading>
       </Header>
       <Body>
-        <Form
-          onSubmit={onSubmit}
-          onCancel={closeModal}
-          submitLabel="Submit"
-          cancelLabel="Cancel"
-        >
-          <DateField
-            label="End Date"
-            name="contractPeriodEnd"
-            help="The date at which this contract should end."
-            defaultValue={contractPeriodEnd}
-            type="date"
-          />
-        </Form>
+        <form.AppField name="contractPeriodEnd">
+          {field => (
+            <field.Layout.Stack
+              label="End Date"
+              hintText="The date at which this contract should end."
+              required
+            >
+              <field.Input
+                type="date"
+                value={field.state.value}
+                onChange={field.handleChange}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
       </Body>
-    </Fragment>
+      <Footer>
+        <Flex gap="md" justify="end">
+          <Button onClick={closeModal}>Cancel</Button>
+          <form.SubmitButton>Submit</form.SubmitButton>
+        </Flex>
+      </Footer>
+    </form.AppForm>
   );
 }
 
@@ -77,7 +79,3 @@ export function ChangeContractEndDateAction(props: Options) {
     </Button>
   );
 }
-
-const DateField = styled(InputField)`
-  padding-left: 0;
-`;

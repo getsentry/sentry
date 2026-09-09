@@ -195,7 +195,9 @@ export function ScmMessagingProviderRow({
 
   const handleConnect = useCallback(() => {
     if (resolvedProvider.providerKey === 'msteams') {
-      openMsTeamsConnectionModal(resolvedProvider.provider);
+      openMsTeamsConnectionModal(resolvedProvider.provider, () => {
+        onInstallComplete(resolvedProvider.providerKey);
+      });
       return;
     }
     startFlow({

@@ -46,10 +46,19 @@ def trigger_autofix_rca_feature(
             data_category=DataCategory.SEER_AUTOFIX,
         )
         if not has_budget:
+            logger.warning(
+                "autofix_rca.dispatch.quota_denied",
+                extra={
+                    "group_id": group.id,
+                    "organization_id": group.organization.id,
+                    "referrer": referrer.value,
+                },
+            )
             raise NoSeerQuotaException()
 
     payload = AutofixRCAPayload(
         group_id=group.id,
+        project_id=group.project_id,
         short_id=group.qualified_short_id or str(group.id),
         title=group.title or "Unknown error",
         culprit=group.culprit or "unknown",
@@ -104,6 +113,13 @@ def trigger_autofix_rca_feature(
             "organization_id": group.organization.id,
             "run_id": run.seer_run_state_id,
             "referrer": referrer.value,
+            "stopping_point": stopping_point,
+            "intelligence_level": intelligence_level,
+            "reasoning_effort": reasoning_effort,
+            "flush": flush,
+            "allow_free_cohort": allow_free_cohort,
+            "user_context": user_context,
+            "enable_bash_tools": enable_bash_tools,
         },
     )
 
