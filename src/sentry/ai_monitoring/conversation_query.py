@@ -54,9 +54,8 @@ def _is_summary_field(name: str) -> bool:
 def _compile_summary_filter(condition: Node, key: Node, resolver: SearchResolver) -> str:
     """Expand a summary alias such as totalCost into an aggregate comparison.
 
-    Let the EAP parser interpret values and units. When zero satisfies a sum filter,
-    also match groups with no contributing values, since summaries display those as zero.
-    For example, totalCost:0 must match a conversation with no recorded costs.
+    Let EAP interpret values, units, and nulls. For example, totalCost:0 may exclude
+    conversations with no recorded costs, even though the response displays zero.
     """
     expression, _ = AI_CONVERSATIONS_FIELDS[key.text.strip('"')]
     query = condition.text.replace(key.text, expression, 1)
@@ -67,26 +66,7 @@ def _compile_summary_filter(condition: Node, key: Node, resolver: SearchResolver
     value = term.value.raw_value
     if not isinstance(value, (int, float)) or not isfinite(value):
         raise InvalidSearchQuery(f"Expected a finite numeric aggregate value: {condition.text}")
-    result = term.to_query_string()
-
-    # Missing totals display as zero: totalCost:<=0 includes them, totalCost:>0 does not.
-    matches_zero = (
-        (term.operator == "=" and 0 == value)
-        or (term.operator == "!=" and 0 != value)
-        or (term.operator == ">" and 0 > value)
-        or (term.operator == ">=" and 0 >= value)
-        or (term.operator == "<" and 0 < value)
-        or (term.operator == "<=" and 0 <= value)
-    )
-    if not expression.startswith("sum_if(") or not matches_zero:
-        return result
-
-    if expression.startswith("sum_if(`"):
-        count = expression.replace("sum_if(", "count_if(", 1)
-    else:
-        metric, field, _, expected = expression[len("sum_if(") : -1].split(",")
-        count = f"count_if(`has:{metric} {field}:{expected}`,span.duration)"
-    return f"({result} OR {count}:=0)"
+    return term.to_query_string()
 
 
 def _compile_condition(condition: Node, resolver: SearchResolver) -> str:

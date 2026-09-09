@@ -291,35 +291,15 @@ def test_group_filter_rejects_explicit_aggregates(query: str) -> None:
         compile_conversation_query(query, resolver)
 
 
-@pytest.mark.parametrize(
-    "operator,value,matches_zero",
-    [
-        ("=", -1, False),
-        ("=", 0, True),
-        ("=", 1, False),
-        ("!=", -1, True),
-        ("!=", 0, False),
-        ("!=", 1, True),
-        (">", -1, True),
-        (">", 0, False),
-        (">", 1, False),
-        (">=", -1, True),
-        (">=", 0, True),
-        (">=", 1, False),
-        ("<", -1, False),
-        ("<", 0, False),
-        ("<", 1, True),
-        ("<=", -1, False),
-        ("<=", 0, True),
-        ("<=", 1, True),
-    ],
-)
-def test_summary_filter_matches_missing_values_as_zero(
-    operator: str, value: int, matches_zero: bool
-) -> None:
+@pytest.mark.parametrize("operator", ["=", "!=", ">", ">=", "<", "<="])
+def test_summary_filter_preserves_eap_null_semantics(operator: str) -> None:
     resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
-    compiled = compile_conversation_query(f"totalCost:{operator}{value}", resolver)
-    assert (" OR count_if(" in compiled) is matches_zero
+    compiled = compile_conversation_query(f"totalCost:{operator}0", resolver)
+    _, having, _ = resolver.resolve_query(compiled)
+    _, expected, _ = resolver.resolve_query(
+        f"sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client):{operator}0"
+    )
+    assert having == expected
 
 
 def test_group_filter_accepts_long_text() -> None:
@@ -631,15 +611,15 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
                 "sum_if_gen_ai_cost_total_tokens_gen_ai_operation_type_equals_ai_client:>10",
                 ["a"],
             ),
-            ("totalCost:0", ["c"]),
-            ("totalCost:<=0", ["c"]),
-            ("totalCost:>=0", ["a", "b", "c"]),
-            ("!totalCost:>10", ["b", "c"]),
+            ("totalCost:0", []),
+            ("totalCost:<=0", []),
+            ("totalCost:>=0", ["a", "b"]),
+            ("!totalCost:>10", ["b"]),
             ("toolCalls:>1", ["a"]),
             ("errors:0", ["b", "c"]),
             ("duration:>5s", ["a"]),
             ("duration:>=0", ["a", "b", "c"]),
-            ("generationDuration:0", ["c"]),
+            ("generationDuration:0", []),
             ("span.duration:>2s", ["a"]),
             ("span.duration:<=2s", ["a", "b", "c"]),
             ("!span.duration:>2s", ["b", "c"]),
