@@ -2636,7 +2636,7 @@ register(
 # half.
 register(
     "hybridcloud.webhookpayload.max_mailbox_buckets",
-    default=64,
+    default=128,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Remove the rows a claim-bounded drain finishes with — delivered, attempts
