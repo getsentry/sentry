@@ -29,7 +29,7 @@ export function combineAgentQuery(query: string, agents?: string[]): string {
   return `(${agentQuery}) and (${query})`;
 }
 
-export function getConversationsQueryHref(
+function getConversationsQueryHref(
   data: ConversationsQueryData,
   organization: Organization
 ): string {
