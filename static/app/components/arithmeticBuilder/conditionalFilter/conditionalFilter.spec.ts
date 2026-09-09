@@ -193,6 +193,44 @@ describe('getConditionalFilterEditContext', () => {
       replaceEnd: value.length - 1,
     });
   });
+
+  it('stays in value mode for a bracketed list with spaces', () => {
+    const value = 'span.op:[db, http]';
+    expect(getConditionalFilterEditContext(value, value.length)).toMatchObject({
+      phase: 'value',
+      filterKey: 'span.op',
+      editText: '[db, http]',
+      valueQuery: '[db, http]',
+    });
+  });
+
+  it('stays in value mode while typing an unclosed bracketed list', () => {
+    const value = 'span.op:[db, htt';
+    expect(getConditionalFilterEditContext(value, value.length)).toMatchObject({
+      phase: 'value',
+      filterKey: 'span.op',
+      editText: '[db, htt',
+      valueQuery: '[db, htt',
+    });
+  });
+
+  it('uses key mode after a completed bracketed list and trailing space', () => {
+    const value = 'span.op:[db, http] ';
+    expect(getConditionalFilterEditContext(value, value.length)).toMatchObject({
+      phase: 'key',
+      editText: '',
+    });
+  });
+
+  it('stays in value mode for quoted entries inside a bracketed list', () => {
+    const value = 'agent_name:["Agent Run","Assisted Query"]';
+    expect(getConditionalFilterEditContext(value, value.length)).toMatchObject({
+      phase: 'value',
+      filterKey: 'agent_name',
+      editText: '["Agent Run","Assisted Query"]',
+      valueQuery: '["Agent Run","Assisted Query"]',
+    });
+  });
 });
 
 describe('replaceConditionalFilterClause', () => {
@@ -233,6 +271,18 @@ describe('replaceConditionalFilterClause', () => {
     ).toEqual({
       newCursorIndex: 24,
       newValue: '(span.op:db span.status:)',
+    });
+  });
+
+  it('does not rewrite a bracketed list when selecting a key suggestion mid-list', () => {
+    const value = 'span.op:[db, http]';
+    // Cursor on `http` inside the list must still replace the whole clause as a value
+    // edit path would; selecting a key suggestion should not split on the space.
+    expect(
+      replaceConditionalFilterClause(value, value.length - 2, 'span.status:')
+    ).toEqual({
+      newCursorIndex: 12,
+      newValue: 'span.status:',
     });
   });
 });

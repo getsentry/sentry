@@ -80,13 +80,18 @@ export function ConditionalFilterArgumentInput(props: FunctionArgumentInputProps
   }, [inputRef, inputValue]);
 
   // Suggestion updates re-render the controlled input and can reset the DOM caret.
-  // Keep the caret aligned with selectionIndex so key↔value autocomplete stays correct.
+  // Keep a collapsed caret aligned with selectionIndex so key↔value autocomplete stays
+  // correct. Never collapse an active text range (select-all + Backspace must stay in
+  // the argument, not delete the whole function).
   useLayoutEffect(() => {
     if (!isCurrentlyEditing) {
       return;
     }
     const input = inputRef.current;
     if (!input || document.activeElement !== input) {
+      return;
+    }
+    if (input.selectionStart !== input.selectionEnd) {
       return;
     }
     if (

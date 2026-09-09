@@ -94,6 +94,38 @@ function hasUnclosedQuote(value: string): boolean {
   return inQuotes;
 }
 
+/**
+ * Length of a complete bracketed list starting at index 0, or null if unclosed /
+ * not a bracketed list. Quotes inside the list are respected so commas and `]`
+ * in `"Agent Run"` do not end the list early.
+ */
+function getClosedBracketListLength(value: string): number | null {
+  if (!value.startsWith('[')) {
+    return null;
+  }
+
+  let inQuotes = false;
+  for (let i = 1; i < value.length; i++) {
+    const char = value[i]!;
+    if (char === '\\' && i + 1 < value.length) {
+      i++;
+      continue;
+    }
+    if (char === '"' && !isEscaped(value, i)) {
+      inQuotes = !inQuotes;
+      continue;
+    }
+    if (!inQuotes && char === ']') {
+      return i + 1;
+    }
+  }
+  return null;
+}
+
+function hasUnclosedBracketList(value: string): boolean {
+  return value.startsWith('[') && getClosedBracketListLength(value) === null;
+}
+
 function stripQuotesForValueSearch(value: string): string {
   if (value.startsWith('"')) {
     const withoutOpen = value.slice(1);
@@ -242,9 +274,10 @@ function getClauseInnerBounds(clause: string): {innerEnd: number; innerStart: nu
  * - empty value after `:`
  * - unquoted value with no trailing whitespace yet
  * - quoted value with an unclosed `"`
+ * - bracketed multi-value list (`[a, b]`) until the matching `]`
  *
- * Once a value is complete (`key:value `, or `key:"quoted"`), subsequent text is a
- * new key and key autocomplete is shown.
+ * Once a value is complete (`key:value `, `key:"quoted"`, or `key:[a, b] `), subsequent
+ * text is a new key and key autocomplete is shown.
  *
  * Leading/trailing grouping parentheses are preserved outside the replace range so
  * suggestions still work inside `(...)`.
@@ -310,6 +343,49 @@ export function getConditionalFilterEditContext(
         phase: 'key',
         editText: nextKey,
         replaceStart: absoluteInnerStart + keyStartInInner,
+        replaceEnd: absoluteInnerEnd,
+      };
+    }
+  }
+
+  // Bracketed multi-value lists (`key:[a, b]`) keep spaces inside the brackets.
+  // Unclosed `[` stays in value mode; a closed list only starts a new key after
+  // trailing whitespace (same as quoted values).
+  if (beforeCursor.startsWith('[')) {
+    if (hasUnclosedBracketList(beforeCursor)) {
+      return {
+        phase: 'value',
+        editText: beforeCursor,
+        filterKey,
+        valueQuery: beforeCursor,
+        replaceStart: absoluteInnerStart,
+        replaceEnd: absoluteInnerEnd,
+      };
+    }
+
+    const listLength = getClosedBracketListLength(beforeCursor);
+    if (listLength !== null) {
+      const afterList = beforeCursor.slice(listLength);
+      const trailingMatch = afterList.match(/^(\s*)(.*)$/);
+      if (trailingMatch) {
+        const [, spaces = '', nextKey = ''] = trailingMatch;
+        if (spaces.length > 0 || nextKey.length > 0) {
+          const keyStartInInner = colonIndex + 1 + listLength + spaces.length;
+          return {
+            phase: 'key',
+            editText: nextKey,
+            replaceStart: absoluteInnerStart + keyStartInInner,
+            replaceEnd: absoluteInnerEnd,
+          };
+        }
+      }
+
+      return {
+        phase: 'value',
+        editText: beforeCursor.slice(0, listLength),
+        filterKey,
+        valueQuery: beforeCursor.slice(0, listLength),
+        replaceStart: absoluteInnerStart,
         replaceEnd: absoluteInnerEnd,
       };
     }
