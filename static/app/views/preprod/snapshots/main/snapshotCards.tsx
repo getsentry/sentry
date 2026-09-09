@@ -14,7 +14,6 @@ import {IconFile, IconInfo, IconLink, IconMoon, IconSun, IconWarning} from 'sent
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-// eslint-disable-next-line no-restricted-imports
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import type {ContentVariant} from 'sentry/utils/theme/types';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';

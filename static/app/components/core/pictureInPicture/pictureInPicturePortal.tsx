@@ -47,6 +47,7 @@ export function PictureInPicturePortal({
   // which isn't guaranteed in the PiP document).
   useEffect(() => {
     const {documentElement, body} = pipWindow.document;
+    // oxlint-disable-next-line react/immutability
     documentElement.style.height = '100%';
     body.style.height = '100%';
     body.style.margin = '0';
@@ -55,6 +56,7 @@ export function PictureInPicturePortal({
   // Keep the PiP body's theme class in sync so global body selectors
   // (e.g. `body.theme-dark`) apply after a theme toggle.
   useEffect(() => {
+    // oxlint-disable-next-line react/immutability
     pipWindow.document.body.className = document.body.className;
   }, [pipWindow, theme]);
 

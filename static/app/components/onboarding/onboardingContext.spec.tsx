@@ -29,6 +29,7 @@ const selectedMessagingSetup = {
 
 function StateConsumer() {
   const {
+    createdProject,
     messagingSetup,
     selectedRepository,
     selectedPlatform,
@@ -43,6 +44,7 @@ function StateConsumer() {
       <div>
         {selectedFeatures ? `features:${selectedFeatures.length}` : 'no-features'}
       </div>
+      <div>{createdProject ? `project:${createdProject.slug}` : 'no-project'}</div>
       <div>{`messaging:${messagingSetup.mode}`}</div>
       <button onClick={() => setSelectedPlatform(undefined)}>Clear platform</button>
       <button onClick={() => resetOnboarding()}>Reset onboarding</button>
@@ -128,6 +130,57 @@ describe('OnboardingContextProvider', () => {
     expect(screen.getByText('platform:javascript-nextjs')).toBeInTheDocument();
     expect(screen.getByText('features:1')).toBeInTheDocument();
     expect(screen.getByText('messaging:selected')).toBeInTheDocument();
+  });
+
+  it('lifts a legacy createdProjectSlug into createdProject on load', async () => {
+    // Sessions written before createdProject existed hold only the slug. The
+    // destination is unknown for them, so it lifts as undefined, and the legacy
+    // key is dropped so the lift runs once.
+    sessionStorage.setItem(
+      'onboarding',
+      JSON.stringify({
+        selectedRepository: RepositoryFixture({id: '42'}),
+        selectedPlatform: platform,
+        createdProjectSlug: 'javascript-nextjs',
+      })
+    );
+
+    render(
+      <OnboardingContextProvider>
+        <StateConsumer />
+      </OnboardingContextProvider>
+    );
+
+    expect(await screen.findByText('project:javascript-nextjs')).toBeInTheDocument();
+    expect(screen.getByText('repo:42')).toBeInTheDocument();
+    const stored = JSON.parse(sessionStorage.getItem('onboarding') ?? '{}');
+    expect(stored.createdProject).toEqual({slug: 'javascript-nextjs'});
+    expect(stored).not.toHaveProperty('createdProjectSlug');
+  });
+
+  it('does not lift a legacy createdProjectSlug past a stale repository clear', async () => {
+    // The stale-repo guard clears repo-derived state, and the created project
+    // is derived. The lift is ordered before it so the clear wins.
+    sessionStorage.setItem(
+      'onboarding',
+      JSON.stringify({
+        selectedRepository: RepositoryFixture({id: ''}),
+        selectedPlatform: platform,
+        createdProjectSlug: 'javascript-nextjs',
+      })
+    );
+
+    render(
+      <OnboardingContextProvider>
+        <StateConsumer />
+      </OnboardingContextProvider>
+    );
+
+    expect(await screen.findByText('no-repo')).toBeInTheDocument();
+    expect(screen.getByText('no-project')).toBeInTheDocument();
+    expect(JSON.parse(sessionStorage.getItem('onboarding') ?? '{}')).not.toHaveProperty(
+      'createdProjectSlug'
+    );
   });
 
   it('restores messaging setup from session storage after a remount', () => {
