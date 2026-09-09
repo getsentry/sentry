@@ -25,7 +25,25 @@ import {
 } from './logUtils';
 
 const COUNT = 'count()';
+
+/** How many groups the card draws. */
 const TOP_VALUE_COUNT = 5;
+
+/**
+ * How many it asks for. The surplus rows never render -- they are what makes
+ * each share a portion of everything nearby rather than a portion of whatever
+ * happened to fit, and what gives the remainder below a real size.
+ *
+ * Deliberately not a second, ungrouped `count()` query the way the issue tag
+ * distribution gets its total: the two are sampled independently, so that total
+ * comes back disagreeing with the groups it is supposed to contain -- smaller
+ * than their sum often enough to render a negative remainder.
+ */
+const AGGREGATE_ROW_LIMIT = 50;
+
+function formatShare(share: number) {
+  return share < 1 ? t('<1%') : `${Math.round(share)}%`;
+}
 
 /**
  * The aggregates endpoint returns one row per group, keyed by the attribute
@@ -61,7 +79,7 @@ export function LogAttributeView({attribute, identity}: LogAttributeViewProps) {
           dataset: DiscoverDatasets.OURLOGS,
           field: [attribute, COUNT],
           orderby: `-${COUNT}`,
-          per_page: TOP_VALUE_COUNT,
+          per_page: AGGREGATE_ROW_LIMIT,
           project: selection.projects,
           environment: selection.environments,
           sampling: SAMPLING_MODE.NORMAL,
@@ -74,8 +92,11 @@ export function LogAttributeView({attribute, identity}: LogAttributeViewProps) {
     retry: false,
   });
 
-  const rows = data?.data ?? [];
-  const total = rows.reduce((sum, row) => sum + Number(row[COUNT] ?? 0), 0);
+  const allRows = data?.data ?? [];
+  const rows = allRows.slice(0, TOP_VALUE_COUNT);
+  const total = allRows.reduce((sum, row) => sum + Number(row[COUNT] ?? 0), 0);
+  const shown = rows.reduce((sum, row) => sum + Number(row[COUNT] ?? 0), 0);
+  const otherCount = total - shown;
 
   return (
     <Stack data-test-id="seer-log-attribute-breakdown" gap="sm">
@@ -116,13 +137,26 @@ export function LogAttributeView({attribute, identity}: LogAttributeViewProps) {
                 </Text>
                 <Flex align="center" gap="sm" width="140px">
                   <Text size="sm" tabular variant="muted">
-                    {share < 1 ? t('<1%') : `${Math.round(share)}%`}
+                    {formatShare(share)}
                   </Text>
                   <TagBar percentage={share} />
                 </Flex>
               </Grid>
             );
           })}
+          {otherCount > 0 && (
+            <Grid align="center" columns="minmax(0, 1fr) auto" gap="md">
+              <Text ellipsis size="sm" variant="muted">
+                {t('Other')}
+              </Text>
+              <Flex align="center" gap="sm" width="140px">
+                <Text size="sm" tabular variant="muted">
+                  {formatShare(percent(otherCount, total))}
+                </Text>
+                <TagBar percentage={percent(otherCount, total)} />
+              </Flex>
+            </Grid>
+          )}
         </Stack>
       )}
     </Stack>

@@ -243,8 +243,12 @@ export default function LogBlock(props: LogData) {
   const resolvedProjectId =
     projectId ??
     (row === undefined ? undefined : String(row[OurLogKnownFieldKey.PROJECT_ID]));
+  // The row wins when the lookup found one: the id carries only the time the
+  // SDK minted it, and the +/-5min window exists precisely because that drifts
+  // from when the log was ingested. Handing the mint time to a details endpoint
+  // that wants the real one would lose the row the lookup just found.
   const lookupTimestampMs =
-    getLogTimestampMs({id, projectId, timestamp}) ?? rowTimestampMillis(row);
+    rowTimestampMillis(row) ?? getLogTimestampMs({id, projectId, timestamp});
 
   const project = useProjectFromId({project_id: resolvedProjectId});
   const {fetching: projectsFetching} = useProjects();
@@ -298,16 +302,15 @@ export default function LogBlock(props: LogData) {
     () => ({
       id,
       projectId: resolvedProjectId,
-      // Seer may have given neither a timestamp nor an id the decoder can read,
-      // in which case the row lookup is the only thing that knows when this log
-      // happened. Without it the link falls back to scanning all of retention.
+      // The same resolved instant the details lookup used, so the link's window
+      // and the breakdown's window agree with the row that was actually found.
+      // Falls back to Seer's own timestamp, then to the id, then to retention.
       timestamp:
-        timestamp ??
-        (lookupTimestampMs === null
+        lookupTimestampMs === null
           ? undefined
-          : new Date(lookupTimestampMs).toISOString()),
+          : new Date(lookupTimestampMs).toISOString(),
     }),
-    [id, lookupTimestampMs, resolvedProjectId, timestamp]
+    [id, lookupTimestampMs, resolvedProjectId]
   );
   const datetime = useMemo(
     () => getLogPageFilters(identity, LOG_LOOKUP_WINDOW_MS).datetime,

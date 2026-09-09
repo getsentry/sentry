@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {
@@ -84,6 +85,10 @@ describe('Seer log embed', () => {
       environments: [],
       datetime: {period: '14d', start: null, end: null, utc: null},
     });
+  });
+
+  afterEach(() => {
+    resetMockDate();
   });
 
   it('links to the single row in Explore, windowed around its timestamp', () => {
@@ -181,6 +186,33 @@ describe('Seer log embed', () => {
     );
   });
 
+  it('measures the breakdown against every value, not just the drawn ones', async () => {
+    mockLogDetails();
+    // Six values for five slots: the sixth is what the drawn shares are missing.
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {region: 'a', 'count()': 10},
+          {region: 'b', 'count()': 10},
+          {region: 'c', 'count()': 10},
+          {region: 'd', 'count()': 10},
+          {region: 'e', 'count()': 10},
+          {region: 'f', 'count()': 50},
+        ],
+      },
+    });
+
+    renderLog({view: 'attribute', attribute: 'region'});
+
+    expect(await screen.findByTestId('seer-log-attribute-breakdown')).toBeInTheDocument();
+    // 10 of 100, not 10 of the 50 that fit.
+    expect(await screen.findAllByText('10%')).toHaveLength(5);
+    expect(screen.queryByText('f')).not.toBeInTheDocument();
+    expect(screen.getByText('Other')).toBeInTheDocument();
+    expect(screen.getByText('50%')).toBeInTheDocument();
+  });
+
   it('falls back to the summary when view "attribute" has no key', async () => {
     mockLogDetails();
     const aggregates = MockApiClient.addMockResponse({
@@ -215,6 +247,30 @@ describe('Seer log embed', () => {
       );
     });
     expect(details).toHaveBeenCalled();
+  });
+
+  it('asks for details at the row timestamp, not the one minted into the id', async () => {
+    // The decoder refuses ids minted after "now", and jest pins now to 2017, so
+    // no realistic v7 id decodes at the default clock. Move it past this id's
+    // mint time (2026-01-27) or the mint time cannot compete with the row's.
+    setMockDate(new Date('2026-09-01T00:00:00Z'));
+    mockLogRowLookup();
+    const details = mockLogDetails();
+
+    // With no timestamp from Seer the id is the only other clue, and it carries
+    // mint time -- the drift the lookup exists to correct.
+    renderEmbed({name: 'log', data: {id: LOG_ID}});
+
+    await waitFor(() =>
+      expect(details).toHaveBeenCalledWith(
+        `/projects/org-slug/${PROJECT_SLUG}/trace-items/${LOG_ID}/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            timestamp: new Date(TIMESTAMP).getTime() / 1000,
+          }),
+        })
+      )
+    );
   });
 
   it('points the header link at the project it resolved from the id', async () => {
