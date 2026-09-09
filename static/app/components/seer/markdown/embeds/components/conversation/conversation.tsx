@@ -1,8 +1,9 @@
 import {lazy} from 'react';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
-import {ConversationLink} from 'sentry/components/seer/markdown/embeds/components/conversation/conversationLink';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
+
+import {ConversationLink} from './conversationLink';
 
 const LazyConversationBlock = lazy(() => import('./conversationBlock'));
 

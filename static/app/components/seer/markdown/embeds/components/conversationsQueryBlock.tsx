@@ -1,6 +1,7 @@
 import {useQuery} from '@tanstack/react-query';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {Count} from 'sentry/components/count';
@@ -25,6 +26,7 @@ import type {
 } from 'sentry/views/explore/conversations/hooks/useConversations';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 
+import {getConversationHref} from './conversation/conversationLink';
 import {
   combineAgentQuery,
   ConversationsQueryLink,
@@ -73,37 +75,64 @@ function getUserLabel(user: ConversationUser | null): string | null {
   return fields.find(value => value && value.toLowerCase() !== 'none') ?? null;
 }
 
+/** A row carries epoch milliseconds; the detail URL wants ISO timestamps. */
+function toIsoTimestamp(timestamp: number | null | undefined): string | undefined {
+  return timestamp ? new Date(timestamp).toISOString() : undefined;
+}
+
 function getConversationIdLabel(conversationId: string): string {
   // UUIDs are long and opaque, so show a short prefix; other id formats
   // (e.g. `resp_...`, `slack:1234`) are already short enough.
   return isUUID(conversationId) ? conversationId.slice(0, 8) : conversationId;
 }
 
+/**
+ * Opens in a new tab so following a row cannot replace the page the embed is
+ * rendered into -- the answer above it would be lost. `getConversationHref`
+ * builds the same detail URL the `conversation` embed links to.
+ */
+function ConversationCell({row}: {row: ConversationApiRow}) {
+  const organization = useOrganization();
+  const label = getConversationLabel(row);
+  const user = getUserLabel(row.user);
+
+  return (
+    <Stack gap="xs" minWidth={0}>
+      <Text ellipsis>
+        <ExternalLink
+          href={getConversationHref(
+            {
+              id: row.conversationId,
+              start: toIsoTimestamp(row.startTimestamp),
+              end: toIsoTimestamp(row.endTimestamp),
+              projects: row.projectId === null ? undefined : [String(row.projectId)],
+            },
+            organization.slug,
+            'seer-conversations-query-embed'
+          )}
+        >
+          {label ?? t('Untitled conversation')}
+        </ExternalLink>
+      </Text>
+      <Flex gap="sm" minWidth={0}>
+        <Text size="sm" variant="muted" ellipsis>
+          {getConversationIdLabel(row.conversationId)}
+        </Text>
+        {user ? (
+          <Text size="sm" variant="muted" ellipsis>
+            {user}
+          </Text>
+        ) : null}
+      </Flex>
+    </Stack>
+  );
+}
+
 const COLUMNS: Array<QueryEmbedColumn<ConversationApiRow>> = [
   {
     key: 'conversation',
     label: t('Conversation'),
-    render: row => {
-      const label = getConversationLabel(row);
-      const user = getUserLabel(row.user);
-      return (
-        <Stack gap="xs" minWidth={0}>
-          <Text ellipsis>
-            {label ?? <Text variant="muted">{t('Untitled conversation')}</Text>}
-          </Text>
-          <Flex gap="sm" minWidth={0}>
-            <Text size="sm" variant="muted" ellipsis>
-              {getConversationIdLabel(row.conversationId)}
-            </Text>
-            {user ? (
-              <Text size="sm" variant="muted" ellipsis>
-                {user}
-              </Text>
-            ) : null}
-          </Flex>
-        </Stack>
-      );
-    },
+    render: row => <ConversationCell row={row} />,
   },
   {
     key: 'duration',

@@ -1,23 +1,11 @@
-import {useState} from 'react';
-
-import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {
-  ConversationLink,
-  type ConversationData,
-} from 'sentry/components/seer/markdown/embeds/components/conversation/conversationLink';
 import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
 import {t} from 'sentry/locale';
 import {ConversationAggregatesBar} from 'sentry/views/explore/conversations/components/conversationSummary';
-import {
-  MessagesPanel,
-  MessagesPanelSkeleton,
-} from 'sentry/views/explore/conversations/components/messagesPanel';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
 
-/** Keeps a long transcript from pushing the rest of the answer off screen. */
-const TRANSCRIPT_MAX_HEIGHT = '400px';
+import {ConversationLink, type ConversationData} from './conversationLink';
 
 function toTimestampMs(isoTimestamp: string | undefined): number | undefined {
   if (!isoTimestamp) {
@@ -27,11 +15,13 @@ function toTimestampMs(isoTimestamp: string | undefined): number | undefined {
   return Number.isNaN(parsed) ? undefined : parsed;
 }
 
+/**
+ * Deliberately shows the conversation's totals and not its transcript: the
+ * embed is itself rendered inside an agent conversation, so a nested transcript
+ * reads as part of the surrounding answer. The link goes to the full detail
+ * view for anyone who wants the messages.
+ */
 export default function ConversationBlock({data}: {data: ConversationData}) {
-  // Selection lives here rather than in the URL: an embed must not be able to
-  // change the host page's shareable state (see the embeds README).
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-
   const {nodes, isLoading, error, title} = useConversation({
     conversationId: data.id,
     startTimestamp: toTimestampMs(data.start),
@@ -43,33 +33,17 @@ export default function ConversationBlock({data}: {data: ConversationData}) {
       link={<ConversationLink data={data} title={title ?? data.title} />}
       testId="seer-conversation-embed"
     >
-      <Stack gap="md">
+      {error ? (
+        <Text variant="danger">{t('Unable to load conversation.')}</Text>
+      ) : !isLoading && nodes.length === 0 ? (
+        <Text variant="muted">{t('No messages in this conversation')}</Text>
+      ) : (
         <ConversationAggregatesBar
           conversationId={data.id}
           nodes={nodes}
           isLoading={isLoading}
         />
-        {isLoading ? (
-          <MessagesPanelSkeleton />
-        ) : error ? (
-          <Text variant="danger">{t('Unable to load conversation.')}</Text>
-        ) : nodes.length === 0 ? (
-          <Text variant="muted">{t('No messages in this conversation')}</Text>
-        ) : (
-          <Container
-            border="primary"
-            radius="md"
-            maxHeight={TRANSCRIPT_MAX_HEIGHT}
-            overflowY="auto"
-          >
-            <MessagesPanel
-              nodes={nodes}
-              selectedNodeId={selectedNodeId}
-              onSelectNode={node => setSelectedNodeId(node.id)}
-            />
-          </Container>
-        )}
-      </Stack>
+      )}
     </QueryEmbedCard>
   );
 }

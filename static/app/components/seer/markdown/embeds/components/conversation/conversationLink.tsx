@@ -25,7 +25,8 @@ const CONVERSATION_WINDOW_PADDING_MS = 60 * 60 * 1000;
  */
 export function getConversationHref(
   data: ConversationData,
-  organizationSlug: string
+  organizationSlug: string,
+  referrer = 'seer-conversation-embed'
 ): string {
   const basePath = `/organizations/${organizationSlug}/explore/${EXPLORE_AGENTS_SUB_PATH}/${CONVERSATIONS_DETAIL_SUB_PATH}/${encodeURIComponent(data.id)}/`;
 
@@ -45,7 +46,7 @@ export function getConversationHref(
   for (const project of data.projects ?? []) {
     params.append('project', String(project));
   }
-  params.set('referrer', 'seer-conversation-embed');
+  params.set('referrer', referrer);
 
   return normalizeUrl(`${basePath}?${params.toString()}`);
 }
