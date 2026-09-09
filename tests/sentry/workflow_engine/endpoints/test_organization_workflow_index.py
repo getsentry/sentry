@@ -1541,6 +1541,17 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
             organization_id=self.organization.id, name="Third Workflow", enabled=False
         )
 
+    def _create_alerts_write_agent_client(self) -> APIClient:
+        token, _ = agent_token.encode_agent_token(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            scopes=["alerts:write"],
+            session_id="workflow-update",
+        )
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        return client
+
     def test_team_admin_can_update_project_scoped_workflow(self) -> None:
         detector = self.create_detector(project=self.project)
         self.create_detector_workflow(workflow=self.workflow, detector=detector)
@@ -1673,13 +1684,7 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
             workflow=all_projects_workflow,
             detector=ensure_default_all_projects_detector(self.organization.id),
         )
-        token, _ = agent_token.encode_agent_token(
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            scopes=["alerts:write"],
-            session_id="workflow-update",
-        )
-        client = APIClient()
+        client = self._create_alerts_write_agent_client()
 
         with self.feature(agent_token.FEATURE_FLAG):
             response = client.put(
@@ -1687,12 +1692,67 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
                 data={"enabled": True},
                 format="json",
                 query_params={"id": str(self.workflow.id)},
-                HTTP_AUTHORIZATION=f"Bearer {token}",
             )
 
         assert response.status_code == 200, response.content
         self.workflow.refresh_from_db()
         assert self.workflow.enabled is True
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    def test_agent_token_can_update_by_project_when_all_projects_workflow_exists(self) -> None:
+        self.create_detector_workflow(
+            workflow=self.workflow,
+            detector=self.create_detector(project=self.project),
+        )
+        all_projects_workflow = self.create_workflow(
+            organization_id=self.organization.id, enabled=False
+        )
+        self.create_detector_workflow(
+            workflow=all_projects_workflow,
+            detector=ensure_default_all_projects_detector(self.organization.id),
+        )
+        client = self._create_alerts_write_agent_client()
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = client.put(
+                f"/api/0/organizations/{self.organization.slug}/workflows/",
+                data={"enabled": True},
+                format="json",
+                query_params={"project": str(self.project.id)},
+            )
+
+        assert response.status_code == 200, response.content
+        self.workflow.refresh_from_db()
+        all_projects_workflow.refresh_from_db()
+        assert self.workflow.enabled is True
+        assert all_projects_workflow.enabled is False
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    def test_agent_token_can_update_all_accessible_when_all_projects_workflow_exists(self) -> None:
+        all_projects_workflow = self.create_workflow(
+            organization_id=self.organization.id, enabled=False
+        )
+        self.create_detector_workflow(
+            workflow=all_projects_workflow,
+            detector=ensure_default_all_projects_detector(self.organization.id),
+        )
+        client = self._create_alerts_write_agent_client()
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = client.put(
+                f"/api/0/organizations/{self.organization.slug}/workflows/",
+                data={"enabled": True},
+                format="json",
+                query_params={"projectSlug": "$all"},
+            )
+
+        assert response.status_code == 200, response.content
+        self.workflow.refresh_from_db()
+        all_projects_workflow.refresh_from_db()
+        assert self.workflow.enabled is True
+        assert all_projects_workflow.enabled is False
 
     @with_feature("organizations:workflow-engine-all-projects-detector")
     @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
@@ -1704,13 +1764,7 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
             workflow=all_projects_workflow,
             detector=ensure_default_all_projects_detector(self.organization.id),
         )
-        token, _ = agent_token.encode_agent_token(
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            scopes=["alerts:write"],
-            session_id="workflow-update",
-        )
-        client = APIClient()
+        client = self._create_alerts_write_agent_client()
 
         with self.feature(agent_token.FEATURE_FLAG):
             response = client.put(
@@ -1718,7 +1772,6 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
                 data={"enabled": True},
                 format="json",
                 query_params={"id": str(all_projects_workflow.id)},
-                HTTP_AUTHORIZATION=f"Bearer {token}",
             )
 
         assert response.status_code == 403, response.content
