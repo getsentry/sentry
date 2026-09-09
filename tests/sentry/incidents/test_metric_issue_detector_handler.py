@@ -407,3 +407,68 @@ class TestGetAnomalyDetectionIssueTitle(TestCase):
             )
             == "eap_metrics"
         )
+
+
+class TestMetricIssueFingerprint(BaseMetricIssueTest):
+    ROTATION_FEATURE = "organizations:workflow-engine-new-group-per-activation"
+
+    CRITICAL = 10
+    WARNING = 4
+    RESOLVED = 1
+
+    def fingerprint(self, value: int, time_jump: int) -> list[str]:
+        result = self.process_packet_and_return_result(
+            self.create_subscription_packet(value, time_jump)
+        )
+
+        assert result is not None
+        return result.fingerprint
+
+    def legacy_key(self) -> str:
+        return f"detector:{self.detector.id}"
+
+    def test_without_the_flag__keeps_the_legacy_key(self) -> None:
+        assert self.fingerprint(self.CRITICAL, 1) == [self.legacy_key()]
+        assert self.fingerprint(self.RESOLVED, 2) == [self.legacy_key()]
+
+    def test_each_activation__gets_its_own_fingerprint(self) -> None:
+        with self.feature(self.ROTATION_FEATURE):
+            first_firing = self.fingerprint(self.CRITICAL, 1)
+            first_resolve = self.fingerprint(self.RESOLVED, 2)
+            second_firing = self.fingerprint(self.CRITICAL, 3)
+
+        assert first_firing[0].startswith(f"{self.legacy_key()}:activation:")
+
+        # The resolve has to match the firing it closes, or the issue is stranded open.
+        assert first_resolve == first_firing
+
+        assert second_firing != first_firing
+
+    def test_escalation_and_de_escalation__stay_on_one_fingerprint(self) -> None:
+        with self.feature(self.ROTATION_FEATURE):
+            activated = self.fingerprint(self.WARNING, 1)
+
+            assert self.fingerprint(self.CRITICAL, 2) == activated
+            assert self.fingerprint(self.WARNING, 3) == activated
+            assert self.fingerprint(self.RESOLVED, 4) == activated
+
+    def test_issue_open_before_rollout__still_resolves(self) -> None:
+        firing = self.fingerprint(self.CRITICAL, 1)
+
+        with self.feature(self.ROTATION_FEATURE):
+            resolve = self.fingerprint(self.RESOLVED, 2)
+
+            # Only the firing after the cutover rotates.
+            next_firing = self.fingerprint(self.CRITICAL, 3)
+
+        assert firing == [self.legacy_key()]
+        assert resolve == [self.legacy_key()]
+        assert next_firing[0].startswith(f"{self.legacy_key()}:activation:")
+
+    def test_turning_the_flag_off__does_not_strand_the_open_issue(self) -> None:
+        with self.feature(self.ROTATION_FEATURE):
+            firing = self.fingerprint(self.CRITICAL, 1)
+
+        resolve = self.fingerprint(self.RESOLVED, 2)
+
+        assert resolve == firing
