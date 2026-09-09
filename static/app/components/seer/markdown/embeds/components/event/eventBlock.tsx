@@ -6,8 +6,8 @@ import {Text} from '@sentry/scraps/text';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {EventTagsView} from 'sentry/components/seer/markdown/embeds/components/event/eventTagsView';
-import {EventTagView} from 'sentry/components/seer/markdown/embeds/components/event/eventTagView';
+import {EventTagView} from 'sentry/components/seer/markdown/embeds/components/event/eventViews/tag';
+import {EventTagsView} from 'sentry/components/seer/markdown/embeds/components/event/eventViews/tags';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -20,11 +20,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {groupEventApiOptions} from 'sentry/views/issueDetails/utils';
 
 import {getEventLinkTitle} from './eventLink';
-import {
-  makeEventPathname,
-  makeIssueDistributionsPathname,
-  makeIssueTagDistributionPathname,
-} from './eventPathnames';
+import {makeEventPathname, makeIssueDistributionsPathname} from './eventPathnames';
 
 type EventData = EmbedOutput<'event'>;
 
@@ -64,7 +60,7 @@ function EventSummary({event}: {event: Event}) {
  */
 function EventBlockView({
   view,
-  tagKey,
+  tagKeys,
   event,
   issueId,
   organization,
@@ -74,7 +70,7 @@ function EventBlockView({
   event: Event;
   issueId: string;
   organization: Organization;
-  tagKey: string | undefined;
+  tagKeys: string[] | undefined;
   view: EventData['view'];
 }) {
   switch (view) {
@@ -87,18 +83,14 @@ function EventBlockView({
         />
       );
     case 'tag':
-      // `tagKey` is required for this view; the caller already fell back to the
-      // summary when it is missing, so this is unreachable in practice.
-      return tagKey ? (
+      // `tagKeys` is required for this view; the caller already fell back to the
+      // summary when it is missing or empty, so this is unreachable in practice.
+      return tagKeys?.length ? (
         <EventTagView
           issueId={issueId}
           organization={organization}
-          tagKey={tagKey}
-          tagHref={makeIssueTagDistributionPathname({
-            organizationSlug: organization.slug,
-            issueId,
-            tagKey,
-          })}
+          tagKeys={tagKeys}
+          distributionsHref={distributionsHref}
         />
       ) : null;
     case 'summary':
@@ -107,10 +99,10 @@ function EventBlockView({
   }
 }
 
-export default function SeerEventBlock({id, issueId, shortId, view, tagKey}: EventData) {
+export default function SeerEventBlock({id, issueId, shortId, view, tagKeys}: EventData) {
   const organization = useOrganization();
-  // A `tag` view without a tag key has nothing to break down -- show the summary.
-  const resolvedView = view === 'tag' && !tagKey ? 'summary' : view;
+  // A `tag` view without tag keys has nothing to break down -- show the summary.
+  const resolvedView = view === 'tag' && !tagKeys?.length ? 'summary' : view;
   const eventHref = makeEventPathname({
     organizationSlug: organization.slug,
     issueId,
@@ -164,7 +156,7 @@ export default function SeerEventBlock({id, issueId, shortId, view, tagKey}: Eve
             <EventSummary event={event} />
             <EventBlockView
               view={resolvedView}
-              tagKey={tagKey}
+              tagKeys={tagKeys}
               event={event}
               issueId={issueId}
               organization={organization}

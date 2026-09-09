@@ -36,6 +36,7 @@ describe('EventEmbedStory', () => {
         tags: [
           {key: 'level', value: 'error'},
           {key: 'browser', value: 'Chrome'},
+          {key: 'os', value: 'macOS'},
         ],
       }),
     });
@@ -43,7 +44,7 @@ describe('EventEmbedStory', () => {
     render(<EventEmbedStory />);
 
     const variants = await screen.findAllByLabelText('Rendered markdown');
-    expect(variants).toHaveLength(3);
+    expect(variants).toHaveLength(4);
 
     for (const variant of variants) {
       expect(variant).toHaveTextContent(EVENT_ID);
@@ -52,11 +53,36 @@ describe('EventEmbedStory', () => {
     }
 
     expect(variants[1]).toHaveTextContent('"view":"tags"');
-    // `browser` is preferred over `level`, which is the same on every event.
-    expect(variants[2]).toHaveTextContent('"view":"tag","tagKey":"browser"');
+    // `browser` and `os` are preferred over `level`, which is the same on every
+    // event and would draw a single full-width bar.
+    expect(variants[2]).toHaveTextContent('"view":"tag","tagKeys":["browser"]');
+    expect(variants[3]).toHaveTextContent('"view":"tag","tagKeys":["browser","os"]');
 
     expect(issueRequest).toHaveBeenCalled();
     expect(eventRequest).toHaveBeenCalled();
+  });
+
+  it('omits the multi-tag variant when the event carries only one usable tag', async () => {
+    const issue = GroupFixture({id: '5551212', shortId: 'JAVASCRIPT-22SP'});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: [issue],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${issue.id}/events/latest/`,
+      body: EventFixture({
+        id: EVENT_ID,
+        eventID: EVENT_ID,
+        groupID: issue.id,
+        tags: [{key: 'browser', value: 'Chrome'}],
+      }),
+    });
+
+    render(<EventEmbedStory />);
+
+    const variants = await screen.findAllByLabelText('Rendered markdown');
+    expect(variants).toHaveLength(3);
+    expect(variants[2]).toHaveTextContent('"view":"tag","tagKeys":["browser"]');
   });
 
   it('falls back to a message when the organization has no error events', async () => {

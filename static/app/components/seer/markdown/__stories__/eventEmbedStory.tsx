@@ -14,10 +14,13 @@ import {EmbedStory, EmbedVariant} from './embedStory';
 
 /**
  * Tag keys worth breaking down in the `tag` view. An event holds one value per
- * tag, so the story wants a key whose values actually vary across the issue --
+ * tag, so the story wants keys whose values actually vary across the issue --
  * `browser` reads better than `level`, which is the same on nearly every event.
  */
 const STORY_TAG_KEYS = ['browser', 'os', 'device', 'release', 'url', 'environment'];
+
+/** How many keys the multi-tag variant asks for. */
+const STORY_TAG_KEY_COUNT = 3;
 
 function recentIssueApiOptions(organizationSlug: string) {
   return apiOptions.as<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
@@ -35,9 +38,13 @@ function recentIssueApiOptions(organizationSlug: string) {
   });
 }
 
-function getStoryTagKey(event: Event): string | undefined {
+function getStoryTagKeys(event: Event): string[] {
   const tagKeys = new Set(event.tags?.map(tag => tag.key));
-  return STORY_TAG_KEYS.find(key => tagKeys.has(key)) ?? event.tags?.[0]?.key;
+  const preferred = STORY_TAG_KEYS.filter(key => tagKeys.has(key));
+  // Fall back to whatever the event does carry, so an event with no tag in the
+  // preferred list still demonstrates the view.
+  const keys = preferred.length ? preferred : (event.tags?.map(tag => tag.key) ?? []);
+  return keys.slice(0, STORY_TAG_KEY_COUNT);
 }
 
 export function EventEmbedStory() {
@@ -66,7 +73,7 @@ export function EventEmbedStory() {
     issue && event
       ? {id: event.id, issueId: issue.id, shortId: issue.shortId}
       : undefined;
-  const tagKey = event ? getStoryTagKey(event) : undefined;
+  const tagKeys = event ? getStoryTagKeys(event) : [];
 
   return (
     <EmbedStory name="event">
@@ -78,11 +85,18 @@ export function EventEmbedStory() {
         <Fragment>
           <EmbedVariant name="event" label="Event" data={data} />
           <EmbedVariant name="event" label="All tags" data={{...data, view: 'tags'}} />
-          {tagKey ? (
+          {tagKeys.length ? (
             <EmbedVariant
               name="event"
-              label={`Single tag breakdown (${tagKey})`}
-              data={{...data, view: 'tag', tagKey}}
+              label={`Single tag breakdown (${tagKeys[0]})`}
+              data={{...data, view: 'tag', tagKeys: tagKeys.slice(0, 1)}}
+            />
+          ) : null}
+          {tagKeys.length > 1 ? (
+            <EmbedVariant
+              name="event"
+              label={`Several tag breakdowns (${tagKeys.join(', ')})`}
+              data={{...data, view: 'tag', tagKeys}}
             />
           ) : null}
         </Fragment>

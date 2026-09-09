@@ -2,7 +2,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {screen} from 'sentry-test/reactTestingLibrary';
+import {screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {
   getEmbedLinkHref,
@@ -118,7 +118,7 @@ describe('Seer event embed', () => {
       body: TagsFixture()[0],
     });
 
-    renderEventEmbed({view: 'tag', tagKey: 'browser'});
+    renderEventEmbed({view: 'tag', tagKeys: ['browser']});
 
     expect(await screen.findByText('Tag Distribution')).toBeInTheDocument();
     expect(await screen.findByText('Firefox')).toBeInTheDocument();
@@ -128,14 +128,63 @@ describe('Seer event embed', () => {
     );
   });
 
-  it('falls back to the summary when view is "tag" without a tag key', async () => {
+  it('renders one distribution per key for view "tag" with several keys', async () => {
+    mockEvent();
+    const browserRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${ISSUE_ID}/tags/browser/`,
+      body: TagsFixture()[0],
+    });
+    const urlRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${ISSUE_ID}/tags/url/`,
+      body: TagsFixture()[2],
+    });
+
+    renderEventEmbed({view: 'tag', tagKeys: ['browser', 'url']});
+
+    expect(await screen.findByText('Firefox')).toBeInTheDocument();
+    expect(await screen.findByText('http://example.com/foo')).toBeInTheDocument();
+    expect(browserRequest).toHaveBeenCalled();
+    expect(urlRequest).toHaveBeenCalled();
+    // No single tag page covers every requested key, so the header falls back to
+    // the issue's distributions page.
+    expect(screen.getByRole('link', {name: 'All tags for this issue'})).toHaveAttribute(
+      'href',
+      `/organizations/org-slug/issues/${ISSUE_ID}/distributions/`
+    );
+  });
+
+  it('renders only the first few distributions when given a long key list', async () => {
+    mockEvent();
+    const tagKeys = ['browser', 'url', 'device', 'environment', 'user'];
+    const requests = Object.fromEntries(
+      tagKeys.map((tagKey, index) => [
+        tagKey,
+        MockApiClient.addMockResponse({
+          url: `/organizations/org-slug/issues/${ISSUE_ID}/tags/${tagKey}/`,
+          body: {...TagsFixture()[index], key: tagKey},
+        }),
+      ])
+    );
+
+    renderEventEmbed({view: 'tag', tagKeys});
+
+    expect(await screen.findByText('Firefox')).toBeInTheDocument();
+    // The block caps at four, so the fifth key is never requested.
+    await waitFor(() => expect(requests.environment).toHaveBeenCalled());
+    expect(requests.user).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['without tag keys', {}],
+    ['with an empty tag key list', {tagKeys: []}],
+  ])('falls back to the summary when view is "tag" %s', async (_label, data) => {
     mockEvent();
     const tagRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${ISSUE_ID}/tags/browser/`,
       body: TagsFixture()[0],
     });
 
-    renderEventEmbed({view: 'tag'});
+    renderEventEmbed({view: 'tag', ...data});
 
     expect(await screen.findByText('ReferenceError')).toBeInTheDocument();
     expect(screen.queryByText('Tag Distribution')).not.toBeInTheDocument();

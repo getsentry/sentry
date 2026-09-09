@@ -524,8 +524,10 @@ export const SEER_EMBED_SCHEMAS = {
       'Block: renders the event with its title, message, culprit, and context — ' +
       'do NOT duplicate any of that as text. ' +
       'Set `view` to "tags" to also render the full tag list for the event, or ' +
-      'to "tag" together with `tagKey` to render how that one tag is distributed ' +
-      'across the issue. Leave `view` as "summary" unless the user asked about tags. ' +
+      'to "tag" together with `tagKeys` to render how those tags are distributed ' +
+      'across the issue -- pass every key the user asked about in one embed ' +
+      'rather than repeating the embed per key, and keep it to a handful. ' +
+      'Leave `view` as "summary" unless the user asked about tags. ' +
       'Never use a markdown link for event references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -533,27 +535,19 @@ export const SEER_EMBED_SCHEMAS = {
       issueId: z.string().min(1),
       shortId: z.string().min(1).optional(),
       view: z.enum(['summary', 'tags', 'tag']).default('summary'),
-      tagKey: z
-        .string()
-        .min(1)
+      // Deliberately uncapped: a `.max()` would make an over-long list fail to
+      // parse, and an embed whose props fail to parse renders nothing at all.
+      // The block caps how many it draws instead.
+      tagKeys: z
+        .array(z.string().min(1))
         .optional()
         .describe(
-          'Required when view is "tag". The tag key to break down, e.g. "browser".'
+          'Required when view is "tag". The tag keys to break down, e.g. ["browser", "os"].'
         ),
     }),
     examples: [
       {
-        label: 'Inline',
-        level: 'inline',
-        data: {
-          id: '8f2c1a9d7e6b4f30a1b2c3d4e5f60718',
-          issueId: '5551212',
-          shortId: 'JAVASCRIPT-22SP',
-        },
-      },
-      {
-        label: 'Block',
-        level: 'block',
+        label: 'Event',
         data: {
           id: '8f2c1a9d7e6b4f30a1b2c3d4e5f60718',
           issueId: '5551212',
@@ -578,7 +572,18 @@ export const SEER_EMBED_SCHEMAS = {
           issueId: '5551212',
           shortId: 'JAVASCRIPT-22SP',
           view: 'tag',
-          tagKey: 'browser',
+          tagKeys: ['browser'],
+        },
+      },
+      {
+        label: 'Several tag breakdowns',
+        level: 'block',
+        data: {
+          id: '8f2c1a9d7e6b4f30a1b2c3d4e5f60718',
+          issueId: '5551212',
+          shortId: 'JAVASCRIPT-22SP',
+          view: 'tag',
+          tagKeys: ['browser', 'os', 'release'],
         },
       },
     ],
