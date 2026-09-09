@@ -84,10 +84,18 @@ export function useTrackEmbedRendered({
       'seer_embed.level': level,
       'seer_embed.index': index,
       'seer_embed.surface': scope.surface,
-      // The conversation has a convention name; the rest of these concepts are
-      // Seer's own. `gen_ai.response.id` is deliberately not used for the
-      // message: it means the provider's completion id, not a Seer block id.
+      // The conversation is written twice on purpose. The convention name is
+      // what correlates this render with everything else describing the same
+      // conversation -- spans, other producers -- while the `seer_embed.`
+      // copy keeps every attribute of this log under one prefix, so a query
+      // for embeds does not have to know that one of its fields is namespaced
+      // somewhere else.
+      //
+      // The message has no such pair: `gen_ai.response.id` means the
+      // provider's completion id, not a Seer block id, so writing a block id
+      // there would put two meanings behind one key.
       [GEN_AI_CONVERSATION_ID]: scope.conversationId,
+      'seer_embed.conversation_id': scope.conversationId,
       'seer_embed.message_id': scope.messageId,
       // Pre-composed because the query layer cannot concatenate attributes:
       // `count_unique(seer_embed.message_key)` counts messages that showed an
