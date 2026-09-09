@@ -437,3 +437,54 @@ class AuthSAML2Test(AuthProviderTestCase):
         # Should continue to identity confirmation
         assert auth.status_code == 200
         assert auth.context["existing_user"] == self.user
+
+    def _start_sp_login_with_next(self, next_url: str) -> str:
+        AuthIdentity.objects.create(
+            user_id=self.user.id, auth_provider=self.auth_provider_inst, ident="1234"
+        )
+        resp = self.client.post(f"{self.login_path}?next={next_url}", {"init": True})
+        assert resp.status_code == 302
+        return parse_qs(urlparse(resp["Location"]).query)["RelayState"][0]
+
+    def accept_auth_with_relay_state(self, relay_state: str):
+        saml_response = base64.b64encode(self.load_fixture("saml2_auth_response.xml")).decode()
+        is_valid = "onelogin.saml2.response.OneLogin_Saml2_Response.is_valid"
+        with mock.patch(is_valid, return_value=True), self.auto_select_silo_mode_on_redirects():
+            return self.client.post(
+                self.acs_path,
+                {"SAMLResponse": saml_response, "RelayState": relay_state},
+                follow=True,
+            )
+
+    def test_relay_state_omits_next_for_external_url(self) -> None:
+        relay_state = self._start_sp_login_with_next("http://example.com/")
+
+        assert relay_state == f"provider_key:{self.provider_name}"
+
+    def test_sp_initiated_login_without_session_redirects_to_next_url(self) -> None:
+        next_url = "/organizations/saml2-org/releases/"
+        relay_state = self._start_sp_login_with_next(next_url)
+        self.client.cookies.clear()
+
+        resp = self.accept_auth_with_relay_state(relay_state)
+
+        assert resp.redirect_chain == [(next_url, 302)]
+
+    def test_sp_initiated_login_with_session_redirects_to_next_url(self) -> None:
+        next_url = "/organizations/saml2-org/releases/"
+        relay_state = self._start_sp_login_with_next(next_url)
+
+        resp = self.accept_auth_with_relay_state(relay_state)
+
+        assert resp.redirect_chain == [(next_url, 302)]
+
+    def test_relay_state_next_token_is_single_use(self) -> None:
+        next_url = "/organizations/saml2-org/releases/"
+        relay_state = self._start_sp_login_with_next(next_url)
+        self.client.cookies.clear()
+        self.accept_auth_with_relay_state(relay_state)
+        self.client.cookies.clear()
+
+        resp = self.accept_auth_with_relay_state(relay_state)
+
+        assert resp.redirect_chain == [("/organizations/saml2-org/issues/", 302)]

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import abc
+import re
+import secrets
 from collections.abc import Mapping
 from typing import Any, NotRequired, TypedDict, _TypedDict
 from urllib.parse import urlparse
@@ -31,12 +33,59 @@ from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.services.organization import organization_service
 from sentry.users.services.user.service import user_service
-from sentry.utils.auth import get_login_url
+from sentry.utils.auth import get_login_url, initiate_login, is_valid_redirect
+from sentry.utils.cache import cache
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import BaseView, control_silo_view
 
 ERR_NO_SAML_SSO = _("The organization does not exist or does not have SAML SSO enabled.")
 ERR_SAML_FAILED = _("SAML SSO failed, {reason}")
+
+RELAY_STATE_NEXT_TTL = 600
+NEXT_TOKEN_RE = re.compile(r"[A-Za-z0-9_-]{1,64}")
+
+
+def _next_url_cache_key(token: str) -> str:
+    return f"saml2:next:{token}"
+
+
+def encode_relay_state(provider_key: str, next_token: str | None) -> str:
+    relay_state = f"provider_key:{provider_key}"
+    if next_token:
+        relay_state += f"|next:{next_token}"
+    return relay_state
+
+
+def decode_relay_state(relay_state: str | None) -> tuple[str | None, str | None]:
+    provider_key = next_token = None
+    for segment in (relay_state or "").split("|"):
+        if segment.startswith("provider_key:"):
+            provider_key = segment.split(":", 1)[1]
+        elif segment.startswith("next:"):
+            next_token = segment.split(":", 1)[1]
+    return provider_key, next_token
+
+
+def stash_next_url(request: HttpRequest) -> str | None:
+    next_url = request.session.get("_next")
+    if not next_url or not is_valid_redirect(next_url, allowed_hosts=(request.get_host(),)):
+        return None
+    token = secrets.token_urlsafe(16)
+    cache.set(_next_url_cache_key(token), next_url, RELAY_STATE_NEXT_TTL)
+    return token
+
+
+def pop_next_url(next_token: str | None) -> str | None:
+    if not next_token or not NEXT_TOKEN_RE.fullmatch(next_token):
+        return None
+    key = _next_url_cache_key(next_token)
+    next_url = cache.get(key)
+    cache.delete(key)
+    return next_url
+
+
+def get_relay_state(request: HttpRequest) -> str | None:
+    return request.POST.get("RelayState") or request.GET.get("RelayState")
 
 
 def strip_op_from_post(request: HttpRequest) -> None:
@@ -86,11 +135,7 @@ class SAML2LoginView(AuthView):
         saml_config = build_saml_config(provider.config, pipeline.organization.slug)
         auth = build_auth(request, saml_config)
 
-        # Encode provider key in RelayState so it survives the SAML redirect.
-        # This allows detecting when a user completes a SAML flow that was started
-        # for a different provider (e.g., multiple SSO tabs open).
-        # Format: "provider_key:{key}" or just return_to URL for backward compat
-        relay_state = f"provider_key:{pipeline.provider.key}"
+        relay_state = encode_relay_state(pipeline.provider.key, stash_next_url(request))
 
         return HttpResponseRedirect(auth.login(return_to=relay_state))
 
@@ -133,6 +178,11 @@ class SAML2AcceptACSView(BaseView):
             messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
             return self.redirect(reverse("sentry-login"))
 
+        _, next_token = decode_relay_state(get_relay_state(request))
+        next_url = pop_next_url(next_token)
+        if next_url:
+            initiate_login(request, next_url=next_url)
+
         pipeline = AuthHelper(
             request=request,
             organization=(org_context.organization),
@@ -168,14 +218,8 @@ class SAML2ACSView(AuthView):
 
         pipeline.bind_state("auth_attributes", auth.get_attributes())
 
-        # Extract the provider key from the RelayState parameter.
-        # This was encoded when the SAML flow started (in SAML2LoginView) and survives
-        # the redirect through the IdP, allowing us to detect if the user completed
-        # a SAML flow that was started for a different provider.
-        provider_key = None
-        relay_state = request.POST.get("RelayState") or request.GET.get("RelayState")
-        if relay_state and relay_state.startswith("provider_key:"):
-            provider_key = relay_state.split(":", 1)[1]
+        provider_key, next_token = decode_relay_state(get_relay_state(request))
+        pop_next_url(next_token)
         pipeline.bind_state("provider_key", provider_key)
 
         return pipeline.next_step()
