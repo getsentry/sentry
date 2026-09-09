@@ -46,6 +46,7 @@ from sentry.integrations.services.integration.serial import (
     serialize_integration_external_project,
     serialize_organization_integration,
 )
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.metrics import (
@@ -656,4 +657,37 @@ class DatabaseBackedIntegrationService(IntegrationService):
         )
         integration.refresh_from_db()
 
+        return serialize_integration(integration)
+
+    def refresh_github_permissions(
+        self, *, integration_id: int, organization_id: int
+    ) -> RpcIntegration | None:
+        try:
+            integration = Integration.objects.get(
+                id=integration_id,
+                provider__in=[
+                    IntegrationProviderSlug.GITHUB.value,
+                    IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+                ],
+                status=ObjectStatus.ACTIVE,
+            )
+        except Integration.DoesNotExist:
+            return None
+
+        installation = integration.get_installation(organization_id=organization_id)
+        # get_installation doesn't actually check if the integration is
+        # associated with the organization, so this validates that it does,
+        # and caches the org_integration preemptively.
+        try:
+            installation.org_integration
+        except OrganizationIntegrationNotFound:
+            return None
+
+        # Unconditional, unlike refresh_github_access_token: a token that is
+        # still valid was minted before the app's permissions changed, so
+        # letting it stand is exactly the stale answer we are here to replace.
+        if installation.get_client().refresh_access_token() is None:
+            return None
+
+        integration.refresh_from_db()
         return serialize_integration(integration)
