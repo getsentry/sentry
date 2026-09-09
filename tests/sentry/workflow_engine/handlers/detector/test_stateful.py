@@ -611,7 +611,7 @@ class TestStatefulDetectorActivationId(TestCase):
     def test_no_opt_in__never_rotates(self) -> None:
         handler = MockDetectorStateHandler(detector=self.detector)
 
-        with self.feature("organizations:workflow-engine-new-group-per-activation"):
+        with self.feature("organizations:workflow-engine-rotate-activation-id"):
             handler.evaluate(self.packet(1, Level.HIGH))
 
         assert self.activation_id(handler) is None
@@ -626,7 +626,7 @@ class TestStatefulDetectorActivationId(TestCase):
     def test_leaving_ok__mints_an_id(self) -> None:
         handler = RotatingDetectorStateHandler(detector=self.detector)
 
-        with self.feature("organizations:workflow-engine-new-group-per-activation"):
+        with self.feature("organizations:workflow-engine-rotate-activation-id"):
             handler.evaluate(self.packet(1, Level.HIGH))
 
         assert self.activation_id(handler) is not None
@@ -634,7 +634,7 @@ class TestStatefulDetectorActivationId(TestCase):
     def test_escalation_and_resolution__keep_the_id(self) -> None:
         handler = RotatingDetectorStateHandler(detector=self.detector)
 
-        with self.feature("organizations:workflow-engine-new-group-per-activation"):
+        with self.feature("organizations:workflow-engine-rotate-activation-id"):
             handler.evaluate(self.packet(1, Level.MEDIUM))
 
             activated = self.activation_id(handler)
@@ -650,7 +650,7 @@ class TestStatefulDetectorActivationId(TestCase):
     def test_refiring__mints_a_new_id(self) -> None:
         handler = RotatingDetectorStateHandler(detector=self.detector)
 
-        with self.feature("organizations:workflow-engine-new-group-per-activation"):
+        with self.feature("organizations:workflow-engine-rotate-activation-id"):
             handler.evaluate(self.packet(1, Level.HIGH))
 
             first_activation = self.activation_id(handler)

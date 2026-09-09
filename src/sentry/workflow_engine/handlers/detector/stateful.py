@@ -389,7 +389,7 @@ class StatefulDetectorHandler(
             return False
 
         return features.has(
-            "organizations:workflow-engine-new-group-per-activation",
+            "organizations:workflow-engine-rotate-activation-id",
             self.detector.linked_project.organization,
         )
 
