@@ -9,6 +9,8 @@ from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
+from sentry.api.base import Endpoint
+from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.client_kind import (
     ATTRIBUTION_SPAN_OP,
     FEATURE_FLAG,
@@ -21,9 +23,10 @@ from sentry.api.client_kind import (
 )
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.seer.agent_token import AGENT_TOKEN_KIND
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.utils.sdk import get_transaction_name_from_request
 
 EVENTS_PATH = "/api/0/organizations/my-org/events/"
@@ -447,3 +450,66 @@ class ClientKindScopeTest(TestCase):
             set_client_kind_attributes(request, self.organization)
         assert sdk.set_tag.call_args_list == [mock.call("client_kind_test", "seer")]
         assert mock.call("client_kind_test", "seer") in sdk.set_attribute.call_args_list
+
+
+class ClientKindOrganizationTest(TestCase):
+    """The resolver `Endpoint.dispatch` uses to find the org that governs the opt-in."""
+
+    def test_default_reads_the_organization_convert_args_resolved(self) -> None:
+        endpoint = Endpoint()
+        assert (
+            endpoint.client_kind_organization(make_request(), {"organization": self.organization})
+            is self.organization
+        )
+
+    def test_default_accepts_the_rpc_organization_a_control_silo_endpoint_resolves(self) -> None:
+        rpc_organization = serialize_rpc_organization(self.organization)
+        endpoint = Endpoint()
+        assert (
+            endpoint.client_kind_organization(make_request(), {"organization": rpc_organization})
+            is rpc_organization
+        )
+
+    def test_default_is_none_for_an_endpoint_with_no_organization(self) -> None:
+        assert Endpoint().client_kind_organization(make_request(), {}) is None
+
+    def test_default_ignores_a_kwarg_that_is_not_an_organization(self) -> None:
+        """`kwargs` is whatever an arbitrary `convert_args` put there, so it is checked.
+
+        Without this a base naming the kwarg differently would hand a slug to
+        `features.has` rather than simply reporting nothing.
+        """
+        assert (
+            Endpoint().client_kind_organization(make_request(), {"organization": "my-org"}) is None
+        )
+
+    def test_a_project_endpoint_reports_its_projects_organization(self) -> None:
+        endpoint = ProjectEndpoint()
+        assert (
+            endpoint.client_kind_organization(make_request(), {"project": self.project})
+            == self.organization
+        )
+
+    def test_a_project_endpoint_with_no_project_is_none(self) -> None:
+        assert ProjectEndpoint().client_kind_organization(make_request(), {}) is None
+
+
+class DispatchWiringTest(APITestCase):
+    """Coverage reaches endpoints beyond the events base this started on."""
+
+    endpoint = "sentry-api-0-project-details"
+
+    def test_a_project_endpoint_records_the_caller(self) -> None:
+        self.login_as(self.user)
+        with (
+            self.feature(FEATURE_FLAG),
+            mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
+        ):
+            self.get_success_response(self.organization.slug, self.project.slug)
+        assert mock.call("client_kind_test", "frontend") in sdk.set_tag.call_args_list
+
+    def test_records_nothing_when_the_organization_has_not_opted_in(self) -> None:
+        self.login_as(self.user)
+        with mock.patch("sentry.api.client_kind.sentry_sdk") as sdk:
+            self.get_success_response(self.organization.slug, self.project.slug)
+        assert sdk.set_tag.call_args_list == []

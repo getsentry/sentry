@@ -25,6 +25,7 @@ from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import is_system_auth
 from sentry.middleware import is_frontend_request
 from sentry.models.organization import Organization
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.seer.agent_token import is_agent_auth
 from sentry.utils.http import SEER_REFERRER_HEADER, get_mcp_client_family, is_mcp_request
 from sentry.utils.sdk import get_transaction_name_from_request
@@ -101,7 +102,9 @@ _SCRIPT_USER_AGENT_PREFIX = re.compile(
 )
 
 
-def get_client_kind(request: Request, organization: Organization) -> ClientKind | None:
+def get_client_kind(
+    request: Request, organization: Organization | RpcOrganization
+) -> ClientKind | None:
     """Classify the caller of an API request.
 
     Returns ``None`` when the org has not opted in, so that a disabled org is
@@ -184,12 +187,15 @@ def get_client_kind(request: Request, organization: Organization) -> ClientKind 
     return ClientKind.UNKNOWN
 
 
-def set_client_kind_attributes(request: Request, organization: Organization) -> None:
+def set_client_kind_attributes(
+    request: Request, organization: Organization | RpcOrganization
+) -> None:
     """Record who called the endpoint, on a span and on the enclosing transaction.
 
-    A no-op when the org has not opted into ``client_kind``. Wired into
-    ``OrganizationEventsEndpointBase.convert_args`` so every events endpoint
-    reports the same set of attributes without hand-wiring them per handler.
+    A no-op when the org has not opted into ``client_kind``. Called once from
+    ``Endpoint.dispatch``, for whichever organization
+    ``Endpoint.client_kind_organization`` resolves, so every endpoint reports the
+    same set of attributes without hand-wiring them per handler.
     """
     client_kind = get_client_kind(request, organization)
     if client_kind is None:

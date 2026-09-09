@@ -17,6 +17,7 @@ from sentry.api.permissions import StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidParams
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.utils.sdk import Scope, bind_organization_context
@@ -217,6 +218,16 @@ class ProjectEndpoint(Endpoint):
 
         kwargs["project"] = project
         return (args, kwargs)
+
+    def client_kind_organization(
+        self, request: Request, kwargs: dict[str, Any]
+    ) -> Organization | None:
+        """A project endpoint reports against its project's organization.
+
+        No extra query: `convert_args` already `select_related`s the organization.
+        """
+        project = kwargs.get("project")
+        return project.organization if project is not None else None
 
     def get_filter_params(
         self, request: Request, project: Project, date_filter_optional: bool = False

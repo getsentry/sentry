@@ -33,6 +33,7 @@ from sentry import analytics, tsdb
 from sentry.analytics.events.release_set_commits import ReleaseSetCommitsLocalEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.client_kind import set_client_kind_attributes
 from sentry.api.exceptions import (
     INSUFFICIENT_SCOPE_ATTR,
     InsufficientScope,
@@ -45,7 +46,9 @@ from sentry.auth.scope_declaration import bind_endpoint_scope_declaration
 from sentry.auth.staff import has_staff_option
 from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
 from sentry.middleware import is_frontend_request
+from sentry.models.organization import Organization
 from sentry.organizations.absolute_url import generate_organization_url
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.seer import agent_token
 from sentry.silo.base import SiloLimit, SiloMode
@@ -292,6 +295,24 @@ class Endpoint(APIView):
     def convert_args(self, request: Request, *args, **kwargs):
         return (args, kwargs)
 
+    def client_kind_organization(
+        self, request: Request, kwargs: dict[str, Any]
+    ) -> Organization | RpcOrganization | None:
+        """The organization whose `client_kind` opt-in governs this request, if any.
+
+        Reads the `organization` that `convert_args` resolved, the kwarg every
+        organization-scoped base populates. Bases that resolve one some other way
+        override this -- `ProjectEndpoint` reads it off the project. Returning None
+        means the request goes unattributed, which is the right answer for an
+        endpoint with no organization in scope.
+        """
+        organization = kwargs.get("organization")
+        # Type-checked rather than trusted: `kwargs` is whatever an arbitrary
+        # `convert_args` put there, and a non-organization would reach `features.has`.
+        if isinstance(organization, (Organization, RpcOrganization)):
+            return organization
+        return None
+
     def permission_denied(self, request, message=None, code=None):
         """
         Raise a specific superuser exception if the user can become superuser
@@ -493,6 +514,10 @@ class Endpoint(APIView):
                     (args, kwargs) = self.convert_args(request, *args, **kwargs)
                     self.args = args
                     self.kwargs = kwargs
+
+                    client_kind_organization = self.client_kind_organization(request, kwargs)
+                    if client_kind_organization is not None:
+                        set_client_kind_attributes(request, client_kind_organization)
                 else:
                     handler = self.http_method_not_allowed
 
