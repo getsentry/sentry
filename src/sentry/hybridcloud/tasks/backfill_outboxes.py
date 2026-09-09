@@ -132,7 +132,12 @@ def get_processing_state(table_name: str) -> tuple[int, int]:
     return result
 
 
-def set_processing_state(table_name: str, value: int, version: int) -> None:
+def set_processing_state(
+    model: type[ControlOutboxProducingModel] | type[CellOutboxProducingModel] | type[User],
+    value: int,
+    version: int,
+) -> None:
+    table_name = model._meta.db_table
     client = _get_redis_client()
     client.set(get_backfill_key(table_name), json.dumps((value, version)))
     metrics.gauge(
@@ -140,6 +145,7 @@ def set_processing_state(table_name: str, value: int, version: int) -> None:
         value,
         tags=dict(table_name=table_name, version=version),
     )
+    _write_postgres_watermark(model, value, version)
 
 
 def find_replication_version(
@@ -241,10 +247,7 @@ def process_outbox_backfill_batch(
     else:
         low_bound, version = processing_state.up + 1, processing_state.version
 
-    set_processing_state(model._meta.db_table, low_bound, version)
-
-    # This is the write site we keep after the migration to Postgres is done
-    _write_postgres_watermark(model, low_bound, version)
+    set_processing_state(model, low_bound, version)
 
     return processing_state
 
