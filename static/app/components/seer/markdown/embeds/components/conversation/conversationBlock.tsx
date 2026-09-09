@@ -16,6 +16,20 @@ function toTimestampMs(isoTimestamp: string | undefined): number | undefined {
 }
 
 /**
+ * Scopes the fetch to the conversation's own projects rather than the host
+ * page's filters, which have nothing to do with the conversation the tag names.
+ * The ids come from the model, so anything non-numeric is dropped instead of
+ * being sent as `NaN`.
+ */
+function toProjectIds(projects: ConversationData['projects']): number[] | undefined {
+  if (!projects?.length) {
+    return undefined;
+  }
+  const ids = projects.map(Number).filter(id => Number.isFinite(id));
+  return ids.length > 0 ? ids : undefined;
+}
+
+/**
  * Deliberately shows the conversation's totals and not its transcript: the
  * embed is itself rendered inside an agent conversation, so a nested transcript
  * reads as part of the surrounding answer. The link goes to the full detail
@@ -24,6 +38,7 @@ function toTimestampMs(isoTimestamp: string | undefined): number | undefined {
 export default function ConversationBlock({data}: {data: ConversationData}) {
   const {nodes, isLoading, error, title} = useConversation({
     conversationId: data.id,
+    projects: toProjectIds(data.projects),
     startTimestamp: toTimestampMs(data.start),
     endTimestamp: toTimestampMs(data.end),
   });
