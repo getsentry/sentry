@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import os
 from collections.abc import Generator
 from datetime import datetime, timezone
 from typing import Any
@@ -155,6 +156,25 @@ S024_safelist = frozenset(("tools/migrations/squash.py",))
 _S024_discovery_methods = frozenset(("rglob", "glob", "iglob"))
 
 
+# Rules whose diagnostics are fatal. Empty ships every rule off; adding one
+# gates every endpoint of that shape at once, with no baseline to maintain.
+ENFORCED: frozenset[str] = frozenset()
+
+# Emit regardless of ENFORCED, so a plain flake8 run is the backlog inventory.
+INPUT_LINT_ALL_ENV = "SENTRY_INPUT_LINT_ALL"
+
+S025_query_msg = (
+    "S025 {} validates the query string but is not declared in "
+    "@extend_schema(parameters=...), so the schema does not document what this "
+    "endpoint accepts. Add it to parameters=."
+)
+S025_body_msg = (
+    "S025 {} validates the request body but is not declared in "
+    "@extend_schema(request=...), so the schema does not document what this "
+    "endpoint accepts. Add it as request=."
+)
+
+
 def _s015_msg() -> str:
     return (
         "S015 Do not hardcode datetime with current or future UTC year at module/class "
@@ -286,6 +306,40 @@ def extend_schema_kwarg(decorators: list[ast.expr], name: str) -> Generator[ast.
         for kw in dec.keywords:
             if kw.arg == name:
                 yield kw.value
+
+
+_QUERY_ATTRS = frozenset(("GET", "query_params"))
+_COPY_METHODS = frozenset(("copy", "dict"))
+
+
+def _unwrap_copy(node: ast.expr) -> ast.expr:
+    """Strip `.copy()` / `.dict()` so `request.GET.copy()` still reads as the source."""
+    while (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in _COPY_METHODS
+    ):
+        node = node.func.value
+    return node
+
+
+def _declared_elements(value: ast.expr) -> list[ast.expr]:
+    """Serializers in one `@extend_schema` value, which may be a sequence or a
+    media-type mapping such as `request={"multipart/form-data": Upload}`."""
+    if isinstance(value, (ast.List, ast.Tuple)):
+        return list(value.elts)
+    if isinstance(value, ast.Dict):
+        return [v for v in value.values if v is not None]
+    return [value]
+
+
+def _declared_names(decorators: list[ast.expr], keyword: str) -> set[str]:
+    """Short names declared under `@extend_schema(<keyword>=...)`."""
+    names: set[str] = set()
+    for value in extend_schema_kwarg(decorators, keyword):
+        for element in _declared_elements(value):
+            names.add(_name_of(element).rsplit(".", 1)[-1])
+    return names
 
 
 def _name_of(node: ast.expr) -> str:
@@ -517,6 +571,31 @@ def _repo_relative(filename: str) -> str:
     return normalized.lstrip("./")
 
 
+class _InputCtx:
+    """One PUBLIC method's input sources, gathered during the single traversal."""
+
+    def __init__(self, declared_params: set[str], declared_body: set[str]) -> None:
+        self.declared_params = declared_params
+        self.declared_body = declared_body
+        self.query_locals: set[str] = set()
+        self.body_locals: set[str] = set()
+        # (line, col, serializer) for each serializer built from that source
+        self.query_validators: list[tuple[int, int, str]] = []
+        self.body_validators: list[tuple[int, int, str]] = []
+
+    def _is(self, node: ast.expr, attrs: frozenset[str], locals_: set[str]) -> bool:
+        node = _unwrap_copy(node)
+        if isinstance(node, ast.Name):
+            return node.id in locals_
+        return isinstance(node, ast.Attribute) and node.attr in attrs
+
+    def is_query(self, node: ast.expr) -> bool:
+        return self._is(node, _QUERY_ATTRS, self.query_locals)
+
+    def is_body(self, node: ast.expr) -> bool:
+        return self._is(node, frozenset(("data",)), self.body_locals)
+
+
 class SentryVisitor(ast.NodeVisitor):
     def __init__(
         self,
@@ -541,6 +620,9 @@ class SentryVisitor(ast.NodeVisitor):
         self._module_classes: dict[str, ast.ClassDef] = {}
         # publish_status of the enclosing module-level class, for S022.
         self._publish_status: dict[str, str] | None = None
+        # Input rules: per-method accumulation, innermost last.
+        self._input_stack: list[_InputCtx] = []
+        self._class_decorators: list[ast.expr] = []
         self._class_stack: list[str] = []
         self._function_stack: list[str] = []
 
@@ -679,17 +761,21 @@ class SentryVisitor(ast.NodeVisitor):
             self._check_S023(node)
         outer_publish_status = self._publish_status
         self._publish_status = publish_status(node) if top_level else None
+        outer_decorators = self._class_decorators
+        self._class_decorators = node.decorator_list if top_level else []
         self._class_stack.append(node.name)
         try:
             self.generic_visit(node)
         finally:
             self._class_stack.pop()
             self._publish_status = outer_publish_status
+            self._class_decorators = outer_decorators
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         if len(self._class_stack) == 1 and self._function_depth == 0:
             self._check_S021(node)
             self._check_S022(node)
+        entered = self._enter_input(node)
         self._function_depth += 1
         self._function_stack.append(node.name)
         try:
@@ -697,11 +783,14 @@ class SentryVisitor(ast.NodeVisitor):
         finally:
             self._function_stack.pop()
             self._function_depth -= 1
+            if entered:
+                self._exit_input()
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
         if len(self._class_stack) == 1 and self._function_depth == 0:
             self._check_S021(node)
             self._check_S022(node)
+        entered = self._enter_input(node)
         self._function_depth += 1
         self._function_stack.append(node.name)
         try:
@@ -709,6 +798,8 @@ class SentryVisitor(ast.NodeVisitor):
         finally:
             self._function_stack.pop()
             self._function_depth -= 1
+            if entered:
+                self._exit_input()
 
     def visit_Lambda(self, node: ast.Lambda) -> None:
         self._function_depth += 1
@@ -718,6 +809,15 @@ class SentryVisitor(ast.NodeVisitor):
             self._function_depth -= 1
 
     def visit_Assign(self, node: ast.Assign) -> None:
+        if self._input_stack:
+            ctx = self._input_stack[-1]
+            for target in node.targets:
+                if not isinstance(target, ast.Name):
+                    continue
+                if ctx.is_query(node.value):
+                    ctx.query_locals.add(target.id)
+                elif ctx.is_body(node.value):
+                    ctx.body_locals.add(target.id)
         if (
             _is_tests_path(self.filename)
             and self._function_depth == 0
@@ -823,8 +923,57 @@ class SentryVisitor(ast.NodeVisitor):
             if self._s024_parses is None:
                 self._s024_parses = (node.lineno, node.col_offset)
 
+    def _enter_input(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+        """Push an accumulator for a PUBLIC HTTP method on an endpoint class."""
+        if len(self._class_stack) != 1 or self._function_depth != 0:
+            return False
+        if not self._publish_status or node.name not in HTTP_METHODS:
+            return False
+        if self._publish_status.get(node.name.upper()) != "PUBLIC":
+            return False
+        decorators = self._class_decorators + node.decorator_list
+        self._input_stack.append(
+            _InputCtx(
+                _declared_names(decorators, "parameters"),
+                _declared_names(decorators, "request"),
+            )
+        )
+        return True
+
+    def _record_validator(self, node: ast.Call) -> None:
+        """A serializer built from the query string or the request body."""
+        ctx = self._input_stack[-1]
+        for keyword in node.keywords:
+            if keyword.arg != "data":
+                continue
+            name = _name_of(node.func).rsplit(".", 1)[-1]
+            # A class, by convention. Skips plain calls taking data=, and
+            # runtime-chosen classes the schema could not name either.
+            if not name[:1].isupper():
+                continue
+            if ctx.is_query(keyword.value):
+                ctx.query_validators.append((node.lineno, node.col_offset, name))
+            elif ctx.is_body(keyword.value):
+                ctx.body_validators.append((node.lineno, node.col_offset, name))
+
+    def _report_input(self, line: int, col: int, msg: str, rule: str) -> None:
+        """Fatal only for an enforced rule; otherwise recorded unless asked for."""
+        if rule in ENFORCED or os.environ.get(INPUT_LINT_ALL_ENV):
+            self.errors.append((line, col, msg))
+
+    def _exit_input(self) -> None:
+        ctx = self._input_stack.pop()
+        for line, col, name in ctx.query_validators:
+            if name not in ctx.declared_params:
+                self._report_input(line, col, S025_query_msg.format(name), "declared")
+        for line, col, name in ctx.body_validators:
+            if name not in ctx.declared_body:
+                self._report_input(line, col, S025_body_msg.format(name), "declared")
+
     def visit_Call(self, node: ast.Call) -> None:
         self._s024_visit_call(node)
+        if self._input_stack:
+            self._record_validator(node)
         if _is_tests_path(self.filename):
             if (
                 isinstance(node.func, ast.Name)
