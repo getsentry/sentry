@@ -66,6 +66,8 @@ from sentry.seer.autofix.pr_iteration.details_store import (
 )
 from sentry.seer.autofix.pr_iteration.emit import (
     discard_pr_iteration_details,
+    outcome_for_pause,
+    record_pr_iteration_blocked,
     record_pr_iteration_counts,
     trigger_pr_iteration_details,
 )
@@ -91,6 +93,7 @@ from sentry.seer.autofix.pr_iteration.missing_permissions import (
 )
 from sentry.seer.autofix.pr_iteration.pause import (
     PauseReason,
+    get_pause_reason,
     is_pr_iteration_paused,
     pause_pr_iteration,
     record_pause_blocked,
@@ -183,6 +186,19 @@ def trigger_consume_pr_iteration_feedback(
 ) -> None:
     if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
         record_pause_blocked("trigger_consume")
+        # The reason costs a second read, paid only on this branch. Nothing
+        # lifts a pause, so this batch is over: whether it was thrown away
+        # because someone stopped Seer or because the run before it broke is
+        # the difference between a feature working and a user losing work.
+        record_pr_iteration_blocked(
+            log_ctx=log_ctx,
+            run_state=run_state,
+            run_id=run_id,
+            organization_id=organization_id,
+            outcome=outcome_for_pause(
+                log_ctx, get_pause_reason(run_id=run_id, organization_id=organization_id)
+            ),
+        )
         log_ctx.info(
             "autofix.pr_iteration.feedback.trigger",
             triggered_by=triggered_by,
