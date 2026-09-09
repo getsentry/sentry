@@ -1470,9 +1470,9 @@ def trigger_pr_iteration_from_review(
     review author must have repo write/admin access, so an untrusted reviewer can't
     spend Autofix quota or inject feedback that rewrites the PR.
 
-    ``author_is_bot`` reviews (test-coverage bots and the like) count toward the
-    automated-iteration streak cap and are dropped once it's reached; human
-    reviews always drive an iteration and reset that streak.
+    ``author_is_bot`` reviews (test-coverage bots and the like) are dropped when
+    they have no inline comments, and count toward the automated-iteration streak
+    cap. Human reviews always drive an iteration and reset that streak.
     """
     log_extra = {
         "organization_id": organization_id,
@@ -1578,6 +1578,16 @@ def trigger_pr_iteration_from_review(
         )
 
     inline_comments = _fetch_all_review_comments(scm, pr_number=pr_number, review_id=review_id)
+
+    # A bot review with no inline comments has nothing to act on; a human summary does.
+    if author_is_bot and not inline_comments:
+        metrics.incr("autofix.pr_iteration.review_trigger.bot_review_no_inline_comments")
+        logger.info(
+            "autofix.pr_iteration.review_trigger.bot_review_no_inline_comments",
+            extra=log_extra,
+        )
+        return None
+
     review = _fetch_review_body(scm, pr_number=pr_number, review_id=review_id)
     review_body = (review.get("body") or "").strip() if review else None
     review_html_url = review.get("html_url") if review else None
