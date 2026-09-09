@@ -156,6 +156,13 @@ const storyFilesPolicy = {
         },
       },
     },
+    {
+      to: {
+        file: {
+          categories: 'test-fixtures',
+        },
+      },
+    },
   ],
 };
 
@@ -333,6 +340,13 @@ const config = defineConfig({
           'static/gsApp/__fixtures__/**/*',
           'static/**/*{t,T}estUtils*.{js,jsx,mjs,ts,tsx}',
         ],
+      },
+      // Fixtures are a second, narrower classification on top of test-support.
+      // Stories need realistic data objects, so they are granted this subset
+      // without opening up mocks, render helpers, or the rest of test-support.
+      {
+        category: 'test-fixtures',
+        pattern: ['tests/js/fixtures/**/*', 'static/gsApp/__fixtures__/**/*'],
       },
       {
         category: 'sentry-locale',
@@ -589,14 +603,14 @@ const config = defineConfig({
     '@tanstack/query/no-void-query-fn': 'error',
     '@tanstack/query/mutation-property-order': 'error',
     'react/capitalized-calls': 'error',
-    'react/error-boundaries': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/error-boundaries': 'error',
     'react/exhaustive-effect-dependencies': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/function-component-definition': 'error',
-    'react/globals': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/globals': 'error',
     'react/hooks': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
-    'react/immutability': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/immutability': 'error',
     'react/incompatible-library': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
-    'react/invariant': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/invariant': 'error',
     'react/jsx-boolean-value': ['error', 'never'],
     'react/jsx-fragments': ['error', 'element'],
     'react/jsx-key': [

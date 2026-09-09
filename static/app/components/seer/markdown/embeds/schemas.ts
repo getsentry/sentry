@@ -338,9 +338,12 @@ export const SEER_EMBED_SCHEMAS = {
       'belongs to, exactly as the issue API returns them. `step` is the ' +
       'autofix step identifier exactly as the autofix API reports it — the ' +
       'UI renders the human-readable label, so do not send a display ' +
-      'string. `result` is the full markdown write-up for that step. ' +
-      'Prefer this embed over a plaintext explanation whenever an issue ' +
-      'can be autofixed, and emit one embed per step rather than ' +
+      'string. `result` is the markdown summary for that step. Send the ' +
+      "step's detail in the structured fields rather than folding it into " +
+      '`result`, so it renders as the same sections a live run shows: ' +
+      '`fiveWhys` and `reproductionSteps` for `root_cause`, `steps` for ' +
+      '`solution`. Prefer this embed over a plaintext explanation whenever ' +
+      'an issue can be autofixed, and emit one embed per step rather than ' +
       'combining multiple steps into one.',
     level: ['block'],
     schema: z.object({
@@ -348,6 +351,18 @@ export const SEER_EMBED_SCHEMAS = {
       result: z.string(),
       id: z.string(),
       shortId: z.string(),
+      fiveWhys: z
+        .array(z.string())
+        .optional()
+        .describe('root_cause only: the causal chain, most immediate cause first.'),
+      reproductionSteps: z
+        .array(z.string())
+        .optional()
+        .describe('root_cause only: ordered steps that reproduce the error.'),
+      steps: z
+        .array(z.object({title: z.string(), description: z.string()}))
+        .optional()
+        .describe('solution only: the ordered steps needed to resolve the issue.'),
     }),
     examples: [
       {
@@ -356,8 +371,44 @@ export const SEER_EMBED_SCHEMAS = {
           id: '1234567890',
           shortId: 'EXMPL-123',
           result:
-            'The root cause of the issue is that the code is not working correctly.',
+            '`CartService.total()` reduces the line items without an initial ' +
+            'accumulator, so an empty cart throws instead of totalling to zero.',
+          fiveWhys: [
+            '`POST /checkout` returned a 500 for every request with an empty cart.',
+            '`CartService.total()` threw `TypeError: Reduce of empty array with no initial value`.',
+            '`items.reduce((sum, item) => sum + item.price)` was called without a second argument.',
+            'With no initial value `reduce` uses the first element as the seed, which an empty array does not have.',
+            'The empty cart path was never covered — every test seeded at least one line item.',
+          ],
+          reproductionSteps: [
+            'Sign in and add a single item to the cart.',
+            'Remove that item, leaving the cart empty.',
+            'Open `/checkout`, which calls `POST /api/checkout/quote`.',
+            'The request 500s and the page renders the generic error state.',
+          ],
           step: 'root_cause' as const,
+        },
+      },
+      {
+        label: 'Plan',
+        data: {
+          id: '1234567890',
+          shortId: 'EXMPL-123',
+          result:
+            'Seed the reduction with `0` so an empty cart totals to zero, and cover the path with a test.',
+          steps: [
+            {
+              title: 'Pass an initial accumulator to `CartService.total()`',
+              description:
+                'Change `items.reduce((sum, item) => sum + item.price)` to pass `0` as the second argument.',
+            },
+            {
+              title: 'Add a regression test for the empty cart',
+              description:
+                'Assert `total()` returns `0` for `[]` in `src/checkout/cartService.test.ts`.',
+            },
+          ],
+          step: 'solution' as const,
         },
       },
     ],
@@ -499,6 +550,10 @@ export const SEER_EMBED_SCHEMAS = {
     description:
       'The ONLY way to reference a Sentry profile (the flamegraph view). ' +
       'Requires both the profile ID and the slug of the project it belongs to. ' +
+      'Inline: renders a compact link with the short profile id. ' +
+      'Block: renders a preview with the transaction, duration, thread count, ' +
+      'environment, release, OS, device, received time, and a flamechart — ' +
+      'do NOT duplicate any of that data as text. ' +
       'Never use a markdown link for profile references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -507,8 +562,167 @@ export const SEER_EMBED_SCHEMAS = {
     }),
     examples: [
       {
-        label: 'Profile',
+        label: 'Inline',
+        level: 'inline',
         data: {projectSlug: 'javascript', profileId: '7f3c2b1a9d8e4f60'},
+      },
+      {
+        label: 'Block',
+        level: 'block',
+        data: {projectSlug: 'javascript', profileId: '7f3c2b1a9d8e4f60'},
+      },
+    ],
+  },
+  event: {
+    description:
+      'The ONLY way to reference a single error event inside a Sentry issue. ' +
+      '`id` is the 32-character event ID and `issueId` is the numeric group ID ' +
+      'the event belongs to, both exactly as the events API returns them. ' +
+      'Include the issue short ID as `shortId` when available. ' +
+      'When referencing the issue as a whole rather than one of its events, use ' +
+      'the `issue` embed instead. ' +
+      'Inline: renders a compact link to the event. ' +
+      'Block: renders the event with its title, message, culprit, and context — ' +
+      'do NOT duplicate any of that as text. ' +
+      'Set `view` to "tags" to also render the full tag list for the event, or ' +
+      'to "tag" together with `tagKeys` to render how those tags are distributed ' +
+      'across the issue -- pass every key the user asked about in one embed ' +
+      'rather than repeating the embed per key, and keep it to a handful. ' +
+      'Leave `view` as "summary" unless the user asked about tags. ' +
+      'Never use a markdown link for event references.',
+    level: ['inline', 'block'],
+    schema: z.object({
+      id: z.string().min(1),
+      issueId: z.string().min(1),
+      shortId: z.string().min(1).optional(),
+      view: z.enum(['summary', 'tags', 'tag']).default('summary'),
+      // Deliberately uncapped: a `.max()` would make an over-long list fail to
+      // parse, and an embed whose props fail to parse renders nothing at all.
+      // The block caps how many it draws instead.
+      tagKeys: z
+        .array(z.string().min(1))
+        .optional()
+        .describe(
+          'Required when view is "tag". The tag keys to break down, e.g. ["browser", "os"].'
+        ),
+    }),
+    examples: [
+      {
+        label: 'Event',
+        data: {
+          id: '8f2c1a9d7e6b4f30a1b2c3d4e5f60718',
+          issueId: '5551212',
+          shortId: 'JAVASCRIPT-22SP',
+        },
+      },
+      {
+        label: 'All tags',
+        level: 'block',
+        data: {
+          id: '8f2c1a9d7e6b4f30a1b2c3d4e5f60718',
+          issueId: '5551212',
+          shortId: 'JAVASCRIPT-22SP',
+          view: 'tags',
+        },
+      },
+      {
+        label: 'Single tag breakdown',
+        level: 'block',
+        data: {
+          id: '8f2c1a9d7e6b4f30a1b2c3d4e5f60718',
+          issueId: '5551212',
+          shortId: 'JAVASCRIPT-22SP',
+          view: 'tag',
+          tagKeys: ['browser'],
+        },
+      },
+      {
+        label: 'Several tag breakdowns',
+        level: 'block',
+        data: {
+          id: '8f2c1a9d7e6b4f30a1b2c3d4e5f60718',
+          issueId: '5551212',
+          shortId: 'JAVASCRIPT-22SP',
+          view: 'tag',
+          tagKeys: ['browser', 'os', 'release'],
+        },
+      },
+    ],
+  },
+  log: {
+    description:
+      'The ONLY way to reference a single log line (Explore > Logs). ' +
+      '`id` is the log item ID exactly as the logs API returns it. Provide ' +
+      '`traceId`, `projectId`, and `timestamp` whenever the API gave them to ' +
+      'you — without them the embed has to scan a wider window to find the row. ' +
+      'When referencing a SET of logs defined by a search, use the `logsQuery` ' +
+      'embed instead. ' +
+      'Inline: renders a compact link that opens the log row in Explore. ' +
+      'Block: renders the log row with its severity, message, and timestamp — ' +
+      'do NOT duplicate any of that as text. ' +
+      'Set `view` to "attributes" to also render the full attribute list for the ' +
+      'log, or to "attribute" together with `attribute` to break that one ' +
+      'attribute down across matching logs. Leave `view` as "summary" unless the ' +
+      'user asked about attributes. ' +
+      'Never use a markdown link for log references.',
+    level: ['inline', 'block'],
+    schema: z.object({
+      id: z.string().min(1),
+      traceId: z.string().min(1).optional(),
+      projectId: idString.optional(),
+      timestamp: isoTimestampSchema.optional(),
+      view: z.enum(['summary', 'attributes', 'attribute']).default('summary'),
+      attribute: z
+        .string()
+        .min(1)
+        .optional()
+        .describe(
+          'Required when view is "attribute". The attribute key to break down, e.g. "severity".'
+        ),
+    }),
+    examples: [
+      {
+        label: 'Inline',
+        level: 'inline',
+        data: {
+          id: '019bfe1c-4c1f-7e3d-9a2f-3e6b1a2c3d4e',
+          traceId: 'a1b2c3d4e5f678901234567890abcdef',
+          projectId: '1',
+          timestamp: '2026-08-25T16:37:12Z',
+        },
+      },
+      {
+        label: 'Block',
+        level: 'block',
+        data: {
+          id: '019bfe1c-4c1f-7e3d-9a2f-3e6b1a2c3d4e',
+          traceId: 'a1b2c3d4e5f678901234567890abcdef',
+          projectId: '1',
+          timestamp: '2026-08-25T16:37:12Z',
+        },
+      },
+      {
+        label: 'All attributes',
+        level: 'block',
+        data: {
+          id: '019bfe1c-4c1f-7e3d-9a2f-3e6b1a2c3d4e',
+          traceId: 'a1b2c3d4e5f678901234567890abcdef',
+          projectId: '1',
+          timestamp: '2026-08-25T16:37:12Z',
+          view: 'attributes',
+        },
+      },
+      {
+        label: 'Single attribute breakdown',
+        level: 'block',
+        data: {
+          id: '019bfe1c-4c1f-7e3d-9a2f-3e6b1a2c3d4e',
+          traceId: 'a1b2c3d4e5f678901234567890abcdef',
+          projectId: '1',
+          timestamp: '2026-08-25T16:37:12Z',
+          view: 'attribute',
+          attribute: 'severity',
+        },
       },
     ],
   },
@@ -676,6 +890,70 @@ export const SEER_EMBED_SCHEMAS = {
           groupBy: ['severity'],
           yAxes: ['count(message)'],
           statsPeriod: '7d',
+        },
+      },
+    ],
+  },
+  conversation: {
+    description:
+      'The ONLY way to reference a single AI agent conversation (Explore > Agents). ' +
+      'Use the `conversationId` exactly as the agents conversations API returns it. ' +
+      'Include the API-provided `title` when available, and `start`/`end` (the ' +
+      "conversation's own first and last span timestamps) so the embed can scope " +
+      'its query instead of scanning the default window. ' +
+      'Inline: renders a compact link. ' +
+      'Block: renders the conversation transcript with its LLM call, token, cost, ' +
+      'and tool totals. Do not duplicate the messages or those totals as text. ' +
+      'Never use a markdown link for conversation references.',
+    featureFlag: 'organizations:gen-ai-conversations',
+    level: ['inline', 'block'],
+    schema: z.object({
+      id: z.string().min(1),
+      title: z.string().min(1).optional(),
+      projects: z.array(idString).optional(),
+      start: isoTimestampSchema.optional(),
+      end: isoTimestampSchema.optional(),
+    }),
+    examples: [
+      {
+        label: 'Conversation',
+        data: {
+          id: '4821',
+          title: 'Refund request escalated to a human',
+          start: '2026-08-25T16:37:12Z',
+          end: '2026-08-25T16:39:02Z',
+        },
+      },
+    ],
+  },
+  conversationsQuery: {
+    description:
+      'Preview the AI agent conversations list (Explore > Agents) filtered by a ' +
+      'search query. Use this when pointing the user at a SET of conversations — ' +
+      'if you have a specific conversation ID, use the `conversation` embed instead. ' +
+      '`query` uses span search syntax over gen_ai spans, e.g. ' +
+      '"gen_ai.request.model:gpt-4o". Negation is not supported. ' +
+      'Use `agents` to filter to specific agent names. ' +
+      'Inline renders a link; block renders the first five matching conversations ' +
+      'with their duration, message count, errors and cost.',
+    featureFlag: 'organizations:gen-ai-conversations',
+    level: ['inline', 'block'],
+    schema: z.object({
+      ...pageFilterFields,
+      query: z.string().default(''),
+      agents: z
+        .array(z.string())
+        .optional()
+        .describe('Filter to these agent names, as reported by gen_ai.agent.name.'),
+      title: z.string().min(1).optional(),
+    }),
+    examples: [
+      {
+        label: 'Conversations with tool errors',
+        data: {
+          query: 'gen_ai.tool.name:*',
+          statsPeriod: '24h',
+          title: 'Conversations using tools',
         },
       },
     ],
