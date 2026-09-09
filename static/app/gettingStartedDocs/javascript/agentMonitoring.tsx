@@ -25,21 +25,14 @@ export function agentMonitoring({
     introduction: params => (
       <SdkUpdateAlert
         projectId={params.project.id}
-        minVersion={getMinRequiredVersion(
-          params,
-          javascriptMetaFrameworks.includes(params.platformKey)
-            ? MIN_REQUIRED_VERSION
-            : '11.0.0'
-        )}
+        minVersion={getMinRequiredVersion(params, MIN_REQUIRED_VERSION)}
         packageName={packageName}
       />
     ),
     install: params =>
       getInstallStep(params, {
         packageName,
-        minVersion: javascriptMetaFrameworks.includes(params.platformKey)
-          ? MIN_REQUIRED_VERSION
-          : '11.0.0',
+        minVersion: MIN_REQUIRED_VERSION,
       }),
     configure: params => {
       if (javascriptMetaFrameworks.includes(params.platformKey)) {
