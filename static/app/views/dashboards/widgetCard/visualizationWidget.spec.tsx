@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -56,9 +56,11 @@ const tableResults = [
   },
 ];
 
+let releaseStatsRequest: jest.Mock;
+
 beforeEach(() => {
   jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
-  MockApiClient.addMockResponse({
+  releaseStatsRequest = MockApiClient.addMockResponse({
     url: '/organizations/org-slug/releases/stats/',
     body: [],
   });
@@ -92,5 +94,25 @@ describe('VisualizationWidget breakdown series labels', () => {
     });
 
     expect(screen.getByRole('link', {name: 'my_transaction'})).toBeInTheDocument();
+  });
+});
+
+describe('VisualizationWidget release stats', () => {
+  // Fetching releases walks every page of `/releases/stats/` serially, and each
+  // intermediate `selection` re-keys the query and restarts that walk, so an
+  // unsettled page filter state multiplies the request count.
+  it('does not fetch releases while page filters are unsettled', async () => {
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({isReady: false}));
+
+    render(<VisualizationWidget widget={spansBreakdownWidget} selection={selection} />);
+
+    expect(await screen.findByText('my_transaction')).toBeInTheDocument();
+    expect(releaseStatsRequest).not.toHaveBeenCalled();
+  });
+
+  it('fetches releases once page filters are ready', async () => {
+    render(<VisualizationWidget widget={spansBreakdownWidget} selection={selection} />);
+
+    await waitFor(() => expect(releaseStatsRequest).toHaveBeenCalled());
   });
 });
