@@ -187,7 +187,7 @@ def get_alert_type_from_aggregate_dataset(
 
 
 class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricResult]):
-    new_group_per_activation = True
+    rotates_activation_id = True
 
     def build_occurrence_fingerprint(
         self, group_key: DetectorGroupKey = None, activation_id: UUID | None = None

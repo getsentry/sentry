@@ -410,7 +410,7 @@ class TestGetAnomalyDetectionIssueTitle(TestCase):
 
 
 class TestMetricIssueFingerprint(BaseMetricIssueTest):
-    ROTATION_FEATURE = "organizations:workflow-engine-new-group-per-activation"
+    ROTATION_FEATURE = "organizations:workflow-engine-rotate-activation-id"
 
     CRITICAL = 10
     WARNING = 4
@@ -422,7 +422,7 @@ class TestMetricIssueFingerprint(BaseMetricIssueTest):
         )
 
         assert result is not None
-        return result.fingerprint
+        return list(result.fingerprint)
 
     def legacy_key(self) -> str:
         return f"detector:{self.detector.id}"
