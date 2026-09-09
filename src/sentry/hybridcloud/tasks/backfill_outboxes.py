@@ -12,7 +12,7 @@ from dataclasses import dataclass
 
 from django.apps import apps
 from django.conf import settings
-from django.db import IntegrityError, router, transaction
+from django.db import router, transaction
 from django.db.models import Max, Min, Model
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
@@ -109,20 +109,6 @@ def _read_postgres_watermark(table_name: str) -> tuple[int, int] | None:
     return row.low_bound, row.version
 
 
-def _create_postgres_watermark(table_name: str, value: int, version: int) -> None:
-    watermark_model = _watermark_model(table_name)
-    try:
-        with transaction.atomic(router.db_for_write(watermark_model)):
-            watermark_model.objects.get_or_create(
-                table_name=table_name,
-                defaults={"low_bound": value, "version": version},
-            )
-    except IntegrityError:
-        # There's a race condition where another scheduler can put the row in between
-        # the read + insert, but we don't need to do anything since it wrote the same values
-        pass
-
-
 def _count_redis_fallback(table_name: str) -> None:
     metrics.incr(
         WATERMARK_READ_REDIS_FALLBACK_METRIC,
@@ -177,7 +163,6 @@ def get_processing_state(table_name: str) -> tuple[int, int]:
             # TODO: clean this up once we're past the soak period
             _count_redis_fallback(table_name)
             state = redis_state
-            _create_postgres_watermark(table_name, state[0], state[1])
         else:
             state = (0, 1)
 

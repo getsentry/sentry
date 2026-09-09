@@ -4,7 +4,7 @@ from unittest.mock import ANY, patch
 
 import pytest
 from django.apps import apps
-from django.db import IntegrityError, router, transaction
+from django.db import router, transaction
 from django.test.utils import override_settings
 
 from sentry.db.models import BaseModel
@@ -830,14 +830,27 @@ def test_a_missing_postgres_row_falls_back_to_redis() -> None:
         patch("sentry.hybridcloud.tasks.backfill_outboxes.metrics") as metrics_mock,
     ):
         assert get_processing_state(AuthProvider._meta.db_table) == (4242, 3)
-        # The fallback copied the pair into Postgres, so this one is a Postgres read.
-        assert get_processing_state(AuthProvider._meta.db_table) == (4242, 3)
         assert read_processing_state(AuthProvider._meta.db_table) == (4242, 3)
+
+    # The read path writes nothing, so the row is still missing and the fallback is
+    # counted on every read until the write path fills it.
+    assert not ControlOutboxBackfillWatermark.objects.filter(table_name=table_name).exists()
+    assert _counter_tables(metrics_mock, WATERMARK_READ_REDIS_FALLBACK_METRIC) == [table_name]
+
+    # The reporting pass is the write path that repairs it, on the same cycle.
+    with override_options(READ_FROM_POSTGRES_OPTIONS):
+        assert not backfill_outboxes_for(SiloMode.CONTROL, scheduled_count=10_000)
 
     row = ControlOutboxBackfillWatermark.objects.get(table_name=table_name)
     assert (row.low_bound, row.version) == (4242, 3)
-    # The fallback fires once per table, not on every read.
-    assert _counter_tables(metrics_mock, WATERMARK_READ_REDIS_FALLBACK_METRIC) == [table_name]
+
+    # With the row in place the fallback stops firing.
+    with (
+        override_options(READ_FROM_POSTGRES_OPTIONS),
+        patch("sentry.hybridcloud.tasks.backfill_outboxes.metrics") as metrics_mock,
+    ):
+        assert get_processing_state(AuthProvider._meta.db_table) == (4242, 3)
+    assert _counter_calls(metrics_mock, WATERMARK_READ_REDIS_FALLBACK_METRIC) == 0
 
 
 @django_db_all
@@ -878,60 +891,6 @@ def test_a_double_miss_keeps_the_default() -> None:
     assert read_processing_state(AuthProvider._meta.db_table) == (0, 1)
     # A double miss creates no Postgres row: only the write path may.
     assert not ControlOutboxBackfillWatermark.objects.filter(table_name=table_name).exists()
-
-
-@django_db_all
-@no_silo_test
-def test_two_concurrent_reads_create_one_row() -> None:
-    """Two schedulers can reach the miss path at once. One row must come out of it."""
-    reset_processing_state()
-    table_name = AuthProvider._meta.db_table
-    set_processing_state(AuthProvider._meta.db_table, 4242, 3)
-
-    with (
-        override_options(READ_FROM_POSTGRES_OPTIONS),
-        # Both callers read Postgres before either of them has written to it.
-        patch(
-            "sentry.hybridcloud.tasks.backfill_outboxes._read_postgres_watermark",
-            return_value=None,
-        ),
-    ):
-        assert get_processing_state(AuthProvider._meta.db_table) == (4242, 3)
-        assert get_processing_state(AuthProvider._meta.db_table) == (4242, 3)
-
-    rows = list(ControlOutboxBackfillWatermark.objects.filter(table_name=table_name))
-    assert len(rows) == 1
-    assert (rows[0].low_bound, rows[0].version) == (4242, 3)
-
-
-@django_db_all
-@no_silo_test
-def test_a_lost_create_race_is_not_an_error() -> None:
-    """The unique index rejects the slower insert. That is the expected end, not a failure."""
-    reset_processing_state()
-    table_name = AuthProvider._meta.db_table
-    set_processing_state(AuthProvider._meta.db_table, 4242, 3)
-    # The row the other scheduler put in first.
-    ControlOutboxBackfillWatermark.objects.create(table_name=table_name, low_bound=4242, version=3)
-
-    with (
-        override_options(READ_FROM_POSTGRES_OPTIONS),
-        # This caller saw an empty Postgres, so it goes on to create the row.
-        patch(
-            "sentry.hybridcloud.tasks.backfill_outboxes._read_postgres_watermark",
-            return_value=None,
-        ),
-        patch.object(
-            ControlOutboxBackfillWatermark.objects,
-            "get_or_create",
-            side_effect=IntegrityError("duplicate key value violates unique constraint"),
-        ),
-    ):
-        assert get_processing_state(AuthProvider._meta.db_table) == (4242, 3)
-
-    rows = list(ControlOutboxBackfillWatermark.objects.filter(table_name=table_name))
-    assert len(rows) == 1
-    assert (rows[0].low_bound, rows[0].version) == (4242, 3)
 
 
 @django_db_all
