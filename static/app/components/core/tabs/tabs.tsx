@@ -101,8 +101,9 @@ const TabsWrap = styled('div', {shouldForwardProp: tabsShouldForwardProp})<{
   flex-direction: ${p => (p.orientation === 'horizontal' ? 'column' : 'row')};
   flex-grow: 1;
   min-width: 0;
-  /* Give horizontal tabs a definite width for overflow measurement. */
-  width: ${p => (p.orientation === 'horizontal' ? '100%' : 'auto')};
+  /* Let horizontal tabs share a wrapping row and fill a column layout. */
+  flex-basis: ${p => (p.orientation === 'horizontal' ? '0' : 'auto')};
+  align-self: ${p => (p.orientation === 'horizontal' ? 'stretch' : 'auto')};
 
   ${p =>
     p.orientation === 'vertical' &&
