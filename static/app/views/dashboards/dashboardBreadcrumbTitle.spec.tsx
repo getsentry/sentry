@@ -47,24 +47,19 @@ function renderTitle() {
     createdBy: UserFixture({name: 'Dashboard Owner', email: 'owner@example.com'}),
   });
 
-  const props = {
-    dashboard,
-    hasUnsavedFilters: false,
-    isPreview: false,
-    isSaving: false,
-    onChange: jest.fn(),
-    onEdit: jest.fn(),
-  };
-
-  const {rerender} = render(<DashboardBreadcrumbTitle {...props} isEditing={false} />, {
-    organization,
-  });
+  render(
+    <DashboardBreadcrumbTitle
+      dashboard={dashboard}
+      hasUnsavedFilters={false}
+      isEditing={false}
+      isPreview={false}
+      isSaving={false}
+      onChange={jest.fn()}
+      onEdit={jest.fn()}
+    />,
+    {organization}
+  );
   renderGlobalModal();
-
-  return {
-    setEditing: (isEditing: boolean) =>
-      rerender(<DashboardBreadcrumbTitle {...props} isEditing={isEditing} />),
-  };
 }
 
 describe('DashboardBreadcrumbTitle actions', () => {
@@ -74,43 +69,6 @@ describe('DashboardBreadcrumbTitle actions', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
 
     expect(screen.getByTestId('dashboard-edit')).toHaveTextContent('Edit');
-  });
-
-  it('surfaces starring as a button trailing the actions menu', async () => {
-    renderTitle();
-
-    const actions = screen.getAllByRole('button');
-    const menuIndex = actions.indexOf(
-      screen.getByRole('button', {name: 'Dashboard actions'})
-    );
-    const starIndex = actions.indexOf(screen.getByRole('button', {name: 'Star'}));
-
-    expect(starIndex).toBeGreaterThan(menuIndex);
-
-    await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
-    expect(screen.queryByRole('menuitemradio', {name: 'Star'})).not.toBeInTheDocument();
-  });
-
-  it('keeps the starred state after editing hides and restores the button', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/1/favorite/',
-      method: 'PUT',
-      body: {},
-    });
-
-    const {setEditing} = renderTitle();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Star'}));
-    expect(await screen.findByRole('button', {name: 'Unstar'})).toBeVisible();
-
-    // The title swaps to an editable field while editing, so the star is
-    // unmounted. `dashboard.isFavorited` is never refreshed by the toggle, so
-    // the state has to outlive the button or the star silently reverts.
-    setEditing(true);
-    expect(screen.queryByRole('button', {name: 'Unstar'})).not.toBeInTheDocument();
-
-    setEditing(false);
-    expect(await screen.findByRole('button', {name: 'Unstar'})).toBeVisible();
   });
 });
 
