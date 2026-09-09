@@ -1,0 +1,156 @@
+import {EventFixture} from 'sentry-fixture/event';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TagsFixture} from 'sentry-fixture/tags';
+
+import {screen} from 'sentry-test/reactTestingLibrary';
+
+import {
+  getEmbedLinkHref,
+  renderEmbed,
+} from 'sentry/components/seer/markdown/embeds/components/resourceEmbedTestUtils';
+
+const EVENT_ID = '8f2c1a9d7e6b4f30a1b2c3d4e5f60718';
+const ISSUE_ID = '5551212';
+
+function mockEvent(params: Record<string, unknown> = {}) {
+  const event = EventFixture({
+    id: EVENT_ID,
+    eventID: EVENT_ID,
+    groupID: ISSUE_ID,
+    projectSlug: 'project-slug',
+    title: 'ReferenceError: totals is not defined',
+    metadata: {type: 'ReferenceError', value: 'totals is not defined'},
+    culprit: 'app/checkout in renderTotals',
+    tags: [
+      {key: 'level', value: 'error'},
+      {key: 'browser', value: 'Chrome'},
+    ],
+    contexts: {browser: {type: 'browser', name: 'Chrome', version: '120.0.0'}},
+    ...params,
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/issues/${ISSUE_ID}/events/${EVENT_ID}/`,
+    body: event,
+  });
+
+  return event;
+}
+
+function renderEventEmbed(data: Record<string, unknown> = {}) {
+  return renderEmbed({
+    name: 'event',
+    data: {id: EVENT_ID, issueId: ISSUE_ID, shortId: 'JAVASCRIPT-22SP', ...data},
+  });
+}
+
+describe('Seer event embed', () => {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      body: ProjectFixture({slug: 'project-slug'}),
+    });
+  });
+
+  it('links to the event inline', () => {
+    expect(
+      getEmbedLinkHref('event', 'JAVASCRIPT-22SP event 8f2c1a9d', {
+        id: EVENT_ID,
+        issueId: ISSUE_ID,
+        shortId: 'JAVASCRIPT-22SP',
+      })
+    ).toBe(`/organizations/org-slug/issues/${ISSUE_ID}/events/${EVENT_ID}/`);
+  });
+
+  it('falls back to the short event id when there is no short id', () => {
+    expect(
+      getEmbedLinkHref('event', 'Event 8f2c1a9d', {id: EVENT_ID, issueId: ISSUE_ID})
+    ).toBe(`/organizations/org-slug/issues/${ISSUE_ID}/events/${EVENT_ID}/`);
+  });
+
+  it('renders the event title, message and culprit in the block', async () => {
+    mockEvent();
+
+    renderEventEmbed();
+
+    expect(await screen.findByText('ReferenceError')).toBeInTheDocument();
+    expect(screen.getByText('totals is not defined')).toBeInTheDocument();
+    expect(screen.getByText('app/checkout in renderTotals')).toBeInTheDocument();
+    // `HighlightsIconSummary` renders without a `group`, off `event.projectSlug`.
+    expect(screen.getByLabelText('Icon highlights')).toBeInTheDocument();
+    expect(screen.getByText('Chrome')).toBeInTheDocument();
+    expect(screen.getByText('120.0.0')).toBeInTheDocument();
+    expect(screen.queryByText('Tags')).not.toBeInTheDocument();
+  });
+
+  it('renders the full tag list for view "tags"', async () => {
+    mockEvent();
+
+    renderEventEmbed({view: 'tags'});
+
+    expect(await screen.findByText('Tags')).toBeInTheDocument();
+    expect(await screen.findByText('Chrome')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'All tags for this issue'})).toHaveAttribute(
+      'href',
+      `/organizations/org-slug/issues/${ISSUE_ID}/distributions/`
+    );
+  });
+
+  it('renders a plain tag list when the event has no project slug', async () => {
+    mockEvent({
+      projectSlug: undefined,
+      contexts: {},
+      tags: [{key: 'server_name', value: 'web-01'}],
+    });
+
+    renderEventEmbed({view: 'tags'});
+
+    expect(await screen.findByText('Tags')).toBeInTheDocument();
+    expect(await screen.findByText('server_name')).toBeInTheDocument();
+    expect(screen.getByText('web-01')).toBeInTheDocument();
+  });
+
+  it('renders the distribution of a single tag for view "tag"', async () => {
+    mockEvent();
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${ISSUE_ID}/tags/browser/`,
+      body: TagsFixture()[0],
+    });
+
+    renderEventEmbed({view: 'tag', tagKey: 'browser'});
+
+    expect(await screen.findByText('Tag Distribution')).toBeInTheDocument();
+    expect(await screen.findByText('Firefox')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'All browser values'})).toHaveAttribute(
+      'href',
+      `/organizations/org-slug/issues/${ISSUE_ID}/distributions/browser/`
+    );
+  });
+
+  it('falls back to the summary when view is "tag" without a tag key', async () => {
+    mockEvent();
+    const tagRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${ISSUE_ID}/tags/browser/`,
+      body: TagsFixture()[0],
+    });
+
+    renderEventEmbed({view: 'tag'});
+
+    expect(await screen.findByText('ReferenceError')).toBeInTheDocument();
+    expect(screen.queryByText('Tag Distribution')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tags')).not.toBeInTheDocument();
+    expect(tagRequest).not.toHaveBeenCalled();
+  });
+
+  it('shows an error when the event cannot be loaded', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${ISSUE_ID}/events/${EVENT_ID}/`,
+      statusCode: 500,
+    });
+
+    renderEventEmbed();
+
+    expect(await screen.findByText('Unable to load event details')).toBeInTheDocument();
+  });
+});
