@@ -4,7 +4,7 @@ import pytest
 
 from sentry.seer.autofix.autofix_agent import NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.feature.rca_dispatch import trigger_autofix_rca_feature
+from sentry.seer.autofix.feature.dispatch import trigger_autofix_feature
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.testutils.cases import TestCase
@@ -12,7 +12,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @django_db_all
-class TestTriggerAutofixRCAFeature(TestCase):
+class TestTriggerAutofixFeature(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
@@ -22,22 +22,23 @@ class TestTriggerAutofixRCAFeature(TestCase):
         expected_context = {"org_slug": self.organization.slug, "all_org_projects": []}
 
         with (
-            patch("sentry.seer.autofix.feature.rca_dispatch.SeerAgentClient") as MockClient,
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as MockClient,
             patch(
-                "sentry.seer.autofix.feature.rca_dispatch.collect_user_org_context",
+                "sentry.seer.autofix.feature.dispatch.collect_user_org_context",
                 return_value=expected_context,
             ) as mock_collect_context,
-            patch("sentry.seer.autofix.feature.rca_dispatch.quotas") as mock_quotas,
+            patch("sentry.seer.autofix.feature.dispatch.quotas") as mock_quotas,
         ):
             mock_quotas.backend.check_seer_quota.return_value = True
             client = MockClient.return_value
             client.start_feature_run.return_value = fake_run
 
-            run = trigger_autofix_rca_feature(
+            run = trigger_autofix_feature(
                 self.group,
                 referrer=AutofixReferrer.NIGHT_SHIFT,
                 user_context="an upstream triage summary",
                 stopping_point=AutofixStoppingPoint.OPEN_PR,
+                repo_pins='{"owner/repo":{"base_sha":"abc123","base_branch":"main"}}',
             )
 
         assert run is fake_run
@@ -58,6 +59,7 @@ class TestTriggerAutofixRCAFeature(TestCase):
         assert payload["project_id"] == self.group.project_id
         assert payload["short_id"] == (self.group.qualified_short_id or str(self.group.id))
         assert payload["title"] == self.group.title
+        assert payload["repo_pins"] == {"owner/repo": {"sha": "abc123", "branch": "main"}}
         assert payload["tweaks"]["user_context"] == "an upstream triage summary"
         # Seer persists this hook on the Explorer run so later PR iteration
         # completions continue through the Autofix completion flow.
@@ -78,13 +80,13 @@ class TestTriggerAutofixRCAFeature(TestCase):
 
     def test_raises_when_out_of_budget(self) -> None:
         with (
-            patch("sentry.seer.autofix.feature.rca_dispatch.SeerAgentClient") as MockClient,
-            patch("sentry.seer.autofix.feature.rca_dispatch.quotas") as mock_quotas,
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as MockClient,
+            patch("sentry.seer.autofix.feature.dispatch.quotas") as mock_quotas,
         ):
             mock_quotas.backend.check_seer_quota.return_value = False
 
             with pytest.raises(NoSeerQuotaException):
-                trigger_autofix_rca_feature(
+                trigger_autofix_feature(
                     self.group,
                     referrer=AutofixReferrer.NIGHT_SHIFT,
                 )
@@ -96,13 +98,13 @@ class TestTriggerAutofixRCAFeature(TestCase):
         fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
 
         with (
-            patch("sentry.seer.autofix.feature.rca_dispatch.SeerAgentClient") as MockClient,
-            patch("sentry.seer.autofix.feature.rca_dispatch.quotas") as mock_quotas,
-            patch("sentry.seer.autofix.feature.rca_dispatch.is_free_cohort_org", return_value=True),
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as MockClient,
+            patch("sentry.seer.autofix.feature.dispatch.quotas") as mock_quotas,
+            patch("sentry.seer.autofix.feature.dispatch.is_free_cohort_org", return_value=True),
         ):
             MockClient.return_value.start_feature_run.return_value = fake_run
 
-            run = trigger_autofix_rca_feature(
+            run = trigger_autofix_feature(
                 self.group,
                 referrer=AutofixReferrer.NIGHT_SHIFT,
                 allow_free_cohort=True,
@@ -116,13 +118,13 @@ class TestTriggerAutofixRCAFeature(TestCase):
         fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
 
         with (
-            patch("sentry.seer.autofix.feature.rca_dispatch.SeerAgentClient") as mock_client_cls,
-            patch("sentry.seer.autofix.feature.rca_dispatch.quotas") as mock_quotas,
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
+            patch("sentry.seer.autofix.feature.dispatch.quotas") as mock_quotas,
         ):
             mock_quotas.backend.check_seer_quota.return_value = True
             mock_client_cls.return_value.start_feature_run.return_value = fake_run
 
-            trigger_autofix_rca_feature(
+            trigger_autofix_feature(
                 self.group,
                 referrer=AutofixReferrer.NIGHT_SHIFT,
                 flush=False,
@@ -135,13 +137,13 @@ class TestTriggerAutofixRCAFeature(TestCase):
         user = self.create_user()
 
         with (
-            patch("sentry.seer.autofix.feature.rca_dispatch.SeerAgentClient") as mock_client_cls,
-            patch("sentry.seer.autofix.feature.rca_dispatch.quotas") as mock_quotas,
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
+            patch("sentry.seer.autofix.feature.dispatch.quotas") as mock_quotas,
         ):
             mock_quotas.backend.check_seer_quota.return_value = True
             mock_client_cls.return_value.start_feature_run.return_value = fake_run
 
-            trigger_autofix_rca_feature(
+            trigger_autofix_feature(
                 self.group,
                 referrer=AutofixReferrer.NIGHT_SHIFT,
                 user=user,
