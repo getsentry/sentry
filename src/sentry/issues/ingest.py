@@ -239,7 +239,10 @@ def save_issue_from_occurrence(
             )[0]
 
         if not granted_quota.granted:
-            metrics.incr("issues.issue.dropped.rate_limiting")
+            metrics.incr(
+                "issues.issue.dropped.rate_limiting",
+                tags={"group_type": occurrence.type.slug},
+            )
             return None
 
         with (

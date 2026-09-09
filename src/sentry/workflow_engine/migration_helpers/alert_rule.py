@@ -40,6 +40,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.processors.detector import resolve_open_group_for_detector
 from sentry.workflow_engine.types import AlertRuleNotDualWritten, DetectorPriorityLevel
 from sentry.workflow_engine.typings.notification_action import OnCallDataBlob, SentryAppDataBlob
 
@@ -742,7 +743,12 @@ def dual_update_migrated_alert_rule(
         else:
             dc.update(type=threshold_type)
 
-    # reset detector status, as the rule was updated
+    # reset detector status, as the rule was updated. The issue the detector currently
+    # has open has to be resolved with it, since nothing else will close it once the
+    # state it was opened from is gone.
+    if detector_state.is_triggered:
+        resolve_open_group_for_detector(detector)
+
     detector_state.update(is_triggered=False, state=DetectorPriorityLevel.OK)
 
     return detector_state, detector

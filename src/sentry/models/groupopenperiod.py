@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Collection
 from datetime import datetime, timedelta
 
 from django.conf import settings
@@ -158,12 +159,29 @@ def get_open_periods_for_group(
     - Period starts before query and is still open
     - Period starts within query and is still open
     """
-    if not should_create_open_periods(group.type):
+    return get_open_periods_for_groups([group], query_start, query_end)
+
+
+def get_open_periods_for_groups(
+    groups: Collection[Group],
+    query_start: datetime | None = None,
+    query_end: datetime | None = None,
+) -> BaseQuerySet[GroupOpenPeriod]:
+    """
+    Get open periods across several groups that overlap with the query time range.
+
+    See `get_open_periods_for_group` for what counts as an overlap. Use this to collect
+    the periods of every group a detector has opened, rather than only its newest.
+    """
+    groups_with_open_periods = [group for group in groups if should_create_open_periods(group.type)]
+
+    if not groups_with_open_periods:
         return GroupOpenPeriod.objects.none()
 
     if not query_start:
         # use whichever date is more recent to reduce the query range. first_seen could be > 90 days ago
-        query_start = max(group.first_seen, timezone.now() - timedelta(days=90))
+        earliest_first_seen = min(group.first_seen for group in groups_with_open_periods)
+        query_start = max(earliest_first_seen, timezone.now() - timedelta(days=90))
     if not query_end:
         query_end = timezone.now()
 
@@ -173,7 +191,7 @@ def get_open_periods_for_group(
 
     return (
         GroupOpenPeriod.objects.filter(
-            group=group,
+            group__in=groups_with_open_periods,
         )
         .filter(started_before_query_ends & (ended_after_query_starts | still_open))
         .order_by("-date_started")

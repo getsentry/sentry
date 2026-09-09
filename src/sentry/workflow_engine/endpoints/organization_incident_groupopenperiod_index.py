@@ -80,7 +80,9 @@ class OrganizationIncidentGroupOpenPeriodIndexEndpoint(OrganizationEndpoint):
         if open_period_id:
             queryset = queryset.filter(group_open_period_id=open_period_id)
 
-        incident_groupopenperiod = queryset.first()
+        # A group can have more than one open period, so pick deterministically rather
+        # than letting the database choose.
+        incident_groupopenperiod = queryset.order_by("-group_open_period__date_started").first()
 
         if incident_groupopenperiod:
             return Response(serialize(incident_groupopenperiod, request.user))

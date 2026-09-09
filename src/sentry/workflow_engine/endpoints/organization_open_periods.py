@@ -21,7 +21,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
 from sentry.exceptions import InvalidParams
 from sentry.models.group import Group
-from sentry.models.groupopenperiod import get_open_periods_for_group
+from sentry.models.groupopenperiod import get_open_periods_for_groups
 from sentry.models.organization import Organization
 from sentry.workflow_engine.endpoints.serializers.group_open_period_serializer import (
     GroupOpenPeriodSerializer,
@@ -58,12 +58,21 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
 
         return detector
 
-    def get_group_from_detector(self, detector: Detector) -> Group | None:
-        detector_group = (
-            DetectorGroup.objects.filter(detector=detector).order_by("-date_added").first()
+    def get_groups_from_detector(self, detector: Detector) -> list[Group]:
+        """
+        Every Group the detector has opened, newest first.
+
+        A detector that opens a new Group per firing has one per firing, so taking only
+        the newest would show a single firing wherever this is used to chart or list a
+        detector's history.
+        """
+        detector_groups = (
+            DetectorGroup.objects.filter(detector=detector)
+            .select_related("group")
+            .order_by("-date_added")
         )
 
-        return detector_group.group if detector_group else None
+        return [detector_group.group for detector_group in detector_groups]
 
     def get_group_from_group_id(self, group_id: str, organization: Organization) -> Group:
         validated_group_id = to_valid_int_id("groupId", group_id)
@@ -77,26 +86,26 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
 
         return group
 
-    def _get_target_group(
+    def _get_target_groups(
         self,
         request: Request,
         organization: Organization,
         detector_id: str | None,
         group_id: str | None,
-    ) -> Group | None:
+    ) -> list[Group]:
         if detector_id:
             detector = self.get_detector_from_detector_id(detector_id, organization)
             if not request.access.has_project_access(detector.linked_project):
                 raise ValidationError({"detectorId": "Detector not found"})
-            return self.get_group_from_detector(detector)
+            return self.get_groups_from_detector(detector)
 
         if group_id:
             group = self.get_group_from_group_id(group_id, organization)
             if not request.access.has_project_access(group.project):
                 raise ValidationError({"groupId": "Group not found"})
-            return group
+            return [group]
 
-        return None
+        return []
 
     @extend_schema(
         operation_id="Fetch Group Open Periods",
@@ -157,18 +166,18 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
         if detector_id_param and group_id_param:
             raise ValidationError({"detail": "Must provide only one of detectorId or groupId"})
 
-        target_group = self._get_target_group(
+        target_groups = self._get_target_groups(
             request=request,
             organization=organization,
             detector_id=detector_id_param,
             group_id=group_id_param,
         )
 
-        if not target_group:
+        if not target_groups:
             return self.paginate(request=request, queryset=[])
 
-        open_periods = get_open_periods_for_group(
-            group=target_group,
+        open_periods = get_open_periods_for_groups(
+            groups=target_groups,
             query_start=start,
             query_end=end,
         )

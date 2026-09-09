@@ -24,6 +24,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
+from sentry.models.group import GroupStatus
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.models.notificationaction import ActionService, ActionTarget
 from sentry.snuba.models import QuerySubscription
@@ -64,6 +65,7 @@ from sentry.workflow_engine.models import (
     DataSource,
     DataSourceDetector,
     Detector,
+    DetectorGroup,
     DetectorState,
     DetectorWorkflow,
     Workflow,
@@ -727,6 +729,35 @@ class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
 
         assert detector_state.state == str(DetectorPriorityLevel.OK.value)
         assert detector_state.is_triggered is False
+
+    def open_group_for_detector(self) -> Any:
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+        DetectorGroup.objects.create(detector=self.detector, group=group)
+
+        return group
+
+    def test_dual_update_resolves_the_open_issue(self) -> None:
+        group = self.open_group_for_detector()
+
+        self.detector_state.update(is_triggered=True, state=DetectorPriorityLevel.HIGH)
+
+        dual_update_migrated_alert_rule(self.metric_alert)
+
+        group.refresh_from_db()
+
+        # Nothing else would ever close it: the next firing rotates the fingerprint away.
+        assert group.status == GroupStatus.RESOLVED
+
+    def test_dual_update_leaves_the_issue_alone_when_not_triggered(self) -> None:
+        group = self.open_group_for_detector()
+
+        self.detector_state.update(is_triggered=False, state=DetectorPriorityLevel.OK)
+
+        dual_update_migrated_alert_rule(self.metric_alert)
+
+        group.refresh_from_db()
+
+        assert group.status == GroupStatus.UNRESOLVED
 
     def test_dual_update_metric_alert_owner(self) -> None:
         updated_fields: dict[str, Any] = {}

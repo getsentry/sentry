@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from django.db import IntegrityError, models
@@ -29,6 +30,30 @@ if TYPE_CHECKING:
     from sentry.models.groupopenperiod import GroupOpenPeriod
 
 logger = logging.getLogger(__name__)
+
+
+def close_outdated_incident(incident: Incident, date_ended: datetime) -> None:
+    """
+    Closes an incident left open by an open period that has already ended.
+    """
+    from sentry.incidents.logic import update_incident_status
+    from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
+    from sentry.incidents.utils.process_update_helpers import calculate_event_date_from_update_date
+
+    if incident.subscription_id is not None:
+        subscription = QuerySubscription.objects.select_related("snuba_query").get(
+            id=int(incident.subscription_id)
+        )
+        time_window = subscription.snuba_query.time_window
+    else:
+        time_window = 0
+
+    update_incident_status(
+        incident,
+        IncidentStatus.CLOSED,
+        status_method=IncidentStatusMethod.RULE_TRIGGERED,
+        date_closed=calculate_event_date_from_update_date(date_ended, time_window),
+    )
 
 
 @cell_silo_model
@@ -147,24 +172,21 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
                 )
                 old_open_period = incident_group_open_period.group_open_period
                 if old_open_period.date_ended is None:
-                    raise Exception("Outdated open period missing date_ended")
-
-                if open_incident.subscription_id is not None:
-                    subscription = QuerySubscription.objects.select_related("snuba_query").get(
-                        id=int(open_incident.subscription_id)
+                    # The resolve that closes the previous activation has not been processed
+                    # yet. It carries a different fingerprint to this occurrence, so the two
+                    # have no ordering guarantee. Leave the incident alone -- that resolve
+                    # closes it through update_incident_based_on_open_period_status_change --
+                    # and carry on so this activation still gets an incident of its own.
+                    logger.info(
+                        "Skipping close of an incident whose open period is still open",
+                        extra={
+                            "incident_id": open_incident.id,
+                            "open_period_id": old_open_period.id,
+                            "group_id": group.id,
+                        },
                     )
-                    time_window = subscription.snuba_query.time_window
                 else:
-                    time_window = 0
-                calculated_date_closed = calculate_event_date_from_update_date(
-                    old_open_period.date_ended, time_window
-                )
-                update_incident_status(
-                    open_incident,
-                    IncidentStatus.CLOSED,
-                    status_method=IncidentStatusMethod.RULE_TRIGGERED,
-                    date_closed=calculated_date_closed,
-                )
+                    close_outdated_incident(open_incident, old_open_period.date_ended)
             except IncidentGroupOpenPeriod.DoesNotExist:
                 # If there's no IGOP relationship. This can happen if the incident opened before we
                 # switched to single processing, as there's a long tail here, or the incident was broken for some

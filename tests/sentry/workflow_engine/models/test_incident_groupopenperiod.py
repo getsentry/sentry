@@ -58,7 +58,9 @@ class IncidentGroupOpenPeriodTest(TestCase):
                 snuba_query=self.snuba_query,
             )
 
-    def save_issue_occurrence(self, include_alert_id: bool = True) -> tuple[Any, GroupOpenPeriod]:
+    def save_issue_occurrence(
+        self, include_alert_id: bool = True, fingerprint: str = "test-fingerprint"
+    ) -> tuple[Any, GroupOpenPeriod]:
         event = self.store_event(
             data={"timestamp": timezone.now().isoformat()}, project_id=self.project.id
         )
@@ -67,7 +69,7 @@ class IncidentGroupOpenPeriodTest(TestCase):
             "id": str(uuid.uuid4()),
             "project_id": self.project.id,
             "event_id": event.event_id,
-            "fingerprint": ["test-fingerprint"],
+            "fingerprint": [fingerprint],
             "issue_title": "Test Issue",
             "subtitle": "Test Subtitle",
             "resource_id": None,
@@ -113,6 +115,35 @@ class IncidentGroupOpenPeriodTest(TestCase):
         activity = IncidentActivity.objects.filter(incident_id=incident.id)
         assert len(activity) == 3  # detected, created, status change
         assert result.group_open_period == open_period
+
+    def test_create_from_occurrence__previous_activation_not_resolved_yet(self) -> None:
+        """
+        A firing whose predecessor's resolve has not landed yet still gets an incident.
+
+        Once each activation has its own fingerprint the resolve of activation N and the
+        occurrence of activation N+1 go to different Kafka partitions, so they can be
+        processed in either order.
+        """
+        first_occurrence, first_open_period = self.save_issue_occurrence()
+        first_bridge = IncidentGroupOpenPeriod.create_from_occurrence(
+            first_occurrence, self.group, first_open_period
+        )
+
+        assert first_bridge is not None
+        assert first_open_period.date_ended is None
+
+        second_occurrence, second_open_period = self.save_issue_occurrence(
+            fingerprint="test-fingerprint-2"
+        )
+        second_bridge = IncidentGroupOpenPeriod.create_from_occurrence(
+            second_occurrence, second_open_period.group, second_open_period
+        )
+
+        assert second_bridge is not None
+        assert second_bridge.incident_id != first_bridge.incident_id
+
+        # The still-open incident is left for its own resolve to close.
+        assert Incident.objects.get(id=first_bridge.incident_id).date_closed is None
 
     def test_create_from_occurrence_no_alert_id(self) -> None:
         """Test handling when no alert_id in evidence_data"""

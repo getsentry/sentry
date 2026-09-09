@@ -75,6 +75,25 @@ class OrganizationOpenPeriodsTest(APITestCase):
             "eventId": None,
         }
 
+    def test_detector_id_spans_every_group_the_detector_opened(self) -> None:
+        """
+        A detector that opens a new issue per firing has one Group per firing, so the
+        detector view has to collect the periods of all of them, not just the newest.
+        """
+        second_group = self.create_group(type=MetricIssue.type_id, priority=PriorityLevel.HIGH)
+
+        DetectorGroup.objects.create(detector=self.detector, group=second_group)
+
+        second_open_period = GroupOpenPeriod.objects.get(group=second_group)
+
+        response = self.get_success_response(
+            *self.get_url_args(), qs_params={"detectorId": self.detector.id}
+        )
+
+        returned_ids = {int(open_period["id"]) for open_period in response.data}
+
+        assert returned_ids == {self.group_open_period.id, second_open_period.id}
+
     def test_open_periods_group_id(self) -> None:
         response = self.get_success_response(
             *self.get_url_args(), qs_params={"groupId": self.group.id}

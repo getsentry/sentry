@@ -10,9 +10,10 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.activity import Activity
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.options.rollout import in_rollout_group
 from sentry.services.eventstore.models import GroupEvent
+from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.tracing import trace
@@ -341,6 +342,34 @@ def process_detectors[T](
 
 
 # TODO - move to another file / location
+def resolve_open_group_for_detector(detector: Detector) -> None:
+    """
+    Resolves whichever Group this detector currently has open.
+
+    Detector state is sometimes reset outside of the usual transition to OK, which
+    otherwise leaves the Group that state opened with nothing left to close it. For a
+    handler that opens a new Group per activation the Group would stay open forever,
+    because the next firing rotates the fingerprint away from it.
+    """
+    detector_group = (
+        DetectorGroup.objects.filter(detector=detector)
+        .select_related("group")
+        .order_by("-date_added")
+        .first()
+    )
+
+    if detector_group is None or detector_group.group.status == GroupStatus.RESOLVED:
+        return
+
+    Group.objects.update_group_status(
+        groups=[detector_group.group],
+        status=GroupStatus.RESOLVED,
+        substatus=None,
+        activity_type=ActivityType.SET_RESOLVED,
+        detector_id=detector.id,
+    )
+
+
 def associate_new_group_with_detector(group: Group, detector_id: DetectorId | None = None) -> bool:
     """
     Associate a new Group with it's Detector in the database.
