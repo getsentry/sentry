@@ -17,7 +17,7 @@ import {ChartType} from './types';
 
 function transformAreaSeries(series: AreaChartSeries[]): LineSeriesOption[] {
   return series.map(({seriesName, data, ...otherSeriesProps}) => {
-    const areaSeries = areaSeries({
+    const areaSeries = createAreaSeries({
       name: seriesName,
       data: data.map(({name, value}) => [name, value]),
       lineStyle: {
