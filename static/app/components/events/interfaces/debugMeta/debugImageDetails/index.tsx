@@ -6,7 +6,7 @@ import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -336,7 +336,7 @@ export function DebugImageDetails({
         </Content>
       </Body>
       <Footer>
-        <StyledButtonBar>
+        <Flex align="center" gap="sm">
           <LinkButton
             href="https://docs.sentry.io/platforms/native/data-management/debug-files/"
             external
@@ -356,7 +356,7 @@ export function DebugImageDetails({
               {t('Open in Settings')}
             </LinkButton>
           )}
-        </StyledButtonBar>
+        </Flex>
       </Footer>
     </Fragment>
   );
@@ -366,12 +366,6 @@ const Content = styled('div')`
   display: grid;
   gap: ${p => p.theme.space['2xl']};
   font-size: ${p => p.theme.font.size.md};
-`;
-
-const StyledButtonBar = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  white-space: nowrap;
 `;
 
 export const modalCss = (theme: Theme) => css`
