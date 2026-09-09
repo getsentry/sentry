@@ -4,9 +4,9 @@ from typing import Any, Protocol
 from uuid import UUID
 
 from sentry.seer.agent.types import FeatureRunStatus
-from sentry.seer.autofix.delivery import deliver_autofix_rca_result
-from sentry.seer.autofix.models import FEATURE_ID as AUTOFIX_FEATURE_ID
-from sentry.seer.autofix.models import LEGACY_FEATURE_ID as LEGACY_AUTOFIX_FEATURE_ID
+from sentry.seer.autofix.rca.delivery import deliver_autofix_rca_result
+from sentry.seer.autofix.rca.models import FEATURE_ID as AUTOFIX_FEATURE_ID
+from sentry.seer.autofix.rca.models import LEGACY_FEATURE_ID as LEGACY_AUTOFIX_FEATURE_ID
 from sentry.seer.night_shift.delivery import deliver_night_shift_result
 from sentry.seer.smart_assignment.delivery import deliver_smart_assignment_result
 
