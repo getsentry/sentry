@@ -16,19 +16,21 @@ from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import SeerRunState
 
 
-def iteration_prs_all_closed(organization: Organization, state: SeerRunState) -> bool:
-    """True when the run has PRs and every one of them reads back as closed.
+def iteration_prs_any_closed(organization: Organization, state: SeerRunState) -> bool:
+    """True when any PR on the run reads back as closed.
+
+    One closed PR stops the whole run: an iteration pushes to every repo at
+    once, so there is no way to serve the open PRs while leaving the closed one
+    alone.
 
     A PR we cannot read (no number, repo gone, unsupported provider, API error)
-    counts as open: a transient read failure should not silently drop an
+    is passed over: a transient read failure should not silently drop an
     iteration's work.
     """
-    checked_any = False
-
     for repo_name, pr_state in state.repo_pr_states.items():
         pr_number = pr_state.pr_number
         if pr_number is None:
-            return False
+            continue
 
         repo, _resolution = Repository.objects.resolve_active(
             organization_id=organization.id,
@@ -36,24 +38,22 @@ def iteration_prs_all_closed(organization: Organization, state: SeerRunState) ->
             normalized_provider=None,
         )
         if repo is None:
-            return False
+            continue
 
         try:
             scm = make_scm(organization.id, repo.id, referrer="seer")
         except Exception:
-            return False
+            continue
 
         if not isinstance(scm, GetPullRequestProtocol):
-            return False
+            continue
 
         try:
             pull_request = scm_actions.get_pull_request(scm, str(pr_number))
         except Exception:
-            return False
+            continue
 
-        if pull_request["data"]["state"] != "closed":
-            return False
+        if pull_request["data"]["state"] == "closed":
+            return True
 
-        checked_any = True
-
-    return checked_any
+    return False

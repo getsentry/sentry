@@ -756,12 +756,12 @@ class TestPrIterationCompletionHook(TestCase):
         assert pushed is False
         mock_push.assert_not_called()
 
-    def _github_repo(self) -> None:
+    def _github_repo(self, name: str = "test-repo", external_id: str = "1") -> None:
         Repository.objects.create(
             organization_id=self.organization.id,
-            name="test-repo",
+            name=name,
             provider="integrations:github",
-            external_id="1",
+            external_id=external_id,
         )
 
     @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
@@ -790,6 +790,36 @@ class TestPrIterationCompletionHook(TestCase):
 
         assert pushed is True
         mock_push.assert_called_once()
+
+    @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request")
+    @patch(f"{PR_STATE_PATH}.make_scm")
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_one_closed_pr_stops_a_multi_repo_push(
+        self, mock_push, mock_make_scm, mock_get_pull_request
+    ):
+        """A push serves every repo at once, so it cannot skip just the closed one."""
+        self._github_repo()
+        self._github_repo("other-repo", external_id="2")
+        state = self._unsynced()
+        state.repo_pr_states["other-repo"] = RepoPRState(
+            repo_name="other-repo",
+            provider="github",
+            pr_id=88,
+            pr_number=8,
+            pr_url="https://example.com/pull/8",
+            pr_creation_status="completed",
+            commit_sha="stale-sha",
+        )
+        mock_get_pull_request.side_effect = [
+            {"data": {"state": "open"}},
+            {"data": {"state": "closed"}},
+        ]
+
+        pushed = self._push(state)
+
+        assert pushed is False
+        mock_push.assert_not_called()
 
     @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
     @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request", side_effect=ValueError("boom"))
