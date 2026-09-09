@@ -498,7 +498,7 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
 
 type Props = {
   customer: Subscription;
-  onAction: (data: Record<string, any>) => Promise<unknown>;
+  onAction: (data: Record<string, unknown>) => Promise<unknown>;
   organization: Organization;
 };
 

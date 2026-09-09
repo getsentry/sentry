@@ -12,7 +12,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 
 interface ChangeContractEndDateModalProps extends ModalRenderProps {
   contractPeriodEnd: string;
-  onAction: (data: Record<string, any>) => Promise<unknown>;
+  onAction: (data: Record<string, unknown>) => Promise<unknown>;
 }
 
 const schema = z.object({
