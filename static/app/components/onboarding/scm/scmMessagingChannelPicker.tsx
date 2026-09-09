@@ -171,7 +171,7 @@ export function ScmMessagingChannelPicker({
 
   return (
     <Container>
-      <Stack gap="lg" padding="xl lg">
+      <Stack gap="lg" padding="xl">
         <Grid columns={hasMultipleWorkspaces ? '1fr 1fr' : '1fr'} gap="md">
           {hasMultipleWorkspaces && (
             <Stack gap="xs">

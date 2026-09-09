@@ -96,9 +96,7 @@ export function RowSubtitle({
   if (visualState === 'removing' && messagingSetup.mode === 'selected') {
     return (
       <Text variant="muted" size="sm">
-        {t(
-          'This removes the destination from project setup. The integration stays connected to your organization.'
-        )}
+        {t('You can reconnect at any time')}
       </Text>
     );
   }

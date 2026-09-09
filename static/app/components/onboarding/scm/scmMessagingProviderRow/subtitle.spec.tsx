@@ -141,7 +141,7 @@ describe('RowSubtitle', () => {
 
       expect(
         screen.getByText(
-          'This removes the destination from project setup. The integration stays connected to your organization.'
+          'You can reconnect at any time'
         )
       ).toBeInTheDocument();
     });

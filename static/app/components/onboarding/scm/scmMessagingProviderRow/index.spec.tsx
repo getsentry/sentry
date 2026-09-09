@@ -739,7 +739,7 @@ describe('ScmMessagingProviderRow', () => {
       expect(screen.getByRole('button', {name: /Edit/})).toBeInTheDocument();
       expect(
         screen.queryByText(
-          'This removes the destination from project setup. The integration stays connected to your organization.'
+          'You can reconnect at any time'
         )
       ).not.toBeInTheDocument();
     });
