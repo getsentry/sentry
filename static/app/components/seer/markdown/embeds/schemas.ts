@@ -439,8 +439,11 @@ export const SEER_EMBED_SCHEMAS = {
   savedQuery: {
     description:
       'The ONLY way to reference a saved Explore query. ' +
-      'Use the saved query ID exactly as the API returns it and set `dataset` ' +
-      'to the dataset it was saved against. ' +
+      'Use the saved query ID and `dataset` exactly as the saved-query API ' +
+      'returns them. `segment_spans` is a legacy alias for `spans` carried by ' +
+      'queries migrated from Discover — pass it through rather than ' +
+      'substituting `spans`, and never pick it for a query the API reported as ' +
+      'something else. ' +
       'Include the API-provided name when available. ' +
       'Never use a markdown link for saved query references. ' +
       'Inline renders a link; block fetches the saved query and shows its ' +
@@ -449,13 +452,26 @@ export const SEER_EMBED_SCHEMAS = {
     level: ['inline', 'block'],
     schema: z.object({
       id: z.string().min(1),
-      dataset: z.enum(['spans', 'logs', 'metrics', 'replays']),
+      dataset: z.enum([
+        'spans',
+        'logs',
+        'metrics',
+        'replays',
+        'ai_conversations',
+        // Stamped on queries the Discover -> Explore migration translated. The
+        // API still returns it, so the tag has to accept it.
+        'segment_spans',
+      ]),
       name: z.string().min(1).optional(),
     }),
     examples: [
       {
         label: 'Saved query',
         data: {id: '312', dataset: 'spans', name: 'Slow checkout spans'},
+      },
+      {
+        label: 'Agents saved query',
+        data: {id: '488', dataset: 'ai_conversations', name: 'Failed tool calls'},
       },
     ],
   },

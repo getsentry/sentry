@@ -94,6 +94,52 @@ describe('saved query embed', () => {
     expect(await screen.findByText('Logs')).toBeInTheDocument();
   });
 
+  // The saved-query API stamps `segment_spans` on queries the Discover ->
+  // Explore migration translated, and `ai_conversations` on agents queries.
+  // Both have to parse: an embed whose data fails schema validation renders
+  // nothing at all, not a degraded link.
+  it('renders a query migrated from Discover', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/explore/saved/312/',
+      body: savedQueryResponse({dataset: 'segment_spans'}),
+    });
+
+    renderEmbed({name: 'savedQuery', data: {id: '312', dataset: 'segment_spans'}});
+
+    // A legacy alias for spans, so it reads as Traces like any other spans query.
+    expect(await screen.findByText('Traces')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /Slow checkout spans/})).toBeInTheDocument();
+  });
+
+  it('renders an agents saved query', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/explore/saved/488/',
+      body: savedQueryResponse({id: 488, dataset: 'ai_conversations'}),
+    });
+
+    renderEmbed({name: 'savedQuery', data: {id: '488', dataset: 'ai_conversations'}});
+
+    expect(await screen.findByText('Conversations')).toBeInTheDocument();
+    const link = await screen.findByRole('link', {name: /Slow checkout spans/});
+    expect(link).toHaveAttribute(
+      'href',
+      expect.stringContaining('/organizations/org-slug/explore/agents/')
+    );
+  });
+
+  it.each([
+    ['segment_spans', '/organizations/org-slug/explore/traces/'],
+    ['ai_conversations', '/organizations/org-slug/explore/agents/'],
+  ])('links %s inline to its own surface', (dataset, pathname) => {
+    const href = getEmbedLinkHref('savedQuery', 'A saved query', {
+      id: '312',
+      dataset,
+      name: 'A saved query',
+    });
+
+    expect(href).toContain(pathname);
+  });
+
   it('falls back to the inline link when the saved query cannot be loaded', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/explore/saved/999/',

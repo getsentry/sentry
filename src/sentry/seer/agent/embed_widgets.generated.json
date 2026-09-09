@@ -608,7 +608,7 @@
   },
   {
     "name": "savedQuery",
-    "description": "The ONLY way to reference a saved Explore query. Use the saved query ID exactly as the API returns it and set `dataset` to the dataset it was saved against. Include the API-provided name when available. Never use a markdown link for saved query references. Inline renders a link; block fetches the saved query and shows its name, filter, group-by and visualize, linking to the query's own parameters rather than just its id.",
+    "description": "The ONLY way to reference a saved Explore query. Use the saved query ID and `dataset` exactly as the saved-query API returns them. `segment_spans` is a legacy alias for `spans` carried by queries migrated from Discover — pass it through rather than substituting `spans`, and never pick it for a query the API reported as something else. Include the API-provided name when available. Never use a markdown link for saved query references. Inline renders a link; block fetches the saved query and shows its name, filter, group-by and visualize, linking to the query's own parameters rather than just its id.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -620,7 +620,14 @@
         },
         "dataset": {
           "type": "string",
-          "enum": ["spans", "logs", "metrics", "replays"]
+          "enum": [
+            "spans",
+            "logs",
+            "metrics",
+            "replays",
+            "ai_conversations",
+            "segment_spans"
+          ]
         },
         "name": {
           "type": "string",
@@ -637,6 +644,14 @@
           "id": "312",
           "dataset": "spans",
           "name": "Slow checkout spans"
+        }
+      },
+      {
+        "label": "Agents saved query",
+        "data": {
+          "id": "488",
+          "dataset": "ai_conversations",
+          "name": "Failed tool calls"
         }
       }
     ]
