@@ -570,7 +570,7 @@ class TestDetectorStateManagerRedisOptimization(TestCase):
 
 
 class RotatingDetectorStateHandler(MockDetectorStateHandler):
-    new_group_per_activation = True
+    rotates_activation_id = True
 
 
 class TestStatefulDetectorActivationId(TestCase):
@@ -607,6 +607,22 @@ class TestStatefulDetectorActivationId(TestCase):
 
     def activation_id(self, handler: MockDetectorStateHandler) -> UUID | None:
         return handler.state_manager.get_state_data([self.group_key])[self.group_key].activation_id
+
+    def test_detector_without_a_project__resolves_its_organization(self) -> None:
+        """
+        An all-projects detector has project=NULL and carries its org in config, so
+        `linked_project` raises for it and cannot be used to check the flag.
+        """
+        org_scoped_detector = self.create_all_projects_detector(self.organization)
+
+        assert org_scoped_detector.project is None
+
+        handler = RotatingDetectorStateHandler(detector=org_scoped_detector)
+
+        assert handler.get_detector_organization() == self.organization
+
+        with self.feature("organizations:workflow-engine-rotate-activation-id"):
+            assert handler._should_rotate_activation_id() is True
 
     def test_no_opt_in__never_rotates(self) -> None:
         handler = MockDetectorStateHandler(detector=self.detector)
