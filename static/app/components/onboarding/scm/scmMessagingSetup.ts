@@ -27,15 +27,16 @@ export type ScmMessagingSetup =
   | {mode: 'skipped'}
   | {
       /**
-       * The real backend channel ID for all providers (e.g. C123 for Slack,
-       * a numeric string for Discord, a UUID-like string for msteams).
+       * The backend channel ID for a channel picked from the list (e.g. C123
+       * for Slack, a numeric string for Discord, a UUID-like string for
+       * msteams). A typed channel stores its text here as well.
        * Used as the Discord channel-validate param and as the Discord action value.
        */
       channelId: string;
       /**
        * Human-readable display name shown in the UI.
-       * Also the channel-validate param for Slack and msteams, which both
-       * resolve channels by name rather than ID.
+       * Also the channel-validate param and the action value for Slack and
+       * msteams, which both resolve channels by name rather than ID.
        */
       channelName: string;
       integrationId: string;
