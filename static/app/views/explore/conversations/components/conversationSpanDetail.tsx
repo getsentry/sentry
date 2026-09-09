@@ -192,7 +192,11 @@ export function ConversationSpanDetail({
       ) : isError ? (
         <EmptyTab message={t('Failed to load span details')} />
       ) : (
-        <TabStateProvider<DetailTab> value={activeTab} onChange={onTabChange}>
+        <TabStateProvider<DetailTab>
+          value={activeTab}
+          onChange={onTabChange}
+          disableOverflow
+        >
           <Flex flexShrink={0}>
             <TabList>
               <TabList.Item key="input">{t('Input')}</TabList.Item>
