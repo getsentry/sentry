@@ -8,6 +8,7 @@ overrides:
   '@isaacs/brace-expansion': 5.0.1
   diff@>=4.0.0 <4.0.4: 4.0.4
   diff@>=5.0.0 <5.2.2: 5.2.2
+  image-size: '-'
 
 packageExtensionsChecksum: sha256-0VZ2XeajIU53t75fxV6NpDm9r5YxmYRM0rEQhyaaIlQ=
 
@@ -6066,11 +6067,6 @@ packages:
   ignore@6.0.2:
     resolution: {integrity: sha512-InwqeHHN2XpumIkMvpl/DCJVrAHgCsG5+cn1XlnLWGwtZBm8QJfSusItfrwx81CTp5agNZqpKU2J/ccC5nGT4A==}
     engines: {node: '>= 4'}
-
-  image-size@0.5.5:
-    resolution: {integrity: sha512-6TDAlDPZxUFCv+fuOkIoXT/V/f3Qbq8e37p+YOiYrUv3v9cc3/6x78VdfPgFVaB9dZYeLUfKgHRebpkm/oP2VQ==}
-    engines: {node: '>=0.10.0'}
-    hasBin: true
 
   import-fresh@3.3.0:
     resolution: {integrity: sha512-veYYhQa+D1QBKznvhUHxb8faxlrwUnxseDAbAp457E0wLNio2bOSKnjYDhMj+YiAq61xrMGhQk9iXVk5FzgQMw==}
@@ -14573,9 +14569,6 @@ snapshots:
 
   ignore@6.0.2: {}
 
-  image-size@0.5.5:
-    optional: true
-
   import-fresh@3.3.0:
     dependencies:
       parent-module: 1.0.1
@@ -15420,7 +15413,6 @@ snapshots:
     optionalDependencies:
       errno: 0.1.7
       graceful-fs: 4.2.11
-      image-size: 0.5.5
       make-dir: 2.1.0
       mime: 1.6.0
       needle: 3.1.0
