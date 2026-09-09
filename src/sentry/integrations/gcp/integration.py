@@ -247,9 +247,11 @@ class GcpIntegration(IntegrationInstallation):
             },
             {
                 "name": "projects",
-                "type": "string",
+                "type": "select",
                 "label": _("GCP Project IDs"),
-                "help": _("Comma-separated list of IDs for connected GCP projects."),
+                "help": _("The GCP projects Sentry reads telemetry from."),
+                "multiple": True,
+                "creatable": True,
                 "required": True,
             },
         ]
@@ -261,7 +263,7 @@ class GcpIntegration(IntegrationInstallation):
         return {
             "sentry_sa_email": config.get("sentry_sa_email", ""),
             "customer_sa_email": config.get("customer_sa_email", ""),
-            "projects": ", ".join(config.get("projects", [])),
+            "projects": list(config.get("projects", [])),
             "connection_status": config.get("connection_status", GCP_STATUS_UNVERIFIED),
             "project_statuses": config.get("project_statuses", []),
             "last_verified_at": config.get("last_verified_at"),

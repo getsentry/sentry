@@ -1317,6 +1317,7 @@ describe('CommandPalette', () => {
     let testDispatch: CommandPaletteDispatch;
 
     function DispatchCapture() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       testDispatch = useCommandPaletteDispatch();
       return null;
     }

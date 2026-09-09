@@ -53,6 +53,7 @@ function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
       onChange(newValue);
       if (autoSaveContext) {
         // Radios should reset to previous value on error
+        // oxlint-disable-next-line react/immutability
         autoSaveContext.resetOnErrorRef.current = true;
         field.handleBlur();
       }

@@ -10,11 +10,18 @@ import * as Storybook from 'sentry/stories';
 
 import {BasicDemo, LinkifyDemo, StreamingEmbedExamples} from './__stories__/components';
 import {AlertEmbedStory} from './__stories__/alertEmbedStory';
+import {ConversationEmbedStory} from './__stories__/conversationEmbedStory';
 import {DashboardEmbedStory} from './__stories__/dashboardEmbedStory';
 import {EmbedStory} from './__stories__/embedStory';
+import {EventEmbedStory} from './__stories__/eventEmbedStory';
+import {LogEmbedStory} from './__stories__/logEmbedStory';
 import {MonitorEmbedStory} from './__stories__/monitorEmbedStory';
+import {ProfileEmbedStory} from './__stories__/profileEmbedStory';
 import {ReleaseEmbedStory} from './__stories__/releaseEmbedStory';
 import {ReplayEmbedStory} from './__stories__/replayEmbedStory';
+import {SavedIssueViewEmbedStory} from './__stories__/savedIssueViewEmbedStory';
+import {SavedQueryEmbedStory} from './__stories__/savedQueryEmbedStory';
+import {TraceEmbedStory} from './__stories__/traceEmbedStory';
 
 `<SeerMarkdown>` wraps the core [`<Markdown>`](/scraps/core/markdown/) component with Seer-specific overrides: issue short ID linkification, origin-relative links, flattened headings, and an **embed system** that renders structured widgets inline from tag syntax.
 
@@ -70,6 +77,10 @@ Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated a
 
 <EmbedStory name="issues" />
 
+### event
+
+<EventEmbedStory />
+
 ### replay
 
 <ReplayEmbedStory />
@@ -96,19 +107,19 @@ Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated a
 
 ### savedIssueView
 
-<EmbedStory name="savedIssueView" />
+<SavedIssueViewEmbedStory />
 
 ### savedQuery
 
-<EmbedStory name="savedQuery" />
+<SavedQueryEmbedStory />
 
 ### trace
 
-<EmbedStory name="trace" />
+<TraceEmbedStory />
 
 ### profile
 
-<EmbedStory name="profile" />
+<ProfileEmbedStory />
 
 ### issuesQuery
 
@@ -126,6 +137,10 @@ Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated a
 
 <EmbedStory name="logsQuery" />
 
+### log
+
+<LogEmbedStory />
+
 ### replaysQuery
 
 <EmbedStory name="replaysQuery" />
@@ -133,6 +148,14 @@ Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated a
 ### metricsQuery
 
 <EmbedStory name="metricsQuery" />
+
+### conversation
+
+<ConversationEmbedStory />
+
+### conversationsQuery
+
+<EmbedStory name="conversationsQuery" />
 
 ## Embed Architecture
 

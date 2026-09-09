@@ -142,7 +142,6 @@ export function CreateAlertButton({
       to={to ?? (projectSlug ? createAlertUrl(projectSlug) : '')}
       tooltipProps={{
         title: canCreateAlert ? undefined : permissionTooltipText,
-        isHoverable: true,
         position: 'top',
         overlayStyle: {
           maxWidth: '270px',
