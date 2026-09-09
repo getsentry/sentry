@@ -48,7 +48,10 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 )
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.pause import PauseReason, pause_pr_iteration
-from sentry.seer.autofix.pr_iteration.pr_state import iteration_prs_any_closed
+from sentry.seer.autofix.pr_iteration.pr_state import (
+    iteration_prs_any_closed,
+    record_pr_closed,
+)
 from sentry.seer.autofix.pr_ready_for_review import (
     emit_pr_ready_for_review,
     format_pull_requests_payload,
@@ -1125,6 +1128,12 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return False
 
         if iteration_prs_any_closed(group.organization, state):
+            record_pr_closed("push")
+            pause_pr_iteration(
+                run_id=run_id,
+                organization_id=group.organization.id,
+                reason=PauseReason.PR_CLOSED,
+            )
             log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="pr_closed")
             return False
 

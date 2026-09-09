@@ -98,6 +98,7 @@ SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
 PAUSED_PR_ITERATION_DETAIL = {
     PauseReason.USER_STOP: "Iteration was stopped for this pull request",
     PauseReason.RUN_ERRORED: "Seer can no longer iterate on this pull request",
+    PauseReason.PR_CLOSED: "This pull request is closed, so Seer stopped iterating on it",
 }
 
 

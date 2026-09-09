@@ -764,11 +764,15 @@ class TestPrIterationCompletionHook(TestCase):
             external_id=external_id,
         )
 
+    @patch(f"{PR_STATE_PATH}.metrics.incr")
+    @patch(f"{HOOK_PATH}.pause_pr_iteration")
     @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
     @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request")
     @patch(f"{PR_STATE_PATH}.make_scm")
     @patch(f"{HOOK_PATH}.trigger_push_changes")
-    def test_a_closed_pr_stops_the_push(self, mock_push, mock_make_scm, mock_get_pull_request):
+    def test_a_closed_pr_stops_the_push(
+        self, mock_push, mock_make_scm, mock_get_pull_request, mock_pause, mock_incr
+    ):
         """Closing the PR is the stop signal; pushing into it would talk past it."""
         self._github_repo()
         mock_get_pull_request.return_value = {"data": {"state": "closed"}}
@@ -777,6 +781,8 @@ class TestPrIterationCompletionHook(TestCase):
 
         assert pushed is False
         mock_push.assert_not_called()
+        assert mock_pause.call_args.kwargs["reason"] == PauseReason.PR_CLOSED
+        mock_incr.assert_any_call("autofix.pr_iteration.pr_closed", tags={"gate": "push"})
 
     @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
     @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request")

@@ -925,6 +925,8 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         )
         return state
 
+    @patch(f"{PR_STATE_PATH}.metrics.incr")
+    @patch(f"{TASK_PATH}.pause_pr_iteration")
     @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
     @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request")
     @patch(f"{PR_STATE_PATH}.make_scm")
@@ -938,8 +940,10 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_trigger: MagicMock,
         mock_make_scm: MagicMock,
         mock_get_pull_request: MagicMock,
+        mock_pause: MagicMock,
+        mock_incr: MagicMock,
     ) -> None:
-        """No agent run, and the queue is left alone in case the PR reopens."""
+        """The run is paused rather than left to re-check on every later trigger."""
         mock_fetch.return_value = self._state_with_open_pr()
         mock_get_pull_request.return_value = {"data": {"state": "closed"}}
 
@@ -947,6 +951,8 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         mock_trigger.assert_not_called()
         mock_pop.assert_not_called()
+        assert mock_pause.call_args.kwargs["reason"] == PauseReason.PR_CLOSED
+        mock_incr.assert_any_call("autofix.pr_iteration.pr_closed", tags={"gate": "consume"})
 
     @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
     @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request")
