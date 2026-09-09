@@ -33,7 +33,9 @@ export function SubscriptionHeader(props: Props) {
   const {subscription, organization} = props;
   const hasBillingPerms = hasPermissions(organization, 'org:billing');
   const isDisabled = isDisabledByPartner(subscription);
-  const planIcon = subscription.planDetails ? getPlanIcon(subscription.planDetails) : null;
+  const planIcon = subscription.planDetails
+    ? getPlanIcon(subscription.planDetails)
+    : null;
 
   return (
     <Stack gap="xl" background="secondary">
