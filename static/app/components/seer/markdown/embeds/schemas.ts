@@ -550,6 +550,10 @@ export const SEER_EMBED_SCHEMAS = {
     description:
       'The ONLY way to reference a Sentry profile (the flamegraph view). ' +
       'Requires both the profile ID and the slug of the project it belongs to. ' +
+      'Inline: renders a compact link with the short profile id. ' +
+      'Block: renders a preview with the transaction, duration, thread count, ' +
+      'environment, release, OS, device, received time, and a flamechart — ' +
+      'do NOT duplicate any of that data as text. ' +
       'Never use a markdown link for profile references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -558,7 +562,13 @@ export const SEER_EMBED_SCHEMAS = {
     }),
     examples: [
       {
-        label: 'Profile',
+        label: 'Inline',
+        level: 'inline',
+        data: {projectSlug: 'javascript', profileId: '7f3c2b1a9d8e4f60'},
+      },
+      {
+        label: 'Block',
+        level: 'block',
         data: {projectSlug: 'javascript', profileId: '7f3c2b1a9d8e4f60'},
       },
     ],

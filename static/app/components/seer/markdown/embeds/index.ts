@@ -14,7 +14,7 @@ import {IssuesQuery} from './components/issuesQuery';
 import {LogsQuery} from './components/logsQuery';
 import {MetricsQuery} from './components/metricsQuery';
 import {Monitor} from './components/monitor/monitor';
-import {Profile} from './components/profile';
+import {Profile} from './components/profile/profile';
 import {Release} from './components/release';
 import {Replay} from './components/replay';
 import {ReplaysQuery} from './components/replaysQuery';
