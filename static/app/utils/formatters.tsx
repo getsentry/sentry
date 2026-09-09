@@ -122,12 +122,13 @@ export function formatAbbreviatedNumberWithDynamicPrecision(
   return formatAbbreviatedNumber(value, maximumSignificantDigits, true);
 }
 
+const FORMAT_RATE_SIGNIFICANT_DIGITS = 3;
+
 export function formatRate(
   value: number,
   unit: RateUnit = RateUnit.PER_SECOND,
   options: {
     minimumValue?: number;
-    significantDigits?: number;
   } = {}
 ) {
   // NOTE: `Intl` doesn't support unitless-per-unit formats (i.e.,
@@ -140,7 +141,7 @@ export function formatRate(
   }
 
   const minimumValue = options.minimumValue ?? 0;
-  const significantDigits = options.significantDigits ?? 3;
+  const significantDigits = FORMAT_RATE_SIGNIFICANT_DIGITS;
 
   const numberFormatOptions: ConstructorParameters<typeof Intl.NumberFormat>[1] = {
     notation: 'compact',
@@ -158,62 +159,7 @@ export function formatRate(
   }`;
 }
 
-export function formatSpanOperation(
-  operation?: string,
-  length: 'short' | 'long' = 'short'
-) {
-  if (length === 'long') {
-    return getLongSpanOperationDescription(operation);
-  }
-
-  return getShortSpanOperationDescription(operation);
-}
-
-function getLongSpanOperationDescription(operation?: string) {
-  if (operation?.startsWith('http')) {
-    return t('URL request');
-  }
-
-  if (operation === 'db.redis') {
-    return t('cache query');
-  }
-
-  if (operation?.startsWith('db')) {
-    return t('database query');
-  }
-
-  if (operation?.startsWith('task')) {
-    return t('application task');
-  }
-
-  if (operation?.startsWith('serialize')) {
-    return t('serializer');
-  }
-
-  if (operation?.startsWith('middleware')) {
-    return t('middleware');
-  }
-
-  if (operation === 'resource') {
-    return t('resource');
-  }
-
-  if (operation === 'resource.script') {
-    return t('JavaScript file');
-  }
-
-  if (operation === 'resource.css') {
-    return t('stylesheet');
-  }
-
-  if (operation === 'resource.img') {
-    return t('image');
-  }
-
-  return t('span');
-}
-
-function getShortSpanOperationDescription(operation?: string) {
+export function formatSpanOperation(operation?: string) {
   if (operation?.startsWith('http')) {
     return t('request');
   }
