@@ -63,9 +63,11 @@ import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
 import {titleCase} from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
+type CustomerUpdateAction = (data: Record<string, unknown>) => Promise<unknown>;
+
 type SubscriptionSummaryProps = {
   customer: Subscription;
-  onAction: (data: any) => void;
+  onAction: CustomerUpdateAction;
 };
 
 function SoftCapTypeDetail({
@@ -498,7 +500,7 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
 
 type Props = {
   customer: Subscription;
-  onAction: (data: any) => void;
+  onAction: CustomerUpdateAction;
   organization: Organization;
 };
 
@@ -612,6 +614,12 @@ function DynamicSampling({organization}: {organization: Organization}) {
 }
 
 export function CustomerOverview({customer, onAction, organization}: Props) {
+  const runAction = (data: Record<string, unknown>) => {
+    onAction(data).catch(() => {
+      // The mutation's onError callback surfaces the failure to the user.
+    });
+  };
+
   let orgUrl = `/organizations/${organization.slug}/issues/`;
   const configFeatures = ConfigStore.get('features');
   if (configFeatures.has('system:multi-region')) {
@@ -667,7 +675,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
       [action]: true,
     };
 
-    onAction(data);
+    runAction(data);
   };
 
   const getTrialManagementActions = (
@@ -705,7 +713,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             {...deps}
           />
         ),
-        onConfirm: onAction,
+        onConfirm: runAction,
       });
     };
 
@@ -818,7 +826,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             {customer.type === 'invoiced' && customer.billingInterval === 'annual' && (
               <span>
                 {' | '}
-                <ChangeARRAction customer={customer} onAction={onAction} />
+                <ChangeARRAction customer={customer} onAction={runAction} />
               </span>
             )}
           </DetailLabel>

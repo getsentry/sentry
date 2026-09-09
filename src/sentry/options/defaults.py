@@ -2623,9 +2623,31 @@ register(
 )
 
 # Webhook processing controls
+# Most threads a skip-on-failure claim delivers on, bounded by the records it
+# claimed.
 register(
     "hybridcloud.webhookpayload.worker_threads",
+    default=16,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# How many payloads over the rate window one delivery thread should be worth. Times
+# `worker_threads`, this is the depth a mailbox reaches before its split widens, so
+# lowering it splits sooner and wider. Tunable because the right value is not known:
+# the `buckets` tag on `hybridcloud.webhookpayload.mailbox_routing` is what would
+# settle it.
+register(
+    "hybridcloud.webhookpayload.payloads_per_thread",
     default=4,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Most mailboxes one integration's split may occupy; past it they simply grow deeper.
+# A safety valve on how many scheduler rows and dispatch slots one sender can take.
+# Rounded down to a power of two when read: the split climbs a ladder of doublings,
+# and a cap off that ladder makes a resize into it re-map nearly every key instead of
+# half.
+register(
+    "hybridcloud.webhookpayload.max_mailbox_buckets",
+    default=128,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Providers whose mailbox drains skip a failed message and keep going instead of
@@ -4218,6 +4240,15 @@ register(
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics
 register(
     "integrations.slo.integration-id-tag-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Serializes inbound assignee sync per external issue with a row lock. Off degrades to the
+# watermark's conditional update, which orders sequential deliveries but not concurrent ones.
+register(
+    "integrations.assignee-sync.lock-external-issue",
     default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
