@@ -17,7 +17,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.response_types import ValidationErrorResponse
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.workflow_engine.defaults.detectors import (
@@ -32,9 +32,9 @@ from sentry.workflow_engine.models import Detector
 
 class InboundHealthCheckSerializer(serializers.Serializer):
     projects = serializers.ListField(
-        child=serializers.CharField(),
+        child=serializers.IntegerField(),
         required=False,
-        help_text="Project slugs to perform additional health checks for.",
+        help_text="Project ids to perform additional health checks for.",
     )
 
 
@@ -74,7 +74,7 @@ class OrganizationDetectorHealthCheckEndpoint(OrganizationEndpoint):
     ) -> Response[ValidationErrorResponse] | Response[DetectorHealthCheckResponse]:
         serializer = InboundHealthCheckSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer.errors), status=400)
 
         organization_detectors_map = ensure_default_organization_detectors(organization)
 
@@ -82,9 +82,9 @@ class OrganizationDetectorHealthCheckEndpoint(OrganizationEndpoint):
         for slug, detector in organization_detectors_map.items():
             organization_detectors[slug] = serialize(detector, request.user)
 
-        project_slugs = serializer.validated_data.get("projects", [])
-        if project_slugs:
-            projects = self.get_projects(request, organization, project_slugs=set(project_slugs))
+        project_ids = serializer.validated_data.get("projects", [])
+        if project_ids:
+            projects = self.get_projects(request, organization, project_ids=set(project_ids))
         else:
             projects = []
 
