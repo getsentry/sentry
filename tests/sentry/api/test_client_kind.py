@@ -23,7 +23,7 @@ from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken
 from sentry.seer.agent_token import AGENT_TOKEN_KIND
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.utils.sdk import get_transaction_name_from_request
 
 EVENTS_PATH = "/api/0/organizations/my-org/events/"
@@ -80,14 +80,8 @@ def api_token(*, application_id: int | None = None) -> AuthenticatedToken:
 
 
 class GetClientKindTest(TestCase):
-    def classify(self, request: Request) -> ClientKind | None:
-        with self.feature(FEATURE_FLAG):
-            return get_client_kind(request, self.organization)
-
-    def test_returns_none_when_feature_is_disabled(self) -> None:
-        # A disabled org has to stay distinguishable from one that classifies as UNKNOWN.
-        with self.feature({FEATURE_FLAG: False}):
-            assert get_client_kind(make_request(), self.organization) is None
+    def classify(self, request: Request) -> ClientKind:
+        return get_client_kind(request)
 
     def test_session_auth_is_frontend(self) -> None:
         assert self.classify(make_request(user=session_user())) == ClientKind.FRONTEND
@@ -259,25 +253,12 @@ class GetClientHostTest(TestCase):
 
 
 class SetClientKindAttributesTest(TestCase):
-    def test_noop_when_feature_is_disabled(self) -> None:
-        request = make_request(auth=api_token(), user_agent="curl/8.7.1")
-        with (
-            self.feature({FEATURE_FLAG: False}),
-            mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
-            mock.patch("sentry.api.client_kind.start_span") as start_span,
-        ):
-            set_client_kind_attributes(request, self.organization)
-        sdk.set_tag.assert_not_called()
-        sdk.set_attribute.assert_not_called()
-        start_span.assert_not_called()
-
     def test_records_kind_and_user_agent(self) -> None:
         request = make_request(auth=api_token(), user_agent="curl/8.7.1")
         with (
-            self.feature(FEATURE_FLAG),
             mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
         ):
-            set_client_kind_attributes(request, self.organization)
+            set_client_kind_attributes(request)
         assert sdk.set_tag.call_args_list == [mock.call("client_kind_test", "script")]
         assert sdk.set_attribute.call_args_list == [
             mock.call("client_kind_test", "script"),
@@ -294,20 +275,18 @@ class SetClientKindAttributesTest(TestCase):
             },
         )
         with (
-            self.feature(FEATURE_FLAG),
             mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
         ):
-            set_client_kind_attributes(request, self.organization)
+            set_client_kind_attributes(request)
         assert mock.call("client_host_test", "claude-code") in sdk.set_tag.call_args_list
         assert mock.call("client_host_test", "claude-code") in sdk.set_attribute.call_args_list
 
     def test_omits_user_agent_when_absent(self) -> None:
         request = make_request(auth=api_token())
         with (
-            self.feature(FEATURE_FLAG),
             mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
         ):
-            set_client_kind_attributes(request, self.organization)
+            set_client_kind_attributes(request)
         for call in sdk.set_attribute.call_args_list:
             assert call.args[0] != ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL
 
@@ -318,22 +297,20 @@ class SetClientKindAttributesTest(TestCase):
         request = make_request(auth=api_token(), user_agent="curl/8.7.1")
         mark_from_api_client(request)
         with (
-            self.feature(FEATURE_FLAG),
             mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
             mock.patch("sentry.api.client_kind.start_span"),
         ):
-            set_client_kind_attributes(request, self.organization)
+            set_client_kind_attributes(request)
         assert sdk.set_tag.call_args_list == [mock.call("client_kind_test", "script")]
 
 
 class AttributionSpanTest(TestCase):
     def record(self, request: Request) -> tuple[Any, list[tuple[str, Any]]]:
         with (
-            self.feature(FEATURE_FLAG),
             mock.patch("sentry.api.client_kind.start_span") as start_span,
             mock.patch("sentry.api.client_kind.set_span_data") as set_span_data,
         ):
-            set_client_kind_attributes(request, self.organization)
+            set_client_kind_attributes(request)
         span = start_span.return_value.__enter__.return_value
         return start_span, [
             call.args[1:] for call in set_span_data.call_args_list if call.args[0] is span
@@ -396,9 +373,8 @@ class SpanRouteTest(TestCase):
 
 
 class ClientKindScopeTest(TestCase):
-    def classify(self, request: Request) -> ClientKind | None:
-        with self.feature(FEATURE_FLAG):
-            return get_client_kind(request, self.organization)
+    def classify(self, request: Request) -> ClientKind:
+        return get_client_kind(request)
 
     def test_declared_kind_wins_over_a_signal_less_request(self) -> None:
         request = make_request(cookies=False)
@@ -432,18 +408,68 @@ class ClientKindScopeTest(TestCase):
                 assert self.classify(request) == ClientKind.MCP
             assert self.classify(request) == ClientKind.SEER
 
-    def test_org_opt_in_still_governs(self) -> None:
-        with client_kind_scope(ClientKind.SEER):
-            with self.feature({FEATURE_FLAG: False}):
-                assert get_client_kind(make_request(), self.organization) is None
-
     def test_declared_kind_is_recorded(self) -> None:
         request = make_request(cookies=False)
         with (
-            self.feature(FEATURE_FLAG),
             client_kind_scope(ClientKind.SEER),
             mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
         ):
-            set_client_kind_attributes(request, self.organization)
+            set_client_kind_attributes(request)
         assert sdk.set_tag.call_args_list == [mock.call("client_kind_test", "seer")]
         assert mock.call("client_kind_test", "seer") in sdk.set_attribute.call_args_list
+
+
+class DispatchWiringTest(APITestCase):
+    """Coverage reaches endpoints beyond the events base this started on.
+
+    Driven through real requests rather than a resolver seam: `Endpoint.dispatch`
+    reads the organization straight off `kwargs`/`request`, so the only honest way
+    to pin which endpoint families are covered is to call them.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+
+    def tags_for(self, url: str, *, enabled: bool = True) -> list[Any]:
+        with (
+            self.feature(FEATURE_FLAG if enabled else {FEATURE_FLAG: False}),
+            mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
+        ):
+            assert self.client.get(url).status_code == 200
+        return sdk.set_tag.call_args_list
+
+    def test_an_organization_endpoint_records_the_caller(self) -> None:
+        url = f"/api/0/organizations/{self.organization.slug}/"
+        assert mock.call("client_kind_test", "frontend") in self.tags_for(url)
+
+    def test_a_project_endpoint_records_the_caller(self) -> None:
+        url = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/"
+        assert mock.call("client_kind_test", "frontend") in self.tags_for(url)
+
+    def test_a_team_endpoint_records_the_caller(self) -> None:
+        url = f"/api/0/teams/{self.organization.slug}/{self.team.slug}/"
+        assert mock.call("client_kind_test", "frontend") in self.tags_for(url)
+
+    def test_an_issue_endpoint_records_the_caller(self) -> None:
+        # Team and issue endpoints resolve their organization off the related object
+        # rather than into an `organization` kwarg, so they are the families most
+        # likely to silently fall out of coverage.
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
+        assert mock.call("client_kind_test", "frontend") in self.tags_for(url)
+
+    def test_records_nothing_when_the_organization_has_not_opted_in(self) -> None:
+        url = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/"
+        assert self.tags_for(url, enabled=False) == []
+
+    def test_a_declared_kind_does_not_bypass_the_opt_in(self) -> None:
+        """A declared caller must not also grant the organization's opt-in.
+
+        The opt-in check moved out of `get_client_kind` and up to the dispatch call
+        site, so it is the ordering there -- not the function -- that now keeps a
+        `client_kind_scope` declaration from reporting for an org that never enabled
+        the feature.
+        """
+        url = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/"
+        with client_kind_scope(ClientKind.SEER):
+            assert self.tags_for(url, enabled=False) == []
