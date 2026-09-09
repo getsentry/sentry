@@ -502,11 +502,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     raise PermissionDenied(SEER_PERMISSION_DENIED)
 
                 run_id = run.seer_run_state_id
-
-                if is_autofix_kickoff:
-                    sentry_run_id = str(run.uuid)
-                else:
-                    sentry_run_id = resolved_sentry_run_id
+                sentry_run_id = str(run.uuid)
 
         kickoff_body = {
             "run_id": run_id,
