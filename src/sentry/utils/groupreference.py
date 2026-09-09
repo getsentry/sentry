@@ -107,35 +107,13 @@ def find_referenced_groups(text: str | None, org_id: int) -> set[Group]:
 
 
 def find_fix_statements(text: str | None, org_id: int) -> list[str]:
-    """Return the raw text of each "Fix/Fixes/.../Resolved ..." statement in
-    *text* that references a real Sentry issue in *org_id*.
+    """Return each whole line of *text* that fixes a real Sentry issue in
+    *org_id*, so a caller can strip the line from a description verbatim.
 
-    Only the "keyword + short id/URL" span is returned, not _fixes_re's full
-    (loosely-bounded, whitespace-swallowing) match: that match is meant only
-    for feeding _short_id_re, and using it verbatim here would strip
-    unrelated trailing text out of the caller's description.
+    Group detection is delegated to find_referenced_groups, line by line, so a
+    line listing several issues ("Fixes FOO-1, FOO-2") is one statement.
     """
-    from sentry.models.group import Group
-
     if not text:
         return []
 
-    statements = []
-
-    for fmatch in _fixes_re.finditer(text):
-        for smatch in _short_id_re.finditer(fmatch.group(1)):
-            short_id = smatch.group(1)
-            try:
-                Group.objects.by_qualified_short_id(
-                    organization_id=org_id, short_id=short_id, project_ids=None
-                )
-            except Group.DoesNotExist:
-                continue
-            statement_end = fmatch.start(1) + smatch.end(1)
-            statements.append(text[fmatch.start() : statement_end])
-
-    for fmatch in _fixes_url_re.finditer(text):
-        if find_referenced_groups(fmatch.group(0), org_id):
-            statements.append(fmatch.group(0))
-
-    return statements
+    return [line for line in text.splitlines() if find_referenced_groups(line, org_id)]

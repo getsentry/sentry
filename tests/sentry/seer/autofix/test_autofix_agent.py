@@ -13,6 +13,7 @@ from sentry.seer.agent.client_models import (
     SeerRunState,
 )
 from sentry.seer.autofix.autofix_agent import (
+    SEER_FIXES_SENTRY_ISSUE_MARKER,
     STEP_CONFIGS,
     AutofixStep,
     NoSeerQuotaException,
@@ -1759,7 +1760,11 @@ class TestTriggerPushChanges(TestCase):
 
     def _fixes_line(self) -> str:
         issue_url = self.group.get_absolute_url(params={"seerDrawer": "true"})
-        return f"Fixes [{self.group.qualified_short_id}]({issue_url})"
+        return (
+            f"<!-- {SEER_FIXES_SENTRY_ISSUE_MARKER} -->\n"
+            f"Fixes [{self.group.qualified_short_id}]({issue_url})\n"
+            f"<!-- /{SEER_FIXES_SENTRY_ISSUE_MARKER} -->"
+        )
 
     def test_raises_permission_denied_when_coding_disabled(self):
         self.organization.update_option("sentry:enable_seer_coding", False)
