@@ -47,13 +47,9 @@ export const MODULE_BASE_URLS: Record<ModuleName, string> = {
 type ModuleNameStrings = `${ModuleName}`;
 export type RoutableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
 
-export const useModuleURL = (
-  moduleName: RoutableModuleNames,
-  bare = false,
-  view?: DomainView // Todo - this should be required when a module belongs to multiple views
-): string => {
-  const builder = useModuleURLBuilder(bare);
-  return builder(moduleName, view);
+export const useModuleURL = (moduleName: RoutableModuleNames): string => {
+  const builder = useModuleURLBuilder();
+  return builder(moduleName);
 };
 
 export type URLBuilder = (
@@ -65,10 +61,10 @@ export type URLBuilder = (
  *  This hook returns a function to build URLs for the module summary pages.
  *  This function will return the domain specific module url, the domain is determined in the following order of priority:
  *    1. The domain view passed in by the user
- *    2. (when detectDomainView=true) The current domain view (i.e if the current url is `/performance/frontend`, the current view is frontned)
+ *    2. The current domain view (i.e if the current url is `/performance/frontend`, the current view is frontned)
  *    3. The default view for the module
  */
-export function useModuleURLBuilder(bare = false, detectDomainView = true): URLBuilder {
+export function useModuleURLBuilder(bare = false): URLBuilder {
   const organization = useOrganization({allowNull: true}); // Some parts of the app, like the main sidebar, render even if the organization isn't available (during loading, or at all).
   const {view: currentView} = useDomainViewFilters();
 
@@ -80,8 +76,7 @@ export function useModuleURLBuilder(bare = false, detectDomainView = true): URLB
   const {slug} = organization;
 
   return function (moduleName: RoutableModuleNames, domainView?: DomainView) {
-    let view = detectDomainView ? currentView : (currentView ?? domainView);
-
+    let view = domainView ?? currentView;
     if (!view) {
       view = getModuleView(moduleName as ModuleName);
     }
