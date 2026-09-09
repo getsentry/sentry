@@ -101,7 +101,7 @@ interface SeerEmbedSchema {
  * different flags: seat-based plans and legacy usage-based ones. Matching the
  * pair is the same test the frontend's `orgHasSeerAccess` makes.
  */
-const SEER_PLAN_FEATURES = [
+const SEER_PLAN_AUTOFIX_FEATURES = [
   'organizations:seat-based-seer-enabled',
   'organizations:seer-added',
 ];
@@ -346,7 +346,7 @@ export const SEER_EMBED_SCHEMAS = {
     ],
   },
   autofix: {
-    featureFlag: SEER_PLAN_FEATURES,
+    featureFlag: SEER_PLAN_AUTOFIX_FEATURES,
     description:
       'Render one step of a Seer Autofix run (root cause, solution, or code ' +
       'changes) as a collapsible block linking back to the issue. ' +
@@ -947,7 +947,7 @@ export const SEER_EMBED_SCHEMAS = {
     ],
   },
   autofixRef: {
-    featureFlag: SEER_PLAN_FEATURES,
+    featureFlag: SEER_PLAN_AUTOFIX_FEATURES,
     description:
       'Render a live view of one Seer Autofix step (root cause, solution, code ' +
       'changes, or PR iteration) that fetches and updates itself in the browser. ' +
