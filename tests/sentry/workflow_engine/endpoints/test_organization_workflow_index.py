@@ -1779,9 +1779,17 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
             response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="org:write"'
         )
 
+    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_bulk_enable_all_projects_slug_sentinel_includes_detached_workflows(self) -> None:
         self.create_detector_workflow(
             workflow=self.workflow, detector=self.create_detector(project=self.project)
+        )
+        all_projects_workflow = self.create_workflow(
+            organization_id=self.organization.id, enabled=False
+        )
+        self.create_detector_workflow(
+            workflow=all_projects_workflow,
+            detector=ensure_default_all_projects_detector(self.organization.id),
         )
 
         response = self.get_success_response(
@@ -1793,13 +1801,16 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
         self.workflow.refresh_from_db()
         self.workflow_two.refresh_from_db()
         self.workflow_three.refresh_from_db()
+        all_projects_workflow.refresh_from_db()
         assert self.workflow.enabled is True
         assert self.workflow_two.enabled is True
         assert self.workflow_three.enabled is True
+        assert all_projects_workflow.enabled is True
         assert {workflow["id"] for workflow in response.data} == {
             str(self.workflow.id),
             str(self.workflow_two.id),
             str(self.workflow_three.id),
+            str(all_projects_workflow.id),
         }
 
     def test_bulk_disable_workflows_by_ids_success(self) -> None:

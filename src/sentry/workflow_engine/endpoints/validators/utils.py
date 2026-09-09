@@ -412,6 +412,15 @@ def should_include_all_projects_detector(request: Request, organization: Organiz
     )
 
 
+def should_include_all_projects_detector_workflows(
+    request: Request, organization: Organization
+) -> bool:
+    return features.has("organizations:workflow-engine-all-projects-detector", organization) and (
+        request.method == "GET"
+        or can_edit_all_project_detector_workflow_connections(request=request)
+    )
+
+
 def should_include_all_projects_detector_workflows_or_raise(
     request: Request, organization: Organization
 ) -> bool:

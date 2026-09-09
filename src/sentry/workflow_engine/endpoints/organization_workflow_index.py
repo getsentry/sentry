@@ -76,6 +76,7 @@ from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation impo
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
     is_workflow_connected_to_all_projects_detector,
+    should_include_all_projects_detector_workflows,
     should_include_all_projects_detector_workflows_or_raise,
 )
 from sentry.workflow_engine.models import DetectorWorkflow, Workflow
@@ -247,13 +248,19 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         if all_projects_detector:
             all_projects_workflows_q = Q(detectorworkflow__detector_id=all_projects_detector.id)
             has_explicit_workflow_selector = bool(raw_idlist or raw_detectorlist or raw_query)
-            should_check_all_projects_access = request.method == "GET" or (
+            should_enforce_all_projects_access = request.method != "GET" and (
                 has_explicit_workflow_selector
                 and queryset.filter(all_projects_workflows_q).exists()
             )
-            if should_check_all_projects_access and (
-                should_include_all_projects_detector_workflows_or_raise(request, organization)
-            ):
+            if should_enforce_all_projects_access:
+                include_all_projects_workflows = (
+                    should_include_all_projects_detector_workflows_or_raise(request, organization)
+                )
+            else:
+                include_all_projects_workflows = should_include_all_projects_detector_workflows(
+                    request, organization
+                )
+            if include_all_projects_workflows:
                 accessible_workflows |= all_projects_workflows_q
             else:
                 queryset = queryset.exclude(all_projects_workflows_q)
