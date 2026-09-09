@@ -151,6 +151,7 @@ function useChartZoomCancel(disabled?: boolean) {
   );
 
   const handleMouseUp = useCallback(() => {
+    // oxlint-disable-next-line react/immutability
     document.body.removeEventListener('mouseup', handleMouseUp);
     document.body.removeEventListener('keydown', handleKeyDown, true);
   }, [handleKeyDown]);

@@ -608,7 +608,7 @@ const config = defineConfig({
     'react/function-component-definition': 'error',
     'react/globals': 'error',
     'react/hooks': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
-    'react/immutability': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/immutability': 'error',
     'react/incompatible-library': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/invariant': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/jsx-boolean-value': ['error', 'never'],
