@@ -364,6 +364,7 @@ export function EditHighlightsModal({
             setHighlightContext(() => {
               const {[contextType]: highlightContextKeys, ...newHighlightContext} =
                 highlightContext;
+              // oxlint-disable-next-line react/invariant -- React Compiler internal error in InferMutationAliasingEffects; highlightContextKeys is initialized.
               const newHighlightContextKeys = (highlightContextKeys ?? []).filter(
                 key => key !== contextKey
               );

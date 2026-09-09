@@ -91,6 +91,7 @@ export function EAPChartsWidget({transactionName, query}: EAPChartsWidgetProps) 
     },
   });
 
+  // oxlint-disable-next-line react/invariant -- React Compiler internal error in InferMutationAliasingEffects; selectedChartUrlParam is initialized.
   const selectedChart = WIDGET_OPTIONS[selectedChartUrlParam as EAPWidgetType]
     ? (selectedChartUrlParam as EAPWidgetType)
     : EAPWidgetType.DURATION_BREAKDOWN;

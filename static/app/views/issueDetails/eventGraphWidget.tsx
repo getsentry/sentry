@@ -34,6 +34,7 @@ export default function EventGraphWidget({
     isPending,
     isError,
   } = useFetchGroupAndEvent({
+    // oxlint-disable-next-line react/invariant -- React Compiler internal error in InferMutationAliasingEffects; eventId is initialized.
     eventId,
     groupId,
     enabled: Boolean(eventId && groupId),

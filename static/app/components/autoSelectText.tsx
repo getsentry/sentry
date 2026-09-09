@@ -23,6 +23,7 @@ export function AutoSelectText({children, className, ref, ...props}: Props) {
     selectText: () => handleClick(),
   }));
 
+  // oxlint-disable-next-line react/invariant -- React Compiler internal error in PruneHoistedContexts; the hoisted handleClick is valid.
   function handleClick() {
     if (!element.current) {
       return;

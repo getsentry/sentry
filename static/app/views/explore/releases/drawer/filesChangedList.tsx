@@ -56,6 +56,7 @@ export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
       organization,
       release,
       activeRepository: activeReleaseRepo,
+      // oxlint-disable-next-line react/invariant -- React Compiler internal error in InferMutationAliasingEffects; rdFilesCursor is initialized.
       cursor: rdFilesCursor,
     }),
     select: selectJsonWithHeaders,
