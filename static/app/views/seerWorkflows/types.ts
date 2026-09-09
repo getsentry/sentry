@@ -32,7 +32,6 @@ type SeerNightShiftRunOptions = {
 };
 
 export type SeerNightShiftRunExtras = {
-  agent_run_id?: number | string;
   coverage?: {complete: number; failed: number; partial: number; total: number};
   options?: SeerNightShiftRunOptions;
   status?: 'running' | 'complete' | 'partial' | 'failed';
@@ -107,7 +106,6 @@ export type WorkflowRow = {
   triage?: {
     issues: SeerNightShiftRunIssue[];
     seerRuns: SeerNightShiftSeerRun[];
-    agentRunId?: number | string;
     dryRun?: boolean;
     maxCandidates?: number;
   };

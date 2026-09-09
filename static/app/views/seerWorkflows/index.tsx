@@ -995,7 +995,6 @@ function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
     };
   }
   const errorPresentation = getErrorPresentation(run.errorType ?? null);
-  const agentRunId = run.extras.agent_run_id;
   return {
     id: `${run.id}:agentic_triage`,
     runId: run.id,
@@ -1011,10 +1010,6 @@ function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
       dryRun: run.extras.options?.dry_run,
       issues: run.issues,
       seerRuns: run.seerRuns ?? [],
-      agentRunId:
-        typeof agentRunId === 'number' || typeof agentRunId === 'string'
-          ? agentRunId
-          : undefined,
     },
   };
 }
@@ -1046,19 +1041,10 @@ function getErrorPresentation(
   }
 }
 
-function getExplorerRunIds(row: WorkflowRow): Array<number | string> {
-  const seerRunIds = (row.triage?.seerRuns ?? [])
+function getExplorerRunIds(row: WorkflowRow): string[] {
+  return (row.triage?.seerRuns ?? [])
     .map(seerRun => seerRun.seerRunId)
     .filter((id): id is string => id !== null);
-  if (seerRunIds.length > 0) {
-    return seerRunIds;
-  }
-  // Fallback for pre-shard runs, which recorded a single id on the run extras.
-  const agentRunId = row.triage?.agentRunId;
-  if (typeof agentRunId === 'number' || typeof agentRunId === 'string') {
-    return [agentRunId];
-  }
-  return [];
 }
 
 export default SeerWorkflows;

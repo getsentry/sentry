@@ -34,7 +34,7 @@ describe('SeerWorkflows', () => {
             {
               id: '1',
               kind: 'duplicate_monitors',
-              seerRunId: '42',
+              seerRunId: '09a15703-bf37-4208-bd90-c57013c9694b',
               extras: {
                 outputKind: 'monitor_cleanup',
                 schemaVersion: 1,
@@ -65,8 +65,13 @@ describe('SeerWorkflows', () => {
     expect(screen.getByRole('button', {name: 'Delete duplicates'})).toBeDisabled();
     await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
     expect(
-      screen.getByRole('link', {name: 'View prompt and agent run 42'})
-    ).toHaveAttribute('href', expect.stringContaining('explorerRunId=42'));
+      screen.getByRole('link', {
+        name: 'View prompt and agent run 09a15703-bf37-4208-bd90-c57013c9694b',
+      })
+    ).toHaveAttribute(
+      'href',
+      expect.stringContaining('explorerRunId=09a15703-bf37-4208-bd90-c57013c9694b')
+    );
   });
 
   it('renders list of runs', async () => {
@@ -611,7 +616,7 @@ describe('SeerWorkflows', () => {
     );
   });
 
-  it('falls back to extras.agent_run_id for the dispatches panel when a run has no seer runs', async () => {
+  it('does not use legacy state IDs for dispatch links', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/workflows/`,
       body: [
@@ -631,10 +636,10 @@ describe('SeerWorkflows', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Expand run'}));
 
-    expect(screen.getByRole('button', {name: 'Batch 1'})).toHaveAttribute(
-      'href',
-      expect.stringContaining('explorerRunId=42')
-    );
+    expect(screen.queryByRole('button', {name: 'Batch 1'})).not.toBeInTheDocument();
+    expect(
+      screen.getByText('No triage batches recorded for this run.')
+    ).toBeInTheDocument();
   });
 
   it('shows no triage batches recorded when a run has no shards', async () => {

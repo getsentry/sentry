@@ -57,8 +57,7 @@ class SeerNightShiftShardSerializer(Serializer[SeerNightShiftSeerRunResponse]):
     def serialize(
         self, obj: SeerNightShiftRunShard, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> SeerNightShiftSeerRunResponse:
-        state_id = obj.seer_run.seer_run_state_id if obj.seer_run is not None else None
-        return {"seerRunId": str(state_id) if state_id is not None else None}
+        return {"seerRunId": str(obj.seer_run.uuid) if obj.seer_run is not None else None}
 
 
 class SeerNightShiftRunResponse(TypedDict):
@@ -161,7 +160,7 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
     ) -> SeerNightShiftRunResponse:
         all_results = list(obj.results.all())
         triage_results = [r for r in all_results if r.kind == SeerWorkflowStrategy.AGENTIC_TRIAGE]
-        extras = obj.extras or {}
+        extras = {key: value for key, value in (obj.extras or {}).items() if key != "agent_run_id"}
         # A dispatch failure records on the run; per-shard delivery failures record
         # on the shard, so surface either so a failed shard doesn't read as healthy.
         error_details: Mapping[str, Any] = extras
@@ -235,9 +234,7 @@ def _serialize_result(result: SeerNightShiftRunResult) -> SeerNightShiftRunResul
         "kind": result.kind,
         "groupId": str(result.group_id) if result.group_id is not None else None,
         "seerRunId": (
-            str(result.result_seer_run.seer_run_state_id)
-            if result.result_seer_run and result.result_seer_run.seer_run_state_id is not None
-            else result.seer_run_id
+            str(result.result_seer_run.uuid) if result.result_seer_run is not None else None
         ),
         "extras": result.extras or {},
         "dateAdded": result.date_added.isoformat(),
@@ -263,7 +260,9 @@ def _serialize_issue(
         "action": extras.get("action"),
         "reason": extras.get("reason"),
         "skipReason": extras.get("skip_reason"),
-        "seerRunId": result.seer_run_id,
+        "seerRunId": (
+            str(result.result_seer_run.uuid) if result.result_seer_run is not None else None
+        ),
         "pullRequests": pull_requests_by_result_id.get(result.id, []),
         "dateAdded": result.date_added.isoformat(),
     }

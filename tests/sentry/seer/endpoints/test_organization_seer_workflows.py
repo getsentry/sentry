@@ -24,7 +24,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         group = self.create_group()
         run = SeerNightShiftRun.objects.create(
             organization=self.organization,
-            extras={"foo": "bar"},
+            extras={"foo": "bar", "agent_run_id": "seer-legacy-dispatch"},
         )
         result = SeerNightShiftRunResult.objects.create(
             run=run,
@@ -48,7 +48,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         assert result_data["id"] == str(result.id)
         assert result_data["kind"] == "agentic_triage"
         assert result_data["groupId"] == str(group.id)
-        assert result_data["seerRunId"] == "seer-123"
+        assert result_data["seerRunId"] is None
         assert result_data["extras"] == {
             "action": "autofix_triggered",
             "reason": "Null pointer in the checkout flow",
@@ -58,6 +58,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         assert response.data[0]["triageStrategy"] == "agentic_triage"
         assert len(response.data[0]["issues"]) == 1
         issue = response.data[0]["issues"][0]
+        assert issue["seerRunId"] is None
         assert issue["groupId"] == str(group.id)
         assert issue["groupTitle"] == group.title
         assert issue["groupShortId"] == group.qualified_short_id
@@ -112,7 +113,9 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         pull_request = self.create_pull_request(
             repository_id=repo.id, organization_id=self.organization.id
         )
-        issue_seer_run = self.create_seer_run(organization=self.organization)
+        issue_seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123456
+        )
         SeerRunPullRequest.objects.create(seer_run=issue_seer_run, pull_request=pull_request)
 
         run = SeerNightShiftRun.objects.create(organization=self.organization)
@@ -128,6 +131,8 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             response = self.get_success_response(self.organization.slug)
 
         issue = response.data[0]["issues"][0]
+        assert issue["seerRunId"] == str(issue_seer_run.uuid)
+        assert response.data[0]["results"][0]["seerRunId"] == str(issue_seer_run.uuid)
         assert len(issue["pullRequests"]) == 1
         assert issue["pullRequests"][0]["id"] == pull_request.key
         assert issue["pullRequests"][0]["title"] == pull_request.title
@@ -186,6 +191,8 @@ class OrganizationSeerWorkflowsTest(APITestCase):
 
         issue = response.data[0]["issues"][0]
         assert issue["pullRequests"] == []
+        assert issue["seerRunId"] is None
+        assert response.data[0]["results"][0]["seerRunId"] is None
 
     def test_pull_requests_not_leaked_across_runs(self) -> None:
         group_a = self.create_group()
@@ -220,20 +227,28 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         assert len(by_run_id[str(run_a.id)]["issues"][0]["pullRequests"]) == 1
         assert by_run_id[str(run_b.id)]["issues"][0]["pullRequests"] == []
 
-    def test_surfaces_shard_seer_run_ids(self) -> None:
+    def test_surfaces_shard_uuids_without_state_ids(self) -> None:
         run = SeerNightShiftRun.objects.create(organization=self.organization)
         seer_run_a = self.create_seer_run(organization=self.organization, seer_run_state_id=111)
         seer_run_b = self.create_seer_run(organization=self.organization, seer_run_state_id=222)
         SeerNightShiftRunShard.objects.create(run=run, seer_run=seer_run_a)
         SeerNightShiftRunShard.objects.create(run=run, seer_run=seer_run_b)
-        # A shard with no mirrored state id serializes with a null seerRunId.
+        # A linked run has a public UUID even before Seer assigns a state ID.
+        pending_run = self.create_seer_run(organization=self.organization, seer_run_state_id=None)
+        SeerNightShiftRunShard.objects.create(run=run, seer_run=pending_run)
+        # An unlinked shard has no public run reference.
         SeerNightShiftRunShard.objects.create(run=run)
 
         with self.feature("organizations:seer-night-shift"):
             response = self.get_success_response(self.organization.slug)
 
         seer_run_ids = [r["seerRunId"] for r in response.data[0]["seerRuns"]]
-        assert seer_run_ids == ["111", "222", None]
+        assert seer_run_ids == [
+            str(seer_run_a.uuid),
+            str(seer_run_b.uuid),
+            str(pending_run.uuid),
+            None,
+        ]
 
     def test_surfaces_shard_error_message(self) -> None:
         # Per-shard delivery errors live on the shard; the run API must still
