@@ -228,6 +228,9 @@ export function SeerExplorerContent({
     sessionData.owner_user_id.toString() !== user.id;
 
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData?.blocks]);
+  // React Compiler could not prove this memoization is preserved; it bails out on
+  // code this callback depends on. Revisit once those bailouts are fixed.
+  // oxlint-disable-next-line react/preserve-manual-memoization
   const retryTarget = useMemo(() => {
     for (let index = blocks.length - 1; index >= 0; index--) {
       const block = blocks[index];

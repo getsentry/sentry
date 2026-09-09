@@ -640,7 +640,7 @@ const config = defineConfig({
     ],
     'react/memo-dependencies': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/no-deriving-state-in-effects': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
-    'react/preserve-manual-memoization': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/preserve-manual-memoization': 'error',
     'react/purity': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/refs': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/require-render-return': 'error',

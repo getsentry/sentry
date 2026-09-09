@@ -227,7 +227,7 @@ export function useTraceLayoutTabs({
       );
       setSelectedTab(slug);
     },
-    [navigate, queryParams, organization]
+    [navigate, queryParams, organization, setSelectedTab]
   );
 
   // Keep the stored selection in sync with URL and availability changes. The

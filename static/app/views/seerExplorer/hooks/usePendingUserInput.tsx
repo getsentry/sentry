@@ -116,7 +116,7 @@ export function usePendingUserInput({
       fileApprovalDecisions,
       fileApprovalIndex,
       fileApprovalTotalPatches,
-      pendingInput?.id,
+      pendingInput,
       respondToUserInput,
     ]
   );
@@ -225,7 +225,7 @@ export function usePendingUserInput({
     questionAnswers,
     questionIndex,
     totalQuestions,
-    pendingInput?.id,
+    pendingInput,
     respondToUserInput,
   ]);
 
@@ -318,7 +318,7 @@ export function usePendingUserInput({
     if (pendingInput?.id) {
       respondToUserInput(pendingInput.id);
     }
-  }, [pendingInput?.id, respondToUserInput]);
+  }, [pendingInput, respondToUserInput]);
 
   // Check if we're currently awaiting a provider reconnection.
   const isReauthPending =

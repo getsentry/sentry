@@ -67,7 +67,7 @@ export function StarSavedQueryButton() {
       1000,
       {leading: true}
     );
-  }, [starQuery, organization, data?.dataset]);
+  }, [starQuery, organization, data]);
 
   if (isLoading || !locationId) {
     return null;

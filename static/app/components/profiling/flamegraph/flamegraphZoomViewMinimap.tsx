@@ -73,7 +73,7 @@ function FlamegraphZoomViewMinimap({
     return new Rect(0, 0, 10, 0).transformRect(
       flamegraphMiniMapView.toConfigSpace(flamegraphMiniMapCanvas.physicalSpace)
     ).width;
-  }, [flamegraphMiniMapView, flamegraphMiniMapCanvas?.physicalSpace]);
+  }, [flamegraphMiniMapView, flamegraphMiniMapCanvas]);
 
   const flamegraphMiniMapRenderer = useMemo(() => {
     if (!flamegraphMiniMapCanvasRef) {

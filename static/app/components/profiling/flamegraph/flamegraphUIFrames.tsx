@@ -91,7 +91,7 @@ export function FlamegraphUIFrames({
       return null;
     }
     return uiFramesRenderer.findHoveredNode(configSpaceCursor, uiFramesView.configSpace);
-  }, [configSpaceCursor, uiFramesRenderer, uiFramesView?.configSpace]);
+  }, [configSpaceCursor, uiFramesRenderer, uiFramesView]);
 
   useEffect(() => {
     if (!uiFramesCanvas || !uiFramesView || !uiFramesRenderer) {

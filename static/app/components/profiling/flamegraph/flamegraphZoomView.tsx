@@ -178,7 +178,7 @@ function FlamegraphZoomView({
     isInternalFlamegraphDebugModeEnabled,
     flamegraphOverlayCanvasRef,
     flamegraph,
-    flamegraphView?.configSpace,
+    flamegraphView,
     flamegraphTheme,
   ]);
 
