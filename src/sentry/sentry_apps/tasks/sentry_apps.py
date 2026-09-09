@@ -437,6 +437,14 @@ def _repair_hook_missing_organization_id(
         )
     except ServiceHook.DoesNotExist:
         return None
+    except ServiceHook.MultipleObjectsReturned:
+        # We can't tell which hook is live, and guessing would send an org's payloads
+        # to the wrong url. Fall through to the missing_servicehook halt instead.
+        logger.warning(
+            "service_hook.duplicate_hooks_missing_organization_id",
+            extra={"installation_id": installation_id},
+        )
+        return None
 
     service_hook.organization_id = organization_id
     service_hook.save(update_fields=["organization_id"])
