@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -63,7 +64,9 @@ class DiscoverSavedQueryStarredEndpoint(OrganizationEndpoint):
         is_starred = serializer.validated_data["starred"]
 
         try:
-            query = DiscoverSavedQuery.objects.get(id=id, organization=organization)
+            query = DiscoverSavedQuery.objects.get(
+                Q(is_homepage=False) | Q(is_homepage__isnull=True), id=id, organization=organization
+            )
         except DiscoverSavedQuery.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
