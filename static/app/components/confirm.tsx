@@ -30,7 +30,7 @@ export type ConfirmMessageRenderProps = {
    *
    * This should be called in the components componentDidMount.
    */
-  setConfirmCallback: (cb: () => void | Promise<unknown>) => void;
+  setConfirmCallback: (cb: () => void) => void;
 };
 
 type ConfirmButtonsRenderProps = {
@@ -256,7 +256,7 @@ function ConfirmModal({
   errorMessage = t('Something went wrong. Please try again.'),
   closeModal,
 }: ModalProps) {
-  const confirmCallbackRef = useRef<() => void | Promise<unknown>>(() => {});
+  const confirmCallbackRef = useRef<() => void>(() => {});
   const [shouldDisableConfirmButton, setShouldDisableConfirmButton] =
     useState(disableConfirmButton);
   const [isConfirming, setIsConfirming] = useState(false);
@@ -278,16 +278,18 @@ function ConfirmModal({
 
     setIsConfirming(true);
 
-    try {
-      await onConfirm?.();
-      await confirmCallbackRef.current();
-    } catch (error) {
-      setIsError(true);
-      return;
-    } finally {
-      setIsConfirming(false);
+    if (onConfirm) {
+      try {
+        await onConfirm();
+      } catch (error) {
+        setIsError(true);
+        return;
+      } finally {
+        setIsConfirming(false);
+      }
     }
 
+    confirmCallbackRef.current();
     closeModal();
   };
 
@@ -297,7 +299,7 @@ function ConfirmModal({
         confirm: handleConfirm,
         close: handleClose,
         disableConfirmButton: (state: boolean) => setShouldDisableConfirmButton(state),
-        setConfirmCallback: (confirmCallback: () => void | Promise<unknown>) =>
+        setConfirmCallback: (confirmCallback: () => void) =>
           (confirmCallbackRef.current = confirmCallback),
       });
     }

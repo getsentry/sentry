@@ -37,7 +37,7 @@ export function ExtendProductTrialAction({
   useEffect(() => {
     setConfirmCallback((params: AdminConfirmParams) => {
       const formattedApiName = upperFirst(apiName);
-      return onConfirm?.({
+      onConfirm?.({
         [`extendTrial${formattedApiName}`]: true,
         extendTrialDays: extendDaysRef.current,
         ...params,

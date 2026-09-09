@@ -720,7 +720,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             {...deps}
           />
         ),
-        onConfirm: onAction,
+        onConfirm: data => onAction(data).catch(() => {}),
       });
     };
 

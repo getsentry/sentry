@@ -150,23 +150,6 @@ describe('Admin confirmation modal', () => {
     });
   });
 
-  it('displays an error when an async confirmation fails', async () => {
-    const onConfirm = jest.fn().mockRejectedValue(new Error('Failed'));
-
-    render(
-      <AdminConfirmationModal onConfirm={onConfirm}>
-        <button>Open Modal</button>
-      </AdminConfirmationModal>
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Open Modal'}));
-    renderGlobalModal();
-    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
-
-    expect(await screen.findByText(/something went wrong/i)).toBeInTheDocument();
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-  });
-
   // TODO: adapt this for custom renderer including a confirm button (click on that button instead)
   // eslint-disable-next-line jest/no-commented-out-tests
   // it('no-ops on URL error', function() {

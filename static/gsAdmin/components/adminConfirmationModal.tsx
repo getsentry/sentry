@@ -26,14 +26,12 @@ export type AdminConfirmRenderProps = Omit<
   'setConfirmCallback'
 > & {
   onConfirm: Props['onConfirm'];
-  setConfirmCallback: (
-    cb: (params: AdminConfirmParams) => void | Promise<unknown>
-  ) => void;
+  setConfirmCallback: (cb: (params: AdminConfirmParams) => void) => void;
 };
 
 type Props = Omit<ConfirmProps, 'onConfirm'> & {
   modalSpecificContent?: React.ReactNode;
-  onConfirm?: (params: AdminConfirmParams) => void | Promise<unknown>;
+  onConfirm?: (params: AdminConfirmParams) => void;
   renderModalSpecificContent?: (props: AdminConfirmRenderProps) => React.ReactNode;
   showAuditFields?: boolean;
 };
@@ -72,7 +70,7 @@ export function AdminConfirmationModal({
 
 type OpenAdminConfirmOptions = Omit<OpenConfirmOptions, 'onConfirm'> & {
   modalSpecificContent?: React.ReactNode;
-  onConfirm?: (params: AdminConfirmParams) => void | Promise<unknown>;
+  onConfirm?: (params: AdminConfirmParams) => void;
   renderModalSpecificContent?: (props: AdminConfirmRenderProps) => React.ReactNode;
   showAuditFields?: boolean;
 };
@@ -109,7 +107,7 @@ type ConfirmMessageProps = ConfirmMessageRenderProps &
   >;
 
 type State = {
-  confirmCallback: ((params: AdminConfirmParams) => void | Promise<unknown>) | null;
+  confirmCallback: ((params: AdminConfirmParams) => void) | null;
   invalidTicketURL: boolean;
   notes: string | null;
   ticketURL: string | null;
@@ -136,10 +134,10 @@ class AdminConfirmMessage extends Component<ConfirmMessageProps, State> {
     // If a new confirm callback has been registered chain to that. The
     // downstream callback may choose to trigger onConfirm.
     if (confirmCallback === null) {
-      return onConfirm?.(params);
+      onConfirm?.(params);
+    } else {
+      confirmCallback(params);
     }
-
-    return confirmCallback(params);
   };
 
   render() {

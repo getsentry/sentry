@@ -1,4 +1,3 @@
-import {useMutation} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 import {z} from 'zod';
 
@@ -29,27 +28,22 @@ function ChangeContractEndDateModal({
   Footer,
   closeModal,
 }: ChangeContractEndDateModalProps) {
-  const mutation = useMutation({
-    mutationFn: (data: {contractPeriodEnd: string}) => onAction(data),
-    onSuccess: () => {
-      closeModal();
-    },
-    onError: error => {
-      if (error instanceof RequestError) {
-        const fieldError = error.responseJSON?.contractPeriodEnd;
-        const message = Array.isArray(fieldError) ? fieldError[0] : fieldError;
-        if (typeof message === 'string') {
-          setFieldErrors(form, {contractPeriodEnd: {message}});
-        }
-      }
-    },
-  });
-
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {contractPeriodEnd},
     validators: {onDynamic: schema},
-    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
+    onSubmit: ({value, formApi}) =>
+      onAction(value)
+        .then(() => closeModal())
+        .catch((error: unknown) => {
+          if (error instanceof RequestError) {
+            const fieldError = error.responseJSON?.contractPeriodEnd;
+            const message = Array.isArray(fieldError) ? fieldError[0] : fieldError;
+            if (typeof message === 'string') {
+              setFieldErrors(formApi, {contractPeriodEnd: {message}});
+            }
+          }
+        }),
   });
 
   return (
