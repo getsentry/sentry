@@ -168,6 +168,19 @@ S025_query_msg = (
     "@extend_schema(parameters=...), so the schema does not document what this "
     "endpoint accepts. Add it to parameters=."
 )
+S026_msg = (
+    "S026 {} is read straight off the {}, so the schema has nothing to document and "
+    "the value is an unchecked string. Read it through a serializer declared in "
+    "@extend_schema."
+)
+S027_msg = (
+    "S027 the {} is read with the computed key {}, so no schema can document it. "
+    "Read a literal key, or declare this endpoint's input as an exception."
+)
+S028_msg = (
+    "S028 the whole {} is handed to {}, so what this endpoint accepts cannot be "
+    "determined. Read the values here, or declare this endpoint's input as an exception."
+)
 S025_body_msg = (
     "S025 {} validates the request body but is not declared in "
     "@extend_schema(request=...), so the schema does not document what this "
@@ -309,6 +322,27 @@ def extend_schema_kwarg(decorators: list[ast.expr], name: str) -> Generator[ast.
 
 
 _QUERY_ATTRS = frozenset(("GET", "query_params"))
+_READ_METHODS = frozenset(("get", "getlist", "pop"))
+# Counting or iterating the dict does not read a parameter out of it, so these
+# are not hand-offs. Anything else receiving the whole dict might read anything.
+_CONTAINER_OPS = frozenset(
+    (
+        "len",
+        "list",
+        "set",
+        "tuple",
+        "sorted",
+        "dict",
+        "bool",
+        "any",
+        "all",
+        "iter",
+        "append",
+        "extend",
+        "update",
+        "dumps",
+    )
+)
 _COPY_METHODS = frozenset(("copy", "dict"))
 
 
@@ -582,6 +616,12 @@ class _InputCtx:
         # (line, col, serializer) for each serializer built from that source
         self.query_validators: list[tuple[int, int, str]] = []
         self.body_validators: list[tuple[int, int, str]] = []
+        # (line, col, key, source) reads with a literal key
+        self.literal_reads: list[tuple[int, int, str, str]] = []
+        # (line, col, rendered key, source) reads whose key is computed
+        self.computed_reads: list[tuple[int, int, str, str]] = []
+        # (line, col, callee, source) the whole dict passed somewhere
+        self.hand_offs: list[tuple[int, int, str, str]] = []
 
     def _is(self, node: ast.expr, attrs: frozenset[str], locals_: set[str]) -> bool:
         node = _unwrap_copy(node)
@@ -594,6 +634,20 @@ class _InputCtx:
 
     def is_body(self, node: ast.expr) -> bool:
         return self._is(node, frozenset(("data",)), self.body_locals)
+
+    def source_of(self, node: ast.expr) -> str | None:
+        """ "query string" / "request body" for an input source, else None."""
+        if self.is_query(node):
+            return "query string"
+        if self.is_body(node):
+            return "request body"
+        return None
+
+    def record_read(self, key: ast.expr, source: str, line: int, col: int) -> None:
+        if isinstance(key, ast.Constant) and isinstance(key.value, str):
+            self.literal_reads.append((line, col, key.value, source))
+        else:
+            self.computed_reads.append((line, col, ast.unparse(key), source))
 
 
 class SentryVisitor(ast.NodeVisitor):
@@ -923,6 +977,14 @@ class SentryVisitor(ast.NodeVisitor):
             if self._s024_parses is None:
                 self._s024_parses = (node.lineno, node.col_offset)
 
+    def visit_Subscript(self, node: ast.Subscript) -> None:
+        if self._input_stack:
+            ctx = self._input_stack[-1]
+            source = ctx.source_of(node.value)
+            if source is not None:
+                ctx.record_read(node.slice, source, node.lineno, node.col_offset)
+        self.generic_visit(node)
+
     def _enter_input(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
         """Push an accumulator for a PUBLIC HTTP method on an endpoint class."""
         if len(self._class_stack) != 1 or self._function_depth != 0:
@@ -939,6 +1001,25 @@ class SentryVisitor(ast.NodeVisitor):
             )
         )
         return True
+
+    def _record_input_call(self, node: ast.Call) -> None:
+        """A `.get()` read, or the whole dict handed to something else."""
+        ctx = self._input_stack[-1]
+        func = node.func
+        if isinstance(func, ast.Attribute) and func.attr in _READ_METHODS:
+            source = ctx.source_of(func.value)
+            if source is not None and node.args:
+                ctx.record_read(node.args[0], source, node.lineno, node.col_offset)
+                return
+        if any(keyword.arg == "data" for keyword in node.keywords):
+            return
+        for argument in [*node.args, *(keyword.value for keyword in node.keywords)]:
+            source = ctx.source_of(argument)
+            if source is not None:
+                name = _name_of(func).rsplit(".", 1)[-1]
+                if name not in _CONTAINER_OPS:
+                    ctx.hand_offs.append((node.lineno, node.col_offset, name, source))
+                return
 
     def _record_validator(self, node: ast.Call) -> None:
         """A serializer built from the query string or the request body."""
@@ -969,11 +1050,18 @@ class SentryVisitor(ast.NodeVisitor):
         for line, col, name in ctx.body_validators:
             if name not in ctx.declared_body:
                 self._report_input(line, col, S025_body_msg.format(name), "declared")
+        for line, col, key, source in ctx.literal_reads:
+            self._report_input(line, col, S026_msg.format(repr(key), source), "shaped")
+        for line, col, key, source in ctx.computed_reads:
+            self._report_input(line, col, S027_msg.format(source, key), "shaped")
+        for line, col, callee, source in ctx.hand_offs:
+            self._report_input(line, col, S028_msg.format(source, callee), "shaped")
 
     def visit_Call(self, node: ast.Call) -> None:
         self._s024_visit_call(node)
         if self._input_stack:
             self._record_validator(node)
+            self._record_input_call(node)
         if _is_tests_path(self.filename):
             if (
                 isinstance(node.func, ast.Name)
