@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1164_organizationmemberteam_swap_new_id_primary_key"),
+        ("sentry", "1166_externalissue_provider_assignee_updated_at"),
     ]
 
     operations = [
