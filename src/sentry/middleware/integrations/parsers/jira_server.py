@@ -57,18 +57,8 @@ class JiraServerRequestParser(BaseRequestParser):
         )
 
     def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:
-        """
-        Used by get_mailbox to find the issue.id a payload is for.
-        In high volume jira_server instances we shard messages by issue for greater
-        delivery throughput.
-        """
-        issue_id = data.get("issue", {}).get("id", None)
-        if not issue_id:
-            return None
-        try:
-            return int(issue_id)
-        except ValueError:
-            return None
+        """Only changelog webhooks reach a cell, and each names its issue."""
+        return self.bucket_key_at(data, "issue", "id")
 
     def get_response(self) -> HttpResponseBase:
         if self.view_class == JiraServerIssueUpdatedWebhook:

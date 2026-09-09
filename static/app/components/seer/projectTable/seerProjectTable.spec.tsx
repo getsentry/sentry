@@ -91,12 +91,12 @@ describe('SeerProjectTable', () => {
     jest.restoreAllMocks();
   });
 
-  function renderTable() {
+  function renderTable(renderOrganization = organization) {
     render(
       <SentryNuqsTestingAdapter>
         <SeerProjectTable />
       </SentryNuqsTestingAdapter>,
-      {organization}
+      {organization: renderOrganization}
     );
   }
 
@@ -187,5 +187,11 @@ describe('SeerProjectTable', () => {
     // The check passes, so the selection is persisted and no warning is shown.
     await waitFor(() => expect(settingsPut).toHaveBeenCalled());
     expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it('disables adding a project without organization write access', async () => {
+    renderTable(OrganizationFixture({slug: organization.slug, access: []}));
+
+    expect(await screen.findByRole('button', {name: 'Add Project'})).toBeDisabled();
   });
 });

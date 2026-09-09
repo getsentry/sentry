@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Any
+from typing import Any, Self
 
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
@@ -28,7 +28,21 @@ logger = logging.getLogger(__name__)
 _BUILD_NUMBER_COMPONENT_WIDTH = 6
 
 
-def parse_build_number(build: str) -> int | None:
+@dataclass(frozen=True)
+class ParsedBuildNumber:
+    raw: str
+    encoded: int
+
+    @classmethod
+    def parse(cls, build: str) -> Self | None:
+        raw = build.strip()
+        encoded = _parse_build_number(raw)
+        if encoded is None:
+            return None
+        return cls(raw=raw, encoded=encoded)
+
+
+def _parse_build_number(build: str) -> int | None:
     """Parse a build number into the sortable int launchpad stores on the artifact.
 
     Mirrors launchpad's ``_parse_build_number``: plain integers pass through,
@@ -249,7 +263,7 @@ def find_current_artifact(
     app_id: str,
     platform: str,
     build_version: str,
-    build_number: int | None = None,
+    build_number: ParsedBuildNumber | None = None,
     main_binary_identifier: str | None = None,
     build_configuration: str | None = None,
     codesigning_type: str | None = None,
@@ -266,28 +280,39 @@ def find_current_artifact(
     if main_binary_identifier:
         filter_kwargs["main_binary_identifier"] = main_binary_identifier
 
-    if build_number is not None:
-        filter_kwargs["mobile_app_info__build_number"] = build_number
-
     if build_configuration:
         filter_kwargs["build_configuration__name"] = build_configuration
 
     if codesigning_type:
         filter_kwargs["extras__codesigning_type"] = codesigning_type
 
-    try:
-        return (
-            PreprodArtifact.objects.select_related(
-                "project__organization",
-                "build_configuration",
-                "commit_comparison",
-                "mobile_app_info",
-            )
-            .filter(**filter_kwargs)
-            .latest("date_added")
+    candidates = (
+        PreprodArtifact.objects.select_related(
+            "project__organization",
+            "build_configuration",
+            "commit_comparison",
+            "mobile_app_info",
         )
-    except PreprodArtifact.DoesNotExist:
-        return None
+        .filter(**filter_kwargs)
+        .order_by("-date_added")
+    )
+
+    if build_number is None:
+        return candidates.first()
+
+    # Prefer an exact raw match; use only the encoded build number for legacy
+    # artifacts without build_number_raw.
+    candidates = candidates.filter(mobile_app_info__build_number=build_number.encoded)
+
+    exact_match = candidates.filter(
+        mobile_app_info__extras__build_number_raw=build_number.raw
+    ).first()
+    if exact_match is not None:
+        return exact_match
+
+    return candidates.filter(
+        mobile_app_info__extras__build_number_raw__isnull=True,
+    ).first()
 
 
 _NUMERIC_BUILD_NUMBER_RE = r"^[0-9]+(\.[0-9]+)*$"
@@ -414,7 +439,7 @@ def find_current_and_latest(
     app_id: str,
     platform: str,
     build_version: str | None = None,
-    build_number: int | None = None,
+    build_number: ParsedBuildNumber | None = None,
     main_binary_identifier: str | None = None,
     build_configuration: str | None = None,
     codesigning_type: str | None = None,

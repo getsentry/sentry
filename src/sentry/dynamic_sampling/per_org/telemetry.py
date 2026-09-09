@@ -41,7 +41,7 @@ class ServingSource(StrEnum):
     # The organization is not in the serving rollout.
     LEGACY = "legacy"
     PER_ORG = "per_org"
-    PER_ORG_FALLBACK = "per_org_fallback"
+    # The organization is in the serving rollout, but no pass has stored a value for it.
     PER_ORG_NO_DATA = "per_org_no_data"
 
 
