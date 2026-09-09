@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import ClassVar
 
-from django.db import IntegrityError, models, router, transaction
+from django.db import models, router, transaction
 from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 
@@ -250,22 +250,18 @@ class DiscoverSavedQueryStarredManager(BaseManager["DiscoverSavedQueryStarred"])
         """
         from sentry.explore.utils import next_starred_position
 
-        try:
-            with transaction.atomic(using=router.db_for_write(DiscoverSavedQueryStarred)):
-                if self.get_starred_query(organization, user_id, query):
-                    return False
+        with transaction.atomic(using=router.db_for_write(DiscoverSavedQueryStarred)):
+            if self.get_starred_query(organization, user_id, query):
+                return False
 
-                self.create(
-                    organization=organization,
-                    user_id=user_id,
-                    discover_saved_query=query,
-                    position=next_starred_position(organization, user_id),
-                    starred=starred,
-                )
-                return True
-        except IntegrityError:
-            # A concurrent request starred the same query first
-            return False
+            self.create(
+                organization=organization,
+                user_id=user_id,
+                discover_saved_query=query,
+                position=next_starred_position(organization, user_id),
+                starred=starred,
+            )
+            return True
 
     def delete_starred_query(
         self, organization: Organization, user_id: int, query: DiscoverSavedQuery
