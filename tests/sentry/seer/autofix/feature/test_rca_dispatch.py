@@ -4,8 +4,8 @@ import pytest
 
 from sentry.seer.autofix.autofix_agent import NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.feature.rca_dispatch import trigger_autofix_rca_feature
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
-from sentry.seer.autofix.rca.dispatch import trigger_autofix_rca_feature
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -22,12 +22,12 @@ class TestTriggerAutofixRCAFeature(TestCase):
         expected_context = {"org_slug": self.organization.slug, "all_org_projects": []}
 
         with (
-            patch("sentry.seer.autofix.rca.dispatch.SeerAgentClient") as MockClient,
+            patch("sentry.seer.autofix.feature.rca_dispatch.SeerAgentClient") as MockClient,
             patch(
-                "sentry.seer.autofix.rca.dispatch.collect_user_org_context",
+                "sentry.seer.autofix.feature.rca_dispatch.collect_user_org_context",
                 return_value=expected_context,
             ) as mock_collect_context,
-            patch("sentry.seer.autofix.rca.dispatch.quotas") as mock_quotas,
+            patch("sentry.seer.autofix.feature.rca_dispatch.quotas") as mock_quotas,
         ):
             mock_quotas.backend.check_seer_quota.return_value = True
             client = MockClient.return_value
@@ -78,8 +78,8 @@ class TestTriggerAutofixRCAFeature(TestCase):
 
     def test_raises_when_out_of_budget(self) -> None:
         with (
-            patch("sentry.seer.autofix.rca.dispatch.SeerAgentClient") as MockClient,
-            patch("sentry.seer.autofix.rca.dispatch.quotas") as mock_quotas,
+            patch("sentry.seer.autofix.feature.rca_dispatch.SeerAgentClient") as MockClient,
+            patch("sentry.seer.autofix.feature.rca_dispatch.quotas") as mock_quotas,
         ):
             mock_quotas.backend.check_seer_quota.return_value = False
 
@@ -96,9 +96,9 @@ class TestTriggerAutofixRCAFeature(TestCase):
         fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
 
         with (
-            patch("sentry.seer.autofix.rca.dispatch.SeerAgentClient") as MockClient,
-            patch("sentry.seer.autofix.rca.dispatch.quotas") as mock_quotas,
-            patch("sentry.seer.autofix.rca.dispatch.is_free_cohort_org", return_value=True),
+            patch("sentry.seer.autofix.feature.rca_dispatch.SeerAgentClient") as MockClient,
+            patch("sentry.seer.autofix.feature.rca_dispatch.quotas") as mock_quotas,
+            patch("sentry.seer.autofix.feature.rca_dispatch.is_free_cohort_org", return_value=True),
         ):
             MockClient.return_value.start_feature_run.return_value = fake_run
 
@@ -116,8 +116,8 @@ class TestTriggerAutofixRCAFeature(TestCase):
         fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
 
         with (
-            patch("sentry.seer.autofix.rca.dispatch.SeerAgentClient") as mock_client_cls,
-            patch("sentry.seer.autofix.rca.dispatch.quotas") as mock_quotas,
+            patch("sentry.seer.autofix.feature.rca_dispatch.SeerAgentClient") as mock_client_cls,
+            patch("sentry.seer.autofix.feature.rca_dispatch.quotas") as mock_quotas,
         ):
             mock_quotas.backend.check_seer_quota.return_value = True
             mock_client_cls.return_value.start_feature_run.return_value = fake_run
@@ -135,8 +135,8 @@ class TestTriggerAutofixRCAFeature(TestCase):
         user = self.create_user()
 
         with (
-            patch("sentry.seer.autofix.rca.dispatch.SeerAgentClient") as mock_client_cls,
-            patch("sentry.seer.autofix.rca.dispatch.quotas") as mock_quotas,
+            patch("sentry.seer.autofix.feature.rca_dispatch.SeerAgentClient") as mock_client_cls,
+            patch("sentry.seer.autofix.feature.rca_dispatch.quotas") as mock_quotas,
         ):
             mock_quotas.backend.check_seer_quota.return_value = True
             mock_client_cls.return_value.start_feature_run.return_value = fake_run

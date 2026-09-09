@@ -38,6 +38,8 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.commit_author import SeerCommitAuthor, parse_commit_author
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
+from sentry.seer.autofix.feature.models import LEGACY_FEATURE_ID as LEGACY_AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.github_perms import failed_tool_calls
 from sentry.seer.autofix.pr_iteration.emit import complete_pr_iteration_details
 from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
@@ -52,8 +54,6 @@ from sentry.seer.autofix.pr_ready_for_review import (
     emit_pr_ready_for_review,
     format_pull_requests_payload,
 )
-from sentry.seer.autofix.rca.models import FEATURE_ID as AUTOFIX_FEATURE_ID
-from sentry.seer.autofix.rca.models import LEGACY_FEATURE_ID as LEGACY_AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,

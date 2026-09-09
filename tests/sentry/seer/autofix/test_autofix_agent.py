@@ -561,7 +561,7 @@ class TestTriggerAutofixAgent(TestCase):
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
-    @patch("sentry.seer.autofix.rca.dispatch.trigger_autofix_rca_feature")
+    @patch("sentry.seer.autofix.feature.rca_dispatch.trigger_autofix_rca_feature")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_root_cause_routes_to_rca_feature_when_flagged(
         self, mock_client_class, mock_feature, mock_broadcast, mock_check_quota, mock_record_run
@@ -599,7 +599,7 @@ class TestTriggerAutofixAgent(TestCase):
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
-    @patch("sentry.seer.autofix.rca.dispatch.trigger_autofix_rca_feature")
+    @patch("sentry.seer.autofix.feature.rca_dispatch.trigger_autofix_rca_feature")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_rca_feature_receives_stopping_point(
         self, mock_client_class, mock_feature, mock_broadcast, mock_check_quota, mock_record_run
@@ -624,7 +624,7 @@ class TestTriggerAutofixAgent(TestCase):
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
-    @patch("sentry.seer.autofix.rca.dispatch.trigger_autofix_rca_feature")
+    @patch("sentry.seer.autofix.feature.rca_dispatch.trigger_autofix_rca_feature")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_rca_feature_receives_run_options(
         self, mock_client_class, mock_feature, mock_broadcast, mock_check_quota, mock_record_run
@@ -650,7 +650,7 @@ class TestTriggerAutofixAgent(TestCase):
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
-    @patch("sentry.seer.autofix.rca.dispatch.trigger_autofix_rca_feature")
+    @patch("sentry.seer.autofix.feature.rca_dispatch.trigger_autofix_rca_feature")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_night_shift_repo_checks_force_bash_tools_on_the_feature(
         self, mock_client_class, mock_feature, mock_broadcast, mock_check_quota, mock_record_run
@@ -670,7 +670,7 @@ class TestTriggerAutofixAgent(TestCase):
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @patch("sentry.seer.autofix.rca.dispatch.trigger_autofix_rca_feature")
+    @patch("sentry.seer.autofix.feature.rca_dispatch.trigger_autofix_rca_feature")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_solution_step_does_not_route_to_rca_feature(
         self, mock_client_class, mock_feature, mock_check_quota, mock_record_run
@@ -695,7 +695,7 @@ class TestTriggerAutofixAgent(TestCase):
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @patch("sentry.seer.autofix.rca.dispatch.trigger_autofix_rca_feature")
+    @patch("sentry.seer.autofix.feature.rca_dispatch.trigger_autofix_rca_feature")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_root_cause_uses_legacy_flow_without_flag(
         self, mock_client_class, mock_feature, mock_check_quota, mock_record_run
@@ -718,7 +718,7 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client.start_run.assert_called_once()
 
     @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
-    @patch("sentry.seer.autofix.rca.dispatch.trigger_autofix_rca_feature")
+    @patch("sentry.seer.autofix.feature.rca_dispatch.trigger_autofix_rca_feature")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_flagged_root_cause_still_enforces_quota(
         self, mock_client_class, mock_feature, mock_check_quota

@@ -4,8 +4,10 @@ from uuid import UUID
 from django.db import connections, router
 from django.test.utils import CaptureQueriesContext
 
+from sentry.seer.agent.feature_delivery import DELIVERY_HANDLERS
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.rca.delivery import deliver_autofix_rca_result
+from sentry.seer.autofix.feature.delivery import deliver_autofix_feature_result
+from sentry.seer.autofix.feature.models import FEATURE_ID, LEGACY_FEATURE_ID
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models.run import SeerAgentRun
 from sentry.testutils.cases import TestCase
@@ -22,7 +24,7 @@ VALID_RESULT: dict[str, object] = {
 
 
 @django_db_all
-class TestDeliverAutofixRCAResult(TestCase):
+class TestDeliverAutofixFeatureResult(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
@@ -39,9 +41,13 @@ class TestDeliverAutofixRCAResult(TestCase):
             extras={"referrer": AutofixReferrer.WEB.value},
         )
 
+    def test_registers_current_and_legacy_feature_ids(self) -> None:
+        assert DELIVERY_HANDLERS[FEATURE_ID] is deliver_autofix_feature_result
+        assert DELIVERY_HANDLERS[LEGACY_FEATURE_ID] is deliver_autofix_feature_result
+
     def test_missing_run_logs_warning(self) -> None:
-        with patch("sentry.seer.autofix.rca.delivery.logger") as mock_logger:
-            deliver_autofix_rca_result(
+        with patch("sentry.seer.autofix.feature.delivery.logger") as mock_logger:
+            deliver_autofix_feature_result(
                 organization_id=self.organization.id,
                 run_uuid=UUID("00000000-0000-0000-0000-000000000000"),
                 status="completed",
@@ -50,7 +56,7 @@ class TestDeliverAutofixRCAResult(TestCase):
             )
 
         mock_logger.warning.assert_called_once()
-        assert "autofix_rca.delivery.missing_run" in mock_logger.warning.call_args.args[0]
+        assert "autofix_feature.delivery.missing_run" in mock_logger.warning.call_args.args[0]
 
     def test_completed_result_is_not_persisted_and_routing_metadata_is_preserved(self) -> None:
         self.agent_run.extras = {
@@ -59,7 +65,7 @@ class TestDeliverAutofixRCAResult(TestCase):
         }
         self.agent_run.save(update_fields=["extras"])
 
-        deliver_autofix_rca_result(
+        deliver_autofix_feature_result(
             organization_id=self.organization.id,
             run_uuid=self.agent_run.run.uuid,
             status="completed",
@@ -77,7 +83,7 @@ class TestDeliverAutofixRCAResult(TestCase):
         self.agent_run.source = "autofix"
         self.agent_run.save(update_fields=["source"])
 
-        deliver_autofix_rca_result(
+        deliver_autofix_feature_result(
             organization_id=self.organization.id,
             run_uuid=self.agent_run.run.uuid,
             status="completed",
@@ -89,8 +95,8 @@ class TestDeliverAutofixRCAResult(TestCase):
         assert self.agent_run.extras["status"] == "completed"
 
     def test_error_status_recorded(self) -> None:
-        with patch("sentry.seer.autofix.rca.delivery.logger") as mock_logger:
-            deliver_autofix_rca_result(
+        with patch("sentry.seer.autofix.feature.delivery.logger") as mock_logger:
+            deliver_autofix_feature_result(
                 organization_id=self.organization.id,
                 run_uuid=self.agent_run.run.uuid,
                 status="error",
@@ -99,7 +105,7 @@ class TestDeliverAutofixRCAResult(TestCase):
             )
 
         mock_logger.warning.assert_called()
-        assert "autofix_rca.delivery.no_result" in mock_logger.warning.call_args.args[0]
+        assert "autofix_feature.delivery.no_result" in mock_logger.warning.call_args.args[0]
 
         self.agent_run.refresh_from_db()
         assert self.agent_run.extras["status"] == "error"
@@ -108,7 +114,7 @@ class TestDeliverAutofixRCAResult(TestCase):
 
     def test_redelivery_is_idempotent(self) -> None:
         for _ in range(2):
-            deliver_autofix_rca_result(
+            deliver_autofix_feature_result(
                 organization_id=self.organization.id,
                 run_uuid=self.agent_run.run.uuid,
                 status="completed",
@@ -124,7 +130,7 @@ class TestDeliverAutofixRCAResult(TestCase):
         using = router.db_for_write(SeerAgentRun)
 
         with CaptureQueriesContext(connections[using]) as queries:
-            deliver_autofix_rca_result(
+            deliver_autofix_feature_result(
                 organization_id=self.organization.id,
                 run_uuid=self.agent_run.run.uuid,
                 status="completed",
@@ -135,14 +141,14 @@ class TestDeliverAutofixRCAResult(TestCase):
         assert any("FOR UPDATE" in query["sql"] for query in queries)
 
     def test_completed_status_is_not_overwritten_by_late_error(self) -> None:
-        deliver_autofix_rca_result(
+        deliver_autofix_feature_result(
             organization_id=self.organization.id,
             run_uuid=self.agent_run.run.uuid,
             status="completed",
             result=VALID_RESULT,
             error=None,
         )
-        deliver_autofix_rca_result(
+        deliver_autofix_feature_result(
             organization_id=self.organization.id,
             run_uuid=self.agent_run.run.uuid,
             status="error",
@@ -155,7 +161,7 @@ class TestDeliverAutofixRCAResult(TestCase):
         assert "error_message" not in self.agent_run.extras
 
     def test_success_after_error_clears_error_message(self) -> None:
-        deliver_autofix_rca_result(
+        deliver_autofix_feature_result(
             organization_id=self.organization.id,
             run_uuid=self.agent_run.run.uuid,
             status="error",
@@ -163,7 +169,7 @@ class TestDeliverAutofixRCAResult(TestCase):
             error="temporary error",
         )
 
-        deliver_autofix_rca_result(
+        deliver_autofix_feature_result(
             organization_id=self.organization.id,
             run_uuid=self.agent_run.run.uuid,
             status="completed",
@@ -179,8 +185,8 @@ class TestDeliverAutofixRCAResult(TestCase):
         seer_run = self.create_seer_run(organization=self.organization, type="feature_run")
         self.create_seer_agent_run(run=seer_run, source="night_shift", group=self.group)
 
-        with patch("sentry.seer.autofix.rca.delivery.logger") as mock_logger:
-            deliver_autofix_rca_result(
+        with patch("sentry.seer.autofix.feature.delivery.logger") as mock_logger:
+            deliver_autofix_feature_result(
                 organization_id=self.organization.id,
                 run_uuid=seer_run.uuid,
                 status="completed",
@@ -189,4 +195,4 @@ class TestDeliverAutofixRCAResult(TestCase):
             )
 
         mock_logger.warning.assert_called_once()
-        assert "autofix_rca.delivery.missing_run" in mock_logger.warning.call_args.args[0]
+        assert "autofix_feature.delivery.missing_run" in mock_logger.warning.call_args.args[0]

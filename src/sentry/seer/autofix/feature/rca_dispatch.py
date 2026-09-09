@@ -13,8 +13,8 @@ from sentry.seer.agent.client_utils import AgentRunOptions, collect_user_org_con
 from sentry.seer.agent.on_completion_hook import extract_hook_definition
 from sentry.seer.autofix.autofix_agent import NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.feature.models import FEATURE_ID, AutofixRCAPayload, AutofixRCATweaks
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
-from sentry.seer.autofix.rca.models import FEATURE_ID, AutofixRCAPayload, AutofixRCATweaks
 from sentry.seer.autofix.utils import AutofixStoppingPoint, is_free_cohort_org
 from sentry.seer.models.run import SeerRun
 from sentry.users.models.user import User
@@ -47,7 +47,7 @@ def trigger_autofix_rca_feature(
         )
         if not has_budget:
             logger.warning(
-                "autofix_rca.dispatch.quota_denied",
+                "autofix_feature.dispatch.quota_denied",
                 extra={
                     "group_id": group.id,
                     "organization_id": group.organization.id,
