@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import addIntegrationProvider from 'sentry-images/spot/add-integration-provider.svg';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -17,14 +19,26 @@ interface AddIntegrationBannerProps {
  */
 export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerProps) {
   return (
-    <StacktraceIntegrationBannerWrapper>
-      <div>
-        <IntegationBannerTitle>{t('Connect with Git Providers')}</IntegationBannerTitle>
-        <IntegationBannerDescription>
-          {t(
-            'Install Git providers (GitHub, GitLab…) to enable features like code mapping and stack trace linking.'
-          )}
-        </IntegationBannerDescription>
+    <StacktraceIntegrationBannerWrapper
+      border="primary"
+      margin="md 0"
+      padding="xl"
+      position="relative"
+      radius="md"
+    >
+      <Container>
+        <Container marginBottom="md">
+          <Text as="div" bold size="xl">
+            {t('Connect with Git Providers')}
+          </Text>
+        </Container>
+        <Container marginBottom="lg" maxWidth="340px">
+          <Text as="div">
+            {t(
+              'Install Git providers (GitHub, GitLab…) to enable features like code mapping and stack trace linking.'
+            )}
+          </Text>
+        </Container>
         <LinkButton
           to={{
             pathname: `/settings/${orgSlug}/integrations/`,
@@ -35,8 +49,16 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
         >
           {t('Get Started')}
         </LinkButton>
-      </div>
-      <IntegrationBannerImage src={addIntegrationProvider} />
+      </Container>
+      <Container
+        bottom="0"
+        display={{zero: 'none', xl: 'block'}}
+        pointerEvents="none"
+        position="absolute"
+        right="4rem"
+      >
+        <IntegrationBannerImage src={addIntegrationProvider} />
+      </Container>
       <CloseBannerButton
         variant="link"
         aria-label={t('Dismiss')}
@@ -48,29 +70,13 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
   );
 }
 
-const StacktraceIntegrationBannerWrapper = styled('div')`
-  position: relative;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space.xl};
-  margin: ${p => p.theme.space.md} 0;
+const StacktraceIntegrationBannerWrapper = styled(Container)`
   background: linear-gradient(
     90deg,
     color-mix(in srgb, ${p => p.theme.tokens.background.secondary} 0%, transparent) 0%,
     ${p => p.theme.tokens.background.secondary} 70%,
     ${p => p.theme.tokens.background.secondary} 100%
   );
-`;
-
-const IntegationBannerTitle = styled('div')`
-  font-size: ${p => p.theme.font.size.xl};
-  margin-bottom: ${p => p.theme.space.md};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const IntegationBannerDescription = styled('div')`
-  margin-bottom: ${p => p.theme.space.lg};
-  max-width: 340px;
 `;
 
 const CloseBannerButton = styled(Button)`
@@ -84,13 +90,5 @@ const CloseBannerButton = styled(Button)`
 `;
 
 const IntegrationBannerImage = styled('img')`
-  position: absolute;
   display: block;
-  bottom: 0px;
-  right: 4rem;
-  pointer-events: none;
-
-  @container (max-width: ${p => p.theme.container.xl}) {
-    display: none;
-  }
 `;

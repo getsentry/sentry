@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
 import {css, type Theme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -295,38 +295,54 @@ export function DebugImageDetails({
   return (
     <Fragment>
       <Header closeButton>
-        <Title>
-          {t('Image')}
-          <FileName>{fileName ?? t('Unknown')}</FileName>
-        </Title>
+        <Text size="xl" wordBreak="break-all">
+          {({className}) => (
+            <Grid
+              className={className}
+              align="center"
+              columns="max-content 1fr"
+              gap="md"
+              maxWidth="calc(100% - 40px)"
+            >
+              {t('Image')}
+              <Text monospace size="xl">
+                {fileName ?? t('Unknown')}
+              </Text>
+            </Grid>
+          )}
+        </Text>
       </Header>
       <Body>
-        <Content>
-          <GeneralInfo image={image} />
-          {hasReprocessWarning && (
-            <ReprocessAlert
-              api={api}
-              orgSlug={organization.slug}
-              projSlug={projSlug}
-              eventId={event.id}
-              onReprocessEvent={onReprocessEvent}
-            />
+        <Text size="md">
+          {({className}) => (
+            <Grid className={className} gap="2xl">
+              <GeneralInfo image={image} />
+              {hasReprocessWarning && (
+                <ReprocessAlert
+                  api={api}
+                  orgSlug={organization.slug}
+                  projSlug={projSlug}
+                  eventId={event.id}
+                  onReprocessEvent={onReprocessEvent}
+                />
+              )}
+              <Candidates
+                imageStatus={status}
+                candidates={candidates}
+                organization={organization}
+                projSlug={projSlug}
+                baseUrl={baseUrl}
+                isLoading={shouldShowLoadingIndicator}
+                eventDateReceived={event.dateReceived}
+                onDelete={handleDelete}
+                hasReprocessWarning={hasReprocessWarning}
+              />
+            </Grid>
           )}
-          <Candidates
-            imageStatus={status}
-            candidates={candidates}
-            organization={organization}
-            projSlug={projSlug}
-            baseUrl={baseUrl}
-            isLoading={shouldShowLoadingIndicator}
-            eventDateReceived={event.dateReceived}
-            onDelete={handleDelete}
-            hasReprocessWarning={hasReprocessWarning}
-          />
-        </Content>
+        </Text>
       </Body>
       <Footer>
-        <StyledButtonBar>
+        <Grid align="center" flow="column" gap="md" whiteSpace="nowrap">
           <LinkButton
             href="https://docs.sentry.io/platforms/native/data-management/debug-files/"
             external
@@ -346,37 +362,11 @@ export function DebugImageDetails({
               {t('Open in Settings')}
             </LinkButton>
           )}
-        </StyledButtonBar>
+        </Grid>
       </Footer>
     </Fragment>
   );
 }
-
-const Content = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space['2xl']};
-  font-size: ${p => p.theme.font.size.md};
-`;
-
-const Title = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-  font-size: ${p => p.theme.font.size.xl};
-  max-width: calc(100% - 40px);
-  word-break: break-all;
-`;
-
-const FileName = styled('span')`
-  font-family: ${p => p.theme.font.family.mono};
-`;
-
-const StyledButtonBar = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  white-space: nowrap;
-`;
 
 export const modalCss = (theme: Theme) => css`
   [role='document'] {

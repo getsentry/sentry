@@ -6,7 +6,9 @@ import classNames from 'classnames';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
@@ -196,7 +198,12 @@ export function DeprecatedLine({
     <li data-test-id="line" className={className}>
       <StrictClick onClick={isExpandable ? toggleContext : undefined}>
         <DefaultLine
+          align="center"
           data-test-id="title"
+          justify="between"
+          minHeight="40px"
+          padding="sm lg"
+          position="relative"
           isSubFrame={!!isSubFrame}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
@@ -204,26 +211,43 @@ export function DeprecatedLine({
           isExpandable={isExpandable}
         >
           {isExpandable ? <InteractionStateLayer /> : null}
-          <DefaultLineTitleWrapper isInAppFrame={data.inApp}>
-            <LeftLineTitle>
-              <div>
-                <LeadHint
-                  nextFrame={nextFrame}
-                  event={event}
-                  isExpanded={isExpanded}
-                  leadsToApp={leadsToApp}
-                />
-                <DefaultTitle
-                  frame={data}
-                  platform={propPlatform ?? 'other'}
-                  isHoverPreviewed={isHoverPreviewed}
-                  meta={frameMeta}
-                  isPotentiallyThirdParty={isPotentiallyThirdPartyFrame(data, event)}
-                />
-              </div>
-            </LeftLineTitle>
-          </DefaultLineTitleWrapper>
-          <FrameActions>
+          <Text italic={!data.inApp} variant={data.inApp ? 'inherit' : 'muted'}>
+            {({className: layoutClassName}) => (
+              <Flex
+                className={layoutClassName}
+                data-line-title
+                align="center"
+                flex={1}
+                justify="between"
+                minWidth={0}
+              >
+                <Flex align="center" minWidth={0}>
+                  <div>
+                    <LeadHint
+                      nextFrame={nextFrame}
+                      event={event}
+                      isExpanded={isExpanded}
+                      leadsToApp={leadsToApp}
+                    />
+                    <DefaultTitle
+                      frame={data}
+                      platform={propPlatform ?? 'other'}
+                      isHoverPreviewed={isHoverPreviewed}
+                      meta={frameMeta}
+                      isPotentiallyThirdParty={isPotentiallyThirdPartyFrame(data, event)}
+                    />
+                  </div>
+                </Flex>
+              </Flex>
+            )}
+          </Text>
+          <Flex
+            data-frame-actions
+            align="center"
+            flexShrink={0}
+            gap="md"
+            marginLeft="auto"
+          >
             <RepeatsIndicator timesRepeated={timesRepeated} />
             {anrCulprit ? (
               <Tag variant="warning" onClick={scrollToSuspectRootCause}>
@@ -312,9 +336,11 @@ export function DeprecatedLine({
                   }}
                 >
                   <IconFix size="xs" />
-                  <SourceMapDebuggerButtonText>
-                    {t('Unminify Code')}
-                  </SourceMapDebuggerButtonText>
+                  <Container as="span" marginLeft="xs">
+                    <Text as="span" variant="inherit">
+                      {t('Unminify Code')}
+                    </Text>
+                  </Container>
                 </SourceMapDebuggerModalButton>
               </Fragment>
             ) : null}
@@ -330,9 +356,9 @@ export function DeprecatedLine({
                 <IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />
               </ToggleContextButton>
             ) : (
-              <div style={{width: 26, height: 20}} />
+              <Container height="20px" width="26px" />
             )}
-          </FrameActions>
+          </Flex>
         </DefaultLine>
       </StrictClick>
       <Context
@@ -361,63 +387,26 @@ function RepeatsIndicator({timesRepeated}: {timesRepeated: number}) {
   }
 
   return (
-    <RepeatedFrames
+    <Container
+      display="inline-block"
       title={`Frame repeated ${timesRepeated} time${timesRepeated === 1 ? '' : 's'}`}
     >
-      <RepeatedContent>
-        <StyledIconRefresh />
+      <Flex align="center" gap="2xs" justify="center" minWidth={0}>
+        <IconRefresh />
         <span>{timesRepeated}</span>
-      </RepeatedContent>
-    </RepeatedFrames>
+      </Flex>
+    </Container>
   );
 }
 
-const RepeatedFrames = styled('div')`
-  display: inline-block;
-`;
-
-const DefaultLineTitleWrapper = styled('div')<{isInAppFrame: boolean}>`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-width: 0;
-  flex: 1;
-  color: ${p => (p.isInAppFrame ? '' : p.theme.tokens.content.secondary)};
-  font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
-`;
-
-const LeftLineTitle = styled('div')`
-  display: flex;
-  align-items: center;
-  min-width: 0;
-`;
-
-const RepeatedContent = styled(LeftLineTitle)`
-  justify-content: center;
-`;
-
-const FrameActions = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  flex-shrink: 0;
-  margin-left: auto;
-`;
-
-const DefaultLine = styled('div')<{
+const DefaultLine = styled(Flex)<{
   isExpandable: boolean;
   isExpanded: boolean;
   isSubFrame: boolean;
 }>`
-  position: relative;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   background: ${p =>
     p.isSubFrame ? p.theme.colors.surface200 : p.theme.tokens.background.tertiary};
-  min-height: 40px;
   word-break: break-word;
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
   font-size: ${p => p.theme.font.size.sm};
   line-height: 16px;
   cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
@@ -430,11 +419,11 @@ const DefaultLine = styled('div')<{
       flex-wrap: wrap;
       row-gap: ${p => p.theme.space.xs};
 
-      > ${DefaultLineTitleWrapper} {
+      > [data-line-title] {
         flex-basis: 100%;
       }
 
-      > ${FrameActions} {
+      > [data-frame-actions] {
         flex-basis: 100%;
         justify-content: flex-end;
         flex-wrap: wrap;
@@ -442,10 +431,6 @@ const DefaultLine = styled('div')<{
       }
     }
   }
-`;
-
-const StyledIconRefresh = styled(IconRefresh)`
-  margin-right: ${p => p.theme.space['2xs']};
 `;
 
 const ToggleContextButton = styled(Button)`
@@ -462,10 +447,6 @@ const ToggleButton = styled(Button)`
   &:hover {
     color: ${p => p.theme.tokens.content.secondary};
   }
-`;
-
-const SourceMapDebuggerButtonText = styled('span')`
-  margin-left: ${p => p.theme.space.xs};
 `;
 
 const SourceMapDebuggerModalButton = styled(Button)`

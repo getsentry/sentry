@@ -6,6 +6,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -30,7 +31,6 @@ import {IconChevron} from 'sentry/icons';
 import {IconFileBroken} from 'sentry/icons/iconFileBroken';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
-import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
 import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import type {Event, Frame} from 'sentry/types/event';
@@ -277,7 +277,10 @@ export function NativeFrame({
     <StackTraceFrame data-test-id="stack-trace-frame">
       <StrictClick onClick={handleToggleContext}>
         <RowHeader
+          align="center"
+          alignContent="center"
           as="span"
+          gap="0 md"
           expandable={!!expandable}
           isInAppFrame={frame.inApp}
           isSubFrame={!!isSubFrame}
@@ -285,9 +288,11 @@ export function NativeFrame({
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
           padding={{zero: 'md', xl: 'xs lg'}}
+          position="relative"
+          rows="1fr"
         >
           {expandable ? <InteractionStateLayer /> : null}
-          <SymbolicatorIcon>
+          <Container width="14px">
             {status === 'error' ? (
               <Tooltip
                 title={t(
@@ -313,13 +318,13 @@ export function NativeFrame({
                 />
               </Tooltip>
             ) : null}
-          </SymbolicatorIcon>
+          </Container>
           <div>
             {!fullStackTrace && !expanded && leadsToApp && (
               <Fragment>
-                <PackageNote>
+                <Text as="div" size="xs" variant="muted">
                   {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
-                </PackageNote>
+                </Text>
               </Fragment>
             )}
             <Tooltip
@@ -355,32 +360,41 @@ export function NativeFrame({
               </Tooltip>
             </AddressCell>
           </Flex>
-          <FunctionNameCell column={{zero: '2 / 6', xl: 'auto'}}>
-            {functionName ? (
-              <Tooltip title={frame?.rawFunction ?? frame?.symbol} delay={tooltipDelay}>
-                <AnnotatedText value={functionName.value} meta={functionName.meta} />
-              </Tooltip>
-            ) : isDartAsyncSuspensionFrame ? (
-              t('Dart')
-            ) : (
-              `<${t('unknown')}>`
-            )}{' '}
-            {frame.filename && (
-              <Tooltip
-                title={frame.absPath}
-                disabled={!(defined(frame.absPath) && frame.absPath !== frame.filename)}
-                delay={tooltipDelay}
-                maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
-              >
-                <FileName>
-                  {'('}
-                  {absoluteFilePaths ? frame.absPath : frame.filename}
-                  {frame.lineNo && `:${frame.lineNo}`}
-                  {')'}
-                </FileName>
-              </Tooltip>
+          <Text wordBreak="break-all">
+            {({className}) => (
+              <Container className={className} column={{zero: '2 / 6', xl: 'auto'}}>
+                {functionName ? (
+                  <Tooltip
+                    title={frame?.rawFunction ?? frame?.symbol}
+                    delay={tooltipDelay}
+                  >
+                    <AnnotatedText value={functionName.value} meta={functionName.meta} />
+                  </Tooltip>
+                ) : isDartAsyncSuspensionFrame ? (
+                  t('Dart')
+                ) : (
+                  `<${t('unknown')}>`
+                )}{' '}
+                {frame.filename && (
+                  <Tooltip
+                    title={frame.absPath}
+                    disabled={
+                      !(defined(frame.absPath) && frame.absPath !== frame.filename)
+                    }
+                    delay={tooltipDelay}
+                    maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
+                  >
+                    <FileName>
+                      {'('}
+                      {absoluteFilePaths ? frame.absPath : frame.filename}
+                      {frame.lineNo && `:${frame.lineNo}`}
+                      {')'}
+                    </FileName>
+                  </Tooltip>
+                )}
+              </Container>
             )}
-          </FunctionNameCell>
+          </Text>
           <Container row={{zero: '2 / 3', xl: 'auto'}}>
             {isUsedForGrouping && (
               <Tooltip title={t('This frame is repeated in every event of this issue')}>
@@ -478,10 +492,6 @@ const AddressCell = styled('div')`
   ${p => p.onClick && 'color:' + p.theme.tokens.interactive.link.accent.rest};
 `;
 
-const FunctionNameCell = styled(Container)`
-  word-break: break-all;
-`;
-
 const ToggleButton = styled(Button)`
   display: block;
   color: ${p => p.theme.tokens.content.secondary};
@@ -491,11 +501,6 @@ const Registers = styled(Context)`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding: 0;
   margin: 0;
-`;
-
-const PackageNote = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.xs};
 `;
 
 const Package = styled('span')`
@@ -516,12 +521,7 @@ const RowHeader = styled(Grid)<{
   isInAppFrame: boolean;
   isSubFrame: boolean;
 }>`
-  position: relative;
   grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${p => p.theme.space.xl};
-  grid-template-rows: 1fr; /* Ensures a single row */
-  align-items: center;
-  align-content: center;
-  column-gap: ${p => p.theme.space.md};
   background-color: ${p =>
     !p.isInAppFrame && p.isSubFrame
       ? p.theme.colors.surface200
@@ -538,10 +538,6 @@ const StackTraceFrame = styled('li')`
       border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     }
   }
-`;
-
-const SymbolicatorIcon = styled('div')`
-  width: ${() => SvgIcon.ICON_SIZES.sm};
 `;
 
 const ShowHideButton = styled(Button)`
