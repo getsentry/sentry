@@ -60,7 +60,7 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
       </Container>
       <Container
         bottom="0"
-        display={{zero: 'none', xl: 'block'}}
+        display={{zero: 'none', lg: 'block'}}
         pointerEvents="none"
         position="absolute"
         right="4rem"
