@@ -107,6 +107,123 @@ describe('Onboarding deployment target', () => {
     ).toBeGreaterThan(0);
   });
 
+  it.each([
+    ['javascript', undefined],
+    ['javascript', 'vercel_ai'],
+    ['javascript', 'workers_ai'],
+    ['javascript-react', 'mastra'],
+    ['javascript-vue', 'openai'],
+    ['javascript-svelte', undefined],
+    ['javascript-solid', undefined],
+  ] as const)(
+    'shows an unsupported banner for %s with integration %s',
+    async (platform, integration) => {
+      const {organization, project} = setupProject(platform);
+
+      render(<Onboarding />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/',
+            query: {integration: integration ?? '', deploymentTarget: 'cloudflare'},
+          },
+        },
+      });
+
+      expect(
+        await screen.findByText(
+          `Automatic Agent Monitoring isn't available for ${project.slug}.`
+        )
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', {name: 'manual AI instrumentation guide'})
+      ).toHaveAttribute(
+        'href',
+        'https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module-browser/#manual-span-creation'
+      );
+      expect(screen.getByText('Monitor AI Agents')).toBeInTheDocument();
+      expect(screen.getByText('Preview Agent Insights')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Vercel AI SDK'})
+      ).not.toBeInTheDocument();
+    }
+  );
+
+  it.each(['node', 'python', 'javascript-nextjs', 'php-laravel'] as const)(
+    'prefers a supported %s project over a selected browser project',
+    async platform => {
+      const {organization, project} = setupProject(platform);
+      const browserProject = ProjectFixture({
+        id: '100',
+        slug: 'browser-project',
+        platform: 'javascript',
+      });
+      ProjectsStore.loadInitialData([browserProject, project]);
+      PageFiltersStore.onInitializeUrlState(
+        PageFiltersFixture({projects: [Number(browserProject.id), Number(project.id)]}),
+        false
+      );
+
+      render(<Onboarding />, {organization});
+
+      expect(await screen.findByRole('button', {name: 'Next'})).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Agent Monitoring isn't available/)
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', {name: 'manual AI instrumentation guide'})
+      ).not.toBeInTheDocument();
+    }
+  );
+
+  it('keeps the banner when all selected projects are browser-only', async () => {
+    const {organization, project} = setupProject('javascript');
+    const secondProject = ProjectFixture({
+      id: '100',
+      slug: 'react-project',
+      platform: 'javascript-react',
+    });
+    ProjectsStore.loadInitialData([project, secondProject]);
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({projects: [Number(project.id), Number(secondProject.id)]}),
+      false
+    );
+
+    render(<Onboarding />, {organization});
+
+    expect(
+      await screen.findByText(
+        `Automatic Agent Monitoring isn't available for ${project.slug}.`
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
+  });
+
+  it('keeps server integrations available for meta-framework projects', async () => {
+    const {organization} = setupProject('javascript-nextjs');
+
+    render(<Onboarding />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
+    expect(screen.getByRole('option', {name: 'Vercel AI SDK'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Workers AI'})).toBeInTheDocument();
+  });
+
+  it('preserves the PHP integration selector and setup', async () => {
+    const {organization} = setupProject('php-laravel');
+
+    render(<Onboarding />, {organization});
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(/composer require sentry\/sentry-laravel/)
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Laravel'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Other'})).not.toBeInTheDocument();
+  });
+
   it('pins Cloudflare Workers projects to the Cloudflare runtime with no Node toggle', async () => {
     const {organization} = setupProject('node-cloudflare-workers');
 

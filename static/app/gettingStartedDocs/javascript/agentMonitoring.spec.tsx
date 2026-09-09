@@ -1,3 +1,7 @@
+import {Fragment} from 'react';
+
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+
 import type {
   DocsParams,
   OnboardingStep,
@@ -55,6 +59,91 @@ function collectText(steps: OnboardingStep[]): string {
 
 describe('javascript agentMonitoring onboarding', () => {
   const config = agentMonitoring();
+
+  it.each(['openai', 'anthropic', 'google_genai', 'langchain', 'langgraph', 'manual'])(
+    'uses manual browser instrumentation for %s',
+    integration => {
+      const params = makeParams({integration});
+      params.platformKey = 'javascript';
+      const steps = config.configure(params);
+      const code = collectCode(steps);
+
+      expect(code).toContain('import * as Sentry from "@sentry/browser"');
+      expect(code).toContain('Sentry.init(');
+      expect(code).toContain('tracesSampleRate: 1.0');
+      expect(code).not.toMatch(
+        /instrumentLangGraph|createLangChainCallbackHandler|instrumentGoogleGenAIClient|instrumentAnthropicAiClient|instrumentOpenAiClient/
+      );
+
+      const manualNote = steps
+        .flatMap(step => step.content ?? [])
+        .find(block => block.type === 'custom');
+      render(<Fragment>{manualNote?.content}</Fragment>);
+      expect(
+        screen.getByRole('link', {name: 'manual instrumentation guide'})
+      ).toHaveAttribute(
+        'href',
+        'https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module-browser/#manual-span-creation'
+      );
+    }
+  );
+
+  it('uses the framework browser SDK and client configuration file for manual instrumentation', () => {
+    const frameworkConfig = agentMonitoring({
+      packageName: '@sentry/react',
+      clientConfigFileName: 'sentry.client.config.ts',
+    });
+    const params = makeParams({integration: 'openai'});
+    params.platformKey = 'javascript-react';
+    const steps = frameworkConfig.configure(params);
+    const code = collectCode(steps);
+
+    expect(code).toContain('import * as Sentry from "@sentry/react"');
+    expect(code).not.toContain('instrumentOpenAiClient');
+    expect(steps[0]?.content).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'code',
+          tabs: expect.arrayContaining([
+            expect.objectContaining({label: 'sentry.client.config.ts'}),
+          ]),
+        }),
+      ])
+    );
+  });
+
+  it.each([
+    ['openai', 'openai'],
+    ['anthropic', '@anthropic-ai/sdk'],
+    ['google_genai', '@google/genai'],
+    ['langchain', '@langchain/openai'],
+    ['langgraph', '@langchain/langgraph/prebuilt'],
+  ] as const)(
+    'keeps server configuration and verification for %s on Next.js',
+    (integration, sdk) => {
+      const frameworkConfig = agentMonitoring({
+        packageName: '@sentry/nextjs',
+        clientConfigFileName: 'instrumentation-client.ts',
+        serverConfigFileName: 'sentry.server.config.ts',
+      });
+      const params = makeParams({integration});
+      const steps = frameworkConfig.configure(params);
+
+      expect(collectCode(steps)).toContain('@sentry/nextjs');
+      expect(collectText(steps)).toContain('will be enabled automatically');
+      expect(steps[0]?.content).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'code',
+            tabs: expect.arrayContaining([
+              expect.objectContaining({label: 'sentry.server.config.ts'}),
+            ]),
+          }),
+        ])
+      );
+      expect(collectCode(frameworkConfig.verify(params))).toContain(sdk);
+    }
+  );
 
   // Workers AI and the Cloudflare Agents SDK only run on Cloudflare Workers, so
   // even on a meta-framework platform they must show the Node package's

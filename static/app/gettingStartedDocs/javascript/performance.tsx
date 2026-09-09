@@ -47,7 +47,7 @@ Sentry.init({
   integrations: [Sentry.browserTracingIntegration()],
 
   // Set tracesSampleRate to 1.0 to capture 100%
-  // of transactions for performance monitoring.
+  // of traces for performance monitoring.
   // We recommend adjusting this value in production
   tracesSampleRate: 1.0,
   // Set \`tracePropagationTargets\` to control for which URLs distributed tracing should be enabled
@@ -64,7 +64,7 @@ Sentry.init({
         {
           type: 'text',
           text: tct(
-            'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to do [linkSampleTransactions:sampling].',
+            'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:tracesSampler] function, or how to do [linkSampleTransactions:sampling].',
             {
               code: <code />,
               linkTracingOptions: (
