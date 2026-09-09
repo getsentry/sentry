@@ -1212,3 +1212,167 @@ class S(serializers.Serializer):
         model = something
         exclude = ["nope"]
 """) == ["1:S023"]
+
+
+def _run_input(src: str, enforced: frozenset[str] = frozenset({"declared"})) -> list[str]:
+    """Run the endpoint input rules with the named rules enforced."""
+    import tools.flake8_plugin as plugin
+
+    original = plugin.ENFORCED
+    plugin.ENFORCED = enforced
+    try:
+        return [
+            e
+            for e in _run(src, filename="src/sentry/api/endpoints/t.py")
+            if "S025" in e or "S026" in e or "S027" in e
+        ]
+    finally:
+        plugin.ENFORCED = original
+
+
+def test_S025_query_serializer_not_declared_is_reported() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        QuerySerializer(data=request.GET)
+"""
+    assert _run_input(src) == [
+        "t.py:5:8: S025 QuerySerializer validates the query string but is not declared in "
+        "@extend_schema(parameters=...), so the schema does not document what this endpoint "
+        "accepts. Add it to parameters=."
+    ]
+
+
+def test_S025_query_serializer_declared_is_silent() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(parameters=[QuerySerializer])
+    def get(self, request) -> Response[X]:
+        QuerySerializer(data=request.query_params)
+"""
+    assert _run_input(src) == []
+
+
+def test_S025_declared_on_the_class_counts() -> None:
+    src = """\
+@extend_schema(parameters=[QuerySerializer])
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        QuerySerializer(data=request.GET)
+"""
+    assert _run_input(src) == []
+
+
+def test_S025_read_through_a_local_alias_is_seen() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        params = request.query_params
+        QuerySerializer(data=params)
+"""
+    assert len(_run_input(src)) == 1
+
+
+def test_S025_body_serializer_not_declared_is_reported() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"POST": ApiPublishStatus.PUBLIC}
+
+    def post(self, request) -> Response[X]:
+        BodySerializer(data=request.data)
+"""
+    errors = _run_input(src)
+    assert len(errors) == 1
+    assert "validates the request body" in errors[0]
+
+
+def test_S025_body_serializer_declared_is_silent() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"POST": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(request=BodySerializer)
+    def post(self, request) -> Response[X]:
+        BodySerializer(data=request.data)
+"""
+    assert _run_input(src) == []
+
+
+def test_S025_declaring_more_than_is_used_is_allowed() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(parameters=[GlobalParams.ORG_ID_OR_SLUG, CursorQueryParam, QuerySerializer])
+    def get(self, request) -> Response[X]:
+        QuerySerializer(data=request.GET)
+"""
+    assert _run_input(src) == []
+
+
+def test_S025_plain_call_with_data_is_not_a_serializer() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"POST": ApiPublishStatus.PUBLIC}
+
+    def post(self, request) -> Response[X]:
+        installation.get_issue(data=request.data)
+"""
+    assert _run_input(src) == []
+
+
+def test_S025_runtime_chosen_class_is_skipped() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"PUT": ApiPublishStatus.PUBLIC}
+
+    def put(self, request) -> Response[X]:
+        serializer_cls(data=request.data)
+"""
+    assert _run_input(src) == []
+
+
+def test_S025_private_method_is_skipped() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+
+    def get(self, request) -> Response[X]:
+        QuerySerializer(data=request.GET)
+"""
+    assert _run_input(src) == []
+
+
+def test_S025_mixed_publish_status_analyzes_only_the_public_method() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC, "POST": ApiPublishStatus.PRIVATE}
+
+    def get(self, request) -> Response[X]:
+        AQuerySerializer(data=request.GET)
+
+    def post(self, request) -> Response[X]:
+        BBodySerializer(data=request.data)
+"""
+    errors = _run_input(src)
+    assert len(errors) == 1
+    assert "AQuerySerializer" in errors[0]
+
+
+def test_input_rules_record_instead_of_gating_when_unenforced() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        QuerySerializer(data=request.GET)
+"""
+    assert _run_input(src, frozenset()) == []
