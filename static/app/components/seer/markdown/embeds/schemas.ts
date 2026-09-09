@@ -512,6 +512,77 @@ export const SEER_EMBED_SCHEMAS = {
       },
     ],
   },
+  event: {
+    description:
+      'The ONLY way to reference a single error event inside a Sentry issue. ' +
+      '`id` is the 32-character event ID and `issueId` is the numeric group ID ' +
+      'the event belongs to, both exactly as the events API returns them. ' +
+      'Include the issue short ID as `shortId` when available. ' +
+      'When referencing the issue as a whole rather than one of its events, use ' +
+      'the `issue` embed instead. ' +
+      'Inline: renders a compact link to the event. ' +
+      'Block: renders the event with its title, message, culprit, and context — ' +
+      'do NOT duplicate any of that as text. ' +
+      'Set `view` to "tags" to also render the full tag list for the event, or ' +
+      'to "tag" together with `tagKey` to render how that one tag is distributed ' +
+      'across the issue. Leave `view` as "summary" unless the user asked about tags. ' +
+      'Never use a markdown link for event references.',
+    level: ['inline', 'block'],
+    schema: z.object({
+      id: z.string().min(1),
+      issueId: z.string().min(1),
+      shortId: z.string().min(1).optional(),
+      view: z.enum(['summary', 'tags', 'tag']).default('summary'),
+      tagKey: z
+        .string()
+        .min(1)
+        .optional()
+        .describe(
+          'Required when view is "tag". The tag key to break down, e.g. "browser".'
+        ),
+    }),
+    examples: [
+      {
+        label: 'Inline',
+        level: 'inline',
+        data: {
+          id: '8f2c1a9d7e6b4f30a1b2c3d4e5f60718',
+          issueId: '5551212',
+          shortId: 'JAVASCRIPT-22SP',
+        },
+      },
+      {
+        label: 'Block',
+        level: 'block',
+        data: {
+          id: '8f2c1a9d7e6b4f30a1b2c3d4e5f60718',
+          issueId: '5551212',
+          shortId: 'JAVASCRIPT-22SP',
+        },
+      },
+      {
+        label: 'All tags',
+        level: 'block',
+        data: {
+          id: '8f2c1a9d7e6b4f30a1b2c3d4e5f60718',
+          issueId: '5551212',
+          shortId: 'JAVASCRIPT-22SP',
+          view: 'tags',
+        },
+      },
+      {
+        label: 'Single tag breakdown',
+        level: 'block',
+        data: {
+          id: '8f2c1a9d7e6b4f30a1b2c3d4e5f60718',
+          issueId: '5551212',
+          shortId: 'JAVASCRIPT-22SP',
+          view: 'tag',
+          tagKey: 'browser',
+        },
+      },
+    ],
+  },
   issuesQuery: {
     description:
       'Link to the issue stream filtered by a search query. ' +
