@@ -112,7 +112,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
                   )}
                 />
               )}
-              <Tabs value={dataForwarder.provider}>
+              <Tabs value={dataForwarder.provider} disableOverflow>
                 <TabList variant="floating">
                   {Object.entries(ProviderLabels).map(([key, label]) => (
                     <TabList.Item
