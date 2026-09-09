@@ -4,7 +4,7 @@ from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.models.group import DEFAULT_TYPE_ID
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.endpoints.validators.error_detector import ErrorDetectorValidator
-from sentry.workflow_engine.handlers.detector.base import DetectorHandler
+from sentry.workflow_engine.handlers.detector.base import BaseDetectorHandler
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.types import (
@@ -13,7 +13,7 @@ from sentry.workflow_engine.types import (
 )
 
 
-class ErrorDetectorHandler(DetectorHandler[object]):
+class ErrorDetectorHandler(BaseDetectorHandler[object]):
     """Placeholder handler for error group types."""
 
     def evaluate(
