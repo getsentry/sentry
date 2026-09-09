@@ -856,7 +856,7 @@ export const featureFlagDrawerPlatforms: readonly PlatformKey[] = [
   'react-native',
 ];
 
-export const javascriptMetaFrameworks: readonly PlatformKey[] = [
+const javascriptMetaFrameworks: readonly PlatformKey[] = [
   'javascript-astro',
   'javascript-nextjs',
   'javascript-nuxt',
