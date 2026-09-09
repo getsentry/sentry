@@ -21,8 +21,7 @@ import {
   useExplorerAutofix,
   type AutofixExplorerStep,
   type AutofixSection,
-  type RootCauseArtifact,
-  type SolutionArtifact,
+  type SolutionStep,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useRefreshAutofixProgressQueries} from 'sentry/components/events/autofix/useRefreshAutofixProgressQueries';
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
@@ -36,7 +35,6 @@ import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPullRequest} from 'sentry/icons/iconPullRequest';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
@@ -92,14 +90,46 @@ interface AutofixContentProps extends Pick<Group, 'id' | 'shortId'> {
    */
   result: string;
   step: AutofixExplorerStep;
+  fiveWhys?: string[];
+  reproductionSteps?: string[];
+  steps?: SolutionStep[];
+}
+
+/**
+ * The structured fields are optional because Seer writes this embed itself
+ * rather than echoing back run state, so a step can arrive as the write-up
+ * alone. Missing detail collapses to the summary rather than an empty section.
+ */
+function AutofixStepBody({
+  fiveWhys,
+  reproductionSteps,
+  result,
+  step,
+  steps,
+}: Omit<AutofixContentProps, 'id' | 'shortId'>) {
+  if (step === 'root_cause') {
+    return (
+      <RootCauseBody
+        description={result}
+        fiveWhys={fiveWhys ?? []}
+        reproductionSteps={reproductionSteps}
+      />
+    );
+  }
+
+  if (step === 'solution') {
+    return <SolutionBody summary={result} steps={steps ?? []} />;
+  }
+
+  return <Markdown raw={result} />;
 }
 
 export const Autofix = defineSeerEmbed({
   name: 'autofix',
-  render({id, shortId, result, step}: AutofixContentProps) {
+  render({id, shortId, ...content}: AutofixContentProps) {
     return (
-      <AutofixDisclosure id={id} shortId={shortId} step={step}>
-        <MarkedText text={result} />
+      <AutofixDisclosure id={id} shortId={shortId} step={content.step}>
+        <AutofixStepBody {...content} />
       </AutofixDisclosure>
     );
   },
@@ -271,12 +301,23 @@ function AutofixRefBody({isLoading, section, step}: AutofixRefBodyProps) {
 
   const artifact = getAutofixArtifactFromSection(section);
 
-  if (step === 'root_cause' && isRootCauseArtifact(artifact)) {
-    return <RootCauseBody data={artifact.data} />;
+  if (step === 'root_cause' && isRootCauseArtifact(artifact) && artifact.data) {
+    return (
+      <RootCauseBody
+        description={artifact.data.one_line_description}
+        fiveWhys={artifact.data.five_whys}
+        reproductionSteps={artifact.data.reproduction_steps}
+      />
+    );
   }
 
-  if (step === 'solution' && isSolutionArtifact(artifact)) {
-    return <SolutionBody data={artifact.data} />;
+  if (step === 'solution' && isSolutionArtifact(artifact) && artifact.data) {
+    return (
+      <SolutionBody
+        summary={artifact.data.one_line_summary}
+        steps={artifact.data.steps}
+      />
+    );
   }
 
   if (isCodeChangesArtifact(artifact)) {
@@ -290,22 +331,20 @@ function AutofixRefBody({isLoading, section, step}: AutofixRefBodyProps) {
 }
 
 interface RootCauseBodyProps {
-  data: RootCauseArtifact | null;
+  description: string;
+  fiveWhys: string[];
+  reproductionSteps?: string[];
 }
 
-function RootCauseBody({data}: RootCauseBodyProps) {
-  if (!data) {
-    return <Markdown raw="" />;
-  }
-
+function RootCauseBody({description, fiveWhys, reproductionSteps}: RootCauseBodyProps) {
   return (
     <Stack gap="lg">
-      <Markdown raw={data.one_line_description} />
-      {data.five_whys.length > 0 && (
+      <Markdown raw={description} />
+      {fiveWhys.length > 0 && (
         <ArtifactDetails>
           <Text bold>{t('Why did this happen?')}</Text>
           <Container as="ul" margin="0">
-            {data.five_whys.map((why, index) => (
+            {fiveWhys.map((why, index) => (
               <li key={index}>
                 <Markdown raw={why} />
               </li>
@@ -313,11 +352,11 @@ function RootCauseBody({data}: RootCauseBodyProps) {
           </Container>
         </ArtifactDetails>
       )}
-      {data.reproduction_steps && data.reproduction_steps.length > 0 && (
+      {reproductionSteps && reproductionSteps.length > 0 && (
         <ArtifactDetails>
           <Text bold>{t('Reproduction Steps')}</Text>
           <Container as="ol" margin="0">
-            {data.reproduction_steps.map((step, index) => (
+            {reproductionSteps.map((step, index) => (
               <li key={index}>
                 <Markdown raw={step} />
               </li>
@@ -330,22 +369,19 @@ function RootCauseBody({data}: RootCauseBodyProps) {
 }
 
 interface SolutionBodyProps {
-  data: SolutionArtifact | null;
+  steps: SolutionStep[];
+  summary: string;
 }
 
-function SolutionBody({data}: SolutionBodyProps) {
-  if (!data) {
-    return <Markdown raw="" />;
-  }
-
+function SolutionBody({steps, summary}: SolutionBodyProps) {
   return (
     <Stack gap="lg">
-      <Markdown raw={data.one_line_summary} />
-      {data.steps.length > 0 && (
+      <Markdown raw={summary} />
+      {steps.length > 0 && (
         <ArtifactDetails>
           <Text bold>{t('Steps to Resolve')}</Text>
           <Container as="ol" margin="0">
-            {data.steps.map((step, index) => (
+            {steps.map((step, index) => (
               <li key={index}>
                 <Stack>
                   <Markdown raw={step.title} />
