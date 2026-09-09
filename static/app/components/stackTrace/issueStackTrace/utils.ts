@@ -26,7 +26,9 @@ export function getOrderedExceptions(
   isNewestFirst: boolean,
   view: StackTraceView
 ): IndexedExceptionValue[] {
-  const indexed = values.map((exc, exceptionIndex) => ({...exc, exceptionIndex}));
+  const indexed = values
+    .map((exc, exceptionIndex) => ({...exc, exceptionIndex}))
+    .filter(exc => exc.stacktrace || exc.type || exc.value);
   return isNewestFirst && view !== 'raw' ? indexed.reverse() : indexed;
 }
 
