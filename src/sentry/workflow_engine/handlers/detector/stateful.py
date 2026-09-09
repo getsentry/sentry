@@ -13,6 +13,7 @@ from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
+from sentry.models.organization import Organization
 from sentry.utils import metrics, redis
 from sentry.workflow_engine.handlers.detector.base import (
     DataPacketEvaluationType,
@@ -339,12 +340,8 @@ class StatefulDetectorHandler(
     Stateful Detectors are provided as a base class for new detectors that need to track state.
     """
 
-    # When enabled, each activation (a transition from OK to a non-OK priority) is given a
-    # fresh `activation_id`, which the fingerprint is built from so that every activation
-    # opens its own Group. Handlers that opt in must build their fingerprint from the
-    # activation id, otherwise a Group can be opened on one fingerprint and resolved on
-    # another.
-    new_group_per_activation: ClassVar[bool] = False
+    # When enabled, a detector going from OK to a non-OK priority mints a new activation_id
+    rotates_activation_id: ClassVar[bool] = False
 
     def __init__(self, detector: Detector, thresholds: DetectorThresholds | None = None):
         super().__init__(detector)
@@ -378,18 +375,6 @@ class StatefulDetectorHandler(
         """
         pass
 
-    def rotates_activation_id(self) -> bool:
-        """
-        Whether this detector should start a new activation on each OK -> non-OK transition.
-        """
-        if not self.new_group_per_activation:
-            return False
-
-        return features.has(
-            "organizations:workflow-engine-rotate-activation-id",
-            self.detector.linked_project.organization,
-        )
-
     def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
         """
         A hook that allows for additional fingerprinting to be added to the detectors issue occurrences.
@@ -409,27 +394,72 @@ class StatefulDetectorHandler(
         """
         return {}
 
-    def _next_activation_id(
-        self, state_data: DetectorStateData, new_priority: DetectorPriorityLevel, rotates: bool
-    ) -> UUID | None:
-        """
-        Returns the activation id the detector should carry after this transition.
+    def _build_evidence_data_sources(
+        self, data_packet: DataPacket[DataPacketType]
+    ) -> list[dict[str, Any]]:
+        try:
+            data_sources = list(
+                DataSource.objects.filter(detectors=self.detector, source_id=data_packet.source_id)
+            )
+            if not data_sources:
+                logger.warning(
+                    "Matching data source not found for detector while generating occurrence evidence data",
+                    extra={
+                        "detector_id": self.detector.id,
+                        "data_packet_source_id": data_packet.source_id,
+                    },
+                )
+                return []
+            # Serializers return camelcased keys, but evidence data should use snakecase
+            return convert_dict_key_case(serialize(data_sources), camel_to_snake_case)
+        except Exception:
+            logger.exception(
+                "Failed to serialize data source definition when building workflow engine evidence data"
+            )
+            return []
 
-        A new id is minted only when the detector leaves OK, so escalation,
-        de-escalation and resolution all stay on the activation they started in.
+    def _build_workflow_engine_evidence_data(
+        self,
+        group_evaluation: DataConditionGroupEvaluation,
+        data_packet: DataPacket[DataPacketType],
+        evaluation_value: DataPacketEvaluationType,
+    ) -> dict[str, Any]:
         """
-        is_activating = (
+        Build the workflow engine specific evidence data.
+        This is data that is common to all detectors.
+        """
+
+        base: dict[str, Any] = {
+            "detector_id": self.detector.id,
+            "value": evaluation_value,
+            "data_packet_source_id": str(data_packet.source_id),
+            "conditions": [
+                condition_evaluation.condition.get_snapshot()
+                for condition_evaluation in group_evaluation.data["condition_evaluations"]
+                if condition_evaluation.triggered
+            ],
+            "config": self.detector.config,
+            "data_sources": self._build_evidence_data_sources(data_packet),
+        }
+
+        return base
+
+    def _get_next_activation_id(
+        self,
+        state_data: DetectorStateData,
+        new_priority: DetectorPriorityLevel,
+        should_rotate_activation_id: bool,
+    ) -> UUID | None:
+        if not should_rotate_activation_id:
+            return state_data.activation_id
+
+        is_leaving_ok_state = (
             state_data.status == DetectorPriorityLevel.OK
             and new_priority != DetectorPriorityLevel.OK
         )
 
-        if not (is_activating and rotates):
+        if not is_leaving_ok_state:
             return state_data.activation_id
-
-        metrics.incr(
-            "workflow_engine.detector.activation_rotated",
-            tags={"detector_type": self.detector.type},
-        )
 
         return uuid4()
 
@@ -440,7 +470,7 @@ class StatefulDetectorHandler(
         dedupe_value = self.extract_dedupe_value(data_packet)
         group_data_values = self._extract_value_from_packet(data_packet)
         state = self.state_manager.get_state_data(list(group_data_values.keys()))
-        rotates_activation_id = self.rotates_activation_id()
+        should_rotate_activation_id = self._should_rotate_activation_id()
         results: dict[DetectorGroupKey, DetectorEvaluation] = {}
 
         tainted = False
@@ -495,8 +525,8 @@ class StatefulDetectorHandler(
             if new_priority == DetectorPriorityLevel.OK:
                 self.state_manager.enqueue_counter_reset(group_key)
 
-            activation_id = self._next_activation_id(
-                state_data, new_priority, rotates_activation_id
+            activation_id = self._get_next_activation_id(
+                state_data, new_priority, should_rotate_activation_id
             )
 
             self.state_manager.enqueue_state_update(
@@ -729,3 +759,36 @@ class StatefulDetectorHandler(
                 return level
 
         return None
+
+    def _should_rotate_activation_id(self) -> bool:
+        """
+        Whether this detector should start a new activation on each OK -> non-OK transition.
+        """
+        if not self.rotates_activation_id:
+            return False
+
+        organization = self._get_detector_organization()
+
+        if organization is None:
+            return False
+
+        return features.has(
+            "organizations:workflow-engine-rotate-activation-id",
+            organization,
+        )
+
+    def _get_detector_organization(self) -> Organization | None:
+        """
+        Attempt to resolve organization from detector
+        "All projects detectors" don't have a linked project so resolve from the config,
+        similar to how we do it in `process_detectors`
+        """
+        if self.detector.project is not None:
+            return self.detector.project.organization
+
+        organization_id = self.detector.config.get("organization_id")
+
+        if organization_id is None:
+            return None
+
+        return Organization.objects.get_from_cache(id=organization_id)
