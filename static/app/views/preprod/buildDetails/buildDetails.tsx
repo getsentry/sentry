@@ -14,7 +14,6 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -198,31 +197,29 @@ export default function BuildDetails() {
         </Layout.Header>
 
         <Layout.Body gap={{zero: '2xl', '4xl': '3xl'}}>
-          <UrlParamBatchProvider>
-            <Layout.Side
-              minWidth={{zero: 'auto', '4xl': '325px'}}
-              maxWidth={{zero: 'none', '4xl': '325px'}}
-              row={{zero: 'auto', '4xl': '1'}}
-            >
-              <BuildDetailsSidebarContent
-                buildDetailsData={buildDetailsQuery.data}
-                isBuildDetailsPending={buildDetailsQuery.isLoading}
-                artifactId={artifactId}
-                projectId={projectSlug ?? null}
-              />
-            </Layout.Side>
-            <Layout.Main row={{zero: 'auto', '4xl': '1'}}>
-              <BuildDetailsMainContent
-                appSizeQuery={appSizeQuery}
-                onRerunAnalysis={onRerunAnalysis}
-                isRerunning={isRerunning}
-                buildDetailsData={buildDetailsQuery.data}
-                isBuildDetailsPending={buildDetailsQuery.isLoading}
-                projectType={projectType}
-                projectId={projectSlug}
-              />
-            </Layout.Main>
-          </UrlParamBatchProvider>
+          <Layout.Side
+            minWidth={{zero: 'auto', '4xl': '325px'}}
+            maxWidth={{zero: 'none', '4xl': '325px'}}
+            row={{zero: 'auto', '4xl': '1'}}
+          >
+            <BuildDetailsSidebarContent
+              buildDetailsData={buildDetailsQuery.data}
+              isBuildDetailsPending={buildDetailsQuery.isLoading}
+              artifactId={artifactId}
+              projectId={projectSlug ?? null}
+            />
+          </Layout.Side>
+          <Layout.Main row={{zero: 'auto', '4xl': '1'}}>
+            <BuildDetailsMainContent
+              appSizeQuery={appSizeQuery}
+              onRerunAnalysis={onRerunAnalysis}
+              isRerunning={isRerunning}
+              buildDetailsData={buildDetailsQuery.data}
+              isBuildDetailsPending={buildDetailsQuery.isLoading}
+              projectType={projectType}
+              projectId={projectSlug}
+            />
+          </Layout.Main>
         </Layout.Body>
       </Stack>
     </SentryDocumentTitle>
