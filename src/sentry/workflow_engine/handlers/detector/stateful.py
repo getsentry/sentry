@@ -54,6 +54,8 @@ class DetectorStateData:
     group_key: DetectorGroupKey
     is_triggered: bool
     status: DetectorPriorityLevel
+    activation_id: UUID | None = None
+
     # Stateful detectors always process data packets in order. Once we confirm that a data packet has been fully
     # processed and all workflows have been done, this value will be used by the stateful detector to prevent
     # reprocessing
@@ -67,10 +69,6 @@ class DetectorStateData:
     # This dictionary is in the format {counter_name: counter_value, ...}
     # If a counter value is `None` it means to unset the value
     counter_updates: DetectorCounters
-
-    # Identifies the activation this detector is currently in. `None` means the
-    # detector has never rotated and still uses the legacy fingerprint.
-    activation_id: UUID | None = None
 
 
 @dataclasses.dataclass(frozen=True)
