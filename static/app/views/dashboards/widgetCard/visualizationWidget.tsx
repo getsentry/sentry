@@ -111,7 +111,15 @@ export function VisualizationWidget({
       }
     : undefined;
 
-  const {releases: releasesWithDate} = useReleaseStats(selection);
+  // `useReleaseStats` walks every page of `/releases/stats/` one request at a
+  // time, so each distinct selection costs up to ten serial round trips. Wait
+  // for page filters to settle before starting: until then `selection` is the
+  // store default and will be replaced, and every intermediate value re-keys
+  // the query and restarts the walk from scratch.
+  const {isReady: arePageFiltersReady} = usePageFilters();
+  const {releases: releasesWithDate} = useReleaseStats(selection, {
+    enabled: arePageFiltersReady,
+  });
 
   const releases =
     releasesWithDate?.map(({date, version}) => ({
