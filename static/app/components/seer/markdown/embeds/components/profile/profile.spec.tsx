@@ -98,6 +98,31 @@ describe('profile embed', () => {
     expect(screen.getByRole('button', {name: 'Open in Profiling'})).toBeInTheDocument();
   });
 
+  it('deep-links the previewed viewport under the sort it was captured with', async () => {
+    renderProfileBlock();
+    await screen.findByTestId('seer-profile-flamechart');
+
+    const openInProfiling = () => screen.getByRole('button', {name: 'Open in Profiling'});
+
+    // `fov` is a rect in the sorted tree's coordinate space, and the flamegraph
+    // page defaults to 'call order', so the link has to name the preview's sort
+    // or the encoded viewport lands on unrelated frames.
+    expect(openInProfiling()).toHaveAttribute('href', expect.stringContaining('fov='));
+    expect(openInProfiling()).toHaveAttribute(
+      'href',
+      expect.stringContaining('sorting=left%20heavy')
+    );
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Time-ordered'}));
+
+    await waitFor(() => {
+      expect(openInProfiling()).toHaveAttribute(
+        'href',
+        expect.stringContaining('sorting=call%20order')
+      );
+    });
+  });
+
   it('keeps the view toggle local to the embed', async () => {
     const {router} = renderProfileBlock();
 

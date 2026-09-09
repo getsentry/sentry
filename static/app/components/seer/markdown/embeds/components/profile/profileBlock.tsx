@@ -38,6 +38,17 @@ const PREVIEW_HEIGHT = '200px';
 
 type ViewMode = 'aggregated' | 'timeline';
 
+/**
+ * Drives both the preview's own sort and the `sorting` param on the deep link.
+ * `fov` is a rect in the sorted tree's coordinate space, so opening the full
+ * view under a different sort would land the viewport on unrelated frames --
+ * and the flamegraph page defaults to 'call order', not the preview's default.
+ */
+const VIEW_MODE_SORT: Record<ViewMode, FlamegraphModel['sort']> = {
+  aggregated: 'left heavy',
+  timeline: 'call order',
+};
+
 function profileApiOptions({
   organizationSlug,
   profileId,
@@ -164,9 +175,7 @@ export default function ProfileBlock({projectSlug, profileId}: EmbedOutput<'prof
   const flamegraph = useMemo(
     () =>
       activeProfile
-        ? new FlamegraphModel(activeProfile, {
-            sort: viewMode === 'timeline' ? 'call order' : 'left heavy',
-          })
+        ? new FlamegraphModel(activeProfile, {sort: VIEW_MODE_SORT[viewMode]})
         : null,
     [activeProfile, viewMode]
   );
@@ -177,7 +186,7 @@ export default function ProfileBlock({projectSlug, profileId}: EmbedOutput<'prof
       ? {
           fov: Rect.encode(canvasView.configView),
           view: 'top down',
-          type: 'flamechart',
+          sorting: VIEW_MODE_SORT[viewMode],
         }
       : undefined;
 
@@ -189,7 +198,7 @@ export default function ProfileBlock({projectSlug, profileId}: EmbedOutput<'prof
         query,
       })
     );
-  }, [canvasView, organization, profileId, projectSlug]);
+  }, [canvasView, organization, profileId, projectSlug, viewMode]);
 
   return (
     <Container
