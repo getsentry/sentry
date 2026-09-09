@@ -60,8 +60,6 @@ from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
 )
-from sentry.users.models.user import User
-from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.locking import UnableToAcquireLock
 
@@ -250,7 +248,6 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
 
 def get_enabled_prebuilt_dashboards(
     organization: Organization,
-    actor: User | RpcUser,
 ) -> list[PrebuiltDashboard]:
     """
     Returns the list of prebuilt dashboards that are enabled for the given organization,
@@ -265,7 +262,7 @@ def get_enabled_prebuilt_dashboards(
         dashboard
         for dashboard in PREBUILT_DASHBOARDS
         if all(
-            features.has(feature, organization, actor=actor)
+            features.has(feature, organization)
             for feature in dashboard.get("required_feature_flags", [])
         )
     ]
@@ -278,7 +275,7 @@ def get_enabled_prebuilt_dashboards(
     ]
 
 
-def sync_prebuilt_dashboards(organization: Organization, actor: User | RpcUser) -> None:
+def sync_prebuilt_dashboards(organization: Organization) -> None:
     """
     Queries the database to check if prebuilt dashboards have a Dashboard record and
     creates them if they don't, updates titles if they've changed, or deletes them
@@ -286,7 +283,7 @@ def sync_prebuilt_dashboards(organization: Organization, actor: User | RpcUser) 
     """
 
     with transaction.atomic(router.db_for_write(Dashboard)):
-        enabled_prebuilt_dashboards = get_enabled_prebuilt_dashboards(organization, actor)
+        enabled_prebuilt_dashboards = get_enabled_prebuilt_dashboards(organization)
 
         saved_prebuilt_dashboards = Dashboard.objects.filter(
             organization=organization,
@@ -324,7 +321,7 @@ def sync_prebuilt_dashboards(organization: Organization, actor: User | RpcUser) 
         ).exclude(prebuilt_id__in=prebuilt_ids).delete()
 
 
-def sync_prebuilt_dashboards_favorited(organization: Organization, user: User | RpcUser) -> None:
+def sync_prebuilt_dashboards_favorited(organization: Organization, user_id: int) -> None:
     """
     Checks if pre-favorited prebuilt dashboards have a DashboardFavoriteUser record for the
     user, and creates them if they don't. This ensures that certain prebuilt dashboards are
@@ -333,7 +330,7 @@ def sync_prebuilt_dashboards_favorited(organization: Organization, user: User | 
     New prebuilts are inserted alphabetically while the user's prebuilt stars are still in
     their default (alphabetical) order.
     """
-    enabled_prebuilt_dashboards = get_enabled_prebuilt_dashboards(organization, user)
+    enabled_prebuilt_dashboards = get_enabled_prebuilt_dashboards(organization)
     pre_favorited_ids = [
         d["prebuilt_id"] for d in enabled_prebuilt_dashboards if d.get("pre_favorited")
     ]
@@ -344,7 +341,7 @@ def sync_prebuilt_dashboards_favorited(organization: Organization, user: User | 
         prebuilt_favorited = list(
             DashboardFavoriteUser.objects.filter(
                 organization=organization,
-                user_id=user.id,
+                user_id=user_id,
                 favorited=True,
                 dashboard__prebuilt_id__isnull=False,
             )
@@ -366,7 +363,7 @@ def sync_prebuilt_dashboards_favorited(organization: Organization, user: User | 
             .exclude(
                 id__in=DashboardFavoriteUser.objects.filter(
                     organization=organization,
-                    user_id=user.id,
+                    user_id=user_id,
                 ).values_list("dashboard_id", flat=True)
             )
             .order_by("title")
@@ -374,12 +371,12 @@ def sync_prebuilt_dashboards_favorited(organization: Organization, user: User | 
         for dashboard in missing_dashboards:
             if is_default_order:
                 DashboardFavoriteUser.objects.insert_favorite_dashboard_alphabetically(
-                    organization, user.id, dashboard
+                    organization, user_id, dashboard
                 )
             else:
                 DashboardFavoriteUser.objects.insert_favorite_dashboard(
                     organization=organization,
-                    user_id=user.id,
+                    user_id=user_id,
                     dashboard=dashboard,
                 )
 
@@ -482,7 +479,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                     name="sync_prebuilt_dashboards",
                 )
                 with lock.acquire():
-                    sync_prebuilt_dashboards(organization, request.user)
+                    sync_prebuilt_dashboards(organization)
             except UnableToAcquireLock:
                 pass
             except Exception as err:
@@ -496,7 +493,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                         name="sync_prebuilt_dashboards_favorited",
                     )
                     with favorite_lock.acquire():
-                        sync_prebuilt_dashboards_favorited(organization, request.user)
+                        sync_prebuilt_dashboards_favorited(organization, request.user.id)
                 except UnableToAcquireLock:
                     pass
                 except Exception as err:
