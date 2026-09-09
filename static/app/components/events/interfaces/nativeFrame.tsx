@@ -75,6 +75,17 @@ type Props = {
   registersMeta: Record<any, any>;
 };
 
+// TEMPORARY LOCAL SIMULATION: remove after visually checking Frame Registers.
+const SIMULATED_FRAME_REGISTERS = {
+  rax: '0x0000000000000001',
+  rbx: '0x0000000000004308',
+  rcx: '0x000000000000dcb8',
+  rdx: '0x0000000000008f0c',
+  rbp: '0x00007ffee12ff8c0',
+  rsp: '0x00007ffee12ff840',
+  rip: '0x0000000100004308',
+};
+
 export function NativeFrame({
   frame,
   nextFrame,
@@ -115,6 +126,9 @@ export function NativeFrame({
   const absolute = displayOptions.includes('absolute-addresses');
   const fullFunctionName = displayOptions.includes('verbose-function-names');
   const absoluteFilePaths = displayOptions.includes('absolute-file-paths');
+  const displayedRegisters = hasContextRegisters(registers)
+    ? registers
+    : SIMULATED_FRAME_REGISTERS;
 
   const tooltipDelay = isHoverPreviewed ? SLOW_TOOLTIP_DELAY : undefined;
   const foundByStackScanning = frame.trust === 'scan' || frame.trust === 'cfi-scan';
@@ -129,7 +143,7 @@ export function NativeFrame({
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
   const expandable = isExpandable({
     frame,
-    registers,
+    registers: displayedRegisters,
     platform,
     emptySourceNotation,
     hasScmSourceContext,
@@ -445,11 +459,11 @@ export function NativeFrame({
         <Registers
           frame={frame}
           event={event}
-          registers={registers}
+          registers={displayedRegisters}
           components={components}
           hasContextSource={hasContextSource(frame)}
           hasContextVars={hasContextVars(frame)}
-          hasContextRegisters={hasContextRegisters(registers)}
+          hasContextRegisters
           emptySourceNotation={emptySourceNotation}
           hasAssembly={hasAssembly(frame, platform)}
           hasScmSourceContext={hasScmSourceContext}

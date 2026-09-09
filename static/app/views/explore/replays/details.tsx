@@ -34,16 +34,9 @@ function ReplayDetailsInner() {
       <ReplayAccess
         fallback={
           <Fragment>
-            <Flex
-              borderBottom="secondary"
-              justify="between"
-              align="center"
-              gap="md"
-              wrap="wrap"
-              padding={{zero: 'sm lg', '3xl': 'md xl'}}
-            >
-              {t('Replay Details')}
-            </Flex>
+            <Layout.Header>
+              <Layout.HeaderContent>{t('Replay Details')}</Layout.HeaderContent>
+            </Layout.Header>
             <Layout.Body>
               <ReplayAccessFallbackAlert />
             </Layout.Body>

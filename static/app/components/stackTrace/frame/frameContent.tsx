@@ -26,6 +26,27 @@ interface FrameContentProps {
   isLoadingSourceContext?: boolean;
 }
 
+// TEMPORARY LOCAL SIMULATION: remove after visually checking Frame Registers.
+const SIMULATED_FRAME_REGISTERS = {
+  rax: '0x0000000000000001',
+  rbx: '0x0000000000004308',
+  rcx: '0x000000000000dcb8',
+  rdx: '0x0000000000008f0c',
+  rsi: '0x000000000000a63c',
+  rdi: '0x000000000000002a',
+  rbp: '0x00007ffee12ff8c0',
+  rsp: '0x00007ffee12ff840',
+  r8: '0x0000000000000008',
+  r9: '0x0000000000000009',
+  r10: '0x0000000000000010',
+  r11: '0x0000000000000011',
+  r12: '0x0000000000000012',
+  r13: '0x0000000000000013',
+  r14: '0x0000000000000014',
+  r15: '0x0000000000000015',
+  rip: '0x0000000100004308',
+};
+
 export function FrameContent({
   effectiveContext,
   isLoadingSourceContext,
@@ -48,7 +69,10 @@ export function FrameContent({
     lineNo: frame.lineNo,
     fileExtension,
   });
-  const frameRegisters = frameIndex === frames.length - 1 ? stacktrace.registers : null;
+  const frameRegisters =
+    frameIndex === frames.length - 1 && hasContextRegisters(stacktrace.registers)
+      ? stacktrace.registers
+      : SIMULATED_FRAME_REGISTERS;
   const expandedFrameRegisters =
     frameRegisters && hasContextRegisters(frameRegisters) ? frameRegisters : null;
   const frameVariables = frame.vars;

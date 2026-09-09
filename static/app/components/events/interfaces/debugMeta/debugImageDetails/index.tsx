@@ -7,6 +7,7 @@ import sortBy from 'lodash/sortBy';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -295,10 +296,19 @@ export function DebugImageDetails({
   return (
     <Fragment>
       <Header closeButton>
-        <Title>
-          {t('Image')}
-          <FileName>{fileName ?? t('Unknown')}</FileName>
-        </Title>
+        <Grid
+          align="center"
+          columns="max-content 1fr"
+          gap="md"
+          maxWidth="calc(100% - 40px)"
+        >
+          <Heading as="h3" size="xl">
+            {t('Image')}
+          </Heading>
+          <Text bold monospace size="xl" wordBreak="break-all">
+            {fileName ?? t('Unknown')}
+          </Text>
+        </Grid>
       </Header>
       <Body>
         <Content>
@@ -356,20 +366,6 @@ const Content = styled('div')`
   display: grid;
   gap: ${p => p.theme.space['2xl']};
   font-size: ${p => p.theme.font.size.md};
-`;
-
-const Title = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-  font-size: ${p => p.theme.font.size.xl};
-  max-width: calc(100% - 40px);
-  word-break: break-all;
-`;
-
-const FileName = styled('span')`
-  font-family: ${p => p.theme.font.family.mono};
 `;
 
 const StyledButtonBar = styled((props: GridProps) => (

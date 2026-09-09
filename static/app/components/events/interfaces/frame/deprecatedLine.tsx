@@ -80,6 +80,17 @@ export interface DeprecatedLineProps {
   registersMeta?: Record<any, any>;
 }
 
+// TEMPORARY LOCAL SIMULATION: remove after visually checking Frame Registers.
+const SIMULATED_FRAME_REGISTERS = {
+  rax: '0x0000000000000001',
+  rbx: '0x0000000000004308',
+  rcx: '0x000000000000dcb8',
+  rdx: '0x0000000000008f0c',
+  rbp: '0x00007ffee12ff8c0',
+  rsp: '0x00007ffee12ff840',
+  rip: '0x0000000100004308',
+};
+
 export function DeprecatedLine({
   data,
   emptySourceNotation,
@@ -113,16 +124,19 @@ export function DeprecatedLine({
   const [isExpanded, setIsExpanded] = useState(initialExpanded ?? false);
   const platform = getPlatform(data.platform, propPlatform ?? 'other');
   const leadsToApp = !data.inApp && (nextFrame?.inApp || !nextFrame);
+  const displayedRegisters = hasContextRegisters(registers)
+    ? registers
+    : SIMULATED_FRAME_REGISTERS;
 
   const isExpandable = useMemo((): boolean => {
     return !!(
       (hasContextSource(data) && data.context) ||
       hasContextVars(data) ||
-      hasContextRegisters(registers) ||
+      hasContextRegisters(displayedRegisters) ||
       hasAssembly(data, platform) ||
       (hasScmSourceContext && hasPotentialSourceContext(data))
     );
-  }, [data, registers, platform, hasScmSourceContext]);
+  }, [data, displayedRegisters, platform, hasScmSourceContext]);
 
   const toggleContext = (evt?: React.MouseEvent) => {
     evt?.preventDefault();
@@ -338,11 +352,11 @@ export function DeprecatedLine({
       <Context
         frame={data}
         event={event}
-        registers={registers}
+        registers={displayedRegisters}
         components={components}
         hasContextSource={hasContextSource(data)}
         hasContextVars={hasContextVars(data)}
-        hasContextRegisters={hasContextRegisters(registers)}
+        hasContextRegisters
         emptySourceNotation={emptySourceNotation}
         hasAssembly={hasAssembly(data, platform)}
         hasScmSourceContext={hasScmSourceContext}
