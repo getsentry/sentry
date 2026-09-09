@@ -63,9 +63,11 @@ import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
 import {titleCase} from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
+type CustomerUpdateAction = (data: Record<string, unknown>) => Promise<unknown>;
+
 type SubscriptionSummaryProps = {
   customer: Subscription;
-  onAction: (data: any) => void;
+  onAction: CustomerUpdateAction;
 };
 
 function SoftCapTypeDetail({
@@ -498,7 +500,7 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
 
 type Props = {
   customer: Subscription;
-  onAction: (data: any) => void;
+  onAction: CustomerUpdateAction;
   organization: Organization;
 };
 
@@ -512,16 +514,18 @@ function isWithinAcceptedMargin(
 
 const formatRate = (rate: number) => `${rate.toFixed(2)}%`;
 
-type SampleRateRowProps = {
-  desiredSampleRate: number | null;
-  label: string;
-  rate: number | null;
-};
+const SAMPLE_RATE_LABEL = 'Sample Rate (24h)';
 
-function SampleRateRow({label, rate, desiredSampleRate}: SampleRateRowProps) {
+function SampleRateRow({
+  rate,
+  desiredSampleRate,
+}: {
+  desiredSampleRate: number | null;
+  rate: number | null;
+}) {
   if (!defined(rate)) {
     return (
-      <ThresholdLabel label={label} positive={false}>
+      <ThresholdLabel label={SAMPLE_RATE_LABEL} positive={false}>
         n/a
       </ThresholdLabel>
     );
@@ -546,7 +550,7 @@ function SampleRateRow({label, rate, desiredSampleRate}: SampleRateRowProps) {
 
   return (
     <ThresholdLabel
-      label={label}
+      label={SAMPLE_RATE_LABEL}
       positive={
         effectiveSampleRate && desiredSampleRate
           ? isWithinAcceptedMargin(effectiveSampleRate, desiredSampleRate)
@@ -558,31 +562,11 @@ function SampleRateRow({label, rate, desiredSampleRate}: SampleRateRowProps) {
   );
 }
 
-const SAMPLE_RATE_SOURCES = [
-  {key: 'effectiveSampleRate', label: 'Sample Rate (24h, Generic Metrics)'},
-  {key: 'eapEffectiveSampleRate', label: 'Sample Rate (24h, EAP)'},
-] as const;
-
-// Every state renders one row per source, so the label column keeps its width
-// when the request resolves.
-function SampleRateStatusRows({children}: {children: React.ReactNode}) {
-  return (
-    <Fragment>
-      {SAMPLE_RATE_SOURCES.map(({key, label}) => (
-        <ThresholdLabel key={key} label={label} positive={false}>
-          {children}
-        </ThresholdLabel>
-      ))}
-    </Fragment>
-  );
-}
-
 function DynamicSampling({organization}: {organization: Organization}) {
   const dynamicSamplingEnabled = organization.features?.includes('dynamic-sampling');
 
   const {data, isPending, isError} = useApiQuery<{
     eapEffectiveSampleRate: number | null;
-    effectiveSampleRate: number | null;
   }>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/', {
@@ -596,13 +580,25 @@ function DynamicSampling({organization}: {organization: Organization}) {
   );
 
   if (!dynamicSamplingEnabled) {
-    return <SampleRateStatusRows>Disabled</SampleRateStatusRows>;
+    return (
+      <ThresholdLabel label={SAMPLE_RATE_LABEL} positive={false}>
+        Disabled
+      </ThresholdLabel>
+    );
   }
   if (isError) {
-    return <SampleRateStatusRows>Error loading data</SampleRateStatusRows>;
+    return (
+      <ThresholdLabel label={SAMPLE_RATE_LABEL} positive={false}>
+        Error loading data
+      </ThresholdLabel>
+    );
   }
   if (isPending) {
-    return <SampleRateStatusRows>Loading...</SampleRateStatusRows>;
+    return (
+      <ThresholdLabel label={SAMPLE_RATE_LABEL} positive={false}>
+        Loading...
+      </ThresholdLabel>
+    );
   }
 
   const desiredSampleRate = organization.desiredSampleRate
@@ -610,20 +606,20 @@ function DynamicSampling({organization}: {organization: Organization}) {
     : null;
 
   return (
-    <Fragment>
-      {SAMPLE_RATE_SOURCES.map(({key, label}) => (
-        <SampleRateRow
-          key={key}
-          label={label}
-          rate={data[key]}
-          desiredSampleRate={desiredSampleRate}
-        />
-      ))}
-    </Fragment>
+    <SampleRateRow
+      rate={data.eapEffectiveSampleRate}
+      desiredSampleRate={desiredSampleRate}
+    />
   );
 }
 
 export function CustomerOverview({customer, onAction, organization}: Props) {
+  const runAction = (data: Record<string, unknown>) => {
+    onAction(data).catch(() => {
+      // The mutation's onError callback surfaces the failure to the user.
+    });
+  };
+
   let orgUrl = `/organizations/${organization.slug}/issues/`;
   const configFeatures = ConfigStore.get('features');
   if (configFeatures.has('system:multi-region')) {
@@ -679,7 +675,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
       [action]: true,
     };
 
-    onAction(data);
+    runAction(data);
   };
 
   const getTrialManagementActions = (
@@ -717,7 +713,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             {...deps}
           />
         ),
-        onConfirm: onAction,
+        onConfirm: runAction,
       });
     };
 
@@ -830,7 +826,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             {customer.type === 'invoiced' && customer.billingInterval === 'annual' && (
               <span>
                 {' | '}
-                <ChangeARRAction customer={customer} onAction={onAction} />
+                <ChangeARRAction customer={customer} onAction={runAction} />
               </span>
             )}
           </DetailLabel>

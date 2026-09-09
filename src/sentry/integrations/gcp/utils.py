@@ -44,16 +44,10 @@ def validate_gcp_project_id(project_id: str) -> None:
 
 
 def parse_gcp_project_ids(value: Any) -> list[str]:
-    if isinstance(value, str):
-        raw: list[Any] = value.split(",")
-    elif isinstance(value, (list, tuple)):
-        raw = list(value)
-    else:
-        raise IntegrationConfigurationError(
-            "GCP project IDs must be a comma-separated list of project IDs."
-        )
+    if not isinstance(value, (list, tuple)):
+        raise IntegrationConfigurationError("GCP project IDs must be a list of project IDs.")
 
-    project_ids = list(dict.fromkeys(str(item).strip() for item in raw if str(item).strip()))
+    project_ids = list(dict.fromkeys(str(item).strip() for item in value if str(item).strip()))
     if not project_ids:
         raise IntegrationConfigurationError("At least one GCP project ID is required.")
 

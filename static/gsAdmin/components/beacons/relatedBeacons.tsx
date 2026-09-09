@@ -2,10 +2,10 @@ import moment from 'moment-timezone';
 
 import {Link} from '@sentry/scraps/link';
 
+import {ResultGrid} from 'sentry/components/resultGrid';
 import {Truncate} from 'sentry/components/truncate';
 
 import type {BeaconData} from 'admin/components/beacons/beaconOverview';
-import {ResultGrid} from 'admin/components/resultGrid';
 
 type Props = {
   data: BeaconData;
@@ -47,7 +47,6 @@ export function RelatedBeacons({data}: Props) {
       panelTitle="Related Beacons"
       path={`/_admin/beacons/${data.id}/`}
       endpoint={`/beacons/${data.id}/related-beacons/`}
-      method="GET"
       columns={[
         <th key="id">Beacon</th>,
         <th key="version" style={{width: 100, textAlign: 'center'}}>

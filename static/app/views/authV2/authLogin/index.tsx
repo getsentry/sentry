@@ -12,7 +12,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {BrandPageLayout} from 'sentry/components/brandPageLayout';
 import {IconGithub, IconGoogle, IconLab, IconSentry, IconVsts} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {ConfigStore} from 'sentry/stores/configStore';
 import type {AuthConfig} from 'sentry/types/auth';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
@@ -22,6 +21,7 @@ import {AuthV2CookieState, useEnableAuthV2} from 'sentry/utils/useEnableAuthV2';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
+import {useBrandedAuthLoading} from 'sentry/views/authV2/useBrandedAuthLoading';
 
 import {EmailAuth} from './components/emailAuth';
 import {OrganizationSwitcher} from './components/organizationSwitcher';
@@ -47,7 +47,6 @@ export default function AuthLogin() {
   const theme = useTheme();
   const {orgSlug} = useParams<{orgSlug?: string}>();
   const location = useLocation();
-  const sentryUrl = ConfigStore.get('links').sentryUrl;
   const {setAuthV2CookieState} = useEnableAuthV2();
   const hasStartedAnalyticsSession = useRef(false);
 
@@ -165,6 +164,7 @@ export default function AuthLogin() {
     (orgSlug && isAuthOrganizationPending) ||
     (nextUri && !focusedOrgAuth && !hasAuthOrganizationError)
   );
+  useBrandedAuthLoading(!isLoginRenderable);
 
   useEffect(() => {
     if (!isLoginRenderable) {
@@ -307,20 +307,7 @@ export default function AuthLogin() {
                     />
                   </Stack>
 
-                  {focusedOrgAuth ? (
-                    <Stack gap="md">
-                      <Grid columns="1fr max-content 1fr" align="center" gap="md">
-                        <Container borderTop="secondary" />
-                        <Text as="div" align="center" variant="muted" size="lg">
-                          {t('or')}
-                        </Text>
-                        <Container borderTop="secondary" />
-                      </Grid>
-                      <LinkButton href={`${sentryUrl}/settings/account/`}>
-                        {t('Account Settings')}
-                      </LinkButton>
-                    </Stack>
-                  ) : (
+                  {!focusedOrgAuth && (
                     <Fragment>
                       <AuthDivider />
 

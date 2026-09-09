@@ -2529,7 +2529,8 @@ def save_attachment(
         # The event this attachment belongs to has not been ingested (yet), so we do not
         # know whether it will be accepted at all. Park the attachment in
         # `PendingEventAttachment` with a short TTL; `save_pending_attachments` promotes it
-        # to an `EventAttachment` (and emits the outcome) once the event is saved.
+        # to an `EventAttachment` (and emits the ACCEPTED outcome) once the event is saved.
+        # A row that is never promoted records INVALID(missing_event) when it is deleted.
         metrics.incr("attachments.pending.create")
         db_fields.pop("group_id")
         db_fields["date_expires_retention"] = db_fields["date_expires"]
@@ -2580,8 +2581,9 @@ def save_attachments(cache_key: str | None, attachments: list[Attachment], job: 
         )
 
 
+@trace
 def save_pending_attachments(
-    *, project: Project, event_id: str, group_id: int, source: str
+    *, project: Project, event_id: str, group_id: int | None, source: str
 ) -> None:
     """
     Promote any :class:`PendingEventAttachment` rows for ``event_id`` into real
@@ -2593,9 +2595,11 @@ def save_pending_attachments(
     ``date_expires_retention``; promoting them restores the retention date and
     attaches the ``group_id``.
 
-    Outcomes are only emitted here, on promotion: an attachment whose event never
-    arrives expires without ever being accepted. That is what keeps the race described
-    in :func:`sentry.tasks.post_process.update_existing_attachments` from costing the
+    The ACCEPTED outcome is emitted here, on promotion: an attachment whose event never
+    arrives expires without ever being accepted, and records INVALID(missing_event) when
+    it is deleted instead (see :meth:`PendingEventAttachment.track_dropped_outcome`).
+    That is what keeps the race described in
+    :func:`sentry.tasks.post_process.update_existing_attachments` from costing the
     customer money -- an attachment we drop is an attachment we never billed for.
 
     Safe to call more than once for the same event, and called from two places for
@@ -2890,6 +2894,19 @@ def save_transaction_events(
     _materialize_event_metrics(jobs)
     _nodestore_save_many(jobs=jobs, app_feature="transactions")
     _eventstream_insert_many(jobs)
+
+    for job in jobs:
+        # NOTE: This puts a postgres query in the critical ingestion path for transactions.
+        # `save_pending_attachments` currently early-returns for most projects, but before graduation,
+        # we should make sure that the extra load on postgres is justifiable, given the facts that transactions
+        # are a legacy feature and transaction attachments are a niche use case.
+        safe_execute(
+            save_pending_attachments,
+            project=projects[job["project_id"]],
+            event_id=job["event"].event_id,
+            group_id=None,
+            source="save_transaction_events",
+        )
 
     for job in jobs:
         track_sampled_event(

@@ -588,6 +588,17 @@ const config = defineConfig({
     '@tanstack/query/infinite-query-property-order': 'error',
     '@tanstack/query/no-void-query-fn': 'error',
     '@tanstack/query/mutation-property-order': 'error',
+    'react/capitalized-calls': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/error-boundaries': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/exhaustive-effect-dependencies': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/function-component-definition': 'error',
+    'react/globals': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/hooks': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/immutability': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/incompatible-library': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/invariant': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/jsx-boolean-value': ['error', 'never'],
+    'react/jsx-fragments': ['error', 'element'],
     'react/jsx-key': [
       'error',
       {
@@ -613,10 +624,20 @@ const config = defineConfig({
         ignore: ['css'],
       },
     ],
+    'react/memo-dependencies': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/no-deriving-state-in-effects': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/preserve-manual-memoization': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/purity': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/refs': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/require-render-return': 'error',
-    'react/function-component-definition': 'error',
-    'react/jsx-boolean-value': ['error', 'never'],
-    'react/jsx-fragments': ['error', 'element'],
+    'react/rule-suppression': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/set-state-in-effect': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/set-state-in-render': 'error',
+    'react/static-components': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/syntax': 'error',
+    'react/todo': 'off',
+    'react/unsupported-syntax': 'error',
+    'react/use-memo': 'error',
     'react/no-did-mount-set-state': 'error',
     'react/no-did-update-set-state': 'error',
     'react/no-redundant-should-component-update': 'error',
