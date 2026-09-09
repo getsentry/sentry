@@ -83,8 +83,23 @@ interface SeerEmbedSchema {
   level: SeerEmbedLevel[];
   schema: z.ZodObject;
   examples?: SeerEmbedExample[];
-  featureFlag?: string;
+  /**
+   * Org feature(s) the widget is offered behind. A list is satisfied by any one
+   * of its flags, which is what an entitlement spread over several plan flags
+   * needs — the org holds whichever one its plan grants, never all of them.
+   */
+  featureFlag?: string | string[];
 }
+
+/**
+ * Autofix is a Seer plan entitlement, and the two plan shapes grant it under
+ * different flags: seat-based plans and legacy usage-based ones. Matching the
+ * pair is the same test the frontend's `orgHasSeerAccess` makes.
+ */
+const SEER_PLAN_FEATURES = [
+  'organizations:seat-based-seer-enabled',
+  'organizations:seer-added',
+];
 
 export const SEER_EMBED_SCHEMAS = {
   timestamp: {
@@ -326,7 +341,7 @@ export const SEER_EMBED_SCHEMAS = {
     ],
   },
   autofix: {
-    featureFlag: 'organizations:seer-agent-autofix',
+    featureFlag: SEER_PLAN_FEATURES,
     description:
       'Render one step of a Seer Autofix run (root cause, solution, or code ' +
       'changes) as a collapsible block linking back to the issue. ' +
@@ -927,7 +942,7 @@ export const SEER_EMBED_SCHEMAS = {
     ],
   },
   autofixRef: {
-    featureFlag: 'organizations:seer-agent-autofix',
+    featureFlag: SEER_PLAN_FEATURES,
     description:
       'Render a live view of one Seer Autofix step (root cause, solution, code ' +
       'changes, or PR iteration) that fetches and updates itself in the browser. ' +
@@ -987,7 +1002,7 @@ export function seerEmbedsToJsonSchemas(): Array<{
   level: SeerEmbedLevel[];
   name: string;
   examples?: Array<{data: Record<string, unknown>; label: string}>;
-  featureFlag?: string;
+  featureFlag?: string | string[];
 }> {
   return Object.entries(SEER_EMBED_SCHEMAS).map(([name, entry]) => {
     const def: SeerEmbedSchema = entry;
