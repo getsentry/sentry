@@ -76,11 +76,6 @@ def read_processing_state(table_name: str) -> tuple[int, int] | None:
 
 @functools.lru_cache(maxsize=1)
 def _control_backfill_tables() -> frozenset[str]:
-    """
-    Backfill table names that live on the control silo under a split deployment.
-
-    The model registry does not change once the apps are loaded, so this is built once.
-    """
     control_only = frozenset({SiloMode.CONTROL})
     tables = set()
     for model in _backfill_models(SiloMode.MONOLITH):
