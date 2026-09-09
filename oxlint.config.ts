@@ -645,7 +645,7 @@ const config = defineConfig({
     'react/no-deriving-state-in-effects': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/preserve-manual-memoization': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/purity': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
-    'react/refs': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/refs': 'error',
     'react/require-render-return': 'error',
     'react/rule-suppression': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/set-state-in-effect': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.

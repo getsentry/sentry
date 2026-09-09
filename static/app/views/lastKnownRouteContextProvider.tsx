@@ -30,6 +30,7 @@ export function LastKnownRouteContextProvider({children}: Props) {
     }
   }, [matches]);
 
+  // oxlint-disable-next-line react/refs
   const lastKnownRoute = getRouteStringFromRoutes({matches: prevMatches.current});
 
   return <LastKnownRouteContext value={lastKnownRoute}>{children}</LastKnownRouteContext>;

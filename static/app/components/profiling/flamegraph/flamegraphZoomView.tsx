@@ -193,6 +193,7 @@ function FlamegraphZoomView({
   const hoveredNodeOnContextMenuOpen = useRef<FlamegraphFrame | null>(null);
   const contextMenuState = useContextMenu({container: flamegraphCanvasRef});
   const [highlightingAllOccurrences, setHighlightingAllOccurrences] = useState(
+    // oxlint-disable-next-line react/refs
     isHighlightingAllOccurrences(hoveredNode, selectedFramesRef.current)
   );
 
@@ -350,7 +351,8 @@ function FlamegraphZoomView({
     hoveredNode: hoveredNode
       ? hoveredNode
       : contextMenuState.open
-        ? hoveredNodeOnContextMenuOpen.current
+        ? // oxlint-disable-next-line react/refs
+          hoveredNodeOnContextMenuOpen.current
         : null,
     canvas: flamegraphCanvas,
     view: flamegraphView,
@@ -798,10 +800,12 @@ function FlamegraphZoomView({
         tabIndex={1}
       />
       <Canvas ref={setFlamegraphOverlayCanvasRef} pointerEvents="none" />
+      {/* oxlint-disable-next-line react/refs */}
       {contextMenu({
         contextMenu: contextMenuState,
         profileGroup,
         profileType,
+        // oxlint-disable-next-line react/refs
         hoveredNode: hoveredNodeOnContextMenuOpen.current,
         isHighlightingAllOccurrences: highlightingAllOccurrences,
         onCopyFunctionNameClick: handleCopyFunctionName,

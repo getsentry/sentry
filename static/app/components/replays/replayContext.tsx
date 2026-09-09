@@ -233,6 +233,7 @@ export function Provider({
     []
   );
 
+  // oxlint-disable-next-line react/refs
   const isFinished = getCurrentPlayerTime() === finishedAtMS;
   const setReplayFinished = useCallback(() => {
     setFinishedAtMS(getCurrentPlayerTime());

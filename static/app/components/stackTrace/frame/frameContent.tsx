@@ -38,6 +38,7 @@ export function FrameContent({
   // A ref is sufficient — the re-render is already triggered by isExpanded changing.
   const hasBeenExpandedRef = useRef(isExpanded);
   if (isExpanded) {
+    // oxlint-disable-next-line react/refs
     hasBeenExpandedRef.current = true;
   }
 
@@ -65,6 +66,7 @@ export function FrameContent({
   const shouldShowNoDetails =
     frameIndex === lastFrameIndex && frameIndex === 0 && !hasAnyFrameDetails;
 
+  // oxlint-disable-next-line react/refs
   if (!hasBeenExpandedRef.current) {
     return null;
   }

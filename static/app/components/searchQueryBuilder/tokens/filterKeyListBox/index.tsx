@@ -387,6 +387,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   }, [fullWidth, isOpen, wrapperRef]);
 
   if (fullWidth) {
+    // oxlint-disable-next-line react/refs
     if (!wrapperRef.current) {
       return null;
     }
@@ -423,6 +424,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
           ) : null}
         </SectionedOverlay>
       </StyledPositionWrapper>,
+      // oxlint-disable-next-line react/refs
       wrapperRef.current
     );
   }

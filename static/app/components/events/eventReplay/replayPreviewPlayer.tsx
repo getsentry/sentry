@@ -131,6 +131,7 @@ export function ReplayPreviewPlayer({
         </ContainedLinkButton>
       </Flex>
       <PreviewPlayerContainer ref={fullscreenRef} isSidebarOpen={isSidebarOpen}>
+        {/* oxlint-disable-next-line react/refs */}
         <TooltipContext value={{container: fullscreenRef.current}}>
           <PlayerBreadcrumbContainer>
             <PlayerContextContainer>

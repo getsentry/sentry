@@ -41,9 +41,11 @@ export const useVirtualizedList = (
   const styleCache = useRef<Map<number, React.CSSProperties> | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
+  // oxlint-disable-next-line react/refs
   if (!styleCache.current) {
     styleCache.current = new Map<number, React.CSSProperties>();
   }
+  // oxlint-disable-next-line react/refs
   if (!renderCache.current) {
     renderCache.current = new Map<number, React.ReactNode>();
   }
@@ -53,16 +55,21 @@ export const useVirtualizedList = (
     virtualized: VirtualizedRow[];
   }>({rendered: [], virtualized: []});
 
+  // oxlint-disable-next-line react/refs
   if (!list.current) {
     list.current = new VirtualizedList();
+    // oxlint-disable-next-line react/refs
     props.manager.registerList(list.current);
   }
 
   const renderRef = useRef<(item: VirtualizedRow) => React.ReactNode>(props.render);
+  // oxlint-disable-next-line react/refs
   renderRef.current = props.render;
   const itemsRef = useRef(props.items);
+  // oxlint-disable-next-line react/refs
   itemsRef.current = props.items;
   const managerRef = useRef(props.manager);
+  // oxlint-disable-next-line react/refs
   managerRef.current = props.manager;
 
   useLayoutEffect(() => {
@@ -253,6 +260,7 @@ export const useVirtualizedList = (
   return {
     virtualized: items.virtualized,
     rendered: items.rendered,
+    // oxlint-disable-next-line react/refs
     list: list.current,
   };
 };

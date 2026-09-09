@@ -528,6 +528,7 @@ export function FlamegraphSpans({
 
       <SpansContextMenu
         contextMenu={contextMenuState}
+        // oxlint-disable-next-line react/refs
         hoveredNode={hoveredNodeOnContextMenuOpen.current}
         onCopyDescription={onCopyDescription}
         onCopyOperation={onCopyOperation}

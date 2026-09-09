@@ -43,6 +43,7 @@ export function UrlParamBatchProvider({children}: {children: React.ReactNode}) {
   // Debounced URL updater function
   const updateURL = useMemo(
     () =>
+      // oxlint-disable-next-line react/refs
       debounce(() => {
         // Flush all current pending URL query parameter updates
         flushUpdates();

@@ -35,6 +35,7 @@ export function useBufferedImageGroup(
 ): Array<string | null> {
   const serialized = targetUrls.join('\0');
   const targetUrlsRef = useRef(targetUrls);
+  // oxlint-disable-next-line react/refs
   targetUrlsRef.current = targetUrls;
 
   const [displayUrls, setDisplayUrls] = useState<Array<string | null>>(() =>

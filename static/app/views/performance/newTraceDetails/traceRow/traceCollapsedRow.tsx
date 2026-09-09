@@ -37,14 +37,21 @@ export function TraceCollapsedRow(props: TraceRowProps<CollapsedNode>) {
 
   return (
     <div
+      // oxlint-disable-next-line react/refs
       key={props.index}
+      // oxlint-disable-next-line react/refs
       tabIndex={props.tabIndex}
       className="Collapsed TraceRow"
+      // oxlint-disable-next-line react/refs
       onPointerDown={props.onRowClick}
+      // oxlint-disable-next-line react/refs
       onKeyDown={props.onRowKeyDown}
+      // oxlint-disable-next-line react/refs
       style={props.style}
     >
+      {/* oxlint-disable-next-line react/refs */}
       <div className="TraceLeftColumn" ref={props.registerListColumnRef}>
+        {/* oxlint-disable-next-line react/refs */}
         <div className="TraceLeftColumnInner" style={props.listColumnStyle}>
           {stats.events > 0 ? stats.events : null}{' '}
           {stats.events > 0

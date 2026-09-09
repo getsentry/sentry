@@ -650,6 +650,7 @@ export default function SnapshotsPage() {
     listItems,
     setSelectedSnapshotKey,
   });
+  // oxlint-disable-next-line react/refs
   navRef.current = {
     navigateSingleView,
     setViewMode,

@@ -171,6 +171,7 @@ export function useLiveRefresh({replay}: {replay: ReplayRecord | undefined}) {
     replayId,
     orgSlug,
   });
+  // oxlint-disable-next-line react/refs
   startSummaryRequestRef.current = startSummaryRequest;
 
   const doRefresh = useCallback(async () => {

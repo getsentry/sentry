@@ -50,6 +50,7 @@ export function makeCollection<T>(): CollectionInstance<T> {
 
     // Snapshot ref holds a new Map instance on every structural change so that
     // useSyncExternalStore can detect updates via reference inequality.
+    // oxlint-disable-next-line react/refs
     const snapshot = useRef(nodes.current);
 
     // Registered listener callbacks from useSyncExternalStore subscribers.
@@ -160,6 +161,7 @@ export function makeCollection<T>(): CollectionInstance<T> {
     // needing to re-register when data changes. Structural changes (parentKey)
     // still cause a full re-registration via the effect deps.
     const dataRef = useRef(data);
+    // oxlint-disable-next-line react/refs
     dataRef.current = data;
 
     useLayoutEffect(() => {

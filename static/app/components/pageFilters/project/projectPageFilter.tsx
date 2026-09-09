@@ -359,6 +359,7 @@ export function ProjectPageFilter({
 
     const projectItems = sortBy(
       [...memberProjectList, ...nonMemberProjectList],
+      // oxlint-disable-next-line react/refs
       listSort
     ).map(getProjectItem);
 
@@ -472,7 +473,9 @@ export function ProjectPageFilter({
 
   // Wire up refs after stagedSelect is created to break the circular dependency between
   // options (which need toggleOption/dispatch) and useStagedCompactSelect (which needs options).
+  // oxlint-disable-next-line react/refs
   toggleOptionRef.current = stagedSelect.toggleOption;
+  // oxlint-disable-next-line react/refs
   dispatchRef.current = stagedSelect.dispatch;
 
   // Derived intent and UI actions

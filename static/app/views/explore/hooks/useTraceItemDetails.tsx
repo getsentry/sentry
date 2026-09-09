@@ -344,6 +344,7 @@ export function usePrefetchTraceItemDetailsOnMount({
   enabled?: boolean;
 }) {
   const hasPrefetched = useRef(false);
+  // oxlint-disable-next-line react/refs
   if (enabled && isProjectReady && !hasPrefetched.current) {
     hasPrefetched.current = true;
     prefetch();

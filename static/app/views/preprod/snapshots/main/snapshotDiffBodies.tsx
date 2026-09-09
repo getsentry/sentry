@@ -71,8 +71,10 @@ export const SplitPairBody = memo(function SplitPairBodyImpl({
               {t('Base')}
             </Text>
           </Container>
+          {/* oxlint-disable-next-line react/refs */}
           <ZoomViewport ref={zoom1.containerRef}>
             <ImageSizer {...imageSizerProps(baseImage)}>
+              {/* oxlint-disable-next-line react/refs */}
               <ZoomTransformLayer style={zoomTransformStyle(zoom1.transform)}>
                 <LazyImage
                   src={baseUrl}
@@ -90,8 +92,10 @@ export const SplitPairBody = memo(function SplitPairBodyImpl({
               {headLabel}
             </Text>
           </Container>
+          {/* oxlint-disable-next-line react/refs */}
           <ZoomViewport ref={zoom2.containerRef}>
             <ImageSizer {...imageSizerProps(headImage)}>
+              {/* oxlint-disable-next-line react/refs */}
               <ZoomTransformLayer style={zoomTransformStyle(zoom2.transform)}>
                 <LazyImage
                   src={headUrl}
@@ -114,8 +118,11 @@ export const SplitPairBody = memo(function SplitPairBodyImpl({
         </Stack>
       </Grid>
       <ZoomControls
+        // oxlint-disable-next-line react/refs
         onZoomIn={zoom1.zoomIn}
+        // oxlint-disable-next-line react/refs
         onZoomOut={zoom1.zoomOut}
+        // oxlint-disable-next-line react/refs
         onReset={zoom1.resetZoom}
       />
     </Container>

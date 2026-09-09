@@ -26,7 +26,9 @@ export function useCompactSelectOptionsCache<T extends Option>(
   options: T[];
 } {
   const cacheMap = useRef({[cacheKey]: new Map()});
+  // oxlint-disable-next-line react/refs
   if (!cacheMap.current[cacheKey]) {
+    // oxlint-disable-next-line react/refs
     cacheMap.current[cacheKey] = new Map();
   }
 
@@ -35,10 +37,12 @@ export function useCompactSelectOptionsCache<T extends Option>(
   }, [cacheKey]);
 
   const outgoingOptions = useMemo(() => {
+    // oxlint-disable-next-line react/refs
     options.forEach(option => {
       cacheMap.current[cacheKey]?.set(option.value, option);
     });
 
+    // oxlint-disable-next-line react/refs
     return Array.from(cacheMap.current[cacheKey]?.values() ?? []).sort(
       alphabeticalCompare
     );

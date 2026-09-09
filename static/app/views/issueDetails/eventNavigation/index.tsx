@@ -69,6 +69,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   }
 
   const navigationRef = useRef<HTMLDivElement>(null);
+  // oxlint-disable-next-line react/refs
   const [isSmallNav, setSmallNav] = useState(checkNavIsSmall);
 
   useResizeObserver({

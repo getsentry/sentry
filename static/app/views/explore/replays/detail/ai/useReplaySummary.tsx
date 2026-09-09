@@ -244,6 +244,7 @@ export function useReplaySummary(
 
   const isFinishedState =
     isErrorState ||
+    // oxlint-disable-next-line react/refs
     (lastFetchTime >= startSummaryRequestTime.current &&
       !isStartSummaryRequestPending &&
       summaryData?.status === ReplaySummaryStatus.COMPLETED);

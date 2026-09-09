@@ -643,7 +643,8 @@ function ValueComboboxCustomMenu(
       {...props}
       portalTarget={
         canSelectMultipleValues
-          ? (props.portalTarget ?? wrapperRef.current)
+          ? // oxlint-disable-next-line react/refs
+            (props.portalTarget ?? wrapperRef.current)
           : props.portalTarget
       }
       wrapperRef={wrapperRef}
@@ -819,6 +820,7 @@ export function SearchQueryBuilderValueCombobox({
 
   const ctrlKeyPressed = useKeyPress(
     isMac() ? 'Meta' : 'Control',
+    // oxlint-disable-next-line react/refs
     topLevelWrapperRef.current
   );
   const selectedValueMap = useMemo(

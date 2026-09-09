@@ -31,6 +31,7 @@ export default function SeerRepoDetails() {
   const {openDrawer} = useDrawer();
 
   const queryRef = useRef(query);
+  // oxlint-disable-next-line react/refs
   queryRef.current = query;
 
   const isSupportedProvider = useIsSeerSupportedProvider();

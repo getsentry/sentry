@@ -267,6 +267,7 @@ function NotificationConfigurator() {
 
   // onSubmit closes over the form once, so read the latest sources via a ref.
   const imageSourcesRef = useRef(imageSources);
+  // oxlint-disable-next-line react/refs
   imageSourcesRef.current = imageSources;
 
   const imageSourceOptions = useMemo(

@@ -957,6 +957,7 @@ function BackToTopButton({
 
 function useBox<T>(value: T): RefObject<T> {
   const box = useRef(value);
+  // oxlint-disable-next-line react/refs
   box.current = value;
   return box;
 }
