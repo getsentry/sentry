@@ -278,21 +278,13 @@ export function useTraceItemDatasetAttributes(
 
 export function useSpanItemAttributes(
   options?: TraceItemAttributeOptions,
-  type?: TraceItemAttributeType,
-  hiddenKeys?: string[]
+  type?: TraceItemAttributeType
 ): TraceItemAttributeResult {
-  const mergedHiddenKeys = useMemo(() => {
-    if (!hiddenKeys?.length) {
-      return DASHBOARD_ONLY_SPAN_ATTRIBUTES;
-    }
-    return [...hiddenKeys, ...DASHBOARD_ONLY_SPAN_ATTRIBUTES];
-  }, [hiddenKeys]);
-
   return useTraceItemDatasetAttributes(
     TraceItemDataset.SPANS,
     options,
     type,
-    mergedHiddenKeys
+    DASHBOARD_ONLY_SPAN_ATTRIBUTES
   );
 }
 

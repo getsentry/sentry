@@ -89,7 +89,7 @@ interface SetupReplaysCTAProps {
 export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps) {
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
   const [expanded, setExpanded] = useState(-1);
-  const {allMobileProj} = useAllMobileProj({});
+  const {allMobileProj} = useAllMobileProj();
   const organization = useOrganization();
 
   const FAQ = [
