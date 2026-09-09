@@ -9,7 +9,7 @@ import {getInstallSnippet} from './utils';
 export const performance: OnboardingConfig = {
   introduction: () =>
     t(
-      "Adding Performance to your React project is simple. Make sure you've got these basics down."
+      "Adding Performance to your Next.js project is simple. Make sure you've got these basics down."
     ),
   install: params => [
     {
@@ -34,7 +34,7 @@ export const performance: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'To configure, set [code:tracesSampleRate] in your config files, [code:sentry.server.config.js], [code:instrumentation-client.(js|ts)], and [code:sentry.edge.config.js]:',
+            'To configure, set [code:tracesSampleRate] in your config files, [code:instrumentation-client.(js|ts)], [code:sentry.server.config.(js|ts)], and [code:sentry.edge.config.(js|ts)]:',
             {code: <code />}
           ),
         },
@@ -93,26 +93,13 @@ Sentry.init({
         {
           type: 'code',
           language: 'javascript',
+          filename: 'instrumentation-client.(js|ts)',
           code: `
-// instrumentation-client.(js|ts)
 Sentry.init({
   dsn: "${params.dsn.public}",
-  integrations: [Sentry.browserTracingIntegration()],
   tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/]
 });
 `,
-        },
-        {
-          type: 'text',
-          text: tct(
-            "If you're using version [code:7.57.x] or below, you'll need to have our [link:tracing feature enabled] in order for distributed tracing to work.",
-            {
-              code: <code />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/tracing/" />
-              ),
-            }
-          ),
         },
       ],
     },
@@ -124,7 +111,7 @@ Sentry.init({
         {
           type: 'text',
           text: tct(
-            'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your NextJS application.',
+            'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your Next.js application.',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/tracing/instrumentation/automatic-instrumentation/" />

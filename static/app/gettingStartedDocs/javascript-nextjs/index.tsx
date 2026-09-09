@@ -30,7 +30,7 @@ export const docs: Docs = {
       {
         type: 'text',
         text: tct(
-          'In Next.js you can configure document response headers via the headers option in [code:next.config.js]:',
+          'In Next.js you can configure document response headers via the headers option in [code:next.config.(js|mjs|ts)]. Import [code:withSentryConfig] from [code:@sentry/nextjs/config]:',
           {
             code: <code />,
           }
@@ -42,38 +42,42 @@ export const docs: Docs = {
           {
             label: 'ESM',
             language: 'javascript',
-            filename: 'next.config.js',
+            filename: 'next.config.mjs',
             code: `
-  export default withSentryConfig({
-    async headers() {
-      return [{
-        source: "/:path*",
-        headers: [{
-          key: "Document-Policy",
-          value: "js-profiling",
-        }],
-      }];
-    },
-    // ... other Next.js config options
-  });`,
+import { withSentryConfig } from "@sentry/nextjs/config";
+
+export default withSentryConfig({
+  async headers() {
+    return [{
+      source: "/:path*",
+      headers: [{
+        key: "Document-Policy",
+        value: "js-profiling",
+      }],
+    }];
+  },
+  // ... other Next.js config options
+});`,
           },
           {
             label: 'CJS',
             language: 'javascript',
             filename: 'next.config.js',
             code: `
-  module.exports = withSentryConfig({
-    async headers() {
-      return [{
-        source: "/:path*",
-        headers: [{
-          key: "Document-Policy",
-          value: "js-profiling",
-        }],
-      }];
-    },
-    // ... other Next.js config options
-  });`,
+const { withSentryConfig } = require("@sentry/nextjs/config");
+
+module.exports = withSentryConfig({
+  async headers() {
+    return [{
+      source: "/:path*",
+      headers: [{
+        key: "Document-Policy",
+        value: "js-profiling",
+      }],
+    }];
+  },
+  // ... other Next.js config options
+});`,
           },
         ],
       },
