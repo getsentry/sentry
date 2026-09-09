@@ -139,11 +139,7 @@ describe('RowSubtitle', () => {
     it('shows the removal explanation', () => {
       renderSubtitle('removing', connectedSlack, selectedSlackSetup);
 
-      expect(
-        screen.getByText(
-          'You can reconnect at any time'
-        )
-      ).toBeInTheDocument();
+      expect(screen.getByText('You can reconnect at any time')).toBeInTheDocument();
     });
   });
 
@@ -165,9 +161,7 @@ describe('RowSubtitle', () => {
       };
       renderSubtitle('configuring', connectedSlackMulti);
 
-      expect(
-        screen.getByText('Choose where to send your alerts to')
-      ).toBeInTheDocument();
+      expect(screen.getByText('Choose where to send your alerts to')).toBeInTheDocument();
     });
   });
 });

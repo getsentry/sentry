@@ -242,10 +242,7 @@ export function ScmMessagingProviderRow({
   const errorMessage = getInstallErrorMessage(installState);
 
   return (
-    <Container
-      border={visualState === 'removing' ? 'danger' : 'primary'}
-      radius="lg"
-    >
+    <Container border={visualState === 'removing' ? 'danger' : 'primary'} radius="lg">
       <Stack>
         {visualState === 'install-error' && (
           <Stack padding="md" gap="md" align="start">

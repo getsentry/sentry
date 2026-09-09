@@ -737,11 +737,7 @@ describe('ScmMessagingProviderRow', () => {
       await userEvent.click(screen.getByRole('button', {name: /Cancel/}));
 
       expect(screen.getByRole('button', {name: /Edit/})).toBeInTheDocument();
-      expect(
-        screen.queryByText(
-          'You can reconnect at any time'
-        )
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText('You can reconnect at any time')).not.toBeInTheDocument();
     });
 
     it('calls onMessagingSetupChange with unconfigured when confirmed', async () => {

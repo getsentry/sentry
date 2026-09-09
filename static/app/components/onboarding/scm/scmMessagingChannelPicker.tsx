@@ -1,5 +1,4 @@
 import {useCallback, useMemo, useState} from 'react';
-
 import {useTheme} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';
