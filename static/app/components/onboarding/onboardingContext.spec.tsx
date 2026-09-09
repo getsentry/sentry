@@ -92,14 +92,16 @@ describe('OnboardingContextProvider', () => {
     // An optimistic repo (empty id) persisted mid-resolution can never fetch
     // detection. Dropping it must also clear the repo-derived platform and
     // features so the platform step doesn't show a platform with no repo.
+    sessionStorage.setItem(
+      'onboarding',
+      JSON.stringify({
+        selectedRepository: RepositoryFixture({id: ''}),
+        selectedPlatform: platform,
+        selectedFeatures: [ProductSolution.ERROR_MONITORING],
+      })
+    );
     render(
-      <OnboardingContextProvider
-        initialValue={{
-          selectedRepository: RepositoryFixture({id: ''}),
-          selectedPlatform: platform,
-          selectedFeatures: [ProductSolution.ERROR_MONITORING],
-        }}
-      >
+      <OnboardingContextProvider>
         <StateConsumer />
       </OnboardingContextProvider>
     );
@@ -111,15 +113,17 @@ describe('OnboardingContextProvider', () => {
   });
 
   it('keeps a resolved repository and its derived state on load', () => {
+    sessionStorage.setItem(
+      'onboarding',
+      JSON.stringify({
+        selectedRepository: RepositoryFixture({id: '42'}),
+        selectedPlatform: platform,
+        selectedFeatures: [ProductSolution.ERROR_MONITORING],
+        messagingSetup: selectedMessagingSetup,
+      })
+    );
     render(
-      <OnboardingContextProvider
-        initialValue={{
-          selectedRepository: RepositoryFixture({id: '42'}),
-          selectedPlatform: platform,
-          selectedFeatures: [ProductSolution.ERROR_MONITORING],
-          messagingSetup: selectedMessagingSetup,
-        }}
-      >
+      <OnboardingContextProvider>
         <StateConsumer />
       </OnboardingContextProvider>
     );
@@ -168,14 +172,16 @@ describe('OnboardingContextProvider session semantics', () => {
   });
 
   it('keeps the rest of the session when clearing the selected platform', async () => {
+    sessionStorage.setItem(
+      'onboarding',
+      JSON.stringify({
+        selectedRepository: RepositoryFixture({id: '42'}),
+        selectedPlatform: platform,
+        messagingSetup: selectedMessagingSetup,
+      })
+    );
     render(
-      <OnboardingContextProvider
-        initialValue={{
-          selectedRepository: RepositoryFixture({id: '42'}),
-          selectedPlatform: platform,
-          messagingSetup: selectedMessagingSetup,
-        }}
-      >
+      <OnboardingContextProvider>
         <StateConsumer />
       </OnboardingContextProvider>
     );

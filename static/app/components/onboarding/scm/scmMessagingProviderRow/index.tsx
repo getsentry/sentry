@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-import type {ReactNode} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
@@ -21,10 +20,7 @@ import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import type {
-  IntegrationWithConfig,
-  OrganizationIntegration,
-} from 'sentry/types/integrations';
+import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -137,20 +133,6 @@ export interface ScmMessagingProviderRowProps {
    * integration surfaced, preventing an infinite spin.
    */
   isRefetchingIntegrations?: boolean;
-  /**
-   * Render prop for the inline channel picker.
-   *
-   * Called with the eligible (non-empty) integrations for this provider and two
-   * callbacks: `onConfigured` (save the chosen destination to session state) and
-   * `onCancel` (close without saving). Only invoked when `status === 'connected'`.
-   *
-   * Omitting this prop leaves the configuring state with an empty body.
-   */
-  renderChannelPicker?: (props: {
-    integrations: OrganizationIntegration[];
-    onCancel: () => void;
-    onConfigured: (setup: ScmMessagingSetup & {mode: 'selected'}) => void;
-  }) => ReactNode;
 }
 
 export function ScmMessagingProviderRow({
@@ -160,7 +142,6 @@ export function ScmMessagingProviderRow({
   onInstallComplete,
   activeRow,
   onActiveRowChange,
-  renderChannelPicker,
   isRefetchingIntegrations = false,
   onContinue,
 }: ScmMessagingProviderRowProps) {
@@ -315,21 +296,13 @@ export function ScmMessagingProviderRow({
         {visualState === 'configuring' &&
           resolvedProvider.eligibleIntegrations.length > 0 && (
             <Container borderTop="primary" padding="lg">
-              {renderChannelPicker ? (
-                renderChannelPicker({
-                  integrations: resolvedProvider.eligibleIntegrations,
-                  onCancel: handleCancelConfiguring,
-                  onConfigured: handleConfigured,
-                })
-              ) : (
-                <ScmMessagingChannelPicker
-                  eligibleIntegrations={resolvedProvider.eligibleIntegrations}
-                  providerKey={resolvedProvider.providerKey}
-                  onCancel={handleCancelConfiguring}
-                  onConfigured={handleConfigured}
-                  existingSetup={isConfigured ? messagingSetup : undefined}
-                />
-              )}
+              <ScmMessagingChannelPicker
+                eligibleIntegrations={resolvedProvider.eligibleIntegrations}
+                providerKey={resolvedProvider.providerKey}
+                onCancel={handleCancelConfiguring}
+                onConfigured={handleConfigured}
+                existingSetup={isConfigured ? messagingSetup : undefined}
+              />
             </Container>
           )}
       </Stack>
