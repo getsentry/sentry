@@ -14,6 +14,12 @@ import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import {Processings} from './processings';
 import {Status} from './status';
 
+export const DEBUG_IMAGE_GRID_COLUMNS = {
+  zero: '0.6fr 1.5fr 0.6fr',
+  sm: '0.6fr 2fr 0.6fr',
+  md: '0.6fr 2fr 1fr 0.4fr',
+} as const;
+
 type Props = {
   image: ImageWithCombinedStatus;
   isLast: boolean;
@@ -28,45 +34,35 @@ export function DebugImage({image, isLast, onOpenImageDetailsModal}: Props) {
 
   return (
     <Grid
-      columns={{
-        zero: '0.6fr 1.5fr 0.6fr',
-        sm: '0.6fr 2fr 0.6fr',
-        md: '0.6fr 2fr 1fr 0.4fr',
-      }}
+      align="center"
+      columns={DEBUG_IMAGE_GRID_COLUMNS}
       borderBottom={isLast ? undefined : 'primary'}
-      padding="sm md"
+      padding="md lg"
     >
-      <Flex align="center" minWidth="0" padding="sm md">
+      <Flex align="center" minWidth="0">
         <Status status={status} />
       </Flex>
-      <Flex align="center" minWidth="0" padding="sm 0">
-        <Stack minWidth="0" overflow="hidden">
-          <Text ellipsis>
-            {codeFilename && <Tooltip title={code_file}>{codeFilename}</Tooltip>}
-            {codeFilename !== debugFilename && debugFilename && (
-              <Text variant="muted"> ({debugFilename})</Text>
-            )}
-          </Text>
-          {imageAddress && (
-            <Text monospace size="sm" variant="muted">
-              {imageAddress}
-            </Text>
+      <Stack minWidth="0" overflow="hidden">
+        <Text ellipsis>
+          {codeFilename && <Tooltip title={code_file}>{codeFilename}</Tooltip>}
+          {codeFilename !== debugFilename && debugFilename && (
+            <Text variant="muted"> ({debugFilename})</Text>
           )}
-        </Stack>
-      </Flex>
-      <Flex
-        align="center"
-        minWidth="0"
-        display={{zero: 'none', md: 'flex'}}
-        padding="sm md"
-      >
+        </Text>
+        {imageAddress && (
+          <Text monospace size="sm" variant="muted">
+            {imageAddress}
+          </Text>
+        )}
+      </Stack>
+      <Flex align="center" minWidth="0" display={{zero: 'none', md: 'flex'}}>
         {unwind_status || debug_status ? (
           <Processings unwind_status={unwind_status} debug_status={debug_status} />
         ) : (
           <NotAvailable />
         )}
       </Flex>
-      <Flex align="center" justify="end" minWidth="0" padding="sm md">
+      <Flex align="center" justify="end" minWidth="0">
         <Button size="xs" onClick={() => onOpenImageDetailsModal(image)}>
           {t('View')}
         </Button>

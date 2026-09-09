@@ -36,7 +36,7 @@ import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {Status} from './debugImage/status';
-import {DebugImage} from './debugImage';
+import {DebugImage, DEBUG_IMAGE_GRID_COLUMNS} from './debugImage';
 import {combineStatus, getFileName, normalizeId} from './utils';
 
 const ROW_HEIGHT = 45;
@@ -222,35 +222,25 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
           filterSelections={filterSelections}
         />
         <Container border="primary" radius="md" overflow="hidden" marginTop="sm">
-          <Header
-            columns={{
-              zero: '0.6fr 1.5fr 0.6fr',
-              sm: '0.6fr 2fr 0.6fr',
-              md: '0.6fr 2fr 1fr 0.4fr',
-            }}
+          <Grid
+            align="center"
+            columns={DEBUG_IMAGE_GRID_COLUMNS}
             background="secondary"
             borderBottom="primary"
+            padding="md lg"
           >
-            <Flex align="center" minWidth="0" padding="md lg">
+            <Text bold uppercase size="sm" variant="muted">
               {t('Status')}
-            </Flex>
-            <Flex align="center" minWidth="0" paddingTop="md" paddingBottom="md">
+            </Text>
+            <Text bold uppercase size="sm" variant="muted">
               {t('Image')}
-            </Flex>
-            <Flex
-              align="center"
-              display={{
-                zero: 'none',
-                md: 'flex',
-              }}
-              minWidth="0"
-              paddingTop="md"
-              paddingBottom="md"
-            >
-              {t('Processing')}
-            </Flex>
-            <div />
-          </Header>
+            </Text>
+            <Container display={{zero: 'none', md: 'block'}} minWidth="0">
+              <Text bold uppercase size="sm" variant="muted">
+                {t('Processing')}
+              </Text>
+            </Container>
+          </Grid>
           {filteredImages.length ? (
             <ScrollArea
               ref={setScrollContainer}
@@ -309,13 +299,6 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     </FoldSection>
   );
 }
-
-const Header = styled(Grid)`
-  font-size: ${p => p.theme.font.size.sm};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  color: ${p => p.theme.tokens.content.secondary};
-  text-transform: uppercase;
-`;
 
 const ScrollArea = styled('div')`
   overflow-y: auto;
