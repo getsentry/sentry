@@ -10,18 +10,19 @@ See https://linear.app/getsentry/document/how-to-track-api-usage-df929656b848
 
 from __future__ import annotations
 
+import contextlib
+import contextvars
 import re
+from collections.abc import Generator
 from enum import StrEnum
 
 import sentry_sdk
 from rest_framework.request import Request
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
-from sentry import features
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import is_system_auth
 from sentry.middleware import is_frontend_request
-from sentry.models.organization import Organization
 from sentry.seer.agent_token import is_agent_auth
 from sentry.utils.http import SEER_REFERRER_HEADER, get_mcp_client_family, is_mcp_request
 from sentry.utils.sdk import get_transaction_name_from_request
@@ -42,6 +43,24 @@ class ClientKind(StrEnum):
     SDK = "sdk"
     SCRIPT = "script"
     UNKNOWN = "unknown"
+
+
+_client_kind_override: contextvars.ContextVar[ClientKind | None] = contextvars.ContextVar(
+    "client_kind_override", default=None
+)
+
+
+@contextlib.contextmanager
+def client_kind_scope(kind: ClientKind) -> Generator[None]:
+    """Declare the caller for every request dispatched inside this block.
+
+    Server-side only -- it bypasses the derivation in ``get_client_kind``.
+    """
+    token = _client_kind_override.set(kind)
+    try:
+        yield
+    finally:
+        _client_kind_override.reset(token)
 
 
 # `sentry-cli/2.42.1`. Checked before the SDK pattern, which it also matches.
@@ -80,15 +99,19 @@ _SCRIPT_USER_AGENT_PREFIX = re.compile(
 )
 
 
-def get_client_kind(request: Request, organization: Organization) -> ClientKind | None:
+def get_client_kind(request: Request) -> ClientKind:
     """Classify the caller of an API request.
 
-    Returns ``None`` when the org has not opted in, so that a disabled org is
-    distinguishable from one whose traffic genuinely classifies as ``UNKNOWN``.
-    Otherwise never raises; unrecognized callers fall back to ``UNKNOWN``.
+    Never raises; unrecognized callers fall back to ``UNKNOWN``.
+
+    Says nothing about whether the caller's organization opted in -- ``FEATURE_FLAG``
+    is checked by the caller, which is what holds the organization. Callers must
+    check it before reaching here, or a ``client_kind_scope`` declaration becomes a
+    way around the opt-in.
     """
-    if not features.has(FEATURE_FLAG, organization, actor=request.user):
-        return None
+    declared = _client_kind_override.get()
+    if declared is not None:
+        return declared
 
     auth = getattr(request, "auth", None)
     user = getattr(request, "user", None)
@@ -159,16 +182,14 @@ def get_client_kind(request: Request, organization: Organization) -> ClientKind 
     return ClientKind.UNKNOWN
 
 
-def set_client_kind_attributes(request: Request, organization: Organization) -> None:
+def set_client_kind_attributes(request: Request) -> None:
     """Record who called the endpoint, on a span and on the enclosing transaction.
 
-    A no-op when the org has not opted into ``client_kind``. Wired into
-    ``OrganizationEventsEndpointBase.convert_args`` so every events endpoint
-    reports the same set of attributes without hand-wiring them per handler.
+    Called once from ``Endpoint.dispatch``, behind the opt-in check it makes for
+    whichever organization ``Endpoint.client_kind_organization`` resolves, so every
+    endpoint reports the same set of attributes without hand-wiring them per handler.
     """
-    client_kind = get_client_kind(request, organization)
-    if client_kind is None:
-        return
+    client_kind = get_client_kind(request)
 
     client_host = get_client_host(request)
     user_agent = get_user_agent(request)

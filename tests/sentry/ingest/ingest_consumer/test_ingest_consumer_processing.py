@@ -952,6 +952,107 @@ def test_individual_attachment_before_event(
 
 
 @django_db_all
+def test_individual_attachment_before_transaction(django_cache, default_project) -> None:
+    """
+    An attachment can also be parked ahead of a *transaction*.
+
+    Transactions never get a group and are saved by `save_transaction_events`, not
+    `save_error_events`, so promotion has to happen there too. Without it the row is
+    never promoted and expires with its blob after `PENDING_ATTACHMENT_TTL`.
+    """
+    from sentry.utils.outcomes import Outcome, track_outcome
+
+    event_id = uuid.uuid4().hex
+    retention_days = 66
+    payload = b"Hello World!"
+    now = timezone.now()
+
+    with (
+        Feature(
+            {
+                "organizations:event-attachments": True,
+                "projects:defer-attachment-storage": True,
+            }
+        ),
+        patch("sentry.event_manager.track_outcome", wraps=track_outcome) as track,
+    ):
+        process_individual_attachment(
+            {
+                "type": "attachment",
+                "attachment": {
+                    "id": "ca90fb45-6dd9-40a0-a18f-8693aa621abb",
+                    "name": "foo.txt",
+                    "content_type": "text/plain",
+                    "attachment_type": "event.attachment",
+                    "chunks": 0,
+                    "data": payload,
+                    "size": len(payload),
+                    "retention_days": retention_days,
+                },
+                "event_id": event_id,
+                "project_id": default_project.id,
+            },
+            project=default_project,
+        )
+
+        # Parked, not stored, and not billed yet.
+        (pending_attachment,) = PendingEventAttachment.objects.filter(project_id=default_project.id)
+        assert pending_attachment.event_id == event_id
+        assert not EventAttachment.objects.filter(project_id=default_project.id).exists()
+        assert track.call_count == 0
+
+        # Now the transaction arrives.
+        manager = EventManager(
+            {
+                "event_id": event_id,
+                "type": "transaction",
+                "transaction": "wait",
+                "contexts": {
+                    "trace": {
+                        "op": "foobar",
+                        "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                        "span_id": "bf5be759039ede9a",
+                    }
+                },
+                "spans": [],
+                "start_timestamp": (now - datetime.timedelta(seconds=1)).isoformat(),
+                "timestamp": now.isoformat(),
+            }
+        )
+        manager.normalize()
+        event = manager.save(default_project.id)
+
+    assert event.get_event_type() == "transaction"
+    assert event.group_id is None
+
+    assert not PendingEventAttachment.objects.filter(project_id=default_project.id).exists()
+
+    (attachment,) = EventAttachment.objects.filter(project_id=default_project.id)
+    assert attachment.event_id == event_id
+    assert attachment.name == "foo.txt"
+    assert attachment.content_type == "text/plain"
+    assert attachment.size == len(payload)
+    # A transaction has no group, so neither does its attachment.
+    assert attachment.group_id is None
+    with attachment.getfile() as file_contents:
+        assert file_contents.read() == payload
+    # The promoted row carries the full retention, not the pending TTL.
+    delta = attachment.date_expires - (timezone.now() + datetime.timedelta(days=retention_days))
+    assert abs(delta.total_seconds()) < 3600
+
+    # Billed exactly once, on promotion.
+    attachment_outcomes = [
+        call.kwargs
+        for call in track.mock_calls
+        if call.kwargs.get("category") == DataCategory.ATTACHMENT
+    ]
+    assert len(attachment_outcomes) == 1
+    assert attachment_outcomes[0]["outcome"] == Outcome.ACCEPTED
+    assert attachment_outcomes[0]["quantity"] == len(payload)
+    assert attachment_outcomes[0]["event_id"] == event_id
+
+
+@django_db_all
 def test_userreport_reverse_order(django_cache, default_project) -> None:
     """
     Test that ingesting a userreport before the event works. This is relevant

@@ -50,7 +50,6 @@ import {useMembers} from 'sentry/utils/members/useMembers';
 import {parseActorString} from 'sentry/utils/parseActorString';
 import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {orgHasSeerAccess} from 'sentry/utils/seer/orgHasSeerAccess';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
@@ -157,7 +156,7 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
 
 export default function InboxPage() {
   const organization = useOrganization();
-  const hasIssueInbox = orgHasIssueInbox(organization);
+  const hasIssueInbox = organization.features.includes('issue-inbox');
 
   if (!hasIssueInbox || !orgHasSeerAccess(organization)) {
     return <NotFound />;
