@@ -65,7 +65,7 @@ import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 type SubscriptionSummaryProps = {
   customer: Subscription;
-  onAction: (data: Record<string, any>) => Promise<unknown>;
+  onAction: (data: Record<string, unknown>) => Promise<unknown>;
 };
 
 function SoftCapTypeDetail({
