@@ -67,13 +67,15 @@ export function TraceTabsAndVitals({
 
   return (
     <ToolbarLayout>
-      <Tabs value={currentTab} onChange={onTabChange}>
-        <TabList variant="floating">
-          {tabOptions.map(tab => (
-            <TabList.Item key={tab.slug}>{tab.label}</TabList.Item>
-          ))}
-        </TabList>
-      </Tabs>
+      <Flex flex={1} minWidth="0" width="100%">
+        <Tabs value={currentTab} onChange={onTabChange}>
+          <TabList variant="floating">
+            {tabOptions.map(tab => (
+              <TabList.Item key={tab.slug}>{tab.label}</TabList.Item>
+            ))}
+          </TabList>
+        </Tabs>
+      </Flex>
       <TraceContextVitals rootEventResults={rootEventResults} tree={tree} />
     </ToolbarLayout>
   );
