@@ -30,6 +30,7 @@ import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySer
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import type {Widget} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
@@ -39,6 +40,11 @@ import {
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
+import {
+  areAllAggregatesInvalidConditionalFilters,
+  getConditionalFilterInvalidSeriesMessageForAggregates,
+  getValidAggregatesForSeriesRequest,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -56,6 +62,34 @@ type SpansTableResponse = TableData | EventsTableData;
  */
 // Stable empty array to prevent infinite rerenders
 const EMPTY_ARRAY: any[] = [];
+
+function withValidConditionalAggregates(widget: Widget, queryIndex: number): Widget {
+  const query = widget.queries[queryIndex];
+  if (!query) {
+    return widget;
+  }
+  const aggregates = query.aggregates ?? [];
+  const validAggregates = getValidAggregatesForSeriesRequest(aggregates);
+  if (validAggregates.length === aggregates.length) {
+    return widget;
+  }
+
+  return {
+    ...widget,
+    queries: widget.queries.map((widgetQuery, index) => {
+      if (index !== queryIndex) {
+        return widgetQuery;
+      }
+      return {
+        ...widgetQuery,
+        aggregates: validAggregates,
+        fields: widgetQuery.fields
+          ? [...(widgetQuery.columns ?? []), ...validAggregates]
+          : widgetQuery.fields,
+      };
+    }),
+  };
+}
 
 export function useSpansSeriesQuery(
   params: WidgetQueryParams & {skipDashboardFilterParens?: boolean}
@@ -82,10 +116,29 @@ export function useSpansSeriesQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
+  const skippedConditionalFilterQueryIndexes = useMemo(
+    () =>
+      filteredWidget.queries
+        .map((query, index) =>
+          areAllAggregatesInvalidConditionalFilters(query.aggregates ?? []) ? index : null
+        )
+        .filter((index): index is number => index !== null),
+    [filteredWidget.queries]
+  );
+
+  const allQueriesSkippedForConditionalFilter =
+    filteredWidget.queries.length > 0 &&
+    skippedConditionalFilterQueryIndexes.length === filteredWidget.queries.length;
+
   const queryResults = useQueries({
     queries: filteredWidget.queries.map((_, queryIndex) => {
+      const aggregates = filteredWidget.queries[queryIndex]!.aggregates ?? [];
+      const skippedForInvalidConditionalFilter =
+        areAllAggregatesInvalidConditionalFilters(aggregates);
+      const widgetForRequest = withValidConditionalAggregates(filteredWidget, queryIndex);
+
       const requestData = getSeriesRequestData(
-        filteredWidget,
+        widgetForRequest,
         queryIndex,
         organization,
         pageFilters,
@@ -143,7 +196,7 @@ export function useSpansSeriesQuery(
           }
           return apiFetch<SpansSeriesResponse>(context);
         },
-        enabled,
+        enabled: enabled && !skippedForInvalidConditionalFilter,
         retry: false,
         retryDelay: getRetryDelay,
         placeholderData: keepPreviousData,
@@ -152,9 +205,25 @@ export function useSpansSeriesQuery(
   });
 
   const transformedData = (() => {
-    const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data);
-    const errorMessage = queryResults.find(q => q?.error)?.error?.message;
+    if (allQueriesSkippedForConditionalFilter) {
+      return {
+        loading: false,
+        errorMessage: getConditionalFilterInvalidSeriesMessageForAggregates(
+          filteredWidget.queries[0]!.aggregates ?? []
+        ),
+        rawData: EMPTY_ARRAY,
+      };
+    }
+
+    const activeQueryIndexes = filteredWidget.queries
+      .map((_, index) => index)
+      .filter(index => !skippedConditionalFilterQueryIndexes.includes(index));
+
+    const isFetching = activeQueryIndexes.some(index => queryResults[index]?.isFetching);
+    const allHaveData = activeQueryIndexes.every(index => queryResults[index]?.data);
+    const errorMessage = activeQueryIndexes
+      .map(index => queryResults[index]?.error?.message)
+      .find(Boolean);
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
@@ -179,15 +248,17 @@ export function useSpansSeriesQuery(
 
       rawData[requestIndex] = responseData;
 
+      const queryForTransform = withValidConditionalAggregates(
+        filteredWidget,
+        requestIndex
+      ).queries[requestIndex]!;
+
       const transformedResult = SpansConfig.transformSeries!(
         responseData,
-        filteredWidget.queries[requestIndex]!,
+        queryForTransform,
         organization
       );
-      const seriesQueryPrefix = getSeriesQueryPrefix(
-        filteredWidget.queries[requestIndex]!,
-        filteredWidget
-      );
+      const seriesQueryPrefix = getSeriesQueryPrefix(queryForTransform, filteredWidget);
 
       // Maintain color consistency
       transformedResult.forEach((result: Series, resultIndex: number) => {
@@ -200,11 +271,11 @@ export function useSpansSeriesQuery(
       // Get result types and units from config
       const resultTypes = SpansConfig.getSeriesResultType?.(
         responseData,
-        filteredWidget.queries[requestIndex]!
+        queryForTransform
       );
       const resultUnits = SpansConfig.getSeriesResultUnit?.(
         responseData,
-        filteredWidget.queries[requestIndex]!
+        queryForTransform
       );
 
       if (resultTypes) {
