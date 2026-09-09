@@ -429,7 +429,7 @@ class DashboardDetail extends Component<Props, State> {
     }
   };
 
-  isWidgetBuilder = (path?: string) => {
+  isWidgetBuilder = () => {
     const {organization, location, params} = this.props;
     const {dashboardId, widgetIndex} = params;
 
@@ -451,7 +451,7 @@ class DashboardDetail extends Component<Props, State> {
       );
     }
 
-    return widgetBuilderRoutes.includes(path ?? location.pathname);
+    return widgetBuilderRoutes.includes(location.pathname);
   };
 
   onEdit = () => {

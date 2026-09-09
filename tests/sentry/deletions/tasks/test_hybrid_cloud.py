@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import threading
 from collections.abc import Callable, Generator
+from contextlib import contextmanager
 from operator import itemgetter
 from typing import Any, ClassVar, ContextManager, NotRequired, TypedDict, cast
 from unittest.mock import Mock, patch
@@ -17,22 +18,18 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.deletions.models.watermark import CellDeletionWatermark, ControlDeletionWatermark
+from sentry.deletions.tasks import hybrid_cloud
 from sentry.deletions.tasks.hybrid_cloud import (
-    READ_WATERMARK_FROM_POSTGRES_OPTION,
     ROW_WATERMARK,
     TOMBSTONE_WATERMARK,
     WATERMARK_PREFIXES,
-    WRITE_WATERMARK_TO_POSTGRES_OPTION,
     WatermarkBatch,
-    _get_redis_client,
     _process_hybrid_cloud_foreign_key_cascade,
     _read_postgres_watermark,
     _watermark_model,
-    _write_watermark,
     get_ids_cross_db_for_row_watermark,
     get_ids_cross_db_for_tombstone_watermark,
     get_watermark,
-    get_watermark_key,
     schedule_hybrid_cloud_foreign_key_jobs,
     schedule_hybrid_cloud_foreign_key_jobs_control,
     set_watermark,
@@ -53,7 +50,6 @@ from sentry.monitors.models import Monitor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -135,6 +131,53 @@ def project_bookmark_user_id_field() -> HybridCloudForeignKey[int, int]:
     return cast(HybridCloudForeignKey[int, int], ProjectBookmark._meta.get_field("user_id"))
 
 
+@contextmanager
+def record_watermark_writes(
+    field: HybridCloudForeignKey[int, int],
+) -> Generator[set[str]]:
+    """
+    Collect the watermark prefixes written for one field. A write can store the
+    value the row already holds, so the row itself cannot show that it happened.
+    """
+    written: set[str] = set()
+    manager = _watermark_model(field).objects
+    real_update_or_create = manager.update_or_create
+
+    def record(**kwargs: Any) -> Any:
+        if (
+            kwargs.get("table_name") == field.model._meta.db_table
+            and kwargs.get("field_name") == field.name
+        ):
+            written.add(kwargs["prefix"])
+        return real_update_or_create(**kwargs)
+
+    with patch.object(manager, "update_or_create", record):
+        yield written
+
+
+@contextmanager
+def record_low_bound_reports(
+    field: HybridCloudForeignKey[int, int],
+) -> Generator[set[str]]:
+    """
+    Collect the watermark prefixes that reported their position for one field.
+    Reporting does not touch the row, so the row cannot show that it happened.
+    """
+    reported: set[str] = set()
+    real_report = hybrid_cloud._report_low_bound
+
+    def record(prefix: str, reported_field: Any, value: int) -> None:
+        if (
+            reported_field.model._meta.db_table == field.model._meta.db_table
+            and reported_field.name == field.name
+        ):
+            reported.add(prefix)
+        return real_report(prefix, reported_field, value)
+
+    with patch.object(hybrid_cloud, "_report_low_bound", record):
+        yield reported
+
+
 @django_db_all
 def test_no_work_is_no_op(
     task_runner: Callable[[], ContextManager[None]],
@@ -153,81 +196,25 @@ def test_no_work_is_no_op(
 
 
 @django_db_all
-def test_no_work_rewrites_both_watermarks(
+def test_no_work_reports_both_watermarks_without_writing(
     task_runner: Callable[[], ContextManager[None]],
     project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
 ) -> None:
-    reset_watermarks()
-
-    before = {
-        prefix: get_watermark(prefix, project_bookmark_user_id_field)
-        for prefix in WATERMARK_PREFIXES
-    }
-    prefix_by_key = {
-        get_watermark_key(prefix, project_bookmark_user_id_field): prefix
-        for prefix in WATERMARK_PREFIXES
-    }
-
-    recording_client = Mock(wraps=_get_redis_client())
-    with patch(
-        "sentry.deletions.tasks.hybrid_cloud._get_redis_client", return_value=recording_client
-    ):
-        with task_runner():
-            schedule_hybrid_cloud_foreign_key_jobs()
-
-    written = {
-        prefix_by_key[call.args[0]]
-        for call in recording_client.set.call_args_list
-        if call.args[0] in prefix_by_key
-    }
-    assert written == set(WATERMARK_PREFIXES)
-
-    for prefix, watermark in before.items():
-        assert get_watermark(prefix, project_bookmark_user_id_field) == watermark
-
-
-@django_db_all
-def test_catch_up_rewrites_both_watermarks(
-    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
-) -> None:
     """
-    The `or` in _process_hybrid_cloud_foreign_key_cascade skips the second
-    reconciliation while the first one still has work. Both keys must be
-    written on such a cycle.
+    A caught up field writes its watermark rows only when it has work, but it
+    still reports where both watermarks sit. The every cycle rewrite existed to
+    fill the Postgres tables during the Redis to Postgres migration and is gone
+    now, so the report is what keeps the position visible.
     """
     reset_watermarks()
 
-    prefix_by_key = {
-        get_watermark_key(prefix, project_bookmark_user_id_field): prefix
-        for prefix in WATERMARK_PREFIXES
-    }
+    with record_watermark_writes(project_bookmark_user_id_field) as written:
+        with record_low_bound_reports(project_bookmark_user_id_field) as reported:
+            with task_runner():
+                schedule_hybrid_cloud_foreign_key_jobs()
 
-    recording_client = Mock(wraps=_get_redis_client())
-    with (
-        patch(
-            "sentry.deletions.tasks.hybrid_cloud._get_redis_client", return_value=recording_client
-        ),
-        patch(
-            "sentry.deletions.tasks.hybrid_cloud._process_tombstone_reconciliation",
-            return_value=True,
-        ) as reconciliation,
-    ):
-        _process_hybrid_cloud_foreign_key_cascade(
-            app_name=ProjectBookmark._meta.app_label,
-            model_name=ProjectBookmark.__name__,
-            field_name=project_bookmark_user_id_field.name,
-            process_task=Mock(),
-            silo_mode=SiloMode.CELL,
-        )
-
-    assert reconciliation.call_count == 1
-
-    written = {
-        prefix_by_key[call.args[0]]
-        for call in recording_client.set.call_args_list
-        if call.args[0] in prefix_by_key
-    }
-    assert written == set(WATERMARK_PREFIXES)
+    assert written == set()
+    assert reported == set(WATERMARK_PREFIXES)
 
 
 @django_db_all
@@ -253,15 +240,6 @@ def test_watermark_and_transaction_id(
     assert get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field) == (wm, new_tid1)
 
 
-# The write option is the parent. The read option only takes effect while the
-# write option is also on, so the read path needs both.
-DUAL_WRITE_ON = {WRITE_WATERMARK_TO_POSTGRES_OPTION: True}
-POSTGRES_READS_ON = {
-    WRITE_WATERMARK_TO_POSTGRES_OPTION: True,
-    READ_WATERMARK_FROM_POSTGRES_OPTION: True,
-}
-
-
 def _cell_watermark_rows(
     field: HybridCloudForeignKey[int, int],
 ) -> QuerySet[CellDeletionWatermark]:
@@ -271,28 +249,13 @@ def _cell_watermark_rows(
 
 
 @django_db_all
-def test_dual_write_off_leaves_postgres_empty(
+def test_write_stores_the_watermark_in_postgres(
     project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
 ) -> None:
     _cell_watermark_rows(project_bookmark_user_id_field).delete()
 
     _, tid = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
     set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 7, tid)
-
-    # Redis still holds the watermark, and nothing was written to Postgres.
-    assert get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)[0] == 7
-    assert not _cell_watermark_rows(project_bookmark_user_id_field).exists()
-
-
-@django_db_all
-def test_dual_write_puts_the_same_value_in_both_stores(
-    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
-) -> None:
-    _cell_watermark_rows(project_bookmark_user_id_field).delete()
-
-    with override_options(DUAL_WRITE_ON):
-        _, tid = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
-        set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 7, tid)
 
     low_bound, transaction_id = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
     assert low_bound == 7
@@ -303,16 +266,15 @@ def test_dual_write_puts_the_same_value_in_both_stores(
 
 
 @django_db_all
-def test_dual_write_updates_the_row_in_place(
+def test_write_updates_the_row_in_place(
     project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
 ) -> None:
     _cell_watermark_rows(project_bookmark_user_id_field).delete()
 
-    with override_options(DUAL_WRITE_ON):
-        _, tid = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
-        set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 7, tid)
-        _, tid = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
-        set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 9, tid)
+    _, tid = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
+    set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 7, tid)
+    _, tid = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
+    set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 9, tid)
 
     rows = _cell_watermark_rows(project_bookmark_user_id_field).filter(prefix=TOMBSTONE_WATERMARK)
     assert rows.count() == 1
@@ -320,51 +282,28 @@ def test_dual_write_updates_the_row_in_place(
 
 
 @django_db_all
-def test_dual_write_failure_does_not_stop_the_cascade(
+def test_write_failure_reaches_the_caller(
     project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
 ) -> None:
+    """
+    Postgres is the only store, so a swallowed failure would silently leave the
+    watermark where it was and re-process the same range on the next cycle.
+    """
     _cell_watermark_rows(project_bookmark_user_id_field).delete()
-
-    # Both stores agree before the failure.
-    with override_options(DUAL_WRITE_ON):
-        set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 5, "abc123")
+    set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 5, "abc123")
 
     broken = Mock(side_effect=ProgrammingError("relation does not exist"))
-    with override_options(DUAL_WRITE_ON):
-        with patch.object(CellDeletionWatermark.objects, "update_or_create", broken):
-            _, tid = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
+    _, tid = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
+    with patch.object(CellDeletionWatermark.objects, "update_or_create", broken):
+        with pytest.raises(ProgrammingError):
             set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 13, tid)
 
-    # Redis advanced and no exception escaped, so the batch task keeps working.
     assert broken.called
 
+    # The watermark did not move.
     row = _cell_watermark_rows(project_bookmark_user_id_field).get(prefix=TOMBSTONE_WATERMARK)
     assert row.low_bound == 5
-
-    with override_options(POSTGRES_READS_ON):
-        assert get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)[0] == 5
-
-    assert get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)[0] == 13
-
-
-@django_db_all
-def test_one_cycle_fills_both_watermark_rows(
-    task_runner: Callable[[], ContextManager[None]],
-    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
-) -> None:
-    reset_watermarks()
-    _cell_watermark_rows(project_bookmark_user_id_field).delete()
-
-    with override_options(DUAL_WRITE_ON):
-        with task_runner():
-            schedule_hybrid_cloud_foreign_key_jobs()
-
-    rows = {row.prefix: row for row in _cell_watermark_rows(project_bookmark_user_id_field)}
-    assert set(rows) == set(WATERMARK_PREFIXES)
-    for prefix, row in rows.items():
-        assert (row.low_bound, row.transaction_id) == get_watermark(
-            prefix, project_bookmark_user_id_field
-        )
+    assert get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)[0] == 5
 
 
 @django_db_all
@@ -381,15 +320,14 @@ def test_watermark_model_in_monolith_follows_the_field_model_silo(
 
 @django_db_all
 @control_silo_test
-def test_dual_write_uses_the_control_table_in_control_silo() -> None:
+def test_write_uses_the_control_table_in_control_silo() -> None:
     field = cast(HybridCloudForeignKey[int, int], AuthProvider._meta.get_field("organization_id"))
     ControlDeletionWatermark.objects.filter(
         table_name=AuthProvider._meta.db_table, field_name=field.name
     ).delete()
 
-    with override_options(DUAL_WRITE_ON):
-        _, tid = get_watermark(TOMBSTONE_WATERMARK, field)
-        set_watermark(TOMBSTONE_WATERMARK, field, 11, tid)
+    _, tid = get_watermark(TOMBSTONE_WATERMARK, field)
+    set_watermark(TOMBSTONE_WATERMARK, field, 11, tid)
 
     low_bound, transaction_id = get_watermark(TOMBSTONE_WATERMARK, field)
     assert low_bound == 11
@@ -404,18 +342,12 @@ def test_dual_write_uses_the_control_table_in_control_silo() -> None:
 
 
 @django_db_all
-def test_read_starts_fresh_when_no_store_holds_the_watermark(
+def test_read_starts_fresh_when_no_row_holds_the_watermark(
     project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
 ) -> None:
     _cell_watermark_rows(project_bookmark_user_id_field).delete()
-    _get_redis_client().delete(
-        get_watermark_key(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
-    )
 
-    with override_options(POSTGRES_READS_ON):
-        low_bound, transaction_id = get_watermark(
-            TOMBSTONE_WATERMARK, project_bookmark_user_id_field
-        )
+    low_bound, transaction_id = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
 
     assert low_bound == 0
     assert transaction_id
@@ -425,72 +357,18 @@ def test_read_starts_fresh_when_no_store_holds_the_watermark(
 
 
 @django_db_all
-def test_read_prefers_the_postgres_row_over_redis(
+def test_read_returns_the_postgres_row(
     project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
 ) -> None:
     _cell_watermark_rows(project_bookmark_user_id_field).delete()
 
-    with override_options(DUAL_WRITE_ON):
-        set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 55, "abc123")
-
-    # Move Redis on its own, so a Redis read would give a different answer.
-    _write_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 99, "stale-redis-tid")
+    set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 55, "abc123")
     row = _cell_watermark_rows(project_bookmark_user_id_field).get(prefix=TOMBSTONE_WATERMARK)
 
-    recording_client = Mock(wraps=_get_redis_client())
-    with override_options(POSTGRES_READS_ON):
-        with patch(
-            "sentry.deletions.tasks.hybrid_cloud._get_redis_client", return_value=recording_client
-        ):
-            watermark = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
-
-    assert watermark == (55, row.transaction_id)
-    assert recording_client.get.call_count == 0
-
-
-@django_db_all
-def test_read_with_the_options_off_still_uses_redis(
-    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
-) -> None:
-    _cell_watermark_rows(project_bookmark_user_id_field).delete()
-
-    with override_options(DUAL_WRITE_ON):
-        set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 55, "abc123")
-
-    # Move Redis on its own. With the options off the Redis value is the answer.
-    _write_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 99, "stale-redis-tid")
-
     assert get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field) == (
-        99,
-        "stale-redis-tid",
+        55,
+        row.transaction_id,
     )
-
-
-@django_db_all
-@pytest.mark.parametrize(
-    "half_on",
-    [
-        pytest.param({WRITE_WATERMARK_TO_POSTGRES_OPTION: True}, id="write-only"),
-        pytest.param({READ_WATERMARK_FROM_POSTGRES_OPTION: True}, id="read-only"),
-    ],
-)
-def test_read_needs_both_options_to_use_postgres(
-    half_on: dict[str, bool],
-    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
-) -> None:
-    _cell_watermark_rows(project_bookmark_user_id_field).delete()
-
-    with override_options(DUAL_WRITE_ON):
-        set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 55, "abc123")
-
-    # Move Redis on its own, so a Postgres read would give a different answer.
-    _write_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 99, "stale-redis-tid")
-
-    with override_options(half_on):
-        assert get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field) == (
-            99,
-            "stale-redis-tid",
-        )
 
 
 @django_db_all(transaction=True)
@@ -499,7 +377,6 @@ def test_two_concurrent_reads_create_one_row(
 ) -> None:
     field = project_bookmark_user_id_field
     _cell_watermark_rows(field).delete()
-    _get_redis_client().delete(get_watermark_key(TOMBSTONE_WATERMARK, field))
 
     looked_up = threading.Barrier(2, timeout=10)
     ready_to_insert = threading.Barrier(2, timeout=10)
@@ -535,7 +412,6 @@ def test_two_concurrent_reads_create_one_row(
                 connection.close()
 
     with (
-        override_options(POSTGRES_READS_ON),
         patch("sentry.deletions.tasks.hybrid_cloud._read_postgres_watermark", read_row_then_wait),
         patch.object(watermark_queryset, "create", insert_alongside_the_other_reader),
     ):

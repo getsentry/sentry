@@ -126,6 +126,7 @@ export interface ScmMessagingProviderRowProps {
   activeRow: ScmMessagingActiveRow;
   messagingSetup: ScmMessagingSetup;
   onActiveRowChange: (row: ScmMessagingActiveRow) => void;
+  onContinue: () => void;
   onInstallComplete: (providerKey: ScmMessagingProviderKey) => void;
   onMessagingSetupChange: (setup: ScmMessagingSetup) => void;
   resolvedProvider: ScmMessagingResolvedProvider;
@@ -161,6 +162,7 @@ export function ScmMessagingProviderRow({
   onActiveRowChange,
   renderChannelPicker,
   isRefetchingIntegrations = false,
+  onContinue,
 }: ScmMessagingProviderRowProps) {
   const organization = useOrganization();
   const {startFlow, state: installState} = useAddIntegration();
@@ -193,7 +195,9 @@ export function ScmMessagingProviderRow({
 
   const handleConnect = useCallback(() => {
     if (resolvedProvider.providerKey === 'msteams') {
-      openMsTeamsConnectionModal(resolvedProvider.provider);
+      openMsTeamsConnectionModal(resolvedProvider.provider, () => {
+        onInstallComplete(resolvedProvider.providerKey);
+      });
       return;
     }
     startFlow({
@@ -230,8 +234,9 @@ export function ScmMessagingProviderRow({
     (setup: ScmMessagingSetup & {mode: 'selected'}) => {
       onMessagingSetupChange(setup);
       onActiveRowChange(null);
+      onContinue();
     },
-    [onMessagingSetupChange, onActiveRowChange]
+    [onMessagingSetupChange, onActiveRowChange, onContinue]
   );
 
   const errorMessage = getInstallErrorMessage(installState);

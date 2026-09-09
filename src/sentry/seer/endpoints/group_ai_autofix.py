@@ -43,7 +43,6 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix_agent import (
-    AutofixStep,
     NoSeerQuotaException,
     get_autofix_agent_state,
     get_autofix_run_state,
@@ -73,6 +72,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
     try_enqueue_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_extra
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.types import (
     AutofixHandoffResponse,
     AutofixPostResponse,

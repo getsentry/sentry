@@ -1,6 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 
 import {isExpandable as frameHasExpandableDetails} from 'sentry/components/events/interfaces/frame/utils';
+import {NoStackTraceMessage} from 'sentry/components/events/interfaces/noStackTraceMessage';
 import {getLastFrameIndex} from 'sentry/components/events/interfaces/utils';
 import type {Event} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
@@ -11,6 +12,13 @@ import {createInitialHiddenFrameToggleMap, getFrameCountMap, getRows} from './ge
 import {StackTraceContext, useStackTraceViewState} from './stackTraceContext';
 import type {StackTraceContextValue} from './stackTraceContext';
 import type {StackTraceProviderProps} from './types';
+
+const EMPTY_STACKTRACE: StacktraceType = {
+  frames: [],
+  framesOmitted: null,
+  hasSystemFrames: false,
+  registers: null,
+};
 
 function getDefaultPlatform(stacktrace: StacktraceType, event: Event): PlatformKey {
   const framePlatform = stacktrace.frames?.find(frame => !!frame.platform)?.platform;
@@ -33,8 +41,10 @@ export function StackTraceProvider({
 }: StackTraceProviderProps) {
   const {isMinified, isNewestFirst, view} = useStackTraceViewState();
 
-  const activeStacktrace =
-    isMinified && minifiedStacktrace ? minifiedStacktrace : stacktrace;
+  let activeStacktrace = stacktrace ?? EMPTY_STACKTRACE;
+  if (isMinified && minifiedStacktrace) {
+    activeStacktrace = minifiedStacktrace;
+  }
   const frames = useMemo(() => activeStacktrace.frames ?? [], [activeStacktrace.frames]);
   const {projects} = useProjects();
   const project = useMemo(
@@ -160,6 +170,10 @@ export function StackTraceProvider({
       toggleHiddenFrames,
     ]
   );
+
+  if (!stacktrace) {
+    return <NoStackTraceMessage />;
+  }
 
   return (
     <StackTraceContext.Provider value={value}>{children}</StackTraceContext.Provider>

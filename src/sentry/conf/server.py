@@ -201,7 +201,6 @@ SENTRY_UPTIME_DETECTOR_CLUSTER = "default"
 SENTRY_WORKFLOW_ENGINE_REDIS_CLUSTER = "default"
 SENTRY_HYBRIDCLOUD_BACKFILL_OUTBOXES_REDIS_CLUSTER = "default"
 SENTRY_WEEKLY_REPORTS_REDIS_CLUSTER = "default"
-SENTRY_HYBRIDCLOUD_DELETIONS_REDIS_CLUSTER = "default"
 SENTRY_SESSION_STORE_REDIS_CLUSTER = "default"
 SENTRY_AUTH_IDPMIGRATION_REDIS_CLUSTER = "default"
 SENTRY_SNOWFLAKE_REDIS_CLUSTER = "default"
@@ -1536,6 +1535,10 @@ SUPERUSER_ORG_ID: int | None = None
 SENTRY_SCIM_STAFF_TEAM_SLUG: str | None = None
 SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG: str | None = None
 SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG: str | None = None
+
+# Mapping of UserPermission strings to SCIM team slugs.
+# Adding/removing members from these teams grants/revokes the corresponding UserPermission.
+SENTRY_SCIM_PERMISSION_TEAM_SLUGS: dict[str, str] = {}
 
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT: int | None = None
@@ -2899,6 +2902,9 @@ SENTRY_REPROCESSING_TOMBSTONES_TTL = 24 * 3600
 
 # How long reprocessing counters are kept in Redis before they expire.
 SENTRY_REPROCESSING_SYNC_TTL = 30 * 24 * 3600  # 30 days
+
+# How long the reprocessing page claims are kept in Redis before they expire.
+SENTRY_REPROCESSING_PAGE_CLAIM_TTL = 24 * 3600  # 1 day
 
 # How many events to query for at once while paginating through an entire
 # issue. Note that this needs to be kept in sync with the time-limits on
