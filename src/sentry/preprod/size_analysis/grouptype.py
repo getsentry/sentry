@@ -216,7 +216,7 @@ class PreprodSizeAnalysisDetectorHandler(
             )
             return False
 
-    def evaluate_impl(self, data_packet: SizeAnalysisDataPacket) -> GroupedDetectorEvaluationResult:
+    def evaluate(self, data_packet: SizeAnalysisDataPacket) -> GroupedDetectorEvaluationResult:
         if not self._matches_query(data_packet):
             return GroupedDetectorEvaluationResult(result={}, tainted=False)
 
