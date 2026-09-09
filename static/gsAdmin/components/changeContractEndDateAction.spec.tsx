@@ -20,7 +20,7 @@ describe('ChangeContractEndDateAction', () => {
   });
 
   it('submits updated contract end date', async () => {
-    onAction.mockResolvedValue(undefined);
+    onAction.mockResolvedValue({ok: true});
 
     render(
       <ChangeContractEndDateAction

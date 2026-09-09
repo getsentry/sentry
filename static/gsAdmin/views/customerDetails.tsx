@@ -170,6 +170,15 @@ export function CustomerDetails() {
     },
   });
 
+  const updateCustomer = async (params: Record<string, unknown>) => {
+    try {
+      await onUpdateMutation.mutateAsync(params);
+      return {ok: true} as const;
+    } catch (error) {
+      return {ok: false, error} as const;
+    }
+  };
+
   const onGenerateSpikeProjectionsMutation = useMutation({
     mutationFn: () =>
       fetchMutation({
@@ -905,7 +914,7 @@ export function CustomerDetails() {
           {
             content: (
               <CustomerOverview
-                onAction={onUpdateMutation.mutateAsync}
+                onAction={updateCustomer}
                 customer={subscription}
                 organization={organization}
               />

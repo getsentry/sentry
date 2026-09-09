@@ -20,7 +20,10 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 import {ChangeARRAction} from 'admin/components/changeARRAction';
-import {ChangeContractEndDateAction} from 'admin/components/changeContractEndDateAction';
+import {
+  ChangeContractEndDateAction,
+  type CustomerUpdateAction,
+} from 'admin/components/changeContractEndDateAction';
 import {CustomerContact} from 'admin/components/customerContact';
 import {CustomerStatus} from 'admin/components/customerStatus';
 import {DetailLabel} from 'admin/components/detailLabel';
@@ -65,7 +68,7 @@ import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 type SubscriptionSummaryProps = {
   customer: Subscription;
-  onAction: (data: Record<string, unknown>) => Promise<unknown>;
+  onAction: CustomerUpdateAction;
 };
 
 function SoftCapTypeDetail({
@@ -498,7 +501,7 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
 
 type Props = {
   customer: Subscription;
-  onAction: (data: Record<string, unknown>) => Promise<unknown>;
+  onAction: CustomerUpdateAction;
   organization: Organization;
 };
 
