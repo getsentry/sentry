@@ -160,6 +160,21 @@ export enum LockType {
   BLOCKED = 8,
 }
 
+/**
+ * Typed native variable tree shared by frame renderers and extraction adapters.
+ * This is a frontend model; the current Frame.vars payload is not decoded into it yet.
+ * Scalar values stay strings to preserve pointer addresses and full numeric precision.
+ */
+export type NativeFrameVariable = {
+  name: string;
+  type: string;
+} & (
+  | {children: readonly NativeFrameVariable[]; kind: 'object'}
+  | {kind: 'number' | 'string' | 'enum' | 'pointer'; value: string}
+  | {kind: 'null'}
+  | {kind: 'unavailable'}
+);
+
 export type Frame = {
   absPath: string | null;
   colNo: number | null;
