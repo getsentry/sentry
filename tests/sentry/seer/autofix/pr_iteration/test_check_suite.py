@@ -1696,6 +1696,61 @@ class SweepCheckRunsCostTest(TestCase):
     def test_unsupported_provider_returns_none(self) -> None:
         assert sweep_check_runs(MagicMock(), "abc", log_extra={}) is None
 
+    @patch(f"{CHECK_SUITES_PATH}.metrics")
+    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.scm_actions")
+    def test_emits_the_smallest_rate_limit_drop(
+        self, mock_actions: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        """Concurrent traffic inflates any single drop, so the floor is the estimate."""
+        mock_actions.list_check_runs_for_ref.side_effect = [
+            self._page([self._run()], remaining="100"),
+            self._page([self._run()], remaining="98"),
+            self._page([], remaining="97"),
+        ]
+
+        sweep_check_runs(MagicMock(), "abc", log_extra={})
+
+        mock_metrics.distribution.assert_any_call(
+            "autofix.pr_iteration.check_runs_sweep.rate_limit_per_request",
+            1,
+            tags={"outcome": "swept"},
+        )
+
+    @patch(f"{CHECK_SUITES_PATH}.metrics")
+    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.scm_actions")
+    def test_ignores_a_rate_limit_window_reset(
+        self, mock_actions: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        mock_actions.list_check_runs_for_ref.side_effect = [
+            self._page([self._run()], remaining="100"),
+            self._page([self._run()], remaining="96"),
+            self._page([self._run()], remaining="5000"),
+            self._page([], remaining="4999"),
+        ]
+
+        sweep_check_runs(MagicMock(), "abc", log_extra={})
+
+        mock_metrics.distribution.assert_any_call(
+            "autofix.pr_iteration.check_runs_sweep.rate_limit_per_request",
+            1,
+            tags={"outcome": "swept"},
+        )
+
+    @patch(f"{CHECK_SUITES_PATH}.metrics")
+    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.scm_actions")
+    def test_single_request_has_no_rate_limit_estimate(
+        self, mock_actions: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        mock_actions.list_check_runs_for_ref.side_effect = [self._page([], remaining="100")]
+
+        sweep_check_runs(MagicMock(), "abc", log_extra={})
+
+        emitted = [call.args[0] for call in mock_metrics.distribution.call_args_list]
+        assert emitted == ["autofix.pr_iteration.check_runs_sweep.cost"]
+
 
 def _live_pr_result(head_sha: str = "abc") -> dict:
     return {
