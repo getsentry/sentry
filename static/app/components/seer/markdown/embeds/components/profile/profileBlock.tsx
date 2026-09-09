@@ -40,14 +40,22 @@ const PREVIEW_HEIGHT = '200px';
 type ViewMode = 'aggregated' | 'timeline';
 
 /**
- * Drives both the preview's own sort and the `sorting` param on the deep link.
- * `fov` is a rect in the sorted tree's coordinate space, so opening the full
- * view under a different sort would land the viewport on unrelated frames --
- * and the flamegraph page defaults to 'call order', not the preview's default.
+ * The import type and the sort are one choice, not two: `Flamegraph` throws
+ * `TypeError: Flamegraph does not support call order sorting` when a profile
+ * imported as 'flamegraph' is sorted by call order. Deriving them from a single
+ * table keeps the pair honest.
+ *
+ * `sort` doubles as the `sorting` param on the deep link -- `fov` is a rect in
+ * the sorted tree's coordinate space, so opening the full view under a different
+ * sort would land the viewport on unrelated frames, and the flamegraph page
+ * defaults to 'call order' rather than the preview's default.
  */
-const VIEW_MODE_SORT: Record<ViewMode, FlamegraphModel['sort']> = {
-  aggregated: 'left heavy',
-  timeline: 'call order',
+const VIEW_MODES: Record<
+  ViewMode,
+  {importType: 'flamechart' | 'flamegraph'; sort: FlamegraphModel['sort']}
+> = {
+  aggregated: {importType: 'flamegraph', sort: 'left heavy'},
+  timeline: {importType: 'flamechart', sort: 'call order'},
 };
 
 function profileApiOptions({
@@ -150,36 +158,41 @@ export default function ProfileBlock({projectSlug, profileId}: EmbedOutput<'prof
   const metadata = useMemo(() => (data ? getProfileMetadata(data) : null), [data]);
 
   // `importProfile` is real CPU work over the whole payload, so keep it memoized.
-  const profileGroup = useMemo(() => {
+  // Importing and sorting happen together so the two halves of the view mode can
+  // never come from different renders, and so a payload that either step rejects
+  // degrades to the metadata strip instead of throwing out of the embed and
+  // taking the surrounding conversation with it.
+  const chart = useMemo(() => {
     if (!data || isSentryContinuousProfileChunk(data)) {
       return null;
     }
 
+    const {importType, sort} = VIEW_MODES[viewMode];
+
     try {
-      return importProfile(
+      const group = importProfile(
         data,
         isSchema(data) ? data.metadata.traceID : '',
         null,
-        viewMode === 'timeline' ? 'flamechart' : 'flamegraph'
+        importType
       );
+      const profile = group.profiles[group.activeProfileIndex] ?? group.profiles[0];
+
+      if (!profile) {
+        return null;
+      }
+
+      return {
+        flamegraph: new FlamegraphModel(profile, {sort}),
+        duration: profile.duration,
+        threadCount: group.profiles.length,
+      };
     } catch {
-      // An unrecognized payload degrades to the metadata strip below.
       return null;
     }
   }, [data, viewMode]);
 
-  const activeProfile =
-    profileGroup?.profiles[profileGroup.activeProfileIndex] ??
-    profileGroup?.profiles[0] ??
-    null;
-
-  const flamegraph = useMemo(
-    () =>
-      activeProfile
-        ? new FlamegraphModel(activeProfile, {sort: VIEW_MODE_SORT[viewMode]})
-        : null,
-    [activeProfile, viewMode]
-  );
+  const flamegraph = chart?.flamegraph ?? null;
 
   const target = useMemo(() => {
     // Deep link to the same viewport the preview is showing.
@@ -187,7 +200,7 @@ export default function ProfileBlock({projectSlug, profileId}: EmbedOutput<'prof
       ? {
           fov: Rect.encode(canvasView.configView),
           view: 'top down',
-          sorting: VIEW_MODE_SORT[viewMode],
+          sorting: VIEW_MODES[viewMode].sort,
         }
       : undefined;
 
@@ -258,15 +271,13 @@ export default function ProfileBlock({projectSlug, profileId}: EmbedOutput<'prof
                     {metadata.transactionName}
                   </MetadataItem>
                 ) : null}
-                {flamegraph && activeProfile ? (
+                {chart ? (
                   <MetadataItem label={t('Duration')}>
-                    {flamegraph.formatter(activeProfile.duration)}
+                    {chart.flamegraph.formatter(chart.duration)}
                   </MetadataItem>
                 ) : null}
-                {profileGroup ? (
-                  <MetadataItem label={t('Threads')}>
-                    {profileGroup.profiles.length}
-                  </MetadataItem>
+                {chart ? (
+                  <MetadataItem label={t('Threads')}>{chart.threadCount}</MetadataItem>
                 ) : null}
                 {metadata.environment ? (
                   <MetadataItem label={t('Environment')}>

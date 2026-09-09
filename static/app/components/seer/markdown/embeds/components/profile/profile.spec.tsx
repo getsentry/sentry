@@ -4,6 +4,10 @@ import {
   getEmbedLinkHref,
   renderEmbed,
 } from 'sentry/components/seer/markdown/embeds/components/resourceEmbedTestUtils';
+import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import * as importProfileModule from 'sentry/utils/profiling/profile/importProfile';
+
+const {importProfile} = importProfileModule;
 
 const PROJECT_SLUG = 'javascript';
 const PROFILE_ID = '7f3c2b1a9d8e4f60';
@@ -92,6 +96,10 @@ function renderProfileBlock(body: unknown = makeProfileSchema(), statusCode = 20
 }
 
 describe('profile embed', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('links a profile to its flamegraph', () => {
     expect(
       getEmbedLinkHref('profile', 'Profile 7f3c2b1a', {
@@ -128,6 +136,33 @@ describe('profile embed', () => {
       '/organizations/org-slug/explore/profiles/profile/javascript/7f3c2b1a9d8e4f60/flamegraph/'
     );
     expect(screen.getByRole('button', {name: 'Open in Profiling'})).toBeInTheDocument();
+  });
+
+  it('pairs each view with an import type its sort accepts', () => {
+    // `Flamegraph` throws "does not support call order sorting" if a profile
+    // imported as 'flamegraph' is sorted by call order, which crashed the whole
+    // conversation because the model is built outside the embed's boundary.
+    for (const importType of ['flamegraph', 'flamechart'] as const) {
+      const group = importProfile(makeProfileSchema() as any, 't', null, importType);
+      const profile = group.profiles[0]!;
+      const sort = importType === 'flamechart' ? 'call order' : 'left heavy';
+
+      expect(() => new Flamegraph(profile, {sort})).not.toThrow();
+    }
+  });
+
+  it('degrades to the metadata strip when the chart cannot be built', async () => {
+    jest.spyOn(importProfileModule, 'importProfile').mockImplementation(() => {
+      throw new TypeError('Flamegraph does not support call order sorting');
+    });
+
+    renderProfileBlock();
+
+    // The card still renders; only the chart is missing.
+    expect(await screen.findByText('Transaction')).toBeInTheDocument();
+    expect(screen.getByTestId('seer-profile-embed')).toBeInTheDocument();
+    expect(screen.queryByTestId('seer-profile-flamechart')).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', {name: 'Time-ordered'})).not.toBeInTheDocument();
   });
 
   it('opens the preview at the root of a deep profile in both views', async () => {
