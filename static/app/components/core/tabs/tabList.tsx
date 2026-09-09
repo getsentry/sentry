@@ -256,9 +256,6 @@ function OverflowMenu({state, overflowMenuItems, disabled}: OverflowMenuProps) {
         onChange={opt => state.setSelectedKey(opt.value)}
         disabled={disabled}
         position="bottom-end"
-        // The menu renders inline, so fixed positioning lets it escape clipped
-        // tab containers such as the conversation span details panel.
-        strategy="fixed"
         size="sm"
         offset={4}
         trigger={triggerProps => (
