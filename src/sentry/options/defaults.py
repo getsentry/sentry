@@ -2577,16 +2577,6 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "hybrid_cloud.write_deletion_watermark_to_postgres",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "hybrid_cloud.read_deletion_watermark_from_postgres",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # List of event IDs to pass through
 register(
