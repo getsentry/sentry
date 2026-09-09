@@ -3,6 +3,8 @@ from typing import Any
 from unittest import mock
 
 import responses
+from django.test import override_settings
+from rest_framework.test import APIClient
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
@@ -11,6 +13,7 @@ from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
+from sentry.seer import agent_token
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -34,6 +37,8 @@ from tests.sentry.workflow_engine.test_base import (
     MockActionValidatorTranslator,
     ProjectAccessTestMixin,
 )
+
+AGENT_TOKEN_SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
 
 
 class OrganizationWorkflowAPITestCase(APITestCase):
@@ -1657,6 +1662,69 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
         # Verify third workflow is unaffected
         self.workflow_three.refresh_from_db()
         assert self.workflow_three.enabled is False
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    def test_agent_token_can_update_ordinary_workflow_when_all_projects_workflow_exists(
+        self,
+    ) -> None:
+        all_projects_workflow = self.create_workflow(organization_id=self.organization.id)
+        self.create_detector_workflow(
+            workflow=all_projects_workflow,
+            detector=ensure_default_all_projects_detector(self.organization.id),
+        )
+        token, _ = agent_token.encode_agent_token(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            scopes=["alerts:write"],
+            session_id="workflow-update",
+        )
+        client = APIClient()
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = client.put(
+                f"/api/0/organizations/{self.organization.slug}/workflows/",
+                data={"enabled": True},
+                format="json",
+                query_params={"id": str(self.workflow.id)},
+                HTTP_AUTHORIZATION=f"Bearer {token}",
+            )
+
+        assert response.status_code == 200, response.content
+        self.workflow.refresh_from_db()
+        assert self.workflow.enabled is True
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    def test_all_projects_workflow_agent_token_advertises_org_write(self) -> None:
+        all_projects_workflow = self.create_workflow(
+            organization_id=self.organization.id, enabled=False
+        )
+        self.create_detector_workflow(
+            workflow=all_projects_workflow,
+            detector=ensure_default_all_projects_detector(self.organization.id),
+        )
+        token, _ = agent_token.encode_agent_token(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            scopes=["alerts:write"],
+            session_id="workflow-update",
+        )
+        client = APIClient()
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = client.put(
+                f"/api/0/organizations/{self.organization.slug}/workflows/",
+                data={"enabled": True},
+                format="json",
+                query_params={"id": str(all_projects_workflow.id)},
+                HTTP_AUTHORIZATION=f"Bearer {token}",
+            )
+
+        assert response.status_code == 403, response.content
+        assert (
+            response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="org:write"'
+        )
 
     def test_bulk_enable_all_projects_slug_sentinel_includes_detached_workflows(self) -> None:
         self.create_detector_workflow(

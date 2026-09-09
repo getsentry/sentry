@@ -246,7 +246,12 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         all_projects_detector = get_all_projects_detector(organization.id)
         if all_projects_detector:
             all_projects_workflows_q = Q(detectorworkflow__detector_id=all_projects_detector.id)
-            if should_include_all_projects_detector_workflows_or_raise(request, organization):
+            should_check_all_projects_access = (
+                request.method == "GET" or queryset.filter(all_projects_workflows_q).exists()
+            )
+            if should_check_all_projects_access and (
+                should_include_all_projects_detector_workflows_or_raise(request, organization)
+            ):
                 accessible_workflows |= all_projects_workflows_q
             else:
                 queryset = queryset.exclude(all_projects_workflows_q)
