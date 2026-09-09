@@ -8,7 +8,7 @@ import {Text} from '@sentry/scraps/text';
 import type {ContainerBreakpointSize} from 'sentry/utils/theme';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
-import {ResizableWindow} from './resizableWindow';
+import {allowOpenOverlayOverflowCss, ResizableWindow} from './resizableWindow';
 
 interface DemoProps extends FlexProps {
   resizable?: boolean;
@@ -26,7 +26,8 @@ export function Demo({resizable, ...props}: DemoProps) {
         marginTop="md"
         style={{marginBottom: '-1lh'}}
       >
-        <DemoContent
+        <Flex
+          css={allowOpenOverlayOverflowCss}
           data-test-id="storybook-demo"
           width="100%"
           align="center"
@@ -78,7 +79,8 @@ export function Demo({resizable, ...props}: DemoProps) {
       </Flex>
       <Flex align="center" justify="center" padding="xl">
         <ResizableWindow ref={containerRef}>
-          <DemoContent
+          <Flex
+            css={allowOpenOverlayOverflowCss}
             flex="1"
             data-test-id="storybook-demo"
             width="100%"
@@ -95,12 +97,6 @@ export function Demo({resizable, ...props}: DemoProps) {
     </DemoChrome>
   );
 }
-
-const DemoContent = styled(Flex)`
-  &:has([aria-haspopup][aria-expanded='true']) {
-    overflow: visible;
-  }
-`;
 
 function useContainerBreakpoints(): Array<[ContainerBreakpointSize, number]> {
   const theme = useTheme();
