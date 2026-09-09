@@ -4,11 +4,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from sentry.analytics.events.pr_iteration_events import (
+    AiAutofixPrIterationFeedbackBatchBlockedEvent,
     AiAutofixPrIterationMissingPermissionsEvent,
 )
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
 from sentry.seer.autofix.github_perms import MissingGithubPermissions
+from sentry.seer.autofix.pr_iteration.emit import open_pr_iteration_details
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.missing_permissions import (
     MISSING_PERMISSIONS_EXTRA,
@@ -20,6 +22,7 @@ from sentry.seer.autofix.pr_iteration.missing_permissions import (
 from sentry.seer.models.run import SeerRun
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_analytics_events, assert_not_analytics_event
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.locking import UnableToAcquireLock
 
 MODULE = "sentry.seer.autofix.pr_iteration.missing_permissions"
@@ -148,6 +151,47 @@ class BlockIterationForMissingPermissionsTest(TestCase):
 
         assert self._run(_state(getsentry__sentry=7)) is True
         mock_delay.assert_not_called()
+
+    def _open_row(self) -> None:
+        open_pr_iteration_details(
+            log_ctx=_log_ctx(_state(getsentry__sentry=7)),
+            run_state=_state(getsentry__sentry=7),
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
+
+    @freeze_time("2024-01-01 00:00:00")
+    def test_records_the_outcome_the_first_time_it_blocks(self, mock_get_perms, mock_delay) -> None:
+        mock_get_perms.return_value = {REPO_NAME: _perms(repository_id=123)}
+        self._open_row()
+
+        with assert_analytics_events(
+            [
+                AiAutofixPrIterationFeedbackBatchBlockedEvent(
+                    iteration_id=self.seer_run.pr_iterations.get().id,
+                    organization_id=self.organization.id,
+                    project_id=self.project.id,
+                    group_id=self.group.id,
+                    run_id=RUN_ID,
+                    iteration_index=0,
+                    duration_ms=0,
+                    outcome="missing_permissions",
+                )
+            ]
+        ):
+            assert self._run(_state(getsentry__sentry=7)) is True
+
+    def test_does_not_re_record_the_outcome_for_the_same_iteration(
+        self, mock_get_perms, mock_delay
+    ) -> None:
+        mock_get_perms.return_value = {REPO_NAME: _perms(repository_id=123)}
+        self._open_row()
+
+        assert self._run(_state(getsentry__sentry=7)) is True
+        with patch("sentry.analytics.record") as mock_record:
+            assert self._run(_state(getsentry__sentry=7)) is True
+
+        assert_not_analytics_event(mock_record, AiAutofixPrIterationFeedbackBatchBlockedEvent)
 
 
 @patch(f"{MODULE}.get_missing_permissions_by_repo")

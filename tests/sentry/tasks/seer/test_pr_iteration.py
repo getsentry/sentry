@@ -1714,6 +1714,49 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
             "autofix.pr_iteration.paused.blocked", tags={"gate": "trigger_consume"}
         )
 
+    def _pause(self, reason: PauseReason) -> None:
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
+        pause_pr_iteration(run_id=67890, organization_id=self.organization.id, reason=reason)
+        open_pr_iteration_details(
+            log_ctx=self._log_ctx(),
+            run_state=self._state(),
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_run_paused_by_an_error_records_that_reason(self, mock_apply: MagicMock) -> None:
+        self._pause(PauseReason.RUN_ERRORED)
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._trigger(bypass=True)
+
+        assert mock_record.call_args.args[0].outcome == "paused_run_errored"
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_run_someone_stopped_records_that_reason(self, mock_apply: MagicMock) -> None:
+        self._pause(PauseReason.USER_STOP)
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._trigger(bypass=True)
+
+        assert mock_record.call_args.args[0].outcome == "paused_user_stop"
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_paused_run_records_once_however_much_ci_lands(self, mock_apply: MagicMock) -> None:
+        self._pause(PauseReason.RUN_ERRORED)
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._trigger(bypass=True)
+            self._trigger(bypass=True)
+            self._trigger(bypass=True)
+
+        # Nothing drains a paused run, so every check suite on the PR arrives
+        # here. The batch is one batch however many of them there are.
+        assert mock_record.call_count == 1
+
     @patch(f"{TASK_PATH}.block_iteration_for_missing_permissions", return_value=True)
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_missing_permissions_skips_scheduling(
