@@ -240,29 +240,27 @@ Tabs come in two visual variants: `flat` (default) and `floating`. The variant i
 
 Tabs support both horizontal and vertical orientation:
 
-<Storybook.Demo>
-  <Storybook.SideBySide>
-    <Tabs orientation="horizontal">
-      <TabList>
-        <TabList.Item key="one">Tab 1</TabList.Item>
-        <TabList.Item key="two">Tab 2</TabList.Item>
-      </TabList>
-      <TabPanels>
-        <TabPanels.Item key="one">Horizontal content 1</TabPanels.Item>
-        <TabPanels.Item key="two">Horizontal content 2</TabPanels.Item>
-      </TabPanels>
-    </Tabs>
-    <Tabs orientation="vertical">
-      <TabList>
-        <TabList.Item key="one">Tab 1</TabList.Item>
-        <TabList.Item key="two">Tab 2</TabList.Item>
-      </TabList>
-      <TabPanels>
-        <TabPanels.Item key="one">Vertical content 1</TabPanels.Item>
-        <TabPanels.Item key="two">Vertical content 2</TabPanels.Item>
-      </TabPanels>
-    </Tabs>
-  </Storybook.SideBySide>
+<Storybook.Demo direction="column" align="stretch" gap="3xl">
+  <Tabs orientation="horizontal">
+    <TabList>
+      <TabList.Item key="one">Tab 1</TabList.Item>
+      <TabList.Item key="two">Tab 2</TabList.Item>
+    </TabList>
+    <TabPanels>
+      <TabPanels.Item key="one">Horizontal content 1</TabPanels.Item>
+      <TabPanels.Item key="two">Horizontal content 2</TabPanels.Item>
+    </TabPanels>
+  </Tabs>
+  <Tabs orientation="vertical">
+    <TabList>
+      <TabList.Item key="one">Tab 1</TabList.Item>
+      <TabList.Item key="two">Tab 2</TabList.Item>
+    </TabList>
+    <TabPanels>
+      <TabPanels.Item key="one">Vertical content 1</TabPanels.Item>
+      <TabPanels.Item key="two">Vertical content 2</TabPanels.Item>
+    </TabPanels>
+  </Tabs>
 </Storybook.Demo>
 
 ```jsx
@@ -274,15 +272,43 @@ Tabs support both horizontal and vertical orientation:
 
 When there are too many tabs to fit, they automatically overflow into a dropdown menu. This behavior is built-in and requires no configuration.
 
+Resize the demo to see tabs move into and out of the overflow menu.
+
+<Storybook.Demo resizable>
+  <Tabs defaultValue="overview">
+    <TabList>
+      <TabList.Item key="overview">Overview</TabList.Item>
+      <TabList.Item key="activity">Activity</TabList.Item>
+      <TabList.Item key="feedback">User Feedback</TabList.Item>
+      <TabList.Item key="attachments">Attachments</TabList.Item>
+      <TabList.Item key="settings">Settings</TabList.Item>
+    </TabList>
+    <TabPanels>
+      <TabPanels.Item key="overview">Overview content</TabPanels.Item>
+      <TabPanels.Item key="activity">Activity content</TabPanels.Item>
+      <TabPanels.Item key="feedback">User feedback content</TabPanels.Item>
+      <TabPanels.Item key="attachments">Attachments content</TabPanels.Item>
+      <TabPanels.Item key="settings">Settings content</TabPanels.Item>
+    </TabPanels>
+  </Tabs>
+</Storybook.Demo>
+
 ```jsx
-<Tabs>
+<Tabs defaultValue="overview">
   <TabList>
-    {/* Many tabs - extras will automatically go into overflow menu */}
-    {Array.from({length: 20}, (_, i) => (
-      <TabList.Item key={i}>Tab {i + 1}</TabList.Item>
-    ))}
+    <TabList.Item key="overview">Overview</TabList.Item>
+    <TabList.Item key="activity">Activity</TabList.Item>
+    <TabList.Item key="feedback">User Feedback</TabList.Item>
+    <TabList.Item key="attachments">Attachments</TabList.Item>
+    <TabList.Item key="settings">Settings</TabList.Item>
   </TabList>
-  {/* panels */}
+  <TabPanels>
+    <TabPanels.Item key="overview">Overview content</TabPanels.Item>
+    <TabPanels.Item key="activity">Activity content</TabPanels.Item>
+    <TabPanels.Item key="feedback">User feedback content</TabPanels.Item>
+    <TabPanels.Item key="attachments">Attachments content</TabPanels.Item>
+    <TabPanels.Item key="settings">Settings content</TabPanels.Item>
+  </TabPanels>
 </Tabs>
 ```
 
@@ -328,12 +354,14 @@ Use tabs to organize related content into distinct views:
 Sync tabs with URL parameters for shareable links:
 
 ```jsx
-const [tab, setTab] = useState(queryParams.tab || 'overview');
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
-useEffect(() => {
-  // Update URL when tab changes
-  router.push({pathname, query: {...query, tab}});
-}, [tab]);
+const TAB_VALUES = ['overview', 'activity'] as const;
+
+const [tab, setTab] = useQueryState(
+  'tab',
+  parseAsStringLiteral(TAB_VALUES).withDefault('overview')
+);
 
 <Tabs value={tab} onChange={setTab}>
   {/* tabs */}
