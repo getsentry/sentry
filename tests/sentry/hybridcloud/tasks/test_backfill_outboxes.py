@@ -4,7 +4,7 @@ from unittest.mock import ANY, patch
 
 import pytest
 from django.apps import apps
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.test.utils import override_settings
 
 from sentry.db.models import BaseModel
@@ -16,7 +16,9 @@ from sentry.hybridcloud.models.outboxbackfillwatermark import (
 )
 from sentry.hybridcloud.outbox.base import run_outbox_replications_for_self_hosted
 from sentry.hybridcloud.tasks.backfill_outboxes import (
+    READ_WATERMARK_FROM_POSTGRES_OPTION,
     WATERMARK_DUAL_WRITE_ERROR_METRIC,
+    WATERMARK_READ_REDIS_FALLBACK_METRIC,
     WATERMARK_REPORT_ERROR_METRIC,
     WATERMARK_STATE_METRIC,
     WATERMARK_TARGET_VERSION_METRIC,
@@ -24,6 +26,7 @@ from sentry.hybridcloud.tasks.backfill_outboxes import (
     WRITE_WATERMARK_TO_POSTGRES_OPTION,
     _backfill_models,
     _get_redis_client,
+    _read_postgres_watermark,
     _report_watermark_for_model,
     _write_postgres_watermark,
     backfill_outboxes_for,
@@ -134,9 +137,7 @@ def test_control_processing_auth(task_runner: Callable[..., Any]) -> None:
         run_for_model(AuthIdentity)
         run_for_model(AuthProvider)
 
-    assert (
-        get_processing_state(AuthIdentity._meta.db_table)[1] == AuthIdentity.replication_version + 1
-    )
+    assert get_processing_state(AuthIdentity._meta.db_table)[1] == AuthIdentity.replication_version + 1
 
     with outbox_runner():
         assert ControlOutbox.objects.all().count() == 6
@@ -271,6 +272,15 @@ def _counter_calls(metrics_mock: Any, name: str) -> int:
     return sum(1 for call in metrics_mock.incr.call_args_list if call.args[0] == name)
 
 
+def _counter_tables(metrics_mock: Any, name: str) -> list[str]:
+    """Collect the table_name tag of every counter call made under this name."""
+    return [
+        call.kwargs["tags"]["table_name"]
+        for call in metrics_mock.incr.call_args_list
+        if call.args[0] == name
+    ]
+
+
 @django_db_all
 @no_silo_test
 def test_watermark_report_runs_without_budget() -> None:
@@ -302,7 +312,7 @@ def test_watermark_report_covers_a_finished_table() -> None:
     # The loop did walk the tables: it created a key for every table that had none.
     assert read_processing_state(ApiToken._meta.db_table) == (0, 1)
     # It left the finished table alone.
-    assert read_processing_state(table_name) == (0, finished_version)
+    assert read_processing_state(AuthProvider._meta.db_table) == (0, finished_version)
     # The table is finished: its stored version is above every possible target.
     assert _gauge_values(metrics_mock, WATERMARK_STATE_METRIC)[table_name] == 0
     assert _gauge_values(metrics_mock, WATERMARK_VERSION_METRIC)[table_name] == finished_version
@@ -431,7 +441,7 @@ def test_watermark_report_leaves_a_stored_value_alone() -> None:
     backfill_outboxes_for(SiloMode.CONTROL, scheduled_count=10_000)
 
     assert client.get(get_backfill_key(table_name)) == before
-    assert read_processing_state(table_name) == (12345, 3)
+    assert read_processing_state(AuthProvider._meta.db_table) == (12345, 3)
 
 
 @django_db_all
@@ -592,7 +602,7 @@ def test_dual_write_mirrors_an_advancing_batch_into_postgres() -> None:
         # A budget of 2 against 5 users, so the loop advances auth_user and stops.
         backfill_outboxes_for(SiloMode.CONTROL, 0, 2)
 
-    stored = read_processing_state(table_name)
+    stored = read_processing_state(User._meta.db_table)
     assert stored is not None
     assert stored[0] > 0, "the batch did not advance the watermark"
 
@@ -621,7 +631,7 @@ def test_dual_write_mirrors_from_the_write_path_alone() -> None:
         batch = process_outbox_backfill_batch(User, batch_size=2)
 
     assert batch is not None
-    stored = read_processing_state(table_name)
+    stored = read_processing_state(User._meta.db_table)
     assert stored is not None
     row = ControlOutboxBackfillWatermark.objects.get(table_name=table_name)
     assert (row.low_bound, row.version) == stored
@@ -632,7 +642,6 @@ def test_dual_write_mirrors_from_the_write_path_alone() -> None:
 def test_dual_write_off_leaves_postgres_empty() -> None:
     """Option off: the Redis path is what it is today and nothing reaches Postgres."""
     reset_processing_state()
-    table_name = User._meta.db_table
     with outbox_context(flush=False):
         for _ in range(5):
             Factories.create_user()
@@ -642,7 +651,7 @@ def test_dual_write_off_leaves_postgres_empty() -> None:
     ):
         backfill_outboxes_for(SiloMode.CONTROL, 0, 2)
 
-    stored = read_processing_state(table_name)
+    stored = read_processing_state(User._meta.db_table)
     assert stored is not None
     assert stored[0] > 0, "the batch did not advance the watermark"
 
@@ -659,26 +668,27 @@ def test_dual_write_off_leaves_the_redis_state_identical() -> None:
 
     set_processing_state(table_name, 4242, 3)
     backfill_outboxes_for(SiloMode.CONTROL, 0, 1)
-    without_option = read_processing_state(table_name)
+    without_option = read_processing_state(AuthProvider._meta.db_table)
 
     reset_processing_state()
     set_processing_state(table_name, 4242, 3)
     with override_options({WRITE_WATERMARK_TO_POSTGRES_OPTION: True}):
         backfill_outboxes_for(SiloMode.CONTROL, 0, 1)
 
-    assert read_processing_state(table_name) == without_option
+    assert read_processing_state(AuthProvider._meta.db_table) == without_option
 
 
 @django_db_all
 @no_silo_test
-def test_a_read_never_creates_a_postgres_row() -> None:
+def test_a_read_creates_no_postgres_row_while_the_read_option_is_off() -> None:
+    """The dual write alone must leave the read path exactly as it is today."""
     reset_processing_state()
     table_name = AuthProvider._meta.db_table
 
     with override_options({WRITE_WATERMARK_TO_POSTGRES_OPTION: True}):
-        assert get_processing_state(table_name) == (0, 1)
+        assert get_processing_state(AuthProvider._meta.db_table) == (0, 1)
 
-    assert read_processing_state(table_name) == (0, 1)
+    assert read_processing_state(AuthProvider._meta.db_table) == (0, 1)
     assert not ControlOutboxBackfillWatermark.objects.filter(table_name=table_name).exists()
 
 
@@ -700,7 +710,7 @@ def test_a_failed_postgres_write_does_not_break_the_pass() -> None:
         # No exception reaches the caller.
         assert not backfill_outboxes_for(SiloMode.CONTROL, scheduled_count=10_000)
 
-    assert read_processing_state(table_name) == (99, 2)
+    assert read_processing_state(AuthProvider._meta.db_table) == (99, 2)
     assert _counter_calls(metrics_mock, WATERMARK_DUAL_WRITE_ERROR_METRIC) >= 1
     # The pass still reported, so one bad mirror did not stop the walk.
     assert _gauge_values(metrics_mock, WATERMARK_STATE_METRIC)[table_name] == 99
@@ -764,3 +774,383 @@ def test_dual_write_uses_the_cell_table_in_cell_silo() -> None:
 
     row = CellOutboxBackfillWatermark.objects.get(table_name=Organization._meta.db_table)
     assert (row.low_bound, row.version) == (8, 1)
+
+
+# The pair of options that promotes Postgres to the read path.
+READ_FROM_POSTGRES_OPTIONS = {
+    WRITE_WATERMARK_TO_POSTGRES_OPTION: True,
+    READ_WATERMARK_FROM_POSTGRES_OPTION: True,
+}
+
+
+@django_db_all
+@no_silo_test
+def test_read_option_on_takes_the_postgres_pair() -> None:
+    """Postgres wins over Redis once the read option is on."""
+    reset_processing_state()
+    set_processing_state(AuthProvider._meta.db_table, 5, 1)
+    ControlOutboxBackfillWatermark.objects.create(
+        table_name=AuthProvider._meta.db_table, low_bound=500, version=3
+    )
+
+    with override_options(READ_FROM_POSTGRES_OPTIONS):
+        assert get_processing_state(AuthProvider._meta.db_table) == (500, 3)
+        assert read_processing_state(AuthProvider._meta.db_table) == (500, 3)
+
+
+@django_db_all
+@no_silo_test
+def test_read_option_off_keeps_the_redis_pair() -> None:
+    """A Postgres row is ignored while the read option is off."""
+    reset_processing_state()
+    set_processing_state(AuthProvider._meta.db_table, 5, 1)
+    ControlOutboxBackfillWatermark.objects.create(
+        table_name=AuthProvider._meta.db_table, low_bound=500, version=3
+    )
+
+    assert get_processing_state(AuthProvider._meta.db_table) == (5, 1)
+    assert read_processing_state(AuthProvider._meta.db_table) == (5, 1)
+
+    # Dual write alone does not move the read path.
+    with override_options({WRITE_WATERMARK_TO_POSTGRES_OPTION: True}):
+        assert get_processing_state(AuthProvider._meta.db_table) == (5, 1)
+        assert read_processing_state(AuthProvider._meta.db_table) == (5, 1)
+
+
+@django_db_all
+@no_silo_test
+def test_a_missing_postgres_row_falls_back_to_redis() -> None:
+    """A table the dual write has not reached must not restart from the beginning."""
+    reset_processing_state()
+    table_name = AuthProvider._meta.db_table
+    set_processing_state(AuthProvider._meta.db_table, 4242, 3)
+
+    with (
+        override_options(READ_FROM_POSTGRES_OPTIONS),
+        patch("sentry.hybridcloud.tasks.backfill_outboxes.metrics") as metrics_mock,
+    ):
+        assert get_processing_state(AuthProvider._meta.db_table) == (4242, 3)
+        # The fallback copied the pair into Postgres, so this one is a Postgres read.
+        assert get_processing_state(AuthProvider._meta.db_table) == (4242, 3)
+        assert read_processing_state(AuthProvider._meta.db_table) == (4242, 3)
+
+    row = ControlOutboxBackfillWatermark.objects.get(table_name=table_name)
+    assert (row.low_bound, row.version) == (4242, 3)
+    # The fallback fires once per table, not on every read.
+    assert _counter_tables(metrics_mock, WATERMARK_READ_REDIS_FALLBACK_METRIC) == [table_name]
+
+
+@django_db_all
+@no_silo_test
+def test_a_lost_redis_key_is_reseeded_with_the_postgres_pair() -> None:
+    """A rollback must find the pair Postgres holds, not a default one."""
+    reset_processing_state()
+    finished_version = AuthProvider.replication_version + 1
+    ControlOutboxBackfillWatermark.objects.create(
+        table_name=AuthProvider._meta.db_table, low_bound=0, version=finished_version
+    )
+
+    with override_options(READ_FROM_POSTGRES_OPTIONS):
+        assert get_processing_state(AuthProvider._meta.db_table) == (0, finished_version)
+
+    # Options off: Redis holds the finished pair, so the table does not walk again.
+    assert read_processing_state(AuthProvider._meta.db_table) == (0, finished_version)
+
+
+@django_db_all
+@no_silo_test
+def test_a_double_miss_keeps_the_default() -> None:
+    """Neither store holds the table, so the default stays."""
+    reset_processing_state()
+    table_name = AuthProvider._meta.db_table
+
+    with (
+        override_options(READ_FROM_POSTGRES_OPTIONS),
+        patch("sentry.hybridcloud.tasks.backfill_outboxes.metrics") as metrics_mock,
+    ):
+        assert read_processing_state(AuthProvider._meta.db_table) is None
+        assert get_processing_state(AuthProvider._meta.db_table) == (0, 1)
+
+    # A double miss is not the fallback, so the fallback counter stays clean.
+    assert _counter_calls(metrics_mock, WATERMARK_READ_REDIS_FALLBACK_METRIC) == 0
+
+    # The read path still seeds Redis, so a rollback finds the pair it expects.
+    assert read_processing_state(AuthProvider._meta.db_table) == (0, 1)
+    # A double miss creates no Postgres row: only the write path may.
+    assert not ControlOutboxBackfillWatermark.objects.filter(table_name=table_name).exists()
+
+
+@django_db_all
+@no_silo_test
+def test_two_concurrent_reads_create_one_row() -> None:
+    """Two schedulers can reach the miss path at once. One row must come out of it."""
+    reset_processing_state()
+    table_name = AuthProvider._meta.db_table
+    set_processing_state(AuthProvider._meta.db_table, 4242, 3)
+
+    with (
+        override_options(READ_FROM_POSTGRES_OPTIONS),
+        # Both callers read Postgres before either of them has written to it.
+        patch(
+            "sentry.hybridcloud.tasks.backfill_outboxes._read_postgres_watermark",
+            return_value=None,
+        ),
+    ):
+        assert get_processing_state(AuthProvider._meta.db_table) == (4242, 3)
+        assert get_processing_state(AuthProvider._meta.db_table) == (4242, 3)
+
+    rows = list(ControlOutboxBackfillWatermark.objects.filter(table_name=table_name))
+    assert len(rows) == 1
+    assert (rows[0].low_bound, rows[0].version) == (4242, 3)
+
+
+@django_db_all
+@no_silo_test
+def test_a_lost_create_race_is_not_an_error() -> None:
+    """The unique index rejects the slower insert. That is the expected end, not a failure."""
+    reset_processing_state()
+    table_name = AuthProvider._meta.db_table
+    set_processing_state(AuthProvider._meta.db_table, 4242, 3)
+    # The row the other scheduler put in first.
+    ControlOutboxBackfillWatermark.objects.create(table_name=table_name, low_bound=4242, version=3)
+
+    with (
+        override_options(READ_FROM_POSTGRES_OPTIONS),
+        # This caller saw an empty Postgres, so it goes on to create the row.
+        patch(
+            "sentry.hybridcloud.tasks.backfill_outboxes._read_postgres_watermark",
+            return_value=None,
+        ),
+        patch.object(
+            ControlOutboxBackfillWatermark.objects,
+            "get_or_create",
+            side_effect=IntegrityError("duplicate key value violates unique constraint"),
+        ),
+    ):
+        assert get_processing_state(AuthProvider._meta.db_table) == (4242, 3)
+
+    rows = list(ControlOutboxBackfillWatermark.objects.filter(table_name=table_name))
+    assert len(rows) == 1
+    assert (rows[0].low_bound, rows[0].version) == (4242, 3)
+
+
+@django_db_all
+@no_silo_test
+def test_the_read_path_picks_the_table_by_the_silo_of_the_model() -> None:
+    reset_processing_state()
+    ControlOutboxBackfillWatermark.objects.create(
+        table_name=AuthProvider._meta.db_table, low_bound=11, version=1
+    )
+    CellOutboxBackfillWatermark.objects.create(
+        table_name=Organization._meta.db_table, low_bound=22, version=1
+    )
+
+    assert _read_postgres_watermark(AuthProvider._meta.db_table) == (11, 1)
+    assert _read_postgres_watermark(Organization._meta.db_table) == (22, 1)
+    # A table with no row of its own reads nothing.
+    assert _read_postgres_watermark(ApiToken._meta.db_table) is None
+
+
+@django_db_all
+@control_silo_test
+def test_the_read_path_uses_the_control_table_in_control_silo() -> None:
+    reset_processing_state()
+    ControlOutboxBackfillWatermark.objects.create(
+        table_name=AuthProvider._meta.db_table, low_bound=7, version=1
+    )
+
+    with override_options(READ_FROM_POSTGRES_OPTIONS):
+        assert read_processing_state(AuthProvider._meta.db_table) == (7, 1)
+
+
+@django_db_all
+@cell_silo_test
+def test_the_read_path_uses_the_cell_table_in_cell_silo() -> None:
+    reset_processing_state()
+    CellOutboxBackfillWatermark.objects.create(
+        table_name=Organization._meta.db_table, low_bound=8, version=1
+    )
+
+    with override_options(READ_FROM_POSTGRES_OPTIONS):
+        assert read_processing_state(Organization._meta.db_table) == (8, 1)
+
+
+@django_db_all
+@no_silo_test
+def test_a_finished_version_in_postgres_stops_the_walk() -> None:
+    """A table past its target version is skipped, whichever store holds the pair."""
+    reset_processing_state()
+    with outbox_context(flush=False):
+        for _ in range(5):
+            Factories.create_user()
+    ControlOutbox.objects.all().delete()
+
+    ControlOutboxBackfillWatermark.objects.create(
+        table_name=User._meta.db_table,
+        low_bound=0,
+        version=User.replication_version + 1,
+    )
+    # Redis still says there is work left. Postgres is the source of truth now.
+    set_processing_state(User._meta.db_table, 0, 1)
+
+    with override_options(
+        {
+            **READ_FROM_POSTGRES_OPTIONS,
+            "outbox_replication.auth_user.replication_version": User.replication_version,
+        }
+    ):
+        assert process_outbox_backfill_batch(User, batch_size=10) is None
+
+    assert ControlOutbox.objects.count() == 0
+
+
+@django_db_all
+@no_silo_test
+def test_a_version_bump_in_postgres_restarts_the_walk() -> None:
+    """A stored version below the target resets the bound, same as the Redis path."""
+    reset_processing_state()
+    with outbox_context(flush=False):
+        for _ in range(3):
+            Factories.create_user()
+    ControlOutbox.objects.all().delete()
+
+    ControlOutboxBackfillWatermark.objects.create(
+        table_name=User._meta.db_table, low_bound=10**9, version=0
+    )
+    set_processing_state(User._meta.db_table, 10**9, 0)
+
+    with override_options(
+        {
+            **READ_FROM_POSTGRES_OPTIONS,
+            "outbox_replication.auth_user.replication_version": User.replication_version,
+        }
+    ):
+        batch = process_outbox_backfill_batch(User, batch_size=10)
+
+    assert batch is not None
+    assert batch.low < 10**9, "the version bump did not reset the bound"
+    assert batch.version == User.replication_version
+    assert ControlOutbox.objects.count() == 3
+
+
+@django_db_all
+@no_silo_test
+def test_a_failed_postgres_write_is_raised_once_postgres_is_read() -> None:
+    """Postgres is the source of truth now, so a lost write cannot be masked."""
+    reset_processing_state()
+    with outbox_context(flush=False):
+        Factories.create_user()
+
+    with (
+        override_options(
+            {
+                **READ_FROM_POSTGRES_OPTIONS,
+                "outbox_replication.auth_user.replication_version": User.replication_version,
+            }
+        ),
+        patch.object(
+            ControlOutboxBackfillWatermark.objects,
+            "update_or_create",
+            side_effect=RuntimeError("postgres is down"),
+        ),
+        patch("sentry.hybridcloud.tasks.backfill_outboxes.metrics") as metrics_mock,
+        pytest.raises(RuntimeError),
+    ):
+        process_outbox_backfill_batch(User, batch_size=10)
+
+    assert _counter_calls(metrics_mock, WATERMARK_DUAL_WRITE_ERROR_METRIC) == 1
+
+
+@django_db_all
+@no_silo_test
+def test_a_cutover_cycle_does_not_restart_a_table() -> None:
+    """Turning the read option on with an empty Postgres keeps the walk where it was."""
+    reset_processing_state()
+    table_name = AuthProvider._meta.db_table
+    set_processing_state(AuthProvider._meta.db_table, 4242, 3)
+
+    with override_options(READ_FROM_POSTGRES_OPTIONS):
+        # No budget at all, so only the report pass runs.
+        assert not backfill_outboxes_for(SiloMode.CONTROL, scheduled_count=10_000)
+
+        # The report pass created the row from the Redis pair, so the next read matches.
+        assert read_processing_state(AuthProvider._meta.db_table) == (4242, 3)
+
+    row = ControlOutboxBackfillWatermark.objects.get(table_name=table_name)
+    assert (row.low_bound, row.version) == (4242, 3)
+
+
+@django_db_all
+@no_silo_test
+def test_a_rollback_finds_the_pair_the_cycle_left() -> None:
+    """Redis keeps being written, so turning the options off is an immediate rollback."""
+    reset_processing_state()
+    with outbox_context(flush=False):
+        for _ in range(5):
+            Factories.create_user()
+
+    with override_options(
+        {
+            **READ_FROM_POSTGRES_OPTIONS,
+            "outbox_replication.auth_user.replication_version": User.replication_version,
+        }
+    ):
+        # A budget of 2 against 5 users, so the loop advances auth_user and stops.
+        backfill_outboxes_for(SiloMode.CONTROL, 0, 2)
+
+    row = ControlOutboxBackfillWatermark.objects.get(table_name=User._meta.db_table)
+    assert row.low_bound > 0, "the batch did not advance the watermark"
+    # Options off: Redis holds the same pair Postgres does.
+    assert read_processing_state(User._meta.db_table) == (row.low_bound, row.version)
+
+
+@django_db_all
+@no_silo_test
+def test_read_option_on_leaves_the_redis_state_identical() -> None:
+    """The option must not change what a whole pass leaves in Redis."""
+    reset_processing_state()
+
+    set_processing_state(AuthProvider._meta.db_table, 4242, 3)
+    backfill_outboxes_for(SiloMode.CONTROL, 0, 1)
+    without_options = read_processing_state(AuthProvider._meta.db_table)
+
+    reset_processing_state()
+    set_processing_state(AuthProvider._meta.db_table, 4242, 3)
+    with override_options(READ_FROM_POSTGRES_OPTIONS):
+        backfill_outboxes_for(SiloMode.CONTROL, 0, 1)
+
+    assert read_processing_state(AuthProvider._meta.db_table) == without_options
+
+
+@django_db_all
+@no_silo_test
+def test_a_failed_report_write_does_not_stop_the_walk() -> None:
+    """The report write raises now, so one bad table must not take the rest away."""
+    reset_processing_state()
+    broken_table = AuthProvider._meta.db_table
+    good_table = ApiToken._meta.db_table
+    set_processing_state(AuthProvider._meta.db_table, 41, 1)
+    set_processing_state(ApiToken._meta.db_table, 7, 1)
+
+    real_write = ControlOutboxBackfillWatermark.objects.update_or_create
+
+    def fail_for_one(**kwargs: Any) -> Any:
+        if kwargs["table_name"] == broken_table:
+            raise RuntimeError("postgres is down")
+        return real_write(**kwargs)
+
+    with (
+        override_options(READ_FROM_POSTGRES_OPTIONS),
+        patch.object(
+            ControlOutboxBackfillWatermark.objects, "update_or_create", side_effect=fail_for_one
+        ),
+        patch("sentry.hybridcloud.tasks.backfill_outboxes.metrics") as metrics_mock,
+    ):
+        # No exception reaches the caller.
+        assert not backfill_outboxes_for(SiloMode.CONTROL, scheduled_count=10_000)
+
+    assert _counter_calls(metrics_mock, WATERMARK_DUAL_WRITE_ERROR_METRIC) == 1
+    assert _counter_calls(metrics_mock, WATERMARK_REPORT_ERROR_METRIC) == 1
+    # The walk carried on past the broken table.
+    assert ControlOutboxBackfillWatermark.objects.get(table_name=good_table).low_bound == 7
+    assert not ControlOutboxBackfillWatermark.objects.filter(table_name=broken_table).exists()
