@@ -223,7 +223,10 @@ const config = defineConfig({
   },
   options: {
     typeAware: enableTypeAwareLinting,
-    reportUnusedDisableDirectives: 'off',
+    // Only report unused directives when the full rule set runs. Without
+    // type-aware linting the type-aware rules never fire, so the suppressions
+    // that silence them look unused and `--fix` would delete live ones.
+    reportUnusedDisableDirectives: enableTypeAwareLinting ? 'error' : 'off',
   },
   env: {
     builtin: true,
