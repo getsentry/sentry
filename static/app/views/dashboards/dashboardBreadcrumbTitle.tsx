@@ -58,8 +58,12 @@ function DashboardFavoriteButton({
       variant="transparent"
       aria-label={label}
       tooltipProps={{title: label}}
+      // Unstarred deliberately inherits the button's colour instead of going
+      // `muted` like the table-row stars do. This one sits directly beside the
+      // ellipsis trigger, which inherits too, so a dimmer star reads as a
+      // rendering bug next to its neighbour.
       icon={
-        <IconStar isSolid={isFavorited} variant={isFavorited ? 'warning' : 'muted'} />
+        <IconStar isSolid={isFavorited} variant={isFavorited ? 'warning' : undefined} />
       }
       onClick={onToggle}
     />
