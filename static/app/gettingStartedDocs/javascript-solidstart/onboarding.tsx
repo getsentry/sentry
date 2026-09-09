@@ -264,7 +264,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Build your application, then add an [code:--import] flag to the [code:NODE_OPTIONS] environment variable wherever you run it, pointing at the instrument file the build creates at [code:.output/server/instrument.server.mjs]. For example, update your [code:scripts] entry in [code:package.json]',
+            'Build your application, then add an [code:--import] flag to the [code:NODE_OPTIONS] environment variable wherever you run it, pointing at the instrument file the build creates at [code:.output/server/instrument.server.mjs]. Your build preset can put the file elsewhere, so check the build log for the path [code:withSentry] reports. For example, update your [code:scripts] entry in [code:package.json]',
             {
               code: <code />,
             }
