@@ -21,6 +21,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {useProjects} from 'sentry/utils/useProjects';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   useTraceItemDetails,
@@ -237,9 +238,17 @@ export default function LogBlock(props: LogData) {
   const details = detailsQuery.data;
   const project = useProjectFromId({project_id: resolvedProjectId});
 
+  // `useTraceItemDetails` addresses the endpoint by the project's slug, so it
+  // disables itself until `useProjectFromId` finds one. A disabled query reports
+  // `pending`, so that condition has to gate the spinner here too -- otherwise a
+  // project this viewer cannot see spins forever instead of reaching the error
+  // branch. `fetching` covers the window where the store is still filling.
+  const {fetching: projectsFetching} = useProjects();
+
   const isResolving = needsResolution && rowQuery.isPending;
-  const canFetchDetails = Boolean(resolvedProjectId && resolvedTraceId);
-  const isPending = isResolving || (canFetchDetails && detailsQuery.isPending);
+  const canFetchDetails = Boolean(resolvedProjectId && resolvedTraceId && project);
+  const isPending =
+    isResolving || projectsFetching || (canFetchDetails && detailsQuery.isPending);
   const isError = !isPending && (!canFetchDetails || detailsQuery.isError || !details);
 
   const attributes = useMemo(() => (details ? toLogAttributes(details) : []), [details]);
@@ -256,8 +265,19 @@ export default function LogBlock(props: LogData) {
     parseTimestampMillis(details?.timestamp) ?? lookupTimestampMs;
 
   const identity = useMemo<LogEmbedIdentity>(
-    () => ({id, projectId: resolvedProjectId, timestamp}),
-    [id, resolvedProjectId, timestamp]
+    () => ({
+      id,
+      projectId: resolvedProjectId,
+      // Seer may have given neither a timestamp nor an id the decoder can read,
+      // in which case the row lookup is the only thing that knows when this log
+      // happened. Without it the link falls back to scanning all of retention.
+      timestamp:
+        timestamp ??
+        (lookupTimestampMs === null
+          ? undefined
+          : new Date(lookupTimestampMs).toISOString()),
+    }),
+    [id, lookupTimestampMs, resolvedProjectId, timestamp]
   );
   const datetime = useMemo(
     () => getLogPageFilters(identity, LOG_LOOKUP_WINDOW_MS).datetime,
@@ -275,7 +295,10 @@ export default function LogBlock(props: LogData) {
     >
       <Stack gap="md">
         <Flex align="center" gap="md" justify="between" wrap="wrap">
-          <LogLink {...props} />
+          {/* The resolved identity, not the raw props: when Seer gave only an
+              id, the link would otherwise scope Explore to My Projects and miss
+              the very row this card just loaded. */}
+          <LogLink {...props} {...identity} />
           {displayTimestampMs === null ? null : (
             <Text size="sm" variant="muted">
               <DateTime date={displayTimestampMs} />

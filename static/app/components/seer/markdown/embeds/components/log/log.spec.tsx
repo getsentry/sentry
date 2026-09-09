@@ -215,4 +215,31 @@ describe('Seer log embed', () => {
     });
     expect(details).toHaveBeenCalled();
   });
+
+  it('points the header link at the project it resolved from the id', async () => {
+    mockLogRowLookup();
+    mockLogDetails();
+
+    renderEmbed({name: 'log', data: {id: LOG_ID, timestamp: TIMESTAMP}});
+
+    expect(await screen.findByText('Payment provider timed out')).toBeInTheDocument();
+    // Without the resolved project the link scopes Explore to My Projects and
+    // can miss the row the card just loaded.
+    const href = screen
+      .getByRole('link', {name: `Log ${LOG_ID.slice(0, 8)}`})
+      .getAttribute('href');
+    expect(href).toContain(`project=${PROJECT_ID}`);
+  });
+
+  it('reports an error for a project this viewer cannot see', async () => {
+    // `useTraceItemDetails` needs the project in the store to build its URL, and
+    // disables itself without one -- a disabled query must not read as loading.
+    ProjectsStore.loadInitialData([ProjectFixture({id: '999', slug: 'other'})]);
+    const details = mockLogDetails();
+
+    renderLog();
+
+    expect(await screen.findByText('Unable to load log details')).toBeInTheDocument();
+    expect(details).not.toHaveBeenCalled();
+  });
 });
