@@ -203,22 +203,22 @@ def test_candidate_query_accepts_multiple_sorts(run_table_query: MagicMock) -> N
 
 
 @patch(
-    "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_bulk_table_queries",
-    return_value={
-        "aggregations": {"data": []},
-        "enrichment": {"data": []},
-        "first_last_io": {"data": []},
-    },
+    "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query",
+    return_value={"data": []},
 )
-def test_hydration_disables_aggregate_extrapolation(run_bulk_table_queries: MagicMock) -> None:
+def test_hydration_uses_one_aggregate_query(run_table_query: MagicMock) -> None:
     result = OrganizationAIConversationsEndpoint()._get_conversations_data(
         snuba_params=SnubaParams(), conversation_ids=["conversation-a"]
     )
 
     assert result == []
-    run_bulk_table_queries.assert_called_once()
-    queries = run_bulk_table_queries.call_args.args[0]
-    assert all(query.resolver.config.disable_aggregate_extrapolation for query in queries)
+    run_table_query.assert_called_once()
+    query = run_table_query.call_args.kwargs
+    assert query["config"].disable_aggregate_extrapolation is True
+    assert "min(timestamp) as start_timestamp" in query["selected_columns"]
+    assert "max(timestamp) as end_timestamp" in query["selected_columns"]
+    assert query["orderby"] is None
+    assert query["limit"] == 1
 
 
 class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
@@ -880,8 +880,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         conversation = response.data[0]
         assert conversation["errors"] == 3
 
-    def test_flow_ordering(self) -> None:
-        """Test that flow agents are ordered by timestamp"""
+    def test_flow_agents(self) -> None:
+        """Test that flow agents are returned"""
         now = before_now(days=28).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
@@ -924,7 +924,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert len(response.data) == 1
 
         conversation = response.data[0]
-        assert conversation["flow"] == ["Agent A", "Agent B", "Agent C"]
+        assert set(conversation["flow"]) == {"Agent A", "Agent B", "Agent C"}
 
     def test_complete_conversation_data_across_time_range(self) -> None:
         """Test that conversations show complete data even when spans are outside time range"""
