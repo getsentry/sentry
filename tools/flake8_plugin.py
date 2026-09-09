@@ -346,6 +346,11 @@ _CONTAINER_OPS = frozenset(
 _COPY_METHODS = frozenset(("copy", "dict"))
 
 
+def _looks_like_a_class(func: ast.expr) -> bool:
+    """Callee named like a class, which is how a serializer is spelled."""
+    return _name_of(func).rsplit(".", 1)[-1][:1].isupper()
+
+
 def _is_request(node: ast.expr) -> bool:
     """The handler's request argument, as `request` or `self.request`."""
     if isinstance(node, ast.Name):
@@ -1022,7 +1027,9 @@ class SentryVisitor(ast.NodeVisitor):
             if source is not None and node.args:
                 ctx.record_read(node.args[0], source, node.lineno, node.col_offset)
                 return
-        if any(keyword.arg == "data" for keyword in node.keywords):
+        # Only a serializer's data= is the target shape. `my_func(data=...)`
+        # hands the dict over exactly as a positional argument would.
+        if _looks_like_a_class(func) and any(kw.arg == "data" for kw in node.keywords):
             return
         for argument in [*node.args, *(keyword.value for keyword in node.keywords)]:
             source = ctx.source_of(argument)
@@ -1038,11 +1045,11 @@ class SentryVisitor(ast.NodeVisitor):
         for keyword in node.keywords:
             if keyword.arg != "data":
                 continue
-            name = _name_of(node.func).rsplit(".", 1)[-1]
             # A class, by convention. Skips plain calls taking data=, and
             # runtime-chosen classes the schema could not name either.
-            if not name[:1].isupper():
+            if not _looks_like_a_class(node.func):
                 continue
+            name = _name_of(node.func).rsplit(".", 1)[-1]
             if ctx.is_query(keyword.value):
                 ctx.query_validators.append((node.lineno, node.col_offset, name))
             elif ctx.is_body(keyword.value):

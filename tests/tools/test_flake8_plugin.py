@@ -1573,3 +1573,29 @@ class E(Endpoint):
     errors = _run_input(src, SHAPED)
     assert len(errors) == 1
     assert "t.py:7:" in errors[0]
+
+
+def test_S028_plain_function_taking_data_is_still_a_hand_off() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return my_func(data=request.GET)
+"""
+    errors = _run_input(src, SHAPED)
+    assert len(errors) == 1
+    assert "handed to my_func" in errors[0]
+
+
+def test_S028_method_taking_data_is_still_a_hand_off() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"POST": ApiPublishStatus.PUBLIC}
+
+    def post(self, request) -> Response[X]:
+        return installation.build(data=request.data)
+"""
+    errors = _run_input(src, SHAPED)
+    assert len(errors) == 1
+    assert "handed to build" in errors[0]
