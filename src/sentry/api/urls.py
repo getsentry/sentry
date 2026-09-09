@@ -559,9 +559,6 @@ from sentry.rules.history.endpoints.project_rule_group_history import (
 )
 from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIndexEndpoint
 from sentry.scm.endpoints.scm_rpc import ScmRpcServiceEndpoint
-from sentry.seer.endpoints.admin_monitor_cleanup_trigger import (
-    SeerAdminMonitorCleanupTriggerEndpoint,
-)
 from sentry.seer.endpoints.admin_night_shift_trigger import SeerAdminNightShiftTriggerEndpoint
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
@@ -583,6 +580,9 @@ from sentry.seer.endpoints.organization_seer_agent_update import (
 from sentry.seer.endpoints.organization_seer_autofix_overview import (
     OrganizationSeerAutofixOverviewEndpoint,
     OrganizationSeerAutofixScmInfoEndpoint,
+)
+from sentry.seer.endpoints.organization_seer_monitor_cleanup import (
+    OrganizationSeerMonitorCleanupEndpoint,
 )
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
@@ -2596,6 +2596,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-seer-runs",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/monitor-cleanup/$",
+        OrganizationSeerMonitorCleanupEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-monitor-cleanup",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/$",
         OrganizationSeerWorkflowsEndpoint.as_view(),
         name="sentry-api-0-organization-seer-workflows",
@@ -3847,11 +3852,6 @@ INTERNAL_URLS = [
         r"^seer/night-shift/trigger/$",
         SeerAdminNightShiftTriggerEndpoint.as_view(),
         name="sentry-admin-seer-night-shift-trigger",
-    ),
-    re_path(
-        r"^seer/monitor-cleanup/trigger/$",
-        SeerAdminMonitorCleanupTriggerEndpoint.as_view(),
-        name="sentry-admin-seer-monitor-cleanup-trigger",
     ),
 ]
 

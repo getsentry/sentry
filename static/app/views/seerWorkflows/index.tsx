@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -12,6 +12,7 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Prose, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
 import {getPullRequestStatusLabel} from 'sentry/components/group/externalIssuesList/pullRequestStatusBadge';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -36,8 +37,11 @@ import {
 import {t, tn} from 'sentry/locale';
 import type {PullRequestStatus} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {MarkedText} from 'sentry/utils/marked/markedText';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {TagVariant} from 'sentry/utils/theme';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -79,6 +83,29 @@ function SeerWorkflows() {
   const navigate = useNavigate();
   const isSentryEmployee = useIsSentryEmployee();
   const [expanded, setExpanded] = useState(new Set<string>());
+  const {mutate: startMonitorScan, isPending: isStartingMonitorScan} = useMutation({
+    mutationFn: () =>
+      fetchMutation<{runId: string; url: string}>({
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/seer/workflows/monitor-cleanup/',
+          {path: {organizationIdOrSlug: organization.slug}}
+        ),
+        method: 'POST',
+      }),
+    onSuccess: result => {
+      setExpanded(previous =>
+        new Set(previous).add(`${result.runId}:duplicate_monitors`)
+      );
+      navigate(result.url);
+    },
+    onError: error => {
+      addErrorMessage(
+        error instanceof RequestError && typeof error.responseJSON?.detail === 'string'
+          ? error.responseJSON.detail
+          : t('Could not start the monitor scan. Try again.')
+      );
+    },
+  });
 
   const {data, isPending, isError, refetch} = useQuery({
     ...apiOptions.as<SeerNightShiftRun[]>()(
@@ -257,9 +284,20 @@ function SeerWorkflows() {
       <Stack gap="lg" padding="xl">
         <Stack gap="2xs">
           <TopBar.Slot name="title">{t('Sentry Workflows')}</TopBar.Slot>
-          <Text as="p" variant="muted">
-            {t('Historical runs of Sentry workflows for this organization.')}
-          </Text>
+          <Flex justify="between" align="center" gap="md" wrap="wrap">
+            <Text as="p" variant="muted">
+              {t('Historical runs of Sentry workflows for this organization.')}
+            </Text>
+            {organization.features.includes('seer-monitor-cleanup') && (
+              <Button
+                size="sm"
+                busy={isStartingMonitorScan}
+                onClick={() => startMonitorScan()}
+              >
+                {t('Run monitor scan')}
+              </Button>
+            )}
+          </Flex>
         </Stack>
 
         {isError ? (

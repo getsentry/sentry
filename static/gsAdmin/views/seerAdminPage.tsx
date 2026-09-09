@@ -16,7 +16,6 @@ import {getLocalities} from 'sentry/utils/cells';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
 import {PageHeader} from 'admin/components/pageHeader';
-import {MonitorCleanupTrigger} from 'admin/views/monitorCleanupTrigger';
 
 export function SeerAdminPage() {
   const [organizationId, setOrganizationId] = useState('');
@@ -98,7 +97,6 @@ export function SeerAdminPage() {
         />
 
         <Grid columns={{'screen:xs': '1fr', 'screen:md': '1fr 1fr'}} gap="xl">
-          <MonitorCleanupTrigger host={locality?.url} />
           <form onSubmit={handleNightShiftSubmit}>
             <Container background="secondary" border="primary" radius="md" padding="lg">
               <Stack gap="md" align="start">

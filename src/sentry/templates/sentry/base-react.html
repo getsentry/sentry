@@ -9,12 +9,3 @@
 {% endblock %}
 
 {% block wrapperclass %}{{ user_theme|default:"theme-system" }}{% endblock %}
-
-{% block scripts_main_entrypoint %}
-  {% if request.resolver_match.url_name == "sentry-admin-ui" %}
-    {% frontend_app_asset_url "sentry" "entrypoints/gsAdmin.js" as asset_url %}
-    {% script src=asset_url crossorigin="anonymous" data-entry="true" %}{% endscript %}
-  {% else %}
-    {{ block.super }}
-  {% endif %}
-{% endblock %}
