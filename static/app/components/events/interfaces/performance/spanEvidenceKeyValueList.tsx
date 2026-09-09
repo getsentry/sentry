@@ -185,14 +185,16 @@ function NPlusOneDBQueriesSpanEvidence({
   location,
 }: SpanEvidenceKeyValueListProps) {
   const dbSpans = offendingSpans.filter(span => (span.op || '').startsWith('db'));
-  const repeatingSpanRows = dbSpans
-    .filter(span => offendingSpans.find(s => s.hash === span.hash) === span)
-    .map((span, i) =>
-      makeRow(
-        i === 0 ? t('Repeating Spans (%s)', dbSpans.length) : '',
-        getSpanEvidenceValue(span)
-      )
-    );
+  // Our hashing calculation parameterizes query literals, so two spans running the same query with
+  // different values will share a hash value. Dedupe by hash so we only get one representative of
+  // each query.
+  const repeatingSpanRows = dedupeSpansByHash(dbSpans).map((span, i) =>
+    makeRow(
+      // Only the first row carries the label; the rest render bare beneath it.
+      i === 0 ? t('Repeating Spans (%s)', dbSpans.length) : '',
+      getSpanEvidenceValue(span)
+    )
+  );
   const evidenceData = event?.occurrence?.evidenceData ?? {};
   const patternSize = evidenceData.patternSize ?? 0;
 
@@ -748,6 +750,24 @@ const StyledCodeSnippet = styled(CodeBlock)`
 
   z-index: 0;
 `;
+
+function dedupeSpansByHash(spans: Span[]): Span[] {
+  const hashesSeen = new Set<Span['hash']>();
+
+  // Only keep spans whose hashes we haven't yet seen, tracking the ones we have seen as we go
+  const shouldKeepSpan = (span: Span) => {
+    const hash = span.hash;
+
+    if (hashesSeen.has(hash)) {
+      return false;
+    }
+
+    hashesSeen.add(hash);
+    return true;
+  };
+
+  return spans.filter(shouldKeepSpan);
+}
 
 const getConsecutiveDbTimeSaved = (
   consecutiveSpans: Span[],
