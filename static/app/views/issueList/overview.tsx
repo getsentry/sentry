@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
@@ -15,6 +14,7 @@ import type {CursorHandler} from '@sentry/scraps/pagination';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QueryCount} from 'sentry/components/queryCount';
@@ -990,57 +990,59 @@ function IssueListOverviewInner({
           onRealtimeChange={onRealtimeChange}
           headerActions={headerActions}
         />
-        <StyledBody>
-          <Grid area="content" padding={{'screen:sm': 'md lg', 'screen:md': 'lg xl'}}>
-            <IssuesDataConsentBanner source="issues" />
-            <IssueListFilters
-              query={query}
-              sort={sort}
-              onSortChange={onSortChange}
-              onSearch={onSearch}
-            />
-            <IssueListTable
-              selection={selection}
-              query={query}
-              queryCount={modifiedQueryCount}
-              onSelectStatsPeriod={onSelectStatsPeriod}
-              onActionTaken={onActionTaken}
-              onDelete={onDelete}
-              statsPeriod={getGroupStatsPeriod()}
-              groupIds={groupIds}
-              allResultsVisible={allResultsVisible()}
-              displayReprocessingActions={displayReprocessingActions}
-              memberList={memberList}
-              issuesLoading={issuesLoading || supergroupsLoading}
-              statsLoading={statsLoading}
-              supergroupLookup={supergroupLookup}
-              error={error}
-              refetchGroups={fetchData}
-              withColumns={withColumns}
-              paginationCaption={
-                !issuesLoading && modifiedQueryCount > 0
-                  ? tct('[start]-[end] of [total]', {
-                      start: numPreviousIssues + 1,
-                      end: numPreviousIssues + numIssuesOnPage,
-                      total: (
-                        <QueryCount
-                          hideParens
-                          hideIfEmpty={false}
-                          count={modifiedQueryCount}
-                          max={queryMaxCount || 100}
-                        />
-                      ),
-                    })
-                  : null
-              }
-              pageLinks={pageLinks}
-              onCursor={onCursorChange}
-              paginationAnalyticsEvent={paginationAnalyticsEvent}
-              issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
-              pageSize={MAX_ITEMS}
-            />
-          </Grid>
-        </StyledBody>
+        <Layout.Body>
+          <Layout.Main width="full">
+            <Grid>
+              <IssuesDataConsentBanner source="issues" />
+              <IssueListFilters
+                query={query}
+                sort={sort}
+                onSortChange={onSortChange}
+                onSearch={onSearch}
+              />
+              <IssueListTable
+                selection={selection}
+                query={query}
+                queryCount={modifiedQueryCount}
+                onSelectStatsPeriod={onSelectStatsPeriod}
+                onActionTaken={onActionTaken}
+                onDelete={onDelete}
+                statsPeriod={getGroupStatsPeriod()}
+                groupIds={groupIds}
+                allResultsVisible={allResultsVisible()}
+                displayReprocessingActions={displayReprocessingActions}
+                memberList={memberList}
+                issuesLoading={issuesLoading || supergroupsLoading}
+                statsLoading={statsLoading}
+                supergroupLookup={supergroupLookup}
+                error={error}
+                refetchGroups={fetchData}
+                withColumns={withColumns}
+                paginationCaption={
+                  !issuesLoading && modifiedQueryCount > 0
+                    ? tct('[start]-[end] of [total]', {
+                        start: numPreviousIssues + 1,
+                        end: numPreviousIssues + numIssuesOnPage,
+                        total: (
+                          <QueryCount
+                            hideParens
+                            hideIfEmpty={false}
+                            count={modifiedQueryCount}
+                            max={queryMaxCount || 100}
+                          />
+                        ),
+                      })
+                    : null
+                }
+                pageLinks={pageLinks}
+                onCursor={onCursorChange}
+                paginationAnalyticsEvent={paginationAnalyticsEvent}
+                issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
+                pageSize={MAX_ITEMS}
+              />
+            </Grid>
+          </Layout.Main>
+        </Layout.Body>
       </Stack>
     </IssueSelectionProvider>
   );
@@ -1049,8 +1051,3 @@ function IssueListOverviewInner({
 const IssueListOverview = registerLLMContext('issue-list', IssueListOverviewInner);
 
 export default Sentry.withProfiler(IssueListOverview);
-
-const StyledBody = styled('div')`
-  background-color: ${p => p.theme.tokens.background.primary};
-  flex: 1;
-`;

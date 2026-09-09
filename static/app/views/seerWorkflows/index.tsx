@@ -256,7 +256,7 @@ function SeerWorkflows() {
         ) : isPending ? (
           <LoadingIndicator />
         ) : (
-          <Container width={{'screen:md': '100%', 'screen:lg': '70%'}}>
+          <Fragment>
             <Container
               background="secondary"
               border="muted"
@@ -439,7 +439,7 @@ function SeerWorkflows() {
                 })
               )}
             </SimpleTable>
-          </Container>
+          </Fragment>
         )}
       </Stack>
     </SentryDocumentTitle>
