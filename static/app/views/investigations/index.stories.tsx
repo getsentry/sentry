@@ -3,6 +3,7 @@ import {Container} from '@sentry/scraps/layout';
 import * as Storybook from 'sentry/stories';
 import InvestigationsView, {InvestigationsPage} from 'sentry/views/investigations';
 import {InvestigationListItemFixture} from 'sentry/views/investigations/fixtures';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
 import {InvestigationFixtureApi} from './__stories__/investigationFixtureApi';
@@ -64,17 +65,21 @@ export default Storybook.story('Investigations — List', story => {
       list={realisticInvestigations}
       pageLinks={getPaginationPageLink({numRows: 14, pageSize: 5, offset: 0})}
     >
-      <Container minHeight="520px" border="primary" radius="md" overflow="hidden">
-        <InvestigationsPage />
-      </Container>
+      <TopBar.Slot.Provider>
+        <Container minHeight="520px" border="primary" radius="md" overflow="hidden">
+          <InvestigationsPage />
+        </Container>
+      </TopBar.Slot.Provider>
     </InvestigationFixtureApi>
   ));
 
   story('Empty and search results', () => (
     <InvestigationFixtureApi organizationSlug="storybook-investigations-empty" list={[]}>
-      <Container minHeight="420px" border="primary" radius="md" overflow="hidden">
-        <InvestigationsPage />
-      </Container>
+      <TopBar.Slot.Provider>
+        <Container minHeight="420px" border="primary" radius="md" overflow="hidden">
+          <InvestigationsPage />
+        </Container>
+      </TopBar.Slot.Provider>
     </InvestigationFixtureApi>
   ));
 
@@ -83,9 +88,11 @@ export default Storybook.story('Investigations — List', story => {
       organizationSlug="storybook-investigations-list-loading"
       mode="loading"
     >
-      <Container minHeight="420px" border="primary" radius="md" overflow="hidden">
-        <InvestigationsPage />
-      </Container>
+      <TopBar.Slot.Provider>
+        <Container minHeight="420px" border="primary" radius="md" overflow="hidden">
+          <InvestigationsPage />
+        </Container>
+      </TopBar.Slot.Provider>
     </InvestigationFixtureApi>
   ));
 
@@ -94,9 +101,11 @@ export default Storybook.story('Investigations — List', story => {
       organizationSlug="storybook-investigations-list-error"
       mode="error"
     >
-      <Container minHeight="420px" border="primary" radius="md" overflow="hidden">
-        <InvestigationsPage />
-      </Container>
+      <TopBar.Slot.Provider>
+        <Container minHeight="420px" border="primary" radius="md" overflow="hidden">
+          <InvestigationsPage />
+        </Container>
+      </TopBar.Slot.Provider>
     </InvestigationFixtureApi>
   ));
 
