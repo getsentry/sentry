@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from copy import deepcopy
 
 from django.db import router, transaction
 from django.utils import timezone
@@ -89,12 +88,10 @@ def _mark_create_dispatch_failed(run_id: int) -> None:
         run.phase = InvestigationOrchestrationPhase.FAILED
         run.status = InvestigationOrchestrationStatus.FAILED
         run.error = detail
-        projection = deepcopy(run.projection)
-        projection.update({"phase": run.phase, "status": run.status})
-        errors = projection.setdefault("errors", [])
+        run.projection.update({"phase": run.phase, "status": run.status})
+        errors = run.projection.setdefault("errors", [])
         if isinstance(errors, list):
             errors.append(detail)
-        run.projection = projection
         run.save(update_fields=["phase", "status", "error", "projection", "date_updated"])
 
 
@@ -142,12 +139,10 @@ def _mark_command_dispatch_failed(command_id: int) -> None:
             },
             date_updated=timezone.now(),
         )
-        projection = deepcopy(run.projection)
-        errors = projection.setdefault("errors", [])
+        errors = run.projection.setdefault("errors", [])
         if isinstance(errors, list):
             errors.append(detail)
         run.error = detail
-        run.projection = projection
         run.save(update_fields=["error", "projection", "date_updated"])
 
 
@@ -196,13 +191,11 @@ def _mark_command_version_conflicted(command_id: int) -> None:
             },
             date_updated=timezone.now(),
         )
-        projection = deepcopy(run.projection)
-        errors = projection.setdefault("errors", [])
+        errors = run.projection.setdefault("errors", [])
         if isinstance(errors, list):
-            projection["errors"] = [detail, *errors]
+            run.projection["errors"] = [detail, *errors]
         if run.error is None:
             run.error = detail
-        run.projection = projection
         run.save(update_fields=["error", "projection", "date_updated"])
 
 
@@ -279,10 +272,9 @@ def _mark_command_dispatch_acknowledged(
                     requeued_commands,
                     ["status", "error", "date_updated"],
                 )
-        projection = deepcopy(run.projection)
-        errors = projection.get("errors")
+        errors = run.projection.get("errors")
         if isinstance(errors, list):
-            projection["errors"] = [
+            run.projection["errors"] = [
                 item
                 for item in errors
                 if not (
@@ -297,7 +289,6 @@ def _mark_command_dispatch_acknowledged(
             and run.error.get("requestId") == str(command.request_id)
         ):
             run.error = None
-        run.projection = projection
         run.save(update_fields=["error", "projection", "date_updated"])
 
 

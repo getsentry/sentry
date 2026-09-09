@@ -208,10 +208,9 @@ def _clear_command_dispatch_error(
     *,
     request_id: UUID,
 ) -> None:
-    projection = deepcopy(run.projection)
-    errors = projection.get("errors")
+    errors = run.projection.get("errors")
     if isinstance(errors, list):
-        projection["errors"] = [
+        run.projection["errors"] = [
             error
             for error in errors
             if not (
@@ -226,7 +225,6 @@ def _clear_command_dispatch_error(
         and run.error.get("requestId") == str(request_id)
     ):
         run.error = None
-    run.projection = projection
 
 
 def _requeue_failed_command(
@@ -264,8 +262,7 @@ def _command_can_be_requeued(command: InvestigationOrchestrationCommand) -> bool
 
 
 def _reset_create_dispatch_failure(run: InvestigationOrchestrationRun) -> None:
-    projection = deepcopy(run.projection)
-    awaiting_input = isinstance(projection.get("pendingInput"), dict)
+    awaiting_input = isinstance(run.projection.get("pendingInput"), dict)
     run.phase = (
         InvestigationOrchestrationPhase.INTAKE
         if awaiting_input
@@ -277,15 +274,14 @@ def _reset_create_dispatch_failure(run: InvestigationOrchestrationRun) -> None:
         else InvestigationOrchestrationStatus.PENDING
     )
     run.error = None
-    projection.update({"phase": run.phase, "status": run.status})
-    errors = projection.get("errors")
+    run.projection.update({"phase": run.phase, "status": run.status})
+    errors = run.projection.get("errors")
     if isinstance(errors, list):
-        projection["errors"] = [
+        run.projection["errors"] = [
             error
             for error in errors
             if not (isinstance(error, dict) and error.get("code") == "seer_dispatch_failed")
         ]
-    run.projection = projection
 
 
 def _is_run_retry(command_type: str, payload: dict[str, Any]) -> bool:
@@ -357,11 +353,9 @@ def archive_investigation_with_orchestration(
             )
         if run is not None:
             run.refresh_from_db(fields=["generation", "projection"])
-            projection = deepcopy(run.projection)
-            control = projection.setdefault(_CONTROL_KEY, {})
+            control = run.projection.setdefault(_CONTROL_KEY, {})
             assert isinstance(control, dict)
             control["notebookWriteFenceGeneration"] = run.generation
-            run.projection = projection
             run.date_updated = timezone.now()
             run.save(update_fields=["projection", "date_updated"])
             now = timezone.now()
@@ -425,8 +419,7 @@ def update_investigation_with_orchestration(
             project_ids=project_ids,
         )
         if run is not None and "title" in fields:
-            projection = deepcopy(run.projection)
-            control = projection.setdefault(_CONTROL_KEY, {})
+            control = run.projection.setdefault(_CONTROL_KEY, {})
             assert isinstance(control, dict)
             control.update(
                 {
@@ -435,7 +428,6 @@ def update_investigation_with_orchestration(
                     "titleStarted": True,
                 }
             )
-            run.projection = projection
             run.date_updated = timezone.now()
             run.save(update_fields=["projection", "date_updated"])
         return updated
@@ -634,7 +626,7 @@ def _command_acceptance(
         duplicate=duplicate,
         workflow_version=run.workflow_version,
         status=command.status,
-        error=deepcopy(command.error),
+        error=command.error,
         projection=_serialize_orchestration_run(run),
     )
 
@@ -708,7 +700,7 @@ def accept_orchestration_command(
                 expected_workflow_version=expected_workflow_version,
                 resulting_workflow_version=run.workflow_version,
                 type=command_type,
-                payload=deepcopy(payload),
+                payload=payload,
                 status=InvestigationOrchestrationCommandStatus.ACKNOWLEDGED,
             )
             _reset_create_dispatch_failure(run)
