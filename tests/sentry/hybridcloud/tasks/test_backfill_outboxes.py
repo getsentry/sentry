@@ -855,19 +855,26 @@ def test_a_missing_postgres_row_falls_back_to_redis() -> None:
 
 @django_db_all
 @no_silo_test
-def test_a_lost_redis_key_is_reseeded_with_the_postgres_pair() -> None:
-    """A rollback must find the pair Postgres holds, not a default one."""
+def test_a_postgres_hit_does_not_touch_redis() -> None:
+    """Redis is off the read path once Postgres answers, so it is not repaired either."""
     reset_processing_state()
     finished_version = AuthProvider.replication_version + 1
     ControlOutboxBackfillWatermark.objects.create(
         table_name=AuthProvider._meta.db_table, low_bound=0, version=finished_version
     )
 
-    with override_options(READ_FROM_POSTGRES_OPTIONS):
+    with (
+        override_options(READ_FROM_POSTGRES_OPTIONS),
+        patch("sentry.hybridcloud.tasks.backfill_outboxes._read_redis_watermark") as redis_mock,
+    ):
         assert get_processing_state(AuthProvider._meta.db_table) == (0, finished_version)
 
-    # Options off: Redis holds the finished pair, so the table does not walk again.
-    assert read_processing_state(AuthProvider._meta.db_table) == (0, finished_version)
+    redis_mock.assert_not_called()
+
+    # The cost of that: a table whose Redis key is gone is not reseeded from Postgres, so
+    # a rollback while the key is missing walks it again. Only set_processing_state writes
+    # Redis, and a finished table never reaches it.
+    assert read_processing_state(AuthProvider._meta.db_table) is None
 
 
 @django_db_all

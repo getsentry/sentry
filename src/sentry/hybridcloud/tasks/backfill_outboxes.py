@@ -109,15 +109,6 @@ def _read_postgres_watermark(table_name: str) -> tuple[int, int] | None:
     return row.low_bound, row.version
 
 
-def _count_redis_fallback(table_name: str) -> None:
-    metrics.incr(
-        WATERMARK_READ_REDIS_FALLBACK_METRIC,
-        tags=dict(table_name=table_name),
-        skip_internal=True,
-        sample_rate=1.0,
-    )
-
-
 def _write_postgres_watermark(table_name: str, value: int, version: int) -> None:
     if not options.get(WRITE_WATERMARK_TO_POSTGRES_OPTION):
         return
@@ -151,25 +142,26 @@ def get_processing_state(table_name: str) -> tuple[int, int]:
     """
     The watermark pair the backfill works from.
     """
-    redis_state = _read_redis_watermark(table_name)
+    postgres_enabled = _read_from_postgres_enabled()
 
-    if not _read_from_postgres_enabled():
-        state = redis_state if redis_state is not None else (0, 1)
-    else:
+    if postgres_enabled:
         postgres_state = _read_postgres_watermark(table_name)
         if postgres_state is not None:
-            state = postgres_state
-        elif redis_state is not None:
-            # TODO: clean this up once we're past the soak period
-            _count_redis_fallback(table_name)
-            state = redis_state
-        else:
-            state = (0, 1)
+            return postgres_state
 
-    if redis_state is None:
-        # TODO: clean this up once we're past the soak period
-        _get_redis_client().set(get_backfill_key(table_name), json.dumps(state))
+    redis_state = _read_redis_watermark(table_name)
+    if redis_state is not None:
+        if postgres_enabled:
+            metrics.incr(
+                WATERMARK_READ_REDIS_FALLBACK_METRIC,
+                tags=dict(table_name=table_name),
+                skip_internal=True,
+                sample_rate=1.0,
+            )
+        return redis_state
 
+    state = (0, 1)
+    _get_redis_client().set(get_backfill_key(table_name), json.dumps(state))
     return state
 
 
