@@ -680,6 +680,70 @@ export const SEER_EMBED_SCHEMAS = {
       },
     ],
   },
+  conversation: {
+    description:
+      'The ONLY way to reference a single AI agent conversation (Explore > Agents). ' +
+      'Use the `conversationId` exactly as the agents conversations API returns it. ' +
+      'Include the API-provided `title` when available, and `start`/`end` (the ' +
+      "conversation's own first and last span timestamps) so the embed can scope " +
+      'its query instead of scanning the default window. ' +
+      'Inline: renders a compact link. ' +
+      'Block: renders the conversation transcript with its LLM call, token, cost, ' +
+      'and tool totals. Do not duplicate the messages or those totals as text. ' +
+      'Never use a markdown link for conversation references.',
+    featureFlag: 'organizations:gen-ai-conversations',
+    level: ['inline', 'block'],
+    schema: z.object({
+      id: z.string().min(1),
+      title: z.string().min(1).optional(),
+      projects: z.array(idString).optional(),
+      start: isoTimestampSchema.optional(),
+      end: isoTimestampSchema.optional(),
+    }),
+    examples: [
+      {
+        label: 'Conversation',
+        data: {
+          id: '4821',
+          title: 'Refund request escalated to a human',
+          start: '2026-08-25T16:37:12Z',
+          end: '2026-08-25T16:39:02Z',
+        },
+      },
+    ],
+  },
+  conversationsQuery: {
+    description:
+      'Preview the AI agent conversations list (Explore > Agents) filtered by a ' +
+      'search query. Use this when pointing the user at a SET of conversations — ' +
+      'if you have a specific conversation ID, use the `conversation` embed instead. ' +
+      '`query` uses span search syntax over gen_ai spans, e.g. ' +
+      '"gen_ai.request.model:gpt-4o". Negation is not supported. ' +
+      'Use `agents` to filter to specific agent names. ' +
+      'Inline renders a link; block renders the first five matching conversations ' +
+      'with their duration, message count, errors and cost.',
+    featureFlag: 'organizations:gen-ai-conversations',
+    level: ['inline', 'block'],
+    schema: z.object({
+      ...pageFilterFields,
+      query: z.string().default(''),
+      agents: z
+        .array(z.string())
+        .optional()
+        .describe('Filter to these agent names, as reported by gen_ai.agent.name.'),
+      title: z.string().min(1).optional(),
+    }),
+    examples: [
+      {
+        label: 'Conversations with tool errors',
+        data: {
+          query: 'gen_ai.tool.name:*',
+          statsPeriod: '24h',
+          title: 'Conversations using tools',
+        },
+      },
+    ],
+  },
   replaysQuery: {
     description:
       'Preview the Session Replay list filtered by a search query. ' +
