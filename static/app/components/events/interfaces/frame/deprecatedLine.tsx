@@ -382,7 +382,7 @@ function DefaultLine(props: React.ComponentProps<typeof StyledDefaultLine>) {
   return (
     <Grid
       align="center"
-      columns="minmax(0, 1fr) max-content"
+      columns="var(--default-line-columns, minmax(0, 1fr) max-content)"
       minHeight="40px"
       padding="sm lg"
       position="relative"
@@ -408,7 +408,7 @@ const StyledDefaultLine = styled('div')<{
 
   @container (max-width: ${p => p.theme.container.xl}) {
     &:has([data-has-setup]) {
-      grid-template-columns: 1fr;
+      --default-line-columns: 1fr;
       row-gap: ${p => p.theme.space.xs};
     }
   }
