@@ -15,7 +15,6 @@ import contextvars
 import re
 from collections.abc import Generator
 from enum import StrEnum
-from typing import Any
 
 import sentry_sdk
 from rest_framework.request import Request
@@ -195,7 +194,10 @@ def set_client_kind_attributes(request: Request) -> None:
     client_host = get_client_host(request)
     user_agent = get_user_agent(request)
 
-    _stash_for_access_log(request, client_kind, client_host)
+    # Stored to be available for the access log.
+    request._request.client_kind = client_kind
+    request._request.client_host = client_host
+
     _record_attribution_span(request, client_kind, client_host, user_agent)
 
     # `_test` suffix while this is a POC, to keep it out of the way of a
@@ -209,30 +211,6 @@ def set_client_kind_attributes(request: Request) -> None:
 
     if user_agent is not None:
         sentry_sdk.set_attribute(ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, user_agent)
-
-
-def _stash_for_access_log(
-    request: Request, client_kind: ClientKind, client_host: str | None
-) -> None:
-    """Hand the derived caller to the access log, the only path that reaches the warehouse.
-
-    The span attributes above are for developers reading a trace, and they stop at
-    Snuba: the analytics warehouse promotes a fixed, hand-curated allow-list of span
-    columns and drops every other attribute, so nothing set on a span is queryable in
-    BigQuery. The ``api.access`` log line is warehouse-visible -- it lands in
-    ``internal-sentry.getsentry_api_access_logs.stdout`` as ``jsonPayload`` and is
-    rolled up into ``api_logs_us.api_log_stdout`` -- so attribution reaches analysis
-    through this stash rather than through the span.
-
-    Stashed on the *underlying Django* request because ``access_log`` middleware runs
-    outside DRF and never sees the ``rest_framework`` wrapper; that is the same reason
-    ``convert_args`` assigns ``request._request.organization``. Re-deriving the kind in
-    the middleware instead is not an option: the organization whose opt-in gates all of
-    this is resolved during dispatch and out of scope by the time the middleware runs.
-    """
-    django_request: Any = request._request
-    django_request.client_kind = client_kind
-    django_request.client_host = client_host
 
 
 def _record_attribution_span(
