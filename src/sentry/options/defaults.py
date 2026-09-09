@@ -829,7 +829,7 @@ register(
 )
 
 # PagerDuty Integration
-register("pagerduty.app-id", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("pagerduty.app-id", default="", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 
 # Vercel Integration
 register("vercel.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -2623,9 +2623,11 @@ register(
 )
 
 # Webhook processing controls
+# Most threads a skip-on-failure claim delivers on, bounded by the records it
+# claimed.
 register(
     "hybridcloud.webhookpayload.worker_threads",
-    default=4,
+    default=16,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Remove the rows a claim-bounded drain finishes with — delivered, attempts
@@ -4236,6 +4238,15 @@ register(
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics
 register(
     "integrations.slo.integration-id-tag-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Serializes inbound assignee sync per external issue with a row lock. Off degrades to the
+# watermark's conditional update, which orders sequential deliveries but not concurrent ones.
+register(
+    "integrations.assignee-sync.lock-external-issue",
     default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,

@@ -208,6 +208,7 @@ describe('ScmMessaging', () => {
           messagingSetup={selectedMessagingSetup}
           onMessagingSetupChange={jest.fn()}
           selectedPlatform={selectedPlatform}
+          onComplete={jest.fn()}
         />
       </QueryClientProvider>
     );
@@ -237,6 +238,7 @@ describe('ScmMessaging', () => {
           messagingSetup={selectedMessagingSetup}
           onMessagingSetupChange={jest.fn()}
           selectedPlatform={selectedPlatform}
+          onComplete={jest.fn()}
         />
       </QueryClientProvider>
     );
@@ -280,6 +282,7 @@ describe('ScmMessaging', () => {
           messagingSetup={selectedMessagingSetup}
           onMessagingSetupChange={jest.fn()}
           selectedPlatform={selectedPlatform}
+          onComplete={jest.fn()}
         />
       </QueryClientProvider>
     );
@@ -409,6 +412,7 @@ describe('ScmMessaging', () => {
           messagingSetup={selectedMessagingSetup}
           onMessagingSetupChange={onMessagingSetupChange}
           selectedPlatform={selectedPlatform}
+          onComplete={jest.fn()}
         />
       </QueryClientProvider>
     );
@@ -440,6 +444,7 @@ describe('ScmMessaging', () => {
             messagingSetup={messagingSetup}
             onMessagingSetupChange={setMessagingSetup}
             selectedPlatform={selectedPlatform}
+            onComplete={jest.fn()}
           />
         </Fragment>
       );
@@ -475,6 +480,7 @@ describe('ScmMessaging', () => {
             messagingSetup={messagingSetup}
             onMessagingSetupChange={setMessagingSetup}
             selectedPlatform={selectedPlatform}
+            onComplete={jest.fn()}
           />
         </Fragment>
       );
@@ -641,6 +647,7 @@ describe('ScmMessaging', () => {
           messagingSetup={setup}
           onMessagingSetupChange={setSetup}
           selectedPlatform={selectedPlatform}
+          onComplete={jest.fn()}
         />
       );
     }
@@ -713,7 +720,7 @@ describe('ScmMessaging', () => {
       ).not.toBeInTheDocument();
 
       await selectEvent.select(screen.getByLabelText('channel'), '#alerts');
-      await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm and continue'}));
 
       // activeRow clears after save; selected setup keeps siblings hidden and
       // brings the footer back.
@@ -723,6 +730,37 @@ describe('ScmMessaging', () => {
       await waitFor(() =>
         expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
       );
+    });
+
+    it('Confirm and continue in the picker calls onComplete without a second click', async () => {
+      mockExclusiveSlackProviders();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/slack-1/channels/',
+        body: {
+          results: [{id: 'C123', name: 'alerts', display: '#alerts', type: 'channel'}],
+        },
+      });
+      const onComplete = jest.fn();
+
+      render(
+        <ScmMessaging
+          messagingSetup={{mode: 'unconfigured'}}
+          onMessagingSetupChange={jest.fn()}
+          selectedPlatform={selectedPlatform}
+          onComplete={onComplete}
+        />
+      );
+
+      // Wait for provider rows to load before interacting.
+      expect(await screen.findByText('discord')).toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {name: /Choose destination for slack/})
+      );
+      await selectEvent.select(screen.getByLabelText('channel'), '#alerts');
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm and continue'}));
+
+      expect(onComplete).toHaveBeenCalledTimes(1);
     });
 
     it('Cancel from removing keeps siblings hidden and restores the footer', async () => {
@@ -792,6 +830,7 @@ describe('ScmMessaging', () => {
               messagingSetup={setup}
               onMessagingSetupChange={setSetup}
               selectedPlatform={selectedPlatform}
+              onComplete={jest.fn()}
             />
           </Fragment>
         );

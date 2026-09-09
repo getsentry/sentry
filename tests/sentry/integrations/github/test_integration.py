@@ -2140,6 +2140,19 @@ class GitHubIntegrationApiPipelineTest(APITestCase):
         assert resp.data["status"] == "complete"
 
     @responses.activate
+    def test_org_selection_ignores_other_provider_with_same_external_id(self) -> None:
+        """Installation ids are only unique per provider; another provider's row with the
+        same external_id carries no GitHub sender metadata and must not be consulted."""
+        self.create_provider_integration(
+            provider="gcp", external_id=self.installation_id, name="Other"
+        )
+        self._advance_to_org_selection()
+
+        resp = self._advance_step({"installation_id": self.installation_id})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+
+    @responses.activate
     def test_full_api_pipeline_flow_new_installation(self) -> None:
         """End-to-end: initialize -> OAuth -> skip org selection -> complete."""
         resp = self._initialize_pipeline()

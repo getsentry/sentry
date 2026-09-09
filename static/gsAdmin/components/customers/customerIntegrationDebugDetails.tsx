@@ -7,11 +7,11 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {ResultGrid} from 'sentry/components/resultGrid';
 import {IconChevron} from 'sentry/icons';
 import {useApi} from 'sentry/utils/useApi';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
-import {ResultGrid} from 'admin/components/resultGrid';
 
 type Props = {
   orgId: string;
@@ -96,7 +96,6 @@ export function CustomerIntegrationDebugDetails({orgId}: Props) {
         panelTitle="Integration Debug Details"
         path={`/_admin/customers/${orgId}/`}
         endpoint={`/customers/${orgId}/integrations/`}
-        method="GET"
         defaultParams={{per_page: 10}}
         useQueryString={false}
         rowsFromData={(data: IntegrationRow[]) => {

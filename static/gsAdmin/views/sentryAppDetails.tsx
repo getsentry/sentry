@@ -112,13 +112,7 @@ export function SentryAppDetails() {
     help: 'Update the details of this Sentry App (e.g. popularity)',
     skipConfirmModal: true,
     onAction: () =>
-      openModal(deps => (
-        <SentryAppUpdateModal
-          {...deps}
-          sentryAppData={data}
-          onAction={onUpdateMutation.mutate}
-        />
-      )),
+      openModal(deps => <SentryAppUpdateModal {...deps} sentryAppData={data} />),
   };
 
   const actions =
