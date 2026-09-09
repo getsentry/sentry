@@ -26,7 +26,7 @@ export function Demo({resizable, ...props}: DemoProps) {
         marginTop="md"
         style={{marginBottom: '-1lh'}}
       >
-        <Flex
+        <DemoContent
           data-test-id="storybook-demo"
           width="100%"
           align="center"
@@ -78,7 +78,7 @@ export function Demo({resizable, ...props}: DemoProps) {
       </Flex>
       <Flex align="center" justify="center" padding="xl">
         <ResizableWindow ref={containerRef}>
-          <Flex
+          <DemoContent
             flex="1"
             data-test-id="storybook-demo"
             width="100%"
@@ -95,6 +95,12 @@ export function Demo({resizable, ...props}: DemoProps) {
     </DemoChrome>
   );
 }
+
+const DemoContent = styled(Flex)`
+  &:has([aria-haspopup][aria-expanded='true']) {
+    overflow: visible;
+  }
+`;
 
 function useContainerBreakpoints(): Array<[ContainerBreakpointSize, number]> {
   const theme = useTheme();

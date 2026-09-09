@@ -34,9 +34,9 @@ export function ResizableWindow({children, className, ref}: ResizableWindowProps
       <Handle data-edge="bottom" onPointerDown={e => handlePointerDown(e, 'bottom')} />
       <Handle data-edge="corner" onPointerDown={e => handlePointerDown(e, 'corner')} />
       {/* -2 offsets the parent's top border so children align flush */}
-      <Container height="inherit" flex="1" overflow="hidden" style={{marginTop: -2}}>
+      <WindowContent height="inherit" flex="1" overflow="hidden" style={{marginTop: -2}}>
         {children}
-      </Container>
+      </WindowContent>
     </WindowRoot>
   );
 }
@@ -96,6 +96,12 @@ const WindowRoot = styled(Container)`
     user-select: none;
     /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     border-color: ${p => p.theme.tokens.graphics.neutral.moderate};
+  }
+`;
+
+const WindowContent = styled(Container)`
+  &:has([aria-haspopup][aria-expanded='true']) {
+    overflow: visible;
   }
 `;
 
