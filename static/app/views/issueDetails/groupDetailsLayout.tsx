@@ -49,13 +49,11 @@ function GroupLayoutBody({children}: {children: React.ReactNode}) {
 }
 
 function EventDetailsSection({children}: {children: React.ReactNode}) {
-  const {isSidebarOpen} = useIssueDetails();
-
   return (
     <Stack
       as="section"
       background="secondary"
-      borderRight={isSidebarOpen ? {zero: 'none', '4xl': 'primary'} : 'none'}
+      borderRight="primary"
       borderBottom={{zero: 'primary', '4xl': 'none'}}
     >
       {children}

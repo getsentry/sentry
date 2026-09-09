@@ -1,6 +1,8 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {NativeFrame} from 'sentry/components/events/interfaces/nativeFrame';
 import {
   findImageForAddress,
@@ -226,20 +228,16 @@ export function NativeContent({
   } ${className}`;
 
   return (
-    <Wrapper>
+    <Container containerType="inline-size" position="relative">
       <ContentPanel
         className={wrapperClassName}
         data-test-id="native-stack-trace-content"
       >
         <Frames data-test-id="stack-trace">{convertedFrames}</Frames>
       </ContentPanel>
-    </Wrapper>
+    </Container>
   );
 }
-
-const Wrapper = styled('div')`
-  position: relative;
-`;
 
 const ContentPanel = styled(Panel)`
   position: relative;

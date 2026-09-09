@@ -4,8 +4,9 @@ import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -30,7 +31,6 @@ import {IconChevron} from 'sentry/icons';
 import {IconFileBroken} from 'sentry/icons/iconFileBroken';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
-import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
 import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import type {Event, Frame} from 'sentry/types/event';
@@ -75,17 +75,6 @@ type Props = {
   registersMeta: Record<any, any>;
 };
 
-// TEMPORARY LOCAL SIMULATION: remove after visually checking Frame Registers.
-const SIMULATED_FRAME_REGISTERS = {
-  rax: '0x0000000000000001',
-  rbx: '0x0000000000004308',
-  rcx: '0x000000000000dcb8',
-  rdx: '0x0000000000008f0c',
-  rbp: '0x00007ffee12ff8c0',
-  rsp: '0x00007ffee12ff840',
-  rip: '0x0000000100004308',
-};
-
 export function NativeFrame({
   frame,
   nextFrame,
@@ -126,10 +115,6 @@ export function NativeFrame({
   const absolute = displayOptions.includes('absolute-addresses');
   const fullFunctionName = displayOptions.includes('verbose-function-names');
   const absoluteFilePaths = displayOptions.includes('absolute-file-paths');
-  const displayedRegisters = hasContextRegisters(registers)
-    ? registers
-    : SIMULATED_FRAME_REGISTERS;
-
   const tooltipDelay = isHoverPreviewed ? SLOW_TOOLTIP_DELAY : undefined;
   const foundByStackScanning = frame.trust === 'scan' || frame.trust === 'cfi-scan';
   const startingAddress = image ? image.image_addr : null;
@@ -143,7 +128,7 @@ export function NativeFrame({
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
   const expandable = isExpandable({
     frame,
-    registers: displayedRegisters,
+    registers,
     platform,
     emptySourceNotation,
     hasScmSourceContext,
@@ -291,14 +276,40 @@ export function NativeFrame({
     <StackTraceFrame data-test-id="stack-trace-frame">
       <StrictClick onClick={handleToggleContext}>
         <RowHeader
+          align="center"
+          alignContent="center"
+          as="span"
+          columns={{
+            zero: 'auto minmax(0, 1fr) max-content 24px',
+            sm: 'auto minmax(0, 1fr) minmax(120px, 1fr) 100px 24px',
+            lg: 'auto 150px 120px minmax(0, 1fr) auto auto 24px',
+            '2xl': 'auto 150px 120px minmax(120px, 4fr) repeat(3, auto) 24px',
+          }}
           expandable={!!expandable}
+          gap={{zero: 'xs sm', lg: '0 sm'}}
           isInAppFrame={frame.inApp}
           isSubFrame={!!isSubFrame}
+          minHeight={{lg: '32px'}}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
+          padding={{zero: 'md', lg: 'sm lg'}}
+          position="relative"
+          rows={{
+            zero: hiddenFrameCount ? 'auto auto auto auto' : 'auto auto auto',
+            sm: 'auto auto',
+            lg: 'auto',
+          }}
         >
           {expandable ? <InteractionStateLayer /> : null}
-          <SymbolicatorIcon>
+          <Container
+            column={{zero: '1', lg: '1'}}
+            row={{
+              zero: hiddenFrameCount ? '1 / 5' : '1 / 4',
+              sm: '1 / 3',
+              lg: '1',
+            }}
+            width="14px"
+          >
             {status === 'error' ? (
               <Tooltip
                 title={t(
@@ -324,8 +335,12 @@ export function NativeFrame({
                 />
               </Tooltip>
             ) : null}
-          </SymbolicatorIcon>
-          <div>
+          </Container>
+          <Container
+            column={{zero: '2', lg: '2'}}
+            minWidth="0"
+            row={{zero: '1', lg: '1'}}
+          >
             {!fullStackTrace && !expanded && leadsToApp && (
               <Fragment>
                 <PackageNote>
@@ -333,28 +348,27 @@ export function NativeFrame({
                 </PackageNote>
               </Fragment>
             )}
-            <Tooltip
+            <InfoText
               title={
                 frame.package ??
                 (isDartAsyncSuspensionFrame
                   ? t('Dart async operation')
                   : t('Go to images loaded'))
               }
-              containerDisplayMode="inline-flex"
               delay={tooltipDelay}
+              ellipsis
               maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
               position="auto-start"
+              variant="inherit"
             >
-              <Package>
-                {frame.package
-                  ? trimPackage(frame.package)
-                  : isDartAsyncSuspensionFrame
-                    ? t('Dart async')
-                    : `<${t('unknown')}>`}
-              </Package>
-            </Tooltip>
-          </div>
-          <Flex>
+              {frame.package
+                ? trimPackage(frame.package)
+                : isDartAsyncSuspensionFrame
+                  ? t('Dart async')
+                  : `<${t('unknown')}>`}
+            </InfoText>
+          </Container>
+          <Flex column={{zero: '2', lg: '3'}} minWidth="0" row={{zero: '2', lg: '1'}}>
             <AddressCell onClick={packageClickable ? handleGoToImagesLoaded : undefined}>
               <Tooltip
                 title={addressTooltip}
@@ -366,11 +380,25 @@ export function NativeFrame({
               </Tooltip>
             </AddressCell>
           </Flex>
-          <FunctionNameCell>
+          <Container
+            alignSelf="center"
+            column={{
+              zero: '2 / 5',
+              sm: '3',
+              lg: '4',
+            }}
+            minWidth="0"
+            row={{zero: '3', sm: '1', lg: '1'}}
+          >
             {functionName ? (
-              <Tooltip title={frame?.rawFunction ?? frame?.symbol} delay={tooltipDelay}>
+              <InfoText
+                title={frame?.rawFunction ?? frame?.symbol}
+                delay={tooltipDelay}
+                variant="inherit"
+                wordBreak="break-all"
+              >
                 <AnnotatedText value={functionName.value} meta={functionName.meta} />
-              </Tooltip>
+              </InfoText>
             ) : isDartAsyncSuspensionFrame ? (
               t('Dart')
             ) : (
@@ -391,34 +419,57 @@ export function NativeFrame({
                 </FileName>
               </Tooltip>
             )}
-          </FunctionNameCell>
-          <GroupingCell>
+          </Container>
+          <Container column={{'2xl': '5'}} display={{zero: 'none', '2xl': 'block'}}>
             {isUsedForGrouping && (
               <Tooltip title={t('This frame is repeated in every event of this issue')}>
                 <IconRefresh size="sm" variant="primary" />
               </Tooltip>
             )}
-          </GroupingCell>
+          </Container>
           {hiddenFrameCount ? (
-            <ShowHideButton
-              analyticsEventName="Stacktrace Frames: toggled"
-              analyticsEventKey="stacktrace_frames.toggled"
-              analyticsParams={{
-                frame_count: hiddenFrameCount,
-                is_frame_expanded: isShowFramesToggleExpanded,
+            <Flex
+              column={{
+                zero: '2 / 5',
+                sm: '3 / 6',
+                lg: expandable ? '5 / 7' : '5 / 8',
+                '2xl': expandable ? '6 / 8' : '6 / 9',
               }}
-              size="zero"
-              variant="transparent"
-              onClick={e => {
-                onShowFramesToggle?.(e);
-              }}
+              justify="end"
+              minWidth="0"
+              row={{zero: '4', sm: '2', lg: '1'}}
             >
-              {isShowFramesToggleExpanded
-                ? tn('Hide %s more frame', 'Hide %s more frames', hiddenFrameCount)
-                : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
-            </ShowHideButton>
+              <ShowHideButton
+                analyticsEventName="Stacktrace Frames: toggled"
+                analyticsEventKey="stacktrace_frames.toggled"
+                analyticsParams={{
+                  frame_count: hiddenFrameCount,
+                  is_frame_expanded: isShowFramesToggleExpanded,
+                }}
+                size="zero"
+                variant="transparent"
+                onClick={e => {
+                  onShowFramesToggle?.(e);
+                }}
+              >
+                {isShowFramesToggleExpanded
+                  ? tn('Hide %s more frame', 'Hide %s more frames', hiddenFrameCount)
+                  : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
+              </ShowHideButton>
+            </Flex>
           ) : null}
-          <Flex align="center" gap="sm">
+          <Flex
+            align="center"
+            column={{
+              zero: expandable ? '3' : '3 / 5',
+              sm: expandable ? '4' : '4 / 6',
+              lg: expandable ? '6' : '6 / 8',
+              '2xl': expandable ? '7' : '7 / 9',
+            }}
+            gap="sm"
+            justify="end"
+            row={{zero: '1', lg: '1'}}
+          >
             {showStacktraceLink && (
               <ErrorBoundary>
                 <StacktraceLink
@@ -438,11 +489,15 @@ export function NativeFrame({
                 />
               </ErrorBoundary>
             )}
-            <TypeCell>
+            <Container>
               {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
-            </TypeCell>
+            </Container>
           </Flex>
-          <ExpandCell>
+          <Container
+            column={{zero: '4', sm: '5', lg: '7', '2xl': '8'}}
+            justifySelf="end"
+            row={{zero: '1', lg: '1'}}
+          >
             {expandable && (
               <ToggleButton
                 type="button"
@@ -452,18 +507,18 @@ export function NativeFrame({
                 icon={<IconChevron size="sm" direction={expanded ? 'up' : 'down'} />}
               />
             )}
-          </ExpandCell>
+          </Container>
         </RowHeader>
       </StrictClick>
       {expanded && (
         <Registers
           frame={frame}
           event={event}
-          registers={displayedRegisters}
+          registers={registers}
           components={components}
           hasContextSource={hasContextSource(frame)}
           hasContextVars={hasContextVars(frame)}
-          hasContextRegisters
+          hasContextRegisters={hasContextRegisters(registers)}
           emptySourceNotation={emptySourceNotation}
           hasAssembly={hasAssembly(frame, platform)}
           hasScmSourceContext={hasScmSourceContext}
@@ -483,34 +538,6 @@ const AddressCell = styled('div')`
   ${p => p.onClick && 'color:' + p.theme.tokens.interactive.link.accent.rest};
 `;
 
-const FunctionNameCell = styled('div')`
-  word-break: break-all;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-column: 2/6;
-  }
-`;
-
-const GroupingCell = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-row: 2/3;
-  }
-`;
-
-const TypeCell = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-column: 5/6;
-    grid-row: 1/2;
-  }
-`;
-
-const ExpandCell = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-column: 6/7;
-    grid-row: 1/2;
-  }
-`;
-
 const ToggleButton = styled(Button)`
   display: block;
   color: ${p => p.theme.tokens.content.secondary};
@@ -527,46 +554,24 @@ const PackageNote = styled('div')`
   font-size: ${p => p.theme.font.size.xs};
 `;
 
-const Package = styled('span')`
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 100%;
-  padding-right: 2px; /* Needed to prevent text cropping with italic font */
-`;
-
 const FileName = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
   border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
 `;
 
-const RowHeader = styled('span')<{
+const RowHeader = styled(Grid)<{
   expandable: boolean;
   isInAppFrame: boolean;
   isSubFrame: boolean;
 }>`
-  position: relative;
-  display: grid;
-  grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${p => p.theme.space.xl}; /* Adjusted to account for the extra element */
-  grid-template-rows: 1fr; /* Ensures a single row */
-  align-items: center;
-  align-content: center;
-  column-gap: ${p => p.theme.space.md};
   background-color: ${p =>
     !p.isInAppFrame && p.isSubFrame
       ? p.theme.colors.surface200
       : p.theme.tokens.background.secondary};
   font-size: ${p => p.theme.font.size.sm};
-  padding: ${p => p.theme.space.md};
   color: ${p => (p.isInAppFrame ? '' : p.theme.tokens.content.secondary)};
   font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
   ${p => p.expandable && 'cursor: pointer;'};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${p => p.theme.space.xl}; /* Matches the updated desktop layout */
-    padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
-    min-height: 32px;
-  }
 `;
 
 const StackTraceFrame = styled('li')`
@@ -575,10 +580,6 @@ const StackTraceFrame = styled('li')`
       border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     }
   }
-`;
-
-const SymbolicatorIcon = styled('div')`
-  width: ${() => SvgIcon.ICON_SIZES.sm};
 `;
 
 const ShowHideButton = styled(Button)`
