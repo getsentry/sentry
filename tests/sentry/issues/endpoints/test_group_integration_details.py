@@ -8,7 +8,7 @@ from sentry.integrations.models import Integration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.activity import Activity
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import (
@@ -19,6 +19,7 @@ from sentry.shared_integrations.exceptions import (
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.users.services.user_option import get_option_from_list, user_option_service
@@ -37,6 +38,102 @@ def raise_integration_error(*args: Any, **kwargs: Any) -> None:
 
 def raise_integration_installation_configuration_error(*args: Any, **kwargs: Any) -> None:
     raise IntegrationConfigurationError("Repository has no issue tracker.")
+
+
+@with_feature("organizations:integrations-issue-basic")
+class GroupIntegrationDetailsDeleteTest(APITestCase):
+    method = "delete"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+        self.integration = self.create_integration(
+            organization=self.organization, provider="example", external_id="example:1"
+        )
+        self.external_issue = self.create_integration_external_issue(
+            group=self.group, integration=self.integration, key="APP-123"
+        )
+
+    def reverse_url(self) -> str:
+        return f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{self.integration.id}/"
+
+    def test_delete_with_write_only_token(self) -> None:
+        self.assert_unlink_allowed("event:write")
+
+    def test_delete_with_admin_only_token(self) -> None:
+        self.assert_unlink_allowed("event:admin")
+
+    def assert_unlink_allowed(self, scope: str) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=[scope])
+
+        self.get_success_response(
+            qs_params={"externalIssue": self.external_issue.id},
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=204,
+        )
+
+        assert not GroupLink.objects.get_group_issues(self.group, self.external_issue.id).exists()
+        assert not ExternalIssue.objects.filter(id=self.external_issue.id).exists()
+        assert Group.objects.get(id=self.group.id).status == GroupStatus.UNRESOLVED
+
+    def test_delete_with_read_only_token(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["event:read"])
+
+        self.get_error_response(
+            qs_params={"externalIssue": self.external_issue.id},
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=403,
+        )
+
+        assert GroupLink.objects.get_group_issues(self.group, self.external_issue.id).exists()
+        assert ExternalIssue.objects.filter(id=self.external_issue.id).exists()
+
+    def test_delete_as_project_member_without_admin(self) -> None:
+        self.organization.update_option("sentry:events_member_admin", False)
+        member = self.create_user()
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        token = self.create_user_auth_token(user=member, scope_list=["event:write"])
+
+        self.get_success_response(
+            qs_params={"externalIssue": self.external_issue.id},
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=204,
+        )
+
+        assert not GroupLink.objects.get_group_issues(self.group, self.external_issue.id).exists()
+        assert Group.objects.get(id=self.group.id).status == GroupStatus.UNRESOLVED
+
+    def test_delete_without_project_access(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member", teams=[])
+        token = self.create_user_auth_token(user=member, scope_list=["event:write"])
+
+        self.get_error_response(
+            qs_params={"externalIssue": self.external_issue.id},
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=403,
+        )
+
+        assert GroupLink.objects.get_group_issues(self.group, self.external_issue.id).exists()
+        assert ExternalIssue.objects.filter(id=self.external_issue.id).exists()
+
+    def test_delete_without_organization_access(self) -> None:
+        other_user = self.create_user()
+        self.create_organization(owner=other_user)
+        token = self.create_user_auth_token(user=other_user, scope_list=["event:write"])
+
+        self.get_error_response(
+            qs_params={"externalIssue": self.external_issue.id},
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=403,
+        )
+
+        assert GroupLink.objects.get_group_issues(self.group, self.external_issue.id).exists()
+        assert ExternalIssue.objects.filter(id=self.external_issue.id).exists()
 
 
 class GroupIntegrationDetailsTest(APITestCase):

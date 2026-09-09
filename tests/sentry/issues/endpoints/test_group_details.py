@@ -1103,6 +1103,30 @@ class GroupUpdateTest(APITestCase):
 
 
 class GroupDeleteTest(APITestCase):
+    def test_delete_with_write_only_token(self) -> None:
+        group = self.create_group()
+        token = self.create_user_auth_token(user=self.user, scope_list=["event:write"])
+
+        response = self.client.delete(
+            f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+
+        assert response.status_code == 403
+        assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
+
+    def test_delete_with_admin_only_token(self) -> None:
+        group = self.create_group()
+        token = self.create_user_auth_token(user=self.user, scope_list=["event:admin"])
+
+        response = self.client.delete(
+            f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+
+        assert response.status_code == 202
+        assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
+
     def test_delete_deferred(self) -> None:
         self.login_as(user=self.user)
 

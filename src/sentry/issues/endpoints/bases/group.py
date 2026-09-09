@@ -44,6 +44,14 @@ class GroupPermission(ProjectPermission):
         return super().has_object_permission(request, view, group.project)
 
 
+class GroupLinkPermission(GroupPermission):
+    scope_map = {
+        **GroupPermission.scope_map,
+        # Unlinking removes an association, not the Sentry issue or external resource.
+        "DELETE": ["event:write", "event:admin"],
+    }
+
+
 class GroupEndpoint(Endpoint):
     owner = ApiOwner.ISSUES
     permission_classes = (GroupPermission,)

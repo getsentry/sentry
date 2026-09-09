@@ -53,7 +53,7 @@ from sentry.issues.action_log.types import (
     LinkExternalIssueAction,
     UnlinkExternalIssueAction,
 )
-from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.issues.endpoints.bases.group import GroupEndpoint, GroupLinkPermission
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
@@ -122,6 +122,7 @@ ACTION_PARAM = OpenApiParameter(
 @cell_silo_endpoint
 class GroupIntegrationDetailsEndpoint(GroupEndpoint):
     owner = ApiOwner.INTEGRATION_PLATFORM
+    permission_classes = (GroupLinkPermission,)
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
