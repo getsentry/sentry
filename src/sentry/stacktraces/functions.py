@@ -14,19 +14,30 @@ from sentry.utils.safe import setdefault_path
 
 _windecl_hash = re.compile(r"^@?(.*?)@[0-9]+$")
 _rust_hash = re.compile(r"::h[a-z0-9]{16}$")
-# Suffixes IL2CPP appends after the method hash, in any combination. Each names a distinct
-# generated function rather than decorating one, so they are kept while the hash is dropped.
-_il2cpp_descriptors = (
-    "gshared",
-    "fshared",
-    "inline",
-    "AdjustorThunk",
-    "Multicast",
-    "Open(?:Static|Instance|Virtual|Interface|GenericVirtual|GenericInterface)(?:Invoker)?",
-    r"gp(?:_[0-9]+)+",
-)
+# Regex for the 40-character hash IL2CPP appends to every managed method name it emits, as in
+# `NativeButtons_DoSomeWorkHere_m7486FA1E8A228E806BA045D26ABECC87DFD436B4`,
+# `NativeButtons_DoSomeWorkHere_m7486FA1E8A228E806BA045D26ABECC87DFD436B4_inline`, etc.
 _il2cpp_method_hash = re.compile(
-    r"_m[0-9a-fA-F]{40}(?=(?:_(?:%s))*$)" % "|".join(_il2cpp_descriptors)
+    r"""
+    # The hash itself
+    _m[0-9a-fA-F]{40}
+    # Lookahead for descriptor suffixes which may be appended after the hash, in any combination;
+    # each names a distinct generated function rather than decorating one, so they're kept while the
+    # hash goes. Ends with `$` to ensure no trailing unrecognized suffixes are allowed.
+    (?=
+        (
+            _gshared
+            | _fshared
+            | _inline
+            | _AdjustorThunk
+            | _Multicast
+            | _Open(Static|Instance|Virtual|Interface|GenericVirtual|GenericInterface)(Invoker)?
+            | _gp(_\d+)+
+        )*
+        $
+    )
+    """,
+    re.VERBOSE,
 )
 _gnu_version = re.compile(r"@@?GLIBC_([0-9.]+)$")
 _cpp_trailer_re = re.compile(r"(\bconst\b|&)$")
