@@ -647,7 +647,7 @@ const config = defineConfig({
     'react/rule-suppression': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/set-state-in-effect': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/set-state-in-render': 'error',
-    'react/static-components': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/static-components': 'error',
     'react/syntax': 'error',
     'react/todo': 'off',
     'react/unsupported-syntax': 'error',
