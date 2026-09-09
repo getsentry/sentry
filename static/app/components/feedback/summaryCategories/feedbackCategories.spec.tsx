@@ -1,4 +1,3 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
@@ -12,15 +11,9 @@ import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrga
 import {FeedbackCategories} from 'sentry/components/feedback/summaryCategories/feedbackCategories';
 import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useNavigate');
 jest.mock('sentry/components/events/autofix/useOrganizationSeerSetup');
 
-const mockUseLocation = jest.mocked(useLocation);
-const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseOrganizationSeerSetup = jest.mocked(useOrganizationSeerSetup);
 
 describe('FeedbackCategories', () => {
@@ -46,19 +39,21 @@ describe('FeedbackCategories', () => {
     },
   ];
 
-  const mockLocation = LocationFixture({
-    query: {query: ''},
-    pathname: '/test',
-  });
-
-  let mockNavigate: jest.Mock;
+  function renderFeedbackCategories(query = '') {
+    return render(<FeedbackCategories />, {
+      organization: mockOrganization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/test',
+          query: {query},
+        },
+      },
+    });
+  }
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-    mockUseLocation.mockReturnValue(mockLocation);
     mockUseOrganizationSeerSetup.mockReturnValue({
       isPending: false,
     } as any);
@@ -73,7 +68,7 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      render(<FeedbackCategories />, {organization: mockOrganization});
+      renderFeedbackCategories();
 
       expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
     });
@@ -90,9 +85,7 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      const {container} = render(<FeedbackCategories />, {
-        organization: mockOrganization,
-      });
+      const {container} = renderFeedbackCategories();
 
       await waitForElementToBeRemoved(() => screen.queryByTestId('loading-placeholder'));
 
@@ -111,9 +104,7 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      const {container} = render(<FeedbackCategories />, {
-        organization: mockOrganization,
-      });
+      const {container} = renderFeedbackCategories();
 
       await waitForElementToBeRemoved(() => screen.queryByTestId('loading-placeholder'));
 
@@ -132,7 +123,7 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      render(<FeedbackCategories />, {organization: mockOrganization});
+      renderFeedbackCategories();
 
       expect(await screen.findByText('User Interface')).toBeInTheDocument();
       expect(await screen.findByText('Performance')).toBeInTheDocument();
@@ -153,27 +144,17 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      render(<FeedbackCategories />, {organization: mockOrganization});
+      const {router} = renderFeedbackCategories();
 
       await userEvent.click(await screen.findByText('User Interface'));
 
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: expect.stringContaining('ai_categorization.labels'),
-          }),
-        })
+      expect(router.location.query.query).toEqual(
+        expect.stringContaining('ai_categorization.labels')
       );
     });
 
     it('removes filter when selected category is clicked again', async () => {
-      const locationWithFilter = LocationFixture({
-        query: {
-          query: `ai_categorization.labels:${WildcardOperators.CONTAINS}["\\"Design\\"","\\"UI\\"","\\"User Interface\\""]`,
-        },
-      });
-
-      mockUseLocation.mockReturnValue(locationWithFilter);
+      const initialQuery = `ai_categorization.labels:${WildcardOperators.CONTAINS}["\\"Design\\"","\\"UI\\"","\\"User Interface\\""]`;
 
       // Mock API to return categories
       MockApiClient.addMockResponse({
@@ -186,29 +167,18 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      render(<FeedbackCategories />, {organization: mockOrganization});
+      const {router} = renderFeedbackCategories(initialQuery);
 
       await userEvent.click(await screen.findByText('User Interface'));
 
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: expect.not.stringContaining('ai_categorization.labels'),
-          }),
-        })
+      expect(router.location.query.query).not.toEqual(
+        expect.stringContaining('ai_categorization.labels')
       );
     });
 
     it('replaces existing filter when different category is clicked', async () => {
-      // Mock location with existing filter for Performance category
-      const locationWithFilter = LocationFixture({
-        query: {
-          query:
-            'ai_categorization.labels:["*\\"Performance\\"*","*\\"Speed\\"*","*\\"Loading\\"*"]',
-        },
-      });
-
-      mockUseLocation.mockReturnValue(locationWithFilter);
+      const initialQuery =
+        'ai_categorization.labels:["*\\"Performance\\"*","*\\"Speed\\"*","*\\"Loading\\"*"]';
 
       // Mock API to return categories
       MockApiClient.addMockResponse({
@@ -221,22 +191,11 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      render(<FeedbackCategories />, {organization: mockOrganization});
+      const {router} = renderFeedbackCategories(initialQuery);
 
       await userEvent.click(await screen.findByText('User Interface'));
 
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: expect.stringContaining('ai_categorization.labels'),
-          }),
-        })
-      );
-
-      const navigateCall = mockNavigate.mock.calls[0][0];
-      const queryString = navigateCall.query.query;
-
-      expect(queryString).toBe(
+      expect(router.location.query.query).toBe(
         `ai_categorization.labels:${WildcardOperators.CONTAINS}["\\"Design\\"","\\"UI\\"","\\"User Interface\\""]`
       );
     });
@@ -277,22 +236,13 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      render(<FeedbackCategories />, {organization: mockOrganization});
+      const {router} = renderFeedbackCategories();
 
       await userEvent.click(await screen.findByText('Performance*'));
 
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: expect.stringContaining('ai_categorization.labels'),
-          }),
-        })
-      );
+      const queryString = router.location.query.query;
 
-      // Get the actual query that was passed to navigate
-      const navigateCall = mockNavigate.mock.calls[0][0];
-      const queryString = navigateCall.query.query;
-
+      expect(queryString).toContain('ai_categorization.labels');
       expect(queryString).toContain('Performance\\*');
       expect(queryString).toContain('Speed\\*');
       expect(queryString).toContain('Loading\\*');
@@ -318,22 +268,13 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      render(<FeedbackCategories />, {organization: mockOrganization});
+      const {router} = renderFeedbackCategories();
 
       await userEvent.click(await screen.findByText('User "Interface"'));
 
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: expect.stringContaining('ai_categorization.labels'),
-          }),
-        })
-      );
+      const queryString = router.location.query.query;
 
-      // Get the actual query that was passed to navigate
-      const navigateCall = mockNavigate.mock.calls[0][0];
-      const queryString = navigateCall.query.query;
-
+      expect(queryString).toContain('ai_categorization.labels');
       // In memory, each quote should have exactly three backslashes before it
       // We go from User "Interface" to User \"Interface\" in the first JSON.stringify, and this is exactly what we want to exact match for in the array of labels
       // Then, we need two more backslashes; first one indicates the second one is one to exact match for, and the third indicates that the quote is for exact matching
@@ -362,22 +303,13 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      render(<FeedbackCategories />, {organization: mockOrganization});
+      const {router} = renderFeedbackCategories();
 
       await userEvent.click(await screen.findByText('API* "Integration"'));
 
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: expect.stringContaining('ai_categorization.labels'),
-          }),
-        })
-      );
+      const queryString = router.location.query.query;
 
-      // Get the actual query that was passed to navigate
-      const navigateCall = mockNavigate.mock.calls[0][0];
-      const queryString = navigateCall.query.query;
-
+      expect(queryString).toContain('ai_categorization.labels');
       expect(queryString).toContain('API\\* \\\\\\"Integration\\\\\\"');
       expect(queryString).toContain('REST\\* \\\\\\"Endpoints\\\\\\"');
       expect(queryString).toContain('GraphQL\\* \\\\\\"Queries\\\\\\"');
@@ -403,22 +335,13 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      render(<FeedbackCategories />, {organization: mockOrganization});
+      const {router} = renderFeedbackCategories();
 
       await userEvent.click(await screen.findByText('Standalone* "Category"'));
 
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: expect.stringContaining('ai_categorization.labels'),
-          }),
-        })
-      );
+      const queryString = router.location.query.query;
 
-      // Get the actual query that was passed to navigate
-      const navigateCall = mockNavigate.mock.calls[0][0];
-      const queryString = navigateCall.query.query;
-
+      expect(queryString).toContain('ai_categorization.labels');
       expect(queryString).toContain('Standalone\\* \\\\\\"Category\\\\\\"');
     });
 
@@ -442,24 +365,15 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      render(<FeedbackCategories />, {organization: mockOrganization});
+      const {router} = renderFeedbackCategories();
 
       await userEvent.click(await screen.findByText('Test* "Category"'));
 
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: expect.stringContaining('ai_categorization.labels'),
-          }),
-        })
-      );
-
-      // Get the actual query that was passed to navigate
-      const navigateCall = mockNavigate.mock.calls[0][0];
-      const queryString = navigateCall.query.query;
+      const queryString = router.location.query.query;
 
       const expectedQuery = `ai_categorization.labels:${WildcardOperators.CONTAINS}["\\"Another \\\\\\"Label\\\\\\"\\"","\\"Associated\\* \\\\\\"Label\\\\\\"\\"","\\"Test\\* \\\\\\"Category\\\\\\"\\""]`;
 
+      expect(queryString).toContain('ai_categorization.labels');
       expect(queryString).toBe(expectedQuery);
     });
   });
