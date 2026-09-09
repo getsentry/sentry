@@ -26,8 +26,7 @@ export const performance: OnboardingConfig = {
           type: 'code',
           language: 'javascript',
           code: `
-import React from "react";
-import ReactDOM from "react-dom";
+import { createRoot } from "react-dom/client";
 import * as Sentry from "@sentry/react";
 import App from "./App";
 
@@ -43,10 +42,9 @@ Sentry.init({
   tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
 });
 
-ReactDOM.render(<App />, document.getElementById("root"));
-
-// Can also use with React Concurrent Mode
-// ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+const container = document.getElementById("root");
+const root = createRoot(container);
+root.render(<App />);
 `,
         },
         {
