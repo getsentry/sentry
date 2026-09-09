@@ -1,4 +1,4 @@
-import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import addIntegrationProvider from 'sentry-images/spot/add-integration-provider.svg';
 
@@ -19,21 +19,7 @@ interface AddIntegrationBannerProps {
  */
 export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerProps) {
   return (
-    <Container
-      border="primary"
-      css={theme => css`
-        background: linear-gradient(
-          90deg,
-          color-mix(in srgb, ${theme.tokens.background.secondary} 0%, transparent) 0%,
-          ${theme.tokens.background.secondary} 70%,
-          ${theme.tokens.background.secondary} 100%
-        );
-      `}
-      margin="md 0"
-      padding="xl"
-      position="relative"
-      radius="md"
-    >
+    <Banner>
       <Container>
         <Container marginBottom="md">
           <Text as="div" bold size="xl">
@@ -65,12 +51,7 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
         position="absolute"
         right="4rem"
       >
-        <img
-          css={css`
-            display: block;
-          `}
-          src={addIntegrationProvider}
-        />
+        <BannerImage src={addIntegrationProvider} />
       </Container>
       <Flex
         align="start"
@@ -90,6 +71,33 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
           />
         </Container>
       </Flex>
+    </Banner>
+  );
+}
+
+function Banner({children}: {children: React.ReactNode}) {
+  return (
+    <Container
+      border="primary"
+      margin="md 0"
+      padding="xl"
+      position="relative"
+      radius="md"
+    >
+      {({className}) => <StyledBanner className={className}>{children}</StyledBanner>}
     </Container>
   );
 }
+
+const StyledBanner = styled('div')`
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, ${p => p.theme.tokens.background.secondary} 0%, transparent) 0%,
+    ${p => p.theme.tokens.background.secondary} 70%,
+    ${p => p.theme.tokens.background.secondary} 100%
+  );
+`;
+
+const BannerImage = styled('img')`
+  display: block;
+`;

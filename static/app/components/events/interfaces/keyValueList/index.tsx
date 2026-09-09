@@ -78,14 +78,7 @@ export function KeyValueList({
                 <td className="val" data-test-id={subjectDataTestId}>
                   <Tablevalue>
                     {actionButton ? (
-                      <ValueWithButtonContainer
-                        align="center"
-                        background="secondary"
-                        columns={{zero: '1fr', xl: '1fr max-content'}}
-                        gap="md"
-                        margin="2xs 0"
-                        radius="md"
-                      >
+                      <ValueWithButtonContainer>
                         {valueContainer}
                         <Flex align="start" height="100%">
                           {actionButton}
@@ -125,7 +118,26 @@ const Tablevalue = styled('div')`
     display: inline-block;
   }
 `;
-const ValueWithButtonContainer = styled(Grid)`
+function ValueWithButtonContainer({children}: {children: React.ReactNode}) {
+  return (
+    <Grid
+      align="center"
+      background="secondary"
+      columns={{zero: '1fr', xl: '1fr max-content'}}
+      gap="md"
+      margin="2xs 0"
+      radius="md"
+    >
+      {({className}) => (
+        <StyledValueWithButtonContainer className={className}>
+          {children}
+        </StyledValueWithButtonContainer>
+      )}
+    </Grid>
+  );
+}
+
+const StyledValueWithButtonContainer = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   padding: ${p => p.theme.space.md} 10px;
   pre {

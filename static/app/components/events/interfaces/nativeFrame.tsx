@@ -1,6 +1,5 @@
 import type {MouseEvent} from 'react';
 import {Fragment, useState} from 'react';
-import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -277,25 +276,12 @@ export function NativeFrame({
   return (
     <StackTraceFrame data-test-id="stack-trace-frame">
       <StrictClick onClick={handleToggleContext}>
-        <Grid
-          align="center"
-          alignContent="center"
-          as="span"
-          css={theme =>
-            rowHeaderCss(theme, {
-              expandable: !!expandable,
-              isInAppFrame: frame.inApp,
-              isSubFrame: !!isSubFrame,
-            })
-          }
-          data-row-header
-          gap="0 md"
-          minHeight={{xl: '32px'}}
+        <RowHeader
+          expandable={!!expandable}
+          isInAppFrame={frame.inApp}
+          isSubFrame={!!isSubFrame}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
-          padding={{zero: 'md', xl: 'xs lg'}}
-          position="relative"
-          rows="1fr"
         >
           {expandable ? <InteractionStateLayer /> : null}
           <Container width="14px">
@@ -367,8 +353,8 @@ export function NativeFrame({
             </AddressCell>
           </Flex>
           <Text wordBreak="break-all">
-            {({className}) => (
-              <Container className={className} column={{zero: '2 / 6', xl: 'auto'}}>
+            {({className: textClassName}) => (
+              <Container className={textClassName} column={{zero: '2 / 6', xl: 'auto'}}>
                 {functionName ? (
                   <Tooltip
                     title={frame?.rawFunction ?? frame?.symbol}
@@ -468,7 +454,7 @@ export function NativeFrame({
               />
             )}
           </Container>
-        </Grid>
+        </RowHeader>
       </StrictClick>
       {expanded && (
         <Registers
@@ -522,33 +508,43 @@ const FileName = styled('span')`
   border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
 `;
 
-const rowHeaderCss = (
-  theme: Theme,
-  {
-    expandable,
-    isInAppFrame,
-    isSubFrame,
-  }: {
-    expandable: boolean;
-    isInAppFrame: boolean;
-    isSubFrame: boolean;
-  }
-) => css`
-  grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${theme.space.xl};
-  background-color: ${
-    !isInAppFrame && isSubFrame
-      ? theme.colors.surface200
-      : theme.tokens.background.secondary
-  };
-  font-size: ${theme.font.size.sm};
-  color: ${isInAppFrame ? '' : theme.tokens.content.secondary};
-  font-style: ${isInAppFrame ? '' : 'italic'};
-  ${expandable && 'cursor: pointer;'};
+function RowHeader(props: React.ComponentProps<typeof StyledRowHeader>) {
+  return (
+    <Grid
+      align="center"
+      alignContent="center"
+      gap="0 md"
+      minHeight={{xl: '32px'}}
+      padding={{zero: 'md', xl: 'xs lg'}}
+      position="relative"
+      rows="1fr"
+    >
+      {({className}) => <StyledRowHeader {...props} className={className} />}
+    </Grid>
+  );
+}
+
+const StyledRowHeader = styled('span')<{
+  expandable: boolean;
+  isInAppFrame: boolean;
+  isSubFrame: boolean;
+}>`
+  grid-template-columns:
+    auto 150px 120px 4fr repeat(3, auto)
+    ${p => p.theme.space.xl};
+  background-color: ${p =>
+    !p.isInAppFrame && p.isSubFrame
+      ? p.theme.colors.surface200
+      : p.theme.tokens.background.secondary};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => (p.isInAppFrame ? '' : p.theme.tokens.content.secondary)};
+  font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
+  ${p => p.expandable && 'cursor: pointer;'};
 `;
 
 const StackTraceFrame = styled('li')`
   :not(:last-child) {
-    [data-row-header] {
+    ${StyledRowHeader} {
       border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     }
   }

@@ -198,22 +198,16 @@ export function DeprecatedLine({
     <li data-test-id="line" className={className}>
       <StrictClick onClick={isExpandable ? toggleContext : undefined}>
         <DefaultLine
-          align="center"
-          columns="minmax(0, 1fr) max-content"
           data-test-id="title"
-          minHeight="40px"
-          padding="sm lg"
-          position="relative"
           isSubFrame={!!isSubFrame}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
-          isExpanded={isExpanded}
           isExpandable={isExpandable}
         >
           {isExpandable ? <InteractionStateLayer /> : null}
           <Text italic={!data.inApp} variant={data.inApp ? 'inherit' : 'muted'}>
-            {({className: layoutClassName}) => (
-              <Flex className={layoutClassName} align="center" minWidth={0}>
+            {({className: textClassName}) => (
+              <Flex className={textClassName} align="center" minWidth={0}>
                 <div>
                   <LeadHint
                     nextFrame={nextFrame}
@@ -384,9 +378,22 @@ function RepeatsIndicator({timesRepeated}: {timesRepeated: number}) {
   );
 }
 
-const DefaultLine = styled(Grid)<{
+function DefaultLine(props: React.ComponentProps<typeof StyledDefaultLine>) {
+  return (
+    <Grid
+      align="center"
+      columns="minmax(0, 1fr) max-content"
+      minHeight="40px"
+      padding="sm lg"
+      position="relative"
+    >
+      {({className}) => <StyledDefaultLine {...props} className={className} />}
+    </Grid>
+  );
+}
+
+const StyledDefaultLine = styled('div')<{
   isExpandable: boolean;
-  isExpanded: boolean;
   isSubFrame: boolean;
 }>`
   background: ${p =>
