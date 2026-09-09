@@ -41,6 +41,7 @@ export default function DebugNotificationsIndex() {
           `}
           background="primary"
           position="relative"
+          containerType="inline-size"
         >
           <HeaderContainer>
             <DebugNotificationsHeader />
@@ -48,7 +49,7 @@ export default function DebugNotificationsIndex() {
           <SidebarContainer>
             <DebugNotificationsSidebar />
           </SidebarContainer>
-          <Stack area="body" containerType="inline-size">
+          <Stack area="body">
             {selectedRegistration ? (
               <Stack gap="xl" padding="2xl" maxWidth="2000px">
                 <Heading as="h2" variant="success">
