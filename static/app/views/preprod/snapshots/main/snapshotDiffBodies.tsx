@@ -280,6 +280,7 @@ function LazyImage({
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setLoaded(false);
   }, [src]);
 

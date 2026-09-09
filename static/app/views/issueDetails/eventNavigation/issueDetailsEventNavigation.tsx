@@ -38,6 +38,7 @@ export function IssueDetailsEventNavigation({
 
   // Reset shouldPreload when the groupId changes
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setShouldPreload({next: false, previous: false});
   }, [group.id]);
 

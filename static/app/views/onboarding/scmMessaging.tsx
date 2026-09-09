@@ -215,6 +215,7 @@ export function ScmMessaging({
       return;
     }
     if (messagingSetup.mode !== 'selected') {
+      // oxlint-disable-next-line react/set-state-in-effect
       setContinueRequested(false);
       return;
     }

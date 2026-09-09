@@ -113,6 +113,7 @@ export function useCurrentProjectState({
     if (!isActive) {
       return;
     }
+    // oxlint-disable-next-line react/set-state-in-effect
     setCurrentProject(oldProject => oldProject ?? defaultCurrentProject);
   }, [setCurrentProject, defaultCurrentProject, isActive]);
 
@@ -121,6 +122,7 @@ export function useCurrentProjectState({
     const selectedProjects = getSelectedProjectList(selection.projects, projects);
     const newSelectionProject = getDefaultCurrentProjectFromSelection(selectedProjects);
     if (newSelectionProject) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setCurrentProject(newSelectionProject);
     }
   }, [selection.projects, getDefaultCurrentProjectFromSelection, projects]);

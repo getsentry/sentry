@@ -198,6 +198,7 @@ function useOverflowTabs({
   ].join('|');
 
   useLayoutEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     recompute();
   }, [recomputeSignature]);
 

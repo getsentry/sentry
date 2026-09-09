@@ -233,6 +233,7 @@ export function ReleaseWidgetQueries({
     widget.queries[0] && requiresCustomReleaseSorting(widget.queries[0]);
   useEffect(() => {
     if (fetchReleasesForCustomSorting) {
+      // oxlint-disable-next-line react/set-state-in-effect
       fetchReleases();
     }
   }, [fetchReleasesForCustomSorting, fetchReleases]);

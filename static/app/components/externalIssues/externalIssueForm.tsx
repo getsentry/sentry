@@ -285,6 +285,7 @@ export function ExternalIssueForm({
         external_issue_type: 'first_party',
         success: !isError,
       });
+      // oxlint-disable-next-line react/set-state-in-effect
       setHasTrackedLoad(true);
     }
   }, [isPending, isError, organization, group, integration, hasTrackedLoad]);

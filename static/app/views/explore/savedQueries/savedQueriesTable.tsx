@@ -79,6 +79,7 @@ export function SavedQueriesTable({
   // Initialize starredIds state when queries have been fetched
   useEffect(() => {
     if (isFetched) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setStarredIds(data?.filter(row => row.starred).map(row => row.id) ?? []);
     }
   }, [isFetched, data]);

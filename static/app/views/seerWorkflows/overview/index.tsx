@@ -333,7 +333,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
   const [settledTeamIdsKey, setSettledTeamIdsKey] = useState<string | null>(null);
   useEffect(() => {
     if (!teamsLoading) {
-      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect
       setSettledTeamIdsKey(teamIdsKey);
     }
   }, [teamsLoading, teamIdsKey]);
