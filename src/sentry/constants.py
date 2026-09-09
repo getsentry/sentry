@@ -605,13 +605,11 @@ class SentryAppStatus:
 
     @classmethod
     def as_int_choices(cls) -> Sequence[int]:
-        return [
-            cls.UNPUBLISHED,
-            cls.PUBLISHED,
-            cls.INTERNAL,
-            cls.PUBLISH_REQUEST_INPROGRESS,
-            cls.DELETION_IN_PROGRESS,
-        ]
+        return [status for status, _ in cls.as_choices()]
+
+    @classmethod
+    def as_str_choices(cls) -> Sequence[str]:
+        return [status_str for _, status_str in cls.as_choices()]
 
 
 class SentryAppInstallationStatus:
