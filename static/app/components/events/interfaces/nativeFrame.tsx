@@ -1,5 +1,6 @@
 import type {MouseEvent} from 'react';
 import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -509,10 +510,13 @@ const FileName = styled('span')`
 `;
 
 function RowHeader(props: React.ComponentProps<typeof StyledRowHeader>) {
+  const theme = useTheme();
+
   return (
     <Grid
       align="center"
       alignContent="center"
+      columns={`auto 150px 120px 4fr repeat(3, auto) ${theme.space.xl}`}
       gap="0 md"
       minHeight={{xl: '32px'}}
       padding={{zero: 'md', xl: 'xs lg'}}
@@ -529,9 +533,6 @@ const StyledRowHeader = styled('span')<{
   isInAppFrame: boolean;
   isSubFrame: boolean;
 }>`
-  grid-template-columns:
-    auto 150px 120px 4fr repeat(3, auto)
-    ${p => p.theme.space.xl};
   background-color: ${p =>
     !p.isInAppFrame && p.isSubFrame
       ? p.theme.colors.surface200
