@@ -476,7 +476,7 @@ def trigger_autofix_rca_in_seer(
 ) -> SeerRun:
     """Start the RCA-in-Seer feature run and emit the legacy start events."""
     # Local import avoids a circular import (dispatch imports this module).
-    from sentry.seer.autofix_rca.dispatch import trigger_autofix_rca_feature
+    from sentry.seer.autofix.dispatch import trigger_autofix_rca_feature
 
     feature_run = trigger_autofix_rca_feature(
         group,

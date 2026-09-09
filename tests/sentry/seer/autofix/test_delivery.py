@@ -5,8 +5,8 @@ from django.db import connections, router
 from django.test.utils import CaptureQueriesContext
 
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.delivery import deliver_autofix_rca_result
 from sentry.seer.autofix.utils import AutofixStoppingPoint
-from sentry.seer.autofix_rca.delivery import deliver_autofix_rca_result
 from sentry.seer.models.run import SeerAgentRun
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -40,7 +40,7 @@ class TestDeliverAutofixRCAResult(TestCase):
         )
 
     def test_missing_run_logs_warning(self) -> None:
-        with patch("sentry.seer.autofix_rca.delivery.logger") as mock_logger:
+        with patch("sentry.seer.autofix.delivery.logger") as mock_logger:
             deliver_autofix_rca_result(
                 organization_id=self.organization.id,
                 run_uuid=UUID("00000000-0000-0000-0000-000000000000"),
@@ -89,7 +89,7 @@ class TestDeliverAutofixRCAResult(TestCase):
         assert self.agent_run.extras["status"] == "completed"
 
     def test_error_status_recorded(self) -> None:
-        with patch("sentry.seer.autofix_rca.delivery.logger") as mock_logger:
+        with patch("sentry.seer.autofix.delivery.logger") as mock_logger:
             deliver_autofix_rca_result(
                 organization_id=self.organization.id,
                 run_uuid=self.agent_run.run.uuid,
@@ -179,7 +179,7 @@ class TestDeliverAutofixRCAResult(TestCase):
         seer_run = self.create_seer_run(organization=self.organization, type="feature_run")
         self.create_seer_agent_run(run=seer_run, source="night_shift", group=self.group)
 
-        with patch("sentry.seer.autofix_rca.delivery.logger") as mock_logger:
+        with patch("sentry.seer.autofix.delivery.logger") as mock_logger:
             deliver_autofix_rca_result(
                 organization_id=self.organization.id,
                 run_uuid=seer_run.uuid,

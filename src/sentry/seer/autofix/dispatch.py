@@ -13,9 +13,9 @@ from sentry.seer.agent.client_utils import AgentRunOptions, collect_user_org_con
 from sentry.seer.agent.on_completion_hook import extract_hook_definition
 from sentry.seer.autofix.autofix_agent import NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.models import FEATURE_ID, AutofixRCAPayload, AutofixRCATweaks
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix.utils import AutofixStoppingPoint, is_free_cohort_org
-from sentry.seer.autofix_rca.models import FEATURE_ID, AutofixRCAPayload, AutofixRCATweaks
 from sentry.seer.models.run import SeerRun
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
