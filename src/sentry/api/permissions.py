@@ -57,7 +57,11 @@ def enforce_scope(request: Request, required_scope: str) -> None:
         return
     if required_scope in add_scope_hierarchy(list(request.access.scopes)):
         return
-    if request.auth and required_scope not in add_scope_hierarchy(request.auth.get_scopes()):
+    if (
+        agent_token.is_agent_auth(request.auth)
+        and required_scope not in settings.SENTRY_TOKEN_ONLY_SCOPES
+        and request.access.would_have_scope_with_added_auth_scope(required_scope)
+    ):
         raise InsufficientScope([required_scope])
     raise PermissionDenied
 

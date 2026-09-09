@@ -287,6 +287,34 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="org:write"'
         )
 
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    def test_all_projects_workflow_agent_token_does_not_advertise_ungrantable_scope(self) -> None:
+        detector = ensure_default_all_projects_detector(self.organization.id)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization, role="member", teams=[self.team]
+        )
+        token, _ = agent_token.encode_agent_token(
+            user_id=user.id,
+            organization_id=self.organization.id,
+            scopes=["org:read"],
+            session_id="workflow-update",
+        )
+        client = APIClient()
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = client.put(
+                f"/api/0/organizations/{self.organization.slug}/workflows/{self.workflow.id}/",
+                data={**self.valid_workflow, "name": "Unauthorized update"},
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token}",
+            )
+
+        assert response.status_code == 403, response.content
+        assert "insufficient_scope" not in response.get("WWW-Authenticate", "")
+
     def test_update_action_filter_with_string_encoded_id(self) -> None:
         dcg = DataConditionGroup.objects.create(
             organization=self.organization,
