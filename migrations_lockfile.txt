@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0033_seer_run_pr_iteration
 
-sentry: 1168_move_outbox_backfill_watermark_to_hybridcloud
+sentry: 1169_drop_outbox_backfill_watermark_tables
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
