@@ -323,12 +323,21 @@ def _unwrap_copy(node: ast.expr) -> ast.expr:
     return node
 
 
+def _declared_elements(value: ast.expr) -> list[ast.expr]:
+    """Serializers in one `@extend_schema` value, which may be a sequence or a
+    media-type mapping such as `request={"multipart/form-data": Upload}`."""
+    if isinstance(value, (ast.List, ast.Tuple)):
+        return list(value.elts)
+    if isinstance(value, ast.Dict):
+        return [v for v in value.values if v is not None]
+    return [value]
+
+
 def _declared_names(decorators: list[ast.expr], keyword: str) -> set[str]:
     """Short names declared under `@extend_schema(<keyword>=...)`."""
     names: set[str] = set()
     for value in extend_schema_kwarg(decorators, keyword):
-        elements = value.elts if isinstance(value, (ast.List, ast.Tuple)) else [value]
-        for element in elements:
+        for element in _declared_elements(value):
             names.add(_name_of(element).rsplit(".", 1)[-1])
     return names
 

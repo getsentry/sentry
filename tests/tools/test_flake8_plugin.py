@@ -1376,3 +1376,15 @@ class E(Endpoint):
         QuerySerializer(data=request.GET)
 """
     assert _run_input(src, frozenset()) == []
+
+
+def test_S025_media_type_mapping_declares_the_body() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"POST": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(request={"multipart/form-data": UploadSerializer})
+    def post(self, request) -> Response[X]:
+        UploadSerializer(data=request.data)
+"""
+    assert _run_input(src) == []
