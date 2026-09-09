@@ -572,6 +572,7 @@ def trigger_autofix_agent(
             allow_free_cohort=allow_free_cohort,
             user=user,
             enable_bash_tools=enable_bash_tools,
+            base_shas=_build_base_shas_metadata(group, referrer),
         )
 
     config = STEP_CONFIGS[step]

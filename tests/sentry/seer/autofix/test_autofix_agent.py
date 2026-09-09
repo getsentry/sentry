@@ -562,9 +562,16 @@ class TestTriggerAutofixAgent(TestCase):
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.feature.rca_dispatch.trigger_autofix_rca_feature")
+    @patch("sentry.scm.factory.new")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
-    def test_root_cause_routes_to_rca_feature_when_flagged(
-        self, mock_client_class, mock_feature, mock_broadcast, mock_check_quota, mock_record_run
+    def test_root_cause_routes_base_shas_to_rca_feature_when_flagged(
+        self,
+        mock_client_class,
+        mock_feature,
+        mock_scm_new,
+        mock_broadcast,
+        mock_check_quota,
+        mock_record_run,
     ):
         """With the flag on, a new root-cause run dispatches the autofix_rca feature
         instead of a legacy explorer run, still emits the started webhook, and
@@ -573,6 +580,11 @@ class TestTriggerAutofixAgent(TestCase):
             organization=self.group.organization, type="feature_run", seer_run_state_id=777
         )
         mock_feature.return_value = feature_run
+        self._make_repo_and_projectrepo()
+        mock_scm_new.return_value = _make_scm_mock(
+            get_repository={"data": {"default_branch": "main"}},
+            get_branch={"data": {"sha": "abc123"}},
+        )
 
         with self.feature("organizations:autofix-rca-in-seer"):
             result = trigger_autofix_agent(
@@ -585,6 +597,9 @@ class TestTriggerAutofixAgent(TestCase):
         assert result == feature_run
         mock_feature.assert_called_once()
         assert mock_feature.call_args.args[0] == self.group
+        assert json.loads(mock_feature.call_args.kwargs["base_shas"]) == {
+            "owner/repo": {"base_sha": "abc123", "base_branch": "main"}
+        }
         # legacy explorer run is not started for a flagged root-cause kickoff
         mock_client_class.return_value.start_run.assert_not_called()
         # the started webhook still fires, pointing at the feature run

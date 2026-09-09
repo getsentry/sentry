@@ -38,6 +38,7 @@ class TestTriggerAutofixRCAFeature(TestCase):
                 referrer=AutofixReferrer.NIGHT_SHIFT,
                 user_context="an upstream triage summary",
                 stopping_point=AutofixStoppingPoint.OPEN_PR,
+                base_shas='{"owner/repo":{"base_sha":"abc123","base_branch":"main"}}',
             )
 
         assert run is fake_run
@@ -58,6 +59,7 @@ class TestTriggerAutofixRCAFeature(TestCase):
         assert payload["project_id"] == self.group.project_id
         assert payload["short_id"] == (self.group.qualified_short_id or str(self.group.id))
         assert payload["title"] == self.group.title
+        assert payload["repo_pins"] == {"owner/repo": {"base_sha": "abc123", "base_branch": "main"}}
         assert payload["tweaks"]["user_context"] == "an upstream triage summary"
         # Seer persists this hook on the Explorer run so later PR iteration
         # completions continue through the Autofix completion flow.

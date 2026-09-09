@@ -23,6 +23,18 @@ class AutofixRCATweaks(BaseModel):
     user_context: str | None = None
 
 
+class RepoPin(BaseModel):
+    class Config:
+        allow_mutation = False
+        extra = "forbid"
+
+    base_sha: str
+    base_branch: str
+
+
+RepoPins = dict[str, RepoPin]
+
+
 class AutofixRCAPayload(BaseModel):
     class Config:
         extra = "ignore"
@@ -33,4 +45,5 @@ class AutofixRCAPayload(BaseModel):
     title: str
     culprit: str
     on_completion_hook: OnCompletionHookDefinition
+    repo_pins: RepoPins | None = None
     tweaks: AutofixRCATweaks = Field(default_factory=AutofixRCATweaks)

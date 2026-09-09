@@ -4,6 +4,7 @@ import logging
 from typing import Any, Literal
 
 from django.contrib.auth.models import AnonymousUser
+from pydantic import parse_raw_as
 
 from sentry import quotas
 from sentry.constants import DataCategory
@@ -13,7 +14,12 @@ from sentry.seer.agent.client_utils import AgentRunOptions, collect_user_org_con
 from sentry.seer.agent.on_completion_hook import extract_hook_definition
 from sentry.seer.autofix.autofix_agent import NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.feature.models import FEATURE_ID, AutofixRCAPayload, AutofixRCATweaks
+from sentry.seer.autofix.feature.models import (
+    FEATURE_ID,
+    AutofixRCAPayload,
+    AutofixRCATweaks,
+    RepoPins,
+)
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix.utils import AutofixStoppingPoint, is_free_cohort_org
 from sentry.seer.models.run import SeerRun
@@ -36,6 +42,7 @@ def trigger_autofix_rca_feature(
     allow_free_cohort: bool = False,
     user: User | RpcUser | AnonymousUser | None = None,
     enable_bash_tools: bool = False,
+    base_shas: str | None = None,
 ) -> SeerRun:
     # Free cohort orgs bypass quota only when called from night shift
     # (allow_free_cohort=True). Not exposed via the API.
@@ -63,6 +70,7 @@ def trigger_autofix_rca_feature(
         title=group.title or "Unknown error",
         culprit=group.culprit or "unknown",
         on_completion_hook=extract_hook_definition(AutofixOnCompletionHook, call_on_failure=True),
+        repo_pins=parse_raw_as(RepoPins, base_shas) if base_shas else None,
         tweaks=AutofixRCATweaks(
             intelligence_level=intelligence_level,
             reasoning_effort=reasoning_effort,
