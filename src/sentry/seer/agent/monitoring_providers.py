@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 from collections.abc import Sequence
+from typing import TypedDict
 
 from sentry import features
 from sentry.hybridcloud.rpc.service import RpcException
@@ -20,6 +21,25 @@ from sentry.seer.utils import encrypt_access_token_for_seer
 from sentry.utils.registry import Registry
 
 logger = logging.getLogger(__name__)
+
+
+class ResourceHealth(TypedDict):
+    """Health of a single resource within a connection."""
+
+    resource_id: str
+    status: str
+    error_detail: str | None
+
+
+class ConnectionHealth(TypedDict):
+    """Health of an org-level monitoring connection, stored in config.
+    Seeded at install and updated by Seer as it uses the connection.
+    """
+
+    status: str
+    last_checked_at: str | None
+    error_detail: str | None
+    resources: list[ResourceHealth]
 
 
 class OrgMonitoringProvider(abc.ABC):
