@@ -597,16 +597,23 @@ class TestStatefulDetectorActivationId(TestCase):
             )
 
     def packet(self, key: int, result: DetectorPriorityLevel) -> DataPacket[Any]:
+        return self.grouped_packet(key, {self.group_key: result})
+
+    def grouped_packet(
+        self, key: int, results: dict[DetectorGroupKey, DetectorPriorityLevel]
+    ) -> DataPacket[Any]:
         packet = {
             "id": str(key),
             "dedupe": key,
-            "group_vals": {self.group_key: result.name},
+            "group_vals": {group_key: result.name for group_key, result in results.items()},
         }
 
         return DataPacket(source_id=str(key), packet=packet)
 
-    def activation_id(self, handler: MockDetectorStateHandler) -> UUID | None:
-        return handler.state_manager.get_state_data([self.group_key])[self.group_key].activation_id
+    def activation_id(
+        self, handler: MockDetectorStateHandler, group_key: DetectorGroupKey = None
+    ) -> UUID | None:
+        return handler.state_manager.get_state_data([group_key])[group_key].activation_id
 
     def test_detector_without_a_project__resolves_its_organization(self) -> None:
         """
@@ -619,7 +626,7 @@ class TestStatefulDetectorActivationId(TestCase):
 
         handler = RotatingDetectorStateHandler(detector=org_scoped_detector)
 
-        assert handler.get_detector_organization() == self.organization
+        assert handler._get_detector_organization() == self.organization
 
         with self.feature("organizations:workflow-engine-rotate-activation-id"):
             assert handler._should_rotate_activation_id() is True
@@ -662,6 +669,35 @@ class TestStatefulDetectorActivationId(TestCase):
             handler.evaluate(self.packet(3, Level.OK))
 
             assert self.activation_id(handler) == activated
+
+    def test_group_keys__rotate_independently(self) -> None:
+        """
+        Ensure one group key firing or resolving does not mess up another group key
+        """
+        handler = RotatingDetectorStateHandler(detector=self.detector)
+
+        with self.feature("organizations:workflow-engine-rotate-activation-id"):
+            handler.evaluate(self.grouped_packet(1, {"group_a": Level.HIGH, "group_b": Level.HIGH}))
+
+            first_a = self.activation_id(handler, "group_a")
+            first_b = self.activation_id(handler, "group_b")
+
+            assert first_a is not None
+            assert first_b is not None
+            assert first_a != first_b
+
+            handler.evaluate(self.grouped_packet(2, {"group_a": Level.OK}))
+
+            assert self.activation_id(handler, "group_a") == first_a
+            assert self.activation_id(handler, "group_b") == first_b
+
+            handler.evaluate(self.grouped_packet(3, {"group_a": Level.HIGH}))
+
+            second_a = self.activation_id(handler, "group_a")
+
+            assert second_a is not None
+            assert second_a != first_a
+            assert self.activation_id(handler, "group_b") == first_b
 
     def test_refiring__mints_a_new_id(self) -> None:
         handler = RotatingDetectorStateHandler(detector=self.detector)
