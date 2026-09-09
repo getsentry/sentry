@@ -304,6 +304,44 @@ class SetClientKindAttributesTest(TestCase):
         assert sdk.set_tag.call_args_list == [mock.call("client_kind_test", "script")]
 
 
+class AccessLogStashTest(TestCase):
+    """The stash is how attribution reaches the warehouse -- the span does not.
+
+    Asserted on the underlying Django request specifically: the DRF wrapper is gone
+    by the time `access_log` middleware runs, so stashing on it would silently log
+    nothing.
+    """
+
+    def stashed(self, request: Request) -> tuple[Any, Any]:
+        django_request: Any = request._request
+        return (
+            getattr(django_request, "client_kind", None),
+            getattr(django_request, "client_host", None),
+        )
+
+    def test_stashes_the_derived_kind(self) -> None:
+        request = make_request(auth=api_token(), user_agent="curl/8.7.1")
+        set_client_kind_attributes(request)
+        assert self.stashed(request) == (ClientKind.SCRIPT, None)
+
+    def test_stashes_the_client_host_for_mcp(self) -> None:
+        request = make_request(
+            auth=api_token(),
+            user_agent="sentry-mcp/1.0",
+            headers={
+                "X-Sentry-MCP-Version": "1.0",
+                "X-Sentry-MCP-Client-Family": "Claude-Code",
+            },
+        )
+        set_client_kind_attributes(request)
+        assert self.stashed(request) == (ClientKind.MCP, "claude-code")
+
+    def test_nothing_is_stashed_until_dispatch_runs(self) -> None:
+        # `Endpoint.dispatch` checks the organization opt-in before calling in, so an
+        # un-attributed request has to leave the attributes absent rather than empty.
+        assert self.stashed(make_request(auth=api_token())) == (None, None)
+
+
 class AttributionSpanTest(TestCase):
     def record(self, request: Request) -> tuple[Any, list[tuple[str, Any]]]:
         with (

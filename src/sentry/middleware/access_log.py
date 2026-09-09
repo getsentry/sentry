@@ -119,6 +119,12 @@ def _create_api_access_log(
         org_id = getattr(getattr(request, "organization", None), "id", None)
         entity_id = getattr(request_auth, "entity_id", None)
         status_code = getattr(response, "status_code", 500)
+        # Derived and stashed during `Endpoint.dispatch`, for organizations that
+        # opted into `client_kind`; absent for every other request, and absent for
+        # anything that never reached an `Endpoint`. Note that `internal_service`
+        # cannot appear here at all -- system-auth requests return above -- so this
+        # field describes the mix of *external* callers, by construction.
+        client_kind = getattr(request, "client_kind", None)
         log_metrics = dict(
             method=request.method,
             view=view,
@@ -132,6 +138,8 @@ def _create_api_access_log(
             path=request.path,
             caller_ip=request.META.get("REMOTE_ADDR"),
             user_agent=request.META.get("HTTP_USER_AGENT"),
+            client_kind=client_kind.value if client_kind is not None else None,
+            client_host=getattr(request, "client_host", None),
             rate_limited=getattr(request, "will_be_rate_limited", False),
             rate_limit_category=getattr(request, "rate_limit_category", None),
             request_duration_seconds=access_log_metadata.get_request_duration(),
