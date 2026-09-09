@@ -111,6 +111,12 @@ _ENDPOINT_SERVERS: dict[str, list[dict[str, Any]]] = {}
 # filters endpoint tuples, so the marker has to be stamped onto the operation later.
 _EXPERIMENTAL_OPERATIONS: set[tuple[str, str]] = set()
 
+# Prepended to the description of every PUBLIC_EXPERIMENTAL operation. The docs render
+# operation descriptions as markdown but have no badge for `x-sentry-experimental`, so
+# this is what actually warns a reader. Wording matches the note endpoints used to write
+# by hand before the status existed.
+EXPERIMENTAL_NOTICE = "**Experimental:** This API is under active development and may change."
+
 
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
     _ENDPOINT_SERVERS.clear()
@@ -245,6 +251,11 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
         method_info = result["paths"].get(path, {}).get(method)
         if method_info is not None:
             method_info["x-sentry-experimental"] = True
+            description = method_info.get("description")
+            # Only prepend to an existing description; a missing one must still fail
+            # _check_description below rather than be silently satisfied here.
+            if description:
+                method_info["description"] = f"{EXPERIMENTAL_NOTICE}\n\n{description}"
 
     _fix_issue_paths(result)
     _fix_nullable_enums(result)

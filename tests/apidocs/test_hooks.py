@@ -9,6 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.apidocs.hooks import (
     _ENDPOINT_SERVERS,
     _EXPERIMENTAL_OPERATIONS,
+    EXPERIMENTAL_NOTICE,
     _fix_nullable_enums,
     custom_postprocessing_hook,
     custom_preprocessing_hook,
@@ -129,6 +130,11 @@ class PublishStatusFilterTest(TestCase):
         experimental = processed["paths"]["/api/0/public-experimental/"]["get"]
         assert experimental["x-sentry-experimental"] is True
         assert "x-sentry-experimental" not in processed["paths"]["/api/0/public/"]["get"]
+
+        # The docs render the description, not the marker, so the notice is the
+        # part a reader actually sees.
+        assert experimental["description"] == f"{EXPERIMENTAL_NOTICE}\n\nAn unstable endpoint"
+        assert processed["paths"]["/api/0/public/"]["get"]["description"] == "A stable endpoint"
 
 
 class SummaryUniquenessTest(TestCase):
