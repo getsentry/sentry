@@ -78,12 +78,12 @@ export function KeyValueList({
                 <td className="val" data-test-id={subjectDataTestId}>
                   <Tablevalue>
                     {actionButton ? (
-                      <ValueWithButtonContainer>
+                      <ValueWithActionButton>
                         {valueContainer}
                         <Flex align="start" height="100%">
                           {actionButton}
                         </Flex>
-                      </ValueWithButtonContainer>
+                      </ValueWithActionButton>
                     ) : (
                       valueContainer
                     )}
@@ -118,7 +118,7 @@ const Tablevalue = styled('div')`
     display: inline-block;
   }
 `;
-function ValueWithButtonContainer({children}: {children: React.ReactNode}) {
+function ValueWithActionButton({children}: {children: React.ReactNode}) {
   return (
     <Grid
       align="center"
@@ -129,15 +129,15 @@ function ValueWithButtonContainer({children}: {children: React.ReactNode}) {
       radius="md"
     >
       {({className}) => (
-        <StyledValueWithButtonContainer className={className}>
+        <ValueWithActionButtonContent className={className}>
           {children}
-        </StyledValueWithButtonContainer>
+        </ValueWithActionButtonContent>
       )}
     </Grid>
   );
 }
 
-const StyledValueWithButtonContainer = styled('div')`
+const ValueWithActionButtonContent = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   padding: ${p => p.theme.space.md} 10px;
   pre {
