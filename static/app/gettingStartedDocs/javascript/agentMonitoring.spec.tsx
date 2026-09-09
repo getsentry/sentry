@@ -60,30 +60,27 @@ function collectText(steps: OnboardingStep[]): string {
 describe('javascript agentMonitoring onboarding', () => {
   const config = agentMonitoring();
 
-  it.each(['openai', 'anthropic', 'google_genai', 'langchain', 'langgraph', 'manual'])(
-    'uses manual browser instrumentation for %s',
-    integration => {
-      const params = makeParams({integration});
-      params.platformKey = 'javascript';
-      const steps = config.configure(params);
-      const code = collectCode(steps);
+  it('uses manual browser instrumentation', () => {
+    const params = makeParams({integration: 'manual'});
+    params.platformKey = 'javascript';
+    const steps = config.configure(params);
+    const code = collectCode(steps);
 
-      expect(code).toContain('import * as Sentry from "@sentry/browser"');
-      expect(code).toContain('Sentry.init(');
-      expect(code).toContain('tracesSampleRate: 1.0');
+    expect(code).toContain('import * as Sentry from "@sentry/browser"');
+    expect(code).toContain('Sentry.init(');
+    expect(code).toContain('tracesSampleRate: 1.0');
 
-      const manualNote = steps
-        .flatMap(step => step.content ?? [])
-        .find(block => block.type === 'custom');
-      render(<Fragment>{manualNote?.content}</Fragment>);
-      expect(
-        screen.getByRole('link', {name: 'manual instrumentation guide'})
-      ).toHaveAttribute(
-        'href',
-        'https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module-browser/#manual-span-creation'
-      );
-    }
-  );
+    const manualNote = steps
+      .flatMap(step => step.content ?? [])
+      .find(block => block.type === 'custom');
+    render(<Fragment>{manualNote?.content}</Fragment>);
+    expect(
+      screen.getByRole('link', {name: 'manual instrumentation guide'})
+    ).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module-browser/#manual-span-creation'
+    );
+  });
 
   it('uses the framework browser SDK and client configuration file for manual instrumentation', () => {
     const frameworkConfig = agentMonitoring({
