@@ -39,13 +39,17 @@ import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHas
  * Star/unstar the dashboard. Sits beside the actions menu rather than inside it —
  * starring is a frequent, cheaply reversible action, so burying it a click deep
  * made it hard to find.
+ *
+ * Presentational on purpose: the starred state has to live in the parent, which
+ * stays mounted while this button does not (see `isFavorited` below).
  */
-function DashboardFavoriteButton({dashboard}: {dashboard: DashboardDetails}) {
-  const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
-  const api = useApi();
-  const queryClient = useQueryClient();
-  const organization = useOrganization();
-
+function DashboardFavoriteButton({
+  isFavorited,
+  onToggle,
+}: {
+  isFavorited: boolean | undefined;
+  onToggle: () => void;
+}) {
   const label = isFavorited ? t('Unstar') : t('Star');
 
   return (
@@ -57,26 +61,7 @@ function DashboardFavoriteButton({dashboard}: {dashboard: DashboardDetails}) {
       icon={
         <IconStar isSolid={isFavorited} variant={isFavorited ? 'warning' : 'muted'} />
       }
-      onClick={async () => {
-        const nextIsFavorited = !isFavorited;
-        setIsFavorited(nextIsFavorited);
-        try {
-          await updateDashboardFavorite(
-            api,
-            queryClient,
-            organization,
-            dashboard.id,
-            nextIsFavorited
-          );
-          trackAnalytics('dashboards_manage.toggle_favorite', {
-            organization,
-            dashboard_id: dashboard.id,
-            favorited: nextIsFavorited,
-          });
-        } catch {
-          setIsFavorited(isFavorited);
-        }
-      }}
+      onClick={onToggle}
     />
   );
 }
@@ -100,6 +85,12 @@ export function DashboardBreadcrumbTitle({
   onChange,
   onEdit,
 }: DashboardBreadcrumbTitleProps) {
+  // Lives here rather than in `DashboardFavoriteButton` because the button
+  // unmounts while editing or previewing, and a toggle never writes back to
+  // `dashboard.isFavorited` — remounting from the prop would revert the star.
+  const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
+  const api = useApi();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const organization = useOrganization();
   const currentUser = useUser();
@@ -153,6 +144,26 @@ export function DashboardBreadcrumbTitle({
     Boolean(dashboard.id) &&
     !isPrebuiltDashboard &&
     organization.features.includes('dashboards-edit');
+  const handleToggleFavorite = async () => {
+    const nextIsFavorited = !isFavorited;
+    setIsFavorited(nextIsFavorited);
+    try {
+      await updateDashboardFavorite(
+        api,
+        queryClient,
+        organization,
+        dashboard.id,
+        nextIsFavorited
+      );
+      trackAnalytics('dashboards_manage.toggle_favorite', {
+        organization,
+        dashboard_id: dashboard.id,
+        favorited: nextIsFavorited,
+      });
+    } catch {
+      setIsFavorited(isFavorited);
+    }
+  };
   const revisionItem = {
     key: 'revisions',
     label: t('Show version history'),
@@ -218,7 +229,15 @@ export function DashboardBreadcrumbTitle({
                   items: menuItems,
                 }
               : null,
-            {type: 'button', element: <DashboardFavoriteButton dashboard={dashboard} />},
+            {
+              type: 'button',
+              element: (
+                <DashboardFavoriteButton
+                  isFavorited={isFavorited}
+                  onToggle={handleToggleFavorite}
+                />
+              ),
+            },
           ],
         }}
       />
