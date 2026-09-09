@@ -161,7 +161,7 @@ describe('RowSubtitle', () => {
       };
       renderSubtitle('configuring', connectedSlackMulti);
 
-      expect(screen.getByText('Choose where to send your alerts to')).toBeInTheDocument();
+      expect(screen.getByText('Choose where to send your alerts')).toBeInTheDocument();
     });
   });
 });
