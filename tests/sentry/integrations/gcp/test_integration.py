@@ -17,7 +17,6 @@ from sentry.integrations.gcp.integration import (
     GcpVerificationInputSerializer,
 )
 from sentry.integrations.gcp.utils import (
-    GCP_STATUS_UNVERIFIED,
     parse_customer_sa_email,
     parse_gcp_project_ids,
     resolve_project_error_detail,
@@ -26,6 +25,7 @@ from sentry.integrations.gcp.utils import (
 from sentry.integrations.models.gcp_service_account import GcpServiceAccount
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.pipeline.types import PipelineStepAction, PipelineStepResult
+from sentry.seer.agent.monitoring_providers import MONITORING_STATUS_UNVERIFIED
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -587,13 +587,13 @@ class GcpIntegrationTest(TestCase):
         assert config["customer_sa_email"] == "new@customer.com"
         assert config["sentry_sa_email"] == _SA_EMAIL
         health = config["connection_health"]
-        assert health["status"] == GCP_STATUS_UNVERIFIED
+        assert health["status"] == MONITORING_STATUS_UNVERIFIED
         assert health["last_checked_at"] is None
         assert health["error_detail"] is None
         assert health["resources"] == [
             {
                 "resource_id": "my-gcp-project",
-                "status": GCP_STATUS_UNVERIFIED,
+                "status": MONITORING_STATUS_UNVERIFIED,
                 "error_detail": None,
             }
         ]
@@ -612,7 +612,7 @@ class GcpIntegrationTest(TestCase):
             "project-prod",
             "project-staging",
         ]
-        assert health["status"] == GCP_STATUS_UNVERIFIED
+        assert health["status"] == MONITORING_STATUS_UNVERIFIED
 
     def test_update_config_reordering_projects_is_not_a_change(self) -> None:
         installation = self._create_installed_integration(
@@ -636,7 +636,7 @@ class GcpIntegrationTest(TestCase):
 
         config = self._stored_config()
         health = config["connection_health"]
-        assert health["status"] == GCP_STATUS_UNVERIFIED
+        assert health["status"] == MONITORING_STATUS_UNVERIFIED
         assert health["last_checked_at"] is None
 
     def test_update_config_rejects_a_string_of_projects(self) -> None:
@@ -757,7 +757,7 @@ class GcpIntegrationTest(TestCase):
         data = installation.get_config_data()
 
         health = data["connection_health"]
-        assert health["status"] == GCP_STATUS_UNVERIFIED
+        assert health["status"] == MONITORING_STATUS_UNVERIFIED
         assert health["resources"] == []
         assert health["last_checked_at"] is None
         assert health["error_detail"] is None

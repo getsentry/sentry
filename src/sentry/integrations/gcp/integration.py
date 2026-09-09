@@ -24,7 +24,6 @@ from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.gcp.client import delete_sentry_sa, generate_sentry_sa
 from sentry.integrations.gcp.utils import (
     GCP_MCP_URLS,
-    GCP_STATUS_UNVERIFIED,
     parse_customer_sa_email,
     parse_gcp_project_ids,
     validate_gcp_project_id,
@@ -39,6 +38,7 @@ from sentry.organizations.services.organization import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.seer.agent.monitoring_providers import (
+    MONITORING_STATUS_UNVERIFIED,
     ConnectionHealth,
     OrgMonitoringProvider,
     org_monitoring_provider_registry,
@@ -265,7 +265,7 @@ class GcpIntegration(IntegrationInstallation):
             "projects": list(config.get("projects", [])),
             "connection_health": config.get("connection_health")
             or {
-                "status": GCP_STATUS_UNVERIFIED,
+                "status": MONITORING_STATUS_UNVERIFIED,
                 "last_checked_at": None,
                 "error_detail": None,
                 "resources": [],
@@ -296,13 +296,13 @@ class GcpIntegration(IntegrationInstallation):
             return
 
         new_config["connection_health"] = {
-            "status": GCP_STATUS_UNVERIFIED,
+            "status": MONITORING_STATUS_UNVERIFIED,
             "last_checked_at": None,
             "error_detail": None,
             "resources": [
                 {
                     "resource_id": project_id,
-                    "status": GCP_STATUS_UNVERIFIED,
+                    "status": MONITORING_STATUS_UNVERIFIED,
                     "error_detail": None,
                 }
                 for project_id in new_config["projects"]

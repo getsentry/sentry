@@ -23,6 +23,9 @@ from sentry.utils.registry import Registry
 logger = logging.getLogger(__name__)
 
 
+MONITORING_STATUS_UNVERIFIED = "unverified"
+
+
 class ResourceHealth(TypedDict):
     """Health of a single resource within a connection."""
 
