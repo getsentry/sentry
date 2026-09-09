@@ -71,6 +71,8 @@ class SeerNightShiftRunResponse(TypedDict):
     issues: list[SeerNightShiftRunIssueResponse]
     seerRuns: list[SeerNightShiftSeerRunResponse]
     triageStrategy: str
+    strategy: str
+    dateCompleted: str | None
 
 
 @register(SeerNightShiftRun)
@@ -80,7 +82,11 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
     ) -> dict[SeerNightShiftRun, dict[str, Any]]:
         prefetch_related_objects(
             item_list,
-            "results",
+            "workflow_config",
+            Prefetch(
+                "results",
+                queryset=SeerNightShiftRunResult.objects.select_related("result_seer_run"),
+            ),
             Prefetch(
                 "shards",
                 queryset=SeerNightShiftRunShard.objects.order_by("id").select_related("seer_run"),
@@ -177,6 +183,10 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
         return {
             "id": str(obj.id),
             "dateAdded": obj.date_added.isoformat(),
+            "dateCompleted": obj.date_completed.isoformat() if obj.date_completed else None,
+            "strategy": obj.workflow_config.strategy
+            if obj.workflow_config
+            else SeerWorkflowStrategy.AGENTIC_TRIAGE.value,
             "extras": extras,
             "errorMessage": error_message,
             "errorType": error_type,
@@ -224,7 +234,11 @@ def _serialize_result(result: SeerNightShiftRunResult) -> SeerNightShiftRunResul
         "id": str(result.id),
         "kind": result.kind,
         "groupId": str(result.group_id) if result.group_id is not None else None,
-        "seerRunId": result.seer_run_id,
+        "seerRunId": (
+            str(result.result_seer_run.seer_run_state_id)
+            if result.result_seer_run and result.result_seer_run.seer_run_state_id is not None
+            else result.seer_run_id
+        ),
         "extras": result.extras or {},
         "dateAdded": result.date_added.isoformat(),
     }

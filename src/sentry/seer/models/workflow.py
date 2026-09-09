@@ -9,6 +9,7 @@ from sentry.db.models.base import DefaultFieldsModel
 
 class SeerWorkflowStrategy(models.TextChoices):
     AGENTIC_TRIAGE = "agentic_triage"
+    DUPLICATE_MONITORS = "duplicate_monitors"
 
 
 class SeerWorkflowSchedule(models.TextChoices):

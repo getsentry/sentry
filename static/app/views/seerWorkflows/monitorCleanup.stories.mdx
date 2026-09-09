@@ -1,0 +1,70 @@
+---
+title: Monitor Cleanup Results
+description: Read-only findings from a manually triggered duplicate monitor scan.
+category: patterns
+source: sentry/views/seerWorkflows/monitorCleanup
+---
+
+import {MonitorCleanupResults} from 'sentry/views/seerWorkflows/monitorCleanup';
+import * as Storybook from 'sentry/stories';
+
+The workflow history renders typed monitor findings here. Monitor links open the existing
+monitor details page. Exact duplicate findings suggest a keeper, with a disabled deletion button for this demo.
+Cards show linked monitors and a short explanation. View comparison opens a property
+table with one column per monitor and differing values marked. Narrative reports are omitted. Notification findings link to connected alerts.
+The scan summary aggregates inspected monitors across projects; incomplete runs say so.
+
+<Storybook.Demo>
+  <MonitorCleanupResults
+    organizationSlug="org-slug"
+    results={[
+      {
+        id: '1',
+        kind: 'duplicate_monitors',
+        seerRunId: '42',
+        extras: {
+          outputKind: 'monitor_cleanup',
+          schemaVersion: 2,
+          projectId: '1',
+          projectSlug: 'checkout',
+          scan: {status: 'complete', monitorsScanned: 3},
+          summary:
+            'Two monitors have matching detection settings and connected automations.',
+          findings: [
+            {
+              kind: 'exact_duplicate',
+              monitors: [
+                {id: '10', name: 'Checkout errors'},
+                {id: '11', name: 'Checkout errors copy'},
+              ],
+              suggestedKeepId: '10',
+              comparison: [
+                {
+                  property: 'Trigger',
+                  values: [
+                    {monitorId: '10', value: '>100 errors'},
+                    {monitorId: '11', value: '>100 errors'},
+                  ],
+                },
+              ],
+              alerts: [],
+              example: '101 errors in five minutes would trigger both monitors.',
+              nextStep: 'Review ownership before removing the copy.',
+              reason: 'Both detect more than 100 errors in five minutes.',
+              differences: ['Names differ.'],
+              matchingSettings: [
+                {label: 'Trigger', value: 'More than 100 errors'},
+                {label: 'Evaluation window', value: '5 minutes'},
+                {label: 'Recovery', value: '100 errors or fewer'},
+                {label: 'Automations', value: 'None'},
+              ],
+            },
+          ],
+        },
+      },
+    ]}
+  />
+</Storybook.Demo>
+
+A partial scan shows an incomplete notice. An empty partial result does not claim that
+there are no duplicates. Unknown schema versions show an unsupported-output message.

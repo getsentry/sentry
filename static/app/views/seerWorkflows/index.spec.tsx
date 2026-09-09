@@ -17,6 +17,58 @@ describe('SeerWorkflows', () => {
     MockApiClient.clearMockResponses();
   });
 
+  it('renders structured duplicate monitor findings in workflow history', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [
+        {
+          id: '12',
+          strategy: 'duplicate_monitors',
+          dateAdded: '2026-09-09T00:00:00Z',
+          extras: {
+            status: 'complete',
+            coverage: {total: 1, complete: 1, partial: 0, failed: 0},
+          },
+          issues: [],
+          results: [
+            {
+              id: '1',
+              kind: 'duplicate_monitors',
+              seerRunId: '42',
+              extras: {
+                outputKind: 'monitor_cleanup',
+                schemaVersion: 1,
+                projectId: '1',
+                projectSlug: 'checkout',
+                scan: {status: 'complete', monitorsScanned: 2},
+                summary: 'One matching pair',
+                groups: [
+                  {
+                    keep: {id: '10', name: 'Checkout errors'},
+                    duplicates: [{id: '11', name: 'Checkout errors copy'}],
+                    reason: 'Matching thresholds',
+                    differences: [],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+    render(<SeerWorkflows />, {organization});
+    expect(await screen.findByText('Duplicate monitors')).toBeInTheDocument();
+    expect(screen.getByText('1 possible duplicate group')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Expand run'}));
+    expect(screen.getByRole('link', {name: 'Checkout errors'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'View comparison'}));
+    expect(screen.getByRole('button', {name: 'Delete duplicates'})).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
+    expect(
+      screen.getByRole('link', {name: 'View prompt and agent run 42'})
+    ).toHaveAttribute('href', expect.stringContaining('explorerRunId=42'));
+  });
+
   it('renders list of runs', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/workflows/`,
@@ -155,7 +207,9 @@ describe('SeerWorkflows', () => {
 
     render(<SeerWorkflows />, {organization});
 
-    const expandButton = await screen.findByRole('button', {name: 'Expand run'});
+    const expandButton = await screen.findByRole('button', {
+      name: 'Expand run',
+    });
     await userEvent.click(expandButton);
 
     // User-facing view shows the friendly action label, not the raw enum.

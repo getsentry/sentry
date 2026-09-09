@@ -1,0 +1,18 @@
+---
+title: Monitor Cleanup Trigger
+description: Manual admin entry point for the duplicate monitor demo.
+category: patterns
+source: admin/views/monitorCleanupTrigger
+---
+
+import {MonitorCleanupTrigger} from 'admin/views/monitorCleanupTrigger';
+import * as Storybook from 'sentry/stories';
+
+Choose a locality on the Seer admin page, then enter an organization ID. The scan covers
+accessible projects containing metric monitors. The returned link opens workflow history.
+
+This example has no locality, so submission is disabled.
+
+<Storybook.Demo>
+  <MonitorCleanupTrigger />
+</Storybook.Demo>
