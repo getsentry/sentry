@@ -200,7 +200,6 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
   },
 ];
 
-export const DEFAULT_TOAST_DURATION = 6000;
 export const DEFAULT_DEBOUNCE_DURATION = 300;
 
 // sentry.io project ID for seer-agents.

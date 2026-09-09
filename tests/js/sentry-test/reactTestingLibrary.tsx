@@ -165,11 +165,11 @@ function makeAllTheProviders(options: ProviderOptions) {
       <CacheProvider value={{...cache, compat: true}}>
         <QueryClientProvider client={makeTestQueryClient()}>
           <SentryNuqsTestingAdapter defaultOptions={{shallow: false}}>
-            <ScrapsTestingProviders>
-              <CommandPaletteProvider>
-                <ThemeProvider theme={ThemeFixture()}>{wrappedContent}</ThemeProvider>
-              </CommandPaletteProvider>
-            </ScrapsTestingProviders>
+            <ThemeProvider theme={ThemeFixture()}>
+              <ScrapsTestingProviders>
+                <CommandPaletteProvider>{wrappedContent}</CommandPaletteProvider>
+              </ScrapsTestingProviders>
+            </ThemeProvider>
           </SentryNuqsTestingAdapter>
         </QueryClientProvider>
       </CacheProvider>

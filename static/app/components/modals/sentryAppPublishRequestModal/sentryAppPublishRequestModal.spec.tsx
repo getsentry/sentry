@@ -1,5 +1,4 @@
 import type {PropsWithChildren} from 'react';
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
@@ -8,7 +7,6 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {makeCloseButton} from '@sentry/scraps/modal';
 
-import Indicators from 'sentry/components/indicators';
 import {SentryAppPublishRequestModal} from 'sentry/components/modals/sentryAppPublishRequestModal/sentryAppPublishRequestModal';
 
 describe('SentryAppDetailsModal', () => {
@@ -235,19 +233,16 @@ describe('SentryAppDetailsModal', () => {
     const closeModal = jest.fn();
 
     render(
-      <Fragment>
-        <Indicators />
-        <SentryAppPublishRequestModal
-          closeModal={closeModal}
-          Header={p => <span>{p.children}</span>}
-          Footer={styledWrapper()}
-          Body={styledWrapper()}
-          CloseButton={makeCloseButton(() => {})}
-          organization={OrganizationFixture()}
-          app={sentryApp}
-          onPublishSubmission={jest.fn()}
-        />
-      </Fragment>
+      <SentryAppPublishRequestModal
+        closeModal={closeModal}
+        Header={p => <span>{p.children}</span>}
+        Footer={styledWrapper()}
+        Body={styledWrapper()}
+        CloseButton={makeCloseButton(() => {})}
+        organization={OrganizationFixture()}
+        app={sentryApp}
+        onPublishSubmission={jest.fn()}
+      />
     );
 
     // Fill out the form fields

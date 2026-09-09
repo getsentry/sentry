@@ -214,7 +214,12 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
 
 // Close any open modals before each test
 beforeEach(closeModal);
-afterEach(resetResizeObservers);
+afterEach(() => {
+  const {toast} =
+    jest.requireActual<typeof import('@sentry/scraps/toast')>('@sentry/scraps/toast');
+  toast.dismiss();
+  resetResizeObservers();
+});
 
 jest.mock('echarts-for-react/lib/core', function echartsMockFactory() {
   // We need to do this because `jest.mock` gets hoisted before imports and `React` is not
@@ -382,6 +387,8 @@ window.IntersectionObserver = class IntersectionObserver {
   unobserve() {}
   disconnect() {}
 };
+
+HTMLElement.prototype.setPointerCapture ??= jest.fn();
 
 window.ResizeObserver = MockResizeObserver;
 
