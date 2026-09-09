@@ -588,6 +588,83 @@ export const SEER_EMBED_SCHEMAS = {
       },
     ],
   },
+  log: {
+    description:
+      'The ONLY way to reference a single log line (Explore > Logs). ' +
+      '`id` is the log item ID exactly as the logs API returns it. Provide ' +
+      '`traceId`, `projectId`, and `timestamp` whenever the API gave them to ' +
+      'you — without them the embed has to scan a wider window to find the row. ' +
+      'When referencing a SET of logs defined by a search, use the `logsQuery` ' +
+      'embed instead. ' +
+      'Inline: renders a compact link that opens the log row in Explore. ' +
+      'Block: renders the log row with its severity, message, and timestamp — ' +
+      'do NOT duplicate any of that as text. ' +
+      'Set `view` to "attributes" to also render the full attribute list for the ' +
+      'log, or to "attribute" together with `attribute` to break that one ' +
+      'attribute down across matching logs. Leave `view` as "summary" unless the ' +
+      'user asked about attributes. ' +
+      'Never use a markdown link for log references.',
+    level: ['inline', 'block'],
+    schema: z.object({
+      id: z.string().min(1),
+      traceId: z.string().min(1).optional(),
+      projectId: idString.optional(),
+      timestamp: isoTimestampSchema.optional(),
+      view: z.enum(['summary', 'attributes', 'attribute']).default('summary'),
+      attribute: z
+        .string()
+        .min(1)
+        .optional()
+        .describe(
+          'Required when view is "attribute". The attribute key to break down, e.g. "severity".'
+        ),
+    }),
+    examples: [
+      {
+        label: 'Inline',
+        level: 'inline',
+        data: {
+          id: '019bfe1c-4c1f-7e3d-9a2f-3e6b1a2c3d4e',
+          traceId: 'a1b2c3d4e5f678901234567890abcdef',
+          projectId: '1',
+          timestamp: '2026-08-25T16:37:12Z',
+        },
+      },
+      {
+        label: 'Block',
+        level: 'block',
+        data: {
+          id: '019bfe1c-4c1f-7e3d-9a2f-3e6b1a2c3d4e',
+          traceId: 'a1b2c3d4e5f678901234567890abcdef',
+          projectId: '1',
+          timestamp: '2026-08-25T16:37:12Z',
+        },
+      },
+      {
+        label: 'All attributes',
+        level: 'block',
+        data: {
+          id: '019bfe1c-4c1f-7e3d-9a2f-3e6b1a2c3d4e',
+          traceId: 'a1b2c3d4e5f678901234567890abcdef',
+          projectId: '1',
+          timestamp: '2026-08-25T16:37:12Z',
+          view: 'attributes',
+        },
+      },
+      {
+        label: 'Single attribute breakdown',
+        level: 'block',
+        data: {
+          id: '019bfe1c-4c1f-7e3d-9a2f-3e6b1a2c3d4e',
+          traceId: 'a1b2c3d4e5f678901234567890abcdef',
+          projectId: '1',
+          timestamp: '2026-08-25T16:37:12Z',
+          view: 'attribute',
+          attribute: 'severity',
+        },
+      },
+    ],
+  },
   issuesQuery: {
     description:
       'Link to the issue stream filtered by a search query. ' +
