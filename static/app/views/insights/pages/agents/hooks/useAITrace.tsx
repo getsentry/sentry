@@ -107,7 +107,7 @@ export function useAITrace(traceSlug: string, timestamp?: number): UseAITraceRes
 
         setNodes(flattenedNodes);
         setIsLoading(false);
-      } catch (err) {
+      } catch {
         setError(true);
         setIsLoading(false);
       }

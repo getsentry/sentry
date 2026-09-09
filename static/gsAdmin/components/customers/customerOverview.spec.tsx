@@ -327,7 +327,7 @@ describe('CustomerOverview', () => {
       },
     });
 
-    const mockOnAction = jest.fn();
+    const mockOnAction = jest.fn().mockResolvedValue(undefined);
 
     render(
       <CustomerOverview
@@ -403,7 +403,7 @@ describe('CustomerOverview', () => {
       sponsoredType: 'XX',
     });
 
-    const mockOnAction = jest.fn();
+    const mockOnAction = jest.fn().mockResolvedValue(undefined);
 
     render(
       <CustomerOverview
