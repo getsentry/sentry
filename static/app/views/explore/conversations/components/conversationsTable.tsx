@@ -19,6 +19,7 @@ import {
   GridEditable,
   type GridColumnHeader,
   type GridColumnOrder,
+  type GridColumnSort,
 } from 'sentry/components/tables/gridEditable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconFire, IconUser} from 'sentry/icons';
@@ -37,6 +38,7 @@ import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversatio
 import {
   useConversations,
   type Conversation,
+  type ConversationSortField,
   type ConversationUser,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
 import {getConversationDetailUrl} from 'sentry/views/explore/conversations/utils/urlParams';
@@ -90,6 +92,14 @@ const COLUMN_DEFAULTS: Record<ColumnKey, {name: string; width: number}> = {
 };
 
 const RIGHT_ALIGNED_COLUMNS = new Set<ColumnKey>(['age']);
+
+const SORT_FIELD_BY_COLUMN: Partial<Record<ColumnKey, ConversationSortField>> = {
+  duration: 'generationDuration',
+  messages: 'llmCalls',
+  errors: 'errors',
+  cost: 'totalCost',
+  age: 'age',
+};
 
 // Persisted per-column widths. Only the widths are stored, keyed by column:
 // names are translated, and keying by column (rather than storing the whole
@@ -185,7 +195,18 @@ export function ConversationsTable() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const {data, isFetching, error, pageLinks, setCursor, isDirectHit} = useConversations();
+  const {
+    data,
+    isFetching,
+    error,
+    pageLinks,
+    setCursor,
+    unsetCursor,
+    isDirectHit,
+    sort,
+    setSort,
+    sortingEnabled,
+  } = useConversations();
   useConversationDirectHitRedirect({isDirectHit, conversations: data});
 
   const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
@@ -273,6 +294,27 @@ export function ConversationsTable() {
     []
   );
 
+  const getColumnSort = useCallback(
+    (column: GridColumnOrder<ColumnKey>): GridColumnSort | undefined => {
+      const field = SORT_FIELD_BY_COLUMN[column.key];
+      if (!sortingEnabled || !field) {
+        return undefined;
+      }
+
+      const direction =
+        sort === field ? 'asc' : sort === `-${field}` ? 'desc' : undefined;
+      return {
+        align: RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'right' : undefined,
+        direction,
+        onSort: () => {
+          setSort(direction === 'desc' ? field : `-${field}`);
+          unsetCursor();
+        },
+      };
+    },
+    [setSort, sort, sortingEnabled, unsetCursor]
+  );
+
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<ColumnKey>, dataRow: Conversation) => (
       <BodyCell column={column} conversation={dataRow} />
@@ -293,6 +335,7 @@ export function ConversationsTable() {
           // the Stack's `lg` gap is the only spacing before the pagination.
           bodyStyle={{marginBottom: 0}}
           grid={{
+            getColumnSort,
             renderHeadCell,
             renderBodyCell,
             onResizeColumn: handleResizeColumn,
