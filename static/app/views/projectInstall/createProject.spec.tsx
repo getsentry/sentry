@@ -834,8 +834,8 @@ describe('CreateProject', () => {
   });
 
   it('targets an MS Teams channel picked from the list by its name', async () => {
-    // The picker keys Teams channels by id, but the backend resolves a Teams
-    // channel by name only, so the workflow must carry the name.
+    // The backend resolves a Teams channel by name only, so the workflow must
+    // carry the name.
     const {organization, messagingIntegration} = mockMessagingProjectCreation({
       provider: {key: 'msteams', name: 'MS Teams'},
       channels: [
@@ -856,7 +856,7 @@ describe('CreateProject', () => {
 
     render(<CreateProject />, {organization});
 
-    await createProjectWithChannel('General (19:abc@thread.tacv2)');
+    await createProjectWithChannel('General');
 
     await waitFor(() => {
       expect(ruleCreationMockRequest).toHaveBeenCalled();
