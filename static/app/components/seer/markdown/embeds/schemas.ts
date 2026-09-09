@@ -84,9 +84,14 @@ interface SeerEmbedSchema {
   schema: z.ZodObject;
   examples?: SeerEmbedExample[];
   /**
-   * Org feature(s) the widget is offered behind. A list is satisfied by any one
-   * of its flags, which is what an entitlement spread over several plan flags
-   * needs — the org holds whichever one its plan grants, never all of them.
+   * Org feature(s) the widget is offered behind. Gates generation only: it
+   * reaches Python through `embed_widgets.generated.json` and decides which
+   * widgets the agent is told it may emit. Rendering never reads it, so an
+   * embed already present in a conversation renders whether or not the org
+   * holds the flag.
+   *
+   * A list is satisfied by any one of its flags — an entitlement spread across
+   * several plan flags is granted by whichever one the org's plan carries.
    */
   featureFlag?: string | string[];
 }
