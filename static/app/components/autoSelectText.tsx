@@ -17,19 +17,18 @@ type AutoSelectHandle = {
 export function AutoSelectText({children, className, ref, ...props}: Props) {
   const element = useRef<HTMLSpanElement>(null);
 
-  // We need to expose a selectText method to parent components
-  // and need an imperative ref handle.
-  useImperativeHandle(ref, () => ({
-    selectText: () => handleClick(),
-  }));
-
-  // oxlint-disable-next-line react/invariant -- React Compiler internal error in PruneHoistedContexts; the hoisted handleClick is valid.
   function handleClick() {
     if (!element.current) {
       return;
     }
     selectText(element.current);
   }
+
+  // We need to expose a selectText method to parent components
+  // and need an imperative ref handle.
+  useImperativeHandle(ref, () => ({
+    selectText: () => handleClick(),
+  }));
 
   // use an inner span here for the selection as otherwise the selectText
   // function will create a range that includes the entire part of the

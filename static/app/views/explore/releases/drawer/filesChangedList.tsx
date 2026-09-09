@@ -34,15 +34,14 @@ interface FilesChangedProps {
 export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
   const navigate = useNavigate();
   const organization = useOrganization();
-  const {
-    [ReleasesDrawerFields.ACTIVE_REPO]: rdActiveRepo,
-    [ReleasesDrawerFields.FILES_CURSOR]: rdFilesCursor,
-  } = useLocationQuery({
+  const locationQuery = useLocationQuery({
     fields: {
       [ReleasesDrawerFields.FILES_CURSOR]: decodeScalar,
       [ReleasesDrawerFields.ACTIVE_REPO]: decodeScalar,
     },
   });
+  const rdActiveRepo = locationQuery[ReleasesDrawerFields.ACTIVE_REPO];
+  const rdFilesCursor = locationQuery[ReleasesDrawerFields.FILES_CURSOR];
   const activeReleaseRepo =
     releaseRepos.find(repo => repo.name === rdActiveRepo) ?? releaseRepos[0];
 
@@ -56,7 +55,6 @@ export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
       organization,
       release,
       activeRepository: activeReleaseRepo,
-      // oxlint-disable-next-line react/invariant -- React Compiler internal error in InferMutationAliasingEffects; rdFilesCursor is initialized.
       cursor: rdFilesCursor,
     }),
     select: selectJsonWithHeaders,

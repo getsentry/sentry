@@ -81,17 +81,15 @@ export function EAPChartsWidget({transactionName, query}: EAPChartsWidgetProps) 
   const location = useLocation();
   const navigate = useNavigate();
 
-  const {
-    [SpanFields.SPAN_CATEGORY]: spanCategoryUrlParam,
-    [SELECTED_CHART_QUERY_PARAM]: selectedChartUrlParam,
-  } = useLocationQuery({
+  const locationQuery = useLocationQuery({
     fields: {
       [SpanFields.SPAN_CATEGORY]: decodeScalar,
       [SELECTED_CHART_QUERY_PARAM]: decodeScalar,
     },
   });
+  const spanCategoryUrlParam = locationQuery[SpanFields.SPAN_CATEGORY];
+  const selectedChartUrlParam = locationQuery[SELECTED_CHART_QUERY_PARAM];
 
-  // oxlint-disable-next-line react/invariant -- React Compiler internal error in InferMutationAliasingEffects; selectedChartUrlParam is initialized.
   const selectedChart = WIDGET_OPTIONS[selectedChartUrlParam as EAPWidgetType]
     ? (selectedChartUrlParam as EAPWidgetType)
     : EAPWidgetType.DURATION_BREAKDOWN;

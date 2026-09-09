@@ -362,12 +362,11 @@ export function EditHighlightsModal({
           onRemoveContextKey={(contextType, contextKey) => {
             trackAnalytics('highlights.edit_modal.remove_context_key', {organization});
             setHighlightContext(() => {
-              const {[contextType]: highlightContextKeys, ...newHighlightContext} =
-                highlightContext;
-              // oxlint-disable-next-line react/invariant -- React Compiler internal error in InferMutationAliasingEffects; highlightContextKeys is initialized.
-              const newHighlightContextKeys = (highlightContextKeys ?? []).filter(
-                key => key !== contextKey
-              );
+              const newHighlightContextKeys = (
+                highlightContext[contextType] ?? []
+              ).filter(key => key !== contextKey);
+              const newHighlightContext = {...highlightContext};
+              delete newHighlightContext[contextType];
               return newHighlightContextKeys.length === 0
                 ? newHighlightContext
                 : {
