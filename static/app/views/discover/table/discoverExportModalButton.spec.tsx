@@ -7,6 +7,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -69,10 +70,12 @@ describe('DiscoverExportModalButton', () => {
     renderButton();
 
     await waitFor(() =>
-      expect(screen.getByRole('button', {name: 'Export Data'})).toBeEnabled()
+      expect(screen.getByRole('button', {name: 'Export'})).toBeEnabled()
     );
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
-    await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+    await userEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {name: 'Export'})
+    );
 
     await waitFor(() => {
       expect(downloadAsCsv).toHaveBeenCalledTimes(1);
@@ -88,7 +91,7 @@ describe('DiscoverExportModalButton', () => {
     renderButton({disabled: true});
 
     await waitFor(() =>
-      expect(screen.getByRole('button', {name: 'Export Data'})).toBeDisabled()
+      expect(screen.getByRole('button', {name: 'Export'})).toBeDisabled()
     );
   });
 
@@ -108,11 +111,13 @@ describe('DiscoverExportModalButton', () => {
     renderButton();
 
     await waitFor(() =>
-      expect(screen.getByRole('button', {name: 'Export Data'})).toBeEnabled()
+      expect(screen.getByRole('button', {name: 'Export'})).toBeEnabled()
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
-    await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+    await userEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {name: 'Export'})
+    );
 
     await waitFor(() => {
       expect(downloadAsCsv).toHaveBeenCalledTimes(1);
@@ -124,10 +129,10 @@ describe('DiscoverExportModalButton', () => {
     mockEstimatedRowCount(5000);
     renderButton();
 
-    expect(screen.getByRole('button', {name: 'Export Data'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Export'})).toBeDisabled();
 
     await waitFor(() =>
-      expect(screen.getByRole('button', {name: 'Export Data'})).toBeEnabled()
+      expect(screen.getByRole('button', {name: 'Export'})).toBeEnabled()
     );
   });
 
@@ -156,13 +161,15 @@ describe('DiscoverExportModalButton', () => {
 
     await waitFor(() => expect(countMock).toHaveBeenCalled());
     await waitFor(() =>
-      expect(screen.getByRole('button', {name: 'Export Data'})).toBeEnabled()
+      expect(screen.getByRole('button', {name: 'Export'})).toBeEnabled()
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Number of rows'}));
     await userEvent.click(await screen.findByRole('option', {name: /\(All\)$/}));
-    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {name: 'Export'})
+    );
 
     await waitFor(() => {
       expect(dataExportMock).toHaveBeenCalledWith(

@@ -421,8 +421,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
 
     # Enable per-series `_if` filters on Explore / compare / dashboard visualize aggregates
     manager.add("organizations:explore-conditional-aggregates", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable viewing trace item details for spans
-    manager.add("organizations:explore-span-item-details", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
     # Show combined resolved "past issues" section instead of separate key errors / performance issues
     manager.add("organizations:weekly-report-past-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -451,6 +449,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:ourlogs-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable our logs product to be ingested via Relay.
     manager.add("organizations:ourlogs-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable regular expression searches in logs
+    manager.add("organizations:ourlogs-regex-searches", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable table support for the trace metrics dataset in dashboards
     manager.add("organizations:tracemetrics-dashboard-table", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics product (known internally as tracemetrics) in UI and backend

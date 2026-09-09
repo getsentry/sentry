@@ -221,6 +221,25 @@ def test_hydration_disables_aggregate_extrapolation(run_bulk_table_queries: Magi
     assert all(query.resolver.config.disable_aggregate_extrapolation for query in queries)
 
 
+@patch(
+    "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query",
+    return_value={"data": []},
+)
+def test_single_query_hydration_uses_one_aggregate_query(run_table_query: MagicMock) -> None:
+    result = OrganizationAIConversationsEndpoint()._get_conversations_data_single_query(
+        snuba_params=SnubaParams(), conversation_ids=["conversation-a"]
+    )
+
+    assert result == []
+    run_table_query.assert_called_once()
+    query = run_table_query.call_args.kwargs
+    assert query["config"].disable_aggregate_extrapolation is True
+    assert "min(timestamp) as start_timestamp" in query["selected_columns"]
+    assert "max(timestamp) as end_timestamp" in query["selected_columns"]
+    assert query["orderby"] is None
+    assert query["limit"] == 1
+
+
 class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
     view = "sentry-api-0-organization-ai-conversations"
 

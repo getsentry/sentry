@@ -8,7 +8,6 @@ from sentry.dynamic_sampling.per_org.telemetry import (
     ServedValue,
     ServingSource,
     emit_serving_source,
-    log_serving_fallback,
 )
 from sentry.dynamic_sampling.tasks.helpers import recalibrate_orgs as legacy_cache
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
@@ -20,11 +19,9 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import 
 
 
 def _serving_source(org_id: int) -> ServingSource:
-    if not is_org_in_serving_rollout(org_id):
-        return ServingSource.LEGACY
-    if not cache.has_project_rates(org_id):
-        return ServingSource.PER_ORG_FALLBACK
-    return ServingSource.PER_ORG
+    if is_org_in_serving_rollout(org_id):
+        return ServingSource.PER_ORG
+    return ServingSource.LEGACY
 
 
 def get_project_sample_rate(
@@ -46,10 +43,6 @@ def get_project_sample_rate(
         project_id=project_id,
         error_sample_rate_fallback=error_sample_rate_fallback,
     )
-    if source is ServingSource.PER_ORG_FALLBACK:
-        log_serving_fallback(
-            ServedValue.PROJECT_SAMPLE_RATE, org_id, project_id, sample_rate=legacy_sample_rate
-        )
     return legacy_sample_rate
 
 
@@ -65,19 +58,7 @@ def get_transaction_sample_rates(
     named_rates, implicit_rate = get_transactions_resampling_rates(
         org_id=org_id, proj_id=project_id, default_rate=default_rate
     )
-    if source is ServingSource.PER_ORG_FALLBACK:
-        log_serving_fallback(
-            ServedValue.TRANSACTION_SAMPLE_RATES,
-            org_id,
-            project_id,
-            named_rates=named_rates,
-            implicit_rate=implicit_rate,
-        )
     return named_rates, implicit_rate
-
-
-def is_recalibration_factor_served_per_org(org_id: int) -> bool:
-    return _serving_source(org_id) is ServingSource.PER_ORG
 
 
 # Tags the read of the factor an organization was served by the other pipeline.
@@ -107,10 +88,7 @@ def _recalibration_factor(org_id: int, source: ServingSource, *, read_by: str) -
 def get_recalibration_factor(org_id: int) -> float:
     source = _serving_source(org_id)
     emit_serving_source(ServedValue.RECALIBRATION_FACTOR, source)
-    factor = _recalibration_factor(org_id, source, read_by="serving")
-    if source is ServingSource.PER_ORG_FALLBACK:
-        log_serving_fallback(ServedValue.RECALIBRATION_FACTOR, org_id, factor=factor)
-    return factor
+    return _recalibration_factor(org_id, source, read_by="serving")
 
 
 def get_previous_recalibration_factor(org_id: int) -> float:

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import functools
-import logging
 from collections.abc import Callable, Generator, Mapping
 from contextlib import contextmanager
 from enum import StrEnum
@@ -19,8 +18,6 @@ from sentry.utils.snuba_rpc import SnubaRPCError, SnubaRPCTimeout
 
 F = TypeVar("F", bound=Callable[..., object])
 
-logger = logging.getLogger(__name__)
-
 METRIC_PREFIX = "dynamic_sampling"
 
 SCHEDULER_BUCKET_ORG_STATUS_METRIC = (
@@ -28,7 +25,6 @@ SCHEDULER_BUCKET_ORG_STATUS_METRIC = (
 )
 
 SERVING_SOURCE_METRIC = "dynamic_sampling.per_org.serving_source"
-SERVING_FALLBACK_LOG = "dynamic_sampling.per_org.serving_fallback"
 
 
 class ServedValue(StrEnum):
@@ -45,7 +41,7 @@ class ServingSource(StrEnum):
     # The organization is not in the serving rollout.
     LEGACY = "legacy"
     PER_ORG = "per_org"
-    PER_ORG_FALLBACK = "per_org_fallback"
+    # The organization is in the serving rollout, but no pass has stored a value for it.
     PER_ORG_NO_DATA = "per_org_no_data"
 
 
@@ -59,18 +55,6 @@ def emit_serving_source(value: ServedValue, source: ServingSource) -> None:
         SERVING_SOURCE_METRIC,
         sample_rate=metrics_sample_rate(),
         tags={"value": value.value, "source": source.value},
-    )
-
-
-def log_serving_fallback(
-    value: ServedValue, org_id: int, project_id: int | None = None, **served: object
-) -> None:
-    """Record the legacy value an organization in the rollout was served while its per-org
-    caches are cold, so the metric's fallback count can be traced back to organizations.
-    """
-    logger.info(
-        SERVING_FALLBACK_LOG,
-        extra={"value": value.value, "org_id": org_id, "ds_proj_id": project_id, **served},
     )
 
 
