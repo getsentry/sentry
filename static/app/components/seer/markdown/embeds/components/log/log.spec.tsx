@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -236,10 +237,15 @@ describe('Seer log embed', () => {
     // disables itself without one -- a disabled query must not read as loading.
     ProjectsStore.loadInitialData([ProjectFixture({id: '999', slug: 'other'})]);
     const details = mockLogDetails();
+    const captureException = jest
+      .spyOn(Sentry, 'captureException')
+      .mockImplementation(() => '');
 
     renderLog();
 
     expect(await screen.findByText('Unable to load log details')).toBeInTheDocument();
     expect(details).not.toHaveBeenCalled();
+    // An inaccessible project is a state the card renders, not an app error.
+    expect(captureException).not.toHaveBeenCalled();
   });
 });

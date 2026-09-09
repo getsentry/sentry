@@ -219,6 +219,17 @@ export default function LogBlock(props: LogData) {
   const lookupTimestampMs =
     getLogTimestampMs({id, projectId, timestamp}) ?? rowTimestampMillis(row);
 
+  const project = useProjectFromId({project_id: resolvedProjectId});
+  const {fetching: projectsFetching} = useProjects();
+
+  // `useTraceItemDetails` addresses the endpoint by the project's slug, so it
+  // disables itself until `useProjectFromId` finds one -- and reports the miss
+  // to Sentry unless the caller disabled it too. This is the one condition, and
+  // it gates the spinner as well: a disabled query reads as `pending`, so
+  // without it a project this viewer cannot see spins forever instead of
+  // reaching the error branch.
+  const canFetchDetails = Boolean(resolvedProjectId && resolvedTraceId && project);
+
   // Deliberately not `useExploreLogsTableRow`: that hook additionally waits on
   // the host page's `usePageFilters().isReady`, which the logs table needs and
   // an embed carrying its own trace, project and timestamp does not. Seer
@@ -233,20 +244,12 @@ export default function LogBlock(props: LogData) {
     referrer: LOG_DETAILS_REFERRER,
     // The details endpoint takes unix seconds, not an ISO string.
     timestamp: lookupTimestampMs === null ? undefined : lookupTimestampMs / 1000,
-    enabled: Boolean(resolvedProjectId && resolvedTraceId),
+    enabled: canFetchDetails,
   });
   const details = detailsQuery.data;
-  const project = useProjectFromId({project_id: resolvedProjectId});
-
-  // `useTraceItemDetails` addresses the endpoint by the project's slug, so it
-  // disables itself until `useProjectFromId` finds one. A disabled query reports
-  // `pending`, so that condition has to gate the spinner here too -- otherwise a
-  // project this viewer cannot see spins forever instead of reaching the error
-  // branch. `fetching` covers the window where the store is still filling.
-  const {fetching: projectsFetching} = useProjects();
 
   const isResolving = needsResolution && rowQuery.isPending;
-  const canFetchDetails = Boolean(resolvedProjectId && resolvedTraceId && project);
+  // `projectsFetching` covers the window where the store is still filling.
   const isPending =
     isResolving || projectsFetching || (canFetchDetails && detailsQuery.isPending);
   const isError = !isPending && (!canFetchDetails || detailsQuery.isError || !details);
