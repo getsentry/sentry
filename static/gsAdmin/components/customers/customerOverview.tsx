@@ -682,7 +682,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
       [action]: true,
     };
 
-    onAction(data);
+    onAction(data).catch(() => {});
   };
 
   const getTrialManagementActions = (

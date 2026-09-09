@@ -1,3 +1,4 @@
+import {useMutation} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 import {z} from 'zod';
 
@@ -9,11 +10,7 @@ import {Heading} from '@sentry/scraps/text';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
-export type CustomerUpdateResult = {ok: true} | {error: unknown; ok: false};
-
-export type CustomerUpdateAction = (
-  data: Record<string, unknown>
-) => Promise<CustomerUpdateResult>;
+export type CustomerUpdateAction = (data: Record<string, unknown>) => Promise<unknown>;
 
 interface ChangeContractEndDateModalProps extends ModalRenderProps {
   contractPeriodEnd: string;
@@ -32,18 +29,12 @@ function ChangeContractEndDateModal({
   Footer,
   closeModal,
 }: ChangeContractEndDateModalProps) {
-  const form = useScrapsForm({
-    ...defaultFormOptions,
-    defaultValues: {contractPeriodEnd},
-    validators: {onDynamic: schema},
-    onSubmit: async ({value}) => {
-      const result = await onAction(value);
-      if (result.ok) {
-        closeModal();
-        return;
-      }
-
-      const {error} = result;
+  const mutation = useMutation({
+    mutationFn: (data: {contractPeriodEnd: string}) => onAction(data),
+    onSuccess: () => {
+      closeModal();
+    },
+    onError: error => {
       if (error instanceof RequestError) {
         const fieldError = error.responseJSON?.contractPeriodEnd;
         const message = Array.isArray(fieldError) ? fieldError[0] : fieldError;
@@ -52,6 +43,13 @@ function ChangeContractEndDateModal({
         }
       }
     },
+  });
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {contractPeriodEnd},
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
   });
 
   return (
