@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 
 import {ExternalLink} from 'sentry/components/links/externalLink';
-import {t, tct, tctCode} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -41,8 +41,9 @@ export function WidgetBuilderDatasetSelector() {
     label: t('Transactions'),
     disabled: isTransactionsDeprecated,
     details: isTransactionsDeprecated
-      ? tctCode(
-          'No longer supported. Use the spans dataset with the [code:is_transaction:true] filter.'
+      ? tct(
+          'No longer supported. Use the spans dataset with the [code:is_transaction:true] filter.',
+          {code: <code />}
         )
       : t('Transactions from your application'),
   };

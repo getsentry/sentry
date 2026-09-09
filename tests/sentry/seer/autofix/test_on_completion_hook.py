@@ -174,6 +174,7 @@ class TestRecordFailedToolCalls(TestCase):
             "autofix.pr_iteration.failed_tool_call",
             amount=1,
             tags={"tool": "summarize_failed_ci_logs"},
+            sample_rate=1.0,
         )
 
     def test_counts_duplicate_tool_failures(self, mock_metrics) -> None:
@@ -190,6 +191,7 @@ class TestRecordFailedToolCalls(TestCase):
             "autofix.pr_iteration.failed_tool_call",
             amount=2,
             tags={"tool": "get_pr_diff"},
+            sample_rate=1.0,
         )
 
     def test_skips_after_changes_are_pushed(self, mock_metrics) -> None:
@@ -223,4 +225,5 @@ class TestRecordFailedToolCalls(TestCase):
             "autofix.pr_iteration.failed_tool_call",
             amount=1,
             tags={"tool": "get_pr_diff"},
+            sample_rate=1.0,
         )

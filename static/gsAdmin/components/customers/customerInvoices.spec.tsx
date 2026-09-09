@@ -202,7 +202,7 @@ describe('CustomerInvoices', () => {
         });
         expect(dateLink).toHaveAttribute(
           'href',
-          `/_admin/customers/${orgId}/invoices/${region}/${invoice.id}/`
+          `/_admin/invoices/${region}/${invoice.id}/`
         );
       });
     });

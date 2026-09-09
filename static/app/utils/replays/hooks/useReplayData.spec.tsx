@@ -106,6 +106,39 @@ describe('useReplayData', () => {
     );
   });
 
+  it('should keep a stable replayRecord reference across re-renders', async () => {
+    // `select` runs again whenever its function identity changes, and structural
+    // sharing cannot dedupe the Date/Duration fields a ReplayRecord holds. A new
+    // reference each render would churn every downstream memo and query key.
+    const {mockReplayResponse} = getMockReplayRecord({
+      count_errors: 0,
+      count_segments: 0,
+      error_ids: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/${mockReplayResponse.id}/`,
+      body: {data: mockReplayResponse},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: []},
+    });
+
+    const {result, rerender} = renderHookWithProviders(useReplayData, {
+      initialProps: {
+        replayId: mockReplayResponse.id,
+        orgSlug: organization.slug,
+      },
+    });
+
+    await waitFor(() => expect(result.current.replayRecord).toBeDefined());
+    const firstRecord = result.current.replayRecord;
+
+    rerender({replayId: mockReplayResponse.id, orgSlug: organization.slug});
+
+    expect(result.current.replayRecord).toBe(firstRecord);
+  });
+
   it('should stay pending until the projects request resolves the project slug', async () => {
     const {mockReplayResponse, expectedReplay} = getMockReplayRecord({
       count_errors: 0,
