@@ -539,10 +539,15 @@ def trigger_autofix_agent(
         and features.has("organizations:autofix-should-run-repo-checks", group.organization)
     )
 
-    use_seer_rca_feature = features.has(
-        "organizations:autofix-rca-in-seer", group.organization, actor=user
+    use_seer_feature = (
+        step == AutofixStep.ROOT_CAUSE
+        and features.has("organizations:autofix-rca-in-seer", group.organization, actor=user)
+    ) or (
+        step == AutofixStep.SOLUTION
+        and run_id is not None
+        and features.has("organizations:autofix-solution-in-seer", group.organization, actor=user)
     )
-    if step == AutofixStep.ROOT_CAUSE and use_seer_rca_feature:
+    if use_seer_feature:
         if run_id is not None:
             _assert_existing_run_belongs_to_group(group, run_id)
 
