@@ -76,7 +76,7 @@ export function RowSubtitle({
     }
     return (
       <Text variant="muted" size="sm">
-        {t('Choose where to send your alerts to')}
+        {t('Choose where to send your alerts')}
       </Text>
     );
   }
