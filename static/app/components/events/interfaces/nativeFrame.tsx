@@ -1,5 +1,6 @@
 import type {MouseEvent} from 'react';
 import {Fragment, useState} from 'react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -276,14 +277,19 @@ export function NativeFrame({
   return (
     <StackTraceFrame data-test-id="stack-trace-frame">
       <StrictClick onClick={handleToggleContext}>
-        <RowHeader
+        <Grid
           align="center"
           alignContent="center"
           as="span"
+          css={theme =>
+            rowHeaderCss(theme, {
+              expandable: !!expandable,
+              isInAppFrame: frame.inApp,
+              isSubFrame: !!isSubFrame,
+            })
+          }
+          data-row-header
           gap="0 md"
-          expandable={!!expandable}
-          isInAppFrame={frame.inApp}
-          isSubFrame={!!isSubFrame}
           minHeight={{xl: '32px'}}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
@@ -462,7 +468,7 @@ export function NativeFrame({
               />
             )}
           </Container>
-        </RowHeader>
+        </Grid>
       </StrictClick>
       {expanded && (
         <Registers
@@ -516,25 +522,33 @@ const FileName = styled('span')`
   border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
 `;
 
-const RowHeader = styled(Grid)<{
-  expandable: boolean;
-  isInAppFrame: boolean;
-  isSubFrame: boolean;
-}>`
-  grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${p => p.theme.space.xl};
-  background-color: ${p =>
-    !p.isInAppFrame && p.isSubFrame
-      ? p.theme.colors.surface200
-      : p.theme.tokens.background.secondary};
-  font-size: ${p => p.theme.font.size.sm};
-  color: ${p => (p.isInAppFrame ? '' : p.theme.tokens.content.secondary)};
-  font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
-  ${p => p.expandable && 'cursor: pointer;'};
+const rowHeaderCss = (
+  theme: Theme,
+  {
+    expandable,
+    isInAppFrame,
+    isSubFrame,
+  }: {
+    expandable: boolean;
+    isInAppFrame: boolean;
+    isSubFrame: boolean;
+  }
+) => css`
+  grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${theme.space.xl};
+  background-color: ${
+    !isInAppFrame && isSubFrame
+      ? theme.colors.surface200
+      : theme.tokens.background.secondary
+  };
+  font-size: ${theme.font.size.sm};
+  color: ${isInAppFrame ? '' : theme.tokens.content.secondary};
+  font-style: ${isInAppFrame ? '' : 'italic'};
+  ${expandable && 'cursor: pointer;'};
 `;
 
 const StackTraceFrame = styled('li')`
   :not(:last-child) {
-    ${RowHeader} {
+    [data-row-header] {
       border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     }
   }

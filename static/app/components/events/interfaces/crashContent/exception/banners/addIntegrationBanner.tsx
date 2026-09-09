@@ -1,4 +1,4 @@
-import styled from '@emotion/styled';
+import {css} from '@emotion/react';
 
 import addIntegrationProvider from 'sentry-images/spot/add-integration-provider.svg';
 
@@ -19,8 +19,16 @@ interface AddIntegrationBannerProps {
  */
 export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerProps) {
   return (
-    <StacktraceIntegrationBannerWrapper
+    <Container
       border="primary"
+      css={theme => css`
+        background: linear-gradient(
+          90deg,
+          color-mix(in srgb, ${theme.tokens.background.secondary} 0%, transparent) 0%,
+          ${theme.tokens.background.secondary} 70%,
+          ${theme.tokens.background.secondary} 100%
+        );
+      `}
       margin="md 0"
       padding="xl"
       position="relative"
@@ -57,38 +65,29 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
         position="absolute"
         right="4rem"
       >
-        <IntegrationBannerImage src={addIntegrationProvider} />
+        <img
+          css={css`
+            display: block;
+          `}
+          src={addIntegrationProvider}
+        />
       </Container>
-      <CloseBannerButton
+      <Button
+        css={theme => css`
+          position: absolute;
+          display: block;
+          top: ${theme.space.xl};
+          right: ${theme.space.xl};
+          color: ${theme.colors.white};
+          cursor: pointer;
+          z-index: 1;
+        `}
         variant="link"
         aria-label={t('Dismiss')}
         icon={<IconClose variant="muted" />}
         size="xs"
         onClick={onDismiss}
       />
-    </StacktraceIntegrationBannerWrapper>
+    </Container>
   );
 }
-
-const StacktraceIntegrationBannerWrapper = styled(Container)`
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, ${p => p.theme.tokens.background.secondary} 0%, transparent) 0%,
-    ${p => p.theme.tokens.background.secondary} 70%,
-    ${p => p.theme.tokens.background.secondary} 100%
-  );
-`;
-
-const CloseBannerButton = styled(Button)`
-  position: absolute;
-  display: block;
-  top: ${p => p.theme.space.xl};
-  right: ${p => p.theme.space.xl};
-  color: ${p => p.theme.colors.white};
-  cursor: pointer;
-  z-index: 1;
-`;
-
-const IntegrationBannerImage = styled('img')`
-  display: block;
-`;
