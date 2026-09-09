@@ -67,11 +67,17 @@ class DetectorStateData:
     counter_updates: DetectorCounters
 
 
+@dataclasses.dataclass(frozen=True)
+class DetectorStateUpdate:
+    is_triggered: bool
+    priority: DetectorPriorityLevel
+
+
 # TODO - we might want to extract this into another file to reduce noise in this file.
 class DetectorStateManager:
     dedupe_updates: dict[DetectorGroupKey, int]
     counter_updates: dict[DetectorGroupKey, DetectorCounters]
-    state_updates: dict[DetectorGroupKey, tuple[bool, DetectorPriorityLevel]]
+    state_updates: dict[DetectorGroupKey, DetectorStateUpdate]
     counter_names: list[DetectorCounter]
     detector: Detector
 
@@ -104,7 +110,9 @@ class DetectorStateManager:
     def enqueue_state_update(
         self, group_key: DetectorGroupKey, is_triggered: bool, priority: DetectorPriorityLevel
     ) -> None:
-        self.state_updates[group_key] = (is_triggered, priority)
+        self.state_updates[group_key] = DetectorStateUpdate(
+            is_triggered=is_triggered, priority=priority
+        )
 
     def get_redis_keys_for_group_keys(
         self, group_keys: list[DetectorGroupKey]
@@ -221,24 +229,24 @@ class DetectorStateManager:
         created_detector_states = []
         updated_detector_states = []
 
-        for group_key, (is_triggered, priority) in self.state_updates.items():
+        for group_key, state_update in self.state_updates.items():
             detector_state = detector_state_lookup.get(group_key)
             if not detector_state:
                 created_detector_states.append(
                     DetectorState(
                         detector_group_key=group_key,
                         detector=self.detector,
-                        is_triggered=is_triggered,
-                        state=priority,
+                        is_triggered=state_update.is_triggered,
+                        state=state_update.priority,
                         date_added=timezone.now(),
                     )
                 )
             elif (
-                is_triggered != detector_state.is_triggered
-                or priority != detector_state.priority_level
+                state_update.is_triggered != detector_state.is_triggered
+                or state_update.priority != detector_state.priority_level
             ):
-                detector_state.is_triggered = is_triggered
-                detector_state.state = priority
+                detector_state.is_triggered = state_update.is_triggered
+                detector_state.state = state_update.priority
                 detector_state.date_updated = timezone.now()
                 updated_detector_states.append(detector_state)
 
