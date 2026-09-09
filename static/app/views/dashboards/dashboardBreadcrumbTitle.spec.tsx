@@ -70,6 +70,21 @@ describe('DashboardBreadcrumbTitle actions', () => {
 
     expect(screen.getByTestId('dashboard-edit')).toHaveTextContent('Edit');
   });
+
+  it('surfaces starring as a button trailing the actions menu', async () => {
+    renderTitle();
+
+    const actions = screen.getAllByRole('button');
+    const menuIndex = actions.indexOf(
+      screen.getByRole('button', {name: 'Dashboard actions'})
+    );
+    const starIndex = actions.indexOf(screen.getByRole('button', {name: 'Star'}));
+
+    expect(starIndex).toBeGreaterThan(menuIndex);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
+    expect(screen.queryByRole('menuitemradio', {name: 'Star'})).not.toBeInTheDocument();
+  });
 });
 
 async function openRevisionHistory() {

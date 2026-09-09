@@ -2,6 +2,7 @@ import {useState, type ReactNode} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import {Button} from '@sentry/scraps/button';
 
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -34,6 +35,52 @@ import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateD
 import type {DashboardDetails} from 'sentry/views/dashboards/types';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
 
+/**
+ * Star/unstar the dashboard. Sits beside the actions menu rather than inside it —
+ * starring is a frequent, cheaply reversible action, so burying it a click deep
+ * made it hard to find.
+ */
+function DashboardFavoriteButton({dashboard}: {dashboard: DashboardDetails}) {
+  const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
+  const api = useApi();
+  const queryClient = useQueryClient();
+  const organization = useOrganization();
+
+  const label = isFavorited ? t('Unstar') : t('Star');
+
+  return (
+    <Button
+      size="zero"
+      variant="transparent"
+      aria-label={label}
+      tooltipProps={{title: label}}
+      icon={
+        <IconStar isSolid={isFavorited} variant={isFavorited ? 'warning' : 'muted'} />
+      }
+      onClick={async () => {
+        const nextIsFavorited = !isFavorited;
+        setIsFavorited(nextIsFavorited);
+        try {
+          await updateDashboardFavorite(
+            api,
+            queryClient,
+            organization,
+            dashboard.id,
+            nextIsFavorited
+          );
+          trackAnalytics('dashboards_manage.toggle_favorite', {
+            organization,
+            dashboard_id: dashboard.id,
+            favorited: nextIsFavorited,
+          });
+        } catch {
+          setIsFavorited(isFavorited);
+        }
+      }}
+    />
+  );
+}
+
 interface DashboardBreadcrumbTitleProps {
   dashboard: DashboardDetails;
   hasUnsavedFilters: boolean;
@@ -53,11 +100,8 @@ export function DashboardBreadcrumbTitle({
   onChange,
   onEdit,
 }: DashboardBreadcrumbTitleProps) {
-  const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
-  const api = useApi();
   const navigate = useNavigate();
   const organization = useOrganization();
-  const queryClient = useQueryClient();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const openDashboardRevisions = useOpenDashboardRevisions(dashboard);
@@ -109,31 +153,6 @@ export function DashboardBreadcrumbTitle({
     Boolean(dashboard.id) &&
     !isPrebuiltDashboard &&
     organization.features.includes('dashboards-edit');
-  const favoriteItem = {
-    key: 'favorite',
-    label: isFavorited ? t('Unstar') : t('Star'),
-    leadingItems: <IconStar isSolid={isFavorited} />,
-    onAction: async () => {
-      const nextIsFavorited = !isFavorited;
-      setIsFavorited(nextIsFavorited);
-      try {
-        await updateDashboardFavorite(
-          api,
-          queryClient,
-          organization,
-          dashboard.id,
-          nextIsFavorited
-        );
-        trackAnalytics('dashboards_manage.toggle_favorite', {
-          organization,
-          dashboard_id: dashboard.id,
-          favorited: nextIsFavorited,
-        });
-      } catch {
-        setIsFavorited(isFavorited);
-      }
-    },
-  };
   const revisionItem = {
     key: 'revisions',
     label: t('Show version history'),
@@ -176,7 +195,6 @@ export function DashboardBreadcrumbTitle({
       },
     };
     const menuItems = [
-      favoriteItem,
       ...(canViewRevisions ? [revisionItem] : []),
       ...(isDashboardEditor ? [editItem] : []),
       ...(isPrebuiltDashboard ? [duplicateItem] : []),
@@ -188,12 +206,20 @@ export function DashboardBreadcrumbTitle({
         item={{
           type: 'page-title',
           label: dashboard.title,
-          trailingActions: {
-            type: 'menu',
-            triggerLabel: t('Dashboard actions'),
-            triggerIcon: <IconEllipsis />,
-            items: menuItems,
-          },
+          trailingActions: [
+            // Starring used to be the one item every dashboard had, so the menu
+            // was unconditional. Now that it has moved out, hide the trigger
+            // when nothing is left to put behind it.
+            menuItems.length > 0
+              ? {
+                  type: 'menu',
+                  triggerLabel: t('Dashboard actions'),
+                  triggerIcon: <IconEllipsis />,
+                  items: menuItems,
+                }
+              : null,
+            {type: 'button', element: <DashboardFavoriteButton dashboard={dashboard} />},
+          ],
         }}
       />
     );
