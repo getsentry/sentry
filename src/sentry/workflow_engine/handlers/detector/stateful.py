@@ -388,13 +388,8 @@ class StatefulDetectorHandler(
         self, group_key: DetectorGroupKey = None, activation_id: UUID | None = None
     ) -> list[str]:
         """
-        The complete fingerprint for this detector's occurrences and status changes.
-
-        The firing occurrence and the resolution that closes it are both built from this,
-        so an override has to return the same value for the life of an activation or the
-        issue it opened can never be resolved.
-
-        Handlers that set `new_group_per_activation` must build from `activation_id`.
+        The full fingerprint used for the detector's occurrence
+        Override this method for full control over the fingerprint
         """
         return [
             *self.build_issue_fingerprint(group_key),

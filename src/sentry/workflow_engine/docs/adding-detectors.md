@@ -200,26 +200,9 @@ detector:<detector_id>:<group_key>
 
 Override `build_issue_fingerprint` only when the product needs additional stable
 grouping components. The engine appends the detector state key to trigger and resolution
-fingerprints, and passes `group_key` to the override on both paths.
-
-To replace the fingerprint rather than extend it, override `build_occurrence_fingerprint`.
-It is the single source for both the trigger and the resolution, so whatever it returns
-has to stay the same for as long as the issue is open, or that issue can never be
-resolved. Note that `save_issue_from_occurrence` resolves an occurrence to the first
-entry that already has a `GroupHash` and back-fills the rest, so extra entries make the
-first one win for every later occurrence.
-
-Handlers that set `new_group_per_activation = True` are given a fresh `activation_id` on
-each OK -> non-OK transition and must build their fingerprint from it, so that each
-activation opens its own issue:
-
-```text
-detector:<detector_id>:activation:<activation_id>
-detector:<detector_id>:<group_key>:activation:<activation_id>
-```
-
-A `None` activation id means the detector has not rotated yet and must keep the legacy
-key, which is what lets issues opened before the rollout still resolve.
+fingerprints. Currently occurrence creation passes `group_key` to this override while
+resolution calls it without that argument. Do not make custom components depend on the
+argument unless resolution is updated and trigger/resolution tests cover the behavior.
 
 Fingerprint changes can split or merge production issues and can break recovery.
 
