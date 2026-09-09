@@ -8,13 +8,13 @@ import sentry_sdk
 from django.db import router, transaction
 
 from sentry.seer.agent.types import FeatureRunStatus
-from sentry.seer.autofix_rca.models import FEATURE_ID, LEGACY_FEATURE_ID
+from sentry.seer.autofix.feature.models import FEATURE_ID, LEGACY_FEATURE_ID
 from sentry.seer.models.run import SeerAgentRun
 
 logger = logging.getLogger(__name__)
 
 
-def deliver_autofix_rca_result(
+def deliver_autofix_feature_result(
     organization_id: int,
     run_uuid: UUID,
     status: FeatureRunStatus,
@@ -23,7 +23,7 @@ def deliver_autofix_rca_result(
     prompt_version: str | None = None,
 ) -> None:
     logger.info(
-        "autofix_rca.delivery.received",
+        "autofix_feature.delivery.received",
         extra={"organization_id": organization_id, "run_uuid": run_uuid, "status": status},
     )
     using = router.db_for_write(SeerAgentRun)
@@ -41,7 +41,7 @@ def deliver_autofix_rca_result(
         )
         if agent_run is None:
             logger.warning(
-                "autofix_rca.delivery.missing_run",
+                "autofix_feature.delivery.missing_run",
                 extra={"organization_id": organization_id, "run_uuid": run_uuid},
             )
             return
@@ -57,14 +57,14 @@ def deliver_autofix_rca_result(
 
         if extras.get("status") == "completed":
             sentry_sdk.metrics.count(
-                "autofix_rca.delivery_error", 1, attributes={"error_type": "duplicate"}
+                "autofix_feature.delivery_error", 1, attributes={"error_type": "duplicate"}
             )
-            logger.warning("autofix_rca.delivery.already_delivered", extra=log_extra)
+            logger.warning("autofix_feature.delivery.already_delivered", extra=log_extra)
             return
 
         if status == "error" or result is None:
             sentry_sdk.metrics.count(
-                "autofix_rca.delivery_error",
+                "autofix_feature.delivery_error",
                 1,
                 attributes={"error_type": "delivery_error" if status == "error" else "no_result"},
             )
@@ -72,7 +72,9 @@ def deliver_autofix_rca_result(
                 using=using,
                 extras={**extras, "status": "error", "error_message": error},
             )
-            logger.warning("autofix_rca.delivery.no_result", extra={**log_extra, "status": status})
+            logger.warning(
+                "autofix_feature.delivery.no_result", extra={**log_extra, "status": status}
+            )
             return
 
         # Clear any stale delivery error_message now that this delivery has succeeded.
@@ -86,8 +88,8 @@ def deliver_autofix_rca_result(
         group_id = agent_run.group_id
 
     if group_id is None or run_state_id is None:
-        logger.warning("autofix_rca.delivery.cannot_surface", extra=log_extra)
+        logger.warning("autofix_feature.delivery.cannot_surface", extra=log_extra)
         return
 
-    sentry_sdk.metrics.count("autofix_rca.delivery_completed", 1)
-    logger.info("autofix_rca.delivery.completed", extra=log_extra)
+    sentry_sdk.metrics.count("autofix_feature.delivery_completed", 1)
+    logger.info("autofix_feature.delivery.completed", extra=log_extra)

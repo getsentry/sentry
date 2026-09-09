@@ -589,7 +589,7 @@ const config = defineConfig({
     '@tanstack/query/no-void-query-fn': 'error',
     '@tanstack/query/mutation-property-order': 'error',
     'react/capitalized-calls': 'error',
-    'react/error-boundaries': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/error-boundaries': 'error',
     'react/exhaustive-effect-dependencies': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/function-component-definition': 'error',
     'react/globals': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.

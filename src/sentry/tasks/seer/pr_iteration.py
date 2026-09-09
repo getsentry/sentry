@@ -54,7 +54,6 @@ from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status, get_agent_state_from_pr_id
 from sentry.seer.autofix.autofix_agent import (
-    AutofixStep,
     PrIterationNoPullRequestException,
     trigger_autofix_agent,
 )
@@ -103,6 +102,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
     pop_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
 )
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
