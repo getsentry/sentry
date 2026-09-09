@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import logging
+
+import sentry_sdk
+
 from sentry.api.endpoints.timeseries import Annotation
 from sentry.constants import DataCategory
 from sentry.search.events.types import SnubaParams
@@ -9,6 +13,8 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import parse_snuba_datetime
+
+logger = logging.getLogger(__name__)
 
 DROPPED_OUTCOMES: tuple[Outcome, ...] = (
     Outcome.FILTERED,
@@ -62,46 +68,55 @@ def get_dropped_data_annotations(
     Buckets align to the chart because ``rollup`` is the interval the endpoint
     already resolved for the series.
     """
+    # Unsupported dataset is the normal v0 (EAP-only) path; a missing org is not.
     category = DATASET_TO_CATEGORY.get(dataset)
-    if category is None or snuba_params.organization_id is None:
+    if category is None:
+        return []
+    if snuba_params.organization_id is None:
+        logger.warning("data_annotations.missing_organization", extra={"dataset": str(dataset)})
         return []
 
-    query = QueryDefinition(
-        fields=["sum(quantity)"],
-        start=snuba_params.start_date.isoformat(),
-        end=snuba_params.end_date.isoformat(),
-        organization_id=snuba_params.organization_id,
-        project_ids=list(snuba_params.project_ids),
-        interval=f"{rollup}s",
-        outcome=[o.api_name() for o in DROPPED_OUTCOMES],
-        group_by=["outcome", "reason"],
-        category=[category.api_name()],
-    )
+    with sentry_sdk.start_span(op="data_annotations.get_dropped_data") as span:
+        span.set_data("category", category.api_name())
 
-    rows = run_outcomes_query_timeseries(
-        query, tenant_ids={"organization_id": snuba_params.organization_id}
-    )
-
-    annotations: list[Annotation] = []
-    for row in rows:
-        dropped = int(row.get("quantity", 0) or 0)
-        if dropped < threshold:
-            continue
-        raw_time = row.get("time")
-        if not raw_time:
-            continue
-        start_ms = parse_snuba_datetime(raw_time).timestamp() * 1000
-        outcome = str(row.get("outcome", ""))
-        reason = row.get("reason")
-        annotations.append(
-            Annotation(
-                type="system",
-                category=category.api_name(),
-                reason=str(reason) if reason is not None else outcome,
-                start=start_ms,
-                end=start_ms + rollup * 1000,
-                droppedCount=dropped,
-                label=_label_for(outcome, reason if isinstance(reason, str) else None),
-            )
+        query = QueryDefinition(
+            fields=["sum(quantity)"],
+            start=snuba_params.start_date.isoformat(),
+            end=snuba_params.end_date.isoformat(),
+            organization_id=snuba_params.organization_id,
+            project_ids=snuba_params.project_ids,
+            interval=f"{rollup}s",
+            outcome=[o.api_name() for o in DROPPED_OUTCOMES],
+            group_by=["outcome", "reason"],
+            category=[category.api_name()],
         )
-    return annotations
+
+        rows = run_outcomes_query_timeseries(
+            query, tenant_ids={"organization_id": snuba_params.organization_id}
+        )
+
+        annotations: list[Annotation] = []
+        for row in rows:
+            dropped = int(row.get("quantity", 0) or 0)
+            if dropped < threshold:
+                continue
+            raw_time = row.get("time")
+            if not raw_time:
+                continue
+            # Each row is a distinct time bucket; this is that bucket's start.
+            bucket_start_ms = parse_snuba_datetime(raw_time).timestamp() * 1000
+            outcome = str(row.get("outcome", ""))
+            reason = row.get("reason")
+            annotations.append(
+                Annotation(
+                    type="system",
+                    category=category.api_name(),
+                    reason=str(reason) if reason is not None else outcome,
+                    start=bucket_start_ms,
+                    end=bucket_start_ms + rollup * 1000,
+                    droppedCount=dropped,
+                    label=_label_for(outcome, reason if isinstance(reason, str) else None),
+                )
+            )
+        span.set_data("annotation_count", len(annotations))
+        return annotations

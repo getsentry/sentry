@@ -530,7 +530,7 @@ class OrganizationEventsTimeseriesAnnotationsTest(APITestCase, OutcomesSnubaTest
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def _store_span_drop(self, quantity: int) -> None:
+    def _store_span_drop(self, quantity: int, minutes: int = 30) -> None:
         self.store_outcomes(
             {
                 "org_id": self.organization.id,
@@ -538,12 +538,12 @@ class OrganizationEventsTimeseriesAnnotationsTest(APITestCase, OutcomesSnubaTest
                 "outcome": Outcome.RATE_LIMITED,
                 "reason": "over_quota",
                 "category": DataCategory.SPAN,
-                "timestamp": self.start + timedelta(minutes=30),
+                "timestamp": self.start + timedelta(minutes=minutes),
                 "quantity": quantity,
             }
         )
 
-    def _do_request(self, features: dict[str, bool]):
+    def _do_request(self, features: dict[str, bool], annotations: bool = True):
         data: dict[str, Any] = {
             "start": self.start,
             "end": self.end,
@@ -551,6 +551,8 @@ class OrganizationEventsTimeseriesAnnotationsTest(APITestCase, OutcomesSnubaTest
             "project": [self.project.id],
             "dataset": "spans",
         }
+        if annotations:
+            data["includeAnnotations"] = ""
         with self.feature(features):
             return self.client.get(self.url, data=data, format="json")
 
@@ -560,8 +562,24 @@ class OrganizationEventsTimeseriesAnnotationsTest(APITestCase, OutcomesSnubaTest
         assert response.status_code == 200, response.content
         assert "annotations" not in response.data["meta"]
 
-    def test_annotations_present_with_flag(self) -> None:
+    def test_annotations_absent_without_query_param(self) -> None:
+        # Flag on, but the endpoint must not enrich unless the caller opts in.
         self._store_span_drop(2000)
+        response = self._do_request(
+            {
+                "organizations:visibility-explore-view": True,
+                "organizations:explore-data-fidelity-annotations": True,
+            },
+            annotations=False,
+        )
+        assert response.status_code == 200, response.content
+        assert "annotations" not in response.data["meta"]
+
+    def test_annotations_present_with_flag(self) -> None:
+        # Two drops in different hourly buckets: annotations are per-bucket, so
+        # each carries its own start/end rather than the whole query's range.
+        self._store_span_drop(2000, minutes=30)
+        self._store_span_drop(1500, minutes=90)
         response = self._do_request(
             {
                 "organizations:visibility-explore-view": True,
@@ -571,10 +589,12 @@ class OrganizationEventsTimeseriesAnnotationsTest(APITestCase, OutcomesSnubaTest
         assert response.status_code == 200, response.content
         assert "annotations" in response.data["meta"]
         annotations = response.data["meta"]["annotations"]
-        assert len(annotations) == 1
-        assert annotations[0]["category"] == DataCategory.SPAN.api_name()
-        assert annotations[0]["droppedCount"] == 2000
-        assert annotations[0]["reason"] == "over_quota"
+        assert len(annotations) == 2
+        assert {a["droppedCount"] for a in annotations} == {2000, 1500}
+        assert {a["category"] for a in annotations} == {DataCategory.SPAN.api_name()}
+        # Distinct buckets => distinct start times, one interval apart.
+        starts = sorted(a["start"] for a in annotations)
+        assert starts[1] - starts[0] == 3_600_000
 
     def test_annotations_empty_when_no_drops(self) -> None:
         response = self._do_request(
