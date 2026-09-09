@@ -2,13 +2,11 @@ import moment from 'moment-timezone';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
-import {RequestError} from 'sentry/utils/requestError/requestError';
-import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 interface ChangeContractEndDateModalProps extends ModalRenderProps {
   contractPeriodEnd: string;
@@ -31,17 +29,10 @@ function ChangeContractEndDateModal({
     ...defaultFormOptions,
     defaultValues: {contractPeriodEnd},
     validators: {onDynamic: schema},
-    onSubmit: ({value, formApi}) =>
+    onSubmit: ({value}) =>
       onAction(value)
         .then(() => closeModal())
-        .catch((error: unknown) => {
-          if (error instanceof RequestError) {
-            setFieldErrors(
-              formApi,
-              requestErrorToFieldErrors(error, formApi.state.values)
-            );
-          }
-        }),
+        .catch(() => {}),
   });
 
   return (
