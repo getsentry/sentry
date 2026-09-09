@@ -20,7 +20,12 @@ import {
   getSpanDuration,
   getSpanFieldBytes,
 } from 'sentry/components/events/interfaces/performance/spanMetrics';
-import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
+import {
+  getSpanCategory,
+  getSpanHash,
+  getSpanInfoFromTransactionEvent,
+  getSpanSentryGroupValue,
+} from 'sentry/components/events/interfaces/performance/utils';
 import type {
   ProcessedSpanType,
   RawSpanType,
@@ -506,7 +511,6 @@ function SlowDBQueryEvidence({
   location,
 }: SpanEvidenceKeyValueListProps) {
   const span = offendingSpans[0]!;
-  const sentryTags = 'sentry_tags' in span ? span.sentry_tags : undefined;
   const hasExplore = organization.features.includes('visibility-explore-view');
 
   const codeFilepath = getAttributeValue(span.data ?? {}, 'code.file.path', 'string');
@@ -538,8 +542,8 @@ function SlowDBQueryEvidence({
       <Flex gap="md" padding="md lg" borderTop="muted">
         <SpanSummaryLink
           op={span.op}
-          category={sentryTags?.category}
-          group={sentryTags?.group}
+          category={getSpanCategory(span)}
+          group={getSpanSentryGroupValue(span)}
           organization={organization}
         />
         {hasExplore && span.description && (
@@ -756,7 +760,7 @@ function dedupeSpansByHash(spans: Span[]): Span[] {
 
   // Only keep spans whose hashes we haven't yet seen, tracking the ones we have seen as we go
   const shouldKeepSpan = (span: Span) => {
-    const hash = span.hash;
+    const hash = getSpanHash(span);
 
     if (hashesSeen.has(hash)) {
       return false;
