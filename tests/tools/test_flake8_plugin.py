@@ -1599,3 +1599,14 @@ class E(Endpoint):
     errors = _run_input(src, SHAPED)
     assert len(errors) == 1
     assert "handed to build" in errors[0]
+
+
+def test_S028_request_data_as_a_lookup_default_is_not_a_hand_off() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return options.get("key", request.GET)
+"""
+    assert _run_input(src, SHAPED) == []

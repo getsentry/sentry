@@ -1026,7 +1026,9 @@ class SentryVisitor(ast.NodeVisitor):
             source = ctx.source_of(func.value)
             if source is not None and node.args:
                 ctx.record_read(node.args[0], source, node.lineno, node.col_offset)
-                return
+            # On anything but the request this is an ordinary lookup, and
+            # `options.get("k", request.GET)` passes a default, not the dict.
+            return
         # Only a serializer's data= is the target shape. `my_func(data=...)`
         # hands the dict over exactly as a positional argument would.
         if _looks_like_a_class(func) and any(kw.arg == "data" for kw in node.keywords):
