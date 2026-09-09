@@ -415,7 +415,48 @@ def _load_service_hook(organization_id: int | None, installation_id: int) -> Ser
             )
         return service_hook
     except ServiceHook.DoesNotExist:
+        # Attempt to repair the hook if the organization_id is missing
+        return _repair_hook_missing_organization_id(organization_id, installation_id)
+
+
+def _repair_hook_missing_organization_id(
+    organization_id: int | None, installation_id: int
+) -> ServiceHook | None:
+    """
+    Attempt to repair the hook if the organization_id is missing (there was a gap from
+    between 2025-08-26 and 2026-02-18)
+    TODO: Remove this once the gap is closed
+    """
+    if organization_id is None:
         return None
+
+    try:
+        service_hook = ServiceHook.objects.get(
+            installation_id=installation_id,
+            organization_id__isnull=True,
+        )
+    except ServiceHook.DoesNotExist:
+        return None
+    except ServiceHook.MultipleObjectsReturned:
+        # We can't tell which hook is live, and guessing would send an org's payloads
+        # to the wrong url. Fall through to the missing_servicehook halt instead.
+        logger.warning(
+            "service_hook.duplicate_hooks_missing_organization_id",
+            extra={"installation_id": installation_id},
+        )
+        return None
+
+    service_hook.organization_id = organization_id
+    service_hook.save(update_fields=["organization_id"])
+    logger.info(
+        "service_hook.repaired_missing_organization_id",
+        extra={
+            "service_hook_id": service_hook.id,
+            "installation_id": installation_id,
+            "organization_id": organization_id,
+        },
+    )
+    return service_hook
 
 
 @cache_func_for_models(
