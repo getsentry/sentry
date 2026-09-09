@@ -85,6 +85,61 @@ describe('trace embed', () => {
     });
   });
 
+  it('does not let the host page query string steer the trace fetch', async () => {
+    // `useTrace`/`useTraceMeta` parse `location.search` themselves, so opting the waterfall out of
+    // URL sync is not enough — the fetches need their own opt-out or the host page's event and
+    // window params ride along.
+    window.history.replaceState(
+      {},
+      '',
+      '/?eventId=hosteventid&node=span-hostspan&limit=5&statsPeriod=90d'
+    );
+    const {traceRequest} = mockTraceRequests();
+
+    renderEmbed({name: 'trace', data: {traceId}});
+
+    await waitFor(() => {
+      expect(traceRequest).toHaveBeenCalled();
+    });
+
+    expect(traceRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.not.objectContaining({targetId: 'hosteventid'}),
+      })
+    );
+    expect(traceRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.not.objectContaining({limit: 5}),
+      })
+    );
+    expect(traceRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.not.objectContaining({statsPeriod: '90d'}),
+      })
+    );
+  });
+
+  it('ignores a host page timestamp when the embed carries none', async () => {
+    window.history.replaceState({}, '', '/?timestamp=1111111111');
+    const {traceRequest} = mockTraceRequests();
+
+    renderEmbed({name: 'trace', data: {traceId}});
+
+    await waitFor(() => {
+      expect(traceRequest).toHaveBeenCalled();
+    });
+
+    expect(traceRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.not.objectContaining({timestamp: '1111111111'}),
+      })
+    );
+  });
+
   it('does not seed the embed search box from the host page query string', async () => {
     // The embed is rendered inside another page (a Seer response), so the surrounding page's
     // `?search=`/`?node=` must not steer it.

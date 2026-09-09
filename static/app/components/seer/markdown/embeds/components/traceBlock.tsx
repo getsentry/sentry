@@ -61,6 +61,10 @@ function TraceWaterfallEmbed({traceId, timestamp, spanId}: EmbedOutput<'trace'>)
 
   const trace = useTrace({
     additionalAttributes: TRACE_ADDITIONAL_ATTRIBUTES,
+    // Both fetches read `location.search` on their own, independently of the query params built
+    // above, so they need their own opt-out — otherwise a host `?eventId=`/`?node=`/`?start=`
+    // still pins the wrong event or window.
+    disableUrlSync: true,
     referrer: 'api.seer.trace-waterfall-embed',
     // Guarantees the focused span survives the trace's node limit, so a truncated trace does not
     // drop the one span Seer is pointing at.
@@ -68,7 +72,10 @@ function TraceWaterfallEmbed({traceId, timestamp, spanId}: EmbedOutput<'trace'>)
     timestamp: timestampSeconds,
     traceSlug: traceId,
   });
-  const meta = useTraceMeta({traceSlug: traceId, timestamp: timestampSeconds});
+  const meta = useTraceMeta(
+    {traceSlug: traceId, timestamp: timestampSeconds},
+    {disableUrlSync: true}
+  );
   const tree = useTraceTree({trace, replay: null});
   const rootEventResults = useTraceRootEvent({
     tree,
