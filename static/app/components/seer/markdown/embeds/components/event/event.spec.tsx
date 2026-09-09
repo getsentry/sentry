@@ -97,6 +97,19 @@ describe('Seer event embed', () => {
     );
   });
 
+  it('does not offer the tag row actions inside the embed', async () => {
+    mockEvent();
+
+    renderEventEmbed({view: 'tags'});
+
+    // Wait on the rows themselves -- the summary above renders the same tag values
+    // before the tree has loaded its project.
+    expect(await screen.findAllByTestId('tag-tree-row')).toHaveLength(2);
+    // The row menu writes project highlight tags and builds its links out of the
+    // host page's `location.query`, so the embed renders the rows without it.
+    expect(screen.queryAllByLabelText('Tag Actions Menu')).toHaveLength(0);
+  });
+
   it('renders a plain tag list when the event has no project slug', async () => {
     mockEvent({
       projectSlug: undefined,

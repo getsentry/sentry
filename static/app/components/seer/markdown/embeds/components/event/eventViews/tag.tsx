@@ -79,7 +79,7 @@ export function EventTagView({
   const visibleTagKeys = tagKeys.slice(0, MAX_TAG_DISTRIBUTIONS);
   // With one tag the header can point at that tag's own breakdown; with several
   // the only page covering all of them is the issue's distributions page.
-  const singleTagKey = visibleTagKeys.length === 1 ? visibleTagKeys[0]! : undefined;
+  const singleTagKey = visibleTagKeys.length === 1 ? visibleTagKeys[0] : undefined;
 
   return (
     <Stack gap="md">

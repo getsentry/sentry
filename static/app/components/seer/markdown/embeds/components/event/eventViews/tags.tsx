@@ -9,6 +9,13 @@ import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 
+/**
+ * The tag row menu writes project highlight tags and builds its links from the host
+ * page's `location.query`; an embed must reach neither. Hoisted so the reference stays
+ * stable -- `EventTagsTree` memoizes its columns against it.
+ */
+const READ_ONLY_ROW_CONFIG = {disableActions: true} as const;
+
 interface EventTagsViewProps {
   /** Link to the issue's tag distributions page. Derived once by the block. */
   distributionsHref: string;
@@ -63,7 +70,11 @@ export function EventTagsView({
         />
       </Flex>
       {projectSlug ? (
-        <EventTags event={event} projectSlug={projectSlug} />
+        <EventTags
+          event={event}
+          projectSlug={projectSlug}
+          config={READ_ONLY_ROW_CONFIG}
+        />
       ) : (
         <PlainTagList event={event} />
       )}
