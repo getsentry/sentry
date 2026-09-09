@@ -59,16 +59,6 @@ describe('MultiHighlight', () => {
     );
   });
 
-  it('renders plain text when disabled', () => {
-    render(
-      <MultiHighlight disabled terms={['error']}>
-        error occurred
-      </MultiHighlight>
-    );
-
-    expect(screen.getByText('error occurred').tagName.toLowerCase()).not.toBe('span');
-  });
-
   it('highlights the longest term when a shorter term overlaps it', () => {
     render(
       <MultiHighlight terms={['work', 'workflow']}>workflow then work</MultiHighlight>

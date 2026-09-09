@@ -177,6 +177,11 @@ describe('InviteRequestRow', () => {
       TeamFixture({id: '1', slug: 'one'}),
       TeamFixture({id: '2', slug: 'two'}),
     ]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgWithAdminAccess.slug}/teams/`,
+      match: [MockApiClient.matchQuery({query: 'slug:myteam'})],
+      body: [TeamFixture({id: '3', slug: 'myteam'})],
+    });
     const mockUpdate = jest.fn();
 
     render(
@@ -196,8 +201,9 @@ describe('InviteRequestRow', () => {
     expect(mockUpdate).toHaveBeenCalledWith({role: 'member'});
 
     // Select teams from first select input
+    expect(await screen.findByText('#myteam')).toBeInTheDocument();
     await selectEvent.select(screen.getAllByRole('textbox')[1]!, ['#one']);
-    expect(mockUpdate).toHaveBeenCalledWith({teams: ['one']});
+    expect(mockUpdate).toHaveBeenCalledWith({teams: ['myteam', 'one']});
 
     TeamStore.reset();
   });

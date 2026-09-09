@@ -3,7 +3,6 @@ import {ThemeProvider, type Theme} from '@emotion/react';
 
 // these utils are for stories that have forced dark mode
 // which is a very specific sanctioned use case
-// eslint-disable-next-line no-restricted-imports
 import {darkTheme} from 'sentry/utils/theme/theme';
 
 /**

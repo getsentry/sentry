@@ -13,21 +13,38 @@ from sentry.seer.agent.client_utils import AgentRunOptions, collect_user_org_con
 from sentry.seer.agent.on_completion_hook import extract_hook_definition
 from sentry.seer.autofix.autofix_agent import NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.feature.models import FEATURE_ID, AutofixRCAPayload, AutofixRCATweaks
+from sentry.seer.autofix.feature.models import (
+    FEATURE_ID,
+    AutofixRCAPayload,
+    AutofixRCATweaks,
+    RepoPin,
+    RepoPins,
+)
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix.utils import AutofixStoppingPoint, is_free_cohort_org
 from sentry.seer.models.run import SeerRun
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
 
-def trigger_autofix_rca_feature(
+def _parse_repo_pins(repo_pins: str | None) -> RepoPins | None:
+    if repo_pins is None:
+        return None
+
+    return {
+        repo_name: RepoPin.parse_obj(repo_pin)
+        for repo_name, repo_pin in json.loads(repo_pins).items()
+    }
+
+
+def trigger_autofix_feature(
     group: Group,
     *,
     referrer: AutofixReferrer,
+    # Not to be confused with user_org_context, this is free-form context added by the user to the rca run.
     user_context: str | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
     intelligence_level: Literal["low", "medium", "high"] = "medium",
@@ -36,6 +53,7 @@ def trigger_autofix_rca_feature(
     allow_free_cohort: bool = False,
     user: User | RpcUser | AnonymousUser | None = None,
     enable_bash_tools: bool = False,
+    repo_pins: str | None = None,
 ) -> SeerRun:
     # Free cohort orgs bypass quota only when called from night shift
     # (allow_free_cohort=True). Not exposed via the API.
@@ -63,6 +81,7 @@ def trigger_autofix_rca_feature(
         title=group.title or "Unknown error",
         culprit=group.culprit or "unknown",
         on_completion_hook=extract_hook_definition(AutofixOnCompletionHook, call_on_failure=True),
+        repo_pins=_parse_repo_pins(repo_pins),
         tweaks=AutofixRCATweaks(
             intelligence_level=intelligence_level,
             reasoning_effort=reasoning_effort,
@@ -78,10 +97,10 @@ def trigger_autofix_rca_feature(
         enable_bash_tools=enable_bash_tools,
     )
 
-    # Store the stopping point here for delivery to use when advancing steps.
     extras: dict[str, Any] = {
         "referrer": referrer.value,
     }
+    # Store the stopping point here for delivery to use when advancing steps.
     if stopping_point is not None:
         extras["stopping_point"] = stopping_point.value
 
@@ -104,10 +123,10 @@ def trigger_autofix_rca_feature(
             group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
         )
 
-    metrics.incr("autofix_rca.feature.trigger", tags={"referrer": referrer.value})
+    metrics.incr("autofix_feature.trigger", tags={"referrer": referrer.value})
 
     logger.info(
-        "autofix_rca.dispatch.started",
+        "autofix_feature.dispatch.started",
         extra={
             "group_id": group.id,
             "organization_id": group.organization.id,
