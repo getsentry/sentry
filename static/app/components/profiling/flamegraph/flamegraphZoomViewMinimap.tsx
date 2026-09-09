@@ -65,19 +65,20 @@ function FlamegraphZoomViewMinimap({
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
+  // FlamegraphCanvas reassigns physicalSpace on the same instance, so the canvas
+  // identity is not a usable dependency. Reading the rect out here keeps the memo
+  // keyed on the value that actually changes.
+  const miniMapPhysicalSpace = flamegraphMiniMapCanvas?.physicalSpace;
+
   const miniMapConfigSpaceBorderSize = useMemo(() => {
-    if (!flamegraphMiniMapView || !flamegraphMiniMapCanvas?.physicalSpace) {
+    if (!flamegraphMiniMapView || !miniMapPhysicalSpace) {
       return 0;
     }
     // compute 10px in physical space to configSpace
     return new Rect(0, 0, 10, 0).transformRect(
-      flamegraphMiniMapView.toConfigSpace(flamegraphMiniMapCanvas.physicalSpace)
+      flamegraphMiniMapView.toConfigSpace(miniMapPhysicalSpace)
     ).width;
-  }, [
-    flamegraphMiniMapView,
-    flamegraphMiniMapCanvas,
-    flamegraphMiniMapCanvas?.physicalSpace,
-  ]);
+  }, [flamegraphMiniMapView, miniMapPhysicalSpace]);
 
   const flamegraphMiniMapRenderer = useMemo(() => {
     if (!flamegraphMiniMapCanvasRef) {

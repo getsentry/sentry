@@ -86,12 +86,17 @@ export function FlamegraphUIFrames({
     return renderer;
   }, [uiFramesCanvasRef, uiFrames, flamegraphTheme]);
 
+  // CanvasView reassigns configSpace on the same instance, so the view identity is
+  // not a usable dependency. Reading the rect out here keeps the memo keyed on the
+  // value that actually changes.
+  const uiFramesConfigSpace = uiFramesView?.configSpace;
+
   const hoveredNode = useMemo(() => {
-    if (!configSpaceCursor || !uiFramesRenderer || !uiFramesView?.configSpace) {
+    if (!configSpaceCursor || !uiFramesRenderer || !uiFramesConfigSpace) {
       return null;
     }
-    return uiFramesRenderer.findHoveredNode(configSpaceCursor, uiFramesView.configSpace);
-  }, [configSpaceCursor, uiFramesRenderer, uiFramesView]);
+    return uiFramesRenderer.findHoveredNode(configSpaceCursor, uiFramesConfigSpace);
+  }, [configSpaceCursor, uiFramesRenderer, uiFramesConfigSpace]);
 
   useEffect(() => {
     if (!uiFramesCanvas || !uiFramesView || !uiFramesRenderer) {

@@ -160,25 +160,30 @@ function FlamegraphZoomView({
     );
   }, [flamegraphOverlayCanvasRef, flamegraph, flamegraphTheme, disableGrid]);
 
+  // CanvasView reassigns configSpace on the same instance, so the view identity is
+  // not a usable dependency. Reading the rect out here keeps the memo keyed on the
+  // value that actually changes.
+  const flamegraphConfigSpace = flamegraphView?.configSpace;
+
   const sampleTickRenderer = useMemo(() => {
     if (!isInternalFlamegraphDebugModeEnabled) {
       return null;
     }
 
-    if (!flamegraphOverlayCanvasRef || !flamegraphView?.configSpace) {
+    if (!flamegraphOverlayCanvasRef || !flamegraphConfigSpace) {
       return null;
     }
     return new SampleTickRenderer(
       flamegraphOverlayCanvasRef,
       flamegraph,
-      flamegraphView.configSpace,
+      flamegraphConfigSpace,
       flamegraphTheme
     );
   }, [
     isInternalFlamegraphDebugModeEnabled,
     flamegraphOverlayCanvasRef,
     flamegraph,
-    flamegraphView,
+    flamegraphConfigSpace,
     flamegraphTheme,
   ]);
 
