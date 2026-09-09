@@ -68,6 +68,7 @@ from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssu
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.utils import json, metrics
+from sentry.utils.tracing import trace
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
@@ -492,6 +493,7 @@ def _build_base_shas_metadata(group: Group, referrer: AutofixReferrer) -> str | 
     return json.dumps(base_shas)
 
 
+@trace
 def trigger_autofix_agent(
     group: Group,
     step: AutofixStep,

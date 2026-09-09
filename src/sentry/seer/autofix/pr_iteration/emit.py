@@ -34,7 +34,9 @@ from sentry.seer.autofix.pr_iteration.details_store import (
     update_iteration,
 )
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.models.run import SeerRun, SeerRunPrIteration
+from sentry.utils.tracing import trace
 
 ITERATION_ID_METADATA_KEY = "iteration_id"
 
@@ -84,7 +86,7 @@ def open_pr_iteration_details(
             )
             return
 
-        add_iteration(
+        iteration = add_iteration(
             seer_run,
             {
                 "organization_id": organization_id,
@@ -93,6 +95,7 @@ def open_pr_iteration_details(
                 "run_id": run_state.run_id,
             },
         )
+        set_pr_iteration_attributes(iteration_id=iteration.id)
     except Exception:
         log_ctx.error("autofix.pr_iteration.details.open_failed")
 
@@ -120,6 +123,7 @@ def trigger_pr_iteration_details(
             return None
 
         update_iteration(iteration, trigger_source=trigger_source)
+        set_pr_iteration_attributes(iteration_id=iteration.id)
         return iteration.id
     except Exception:
         log_ctx.error("autofix.pr_iteration.details.trigger_failed")
@@ -192,9 +196,11 @@ def state_iteration_id(log_ctx: PrIterationLogContext, run_state: SeerRunState) 
     metadata = iterations[-1].blocks[0].message.metadata or {}
     try:
         # Prompt metadata is a string map; the id goes out stringified.
-        return int(metadata[ITERATION_ID_METADATA_KEY])
+        iteration_id = int(metadata[ITERATION_ID_METADATA_KEY])
     except (KeyError, TypeError, ValueError):
         return None
+    set_pr_iteration_attributes(iteration_id=iteration_id)
+    return iteration_id
 
 
 def _build_event(
@@ -232,6 +238,7 @@ def _build_event(
         return None
 
 
+@trace
 def complete_pr_iteration_details(
     *,
     log_ctx: PrIterationLogContext,
