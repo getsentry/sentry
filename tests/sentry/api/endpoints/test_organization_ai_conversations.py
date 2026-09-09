@@ -203,11 +203,30 @@ def test_candidate_query_accepts_multiple_sorts(run_table_query: MagicMock) -> N
 
 
 @patch(
+    "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_bulk_table_queries",
+    return_value={
+        "aggregations": {"data": []},
+        "enrichment": {"data": []},
+        "first_last_io": {"data": []},
+    },
+)
+def test_hydration_disables_aggregate_extrapolation(run_bulk_table_queries: MagicMock) -> None:
+    result = OrganizationAIConversationsEndpoint()._get_conversations_data(
+        snuba_params=SnubaParams(), conversation_ids=["conversation-a"]
+    )
+
+    assert result == []
+    run_bulk_table_queries.assert_called_once()
+    queries = run_bulk_table_queries.call_args.args[0]
+    assert all(query.resolver.config.disable_aggregate_extrapolation for query in queries)
+
+
+@patch(
     "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query",
     return_value={"data": []},
 )
-def test_hydration_uses_one_aggregate_query(run_table_query: MagicMock) -> None:
-    result = OrganizationAIConversationsEndpoint()._get_conversations_data(
+def test_single_query_hydration_uses_one_aggregate_query(run_table_query: MagicMock) -> None:
+    result = OrganizationAIConversationsEndpoint()._get_conversations_data_single_query(
         snuba_params=SnubaParams(), conversation_ids=["conversation-a"]
     )
 
@@ -717,7 +736,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["totalTokens"] == LLM_TOKENS * 2
         assert conversation["totalCost"] == LLM_COST * 2
         assert conversation["traceCount"] == 2
-        assert set(conversation["flow"]) == {"Research Agent", "Summarization Agent"}
+        assert conversation["flow"] == ["Research Agent", "Summarization Agent"]
         assert len(conversation["traceIds"]) == 2
         assert set(conversation["traceIds"]) == {trace_id_1, trace_id_2}
 
@@ -880,8 +899,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         conversation = response.data[0]
         assert conversation["errors"] == 3
 
-    def test_flow_agents(self) -> None:
-        """Test that flow agents are returned"""
+    def test_flow_ordering(self) -> None:
+        """Test that flow agents are ordered by timestamp"""
         now = before_now(days=28).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
@@ -924,7 +943,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert len(response.data) == 1
 
         conversation = response.data[0]
-        assert set(conversation["flow"]) == {"Agent A", "Agent B", "Agent C"}
+        assert conversation["flow"] == ["Agent A", "Agent B", "Agent C"]
 
     def test_complete_conversation_data_across_time_range(self) -> None:
         """Test that conversations show complete data even when spans are outside time range"""
