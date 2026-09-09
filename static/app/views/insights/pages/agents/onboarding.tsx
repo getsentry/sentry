@@ -36,12 +36,8 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
-import {
-  agentMonitoringPlatforms,
-  javascriptBrowserOnlyPlatforms,
-} from 'sentry/data/platformCategories';
+import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
-import {agentMonitoring as browserAgentMonitoring} from 'sentry/gettingStartedDocs/javascript/agentMonitoring';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -54,7 +50,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {BrowserAgentMonitoringUnsupportedAlert} from 'sentry/views/insights/pages/agents/components/browserAgentMonitoringUnsupportedAlert';
 import {LLM_ONBOARDING_COPY_MARKDOWN} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {
   AGENT_INTEGRATION_ICONS,
@@ -238,8 +233,6 @@ export function Onboarding() {
   const api = useApi();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const project = useOnboardingProject();
-  const isBrowserPlatform =
-    !!project?.platform && javascriptBrowserOnlyPlatforms.has(project.platform);
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
@@ -319,10 +312,7 @@ export function Onboarding() {
     ...deploymentTargetOptions,
   };
 
-  const urlPlatformOptions = useUrlPlatformOptions(platformOptions);
-  const selectedPlatformOptions = isBrowserPlatform
-    ? {integration: AgentIntegration.MANUAL, deploymentTarget: DeploymentTarget.NODE}
-    : urlPlatformOptions;
+  const selectedPlatformOptions = useUrlPlatformOptions(platformOptions);
 
   // A runtime-specific SDK (e.g. Workers AI -> Cloudflare, Mastra -> Node) pins
   // the runtime and locks the selector; otherwise the user's dropdown choice
@@ -345,7 +335,7 @@ export function Onboarding() {
     return <div>{t('No project found')}</div>;
   }
 
-  if (!isBrowserPlatform && !agentMonitoringPlatforms.has(project.platform!)) {
+  if (!agentMonitoringPlatforms.has(project.platform!)) {
     return (
       <UnsupportedPlatformOnboarding
         project={project}
@@ -358,9 +348,7 @@ export function Onboarding() {
     return <LoadingIndicator />;
   }
 
-  const agentMonitoringDocs =
-    docs?.agentMonitoringOnboarding ??
-    (isBrowserPlatform ? browserAgentMonitoring() : undefined);
+  const agentMonitoringDocs = docs?.agentMonitoringOnboarding;
 
   if (!agentMonitoringDocs || !dsn || !projectKeyId) {
     return <NoDocsOnboarding project={project} />;
@@ -400,21 +388,17 @@ export function Onboarding() {
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
-      {isBrowserPlatform ? (
-        <BrowserAgentMonitoringUnsupportedAlert projectSlug={project.slug} />
-      ) : (
-        <OptionsWrapper>
-          <PlatformOptionDropdown
-            platformOptions={platformOptions}
-            connectors={{deploymentTarget: t('on')}}
-            lockedValues={
-              integrationDeploymentTarget
-                ? {deploymentTarget: integrationDeploymentTarget}
-                : undefined
-            }
-          />
-        </OptionsWrapper>
-      )}
+      <OptionsWrapper>
+        <PlatformOptionDropdown
+          platformOptions={platformOptions}
+          connectors={{deploymentTarget: t('on')}}
+          lockedValues={
+            integrationDeploymentTarget
+              ? {deploymentTarget: integrationDeploymentTarget}
+              : undefined
+          }
+        />
+      </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       {/* Eve only drains OpenTelemetry traces, so there's no Sentry SDK call to
           set a conversation ID - hide the Conversations pointer for it. */}
@@ -517,7 +501,13 @@ export function UnsupportedPlatformOnboarding({
             'You can [link:manually instrument] your agents using the Sentry SDK tracing API, or click [bold:Copy instructions] to have an AI coding agent do it for you.',
             {
               link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
+                <ExternalLink
+                  href={
+                    project.platform?.startsWith('javascript')
+                      ? 'https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module-browser/#manual-span-creation'
+                      : 'https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/'
+                  }
+                />
               ),
               bold: <strong />,
             }

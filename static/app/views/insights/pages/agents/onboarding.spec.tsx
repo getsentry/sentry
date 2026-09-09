@@ -107,43 +107,32 @@ describe('Onboarding deployment target', () => {
     ).toBeGreaterThan(0);
   });
 
-  it.each([
-    ['javascript', undefined],
-    ['javascript', 'vercel_ai'],
-    ['javascript', 'workers_ai'],
-    ['javascript-react', 'mastra'],
-    ['javascript-vue', 'openai'],
-    ['javascript-svelte', undefined],
-    ['javascript-solid', undefined],
-  ] as const)(
-    'shows an unsupported banner for %s with integration %s',
-    async (platform, integration) => {
-      const {organization, project} = setupProject(platform);
+  it('shows the unsupported platform setup for a browser project', async () => {
+    const {organization} = setupProject('javascript');
 
-      render(<Onboarding />, {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/',
-            query: {integration: integration ?? '', deploymentTarget: 'cloudflare'},
-          },
+    render(<Onboarding />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {integration: 'openai', deploymentTarget: 'cloudflare'},
         },
-      });
+      },
+    });
 
-      expect(
-        await screen.findByText(
-          `Automatic Agent Monitoring isn't available for ${project.slug}.`
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          /Auto instrumentation of AI Agents is not available for your Browser JavaScript project/
         )
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole('link', {name: 'manual AI instrumentation guide'})
-      ).toHaveAttribute(
-        'href',
-        'https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module-browser/#manual-span-creation'
-      );
-      expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
-    }
-  );
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /manually instrument/i})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module-browser/#manual-span-creation'
+    );
+    expect(screen.getByRole('button', {name: 'Copy instructions'})).toBeInTheDocument();
+  });
 
   it.each(['node', 'python', 'javascript-nextjs', 'php-laravel'] as const)(
     'prefers a supported %s project over a selected browser project',
@@ -170,7 +159,7 @@ describe('Onboarding deployment target', () => {
     }
   );
 
-  it('keeps the banner when all selected projects are browser-only', async () => {
+  it('shows the unsupported setup when all selected projects are browser-only', async () => {
     const {organization, project} = setupProject('javascript');
     const secondProject = ProjectFixture({
       id: '100',
@@ -187,10 +176,12 @@ describe('Onboarding deployment target', () => {
 
     expect(
       await screen.findByText(
-        `Automatic Agent Monitoring isn't available for ${project.slug}.`
+        textWithMarkupMatcher(
+          /Auto instrumentation of AI Agents is not available for your Browser JavaScript project/
+        )
       )
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Copy instructions'})).toBeInTheDocument();
   });
 
   it('keeps server integrations available for meta-framework projects', async () => {

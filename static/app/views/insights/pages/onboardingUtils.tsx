@@ -3,10 +3,7 @@ import styled from '@emotion/styled';
 import {Container, type ContainerProps} from '@sentry/scraps/layout';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {
-  agentMonitoringPlatforms,
-  javascriptBrowserOnlyPlatforms,
-} from 'sentry/data/platformCategories';
+import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -18,10 +15,8 @@ export function useOnboardingProject() {
     pageFilters.selection.projects,
     projects
   );
-  const agentMonitoringProjects = selectedProjects.filter(
-    p =>
-      agentMonitoringPlatforms.has(p.platform!) &&
-      !javascriptBrowserOnlyPlatforms.has(p.platform!)
+  const agentMonitoringProjects = selectedProjects.filter(p =>
+    agentMonitoringPlatforms.has(p.platform!)
   );
 
   if (agentMonitoringProjects.length > 0) {

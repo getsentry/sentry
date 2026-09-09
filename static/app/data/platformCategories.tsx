@@ -856,15 +856,6 @@ export const featureFlagDrawerPlatforms: readonly PlatformKey[] = [
   'react-native',
 ];
 
-export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
-  ...platformKeys.filter(id => id.startsWith('javascript')),
-  ...platformKeys.filter(id => id.startsWith('node')),
-  ...platformKeys.filter(id => id.startsWith('python')),
-  'deno',
-  'bun',
-  'php-laravel',
-]);
-
 export const javascriptMetaFrameworks: readonly PlatformKey[] = [
   'javascript-astro',
   'javascript-nextjs',
@@ -876,21 +867,17 @@ export const javascriptMetaFrameworks: readonly PlatformKey[] = [
   'javascript-tanstackstart-react',
 ] as const;
 
+export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
+  ...javascriptMetaFrameworks,
+  ...platformKeys.filter(id => id.startsWith('node')),
+  ...platformKeys.filter(id => id.startsWith('python')),
+  'deno',
+  'bun',
+  'php-laravel',
+]);
+
 export const mcpMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   ...javascriptMetaFrameworks,
   ...platformKeys.filter(id => id.startsWith('node')),
   ...platformKeys.filter(id => id.startsWith('python')),
-]);
-
-export const javascriptBrowserOnlyPlatforms: ReadonlySet<PlatformKey> = new Set([
-  'javascript',
-  'javascript-angular',
-  'javascript-angularjs',
-  'javascript-backbone',
-  'javascript-ember',
-  'javascript-gatsby',
-  'javascript-react',
-  'javascript-solid',
-  'javascript-svelte',
-  'javascript-vue',
 ]);

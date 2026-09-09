@@ -65,43 +65,34 @@ describe('ConversationOnboarding deployment target', () => {
     ).toBeGreaterThan(0);
   });
 
-  it.each([
-    ['javascript', undefined],
-    ['javascript', 'vercel_ai'],
-    ['javascript', 'workers_ai'],
-    ['javascript-react', 'mastra'],
-    ['javascript-vue', 'openai'],
-    ['javascript-svelte', undefined],
-    ['javascript-solid', undefined],
-  ] as const)(
-    'shows an unsupported banner for %s with integration %s',
-    async (platform, integration) => {
-      const {organization, project} = setupProject(platform);
+  it('shows the unsupported platform setup for a browser project', async () => {
+    const {organization} = setupProject('javascript');
 
-      render(<ConversationOnboarding onDismiss={jest.fn()} />, {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/',
-            query: {integration: integration ?? '', deploymentTarget: 'cloudflare'},
-          },
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {integration: 'openai', deploymentTarget: 'cloudflare'},
         },
-      });
+      },
+    });
 
-      expect(
-        await screen.findByText(
-          `Automatic Agent Monitoring isn't available for ${project.slug}.`
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          /Auto instrumentation isn't available for Browser JavaScript yet/
         )
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole('link', {name: 'manual AI instrumentation guide'})
-      ).toHaveAttribute(
-        'href',
-        'https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module-browser/#manual-span-creation'
-      );
-      expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
-    }
-  );
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /manually instrument/i})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module-browser/#manual-span-creation'
+    );
+    expect(
+      screen.getByRole('button', {name: 'Copy Prompt for AI Agent'})
+    ).toBeInTheDocument();
+  });
 
   it.each(['node', 'python', 'javascript-nextjs', 'php-laravel'] as const)(
     'prefers a supported %s project over a selected browser project',
@@ -118,7 +109,9 @@ describe('ConversationOnboarding deployment target', () => {
         false
       );
 
-      render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+      render(<ConversationOnboarding onDismiss={jest.fn()} />, {
+        organization,
+      });
 
       expect(
         await screen.findByText(
@@ -128,59 +121,7 @@ describe('ConversationOnboarding deployment target', () => {
     }
   );
 
-  it.each([
-    ['javascript', 'browser'],
-    ['javascript-react', 'react'],
-    ['javascript-angularjs', 'browser'],
-  ] as const)('preserves the manual conversation setup for %s', async (platform, sdk) => {
-    const {organization} = setupProject(platform);
-    render(<ConversationOnboarding onDismiss={jest.fn()} />, {
-      organization,
-      initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {integration: 'eve', deploymentTarget: 'cloudflare'},
-        },
-      },
-    });
-
-    expect(
-      await screen.findByText(
-        textWithMarkupMatcher(new RegExp(`npm install @sentry/${sdk}`))
-      )
-    ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
-    expect(
-      screen.getByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/))
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', {name: 'manual instrumentation guide'})
-    ).toHaveAttribute(
-      'href',
-      'https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module-browser/#manual-span-creation'
-    );
-    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(/Sentry.setConversationId\("my-conversation-123"\)/)
-      )
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(new RegExp(`import \\* as Sentry from "@sentry/${sdk}"`))
-      )
-    ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
-    expect(screen.getByText(textWithMarkupMatcher(/Sentry.setUser/))).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
-    expect(
-      screen.getByText(
-        'Verify that your instrumentation works by simply calling your LLM.'
-      )
-    ).toBeInTheDocument();
-  });
-
-  it('keeps the banner when all selected projects are browser-only', async () => {
+  it('shows the unsupported setup when all selected projects are browser-only', async () => {
     const {organization, project} = setupProject('javascript');
     const secondProject = ProjectFixture({
       id: '100',
@@ -197,10 +138,14 @@ describe('ConversationOnboarding deployment target', () => {
 
     expect(
       await screen.findByText(
-        `Automatic Agent Monitoring isn't available for ${project.slug}.`
+        textWithMarkupMatcher(
+          /Auto instrumentation isn't available for Browser JavaScript yet/
+        )
       )
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Copy Prompt for AI Agent'})
+    ).toBeInTheDocument();
   });
 
   it('keeps server integrations available for meta-framework projects', async () => {
@@ -211,19 +156,6 @@ describe('ConversationOnboarding deployment target', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
     expect(screen.getByRole('option', {name: 'Vercel AI SDK'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'Workers AI'})).toBeInTheDocument();
-  });
-
-  it('preserves the PHP integration selector and setup', async () => {
-    const {organization} = setupProject('php-laravel');
-
-    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
-
-    expect(
-      await screen.findByText(
-        textWithMarkupMatcher(/composer require sentry\/sentry-laravel/)
-      )
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Laravel'})).toBeInTheDocument();
   });
 
   it('pins Cloudflare projects to the Cloudflare runtime with no Node toggle', async () => {
