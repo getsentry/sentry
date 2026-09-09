@@ -1191,6 +1191,136 @@
     ]
   },
   {
+    "name": "conversation",
+    "description": "The ONLY way to reference a single AI agent conversation (Explore > Agents). Use the `conversationId` exactly as the agents conversations API returns it. Include the API-provided `title` when available, and `start`/`end` (the conversation's own first and last span timestamps) so the embed can scope its query instead of scanning the default window. Inline: renders a compact link. Block: renders the conversation transcript with its LLM call, token, cost, and tool totals. Do not duplicate the messages or those totals as text. Never use a markdown link for conversation references.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "start": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        }
+      },
+      "required": ["id"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Conversation",
+        "data": {
+          "id": "4821",
+          "title": "Refund request escalated to a human",
+          "start": "2026-08-25T16:37:12Z",
+          "end": "2026-08-25T16:39:02Z"
+        }
+      }
+    ],
+    "featureFlag": "organizations:gen-ai-conversations"
+  },
+  {
+    "name": "conversationsQuery",
+    "description": "Preview the AI agent conversations list (Explore > Agents) filtered by a search query. Use this when pointing the user at a SET of conversations — if you have a specific conversation ID, use the `conversation` embed instead. `query` uses span search syntax over gen_ai spans, e.g. \"gen_ai.request.model:gpt-4o\". Negation is not supported. Use `agents` to filter to specific agent names. Inline renders a link; block renders the first five matching conversations with their duration, message count, errors and cost.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projects": {
+          "description": "Project IDs. Omit for the \"My Projects\" selection.",
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "environments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "statsPeriod": {
+          "description": "Relative time range, e.g. \"24h\" or \"7d\". Mutually exclusive with start/end.",
+          "type": "string",
+          "pattern": "^\\d+[smhdw]$"
+        },
+        "start": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "query": {
+          "default": "",
+          "type": "string"
+        },
+        "agents": {
+          "description": "Filter to these agent names, as reported by gen_ai.agent.name.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["query"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Conversations with tool errors",
+        "data": {
+          "query": "gen_ai.tool.name:*",
+          "statsPeriod": "24h",
+          "title": "Conversations using tools"
+        }
+      }
+    ],
+    "featureFlag": "organizations:gen-ai-conversations"
+  },
+  {
     "name": "replaysQuery",
     "description": "Preview the Session Replay list filtered by a search query. Use this when pointing the user at a SET of replays — if you have a specific replay ID, use the `replay` embed instead. `query` uses replay search syntax, e.g. \"user.email:user@example.com\". Inline renders a link; block renders the first five matching replays with their duration, error count and rage clicks.",
     "level": ["inline", "block"],

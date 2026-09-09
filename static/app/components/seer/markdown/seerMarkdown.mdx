@@ -10,6 +10,7 @@ import * as Storybook from 'sentry/stories';
 
 import {BasicDemo, LinkifyDemo, StreamingEmbedExamples} from './__stories__/components';
 import {AlertEmbedStory} from './__stories__/alertEmbedStory';
+import {ConversationEmbedStory} from './__stories__/conversationEmbedStory';
 import {DashboardEmbedStory} from './__stories__/dashboardEmbedStory';
 import {EmbedStory} from './__stories__/embedStory';
 import {EventEmbedStory} from './__stories__/eventEmbedStory';
@@ -141,6 +142,14 @@ Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated a
 ### metricsQuery
 
 <EmbedStory name="metricsQuery" />
+
+### conversation
+
+<ConversationEmbedStory />
+
+### conversationsQuery
+
+<EmbedStory name="conversationsQuery" />
 
 ## Embed Architecture
 
