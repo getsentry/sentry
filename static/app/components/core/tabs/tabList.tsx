@@ -259,7 +259,6 @@ function OverflowMenu({state, overflowMenuItems, disabled}: OverflowMenuProps) {
         // The menu renders inline, so fixed positioning lets it escape clipped
         // tab containers such as the conversation span details panel.
         strategy="fixed"
-        preventOverflowOptions={{boundary: document.body}}
         size="sm"
         offset={4}
         trigger={triggerProps => (
@@ -372,12 +371,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
   }, [state.collection, overflowTabs]);
 
   return (
-    <Container
-      position="relative"
-      width={orientation === 'horizontal' ? '100%' : undefined}
-      style={outerWrapStyles}
-      ref={outerWrapRef}
-    >
+    <Container position="relative" style={outerWrapStyles} ref={outerWrapRef}>
       <TabListWrap
         {...tabListProps}
         orientation={orientation}
