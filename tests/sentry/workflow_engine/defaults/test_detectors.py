@@ -1,3 +1,4 @@
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
@@ -122,9 +123,9 @@ class TestEnsureDefaultAllProjectsDetector(TestCase):
 
     def test_duplicate_detectors_are_handled(self) -> None:
         org = self.create_organization()
-        with freeze_time(timezone.now() - timezone.timedelta(hours=2)):
+        with freeze_time(timezone.now() - timedelta(hours=2)):
             first = self.create_all_projects_detector(org)
-        with freeze_time(timezone.now() - timezone.timedelta(hours=1)):
+        with freeze_time(timezone.now() - timedelta(hours=1)):
             _second = self.create_all_projects_detector(org)
         with freeze_time(timezone.now()):
             _third = self.create_all_projects_detector(org)

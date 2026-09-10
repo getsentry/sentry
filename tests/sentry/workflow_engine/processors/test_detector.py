@@ -1,6 +1,7 @@
 import unittest
 import uuid
 from dataclasses import replace
+from datetime import timedelta
 from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, call, patch
@@ -1265,9 +1266,9 @@ class TestQueryAllProjectsDetector(TestCase):
         assert query_all_projects_detector(self.organization.id) == detector
 
     def test_returns_first_when_many_exist(self) -> None:
-        with freeze_time(timezone.now() - timezone.timedelta(hours=2)):
+        with freeze_time(timezone.now() - timedelta(hours=2)):
             first = self.create_all_projects_detector(self.organization)
-        with freeze_time(timezone.now() - timezone.timedelta(hours=1)):
+        with freeze_time(timezone.now() - timedelta(hours=1)):
             _second = self.create_all_projects_detector(self.organization)
         with freeze_time(timezone.now()):
             _third = self.create_all_projects_detector(self.organization)
@@ -1319,9 +1320,9 @@ class TestEventDetectorsAllProject(TestCase):
         assert get_all_projects_detector(self.organization.id) is None
 
     def test_many_all_projects_detectors(self) -> None:
-        with freeze_time(timezone.now() - timezone.timedelta(hours=2)):
+        with freeze_time(timezone.now() - timedelta(hours=2)):
             first = self.create_all_projects_detector(self.organization)
-        with freeze_time(timezone.now() - timezone.timedelta(hours=1)):
+        with freeze_time(timezone.now() - timedelta(hours=1)):
             _second = self.create_all_projects_detector(self.organization)
         with freeze_time(timezone.now()):
             _third = self.create_all_projects_detector(self.organization)
