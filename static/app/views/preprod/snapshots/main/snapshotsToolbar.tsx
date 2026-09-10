@@ -4,6 +4,7 @@ import type {Theme} from '@emotion/react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
@@ -12,7 +13,16 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ProgressBar} from 'sentry/components/progressBar';
-import {IconExpand, IconInput, IconList, IconPause, IconStack} from 'sentry/icons';
+import {
+  IconChevron,
+  IconExpand,
+  IconHide,
+  IconInput,
+  IconList,
+  IconPause,
+  IconShow,
+  IconStack,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import type {DiffMode} from './imageDisplay/diffImageDisplay';
@@ -160,22 +170,44 @@ export function SortDropdown({
 }
 
 const OPACITY_PRESETS = [0, 50, 100];
+const DEFAULT_VISIBLE_OPACITY = 50;
+
+export type OverlayToggleStyle = 'eye' | 'circle';
+
+function useOverlayToggle(opacity: number, onOpacityChange: (opacity: number) => void) {
+  const lastVisibleOpacity = useRef(opacity || DEFAULT_VISIBLE_OPACITY);
+
+  useEffect(() => {
+    if (opacity > 0) {
+      lastVisibleOpacity.current = opacity;
+    }
+  }, [opacity]);
+
+  return () => onOpacityChange(opacity === 0 ? lastVisibleOpacity.current : 0);
+}
 
 export function ColorPickerButton({
   color,
   onChange,
   opacity,
   onOpacityChange,
+  toggleStyle = 'eye',
 }: {
   color: string;
   onChange: (color: string) => void;
   onOpacityChange: (opacity: number) => void;
   opacity: number;
+  toggleStyle?: OverlayToggleStyle;
 }) {
   const theme = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
   const palette = theme.chart.getColorPalette(10);
+  const isHidden = opacity === 0;
+  const toggleOverlay = useOverlayToggle(opacity, onOpacityChange);
+  const toggleLabel = isHidden ? t('Show overlay') : t('Hide overlay');
+  // `transparent` supports legacy localStorage color values.
+  const showSlash = isHidden || color === TRANSPARENT_COLOR;
 
   useEffect(() => {
     if (!isOpen) {
@@ -192,15 +224,50 @@ export function ColorPickerButton({
 
   return (
     <ColorPickerWrapper ref={pickerRef}>
-      <Tooltip title={t('Overlay color')} skipWrapper>
-        <ColorTrigger
-          $color={color}
-          // `transparent` supports legacy localStorage color values.
-          $slash={opacity === 0 || color === TRANSPARENT_COLOR}
-          aria-label={t('Pick overlay color')}
-          onClick={() => setIsOpen(v => !v)}
-        />
-      </Tooltip>
+      {toggleStyle === 'eye' ? (
+        <Fragment>
+          <Tooltip title={toggleLabel} skipWrapper>
+            <Button
+              size="xs"
+              variant="transparent"
+              icon={isHidden ? <IconShow /> : <IconHide />}
+              aria-label={toggleLabel}
+              aria-pressed={!isHidden}
+              onClick={toggleOverlay}
+            />
+          </Tooltip>
+          <Tooltip title={t('Overlay color')} skipWrapper>
+            <ColorTrigger
+              $color={color}
+              $slash={showSlash}
+              aria-label={t('Pick overlay color')}
+              onClick={() => setIsOpen(v => !v)}
+            />
+          </Tooltip>
+        </Fragment>
+      ) : (
+        <Fragment>
+          <Tooltip title={toggleLabel} skipWrapper>
+            <ColorTrigger
+              $color={color}
+              $slash={showSlash}
+              aria-label={t('Toggle overlay')}
+              aria-pressed={!isHidden}
+              onClick={toggleOverlay}
+            />
+          </Tooltip>
+          <Tooltip title={t('Overlay options')} skipWrapper>
+            <Button
+              size="zero"
+              variant="transparent"
+              icon={<IconChevron direction="down" size="xs" />}
+              aria-label={t('Overlay options')}
+              aria-expanded={isOpen}
+              onClick={() => setIsOpen(v => !v)}
+            />
+          </Tooltip>
+        </Fragment>
+      )}
       {isOpen && (
         <ColorPickerDropdown>
           <Flex gap="xs" align="center">
@@ -288,6 +355,7 @@ const ColorPickerWrapper = styled('div')`
   position: relative;
   display: flex;
   align-items: center;
+  gap: ${p => p.theme.space['2xs']};
 `;
 
 const ColorPickerDropdown = styled('div')`

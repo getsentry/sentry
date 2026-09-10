@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -211,12 +212,22 @@ export function SnapshotMainContent({
   const diffControls = hasChangedInList ? (
     <Fragment>
       {diffMode === 'split' && (
-        <ColorPickerButton
-          color={overlayColor}
-          onChange={onOverlayColorChange}
-          opacity={overlayOpacity}
-          onOpacityChange={onOverlayOpacityChange}
-        />
+        <Fragment>
+          <ColorPickerButton
+            color={overlayColor}
+            onChange={onOverlayColorChange}
+            opacity={overlayOpacity}
+            onOpacityChange={onOverlayOpacityChange}
+          />
+          <Separator orientation="vertical" />
+          <ColorPickerButton
+            color={overlayColor}
+            onChange={onOverlayColorChange}
+            opacity={overlayOpacity}
+            onOpacityChange={onOverlayOpacityChange}
+            toggleStyle="circle"
+          />
+        </Fragment>
       )}
       <DiffModeToggle
         diffMode={diffMode}
