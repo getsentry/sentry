@@ -1201,7 +1201,7 @@ def trigger_pr_iteration_from_comment(
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
     log_ctx = PrIterationLogContext.for_run(logger, agent_state, organization_id, group_id)
-    try_enqueue_autofix_feedback(
+    queued = try_enqueue_autofix_feedback(
         log_ctx=log_ctx,
         run_id=agent_state.run_id,
         organization_id=organization_id,
@@ -1211,6 +1211,10 @@ def trigger_pr_iteration_from_comment(
         run_state=agent_state,
         actor_user_id=resolved.actor_user.id if resolved.actor_user else None,
     )
+    # Nothing reached Redis, so an ack here acknowledges work that never happens.
+    if not queued:
+        return None
+
     trigger_consume_pr_iteration_feedback(
         log_ctx=log_ctx,
         run_id=agent_state.run_id,
@@ -1637,8 +1641,10 @@ def trigger_pr_iteration_from_review(
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
     log_ctx = PrIterationLogContext.for_run(logger, agent_state, organization_id, group_id)
-    for feedback_obj in feedback_items:
-        try_enqueue_autofix_feedback(
+    queued_items = [
+        feedback_obj
+        for feedback_obj in feedback_items
+        if try_enqueue_autofix_feedback(
             log_ctx=log_ctx,
             run_id=agent_state.run_id,
             organization_id=organization_id,
@@ -1648,6 +1654,10 @@ def trigger_pr_iteration_from_review(
             run_state=agent_state,
             actor_user_id=actor_user.id if actor_user else None,
         )
+    ]
+    if not queued_items:
+        logger.info("autofix.pr_iteration.review_trigger.no_feedback_queued", extra=log_extra)
+        return None
 
     # A single consume pass drains everything queued above; trigger once using
     # the first item to decide the countdown (all share the same run).
@@ -1655,7 +1665,7 @@ def trigger_pr_iteration_from_review(
         log_ctx=log_ctx,
         run_id=agent_state.run_id,
         organization_id=organization_id,
-        feedback=feedback_items[0],
+        feedback=queued_items[0],
         run_state=agent_state,
     )
 
@@ -1664,7 +1674,7 @@ def trigger_pr_iteration_from_review(
     # comment consume will drop as stale.
     # TODO: doesn't cover consume's other drop paths (group missing, processing,
     # cap hit mid-drain) — reconcile with consume's outcome later.
-    for feedback_obj in feedback_items:
+    for feedback_obj in queued_items:
         source = feedback_obj.source
         if not isinstance(source, GithubPrReviewCommentFeedbackSource):
             continue

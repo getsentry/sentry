@@ -8,12 +8,18 @@ from sentry.scm.types import PullRequestReviewEvent, SubscriptionEvent
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
+from sentry.seer.autofix.pr_iteration.feedback_limits import MANUAL_FEEDBACK_MAX_LENGTH
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewBodyFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.listeners.review import (
     handle_pull_request_review_for_autofix_iteration,
+)
+from sentry.seer.autofix.pr_iteration.queue import (
+    clear_queued_autofix_feedback,
+    peek_queued_autofix_feedback,
+    try_enqueue_autofix_feedback,
 )
 from sentry.tasks.seer.pr_iteration import _REVIEW_PAGE_SIZE, trigger_pr_iteration_from_review
 from sentry.testutils.cases import TestCase
@@ -813,6 +819,49 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_enqueue.assert_called()
         self.mock_consume.assert_called_once()
         self.mock_actions.get_repository_user_permission.assert_not_called()
+
+    def _enqueue_for_real(self) -> None:
+        """Run the real queue gate, so the length cap applies to each item."""
+        clear_queued_autofix_feedback(67890)
+        self.addCleanup(clear_queued_autofix_feedback, 67890)
+        self.mock_enqueue.side_effect = try_enqueue_autofix_feedback
+
+    def test_an_over_long_inline_comment_is_dropped_and_the_rest_iterates(self) -> None:
+        self._enqueue_for_real()
+        self.mock_actions.get_review_comments.return_value = self._paginated(
+            [
+                self._review_comment(comment_id="1", body="a" * (MANUAL_FEEDBACK_MAX_LENGTH + 1)),
+                self._review_comment(comment_id="2", body="fix this"),
+            ]
+        )
+        self.mock_actions.get_pull_request_review.return_value = self._review_result(
+            {"id": "500", "html_url": "https://x/500", "body": ""}
+        )
+
+        self._run()
+
+        queued = peek_queued_autofix_feedback(67890)
+        assert [item.feedback.ui_text for item in queued] == ["fix this"]
+        self.mock_consume.assert_called_once()
+        # The dropped comment gets no ack: nothing reached Redis for it.
+        self.mock_actions.create_review_comment_reaction.assert_called_once()
+        assert self.mock_actions.create_review_comment_reaction.call_args.args[2] == "2"
+
+    def test_a_review_whose_every_item_is_over_long_queues_nothing(self) -> None:
+        self._enqueue_for_real()
+        long_text = "a" * (MANUAL_FEEDBACK_MAX_LENGTH + 1)
+        self.mock_actions.get_review_comments.return_value = self._paginated(
+            [self._review_comment(comment_id="1", body=long_text)]
+        )
+        self.mock_actions.get_pull_request_review.return_value = self._review_result(
+            {"id": "500", "html_url": "https://x/500", "body": long_text}
+        )
+
+        self._run()
+
+        assert peek_queued_autofix_feedback(67890) == []
+        self.mock_consume.assert_not_called()
+        self.mock_actions.create_review_comment_reaction.assert_not_called()
 
     def test_skips_review_with_no_author(self) -> None:
         # No author username means we can't check access, so drop without even

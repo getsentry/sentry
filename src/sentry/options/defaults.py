@@ -4205,6 +4205,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# GitHub logins of bots exempt from MANUAL_FEEDBACK_MAX_LENGTH.
+register(
+    "autofix.pr-iteration.bot-feedback-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics
 register(
     "integrations.slo.integration-id-tag-enabled",

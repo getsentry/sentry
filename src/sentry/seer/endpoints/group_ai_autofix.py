@@ -60,6 +60,9 @@ from sentry.seer.autofix.github_perms import (
     get_blocked_pr_iteration_permissions,
 )
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_limits import (
+    MANUAL_FEEDBACK_MAX_LENGTH,
+)
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
@@ -165,7 +168,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
     )
     user_context = serializers.CharField(
         required=False,
-        max_length=1000,
+        max_length=MANUAL_FEEDBACK_MAX_LENGTH,
         help_text="Optional user context to append to the step prompt.",
         allow_blank=True,
     )

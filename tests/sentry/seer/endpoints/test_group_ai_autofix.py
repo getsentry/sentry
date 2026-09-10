@@ -19,6 +19,7 @@ from sentry.seer.autofix.autofix_agent import NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_limits import MANUAL_FEEDBACK_MAX_LENGTH
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import Decision
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.pause import (
@@ -852,6 +853,55 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert mock_consume.call_args.kwargs["run_id"] == 123
         assert mock_consume.call_args.kwargs["organization_id"] == group.organization.id
         assert mock_consume.call_args.kwargs["bypass"] is True
+
+    @with_feature("organizations:autofix-pr-iteration-manual")
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_consume_pr_iteration_feedback")
+    @patch("sentry.seer.endpoints.group_ai_autofix.try_enqueue_autofix_feedback")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
+    def test_pr_iteration_accepts_user_context_at_the_limit(
+        self, mock_run_state, mock_try_enqueue, mock_consume
+    ):
+        group = self.create_group()
+        mock_run_state.return_value = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo")},
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={
+                "step": "pr_iteration",
+                "run_id": 123,
+                "user_context": "a" * MANUAL_FEEDBACK_MAX_LENGTH,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        mock_try_enqueue.assert_called_once()
+
+    @with_feature("organizations:autofix-pr-iteration-manual")
+    @patch("sentry.seer.endpoints.group_ai_autofix.try_enqueue_autofix_feedback")
+    def test_pr_iteration_rejects_user_context_over_the_limit(self, mock_try_enqueue):
+        group = self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={
+                "step": "pr_iteration",
+                "run_id": 123,
+                "user_context": "a" * (MANUAL_FEEDBACK_MAX_LENGTH + 1),
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400, response.data
+        mock_try_enqueue.assert_not_called()
 
     @with_feature(
         {

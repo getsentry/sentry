@@ -8,6 +8,7 @@ from uuid import uuid4
 from pydantic import BaseModel, Field
 
 from sentry.seer.agent.client_models import SeerRunState
+from sentry.seer.autofix.pr_iteration.actors import is_bot_login
 
 
 class ConsumeTask:
@@ -80,6 +81,9 @@ class FeedbackSourceBase(BaseModel):
     # sources with none (UI) keep the UUID minted here.
     source_id: str = Field(default_factory=lambda: str(uuid4()))
 
+    # Per-subclass contract: False for text Sentry generated, True for text an actor wrote.
+    length_capped: ClassVar[bool] = False
+
     @property
     def text(self) -> str:
         """Verbatim text passed to the explorer agent in the prompt."""
@@ -89,6 +93,16 @@ class FeedbackSourceBase(BaseModel):
     def ui_text(self) -> str | None:
         """Text shown in the UI. ``None`` means fall back to ``text``."""
         return None
+
+    @property
+    def actor_login(self) -> str | None:
+        """The provider login of the actor that wrote this feedback."""
+        return None
+
+    @property
+    def actor_is_bot(self) -> bool:
+        login = self.actor_login
+        return self.is_automated or (login is not None and is_bot_login(login))
 
     @property
     def is_automated(self) -> bool:

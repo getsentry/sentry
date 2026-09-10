@@ -5,6 +5,7 @@ from sentry.seer.agent.client_models import RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_limits import MANUAL_FEEDBACK_MAX_LENGTH
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
 )
@@ -119,6 +120,51 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         queued = peek_queued_autofix_feedback(4242)
         assert len(queued) == 1
         assert queued[0].feedback.text == "fix it"
+
+    def test_blocks_feedback_over_the_length_limit(self) -> None:
+        feedback = Feedback(
+            source=UserUIFeedbackSource(
+                user_id=1, user_feedback="a" * (MANUAL_FEEDBACK_MAX_LENGTH + 1)
+            )
+        )
+
+        assert self._enqueue(run_id=5050, feedback=feedback) is False
+        assert peek_queued_autofix_feedback(5050) == []
+
+    def test_queues_feedback_at_the_length_limit_and_opens_the_buffer(self) -> None:
+        feedback = Feedback(
+            source=UserUIFeedbackSource(user_id=1, user_feedback="a" * MANUAL_FEEDBACK_MAX_LENGTH)
+        )
+
+        with patch(f"{QUEUE_PATH}.open_pr_iteration_details") as mock_open:
+            assert self._enqueue(run_id=5151, feedback=feedback) is True
+
+        assert len(peek_queued_autofix_feedback(5151)) == 1
+        mock_open.assert_called_once()
+
+    def test_records_the_length_of_every_arrival(self) -> None:
+        feedback = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it"))
+
+        with patch(f"{QUEUE_PATH}.metrics") as mock_metrics:
+            assert self._enqueue(run_id=5252, feedback=feedback) is True
+
+        mock_metrics.distribution.assert_called_once_with(
+            "autofix.pr_iteration.feedback.length",
+            len("fix it"),
+            tags={"source": "user-ui", "actor": "human", "queued": "true"},
+        )
+
+    def test_records_the_length_of_a_blocked_arrival(self) -> None:
+        feedback = Feedback(
+            source=UserUIFeedbackSource(
+                user_id=1, user_feedback="a" * (MANUAL_FEEDBACK_MAX_LENGTH + 1)
+            )
+        )
+
+        with patch(f"{QUEUE_PATH}.metrics") as mock_metrics:
+            assert self._enqueue(run_id=5353, feedback=feedback) is False
+
+        assert mock_metrics.distribution.call_args.kwargs["tags"]["queued"] == "false"
 
     def test_skips_stale_feedback(self) -> None:
         feedback = Feedback(source=_resolved_check_suite_source())
