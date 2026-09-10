@@ -8,6 +8,7 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.grouplink import GroupLink
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +93,13 @@ def _reconcile_after_conflict(
         return True, survivor.id
 
 
+def _record_rekey_outcome(integration: Integration | RpcIntegration, outcome: str) -> None:
+    metrics.incr(
+        "integrations.external_issue.rekey",
+        tags={"provider": integration.provider, "outcome": outcome},
+    )
+
+
 def rekey_external_issues(
     integration: Integration | RpcIntegration,
     old_key: str,
@@ -115,7 +123,27 @@ def rekey_external_issues(
         return 0
 
     stale_issues = list(ExternalIssue.objects.get_for_integration(integration, old_key))
+    if not stale_issues:
+        # Most renames are of issues nobody linked in Sentry, so a miss is a rate to watch
+        # rather than an error. Whether the new key is already ours separates a redelivery,
+        # which is safe, from the bucket that also holds a link left at a third key by moves
+        # that arrived out of order -- the one case nothing else reports.
+        already_moved = ExternalIssue.objects.get_for_integration(integration, new_key).exists()
+        outcome = "already_at_new_key" if already_moved else "no_match"
+        _record_rekey_outcome(integration, outcome)
+        logger.info(
+            "external_issue.rekey.missed",
+            extra={
+                "integration_id": integration.id,
+                "old_key": old_key,
+                "new_key": new_key,
+                "outcome": outcome,
+            },
+        )
+        return 0
+
     rekeyed = 0
+    already_applied = 0
 
     for stale in stale_issues:
         log_context = {
@@ -150,6 +178,7 @@ def rekey_external_issues(
 
             if not applied:
                 logger.info("external_issue.rekey.already_applied", extra=log_context)
+                already_applied += 1
                 continue
             if survivor_id is not None:
                 log_context["merged_into_external_issue_id"] = survivor_id
@@ -157,4 +186,11 @@ def rekey_external_issues(
         logger.info("external_issue.rekey.applied", extra=log_context)
         rekeyed += 1
 
+    if rekeyed:
+        outcome = "applied"
+    else:
+        # Losing the race to a concurrent delivery is the same outcome as finding the row
+        # already at the new key; only a reconciliation that raised is a failure.
+        outcome = "already_at_new_key" if already_applied else "failed"
+    _record_rekey_outcome(integration, outcome)
     return rekeyed
