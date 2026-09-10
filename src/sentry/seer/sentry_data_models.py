@@ -190,6 +190,26 @@ class GetRepoInstallationIdErrorResponse(BaseModel):
     error: str
 
 
+class CursorOriginGitResponse(BaseModel):
+    """Result of a Cursor Origin Git-over-HTTPS operation performed on Sentry's behalf.
+
+    Origin exposes no archive route and no REST write for commits, branches or refs, so
+    Seer cannot reach either through the SCM proxy the way it does for GitHub and
+    GitLab. These operations run in Sentry, where the credentials live, and Seer calls
+    them over seer-rpc. See `sentry.integrations.cursor_origin.git`.
+
+    `error` is a string rather than an exception because the seer-rpc boundary
+    serializes it; a failed git operation is an expected outcome here (a branch that
+    already exists, an autofix that produced no net change), not necessarily a defect.
+    """
+
+    # Gzipped tar of a ref, base64-encoded. Set only by the archive method.
+    content_base64: str | None = None
+    # Sha of the commit that was pushed. Set only by the commit method.
+    sha: str | None = None
+    error: str | None = None
+
+
 class ProfileDetailsResponse(BaseModel):
     profile_matches_issue: Literal[True] = True
     execution_tree: list[ExecutionTreeNode]
