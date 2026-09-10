@@ -215,7 +215,8 @@ class MailboxBucketCountTest(TestCase):
         """Sizing runs before the payload row is written, so a reply we cannot read has
         to fail the same way an outage does rather than 500 a webhook we could queue."""
         pipeline = MagicMock()
-        pipeline.execute.return_value = [1]
+        # Short one result, the shape a partially applied pipeline would come back in.
+        pipeline.execute.return_value = [1, True] + ["1"] * (SHARD_COUNT - 2)
 
         with patch(
             "sentry.hybridcloud.webhook_mailbox_sizing.redis.redis_clusters.get",
@@ -225,7 +226,8 @@ class MailboxBucketCountTest(TestCase):
 
     def test_a_reply_that_does_not_coerce_sizes_to_the_cap(self) -> None:
         pipeline = MagicMock()
-        pipeline.execute.return_value = ["not-a-number", True, []]
+        # Full length, so it is the coercion that fails rather than the unpacking.
+        pipeline.execute.return_value = ["not-a-number", True] + ["1"] * (SHARD_COUNT - 1)
 
         with patch(
             "sentry.hybridcloud.webhook_mailbox_sizing.redis.redis_clusters.get",
@@ -271,3 +273,22 @@ class MailboxBucketCountTest(TestCase):
             side_effect=RuntimeError("something unforeseen"),
         ):
             assert mailbox_bucket_count(MAILBOX) == _max_buckets()
+
+    def test_the_window_is_read_without_a_multi_key_command(self) -> None:
+        """`ClusterPipeline` blocks `mget` outright, and dev and CI cannot catch that:
+        a single-host `redis.clusters` entry has no `is_redis_cluster`, so the client
+        here is a plain `StrictRedis` whose pipeline takes `mget` happily. Production
+        is the only place the cluster client is built, so the command shape is asserted
+        rather than exercised.
+        """
+        pipeline = MagicMock()
+        pipeline.execute.return_value = [1, True] + ["1"] * (SHARD_COUNT - 1)
+
+        with patch(
+            "sentry.hybridcloud.webhook_mailbox_sizing.redis.redis_clusters.get",
+            return_value=MagicMock(pipeline=MagicMock(return_value=pipeline)),
+        ):
+            mailbox_bucket_count(MAILBOX)
+
+        pipeline.mget.assert_not_called()
+        assert pipeline.get.call_count == SHARD_COUNT - 1
