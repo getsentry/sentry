@@ -1125,6 +1125,17 @@ class ReplayParams:
         description="If true, return issue IDs rather than counts.",
     )
 
+    ID_LIMIT = OpenApiParameter(
+        name="limit",
+        location="query",
+        required=False,
+        type=OpenApiTypes.INT,
+        description=(
+            "Maximum number of replay IDs to return per identifier. Only applies with "
+            "`returnIds`. Defaults to, and is capped at, 51."
+        ),
+    )
+
 
 class NotificationParams:
     TRIGGER_TYPE = OpenApiParameter(

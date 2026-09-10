@@ -204,6 +204,56 @@ class OrganizationReplayCountEndpointTest(
             expected[event_c.group.id],
         )
 
+    def test_return_ids_respects_limit(self) -> None:
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
+        for replay_id in (replay1_id, replay2_id):
+            self.store_replays(
+                mock_replay(
+                    datetime.datetime.now() - datetime.timedelta(seconds=22),
+                    self.project.id,
+                    replay_id,
+                )
+            )
+        event = self.store_event(
+            data={
+                "event_id": uuid.uuid4().hex,
+                "timestamp": self.min_ago.isoformat(),
+                "contexts": {"replay": {"replay_id": replay1_id}},
+                "fingerprint": ["group-limit"],
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": uuid.uuid4().hex,
+                "timestamp": self.min_ago.isoformat(),
+                "contexts": {"replay": {"replay_id": replay2_id}},
+                "fingerprint": ["group-limit"],
+            },
+            project_id=self.project.id,
+        )
+        assert event.group is not None
+
+        query: dict[str, Any] = {
+            "query": f"issue.id:[{event.group.id}]",
+            "returnIds": True,
+        }
+        with self.feature(self.features):
+            unlimited = self.client.get(self.url, query, format="json")
+            limited = self.client.get(self.url, {**query, "limit": 1}, format="json")
+
+        assert unlimited.status_code == 200, unlimited.content
+        assert len(unlimited.data[event.group.id]) == 2
+        assert limited.status_code == 200, limited.content
+        assert len(limited.data[event.group.id]) == 1
+
+    def test_limit_is_rejected_outside_its_range(self) -> None:
+        query: dict[str, Any] = {"query": "issue.id:[1]", "returnIds": True}
+        with self.feature(self.features):
+            assert self.client.get(self.url, {**query, "limit": 0}).status_code == 400
+            assert self.client.get(self.url, {**query, "limit": 52}).status_code == 400
+
     def test_simple_performance(self) -> None:
         replay1_id = uuid.uuid4().hex
         replay2_id = uuid.uuid4().hex

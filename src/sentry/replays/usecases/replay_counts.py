@@ -50,24 +50,41 @@ _DATASET_QUERY_FUNCS: dict[Dataset, _DatasetQueryFunc] = {
 
 @overload
 def get_replay_counts(
-    snuba_params: SnubaParams, query: str, data_source: str | Dataset, *, return_ids: Literal[True]
+    snuba_params: SnubaParams,
+    query: str,
+    data_source: str | Dataset,
+    *,
+    return_ids: Literal[True],
+    limit: int | None = None,
 ) -> dict[int, list[str]]: ...
 
 
 @overload
 def get_replay_counts(
-    snuba_params: SnubaParams, query: str, data_source: str | Dataset, *, return_ids: Literal[False]
+    snuba_params: SnubaParams,
+    query: str,
+    data_source: str | Dataset,
+    *,
+    return_ids: Literal[False],
+    limit: int | None = None,
 ) -> dict[int, int]: ...
 
 
 def get_replay_counts(
-    snuba_params: SnubaParams, query: str, data_source: str | Dataset, *, return_ids: bool
+    snuba_params: SnubaParams,
+    query: str,
+    data_source: str | Dataset,
+    *,
+    return_ids: bool,
+    limit: int | None = None,
 ) -> dict[int, list[str]] | dict[int, int]:
     """
     Queries snuba/clickhouse for replay count of each identifier (usually an issue or transaction).
     - Identifier is parsed from 'query' (select column), and 'snuba_params' is used to filter on time range + project_id
     - If the identifier is 'replay_id', the returned count is always 1. Use this to check the existence of replay_ids
     - Set the flag 'return_ids' to get the replay_ids (32 char hex strings) for each identifier
+    - 'limit' caps how many ids each identifier gets, for callers that only want a few. Ignored
+      when returning counts, and never above MAX_REPLAY_COUNT.
     """
 
     if snuba_params.start is None or snuba_params.end is None or snuba_params.organization is None:
@@ -95,7 +112,7 @@ def get_replay_counts(
     )
 
     if return_ids:
-        return _get_replay_ids(replay_results, replay_ids_mapping)
+        return _get_replay_ids(replay_results, replay_ids_mapping, limit)
     else:
         return _get_counts(replay_results, replay_ids_mapping)
 
@@ -225,17 +242,18 @@ def _get_counts(replay_results: Any, replay_ids_mapping: dict[str, list[int]]) -
 
 
 def _get_replay_ids(
-    replay_results: Any, replay_ids_mapping: dict[str, list[int]]
+    replay_results: Any, replay_ids_mapping: dict[str, list[int]], limit: int | None = None
 ) -> dict[int, list[str]]:
     """
     Get replay ids associated with each identifier (identifier -> [replay_id]) (ex identifier: issue_id)
     Can think of it as the inverse of _get_replay_id_mappings, excluding the replay_ids that don't exist
     """
+    cap = MAX_REPLAY_COUNT if limit is None else min(limit, MAX_REPLAY_COUNT)
     ret: dict[int, list[str]] = defaultdict(list)
     for row in replay_results["data"]:
         identifiers = replay_ids_mapping[row["rid"]]
         for identifier in identifiers:
-            if len(ret[identifier]) < MAX_REPLAY_COUNT:
+            if len(ret[identifier]) < cap:
                 ret[identifier].append(row["rid"])
     return ret
 
