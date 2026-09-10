@@ -2009,7 +2009,11 @@ def get_project_members(
     exclude_group_id: int | None = None,
     limit: int = 3,
 ) -> ProjectMembersResponse | None:
-    if not isinstance(limit, int) or not 1 <= limit <= PROJECT_MEMBER_LIMIT_MAX:
+    if (
+        not isinstance(limit, int)
+        or isinstance(limit, bool)
+        or not 1 <= limit <= PROJECT_MEMBER_LIMIT_MAX
+    ):
         raise BadRequest(f"limit must be between 1 and {PROJECT_MEMBER_LIMIT_MAX}")
 
     try:
