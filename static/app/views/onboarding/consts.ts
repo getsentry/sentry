@@ -1,6 +1,5 @@
 import type {MotionProps} from 'framer-motion';
 
-import {SvgIcon} from 'sentry/icons/svgIcon';
 import type {IconSize} from 'sentry/utils/theme';
 
 export const ONBOARDING_WELCOME_SCREEN_SOURCE = 'targeted_onboarding';
@@ -25,6 +24,4 @@ export const ONBOARDING_WELCOME_STAGGER_ITEM: MotionProps = {
 export const SCM_STEP_CONTENT_WIDTH = '630px';
 
 export const SETUP_CARD_ICON_SIZE: IconSize = 'md';
-export const SETUP_CARD_ICON_PX = SvgIcon.ICON_SIZES[
-  SETUP_CARD_ICON_SIZE
-] as `${number}px`;
+export const SETUP_CARD_MARKER_PX = '24px';

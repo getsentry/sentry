@@ -6,7 +6,7 @@ import {Text} from '@sentry/scraps/text';
 import {ScmCardButton} from 'sentry/components/onboarding/scm/scmCardButton';
 import {IconChevron, IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {SETUP_CARD_ICON_PX, SETUP_CARD_ICON_SIZE} from 'sentry/views/onboarding/consts';
+import {SETUP_CARD_MARKER_PX, SETUP_CARD_ICON_SIZE} from 'sentry/views/onboarding/consts';
 
 interface ManualSetupCardProps {
   onSetupInBrowser: () => void;
@@ -16,8 +16,8 @@ export function ManualSetupCard({onSetupInBrowser}: ManualSetupCardProps) {
   return (
     <CardButton onClick={onSetupInBrowser} data-test-id="onboarding-setup-in-browser">
       <Stack border="primary" radius="xl" padding="xl 2xl" gap="0" width="100%">
-        <Flex align="center" gap="xl">
-          <Flex width={SETUP_CARD_ICON_PX} flexShrink={0} justify="center">
+        <Flex align="center" gap="md">
+          <Flex width={SETUP_CARD_MARKER_PX} flexShrink={0} justify="center">
             <IconSliders size={SETUP_CARD_ICON_SIZE} variant="secondary" />
           </Flex>
           <Container flexGrow={1} minWidth="0px">
@@ -34,8 +34,8 @@ export function ManualSetupCard({onSetupInBrowser}: ManualSetupCardProps) {
           </Flex>
         </Flex>
 
-        <Flex gap="xl" paddingTop="xs">
-          <Container width={SETUP_CARD_ICON_PX} flexShrink={0} />
+        <Flex gap="md" paddingTop="xs">
+          <Container width={SETUP_CARD_MARKER_PX} flexShrink={0} />
           <Container flexGrow={1} minWidth="0px">
             <Text variant="muted" size="md" density="comfortable" textWrap="pretty">
               {t(
