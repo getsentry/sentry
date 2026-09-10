@@ -556,8 +556,8 @@ def _field_matcher(name: str) -> _ConditionMatcher:
     return match
 
 
-# Replays, sessions and profiles are not selectable data types: Relay reads their
-# release under `event.release`, so they cannot be told apart from errors.
+# Replays, sessions, profiles and transactions are not selectable data types: Relay
+# reads their release under `event.release`, so they cannot be told apart from errors.
 _MATCHERS_BY_SINGLE_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMatchers] = {
     CustomInboundFilterDataType.ERROR: {
         CustomInboundFilterConditionType.ERROR_TYPE: _custom_error_type_condition,
@@ -576,6 +576,8 @@ _MATCHERS_BY_SINGLE_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMa
             "trace_metric.attributes.sentry.release.value"
         ),
     },
+    # Matches standalone spans only. A span sent inside a transaction is dropped with
+    # the transaction, which the error matcher reads.
     CustomInboundFilterDataType.SPAN: {
         CustomInboundFilterConditionType.RELEASE: _field_matcher(
             "span.attributes.sentry.release.value"
@@ -584,7 +586,7 @@ _MATCHERS_BY_SINGLE_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMa
 }
 
 
-def _any_data_type_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionMatcher:
+def _any_condition_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionMatcher:
     # Relay reads a field the item does not carry as no match, so the OR reduces to the
     # item's own field.
     def match(values: list[str]) -> RuleCondition:
@@ -595,10 +597,10 @@ def _any_data_type_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionM
 
 def _build_all_data_types_matchers() -> _ConditionMatchers:
     per_data_type = list(_MATCHERS_BY_SINGLE_DATA_TYPE.values())
-    shared_condition_types = set.intersection(*(set(matchers) for matchers in per_data_type))
+    shared_condition_types = set.intersection(*(set(matchers.keys()) for matchers in per_data_type))
 
     return {
-        condition_type: _any_data_type_matcher(
+        condition_type: _any_condition_matcher(
             [matchers[condition_type] for matchers in per_data_type]
         )
         for condition_type in CustomInboundFilterConditionType
