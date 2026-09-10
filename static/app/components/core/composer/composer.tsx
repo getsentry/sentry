@@ -142,6 +142,7 @@ export function Composer({
   plugins,
   onChange,
   minHeight,
+  onOpenChange,
   placeholder,
   style,
   ...editorProps
@@ -167,6 +168,10 @@ export function Composer({
     [sources, activeTrigger]
   );
   const isOpen = activeSources.length > 0;
+
+  useLayoutEffect(() => {
+    onOpenChange?.(isOpen);
+  }, [isOpen, onOpenChange]);
 
   const {
     activeDescendant,
