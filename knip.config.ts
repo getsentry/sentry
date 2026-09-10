@@ -27,10 +27,6 @@ const productionEntryPoints = [
   'static/app/components/brandPageLayout/**/*.{ts,tsx}',
   // React authentication routes are discovered dynamically by the frontend route registry
   'static/app/views/authV2/authLogin/**/*.{ts,tsx}',
-  // TODO: Remove along with the provider itself (#123975). `useUrlBatchContext`
-  // lost its last consumer when the widget builder moved to nuqs, but the
-  // provider is still mounted in four places.
-  'static/app/utils/url/urlParamBatchContext.tsx',
 ];
 
 const testingEntryPoints = [

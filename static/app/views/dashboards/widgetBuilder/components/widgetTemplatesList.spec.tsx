@@ -1,15 +1,10 @@
-import debounce from 'lodash/debounce';
-
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {testableDebounce} from 'sentry/utils/url/testUtils';
 import {WidgetTemplatesList} from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/types';
-
-jest.mock('lodash/debounce');
 
 jest.mock('sentry/views/dashboards/widgetLibrary/data', () => ({
   getDefaultWidgets: jest.fn(() => [
@@ -34,9 +29,6 @@ describe('WidgetTemplatesList', () => {
 
   beforeEach(() => {
     jest.useFakeTimers();
-
-    jest.mocked(debounce).mockImplementation(testableDebounce);
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/widgets/',
       method: 'POST',
