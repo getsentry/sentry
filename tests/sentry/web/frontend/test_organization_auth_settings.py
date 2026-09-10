@@ -801,6 +801,7 @@ class OrganizationAuthSettingsGenericSAML2Test(AuthProviderTestCase):
                 Attributes.USER_EMAIL: "new_email",
                 Attributes.FIRST_NAME: "new_first_name",
                 Attributes.LAST_NAME: "new_last_name",
+                Attributes.AVATAR: "new_photo",
             },
         }
 

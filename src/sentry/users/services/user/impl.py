@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import logging
+from base64 import b64decode
 from collections.abc import Callable, MutableMapping
+from io import BytesIO
 from typing import Any
 from uuid import uuid4
 
@@ -10,6 +12,7 @@ from django.db.models import F, Q, QuerySet
 from django.db.models.functions import Upper
 from django.utils.text import slugify
 
+from sentry import options
 from sentry.api.serializers.base import Serializer, serialize
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.db.models.query import in_iexact
@@ -301,6 +304,32 @@ class DatabaseBackedUserService(UserService):
             return None
 
         return serialize_user_avatar(avatar=possible_avatar)
+
+    def update_user_avatar(self, *, user_id: int, avatar_b64: str | None, filename: str) -> None:
+        if avatar_b64:
+            avatar = UserAvatar.save_avatar(
+                relation={"user_id": user_id},
+                type="upload",
+                avatar=BytesIO(b64decode(avatar_b64)),
+                filename=filename,
+            )
+        else:
+            # An empty payload resets the user back to the default letter avatar.
+            avatar = UserAvatar.save_avatar(
+                relation={"user_id": user_id},
+                type="letter_avatar",
+            )
+
+        # Keep the denormalized User.avatar_* fields in sync with the stored
+        # avatar, mirroring UserAvatarEndpoint so other readers of the User model
+        # don't go stale.
+        avatar_url = None
+        if avatar.get_avatar_type_display() == "upload":
+            avatar_url = f"{options.get('system.url-prefix')}/avatar/{avatar.ident}/"
+        self.update_user(
+            user_id=user_id,
+            attrs=dict(avatar_url=avatar_url, avatar_type=avatar.avatar_type),
+        )
 
     def add_permission(self, *, user_id: int, permission: str) -> bool:
         """Add a permission to a user. Returns True if added, False if already existed."""

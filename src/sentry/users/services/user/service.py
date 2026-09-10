@@ -316,6 +316,22 @@ class UserService(RpcService):
 
     @rpc_method
     @abstractmethod
+    def update_user_avatar(self, *, user_id: int, avatar_b64: str | None, filename: str) -> None:
+        """
+        Set or clear a user's avatar from base64-encoded image data.
+
+        This is used by the SAML SSO login flow to sync a user's profile picture
+        from their identity provider's mapped ``avatar`` attribute.
+
+        :param user_id: The user whose avatar should be updated.
+        :param avatar_b64: Base64-encoded image data to store as an uploaded
+            avatar, or ``None`` to reset the user to the default letter avatar.
+        :param filename: The filename to store the uploaded image under.
+        """
+        pass
+
+    @rpc_method
+    @abstractmethod
     def add_permission(self, *, user_id: int, permission: str) -> bool:
         """
         Add a permission to a user
