@@ -1041,14 +1041,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
         "schedule": timedelta(seconds=15),
     },
-    "health-check-organization-detectors": {
-        "task": "workflow_engine:sentry.workflow_engine.tasks.health_check.health_check_organization_detectors",
-        "schedule": crontab("*/30", "*", "*", "*", "*"),
-    },
-    "health-check-project-detectors": {
-        "task": "workflow_engine:sentry.workflow_engine.tasks.health_check.health_check_project_detectors",
-        "schedule": crontab("*/30", "*", "*", "*", "*"),
-    },
     "resolve-stale-sourcemap-detectors": {
         "task": "workflow_engine:sentry.processing_errors.tasks.resolve_stale_sourcemap_detectors",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
