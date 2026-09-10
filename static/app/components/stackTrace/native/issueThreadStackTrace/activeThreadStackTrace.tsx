@@ -14,7 +14,6 @@ import {
   IssueStackTraceFrameList,
   type IssueStackTraceFrameListProps,
 } from 'sentry/components/stackTrace/issueStackTrace/exceptionStackTrace';
-import {IssueFrameActions} from 'sentry/components/stackTrace/issueStackTrace/issueFrameActions';
 import {IssueStackTraceFrameContext} from 'sentry/components/stackTrace/issueStackTrace/issueStackTraceFrameContext';
 import {supportsAppleCrashReport} from 'sentry/components/stackTrace/native/appleCrashReport';
 import {NativeIssueFrameActions} from 'sentry/components/stackTrace/native/frame/actions/nativeIssueActions';
@@ -22,7 +21,6 @@ import {NativeAppleCrashReportContent} from 'sentry/components/stackTrace/native
 import {NativeStackTraceFrames} from 'sentry/components/stackTrace/native/nativeStackTraceFrames';
 import {NativeStackTraceProvider} from 'sentry/components/stackTrace/native/nativeStackTraceProvider';
 import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
-import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
 import {t} from 'sentry/locale';
 import type {ExceptionValue} from 'sentry/types/event';
 import {isNativePlatform} from 'sentry/utils/platform';
@@ -37,19 +35,27 @@ export function ActiveThreadStackTrace() {
     hasScmSourceContext,
     projectSlug,
   } = useIssueThreadStackTraceContext();
-  const {activeException, activeThread, exception, stacktrace} = activeThreadModel;
+  const {
+    activeException,
+    activeThread,
+    exception,
+    stacktrace,
+    minifiedStacktrace,
+    stacktraceMeta,
+  } = activeThreadModel;
   const {view} = useStackTraceViewState();
   const isNativeStackTrace = isNativePlatform(activeThreadModel.platform);
-  const shouldRenderExceptionStackTraces =
-    !!exception?.values?.length &&
-    (view !== 'raw' ||
-      !stacktrace ||
-      !isNativeStackTrace ||
-      !supportsAppleCrashReport(event.platform));
+  const showAppleCrashReport =
+    view === 'raw' &&
+    !!exception &&
+    !!stacktrace &&
+    isNativeStackTrace &&
+    supportsAppleCrashReport(event.platform);
 
-  if (shouldRenderExceptionStackTraces) {
+  if (exception?.values.length && !showAppleCrashReport) {
     return (
       <IssueExceptionStackTrace
+        key={activeThread?.id}
         values={exception.values}
         event={event}
         groupingCurrentLevel={groupingCurrentLevel}
@@ -71,24 +77,22 @@ export function ActiveThreadStackTrace() {
           <StacktraceBanners event={event} stacktrace={activeException.stacktrace} />
         </ErrorBoundary>
       ) : null}
-      {isNativeStackTrace ? (
-        <NativeStackTraceFrames
-          frameActionsComponent={NativeIssueFrameActions}
-          frameContextComponent={IssueStackTraceFrameContext}
-          rawContent={
-            exception && supportsAppleCrashReport(event.platform) ? (
-              <NativeAppleCrashReportContent
-                eventId={event.id}
-                projectSlug={projectSlug}
-                threadId={activeThread?.id}
-              />
-            ) : undefined
-          }
+      {showAppleCrashReport ? (
+        <NativeAppleCrashReportContent
+          key={activeThread?.id}
+          eventId={event.id}
+          projectSlug={projectSlug}
+          threadId={activeThread?.id}
         />
       ) : (
-        <StackTraceFrames
-          frameActionsComponent={IssueFrameActions}
-          frameContextComponent={IssueStackTraceFrameContext}
+        <NativeIssueStackTraceFrameList
+          key={activeThread?.id}
+          event={event}
+          stacktrace={stacktrace}
+          minifiedStacktrace={minifiedStacktrace}
+          groupingCurrentLevel={groupingCurrentLevel}
+          hasScmSourceContext={hasScmSourceContext}
+          meta={stacktraceMeta}
         />
       )}
     </Stack>

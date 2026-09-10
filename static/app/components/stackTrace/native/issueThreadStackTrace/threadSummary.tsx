@@ -48,9 +48,9 @@ function ThreadStateIcon({state}: {state: ThreadStates | undefined}) {
 }
 
 export function ThreadSummary() {
-  const {hasMoreThanOneThread} = useIssueThreadStackTraceContext();
+  const {threads} = useIssueThreadStackTraceContext();
 
-  if (!hasMoreThanOneThread) {
+  if (threads.length <= 1) {
     return null;
   }
 

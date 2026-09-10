@@ -10,14 +10,10 @@ import type {ReactNode} from 'react';
 
 import {findBestThread} from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import {NativeStackTraceViewStateProvider} from 'sentry/components/stackTrace/native/nativeDisplayOptionsContext';
-import {NativeStackTraceProvider} from 'sentry/components/stackTrace/native/nativeStackTraceProvider';
-import {createStackTraceRowPolicy} from 'sentry/components/stackTrace/rowPolicy';
-import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
 import type {Event, Thread} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
-import {isNativePlatform} from 'sentry/utils/platform';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {setActiveThreadId as setCopyIssueDetailsActiveThreadId} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
@@ -28,17 +24,14 @@ import {
 } from './activeThreadModel';
 
 interface IssueThreadStackTraceContextValue {
-  activeThread: Thread | undefined;
   activeThreadModel: ActiveThreadStackTraceModel;
   changeThread: (direction: 'previous' | 'next') => void;
   event: Event;
   group: Group | undefined;
   groupingCurrentLevel: Group['metadata']['current_level'];
-  hasMoreThanOneThread: boolean;
   hasScmSourceContext: boolean;
   projectSlug: Project['slug'];
   setActiveThread: (thread: Thread | undefined) => void;
-  storageKey: string;
   threads: Thread[];
 }
 
@@ -47,7 +40,6 @@ interface IssueThreadStackTraceProvidersProps {
   event: Event;
   group: Group | undefined;
   groupingCurrentLevel: Group['metadata']['current_level'];
-  hasMoreThanOneThread: boolean;
   projectSlug: Project['slug'];
   threads: Thread[];
 }
@@ -66,7 +58,7 @@ export function useIssueThreadStackTraceContext() {
 }
 
 export function useActiveThread() {
-  return useIssueThreadStackTraceContext().activeThread;
+  return useIssueThreadStackTraceContext().activeThreadModel.activeThread;
 }
 
 export function IssueThreadStackTraceProviders({
@@ -74,7 +66,6 @@ export function IssueThreadStackTraceProviders({
   event,
   group,
   groupingCurrentLevel,
-  hasMoreThanOneThread,
   projectSlug,
   threads,
 }: IssueThreadStackTraceProvidersProps) {
@@ -97,12 +88,6 @@ export function IssueThreadStackTraceProviders({
     () => getActiveThreadStackTraceModel({activeThread, event}),
     [activeThread, event]
   );
-  const rowPolicy = useMemo(
-    () => createStackTraceRowPolicy({groupingCurrentLevel}),
-    [groupingCurrentLevel]
-  );
-  const activeThreadUsesNativeStackTrace = isNativePlatform(activeThreadModel.platform);
-
   const setActiveThread = useCallback((thread: Thread | undefined) => {
     setSelectedThreadId(thread?.id);
   }, []);
@@ -141,31 +126,25 @@ export function IssueThreadStackTraceProviders({
 
   const contextValue = useMemo<IssueThreadStackTraceContextValue>(
     () => ({
-      activeThread,
       activeThreadModel,
       changeThread,
       event,
       group,
       groupingCurrentLevel,
-      hasMoreThanOneThread,
       hasScmSourceContext,
       projectSlug,
       setActiveThread,
-      storageKey,
       threads,
     }),
     [
-      activeThread,
       activeThreadModel,
       changeThread,
       event,
       group,
       groupingCurrentLevel,
-      hasMoreThanOneThread,
       hasScmSourceContext,
       projectSlug,
       setActiveThread,
-      storageKey,
       threads,
     ]
   );
@@ -179,37 +158,7 @@ export function IssueThreadStackTraceProviders({
         defaultIsNewestFirst={activeThreadModel.defaultIsNewestFirst}
         storageKey={storageKey}
       >
-        {activeThreadModel.stacktrace ? (
-          activeThreadUsesNativeStackTrace ? (
-            <NativeStackTraceProvider
-              key={activeThread?.id ?? 'no-active-thread'}
-              event={event}
-              stacktrace={activeThreadModel.stacktrace}
-              minifiedStacktrace={activeThreadModel.minifiedStacktrace}
-              groupingCurrentLevel={groupingCurrentLevel}
-              hasScmSourceContext={hasScmSourceContext}
-              meta={activeThreadModel.stacktraceMeta}
-              platform={activeThreadModel.platform}
-            >
-              {children}
-            </NativeStackTraceProvider>
-          ) : (
-            <StackTraceProvider
-              key={activeThread?.id ?? 'no-active-thread'}
-              event={event}
-              stacktrace={activeThreadModel.stacktrace}
-              minifiedStacktrace={activeThreadModel.minifiedStacktrace}
-              hasScmSourceContext={hasScmSourceContext}
-              meta={activeThreadModel.stacktraceMeta}
-              platform={activeThreadModel.platform}
-              rowPolicy={rowPolicy}
-            >
-              {children}
-            </StackTraceProvider>
-          )
-        ) : (
-          children
-        )}
+        {children}
       </NativeStackTraceViewStateProvider>
     </IssueThreadStackTraceContext>
   );

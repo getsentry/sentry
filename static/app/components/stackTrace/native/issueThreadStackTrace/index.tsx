@@ -44,7 +44,6 @@ export function IssueThreadStackTrace({
       event={event}
       group={group}
       groupingCurrentLevel={groupingCurrentLevel}
-      hasMoreThanOneThread={hasMoreThanOneThread}
       projectSlug={projectSlug}
       threads={threads}
     >

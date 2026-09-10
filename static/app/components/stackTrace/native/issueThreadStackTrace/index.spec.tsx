@@ -248,45 +248,79 @@ describe('IssueThreadStackTrace', () => {
     expect(screen.queryByText('ViewController.causeCrash')).not.toBeInTheDocument();
   });
 
-  it('resets stack-local frame state when changing threads', async () => {
-    const firstStacktrace = makeStacktrace('FirstThread.run');
-    firstStacktrace.frames![1] = EventStacktraceFrameFixture({
-      ...firstStacktrace.frames![1],
-      context: [[42, 'first thread source']],
-      lineNo: 42,
-    });
-    const secondStacktrace = makeStacktrace('SecondThread.run');
-    secondStacktrace.frames![1] = EventStacktraceFrameFixture({
-      ...secondStacktrace.frames![1],
-      context: [[84, 'second thread source']],
-      lineNo: 84,
-    });
+  it('keeps thread navigation focused across trace types and missing stacks', async () => {
     const event = makeEvent([
-      makeThread({crashed: true, id: 7, stacktrace: firstStacktrace}),
-      makeThread({id: 8, name: 'worker', stacktrace: secondStacktrace}),
+      makeThread({crashed: true, id: 7}),
+      makeThread({id: 8, name: 'worker', stacktrace: makeStacktrace('Worker.run')}),
+      makeThread({
+        id: 9,
+        name: 'js-bundle',
+        stacktrace: makeJavascriptStacktrace('Home.onMount'),
+      }),
+      makeThread({id: 10, name: 'empty', stacktrace: null}),
     ]);
 
     renderThreadStackTrace(event);
 
-    const firstHeader = (await screen.findByText('FirstThread.run')).closest<HTMLElement>(
-      '[data-test-id="native-stack-trace-frame-title"]'
-    )!;
-    await userEvent.click(
-      within(firstHeader).getByRole('button', {name: 'Collapse frame details'})
-    );
-    expect(
-      within(firstHeader).getByRole('button', {name: 'Expand frame details'})
-    ).toBeInTheDocument();
+    const nextThread = await screen.findByRole('button', {name: 'Next Thread'});
+    for (const frame of [
+      'Worker.run',
+      'Home.onMount',
+      'No stack trace available',
+      'ViewController.causeCrash',
+    ]) {
+      await userEvent.click(nextThread);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Next Thread'}));
-
-    const secondHeader = (
-      await screen.findByText('SecondThread.run')
-    ).closest<HTMLElement>('[data-test-id="native-stack-trace-frame-title"]')!;
-    expect(
-      within(secondHeader).getByRole('button', {name: 'Collapse frame details'})
-    ).toHaveAttribute('aria-expanded', 'true');
+      expect(await screen.findByText(frame)).toBeInTheDocument();
+      expect(nextThread).toHaveFocus();
+    }
   });
+
+  it.each([true, false])(
+    'resets frame state when changing threads (exception-backed: %s)',
+    async hasException => {
+      const firstStacktrace = makeStacktrace('FirstThread.run');
+      firstStacktrace.frames![1] = EventStacktraceFrameFixture({
+        ...firstStacktrace.frames![1],
+        context: [[42, 'first thread source']],
+        lineNo: 42,
+      });
+      const secondStacktrace = makeStacktrace('SecondThread.run');
+      secondStacktrace.frames![1] = EventStacktraceFrameFixture({
+        ...secondStacktrace.frames![1],
+        context: [[84, 'second thread source']],
+        lineNo: 84,
+      });
+      const event = makeEvent([
+        makeThread({crashed: true, id: 7, stacktrace: firstStacktrace}),
+        makeThread({id: 8, name: 'worker', stacktrace: secondStacktrace}),
+      ]);
+      if (!hasException) {
+        event.entries = event.entries.filter(entry => entry.type !== EntryType.EXCEPTION);
+      }
+
+      renderThreadStackTrace(event);
+
+      const firstHeader = (
+        await screen.findByText('FirstThread.run')
+      ).closest<HTMLElement>('[data-test-id="native-stack-trace-frame-title"]')!;
+      await userEvent.click(
+        within(firstHeader).getByRole('button', {name: 'Collapse frame details'})
+      );
+      expect(
+        within(firstHeader).getByRole('button', {name: 'Expand frame details'})
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Next Thread'}));
+
+      const secondHeader = (
+        await screen.findByText('SecondThread.run')
+      ).closest<HTMLElement>('[data-test-id="native-stack-trace-frame-title"]')!;
+      expect(
+        within(secondHeader).getByRole('button', {name: 'Collapse frame details'})
+      ).toHaveAttribute('aria-expanded', 'true');
+    }
+  );
 
   it('renders non-native active threads with the generic stack trace rows', async () => {
     const event = makeEvent([
