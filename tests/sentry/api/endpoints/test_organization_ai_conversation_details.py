@@ -22,6 +22,64 @@ from sentry.utils.snuba_rpc import SnubaRPCTimeout
 from .test_organization_ai_conversations_base import BaseAIConversationsTestCase
 
 
+def test_parent_fetch_groups_span_ids_by_trace() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    snuba_params = MagicMock()
+    parent_keys = {
+        ("trace-a", "parent-2"),
+        ("trace-b", "parent-3"),
+        ("trace-a", "parent-1"),
+    }
+    parent = {"trace": "trace-a", "span_id": "parent-1"}
+
+    with patch.object(Spans, "run_table_query", return_value={"data": [parent]}) as run_query:
+        result = endpoint._fetch_parent_spans(snuba_params, parent_keys)
+
+    assert result == {("trace-a", "parent-1"): parent}
+    assert run_query.call_args.kwargs["query_string"] == (
+        '(trace:"trace-a" span_id:["parent-1", "parent-2"]) OR (trace:"trace-b" span_id:"parent-3")'
+    )
+    assert run_query.call_args.kwargs["limit"] == 3
+    assert run_query.call_args.kwargs["config"].auto_fields is False
+
+
+def test_parent_repair_uses_spans_from_page() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    conversation_id = uuid4().hex
+    trace_id = uuid4().hex
+    root = {
+        "trace": trace_id,
+        "span_id": "root",
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.operation.type": "invoke_agent",
+    }
+    bridge = {
+        "trace": trace_id,
+        "span_id": "bridge",
+        "parent_span": "root",
+        "gen_ai.conversation.id": conversation_id,
+        "span.op": "http.client",
+    }
+    child = {
+        "trace": trace_id,
+        "span_id": "child",
+        "parent_span": "bridge",
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.operation.type": "ai_client",
+    }
+
+    with (
+        patch.object(Spans, "run_table_query") as run_query,
+        patch(
+            "sentry.ai_monitoring.endpoints.organization_ai_conversation_details.metrics.distribution"
+        ),
+    ):
+        endpoint._repair_parent_links([root, bridge, child], MagicMock(), conversation_id)
+
+    assert child["parent_span"] == "root"
+    run_query.assert_not_called()
+
+
 def test_parent_repair_stops_after_five_hops() -> None:
     endpoint = OrganizationAIConversationDetailsEndpoint()
     conversation_id = uuid4().hex
