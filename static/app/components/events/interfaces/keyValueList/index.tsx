@@ -4,6 +4,7 @@ import classNames from 'classnames';
 import sortBy from 'lodash/sortBy';
 
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {ValueLink} from 'sentry/components/keyValueData';
 import type {KeyValueListData} from 'sentry/types/group';
@@ -33,70 +34,81 @@ export function KeyValueList({
   const keyValueData = shouldSort ? sortBy(data, [({key}) => key?.toLowerCase()]) : data;
 
   return (
-    <Container containerType="inline-size">
-      <Table className={classNames('table key-value', className)} {...props}>
-        <tbody>
-          {keyValueData.map(
-            (
-              {
-                key,
-                subject,
-                value = null,
-                meta,
-                subjectIcon,
-                subjectDataTestId,
-                action,
-                actionButton,
-                isContextData: valueIsContextData,
-                isMultiValue,
-              },
-              idx
-            ) => {
-              const valueProps = {
-                isContextData: valueIsContextData || isContextData,
-                meta,
-                subjectIcon,
-                value,
-                raw,
-              };
+    <Grid
+      className={classNames('table key-value', className)}
+      columns={{zero: 'minmax(0, 1fr)', sm: '175px minmax(0, 500px)'}}
+      role="table"
+      width="100%"
+      {...props}
+    >
+      {keyValueData.map(
+        (
+          {
+            key,
+            subject,
+            value = null,
+            meta,
+            subjectIcon,
+            subjectDataTestId,
+            action,
+            actionButton,
+            isContextData: valueIsContextData,
+            isMultiValue,
+          },
+          idx
+        ) => {
+          const valueProps = {
+            isContextData: valueIsContextData || isContextData,
+            meta,
+            subjectIcon,
+            value,
+            raw,
+          };
 
-              const valueItem = action?.link ? (
-                <ValueLink to={action.link}>{<Value {...valueProps} />}</ValueLink>
-              ) : (
-                <Value {...valueProps} />
-              );
+          const valueItem = action?.link ? (
+            <ValueLink to={action.link}>{<Value {...valueProps} />}</ValueLink>
+          ) : (
+            <Value {...valueProps} />
+          );
 
-              const valueContainer =
-                isMultiValue && Array.isArray(value) ? (
-                  <MultiValueContainer values={value} />
-                ) : (
-                  valueItem
-                );
+          const valueContainer =
+            isMultiValue && Array.isArray(value) ? (
+              <MultiValueContainer values={value} />
+            ) : (
+              valueItem
+            );
 
-              return (
-                <tr key={`${key}-${idx}`}>
-                  <td className="key">{subject}</td>
-                  <td className="val" data-test-id={subjectDataTestId}>
-                    <Tablevalue>
-                      {actionButton ? (
-                        <ValueWithActionButton>
-                          {valueContainer}
-                          <Flex align="start" height="100%">
-                            {actionButton}
-                          </Flex>
-                        </ValueWithActionButton>
-                      ) : (
-                        valueContainer
-                      )}
-                    </Tablevalue>
-                  </td>
-                </tr>
-              );
-            }
-          )}
-        </tbody>
-      </Table>
-    </Container>
+          return (
+            <Grid column="1 / -1" columns="subgrid" key={`${key}-${idx}`} role="row">
+              <Container padding="md lg md 0" role="cell">
+                <Text bold density="comfortable" wordBreak="break-word">
+                  {subject}
+                </Text>
+              </Container>
+              <Container
+                className="val"
+                data-test-id={subjectDataTestId}
+                minWidth="0"
+                role="cell"
+              >
+                <Tablevalue>
+                  {actionButton ? (
+                    <ValueWithActionButton>
+                      {valueContainer}
+                      <Flex align="start" height="100%">
+                        {actionButton}
+                      </Flex>
+                    </ValueWithActionButton>
+                  ) : (
+                    valueContainer
+                  )}
+                </Tablevalue>
+              </Container>
+            </Grid>
+          );
+        }
+      )}
+    </Grid>
   );
 }
 
@@ -145,29 +157,5 @@ const ValueWithActionButtonContent = styled('div')`
   pre {
     padding: 0 !important;
     margin: 0 !important;
-  }
-`;
-
-const Table = styled('table')`
-  @container (max-width: ${p => p.theme.container.sm}) {
-    &,
-    > tbody,
-    > tbody > tr,
-    > tbody > tr > td {
-      display: block;
-      width: 100%;
-      max-width: none;
-    }
-
-    > tbody > tr > td.key {
-      width: auto;
-      max-width: none;
-      padding-bottom: 0 !important;
-    }
-  }
-
-  > * pre > pre {
-    margin: 0 !important;
-    padding: 0 !important;
   }
 `;
