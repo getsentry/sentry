@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -16,6 +16,7 @@ class PlatformExternalIssueSerializerResponse(TypedDict):
     serviceType: str
     displayName: str
     webUrl: str
+    changed: NotRequired[bool]
 
 
 @register(PlatformExternalIssue)
