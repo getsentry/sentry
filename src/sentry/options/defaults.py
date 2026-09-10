@@ -1078,6 +1078,15 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Whether or not to query postgres for pending attachments in `save_transaction_events`.
+#
+# Change this value to `False` in case `save_event_transaction` becomes slow.
+register(
+    "store.transactions.check-pending-attachments",
+    type=Bool,
+    default=True,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 
 # Enable sending the flag to the microservice to tell it to purposefully take longer than our
