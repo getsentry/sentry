@@ -13,6 +13,8 @@ import subprocess
 import sys
 import tempfile
 
+import pytest
+
 REPO = os.path.join(os.path.dirname(__file__), "..", "..", "..")
 
 PRELUDE = """\
@@ -43,6 +45,10 @@ def create_monitor(*, name: str = "", threshold: int = 0) -> None: ...
 """
 
 
+# mypy exits 0 with no findings, 1 with findings, and 2 when it could not run.
+_MYPY_COULD_NOT_RUN = 2
+
+
 def _check(body: str) -> str:
     """Type-check the prelude plus `body`, returning mypy's diagnostics."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -55,6 +61,11 @@ def _check(body: str) -> str:
             cwd=os.path.abspath(REPO),
         )
         out = proc.stdout.decode()
+        if proc.returncode >= _MYPY_COULD_NOT_RUN:
+            pytest.skip(
+                f"mypy could not run here, so the stub cannot be exercised: "
+                f"{proc.stderr.decode().strip() or out.strip()}"
+            )
         return "\n".join(line for line in out.splitlines() if "case.py" in line)
 
 
