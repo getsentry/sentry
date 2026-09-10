@@ -5,8 +5,8 @@ import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Container, Grid} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -295,22 +295,16 @@ export function DebugImageDetails({
   return (
     <Fragment>
       <Header closeButton>
-        <Text size="xl" wordBreak="break-all">
-          {({className}) => (
-            <Grid
-              className={className}
-              align="center"
-              columns="max-content 1fr"
-              gap="md"
-              maxWidth="calc(100% - 40px)"
-            >
+        <Container width="calc(100% - 40px)">
+          <Heading as="h2" size="xl" variant="inherit" wordBreak="break-all">
+            <Grid align="center" columns="max-content 1fr" gap="md">
               {t('Image')}
               <Text monospace size="xl">
                 {fileName ?? t('Unknown')}
               </Text>
             </Grid>
-          )}
-        </Text>
+          </Heading>
+        </Container>
       </Header>
       <Body>
         <Text size="md">
