@@ -230,6 +230,11 @@ describe('InvestigationFixtureApi', () => {
       );
 
       expect(await screen.findByText('Refuted · 91% Confidence')).toBeInTheDocument();
+      // Back to the agent's verdict, so the edge breaks again.
+      expect(screen.getAllByTestId('investigation-hypothesis')[1]).toHaveAttribute(
+        'data-border',
+        'dashed'
+      );
     });
 
     it('puts a retried hypothesis back into investigation', async () => {

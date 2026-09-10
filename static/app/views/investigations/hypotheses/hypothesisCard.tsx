@@ -148,8 +148,9 @@ function VerificationStepRow({step}: {step: InvestigationVerificationStep}) {
 
 /**
  * The card border carries the verdict, which is why it is CSS rather than the
- * `border` prop: `getBorder` only ever emits `1px solid`, and an unsettled
- * hypothesis needs a dotted edge. The colors still come from border tokens.
+ * `border` prop: `getBorder` only ever emits `1px solid`, and a hypothesis that
+ * has not been established needs a broken edge. The colors still come from
+ * border tokens.
  *
  * Both variants are driven by data attributes because `Stack` forwards props it
  * does not recognize to the DOM, where a bare `isPrimary` would land as an
@@ -159,14 +160,16 @@ const Card = styled(Stack)`
   list-style: none;
   border: 1px solid ${p => p.theme.tokens.border.primary};
 
-  /* Supported, or endorsed by a person: the explanation the evidence backs. */
+  /* The explanation that stands. */
   &[data-border='accent'] {
     border-color: ${p => p.theme.tokens.border.accent.vibrant};
   }
 
-  /* Checked, but not settled either way. The broken edge reads as unfinished. */
-  &[data-border='dotted'] {
-    border-style: dotted;
+  /* Not the answer: still running, ruled out, inconclusive, or failed. Dashed
+   * rather than dotted because a dotted hairline all but disappears at this
+   * border color. */
+  &[data-border='dashed'] {
+    border-style: dashed;
   }
 
   &[data-primary='true'] {

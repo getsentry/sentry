@@ -48,9 +48,11 @@ export default Storybook.story('Investigations — Hypotheses', story => {
         pulsing dot.
       </p>
       <p>
-        The border carries the verdict: accent for a supported hypothesis, dotted while a
-        hypothesis is inconclusive, and an ordinary border everywhere else — refuted
-        included, since ruling something out is a result rather than a fault.
+        The border carries the verdict, and only two ways: a solid accent edge on the
+        explanation that stands — supported by the evidence, or accepted by a person — and
+        a dashed edge on every other card. Still running, ruled out, inconclusive and
+        failed all read the same way to someone scanning the row, so the status line
+        carries the distinction rather than the border.
       </p>
       <Storybook.Demo direction="column" align="stretch">
         <HypothesisList hypotheses={InvestigationHypothesesFixture()} />

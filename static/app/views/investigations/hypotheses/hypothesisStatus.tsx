@@ -110,23 +110,17 @@ export function getHypothesisStatusVariant(
 /**
  * How a card's edge should be drawn for a given verdict.
  *
- * - `accent` — supported, or endorsed by a person. The purple border marks the
- *   explanation the evidence backs.
- * - `dotted` — inconclusive. Checked, but not settled either way, so the edge
- *   reads as unfinished rather than as a result.
- * - `default` — everything else, including refuted. Ruling a hypothesis out is
- *   a real outcome, so it gets an ordinary border rather than a warning color.
+ * - `accent` — the explanation that stands: supported by the evidence, or
+ *   endorsed by a person. A solid purple edge means "this is the answer".
+ * - `dashed` — everything else. A hypothesis still being investigated, ruled
+ *   out, inconclusive, or failed is all the same thing to a reader scanning the
+ *   row: not the answer. One broken edge says that without needing a colour per
+ *   status, which the status line already carries.
  */
 export function getHypothesisCardBorder(
   status: InvestigationHypothesisStatus
-): 'accent' | 'dotted' | 'default' {
-  if (status === 'supported' || status === 'accepted') {
-    return 'accent';
-  }
-  if (status === 'inconclusive') {
-    return 'dotted';
-  }
-  return 'default';
+): 'accent' | 'dashed' {
+  return status === 'supported' || status === 'accepted' ? 'accent' : 'dashed';
 }
 
 /**

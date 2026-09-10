@@ -164,15 +164,18 @@ describe('HypothesisCard', () => {
   });
 
   it.each([
+    // Only an explanation that stands gets the solid accent edge.
     ['supported', 'accent'],
     ['accepted', 'accent'],
-    ['inconclusive', 'dotted'],
-    // Ruling a hypothesis out is a real outcome, so it gets an ordinary border
-    // rather than one that reads as a fault.
-    ['refuted', 'default'],
-    ['rejected', 'default'],
-    ['investigating', 'default'],
-    ['failed', 'default'],
+    // Everything else reads the same to someone scanning the row: not the
+    // answer, whether that is because it is unfinished or because it lost.
+    ['inconclusive', 'dashed'],
+    ['refuted', 'dashed'],
+    ['rejected', 'dashed'],
+    ['investigating', 'dashed'],
+    ['pending', 'dashed'],
+    ['failed', 'dashed'],
+    ['cancelled', 'dashed'],
   ] as const)('draws a %s hypothesis with a %s border', (effectiveStatus, border) => {
     render(
       <HypothesisCard hypothesis={InvestigationHypothesisFixture({effectiveStatus})} />
