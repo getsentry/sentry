@@ -136,6 +136,8 @@ const Tablevalue = styled('div')`
   }
   pre > pre {
     display: inline-block;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 `;
 function ValueWithActionButton({children}: {children: React.ReactNode}) {
