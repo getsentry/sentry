@@ -93,28 +93,18 @@ function getOnDemandBudgets(values: SpendLimitFormValues): OnDemandBudgets {
     : {budgetMode: values.budgetMode, sharedMaxBudget: values.sharedMaxBudget};
 }
 
-function getFormSchema(subscription: Subscription) {
-  return z
-    .object({
-      budgetMode: z.enum(OnDemandBudgetMode),
-      budgets: z.custom<Partial<Record<DataCategory, number>>>(
-        budgets =>
-          !!budgets &&
-          typeof budgets === 'object' &&
-          Object.values(budgets).every(
-            budget => nonNegativeBudgetSchema.safeParse(budget).success
-          )
-      ),
-      sharedMaxBudget: nonNegativeBudgetSchema,
-    })
-    .refine(
-      values => !exceedsInvoicedBudgetLimit(subscription, getOnDemandBudgets(values)),
-      {
-        message: getBudgetExceededInvoicedLimitError(subscription.planDetails),
-        path: ['sharedMaxBudget'],
-      }
-    );
-}
+const spendLimitFormSchema = z.object({
+  budgetMode: z.enum(OnDemandBudgetMode),
+  budgets: z.custom<Partial<Record<DataCategory, number>>>(
+    budgets =>
+      !!budgets &&
+      typeof budgets === 'object' &&
+      Object.values(budgets).every(
+        budget => nonNegativeBudgetSchema.safeParse(budget).success
+      )
+  ),
+  sharedMaxBudget: nonNegativeBudgetSchema,
+});
 
 function renderRequestError(error: Error | null, plan: Plan) {
   if (!error) {
@@ -165,9 +155,13 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: getFormValues(currentOnDemandBudget),
-    validators: {onDynamic: getFormSchema(subscription)},
+    validators: {onDynamic: spendLimitFormSchema},
     onSubmit: async ({value}) => {
       const newOnDemandBudget = normalizeOnDemandBudget(getOnDemandBudgets(value));
+      if (exceedsInvoicedBudgetLimit(subscription, newOnDemandBudget)) {
+        addErrorMessage(getBudgetExceededInvoicedLimitError(subscription.planDetails));
+        return;
+      }
       try {
         await mutation.mutateAsync(newOnDemandBudget);
       } catch {
