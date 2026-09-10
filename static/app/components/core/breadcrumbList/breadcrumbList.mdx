@@ -33,9 +33,42 @@ import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {TopBar} from 'sentry/views/navigation/topBar';
 ```
 
-Pass parent crumbs in a typed `items` array. Each entry is a discriminated union:
-a `type` key plus that type's own props, flattened onto the same object. The
-current page is a separate `BreadcrumbList.Title` item.
+The `title` slot is always the page's single `<h1>`. `BreadcrumbList.Title`
+renders title content _without_ a heading of its own, so the slot supplies the
+heading and the item supplies everything else — a leading graphic, a tooltip,
+pagination, trailing actions, or an editable field. Never change the title
+slot's element.
+
+Use `BreadcrumbList.Title` on every page, whether or not it has parents. A plain
+string in the title slot renders, but it forfeits every one of those props.
+
+### Index pages
+
+An index page has no parents, so it renders the title slot alone — no `items`
+array and no `breadcrumbs` slot. Reaching for `BreadcrumbList.Title` here rather
+than a bare string is what keeps a leading graphic or a trailing action
+available if the page needs one later.
+
+<Storybook.Demo>
+  <BreadcrumbListDemo
+    items={[]}
+    title={<BreadcrumbList.Title item={{type: 'page-title', label: 'Dashboards'}} />}
+  />
+</Storybook.Demo>
+```tsx
+<TopBar.Slot name="title">
+  <BreadcrumbList.Title item={{type: 'page-title', label: 'Dashboards'}} />
+</TopBar.Slot>
+```
+
+### Pages with parents
+
+Add the `breadcrumbs` slot, which renders to the left of the title. Pass parent
+crumbs in a typed `items` array: each entry is a discriminated union, a `type`
+key plus that type's own props flattened onto the same object.
+
+Keep the current page out of `items`. It is the title, not a crumb — leaving it
+in renders the page name twice.
 
 <Storybook.Demo>
   <BreadcrumbListDemo
@@ -72,30 +105,9 @@ current page is a separate `BreadcrumbList.Title` item.
 </TopBar.Slot>
 ```
 
-## TopBar composition
-
-Use two `TopBar.Slot`s when the breadcrumb trail belongs in the page header. The
-`breadcrumbs` slot is placed to the left of the `title` slot. Keep the title item
-out of `BreadcrumbList.items`, and do not change the title slot's element: it is
-always the page's `<h1>`.
-
-```tsx
-import {TopBar} from 'sentry/views/navigation/topBar';
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
-
-<TopBar.Slot name="breadcrumbs">
-  <BreadcrumbList
-    items={[{type: 'link', label: 'Issues', to: '/organizations/org-slug/issues/'}]}
-  />
-</TopBar.Slot>
-<TopBar.Slot name="title">
-  <BreadcrumbList.Title item={{type: 'page-title', label: 'Current Issue'}} />
-</TopBar.Slot>
-```
-
-`BreadcrumbList.Title` renders title content without a heading, so this
-composition produces one heading even when the title includes pagination,
-leading graphics, trailing actions, or an editable control.
+Because `BreadcrumbList.Title` carries no heading, this composition still
+produces exactly one `<h1>` even when the title includes pagination, a leading
+graphic, trailing actions, or an editable control.
 
 ## Item types
 
