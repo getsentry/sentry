@@ -24,6 +24,9 @@ from sentry.constants import (
     DataCategory,
     ObjectStatus,
 )
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.utils.github_permissions import has_github_app_permissions
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
@@ -31,6 +34,7 @@ from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
 )
+from sentry.seer.autofix.github_perms import GITHUB_PR_WRITE_PERMISSIONS
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     bulk_read_preferences_from_sentry_db,
@@ -38,6 +42,7 @@ from sentry.seer.autofix.utils import (
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_seat_based_tier_enabled,
 )
+from sentry.seer.constants import SEER_GITHUB_SCM_PROVIDERS
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
@@ -685,6 +690,47 @@ def _get_eligible_projects(
 
     preferences = bulk_read_preferences_from_sentry_db(organization.id, list(project_map))
 
+    github_integration_ids_by_project: dict[int, set[int]] = {}
+    projects_with_unresolved_github_repos: set[int] = set()
+    for project_id, preference in preferences.items():
+        integration_ids: set[int] = set()
+        for repo in preference.repositories:
+            if repo.provider not in SEER_GITHUB_SCM_PROVIDERS:
+                continue
+            if repo.integration_id is None:
+                projects_with_unresolved_github_repos.add(project_id)
+                continue
+            try:
+                integration_ids.add(int(repo.integration_id))
+            except (TypeError, ValueError):
+                projects_with_unresolved_github_repos.add(project_id)
+        github_integration_ids_by_project[project_id] = integration_ids
+
+    github_integration_ids = {
+        integration_id
+        for project_integration_ids in github_integration_ids_by_project.values()
+        for integration_id in project_integration_ids
+    }
+    github_integrations = (
+        integration_service.get_integrations(
+            integration_ids=list(github_integration_ids),
+            organization_id=organization.id,
+            status=ObjectStatus.ACTIVE,
+            org_integration_status=ObjectStatus.ACTIVE,
+            providers=[
+                IntegrationProviderSlug.GITHUB.value,
+                IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+            ],
+        )
+        if github_integration_ids
+        else []
+    )
+    writable_github_integration_ids = {
+        integration.id
+        for integration in github_integrations
+        if has_github_app_permissions(integration.metadata, GITHUB_PR_WRITE_PERMISSIONS)
+    }
+
     is_legacy_org = not is_seer_seat_based_tier_enabled(organization)
 
     eligible: list[EligibleProject] = []
@@ -700,6 +746,12 @@ def _get_eligible_projects(
         reasons: list[str] = []
         if not pref.repositories:
             reasons.append("no_connected_repos")
+        project_github_integration_ids = github_integration_ids_by_project.get(pid, set())
+        if (
+            pid in projects_with_unresolved_github_repos
+            or project_github_integration_ids - writable_github_integration_ids
+        ):
+            reasons.append("missing_github_write_permissions")
         if pref.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF:
             reasons.append("automation_tuning_off")
         if source == "cron" and not tweaks.enabled:
