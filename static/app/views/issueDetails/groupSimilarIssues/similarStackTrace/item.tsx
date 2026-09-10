@@ -123,7 +123,7 @@ export function SimilarStackTraceItemSkeleton({
   const scoreColumns = hasSimilarityEmbeddingsFeature ? 1 : 2;
   return (
     <SimpleTable.Row>
-      <SimpleTable.RowCell gap="md" cursor="pointer">
+      <SimpleTable.RowCell gap="md">
         <Placeholder height="16px" width="16px" />
         <Stack gap="xs" flex="1" minWidth="0">
           <Placeholder height="16px" width="60%" />

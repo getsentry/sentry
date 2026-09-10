@@ -52,7 +52,7 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
 
   return (
     <SimpleTable.Row>
-      <SimpleTable.RowCell flex="1" minWidth="0">
+      <SimpleTable.RowCell>
         <div>
           <Heading as="h5" size="lg">
             {title}

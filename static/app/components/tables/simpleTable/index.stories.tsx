@@ -252,15 +252,16 @@ export default Storybook.story('SimpleTable', story => {
       <Fragment>
         <p>
           <Storybook.JSXNode name="SimpleTable.RowCell" /> is a{' '}
-          <Storybook.JSXNode name="Flex" />, so it takes every layout prop{' '}
-          <code>Flex</code> takes&mdash;<code>justify</code> and <code>align</code> among
-          them. <Storybook.JSXNode name="SimpleTable.HeaderCell" /> takes a{' '}
-          <Storybook.JSXProperty
-            name="justify"
-            value="'start' | 'center' | 'end' | 'left' | 'right'"
-          />{' '}
-          of its own, so a column's header lines up with the cells beneath it. Reach for
-          it instead of wrapping either one in <code>styled</code>.
+          <Link to="/scraps/layout/flex/">
+            <Storybook.JSXNode name="Flex" />
+          </Link>{' '}
+          and accepts its layout props. For horizontal alignment, use{' '}
+          <Storybook.JSXProperty name="justify" value="'start' | 'center' | 'end'" /> on
+          row cells and{' '}
+          <Storybook.JSXProperty name="align" value="'left' | 'center' | 'right'" /> on
+          header cells. For example, pair <code>justify="end"</code> with{' '}
+          <code>align="right"</code>. Use these props instead of wrapping cells in{' '}
+          <code>styled</code>.
         </p>
 
         <SimpleTableWithColumns
