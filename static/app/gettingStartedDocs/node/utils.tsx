@@ -22,7 +22,7 @@ function getInstallSnippet({
   packageName?: `@sentry/${string}`;
   version?: string;
 }) {
-  let packages: string[] = [packageName];
+  let packages = [packageName];
   if (params.isProfilingSelected) {
     packages.push('@sentry/profiling-node');
   }
