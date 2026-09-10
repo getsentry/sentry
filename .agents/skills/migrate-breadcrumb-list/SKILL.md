@@ -1,6 +1,6 @@
 ---
 name: migrate-breadcrumb-list
-description: Migrates page-navigation breadcrumbs from the legacy `sentry/components/breadcrumbs` component to `@sentry/scraps/breadcrumbList`, splitting one flat crumb array across the TopBar `breadcrumbs` and `title` slots. Use when a page still renders `<Breadcrumbs crumbs={...}/>`, when parent crumbs and the page title need separating into two TopBar slots, when `Layout.Title` double-renders the page name, or when working through the BreadcrumbList migration backlog. Trigger on "migrate breadcrumbs", "migrate to BreadcrumbList", "replace sentry/components/breadcrumbs", "split breadcrumbs into TopBar slots", "BreadcrumbList.Title", "the page title renders twice". Not for event breadcrumbs (`sentry/types/breadcrumbs`, the issue-detail timeline), and not for the route-driven SettingsBreadcrumb system.
+description: Migrates page-navigation breadcrumbs from the legacy `sentry/components/breadcrumbs` component to `@sentry/scraps/breadcrumbList`, splitting one flat crumb array across the TopBar `breadcrumbs` and `title` slots. Use when a page still renders `<Breadcrumbs crumbs={...}/>`, when parent crumbs and the page title need separating into two TopBar slots, when `Layout.Title` double-renders the page name, when a migrated crumb needs to keep the project or date selection, or when working through the BreadcrumbList migration backlog. Trigger on "migrate breadcrumbs", "migrate to BreadcrumbList", "replace sentry/components/breadcrumbs", "split breadcrumbs into TopBar slots", "BreadcrumbList.Title", "the page title renders twice", "preservePageFilters". Not for event breadcrumbs (`sentry/types/breadcrumbs`, the issue-detail timeline), and not for the route-driven SettingsBreadcrumb system.
 ---
 
 # Migrate page breadcrumbs to BreadcrumbList
@@ -75,7 +75,7 @@ const preserveSome = {
 
 Preserve nothing by leaving the bare pathname alone — that is what a crumb _without_ the flag did, and migrating one is not an occasion to start preserving. When the crumb already has a `to` object, merge rather than replace: `{...to, query: {...extractSelectionParameters(location.query), ...to.query}}`.
 
-Six call sites still pass it: `grep -rln "preservePageFilters: true" static/app --include='*.tsx'`.
+Find the call sites that still pass it: `grep -rln "preservePageFilters: true" static/app --include='*.tsx'`.
 
 ## Which API takes what
 
@@ -106,6 +106,8 @@ Classify before editing — the shapes need different amounts of work, and three
 | **C**  | Exported wrapper consumed by other pages — **only** when a consumer wraps it in a `title` slot; an exported header that owns its own slots is B or E | Every consumer changes in the same PR. Per consumer: hoist any surrounding ternary above the slot, delete the wrapping slot, and place or drop every sibling node in that slot                                                                                                                                                              |
 | **E**  | `<Breadcrumbs>` beside a raw `<Heading as="h1">`                                                                                                     | Delete the local heading, or the page ships two `<h1>`s                                                                                                                                                                                                                                                                                     |
 
+**If no row fits, do not force one.** The table describes the headers present when this skill was written. Classify by what the file _has_ — a `Layout.Title`, a raw heading, a wrapping title slot, an exported wrapper — and follow the closest row. If a header is structured unlike any of them, ask before restructuring it rather than guessing, and add a row here once the shape is settled.
+
 `views/performance/breadcrumb.tsx` is type-only (`import type {Crumb}`, no JSX). Its work is deleting a legacy adapter, and it is blocked — see `references/call-site-inventory.md`.
 
 **Shape B has one exception with no leaf crumb at all**, where applying "`Layout.Title` wins" mechanically renders the same text twice — see `references/call-site-inventory.md`.
@@ -125,7 +127,7 @@ const items = parents.flatMap(c =>
 
 An empty `items` renders nothing, and that is correct — the title slot still renders. **Do not invent a parent link to avoid it.** If the legacy code gated the trail on a length check, port the condition.
 
-That rule and Shape B's "give the displaced leaf a `to`" are not in conflict — they apply to different crumbs. A leaf that is the **page name** is now the title and simply disappears from `items`. A leaf that is a **category descriptor** ("Cron Monitor", "Uptime Monitor") is a real parent that was merely unlinked, and it should keep its place with a destination: look for a `make*Pathname` for that category beside the one you already import. Prefer the two-link trail when such a destination exists; drop the crumb only when there is genuinely nowhere to point.
+That does not conflict with Shape B's "give the displaced leaf a `to`" — they are different crumbs. A leaf that is the **page name** becomes the title and leaves `items`. A leaf that is a **category descriptor** ("Cron Monitor") is a real parent that was merely unlinked: look for a `make*Pathname` for that category beside the one you already import, and prefer the two-link trail. Drop it only when there is nowhere to point.
 
 ## Per-page workflow
 
@@ -165,7 +167,7 @@ Already migrated, simplest first. Each answers one question.
 
 ## Intentionally not migrated
 
-Four of the 26 importers keep the legacy component: the legacy component's own spec, plus three call sites that render outside the page `<h1>` and need a `<nav>` landmark `BreadcrumbList` has no mode for. **The count floors at 4 — driving it to 0 destroys a landmark.** The route-driven `SettingsBreadcrumb` system is out of scope too; it never imports the legacy component. Both lists are in `references/call-site-inventory.md`.
+Four importers keep the legacy component — its own spec, plus three call sites that render outside the page `<h1>` and need a `<nav>` landmark `BreadcrumbList` has no mode for. **The count floors at 4; driving it to 0 destroys a landmark.** The route-driven `SettingsBreadcrumb` system is out of scope too. Both lists are in `references/call-site-inventory.md`.
 
 ## Rollout
 
