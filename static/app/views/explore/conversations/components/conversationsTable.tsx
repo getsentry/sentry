@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Separator} from '@sentry/scraps/separator';
@@ -286,9 +286,6 @@ export function ConversationsTable() {
         justify={RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'end' : 'start'}
       >
         {column.name}
-        {/* Raise the conversation column's growth-limit so it absorbs the
-            leftover width instead of the last column stretching. */}
-        {column.key === 'conversation' && <Container width="100vw" />}
       </Flex>
     ),
     []
@@ -708,21 +705,11 @@ const TablePagination = styled(Pagination)`
 `;
 
 const FixedRowHeightGrid = styled('div')`
-  container-type: inline-size;
-
   /* Pin data rows to a fixed height by sizing their body cells. Head cells are
      <th> (unaffected), and the empty/loading/error status cell keeps its own
      size because its larger min-height wins over this fixed height. */
   tbody td {
     height: ${ROW_HEIGHT}px;
-  }
-
-  /* The fixed-width columns can make the grid wider than its scroll container.
-     Keep empty/loading/error content centered in the visible table frame. */
-  tbody > tr > td:only-child {
-    position: sticky;
-    left: 0;
-    width: 100cqw;
   }
 `;
 
