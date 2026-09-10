@@ -52,6 +52,7 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
         )
         call_kwargs = mock_client.start_run.call_args[1]
         assert "Show me error rates by project" in call_kwargs["prompt"]
+        assert "Ask the user a clarification question" in call_kwargs["on_page_context"]
         assert call_kwargs["artifact_key"] == "dashboard"
 
     @patch(

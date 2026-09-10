@@ -38,7 +38,8 @@ TRACE_METRICS_GUIDANCE = """When generating widgets with `widget_type: "tracemet
   - `gauge`: `avg`, `min`, `max`, `per_second`, `per_minute`.
   - `distribution`: `p50`, `p75`, `p90`, `p95`, `p99`, `avg`, `min`, `max`, `sum`, `count`, `per_second`, `per_minute`.
 - Examples: `sum(value, my.app.requests, counter, none)`, `avg(value, my.app.cpu, gauge, percent)`, `p95(value, my.app.latency, distribution, milliseconds)`.
-- Before emitting a tracemetrics widget you MUST look up the metric's `metric_type` AND `metric_unit` using available tools (e.g. by querying the tracemetrics dataset for distinct `metric.name`/`metric.type`/`metric.unit` values, or fetching trace-item attributes). Do NOT guess the type or unit — if you cannot confirm both, pick a different dataset or omit the widget.
+- Before emitting a tracemetrics widget you MUST look up the metric's `metric_type` AND `metric_unit` using available tools (e.g. by querying the tracemetrics dataset for distinct `metric.name`/`metric.type`/`metric.unit` values, or fetching trace-item attributes). Do NOT guess the type or unit.
+- If the user requested a specific metric and you cannot confirm its name, type, or unit, do not silently omit it or substitute another metric. Ask the user a clarification question that names each unverified metric and explains that it could not be found. Do not emit a dashboard artifact until the user clarifies which metric to use.
 - Equations are supported via the `equation|<expr>` prefix in the `aggregates` array.
     - Equations let you combine aggregates with arithmetic (+, -, *, /).
     - Numeric literals (e.g. `100`, `1000`) are valid operands.
