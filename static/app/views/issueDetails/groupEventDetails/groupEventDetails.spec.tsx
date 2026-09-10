@@ -377,6 +377,7 @@ describe('groupEventDetails', () => {
       };
       props.event = EventFixture({
         platform: 'cocoa',
+        projectID: props.project.id,
         entries:
           entryType === EntryType.STACKTRACE
             ? [{type: EntryType.STACKTRACE, data: stacktrace}]
@@ -399,6 +400,7 @@ describe('groupEventDetails', () => {
                 },
               ],
       });
+      ProjectsStore.loadInitialData([props.project]);
       mockGroupApis(props.organization, props.project, props.group, props.event);
       MockApiClient.addMockResponse({
         url: `/projects/${props.organization.slug}/${props.project.slug}/events/${props.event.id}/committers/`,
