@@ -1,123 +1,109 @@
-# Local endpoint profiling
+# Local work profiling
 
-All tooling lives here, outside the Sentry runtime package. Run commands from the
-repository root with the virtualenv and local test services available.
+`profile_work.py` is a single, development-only script for measuring arbitrary
+Python/Django work. Edit `setup_work()` near the top: arrange synthetic data
+outside the nested `work()` function, then put the code to measure inside it.
+There are no endpoint-specific runners, workload classes, or registration steps.
+
+```python
+def setup_work(case):
+    from sentry.models.group import Group
+
+    project = case.create_project()
+    case.create_group(project=project)
+
+    def work():
+        count = Group.objects.filter(project=project).count()
+        assert count == 1
+        return count
+
+    return work
+```
+
+The supplied `case` provides Sentry's test factories and a Django test client.
+The callable can execute ORM queries, invoke a service or worker's processing
+function directly, or call an endpoint with `case.client`. For example, replace
+the setup and work blocks with:
+
+```python
+project = case.create_project()
+case.login_as(user=case.user)
+
+def work():
+    response = case.client.get(
+        f"/api/0/projects/{project.organization.slug}/{project.slug}/"
+    )
+    assert response.status_code == 200
+    return response.json()["slug"]
+
+return work
+```
+
+Evaluate lazy querysets inside `work()` so their SQL is measured. Assertions
+inside `work()` validate each invocation and are included in wall time. Return
+normalized JSON-compatible data to compare result hashes across runs, or return
+`None` to skip that check. Normalize generated IDs and timestamps yourself;
+matching hashes only compare what you chose to return.
 
 ## Run and compare
 
+Run from the repository root with the virtualenv and local test services ready:
+
 ```bash
-.venv/bin/python bin/perf/profile-endpoint all-unresolved-issues \
-  --output /tmp/before.json --param groups=10000 --param members=55 \
-  --param assigned_percent=5 --param background_groups=100000 \
-  --warmups 2 --iterations 7 --reuse-db
+.venv/bin/python bin/perf/profile_work.py run \
+  --output /tmp/before.json --warmups 2 --iterations 7 --reuse-db
 
-# Repeat the same command after editing the application, using /tmp/after.json.
-.venv/bin/python bin/perf/compare-db-profiles /tmp/before.json /tmp/after.json
-
-# A different endpoint, with the same runner:
-.venv/bin/python bin/perf/profile-endpoint project-details \
-  --output /tmp/project.json --reuse-db
+# Edit the application code, then repeat with --output /tmp/after.json.
+.venv/bin/python bin/perf/profile_work.py compare /tmp/before.json /tmp/after.json
 ```
 
-The runner creates synthetic data in isolated pytest databases and calls the real
-endpoint through the in-process API test client. This exercises request handling,
-but is **not a network E2E test** against a running server. It does not model proxy,
-worker scheduling, network latency, or production concurrency. Fixture setup is
-outside measurement. Warmups and measured calls include workload response checks.
+The script uses a small pytest driver to initialize Sentry and isolated test
+databases. Setup is outside measurement. The default recreates pytest databases;
+`--reuse-db` preserves their schema, not fixture data. Neither mode targets the
+devserver database. Do not run alongside tests sharing those databases.
 
-The default recreates pytest's databases; `--reuse-db` preserves their schema.
-These are test databases, not the devserver's database. Do not run workloads
-alongside tests sharing their databases or other CPU-intensive benchmarks.
+Warmups and measured iterations repeat the callable without resetting state.
+Design writes for repeated calls, and keep before/after fixture setup identical.
+Use synthetic data only; do not add customer identifiers to the script. Reports
+omit bound SQL parameters and result bodies. SQL text is opt-in with
+`--include-sql` because it can contain sensitive literals. Labels are saved verbatim.
 
-Reports include wall/cursor timings, query counts and fingerprints, plan work,
-buffer accesses, spills, and the effective workload parameters. SQL text is
-opt-in with `--include-sql` because literals can contain sensitive data. Bound SQL
-parameters and response bodies are not saved. Use synthetic workload parameters;
-parameters and labels themselves are saved verbatim.
-Reports also include a hash of the workload's normalized response snapshot. The
-comparison command reports whether those hashes match without saving responses.
+For an already-initialized test or Django context, the same file exposes
+`profile_database_operation(work)` (returns the result and captured profile),
+`run_profile(work, output=...)` (also saves a report), and the
+`capture_database_queries()` context manager. `should_explain` can restrict
+which captured SELECTs are replayed; return `False` to capture timings only.
 
-## Add a workload
+## What is measured
 
-Create a module in `perf_harness/workloads/`, or supply a trusted local
-`module:factory` name. The factory receives an `EndpointContext` with Sentry's
-test factories and API client, plus parameters supplied as `--param NAME=JSON`.
-It returns a `Workload`; no runner changes are required. For example:
+- Wall time, Django cursor execution time, query counts, and SQL fingerprints.
+- Separate PostgreSQL `EXPLAIN (ANALYZE, BUFFERS)` replays of selected SELECTs
+  from the final iteration: plan work, indexes, buffer accesses, and spills.
+- Medians, minima, and maxima across measured calls, not production p95 estimates.
 
-```python
-from perf_harness.workload import Workload
+Capture covers Django connections in the current thread. Remote RPC SQL,
+other threads, and queued background workers are outside that scope. A remote
+call that is awaited contributes to wall time, but its SQL is not visible.
+Locally simulated RPC queries are captured in their recorded silo context;
+tests may execute tasks inline, unlike production. Calling a worker's processing
+function directly measures its local work, not queue delay or the full pipeline.
+Endpoint calls through the test client are not network E2E measurements.
 
+Cursor time excludes fetching. Remaining wall time includes fetching, validation,
+instrumentation, and other I/O; it is not Python CPU time. Background work can
+also affect real request latency indirectly through shared-resource contention,
+which isolated local measurements do not reproduce.
 
-def build_workload(case, parameters):
-    if parameters:
-        raise ValueError("This workload accepts no parameters")
-    project = case.create_project(teams=[case.team])
-    case.login_as(user=case.user)
-    case.endpoint = "sentry-api-0-project-details"
+Plan replays execute SQL in a rollback-only transaction/savepoint. Select only
+queries without externally visible function side effects; CTEs and non-SELECTs
+are skipped. `--statement-timeout-ms` applies to replays, not the original work.
 
-    def validate(response):
-        assert response.status_code == 200
-        assert response.data["id"] == str(project.id)
-
-    return Workload(
-        operation=lambda: case.get_success_response(case.organization.slug, project.slug),
-        validate=validate,
-    )
-```
-
-`operation` may call any endpoint; the harness itself knows nothing about issues,
-teams, or projects. Use `case.get_success_response(..., method="post", ...)` for
-a write endpoint only with fixtures designed for repeated calls. The harness
-does not reset application state between requests. `validate` checks every
-response. `parameters` records effective fixture settings. `should_explain`
-optionally selects which captured SELECTs to replay. `snapshot` defaults to
-`response.data`; override it to normalize legitimately variable response fields.
-
-Workloads may provide named `variants`, each a zero-argument context-manager
-factory that temporarily applies an experiment and cleans it up. With
-`--compare-variants`, each variant's responses must match a deep copy of the
-baseline snapshot, and the baseline runs again at the end to expose timing drift.
-Across separate before/after runs, response hashes are comparable when fixture
-data and snapshot normalization are stable. Normalize generated IDs rather than
-ignoring meaningful differences. The bundled issues workload orders projects by
-fixture creation order and preserves the full per-project time series.
-
-## Bundled issues workload
-
-`all-unresolved-issues` accepts `groups` (10000), `members` (50), `projects` (3),
-`assigned_percent` (100), `background_groups` (0), and `history_per_group` (2).
-Background issues belong to another project but are assigned to the target
-team's members. They must not change the result. The fixture is committed and
-vacuumed before measurement, allowing index-only scans on all-visible pages.
-
-This workload does not patch managers or add indexes. Query changes belong in
-application code: save a baseline, edit the application, then rerun the same
-workload and compare reports. `--compare-variants` only repeats the baseline for
-this workload. Test multiple selectivities before choosing a query or index;
-synthetic fixture sizes are not claims about production cardinalities.
-
-## Interpretation and limits
-
-- Timing summaries are medians, with minima and maxima. Small samples are not
-  production p95 estimates.
-- Cursor time excludes fetching. Remaining wall time also includes fetching,
-  instrumentation, validation, and other I/O; it is not Python CPU time.
-- Capture covers Django connections in the current thread. Remote RPCs,
-  asynchronous workers, and other threads are not captured. Locally simulated
-  RPC queries are captured and replayed in their recorded silo context.
-- Plans are separate `EXPLAIN (ANALYZE, BUFFERS)` replays of the final request's
-  selected SELECTs, not plans captured during those requests. Replays execute
-  SQL and use a rollback-only transaction/savepoint. Do not select statements
-  with externally visible function side effects. Non-SELECTs and CTEs are skipped.
-- The statement timeout applies to plan replays, not the original endpoint call.
-- `rows_processed` sums outputs across plan stages, counting some rows multiple
-  times; it is not the number of distinct table rows scanned.
-- Buffer hits count accesses, including repeated accesses to one block. Shared
-  reads may be served from the OS cache. Temporary writes measure scratch-file
-  work, not persistent table growth or necessarily physical disk writes.
-- Vacuumed synthetic data does not model production churn or cold caches.
-  Evaluate timings, work, spills, and correctness together, not a "perfect query"
-  score based solely on whether an index is used.
+`rows_processed` sums node outputs, potentially counting rows multiple times.
+Buffer hits count accesses, not unique pages; shared reads may hit the OS cache.
+Temporary writes measure scratch-file work, not persistent table growth.
+Synthetic fixtures do not reproduce production churn, cache state, or concurrency.
+Evaluate timings, plan work, spills, and correctness together—not a "perfect query"
+score based only on whether an index is used.
 
 ## Tests
 
@@ -125,5 +111,5 @@ synthetic fixture sizes are not claims about production cardinalities.
 .venv/bin/pytest -n3 -q --reuse-db tests/performance
 ```
 
-The CLI-selected workload is opt-in and skipped during ordinary test runs.
-Unit tests and the small project-details integration test run normally.
+The editable `setup_work()` benchmark is opt-in through the script. Ordinary
+tests cover profiling, report comparison, and both ORM and endpoint callables.

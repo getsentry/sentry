@@ -1,24 +1,23 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
-from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
 
 import pytest
+from click.testing import CliRunner
 from django.db import connection
-from perf_harness.query_profile import (
+from profile_work import (
     CapturedQuery,
     DatabaseOperationProfile,
     explain_captured_query,
     format_profile_comparison,
     format_profile_summary,
+    main,
     profile_database_operation,
     read_profile_report,
+    run_profile,
     summarize_query_plan,
     write_profile_report,
 )
-from perf_harness.workload import Workload, integer_parameters, run_workload
 
 from sentry.testutils.cases import TestCase
 
@@ -115,7 +114,7 @@ def test_write_read_and_compare_profile_report(tmp_path: Path) -> None:
     summary = format_profile_summary(read_profile_report(before_path))
     assert "Measured samples" in summary
     assert "3" in summary
-    assert "Endpoint wall time" in comparison
+    assert "Work wall time" in comparison
     assert "100.00 ms" in comparison
     assert "75.00 ms" in comparison
     assert "-25.0%" in comparison
@@ -158,84 +157,59 @@ def test_profile_database_operation_rejects_invalid_iteration_counts(
         )
 
 
-def test_workload_reports_parameters_and_compares_variants(tmp_path: Path) -> None:
-    contexts = []
-
-    @contextmanager
-    def variant() -> Iterator[None]:
-        contexts.append("entered")
-        try:
-            yield
-        finally:
-            contexts.append("exited")
-
-    def validate(response: dict[str, int]) -> None:
-        assert response == {"count": 3}
-
-    workload = Workload(
-        operation=lambda: {"count": 3},
-        validate=validate,
-        snapshot=lambda response: response,
-        parameters={"groups": 3},
-        variants={"candidate": variant},
-    )
-    report = run_workload(
-        workload,
-        output=tmp_path / "profile.json",
-        label="test",
-        workload_name="example:factory",
-        warmups=0,
-        iterations=2,
-        compare_variants=True,
-    )
-    assert report["workload"]["parameters"] == {"groups": 3}
+def test_generic_work_reports_and_compares_results(tmp_path: Path) -> None:
+    before = tmp_path / "before.json"
+    after = tmp_path / "after.json"
+    report = run_profile(lambda: {"fixture_marker": 3}, output=before, warmups=0, iterations=2)
+    run_profile(lambda: {"fixture_marker": 3}, output=after, warmups=0, iterations=2)
     assert report["totals"]["sample_count"] == 2
-    assert contexts == ["entered", "exited"]
-    assert read_profile_report(tmp_path / "profile-candidate.json")["label"] == "candidate"
+    assert report["run"]["warmups"] == 0
     assert (
-        read_profile_report(tmp_path / "profile-candidate.json")["response_fingerprint"]
-        == report["response_fingerprint"]
+        read_profile_report(before)["response_fingerprint"]
+        == read_profile_report(after)["response_fingerprint"]
     )
-    assert read_profile_report(tmp_path / "profile-baseline-repeat.json")
+    assert "fixture_marker" not in before.read_text()
+
+    result = CliRunner().invoke(main, ["compare", str(before), str(after)])
+    assert result.exit_code == 0
+    assert "Work result: matches" in result.output
+    assert "Work wall time" in result.output
 
 
-def test_workload_rejects_changed_response_and_cleans_up(tmp_path: Path) -> None:
-    state = {"count": 1}
-
-    @contextmanager
-    def variant() -> Iterator[None]:
-        state["count"] = 2
-        try:
-            yield
-        finally:
-            state["count"] = 1
-
-    workload = Workload(
-        operation=lambda: dict(state),
-        validate=lambda response: None,
-        snapshot=lambda response: response,
-        variants={"candidate": variant},
-    )
-    with pytest.raises(AssertionError, match="candidate"):
-        run_workload(
-            workload,
-            output=tmp_path / "profile.json",
-            label="test",
-            workload_name="example:factory",
-            warmups=0,
-            iterations=1,
-            compare_variants=True,
-        )
-    assert state == {"count": 1}
-    assert not (tmp_path / "profile-candidate.json").exists()
+def test_compare_detects_changed_work_result(tmp_path: Path) -> None:
+    before = tmp_path / "before.json"
+    after = tmp_path / "after.json"
+    run_profile(lambda: 1, output=before, warmups=0, iterations=1)
+    run_profile(lambda: 2, output=after, warmups=0, iterations=1)
+    result = CliRunner().invoke(main, ["compare", str(before), str(after)])
+    assert result.exit_code == 0
+    assert "Work result: differs" in result.output
 
 
-@pytest.mark.parametrize(
-    "parameters", [{"typo": 1}, {"groups": True}, {"groups": 0}, {"groups": "3"}]
-)
-def test_invalid_workload_parameters(parameters: dict[str, Any]) -> None:
-    with pytest.raises(ValueError):
-        integer_parameters(parameters, {"groups": (3, 1, None)})
+def test_work_without_result_does_not_claim_equivalence(tmp_path: Path) -> None:
+    path = tmp_path / "profile.json"
+    report = run_profile(lambda: None, output=path, warmups=0, iterations=1)
+    assert "response_fingerprint" not in report
+    result = CliRunner().invoke(main, ["compare", str(path), str(path)])
+    assert result.exit_code == 0
+    assert "not compared" in result.output
+
+
+def test_work_failure_does_not_save_report(tmp_path: Path) -> None:
+    def work() -> None:
+        raise RuntimeError("work failed")
+
+    path = tmp_path / "profile.json"
+    with pytest.raises(RuntimeError, match="work failed"):
+        run_profile(work, output=path, warmups=0, iterations=1)
+    assert not path.exists()
+
+
+def test_run_cli_exposes_no_endpoint_or_workload_argument() -> None:
+    result = CliRunner().invoke(main, ["run", "--help"])
+    assert result.exit_code == 0
+    assert "--output" in result.output
+    assert "WORKLOAD" not in result.output
 
 
 class TestExplainIsolation(TestCase):

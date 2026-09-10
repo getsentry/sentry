@@ -1,26 +1,49 @@
-"""Development-only capture and comparison of PostgreSQL application work."""
+#!/usr/bin/env python
+"""Edit setup_work() to profile arbitrary local Python/Django work."""
 
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import statistics
+import subprocess
+import sys
 import time
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import ExitStack, contextmanager
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
+import click
 from django.db import DatabaseError, connections, transaction
 
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.utils import json
 
+if TYPE_CHECKING:
+    from sentry.testutils.cases import TransactionTestCase  # noqa: S007 - development-only script
+
 T = TypeVar("T")
 
 PROFILE_SCHEMA_VERSION = 1
 _WHITESPACE = re.compile(r"\s+")
+
+
+def setup_work(case: TransactionTestCase) -> Callable[[], Any]:
+    """Arrange synthetic data here, outside the measured work()."""
+    from sentry.models.project import Project
+
+    project = case.create_project()
+
+    def work() -> int:
+        # Replace this block with ORM queries, a service call, an endpoint, etc.
+        count = Project.objects.filter(id=project.id).count()
+        assert count == 1
+        return count
+
+    return work
 
 
 @dataclass(frozen=True)
@@ -367,7 +390,7 @@ def read_profile_report(path: str | Path) -> dict[str, Any]:
 
 
 _COMPARISON_METRICS = (
-    ("Endpoint wall time", "wall_time_ms", "ms"),
+    ("Work wall time", "wall_time_ms", "ms"),
     ("Captured database time", "captured_database_time_ms", "ms"),
     ("Non-database time", "non_database_time_ms", "ms"),
     ("Query count", "query_count", ""),
@@ -445,3 +468,113 @@ def format_profile_comparison(
         "  ".join(value.ljust(widths[column]) for column, value in enumerate(row)).rstrip()
         for row in rows
     )
+
+
+def run_profile(
+    work: Callable[[], Any],
+    *,
+    output: Path,
+    label: str = "baseline",
+    warmups: int = 1,
+    iterations: int = 5,
+    statement_timeout_ms: int = 60_000,
+    include_sql: bool = False,
+    should_explain: Callable[[CapturedQuery], bool] | None = None,
+) -> dict[str, Any]:
+    result, profile = profile_database_operation(
+        work,
+        warmup_iterations=warmups,
+        iterations=iterations,
+        statement_timeout_ms=statement_timeout_ms,
+        should_explain=should_explain,
+    )
+    errors = [query.explain_error for query in profile.queries if query.explain_error]
+    if errors:
+        raise RuntimeError(f"EXPLAIN failed for {len(errors)} queries; no successful report saved")
+    report = profile.to_report(label=label, include_sql=include_sql)
+    # Return normalized JSON-compatible data from work() to compare results without saving them.
+    if result is not None:
+        report["response_fingerprint"] = hashlib.sha256(
+            json.dumps(result, sort_keys=True).encode()
+        ).hexdigest()
+    report["run"] = {
+        "warmups": warmups,
+        "iterations": iterations,
+        "statement_timeout_ms": statement_timeout_ms,
+    }
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(report, sort_keys=True) + "\n")
+    return report
+
+
+@click.group()
+def main() -> None:
+    """Profile the work() block in this file, or compare saved reports."""
+
+
+@main.command()
+@click.option("--output", required=True, type=click.Path(dir_okay=False, path_type=Path))
+@click.option("--label", default="baseline", show_default=True)
+@click.option("--warmups", default=1, show_default=True, type=click.IntRange(0))
+@click.option("--iterations", default=5, show_default=True, type=click.IntRange(1))
+@click.option("--statement-timeout-ms", default=60_000, show_default=True, type=click.IntRange(1))
+@click.option(
+    "--include-sql", is_flag=True, help="Include SQL text (may contain sensitive literals)."
+)
+@click.option("--recreate-db/--reuse-db", default=True, show_default=True)
+def run(
+    output: Path,
+    label: str,
+    warmups: int,
+    iterations: int,
+    statement_timeout_ms: int,
+    include_sql: bool,
+    recreate_db: bool,
+) -> None:
+    """Run setup_work() and measure its callable in isolated pytest databases."""
+    output = output.resolve()
+    config = {
+        "output": str(output),
+        "label": label,
+        "warmups": warmups,
+        "iterations": iterations,
+        "statement_timeout_ms": statement_timeout_ms,
+        "include_sql": include_sql,
+    }
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "-n0",
+            "-q",
+            "-s",
+            "--create-db" if recreate_db else "--reuse-db",
+            "tests/performance/test_work_profile.py::TestWorkProfile::test_profile",
+        ],
+        cwd=Path(__file__).resolve().parents[2],
+        env={**os.environ, "SENTRY_PERF_CONFIG": json.dumps(config)},
+        check=False,
+    )
+    if completed.returncode:
+        raise click.ClickException(f"Work failed with exit code {completed.returncode}")
+    click.echo(format_profile_summary(read_profile_report(output)))
+
+
+@main.command()
+@click.argument("before", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.argument("after", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+def compare(before: Path, after: Path) -> None:
+    """Compare BEFORE and AFTER JSON profiles."""
+    before_report = read_profile_report(before)
+    after_report = read_profile_report(after)
+    if before_report.get("response_fingerprint") and after_report.get("response_fingerprint"):
+        matches = before_report["response_fingerprint"] == after_report["response_fingerprint"]
+        click.echo("Work result: matches" if matches else "Work result: differs")
+    else:
+        click.echo("Work result: not compared (no result snapshot)")
+    click.echo(format_profile_comparison(before_report, after_report))
+
+
+if __name__ == "__main__":
+    main()
