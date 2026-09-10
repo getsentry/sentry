@@ -21,7 +21,10 @@ jest.mock('sentry/utils/useCopyToClipboard', () => ({
   useCopyToClipboard: () => ({copy: jest.fn()}),
 }));
 
-function renderImageCard(canvasTheme: SnapshotImage['canvas_theme']) {
+function renderImageCard(
+  canvasTheme: SnapshotImage['canvas_theme'],
+  onSelectSnapshot?: (key: string | null) => void
+) {
   const image: SnapshotImage = {
     display_name: 'Button',
     height: 180,
@@ -39,6 +42,7 @@ function renderImageCard(canvasTheme: SnapshotImage['canvas_theme']) {
       isSelected={false}
       copyUrl="/copy/"
       snapshotKey={image.key}
+      onSelectSnapshot={onSelectSnapshot}
     />
   );
 }
@@ -62,5 +66,36 @@ describe('ImageCard canvas theme', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Light preview'}));
     expectLightCanvas();
+  });
+});
+
+describe('ImageCard zoom', () => {
+  it('renders zoom controls wired to the image zoom', async () => {
+    renderImageCard(null);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Zoom in'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Zoom out'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Reset zoom'}));
+
+    expect(mockZoom.zoomIn).toHaveBeenCalledTimes(1);
+    expect(mockZoom.zoomOut).toHaveBeenCalledTimes(1);
+    expect(mockZoom.resetZoom).toHaveBeenCalledTimes(1);
+  });
+
+  it('hints at modifier scroll zoom on the zoom buttons', async () => {
+    renderImageCard(null);
+
+    await userEvent.hover(screen.getByRole('button', {name: 'Zoom in'}));
+
+    expect(await screen.findByText('Scroll')).toBeInTheDocument();
+  });
+
+  it('does not toggle card selection when using zoom controls', async () => {
+    const onSelectSnapshot = jest.fn();
+    renderImageCard(null, onSelectSnapshot);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Zoom in'}));
+
+    expect(onSelectSnapshot).not.toHaveBeenCalled();
   });
 });

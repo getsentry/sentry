@@ -165,7 +165,7 @@ export function CreateProject() {
     return autoFill && createdProject?.notificationRule?.actions
       ? {actions: createdProject.notificationRule.actions}
       : undefined;
-  }, [autoFill, createdProject?.notificationRule?.actions]);
+  }, [autoFill, createdProject]);
 
   const {getIntegrationAction, notificationProps} = useCreateNotificationAction(
     notificationActionParam

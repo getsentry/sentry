@@ -372,6 +372,9 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
       }
     });
     return map;
+    // React Compiler treats one of these dependencies as mutated later in the
+    // component, so it cannot prove the memoization is preserved.
+    // oxlint-disable-next-line react/preserve-manual-memoization
   }, [orderedPrRunIdsKey]);
 
   const toggleGroup = (groupKey: StatusGroupKey, expanded: boolean) => {

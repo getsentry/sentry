@@ -387,6 +387,9 @@ function useFilterSuggestions({
         token,
         fieldDefinition,
       }),
+    // React Compiler treats one of these dependencies as mutated later in the
+    // component, so it cannot prove the memoization is preserved.
+    // oxlint-disable-next-line react/preserve-manual-memoization
     [key, filterValue, token, fieldDefinition]
   );
   // Only keys that explicitly have predefined values should skip the fetch.

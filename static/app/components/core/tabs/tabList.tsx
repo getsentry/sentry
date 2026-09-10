@@ -19,7 +19,7 @@ import type {Node, Orientation} from '@react-types/shared';
 
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {useTranslation} from '@sentry/scraps/translationContext';
 
@@ -168,7 +168,8 @@ function useOverflowTabs({
         }
         const nextUsed =
           used + (tabWidthsRef.current.get(key) ?? 0) + (index === 0 ? 0 : gap);
-        // Always keep the first tab to avoid an empty tab bar.
+        // Always keep the first tab visible so the tab bar never collapses to
+        // only the overflow trigger.
         if (index === 0 || nextUsed <= budget) {
           used = nextUsed;
         } else {
@@ -295,7 +296,6 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
     orientation,
     size,
     keyboardActivation = 'manual',
-    disableOverflow,
     ...otherRootProps
   } = rootProps;
 
@@ -334,7 +334,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
     tabItemsRef,
     tabItems: props.items,
     // Overflow only applies to horizontal tab lists.
-    disabled: disableOverflow || orientation !== 'horizontal',
+    disabled: orientation !== 'horizontal',
   });
 
   const overflowMenuItems = useMemo(() => {
@@ -355,7 +355,11 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
 
       return {
         value: key,
-        label: itemProps.children,
+        label: (
+          <Flex align="center" gap="md">
+            {itemProps.children}
+          </Flex>
+        ),
         disabled: itemProps.disabled,
         tooltip: itemProps.tooltip?.title,
         tooltipOptions: itemProps.tooltip,

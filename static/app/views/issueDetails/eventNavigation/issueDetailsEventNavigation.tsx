@@ -150,7 +150,7 @@ export function IssueDetailsEventNavigation({
           }}
         />
       </Navigation>
-      <Tabs value={currentEventKey} disableOverflow onChange={onTabChange} size="xs">
+      <Tabs value={currentEventKey} onChange={onTabChange} size="xs">
         <TabList variant="floating">
           {eventNavPresets.map(({key, label, tooltip}) => {
             const eventPath =
