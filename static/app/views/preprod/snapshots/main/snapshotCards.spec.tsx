@@ -64,3 +64,17 @@ describe('ImageCard canvas theme', () => {
     expectLightCanvas();
   });
 });
+
+describe('ImageCard zoom', () => {
+  it('renders zoom controls wired to the image zoom', async () => {
+    renderImageCard(null);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Zoom in'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Zoom out'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Reset zoom'}));
+
+    expect(mockZoom.zoomIn).toHaveBeenCalledTimes(1);
+    expect(mockZoom.zoomOut).toHaveBeenCalledTimes(1);
+    expect(mockZoom.resetZoom).toHaveBeenCalledTimes(1);
+  });
+});
