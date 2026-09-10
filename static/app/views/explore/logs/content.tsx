@@ -100,8 +100,8 @@ const LogsPageStack = styled(Stack)`
 const logsFeedbackOptions = {
   messagePlaceholder: t('How can we make logs work better for you?'),
   tags: {
-    ['feedback.source']: 'logs-listing',
-    ['feedback.owner']: 'performance',
+    'feedback.source': 'logs-listing',
+    'feedback.owner': 'performance',
   },
 };
 

@@ -1,6 +1,8 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
+
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
@@ -24,6 +26,7 @@ interface Attribute {
   attribute_key: string;
   attribute_value: string | number | null;
   original_attribute_key: string;
+  type: TraceItemResponseAttribute['type'];
 }
 
 type AttributesTree = Record<string, AttributesTreeContent>;
@@ -142,10 +145,11 @@ function addToAttributeTree(
     tree[trunk] = {value: '', subtree: {}};
   }
   // Recurse with a pseudo attribute, e.g. 'model', to create nesting structure
-  const pseudoAttribute = {
+  const pseudoAttribute: Attribute = {
     attribute_key: branch,
     attribute_value: attribute.attribute_value,
     original_attribute_key: attribute.original_attribute_key,
+    type: attribute.type,
   };
   tree[trunk].subtree = addToAttributeTree(
     tree[trunk].subtree,
@@ -355,35 +359,39 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
   );
 
   return (
-    <TreeRow hasErrors={hasErrors} {...props}>
-      <TreeKeyTrunk spacerCount={spacerCount}>
-        {spacerCount > 0 && (
-          <Fragment>
-            <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
-            <TreeBranchIcon hasErrors={hasErrors} />
-          </Fragment>
-        )}
-        <TreeSearchKey aria-hidden>{originalAttribute.attribute_key}</TreeSearchKey>
-        <TreeKey
-          hasErrors={hasErrors}
-          title={originalAttribute.attribute_key}
-          data-test-id={`tree-key-${content.originalAttribute?.original_attribute_key}`}
-        >
-          {attributeKey}
-        </TreeKey>
-      </TreeKeyTrunk>
-      <TreeValueTrunk>
-        <TreeValue hasErrors={hasErrors}>
-          <AttributesTreeValue
-            config={config}
-            content={content}
-            renderers={props.renderers}
-            rendererExtra={props.rendererExtra}
-          />
-        </TreeValue>
-        {attributeActions}
-      </TreeValueTrunk>
-    </TreeRow>
+    <RevealOnHover>
+      {({className}) => (
+        <TreeRow hasErrors={hasErrors} {...props} className={className}>
+          <TreeKeyTrunk spacerCount={spacerCount}>
+            {spacerCount > 0 && (
+              <Fragment>
+                <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
+                <TreeBranchIcon hasErrors={hasErrors} />
+              </Fragment>
+            )}
+            <TreeSearchKey aria-hidden>{originalAttribute.attribute_key}</TreeSearchKey>
+            <TreeKey
+              hasErrors={hasErrors}
+              title={originalAttribute.attribute_key}
+              data-test-id={`tree-key-${content.originalAttribute?.original_attribute_key}`}
+            >
+              {attributeKey}
+            </TreeKey>
+          </TreeKeyTrunk>
+          <TreeValueTrunk>
+            <TreeValue hasErrors={hasErrors}>
+              <AttributesTreeValue
+                config={config}
+                content={content}
+                renderers={props.renderers}
+                rendererExtra={props.rendererExtra}
+              />
+            </TreeValue>
+            {attributeActions}
+          </TreeValueTrunk>
+        </TreeRow>
+      )}
+    </RevealOnHover>
   );
 }
 
@@ -395,7 +403,7 @@ function AttributesTreeRowDropdown({
   getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
 }) {
   const {copy} = useCopyToClipboard();
-  const [isVisible, setIsVisible] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   let customActions: MenuItemProps[] = [];
   if (getCustomActions) {
@@ -426,20 +434,22 @@ function AttributesTreeRowDropdown({
   }
 
   return (
-    <TreeValueDropdown
-      preventOverflowOptions={{padding: 4}}
-      className={isVisible ? '' : 'invisible'}
-      position="bottom-end"
-      size="xs"
-      onOpenChange={isOpen => setIsVisible(isOpen)}
-      triggerProps={{
-        'aria-label': t('Attribute Actions Menu'),
-        icon: <IconEllipsis />,
-        showChevron: false,
-        className: 'attribute-button',
-      }}
-      items={items}
-    />
+    <RevealOnHover.Action visible={isMenuOpen}>
+      <TreeValueDropdown
+        preventOverflowOptions={{padding: 4}}
+        position="bottom-end"
+        size="xs"
+        isOpen={isMenuOpen}
+        onOpenChange={setIsMenuOpen}
+        triggerProps={{
+          'aria-label': t('Attribute Actions Menu'),
+          icon: <IconEllipsis />,
+          showChevron: false,
+          className: 'attribute-button',
+        }}
+        items={items}
+      />
+    </RevealOnHover.Action>
   );
 }
 
@@ -463,6 +473,7 @@ function getAttribute(
     original_attribute_key: getAdjustedAttributeKey
       ? getAdjustedAttributeKey(attribute)
       : attribute.name,
+    type: attribute.type,
   };
 }
 
@@ -500,15 +511,6 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
   :nth-child(odd) {
     background-color: ${p =>
       p.hasErrors ? p.theme.colors.red100 : p.theme.tokens.background.secondary};
-  }
-  .invisible {
-    visibility: hidden;
-  }
-  &:hover,
-  &:active {
-    .invisible {
-      visibility: visible;
-    }
   }
   color: ${p => (p.hasErrors ? p.theme.colors.red500 : p.theme.tokens.content.secondary)};
   background-color: ${p =>
@@ -587,6 +589,6 @@ const TreeValueDropdown = styled(DropdownMenu)`
     min-height: 20px;
     padding: 0 ${p => p.theme.space.sm};
     border-radius: ${p => p.theme.space.xs};
-    z-index: 0;
+    z-index: 1;
   }
 `;

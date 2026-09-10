@@ -6,6 +6,7 @@ import orjson
 import pytest
 from objectstore_client import RequestError
 
+from sentry.preprod.snapshots.image_diff.types import ImageSize
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison
 from sentry.preprod.snapshots.tasks import _retry_objectstore
 from sentry.testutils.cases import TestCase
@@ -54,7 +55,8 @@ class ChunksDoneIndicesTest(TestCase):
         assert (timezone.now() - comparison.date_updated).total_seconds() < 5
 
 
-def test_retry_objectstore_retries_once_on_429():
+@patch("sentry.preprod.snapshots.tasks.time.sleep")
+def test_retry_objectstore_retries_once_on_429(mock_sleep: MagicMock) -> None:
     calls = {"n": 0}
 
     def op():
@@ -65,6 +67,7 @@ def test_retry_objectstore_retries_once_on_429():
 
     assert _retry_objectstore(op) == "ok"
     assert calls["n"] == 2
+    mock_sleep.assert_called_once_with(0.5)
 
 
 def test_retry_objectstore_fails_fast_on_404():
@@ -75,12 +78,15 @@ def test_retry_objectstore_fails_fast_on_404():
         _retry_objectstore(op)
 
 
-def test_retry_objectstore_gives_up_after_max_attempts():
-    def op():
-        raise RequestError("unavailable", 503, "unavailable")
+@patch("sentry.preprod.snapshots.tasks.time.sleep")
+def test_retry_objectstore_gives_up_after_max_attempts(mock_sleep: MagicMock) -> None:
+    operation = MagicMock(side_effect=RequestError("unavailable", 503, "unavailable"))
 
     with pytest.raises(RequestError):
-        _retry_objectstore(op)
+        _retry_objectstore(operation)
+
+    assert operation.call_count == 2
+    mock_sleep.assert_called_once_with(0.5)
 
 
 def _mock_session_with_manifests(manifests_by_key: dict[str, bytes]) -> MagicMock:
@@ -185,11 +191,12 @@ class ProcessChunkTest(TestCase):
         )
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks._fetch_batch_images",
                 return_value=({"h": b"img", "b": b"img"}, set()),
             ),
+            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch("sentry.preprod.snapshots.tasks.compare_images_batch", return_value=[diff]),
         ):
             process_snapshot_comparison_chunk(
@@ -287,11 +294,12 @@ class ProcessChunkTest(TestCase):
         )
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks._fetch_batch_images",
                 return_value=({"h": b"img", "b": b"img"}, set()),
             ),
+            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
                 "sentry.preprod.snapshots.tasks.compare_images_batch",
                 return_value=[self._diff_result()],
@@ -326,11 +334,12 @@ class ProcessChunkTest(TestCase):
         )
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks._fetch_batch_images",
                 return_value=({"h": b"img", "b": b"img"}, set()),
             ),
+            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
                 "sentry.preprod.snapshots.tasks.compare_images_batch",
                 return_value=[self._diff_result()],
@@ -377,11 +386,12 @@ class ProcessChunkTest(TestCase):
         )
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks._fetch_batch_images",
                 return_value=({"h": b"img", "b": b"img"}, set()),
             ),
+            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
                 "sentry.preprod.snapshots.tasks.compare_images_batch",
                 return_value=[unchanged_diff],
@@ -415,7 +425,7 @@ class ProcessChunkTest(TestCase):
         )
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks._process_chunk",
                 side_effect=Exception("boom"),
@@ -451,7 +461,7 @@ class ProcessChunkTest(TestCase):
         )
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks._process_chunk",
                 side_effect=ValueError("odiff exploded"),
@@ -548,7 +558,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
         }
         session = _dict_backed_session(stored)
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot"),
             patch("sentry.preprod.snapshots.tasks.metrics") as mock_metrics,
         ):
@@ -576,7 +586,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
 
         comparison, h, b = self._comparison(1, state=PreprodSnapshotComparison.State.SUCCESS)
-        with patch("sentry.preprod.snapshots.tasks.get_preprod_session") as session:
+        with patch("sentry.preprod.snapshots.tasks.get_session") as session:
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
         assert not session.called
 
@@ -591,7 +601,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
         }
         session = _dict_backed_session(stored)
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot") as mock_auto_approve,
         ):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
@@ -612,7 +622,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
         prefix = f"{self.organization.id}/{self.project.id}/{h.id}/{b.id}"
         stored = {f"{prefix}/plan.json": orjson.dumps(self._single_chunk_plan(h, b).dict())}
         session = _dict_backed_session(stored)
-        with patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session):
+        with patch("sentry.preprod.snapshots.tasks.get_session", return_value=session):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
         comparison.refresh_from_db()
         assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
@@ -629,7 +639,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
         }
         session = _dict_backed_session(stored)
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot") as mock_auto_approve,
         ):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
@@ -642,7 +652,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
 
         comparison, h, b = self._comparison(None)
-        with patch("sentry.preprod.snapshots.tasks.get_preprod_session") as session:
+        with patch("sentry.preprod.snapshots.tasks.get_session") as session:
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
         assert not session.called
         comparison.refresh_from_db()
@@ -652,7 +662,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
 
         comparison, h, b = self._comparison(3, done_indices=[0])
-        with patch("sentry.preprod.snapshots.tasks.get_preprod_session") as session:
+        with patch("sentry.preprod.snapshots.tasks.get_session") as session:
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
         assert not session.called
         comparison.refresh_from_db()
@@ -685,7 +695,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
             return session
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", side_effect=_capture),
+            patch("sentry.preprod.snapshots.tasks.get_session", side_effect=_capture),
             patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot"),
         ):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
@@ -700,7 +710,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
         prefix = f"{self.organization.id}/{self.project.id}/{h.id}/{b.id}"
         stored = {f"{prefix}/plan.json": orjson.dumps(self._single_chunk_plan(h, b).dict())}
         session = _dict_backed_session(stored)
-        with patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session):
+        with patch("sentry.preprod.snapshots.tasks.get_session", return_value=session):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
         comparison.refresh_from_db()
         assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
@@ -715,7 +725,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
         prefix = f"{self.organization.id}/{self.project.id}/{h.id}/{b.id}"
         stored = {f"{prefix}/plan.json": orjson.dumps(self._single_chunk_plan(h, b).dict())}
         session = _dict_backed_session(stored)
-        with patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session):
+        with patch("sentry.preprod.snapshots.tasks.get_session", return_value=session):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
         comparison.refresh_from_db()
         assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
@@ -729,7 +739,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
         comparison, h, b = self._comparison(1, done_indices=[0])
         session = _dict_backed_session({})
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
         ):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
@@ -776,7 +786,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"
             ) as dispatch,
@@ -822,7 +832,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"
             ) as dispatch,
@@ -882,7 +892,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"
             ) as dispatch,
@@ -940,7 +950,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
             patch(
                 "sentry.preprod.snapshots.tasks.finalize_snapshot_comparison.apply_async"
@@ -997,7 +1007,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
         ):
@@ -1039,7 +1049,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.get.side_effect = _get
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
         ):
             compare_snapshots(
@@ -1076,7 +1086,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.get.return_value = None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
         ):
             compare_snapshots(
@@ -1113,7 +1123,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         comparison.save()
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session") as session_factory,
+            patch("sentry.preprod.snapshots.tasks.get_session") as session_factory,
             patch(
                 "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"
             ) as dispatch,
@@ -1200,7 +1210,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
         ):
@@ -1257,7 +1267,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
         ):
@@ -1317,7 +1327,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
         ):
@@ -1343,7 +1353,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
         ):
@@ -1382,7 +1392,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.compare_snapshots.apply_async") as reschedule,
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
         ):
@@ -1439,7 +1449,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.compare_snapshots.apply_async") as reschedule,
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
         ):
@@ -1494,7 +1504,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.compare_snapshots.apply_async") as reschedule,
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
         ):
@@ -1543,7 +1553,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.compare_snapshots.apply_async") as reschedule,
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
         ):
@@ -1646,11 +1656,12 @@ class EndToEndFanoutTest(TestCase):
         )
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.MAX_PIXELS_PER_BATCH", 1),
             patch(
                 "sentry.preprod.snapshots.tasks._fetch_batch_images", side_effect=self._fake_fetch
             ),
+            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
                 "sentry.preprod.snapshots.tasks.compare_images_batch",
                 side_effect=lambda pairs, server: [self._diff_result() for _ in pairs],

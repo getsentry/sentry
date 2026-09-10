@@ -239,7 +239,6 @@ function FrameLocationTooltip({
       maxWidth={475}
       skipWrapper
       delay={1000}
-      isHoverable
     >
       {children}
     </Tooltip>

@@ -2,6 +2,7 @@ from functools import cached_property
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
+import responses
 from django.test import override_settings
 from django.urls import reverse
 
@@ -23,6 +24,10 @@ class JavaScriptSdkLoaderTest(TestCase):
     @cached_property
     def path(self) -> str:
         return reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key])
+
+    @cached_property
+    def min_path(self) -> str:
+        return reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key, ".min"])
 
     def test_noop_no_pub_key(self) -> None:
         resp = self.client.get(reverse("sentry-js-sdk-loader", args=["abc"]))
@@ -435,6 +440,32 @@ class JavaScriptSdkLoaderTest(TestCase):
             self.projectkey.data = {}
             self.projectkey.save()
 
+    @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["7.120.3"])
+    @mock.patch(
+        "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="7.x"
+    )
+    def test_queues_configure_scope_before_v8(
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
+        for path in (self.path, self.min_path):
+            resp = self.client.get(path)
+            assert resp.status_code == 200
+            assert b'"configureScope"' in resp.content
+            assert b'"captureException"' in resp.content
+
+    @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["8.0.0"])
+    @mock.patch(
+        "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="8.x"
+    )
+    def test_does_not_queue_configure_scope_from_v8_on(
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
+        for path in (self.path, self.min_path):
+            resp = self.client.get(path)
+            assert resp.status_code == 200
+            assert b"configureScope" not in resp.content
+            assert b'"captureException"' in resp.content
+
     @patch("sentry.loader.browsersdkversion.load_version_from_file")
     def test_headers(self, mock_load_version_from_file: MagicMock) -> None:
         #  We want to always load the major version here since otherwise we fall back to
@@ -713,16 +744,17 @@ class JavaScriptSdkLoaderProxyTest(ApiGatewayTestCase):
 
         return project_key
 
+    @responses.activate
     def test_proxy_js_sdk_loader(self) -> None:
         project_key = self._create_project_key_with_mapping()
-        self.httpx_router.add(
-            "GET",
+        responses.add(
+            responses.GET,
             f"{self.CELL.address}/js-sdk-loader/{project_key.public_key}.js",
-            json_data={"proxy": True, "public_key": project_key.public_key},
+            json={"proxy": True, "public_key": project_key.public_key},
         )
         with (
             override_settings(MIDDLEWARE=tuple(self.middleware), ROOT_URLCONF="sentry.web.urls"),
-            mock.patch("sentry.hybridcloud.apigateway_async.apigateway.metrics") as mock_metrics,
+            mock.patch("sentry.hybridcloud.apigateway.apigateway.metrics") as mock_metrics,
         ):
             resp = self.client.get(f"/js-sdk-loader/{project_key.public_key}.js")
             assert resp.status_code == 200
@@ -734,20 +766,20 @@ class JavaScriptSdkLoaderProxyTest(ApiGatewayTestCase):
                     "url_name": "sentry-js-sdk-loader",
                     "kind": "cell_resolver",
                     "request_method": "GET",
-                    "destination_cell": "us",
                 },
             )
 
+    @responses.activate
     def test_proxy_js_sdk_loader_minified(self) -> None:
         project_key = self._create_project_key_with_mapping()
-        self.httpx_router.add(
-            "GET",
+        responses.add(
+            responses.GET,
             f"{self.CELL.address}/js-sdk-loader/{project_key.public_key}.min.js",
-            json_data={"proxy": True},
+            json={"proxy": True},
         )
         with (
             override_settings(MIDDLEWARE=tuple(self.middleware), ROOT_URLCONF="sentry.web.urls"),
-            mock.patch("sentry.hybridcloud.apigateway_async.apigateway.metrics") as mock_metrics,
+            mock.patch("sentry.hybridcloud.apigateway.apigateway.metrics") as mock_metrics,
         ):
             resp = self.client.get(f"/js-sdk-loader/{project_key.public_key}.min.js")
             assert resp.status_code == 200
@@ -759,20 +791,20 @@ class JavaScriptSdkLoaderProxyTest(ApiGatewayTestCase):
                     "url_name": "sentry-js-sdk-loader",
                     "kind": "cell_resolver",
                     "request_method": "GET",
-                    "destination_cell": "us",
                 },
             )
 
+    @responses.activate
     def test_proxy_js_sdk_loader_no_mapping_falls_through_to_regionpin(self) -> None:
         unmapped_key = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
-        self.httpx_router.add(
-            "GET",
+        responses.add(
+            responses.GET,
             f"{self.CELL.address}/js-sdk-loader/{unmapped_key}.js",
-            json_data={"proxy": True, "fallback": True},
+            json={"proxy": True, "fallback": True},
         )
         with (
             override_settings(MIDDLEWARE=tuple(self.middleware), ROOT_URLCONF="sentry.web.urls"),
-            mock.patch("sentry.hybridcloud.apigateway_async.apigateway.metrics") as mock_metrics,
+            mock.patch("sentry.hybridcloud.apigateway.apigateway.metrics") as mock_metrics,
         ):
             resp = self.client.get(f"/js-sdk-loader/{unmapped_key}.js")
             assert resp.status_code == 200
@@ -784,7 +816,6 @@ class JavaScriptSdkLoaderProxyTest(ApiGatewayTestCase):
             assert (
                 "apigateway.proxy_request",
                 (
-                    ("destination_cell", "us"),
                     ("kind", "regionpin"),
                     ("request_method", "GET"),
                     ("url_name", "sentry-js-sdk-loader"),
@@ -799,15 +830,16 @@ class JavaScriptSdkLoaderProxyTest(ApiGatewayTestCase):
                 ),
             ) not in incr_calls
 
+    @responses.activate
     def test_proxy_js_sdk_loader_invalid_key_falls_through_to_regionpin(self) -> None:
-        self.httpx_router.add(
-            "GET",
+        responses.add(
+            responses.GET,
             f"{self.CELL.address}/js-sdk-loader/nonexistent_key.js",
-            json_data={"proxy": True, "fallback": True},
+            json={"proxy": True, "fallback": True},
         )
         with (
             override_settings(MIDDLEWARE=tuple(self.middleware), ROOT_URLCONF="sentry.web.urls"),
-            mock.patch("sentry.hybridcloud.apigateway_async.apigateway.metrics") as mock_metrics,
+            mock.patch("sentry.hybridcloud.apigateway.apigateway.metrics") as mock_metrics,
         ):
             resp = self.client.get("/js-sdk-loader/nonexistent_key.js")
             assert resp.status_code == 200
@@ -826,7 +858,6 @@ class JavaScriptSdkLoaderProxyTest(ApiGatewayTestCase):
             assert (
                 "apigateway.proxy_request",
                 (
-                    ("destination_cell", "us"),
                     ("kind", "regionpin"),
                     ("request_method", "GET"),
                     ("url_name", "sentry-js-sdk-loader"),

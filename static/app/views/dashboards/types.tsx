@@ -130,6 +130,9 @@ export type WidgetQuery = {
   // is currently used to track column order on table
   // widgets.
   fields?: string[];
+  // Also match `fallbackAttribute` when a global filter is applied to `attribute`.
+  // Frontend-only (prebuilt dashboards). Not stored in the backend.
+  globalFilterFallback?: {attribute: string; fallbackAttribute: string};
   isHidden?: boolean | null;
   linkedDashboards?: LinkedDashboard[];
   // Contains the on-demand entries for the widget query.
@@ -244,7 +247,7 @@ export type DashboardDetails = {
   widgets: Widget[];
   createdBy?: User;
   end?: string;
-  environment?: string[];
+  environment?: string[] | null;
   isFavorited?: boolean;
   period?: string;
   permissions?: DashboardPermissions;

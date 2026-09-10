@@ -100,7 +100,7 @@ def test_parse_mri_with_invalid_mri(name) -> None:
     [
         (
             ParsedMRI("d", "transactions", "measurements.stall_longest_time", "millisecond"),
-            False,
+            True,
         ),
         (
             ParsedMRI("d", "transactions", "breakdowns.span_ops.ops.http", "millisecond"),

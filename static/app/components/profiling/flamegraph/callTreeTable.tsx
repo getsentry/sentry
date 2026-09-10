@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {CSS} from '@sentry/scraps/cssTypes';
+
 import {IconSettings} from 'sentry/icons/iconSettings';
 import {IconUser} from 'sentry/icons/iconUser';
 import {t} from 'sentry/locale';
@@ -380,7 +382,7 @@ interface CallTreeTableRowProps {
   onKeyDown: (e: React.KeyboardEvent) => void;
   onMouseEnter: (e: React.MouseEvent<HTMLElement>) => void;
   tabIndex: number;
-  top: React.CSSProperties['top'];
+  top: CSS['inset'];
   ref?: React.Ref<HTMLDivElement>;
 }
 export function CallTreeTableRow({ref, ...props}: CallTreeTableRowProps) {

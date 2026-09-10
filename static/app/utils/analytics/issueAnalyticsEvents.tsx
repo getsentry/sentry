@@ -1,6 +1,12 @@
 import type {FieldValue} from 'sentry/components/forms/model';
-import type {PriorityLevel} from 'sentry/types/group';
-import type {IntegrationType, PullRequestAttribution} from 'sentry/types/integrations';
+import type {PriorityLevel, ProgressState} from 'sentry/types/group';
+import type {
+  IntegrationType,
+  PullRequestAttribution,
+  PullRequestAttributionAgent,
+  PullRequestChecksStatus,
+  PullRequestReviewStatus,
+} from 'sentry/types/integrations';
 import type {Broadcast} from 'sentry/types/system';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
@@ -37,16 +43,25 @@ interface ExternalIssueParams extends CommonGroupAnalyticsData {
 }
 
 interface ExternalIssuePullRequestParams extends CommonGroupAnalyticsData {
+  checks_status: PullRequestChecksStatus | null;
   pull_request_id: string;
   pull_request_status: string;
   repository_id: string;
   repository_provider: string;
+  review_status: PullRequestReviewStatus | null;
+  attribution_agent?: PullRequestAttributionAgent | null;
   attribution_type?: PullRequestAttribution['type'];
 }
 
 interface SetPriorityParams extends CommonGroupAnalyticsData {
   from_priority: PriorityLevel;
   to_priority: PriorityLevel;
+}
+
+interface IssueInboxItemParams extends CommonGroupAnalyticsData {
+  assignment_filter: 'me' | 'my_teams' | 'all';
+  last_progressed_at: string | null;
+  progress: ProgressState | undefined;
 }
 
 export type IssueEventParameters = {
@@ -119,9 +134,6 @@ export type IssueEventParameters = {
     group_id: string;
     project_id: string;
   };
-  'issue_details.related_trace_issue.trace_issue_clicked': {
-    group_id: number;
-  };
   'issue_details.section_fold': {
     open: boolean;
     org_streamline_only: boolean | undefined;
@@ -188,6 +200,11 @@ export type IssueEventParameters = {
     value: string;
     platform?: string;
   };
+  'issue_inbox.assignment_filter_changed': {
+    assignment_filter: 'me' | 'my_teams' | 'all';
+  };
+  'issue_inbox.issue_viewed': IssueInboxItemParams;
+  'issue_inbox.item_clicked': IssueInboxItemParams;
   'issue_search.empty': {
     query: string;
     search_source: string;
@@ -268,16 +285,6 @@ export type IssueEventParameters = {
     area: string;
     priority: PriorityLevel;
   };
-  'one_other_related_trace_issue.clicked': {
-    area: string;
-    // Equivalent to 'issue_details.related_trace_issue.trace_issue_clicked', but `area` is dynamic.
-    group_id: number;
-  };
-  'project_modal.created': {
-    issue_alert: 'Default' | 'Custom' | 'No Rule';
-    project_id: string;
-    rule_id: string;
-  };
   'quick_trace.connected_services': {
     projects: number;
   };
@@ -341,8 +348,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.view_hierarchy.select_from_wireframe':
     'View Hierarchy: Selection from wireframe',
   'issue_details.issue_status_docs_clicked': 'Issue Details: Issue Status Docs Clicked',
-  'issue_details.related_trace_issue.trace_issue_clicked':
-    'Related Issue: Trace Issue Clicked',
   'issue_error_banner.proguard_misconfigured.displayed':
     'Proguard Potentially Misconfigured Issue Error Banner Displayed',
   'issue_error_banner.proguard_missing_mapping.displayed':
@@ -365,6 +370,9 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_views.star_view': 'Issue Views: Star View',
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',
+  'issue_inbox.assignment_filter_changed': 'Issue Inbox: Assignment Filter Changed',
+  'issue_inbox.issue_viewed': 'Issue Inbox: Issue Viewed',
+  'issue_inbox.item_clicked': 'Issue Inbox: Item Clicked',
   'issues_stream.archived': 'Issues Stream: Archived',
   'issues_stream.updated_priority': 'Issues Stream: Updated Priority',
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',
@@ -375,14 +383,12 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issues_stream.paginate': 'Paginate Issues Stream',
   'issue.shared_publicly': 'Issue Shared Publicly',
   resolve_issue: 'Resolve Issue',
-  'project_modal.created': 'Project Modal: Created',
   'quick_trace.connected_services': 'Quick Trace: Connected Services',
   'quick_trace.trace_id.clicked': 'Quick Trace: Trace ID clicked',
   'settings.inbound_filter_updated': 'Settings: Inbound Filter Updated',
   'issue_group_details.tab.clicked': 'Issue Group Details: Header Tab Clicked',
   'issue_group_details.tags.bar.clicked': 'Issue Group Details: Tags value bar clicked',
   'integrations.integration_reinstall_clicked': 'Integration Reinstall Button Clicked',
-  'one_other_related_trace_issue.clicked': 'One Other Related Trace Issue Clicked',
   'issue_details.view_full_trace_waterfall_clicked':
     ' Issue Details: View Full Trace Waterfall Clicked',
 

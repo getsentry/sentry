@@ -1,5 +1,8 @@
-import {useQuery, type QueryStatus} from '@tanstack/react-query';
-import type {QueryFunctionContext} from '@tanstack/react-query';
+import {
+  useQuery,
+  type QueryStatus,
+  type QueryFunctionContext,
+} from '@tanstack/react-query';
 import * as qs from 'query-string';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -321,24 +324,30 @@ function getTraceMetaTraces(options: UseTraceMetaOptions): TraceMetaTrace[] {
   return Array.isArray(options) ? options : [options];
 }
 
-export function useTraceMeta(options: UseTraceMetaOptions): TraceMetaQueryResults {
+export function useTraceMeta(
+  options: UseTraceMetaOptions,
+  /**
+   * `disableUrlSync` ignores the host page's query string. Waterfalls embedded in another page
+   * (e.g. a Seer response) set this so a host `?statsPeriod=`/`?start=` cannot widen or narrow
+   * the embed's meta window. It is part of the query key so an embed and the surrounding page
+   * can ask about the same trace without sharing a cache entry.
+   */
+  {disableUrlSync = false}: {disableUrlSync?: boolean} = {}
+): TraceMetaQueryResults {
   const filters = usePageFilters();
   const organization = useOrganization();
   const isEAP = useIsEAPTraceEnabled();
   const maxPickableDays = useDefaultMaxPickableDays();
   const traces = getTraceMetaTraces(options);
 
-  const normalizedParams = normalizeDateTimeParams(qs.parse(location.search), {
-    allowAbsolutePageDatetime: true,
-  });
-
-  // demo has the format ${projectSlug}:${eventId}
-  // used to query a demo transaction event from the backend.
-  const mode = decodeScalar(normalizedParams.demo) ? 'demo' : undefined;
+  const normalizedParams = normalizeDateTimeParams(
+    disableUrlSync ? {} : qs.parse(location.search),
+    {allowAbsolutePageDatetime: true}
+  );
 
   // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data, isLoading, status} = useQuery({
-    queryKey: ['traceData', traces.map(trace => trace.traceSlug)],
+    queryKey: ['traceData', traces.map(trace => trace.traceSlug), disableUrlSync],
     queryFn: async context => {
       const result = await fetchTraceMetaInBatches(
         isEAP ? 'eap' : 'non-eap',
@@ -373,43 +382,6 @@ export function useTraceMeta(options: UseTraceMetaOptions): TraceMetaQueryResult
     staleTime: 1000 * 60 * 10,
     enabled: traces.length > 0,
   });
-
-  /**
-   * When projects don't have performance set up, we allow them to view a sample
-   * transaction. The backend creates the sample transaction, however the trace is
-   * created async, so when the page loads, we cannot guarantee that querying the trace
-   * will succeed as it may not have been stored yet. When this happens, we assemble a
-   * fake trace response to only include the transaction that had already been created
-   * and stored already so that the users can visualize in the context of a trace. The
-   * trace meta query has to reflect this by returning a single transaction and project.
-   */
-  if (mode === 'demo') {
-    return {
-      errors: [],
-      status: 'success' as QueryStatus,
-      isLoading: false,
-      data: isEAP
-        ? {
-            errorsCount: 0,
-            logsCount: 0,
-            metricsCount: 0,
-            performanceIssuesCount: 0,
-            spansCount: 0,
-            spansCountMap: {},
-            transactionChildCountMap: {},
-            uptimeCount: 0,
-          }
-        : {
-            errors: 0,
-            performance_issues: 0,
-            projects: 1,
-            transactions: 1,
-            transaction_child_count_map: {},
-            span_count: 0,
-            span_count_map: {},
-          },
-    };
-  }
 
   const allRequestsFailed = data?.apiErrors.length === traces.length;
 

@@ -20,6 +20,14 @@ describe('getRequestErrorUserMessage', () => {
     expect(getRequestErrorUserMessage(err)).toBe('Structured detail');
   });
 
+  it('returns details from an array response when present', () => {
+    const err = new RequestError('POST', '/api/', new Error('x'), {
+      status: 400,
+      responseJSON: [{details: 'Invalid OTP'}],
+    } as ResponseMeta);
+    expect(getRequestErrorUserMessage(err)).toBe('Invalid OTP');
+  });
+
   it('maps 429 to rate-limit copy', () => {
     const err = new RequestError('GET', '/api/', new Error('x'), {
       status: 429,

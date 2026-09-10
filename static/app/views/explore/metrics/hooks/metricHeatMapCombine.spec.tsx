@@ -53,7 +53,7 @@ describe('mergeHeatMapChunks', () => {
     const merged = mergeHeatMapChunks([newest, oldest], {start: 0, end: 3 * HOUR}, HOUR);
 
     const xs = merged.values.map(v => v.xAxis);
-    expect(xs).toEqual([...xs].sort((a, b) => a - b));
+    expect(xs).toEqual(xs.toSorted((a, b) => a - b));
 
     // The loaded cells keep their values at the right coordinates.
     expect(merged.values.find(v => v.xAxis === 0 && v.yAxis === 0)?.zAxis).toBe(1);

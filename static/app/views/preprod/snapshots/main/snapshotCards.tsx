@@ -14,7 +14,6 @@ import {IconFile, IconInfo, IconLink, IconMoon, IconSun, IconWarning} from 'sent
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-// eslint-disable-next-line no-restricted-imports
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import type {ContentVariant} from 'sentry/utils/theme/types';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -106,7 +105,7 @@ export function ErroredBanner() {
   );
 }
 
-export const PairCard = memo(function PairCard({
+export const PairCard = memo(function PairCardImpl({
   pair,
   imageBaseUrl,
   headBranch,
@@ -221,7 +220,7 @@ export const PairCard = memo(function PairCard({
   );
 });
 
-export const ImageCard = memo(function ImageCard({
+export const ImageCard = memo(function ImageCardImpl({
   image,
   cardType,
   copyData,
@@ -307,7 +306,7 @@ export const ImageCard = memo(function ImageCard({
   );
 });
 
-export const CardHeader = memo(function CardHeader({
+export const CardHeader = memo(function CardHeaderImpl({
   displayName,
   fileName,
   tags,
@@ -392,7 +391,7 @@ function MetadataTooltip({json}: {json: string}) {
   );
 }
 
-const METADATA_BLOCKLIST = new Set(['key', 'diff_image_key']);
+const METADATA_BLOCKLIST = new Set(['diff_image_key']);
 
 function MetadataInfoButton({
   copyData,
@@ -414,7 +413,7 @@ function MetadataInfoButton({
       onDoubleClick={e => e.stopPropagation()}
       onClick={e => e.stopPropagation()}
     >
-      <Tooltip title={<MetadataTooltip json={json} />} maxWidth={480} isHoverable>
+      <Tooltip title={<MetadataTooltip json={json} />} maxWidth={480}>
         <InfoIconButton
           type="button"
           aria-label={t('Copy metadata as JSON')}
@@ -440,7 +439,7 @@ const STATUS_VARIANT: Record<DiffStatus, ContentVariant | 'muted' | 'secondary'>
   [DiffStatus.SKIPPED]: 'muted',
 };
 
-const StatusBadge = memo(function StatusBadge({
+const StatusBadge = memo(function StatusBadgeImpl({
   status,
   diffPercent,
 }: {

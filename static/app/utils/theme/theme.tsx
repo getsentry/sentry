@@ -12,9 +12,7 @@ import {css} from '@emotion/react';
 import {spring, type Transition} from 'framer-motion';
 
 import {IS_ACCEPTANCE_TEST, NODE_ENV} from 'sentry/constants/env';
-// eslint-disable-next-line no-restricted-imports
 import {darkTheme as baseDarkTheme} from 'sentry/utils/theme/scraps/theme/dark';
-// eslint-disable-next-line no-restricted-imports
 import {lightTheme as baseLightTheme} from 'sentry/utils/theme/scraps/theme/light';
 import {color} from 'sentry/utils/theme/scraps/tokens/color';
 import {typography} from 'sentry/utils/theme/scraps/tokens/typography';
@@ -196,6 +194,8 @@ const commonTheme = {
     truncationFullValue: 10,
 
     header: 1000,
+    dropdown: 1001,
+    stickyHeader: 1002,
 
     // dashboard widget builder backdrop sits behind the sidebar
     // because it renders on the right next to the sidebar
@@ -203,7 +203,6 @@ const commonTheme = {
     widgetBuilderDrawer: 1016,
 
     sidebarPanel: 1019,
-    dropdown: 1020,
     sidebar: 1020,
 
     // Sentry user feedback modal
@@ -257,7 +256,7 @@ const commonTheme = {
   },
 
   ...typography,
-};
+} as const;
 
 export interface SentryTheme extends Omit<
   typeof lightThemeDefinition,
@@ -876,6 +875,7 @@ declare module '@emotion/react' {
 }
 
 export type StrictCSSObject = {
+  // eslint-disable-next-line eslint-js/no-restricted-syntax
   [K in keyof CSSProperties]?: CSSProperties[K]; // Enforce standard CSS properties
 } & Partial<{
   [key: `&${string}`]: StrictCSSObject; // Allow nested selectors

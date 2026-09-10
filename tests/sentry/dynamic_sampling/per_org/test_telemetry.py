@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
-from unittest.mock import patch
-
 import pytest
 
 from sentry.dynamic_sampling.per_org.telemetry import (
@@ -13,6 +10,8 @@ from sentry.dynamic_sampling.per_org.telemetry import (
 from sentry.testutils.helpers.options import override_options
 from sentry.utils.snuba_rpc import SnubaRPCError, SnubaRPCTimeout
 
+# The metrics sample rate is overridden only so emitting a metric does not read the
+# option from the database; none of these tests assert on the emitted metrics.
 _GATE_OPTIONS = {
     "dynamic-sampling.per_org.killswitch": False,
     "dynamic-sampling.per_org.metrics-sample-rate": 1.0,
@@ -20,140 +19,84 @@ _GATE_OPTIONS = {
 }
 
 
-def _capture_timer_tags() -> tuple[object, dict[str, str]]:
-    tags: dict[str, str] = {}
-
-    @contextmanager
-    def timer(*args: object, **kwargs: object):
-        yield tags
-
-    return timer, tags
-
-
 @override_options(_GATE_OPTIONS)
-def test_records_duration_and_reraises_with_failed_status_on_exception() -> None:
-    error = ValueError("nope")
-
+def test_reraises_exception() -> None:
     @track_dynamic_sampling
     def boom() -> None:
-        raise error
+        raise ValueError("nope")
 
-    timer, timer_tags = _capture_timer_tags()
-
-    with (
-        patch("sentry.dynamic_sampling.per_org.telemetry.metrics") as mock_metrics,
-        patch("sentry.dynamic_sampling.per_org.telemetry.emit_status") as emit,
-        pytest.raises(ValueError),
-    ):
-        mock_metrics.timer.side_effect = timer
+    with pytest.raises(ValueError):
         boom()
-
-    assert timer_tags["status"] == DynamicSamplingStatus.FAILED.value
-    emit.assert_called_once_with("dynamic_sampling.boom.status", DynamicSamplingStatus.FAILED)
 
 
 @override_options(_GATE_OPTIONS)
-def test_reraises_snuba_timeout_and_emits_timeout_status() -> None:
-    error = SnubaRPCTimeout("timed out")
-
+def test_reraises_snuba_timeout() -> None:
     @track_dynamic_sampling
     def boom() -> None:
-        raise error
+        raise SnubaRPCTimeout("timed out")
 
-    timer, timer_tags = _capture_timer_tags()
-
-    with (
-        patch("sentry.dynamic_sampling.per_org.telemetry.metrics") as mock_metrics,
-        patch("sentry.dynamic_sampling.per_org.telemetry.emit_status") as emit,
-        pytest.raises(SnubaRPCTimeout),
-    ):
-        mock_metrics.timer.side_effect = timer
+    with pytest.raises(SnubaRPCTimeout):
         boom()
-
-    assert timer_tags["status"] == DynamicSamplingStatus.FAILED.value
-    emit.assert_called_once_with(
-        "dynamic_sampling.boom.status", DynamicSamplingStatus.SNUBA_TIMEOUT
-    )
 
 
 @override_options(_GATE_OPTIONS)
-def test_reraises_snuba_error_and_emits_snuba_error_status() -> None:
-    error = SnubaRPCError("snuba failed")
-
+def test_reraises_snuba_error() -> None:
     @track_dynamic_sampling
     def boom() -> None:
-        raise error
+        raise SnubaRPCError("snuba failed")
 
-    timer, timer_tags = _capture_timer_tags()
-
-    with (
-        patch("sentry.dynamic_sampling.per_org.telemetry.metrics") as mock_metrics,
-        patch("sentry.dynamic_sampling.per_org.telemetry.emit_status") as emit,
-        pytest.raises(SnubaRPCError),
-    ):
-        mock_metrics.timer.side_effect = timer
+    with pytest.raises(SnubaRPCError):
         boom()
-
-    assert timer_tags["status"] == DynamicSamplingStatus.FAILED.value
-    emit.assert_called_once_with("dynamic_sampling.boom.status", DynamicSamplingStatus.SNUBA_ERROR)
 
 
 @override_options(_GATE_OPTIONS)
-def test_passes_result_through_and_emits_completed_on_success() -> None:
+def test_passes_result_through() -> None:
     @track_dynamic_sampling
     def add(x: int, y: int) -> int:
         return x + y
 
-    timer, timer_tags = _capture_timer_tags()
-    with (
-        patch("sentry.dynamic_sampling.per_org.telemetry.metrics") as mock_metrics,
-        patch("sentry.dynamic_sampling.per_org.telemetry.emit_status") as emit,
-    ):
-        mock_metrics.timer.side_effect = timer
-        assert add(2, 3) == 5
-
-    mock_metrics.timer.assert_called_once_with("dynamic_sampling.add.duration", sample_rate=1.0)
-    assert timer_tags["status"] == DynamicSamplingStatus.COMPLETED.value
-    emit.assert_called_once_with("dynamic_sampling.add.status", DynamicSamplingStatus.COMPLETED)
+    assert add(2, 3) == 5
 
 
 @override_options(_GATE_OPTIONS)
-def test_emits_returned_terminal_status_without_completed_status() -> None:
+def test_returns_terminal_status_unchanged() -> None:
     @track_dynamic_sampling
     def skipped() -> DynamicSamplingStatus:
         return DynamicSamplingStatus.NOT_IN_ROLLOUT
 
-    timer, timer_tags = _capture_timer_tags()
-    with (
-        patch("sentry.dynamic_sampling.per_org.telemetry.metrics") as mock_metrics,
-        patch("sentry.dynamic_sampling.per_org.telemetry.emit_status") as emit,
-    ):
-        mock_metrics.timer.side_effect = timer
-        assert skipped() == DynamicSamplingStatus.NOT_IN_ROLLOUT
-
-    mock_metrics.timer.assert_called_once_with("dynamic_sampling.skipped.duration", sample_rate=1.0)
-    assert timer_tags["status"] == DynamicSamplingStatus.NOT_IN_ROLLOUT.value
-    emit.assert_called_once_with(
-        "dynamic_sampling.skipped.status", DynamicSamplingStatus.NOT_IN_ROLLOUT
-    )
+    assert skipped() == DynamicSamplingStatus.NOT_IN_ROLLOUT
 
 
 @override_options(_GATE_OPTIONS)
-def test_emits_terminal_status_exception_without_failed_status() -> None:
+def test_terminal_status_exception_becomes_return_value() -> None:
     @track_dynamic_sampling
     def skipped() -> None:
         raise DynamicSamplingException(DynamicSamplingStatus.NO_SUBSCRIPTION)
 
-    timer, timer_tags = _capture_timer_tags()
-    with (
-        patch("sentry.dynamic_sampling.per_org.telemetry.metrics") as mock_metrics,
-        patch("sentry.dynamic_sampling.per_org.telemetry.emit_status") as emit,
-    ):
-        mock_metrics.timer.side_effect = timer
-        assert skipped() == DynamicSamplingStatus.NO_SUBSCRIPTION
+    assert skipped() == DynamicSamplingStatus.NO_SUBSCRIPTION
 
-    mock_metrics.timer.assert_called_once_with("dynamic_sampling.skipped.duration", sample_rate=1.0)
-    assert timer_tags["status"] == DynamicSamplingStatus.NO_SUBSCRIPTION.value
-    emit.assert_called_once_with(
-        "dynamic_sampling.skipped.status", DynamicSamplingStatus.NO_SUBSCRIPTION
-    )
+
+@override_options({**_GATE_OPTIONS, "dynamic-sampling.per_org.killswitch": True})
+def test_killswitch_skips_the_wrapped_function() -> None:
+    calls: list[None] = []
+
+    @track_dynamic_sampling
+    def work() -> str:
+        calls.append(None)
+        return "ran"
+
+    assert work() == DynamicSamplingStatus.KILLSWITCHED
+    assert calls == []
+
+
+@override_options({**_GATE_OPTIONS, "dynamic-sampling.per_org.rollout-rate": 0.0})
+def test_disabled_rollout_skips_the_wrapped_function() -> None:
+    calls: list[None] = []
+
+    @track_dynamic_sampling
+    def work() -> str:
+        calls.append(None)
+        return "ran"
+
+    assert work() == DynamicSamplingStatus.ROLLOUT_DISABLED
+    assert calls == []

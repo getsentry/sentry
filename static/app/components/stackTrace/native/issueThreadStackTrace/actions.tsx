@@ -60,7 +60,7 @@ export function IssueThreadStackTraceActions() {
 
               return displayRawContent({
                 data: stacktraceData,
-                platform: stacktraceData.frames?.[0]?.platform ?? platform,
+                platform: stacktraceData?.frames?.[0]?.platform ?? platform,
                 exception: exc,
                 isMinified,
               });
@@ -80,9 +80,6 @@ export function IssueThreadStackTraceActions() {
         displayRawContent({
           data: stacktraceData,
           platform: stacktraceData.frames?.[0]?.platform ?? platform,
-          hasSimilarityEmbeddingsFeature: false,
-          includeLocation: true,
-          rawTrace: true,
           isMinified,
         })
       );

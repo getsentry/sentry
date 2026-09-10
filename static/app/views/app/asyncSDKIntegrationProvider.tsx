@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {createContext, useContext, useState} from 'react';
 import type {addIntegration} from '@sentry/react';
 

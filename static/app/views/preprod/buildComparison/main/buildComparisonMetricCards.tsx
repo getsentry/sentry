@@ -133,7 +133,6 @@ export function BuildComparisonMetricCards(props: BuildComparisonMetricCardsProp
                           value={metric.percentageChange}
                           minimumValue={0.001}
                           preferredPolarity="-"
-                          colorize
                         />
                         {')'}
                       </Text>

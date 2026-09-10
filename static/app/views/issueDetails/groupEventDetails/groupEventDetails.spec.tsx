@@ -191,16 +191,6 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
-    body: {committers: []},
-  });
-
-  MockApiClient.addMockResponse({
-    url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`,
-    body: {owners: [], rules: []},
-  });
-
-  MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
     body: [],
   });
@@ -229,7 +219,7 @@ const mockGroupApis = (
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/prompts-activity/`,
-    body: {data: {}, features: {['issue_feedback_hidden']: {}}},
+    body: {data: {}, features: {issue_feedback_hidden: {}}},
   });
 
   MockApiClient.addMockResponse({

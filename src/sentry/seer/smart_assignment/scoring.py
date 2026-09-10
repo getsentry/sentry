@@ -5,7 +5,7 @@ from typing import TypedDict
 
 from django.db import router, transaction
 
-from sentry.models.activity import Activity, ActivityIntegration
+from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -14,6 +14,7 @@ from sentry.seer.smart_assignment.models import (
     RESOLUTION_ACTIVITIES,
     SEER_FEATURE_ID,
     SmartAssignmentScore,
+    is_unscorable_assignment,
 )
 from sentry.seer.utils import latest_run_for_group
 from sentry.types.activity import ActivityType
@@ -30,14 +31,25 @@ class RunUpdates(TypedDict, total=False):
     """The mirrored fields we write onto a run's ``extras`` before scoring."""
 
     predicted_assignee_user_ids: list[int | None]
+    selected_assignee_user_id: int | None
     actual_assignee_user_id: int | None
     actual_assignee_team_id: int | None
     ground_truth_source: str
 
 
-def record_prediction(run: SeerAgentRun, predicted_assignee_user_ids: list[int | None]) -> None:
+def record_prediction(
+    run: SeerAgentRun,
+    predicted_assignee_user_ids: list[int | None],
+    selected_assignee_user_id: int | None,
+) -> None:
     """Record the predicted assignee user IDs on the run."""
-    _apply(run.id, {"predicted_assignee_user_ids": predicted_assignee_user_ids})
+    _apply(
+        run.id,
+        {
+            "predicted_assignee_user_ids": predicted_assignee_user_ids,
+            "selected_assignee_user_id": selected_assignee_user_id,
+        },
+    )
 
 
 def record_ground_truth(
@@ -92,14 +104,14 @@ def _ground_truth_updates(
     """Build the ground-truth mirror updates for an activity, or ``None`` when it
     carries no useful signal.
 
-    For an assignment we mirror the current assignee (user and/or team), unless it is
-    our own auto-assignment (tagged with the ``SEER_SUGGESTED`` integration by
-    ProjectOwnership.handle_auto_assignment, which would score us against ourselves).
+    For any activity we mirror the current assignee (user and/or team), unless it is
+    from a source in ``UNSCORABLE_ASSIGNMENT_ORIGINS``.
     For a user-driven resolution we record the resolver as the assumed assignee only
     when no explicit assignee has been recorded -- an assignment is better truth.
     """
-    if activity_type == ActivityType.ASSIGNED:
-        return _assignment_updates(group)
+    assignment = _assignment_updates(group)
+    if assignment is not None:
+        return assignment
     if activity_type in RESOLUTION_ACTIVITIES:
         resolver_id = resolver_user_id(activity)
         if resolver_id is None:
@@ -113,11 +125,6 @@ def _ground_truth_updates(
             # A prior team assignee is treated as enough truth, so we drop the
             # resolver. (Could go the other way: merge the resolver in as the user.)
             return None
-        # The assignment may never have been mirrored onto the run, so fall back to
-        # the resolver only when the group truly has no assignee.
-        assignment = _assignment_updates(group)
-        if assignment is not None:
-            return assignment
         return {
             "actual_assignee_user_id": resolver_id,
             "ground_truth_source": activity_type.name,
@@ -127,12 +134,12 @@ def _ground_truth_updates(
 
 def _assignment_updates(group: Group) -> RunUpdates | None:
     """Mirror the current assignee (user and/or team), or ``None`` when the group has
-    no assignee or the assignment is our own auto-assignment.
+    no assignee or the assignment is one we can't grade a prediction against.
     """
     assignee = GroupAssignee.objects.filter(group=group).first()
     if assignee is None:
         return None
-    if _is_seer_auto_assignment(group):
+    if _has_unscorable_assignment(group):
         return None
     return {
         "actual_assignee_user_id": assignee.user_id,
@@ -141,20 +148,17 @@ def _assignment_updates(group: Group) -> RunUpdates | None:
     }
 
 
-def _is_seer_auto_assignment(group: Group) -> bool:
-    """Whether the group's current assignment came from our own auto-assignment,
-    determined by the most recent ``ASSIGNED`` activity being tagged with the
-    ``SEER_SUGGESTED`` integration."""
-    latest_assignment = (
+def _has_unscorable_assignment(group: Group) -> bool:
+    """Whether the group's current assignment came from a source we can't grade a
+    prediction against. The latest ASSIGNED activity always represents the current assignment,
+    and its ``integration`` indicates if it came from a human or not.
+    """
+    return is_unscorable_assignment(
         Activity.objects.filter(group=group, type=ActivityType.ASSIGNED.value)
-        .order_by("-datetime")
+        # ``id`` breaks ties so same-timestamp activities resolve to the one written last.
+        .order_by("-datetime", "-id")
         .first()
     )
-    if latest_assignment is None:
-        return False
-    return (latest_assignment.data or {}).get(
-        "integration"
-    ) == ActivityIntegration.SEER_SUGGESTED.value
 
 
 def _apply(run_id: int, updates: RunUpdates) -> bool:
@@ -173,11 +177,19 @@ def _apply(run_id: int, updates: RunUpdates) -> bool:
             # ground-truth updates would drift the mirrored fields away from what we
             # actually scored against, leaving `result`/`hit_rank` inconsistent.
             return False
+        if all(key in extras and extras[key] == value for key, value in updates.items()):
+            # The "update" would be a no-op.
+            return False
         extras.update(updates)
         # Score the prediction against the ground truth if it's already landed.
+        predicted_user_ids = extras.get("predicted_assignee_user_ids") or []
         result, hit_rank = _score(
             run.run.organization_id,
-            predicted_user_ids=extras.get("predicted_assignee_user_ids") or [],
+            predicted_user_ids=predicted_user_ids,
+            selected_user_id=extras.get(
+                "selected_assignee_user_id",
+                next((user_id for user_id in predicted_user_ids if user_id is not None), None),
+            ),
             actual_user_id=extras.get("actual_assignee_user_id"),
             actual_team_id=extras.get("actual_assignee_team_id"),
         )
@@ -204,14 +216,18 @@ def _apply(run_id: int, updates: RunUpdates) -> bool:
 def _score(
     organization_id: int,
     predicted_user_ids: list[int | None],
+    selected_user_id: int | None,
     actual_user_id: int | None,
     actual_team_id: int | None,
 ) -> tuple[SmartAssignmentScore | None, int | None]:
     """Score the prediction against the ground truth if we have both.
-    The top-predicted user is scored with EXACT if it's a match, TEAM if the prediction shares
-    a team with the ground truth, or MISS otherwise (including when we couldn't resolve the prediction to an org user).
+    The selected user is scored with EXACT if it's a match, TEAM if the issue went to a
+    team the selected user belongs to, SHARED_TEAM if the selected user shares a team with
+    the actual assignee, or MISS otherwise (including when we couldn't resolve any
+    candidate to an org user).
     hit_rank records the rank of the top-predicted user that matched the ground truth,
-    so we can track how often #2 or #3 was correct too.
+    so we can track how often #2 or #3 was correct too. It is the rank as delivered, so a
+    selected user found at #2 scores exact at rank 2.
     """
     if not predicted_user_ids:
         # No prediction; do nothing.
@@ -228,15 +244,13 @@ def _score(
                 hit_rank = rank
                 break
 
-    # A top pick we couldn't resolve to an org user (None) can't be EXACT or TEAM, so
-    # it's a miss -- but a lower-ranked candidate may still have named the assignee,
-    # which `hit_rank` records.
-    predicted_user_id = predicted_user_ids[0]
-    if predicted_user_id is not None:
-        if predicted_user_id == actual_user_id:
+    if selected_user_id is not None:
+        if selected_user_id == actual_user_id:
             return SmartAssignmentScore.EXACT, hit_rank
-        if _is_team_match(organization_id, predicted_user_id, actual_user_id, actual_team_id):
-            return SmartAssignmentScore.TEAM, hit_rank
+        if _is_team_match(organization_id, selected_user_id, actual_user_id, actual_team_id):
+            if actual_team_id is not None:
+                return SmartAssignmentScore.TEAM, hit_rank
+            return SmartAssignmentScore.SHARED_TEAM, hit_rank
     return SmartAssignmentScore.MISS, hit_rank
 
 

@@ -1,6 +1,21 @@
 import enum
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlparse
+
+
+def http_url_or_none(value: object) -> str | None:
+    """The value only if it is an http(s) URL, else None. Guards attacker-set
+    check URLs (e.g. javascript:) from reaching a rendered anchor href."""
+    if not isinstance(value, str):
+        return None
+    try:
+        scheme = urlparse(value).scheme
+    except ValueError:
+        return None
+    return value if scheme in ("http", "https") else None
 
 
 class StatusCheckStatus(str, enum.Enum):
@@ -27,3 +42,75 @@ class StatusCheckClient(ABC):
     @abstractmethod
     def get_check_runs(self, repo: str, sha: str) -> Any:
         raise NotImplementedError
+
+
+class AggregateChecksStatus(enum.StrEnum):
+    """
+    The provider's roll-up of every check on a pull request into one state.
+    StatusCheckStatus above is the state of a single check Sentry writes; this is
+    every check read back.
+
+    A repository without CI has no state at all rather than a member here, so
+    that it does not read as perpetually pending.
+    """
+
+    SUCCESS = "success"
+    FAILURE = "failure"
+    PENDING = "pending"
+
+
+class AggregateReviewStatus(enum.StrEnum):
+    """The provider's effective review decision for a pull request."""
+
+    APPROVED = "approved"
+    CHANGES_REQUESTED = "changes_requested"
+    REVIEW_REQUIRED = "review_required"
+
+
+@dataclass(frozen=True)
+class PullRequestFileSummary:
+    """One changed file, without its contents."""
+
+    path: str
+    additions: int
+    deletions: int
+    change_type: str
+
+
+@dataclass(frozen=True)
+class FailedCheck:
+    """A failing check on a pull request, with a link to its run when the provider gives one.
+
+    url must be sanitized with http_url_or_none by the caller before construction."""
+
+    name: str
+    url: str | None = None
+
+
+@dataclass(frozen=True)
+class PullRequestStatusResult:
+    """A pull request's checks and review state, as far as the provider reports it."""
+
+    checks: AggregateChecksStatus | None = None
+    review: AggregateReviewStatus | None = None
+    files: tuple[PullRequestFileSummary, ...] = ()
+    failed_checks: tuple[FailedCheck, ...] = ()
+
+
+@dataclass(frozen=True)
+class PullRequestStatusRequest:
+    repo: str
+    pull_number: str
+    include_files: bool = False
+
+
+class PullRequestStatusClient(ABC):
+    @abstractmethod
+    def get_pull_request_statuses(
+        self, pull_requests: Sequence[PullRequestStatusRequest]
+    ) -> dict[PullRequestStatusRequest, PullRequestStatusResult]:
+        raise NotImplementedError
+
+    def get_pull_request_status(self, repo: str, pull_number: str) -> PullRequestStatusResult:
+        request = PullRequestStatusRequest(repo=repo, pull_number=pull_number)
+        return self.get_pull_request_statuses([request]).get(request, PullRequestStatusResult())

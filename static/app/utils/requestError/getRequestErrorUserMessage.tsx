@@ -4,6 +4,24 @@ import {RequestError} from './requestError';
 
 const DEFAULT_FALLBACK = t('Something went wrong. Please try again.');
 
+function getResponseDetail(responseJSON: unknown): unknown {
+  const response = Array.isArray(responseJSON) ? responseJSON[0] : responseJSON;
+
+  if (!response || typeof response !== 'object') {
+    return undefined;
+  }
+
+  if ('detail' in response) {
+    return response.detail;
+  }
+
+  if ('details' in response) {
+    return response.details;
+  }
+
+  return undefined;
+}
+
 /**
  * User-facing copy for failed API requests. Prefer server `detail` when present,
  * otherwise map common HTTP statuses to friendly text.
@@ -19,7 +37,7 @@ export function getRequestErrorUserMessage(
     return fallback;
   }
 
-  const detail = err.responseJSON?.detail;
+  const detail = getResponseDetail(err.responseJSON);
   if (typeof detail === 'string' && detail.trim()) {
     return detail;
   }

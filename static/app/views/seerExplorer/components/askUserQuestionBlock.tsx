@@ -17,21 +17,13 @@ interface AskUserQuestionBlockProps {
   onSelectOption: (index: number) => void;
   questionIndex: number;
   selectedOption: number;
-  isFocused?: boolean;
-  onClick?: () => void;
-  onMouseEnter?: () => void;
-  onMouseLeave?: () => void;
 }
 
 export function AskUserQuestionBlock({
   currentQuestion,
   customText,
-  isFocused,
   isOtherSelected,
-  onClick,
   onCustomTextChange,
-  onMouseEnter,
-  onMouseLeave,
   onSelectOption,
   questionIndex,
   selectedOption,
@@ -54,12 +46,7 @@ export function AskUserQuestionBlock({
   };
 
   return (
-    <Block
-      isFocused={isFocused}
-      onClick={onClick}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-    >
+    <Block>
       <AnimatePresence>
         <motion.div
           initial={{opacity: 0, y: 10}}
@@ -136,15 +123,12 @@ export function AskUserQuestionBlock({
   );
 }
 
-const Block = styled('div')<{isFocused?: boolean}>`
+const Block = styled('div')`
   width: 100%;
   position: relative;
   flex-shrink: 0;
   cursor: pointer;
-  background: ${p =>
-    p.isFocused
-      ? p.theme.tokens.interactive.transparent.neutral.background.active
-      : 'transparent'};
+  background: transparent;
 `;
 
 const BlockContentWrapper = styled('div')`

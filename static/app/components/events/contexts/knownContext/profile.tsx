@@ -20,8 +20,8 @@ export function getProfileContextData({
   meta,
 }: {
   data: ProfileContext;
-  event: Event;
   organization: Organization;
+  event?: Event;
   meta?: Record<keyof ProfileContext, any>;
   project?: Project;
 }): KeyValueListData {
@@ -72,7 +72,7 @@ function getProfileIdEntry(
 
 function getProfilerIdEntry(
   data: ProfileContext,
-  event: Event,
+  event: Event | undefined,
   organization: Organization,
   project?: Project
 ) {
@@ -82,7 +82,7 @@ function getProfilerIdEntry(
   }
   const [start, end] = getStartEnd(event);
   const link =
-    project?.slug && start && end
+    event && project?.slug && start && end
       ? generateContinuousProfileFlamechartRouteWithQuery({
           organization,
           projectSlug: project.slug,
@@ -102,8 +102,8 @@ function getProfilerIdEntry(
   };
 }
 
-function getStartEnd(event: any): [string | null, string | null] {
-  if (!isTransaction(event)) {
+function getStartEnd(event: Event | undefined): [string | null, string | null] {
+  if (!event || !isTransaction(event)) {
     return [null, null];
   }
 

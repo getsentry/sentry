@@ -2,7 +2,6 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-// eslint-disable-next-line boundaries/dependencies
 import {TeamAvatar} from './teamAvatar';
 
 describe('TeamAvatar', () => {

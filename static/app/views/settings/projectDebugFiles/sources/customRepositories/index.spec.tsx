@@ -37,7 +37,6 @@ function getProps(props?: Parameters<typeof initializeOrg>[0]) {
   });
 
   return {
-    api: new MockApiClient(),
     organization,
     project,
     location: LocationFixture(props?.router?.location),

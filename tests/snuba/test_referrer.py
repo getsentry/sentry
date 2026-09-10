@@ -46,6 +46,12 @@ class ReferrerTest(TestCase):
         assert warn_log.call_count == 2
 
     @patch("sentry.snuba.referrer.logger.warning")
+    def test_referrer_validate_registered_dynamic_queries(self, warn_log: MagicMock) -> None:
+        assert validate_referrer("api.auth-token.events.find-topn")
+        assert validate_referrer("api.metrics.series")
+        assert warn_log.call_count == 0
+
+    @patch("sentry.snuba.referrer.logger.warning")
     def test_referrer_validate_tsdb_models(self, warn_log: MagicMock) -> None:
         assert warn_log.call_count == 0
         for model in TSDBModel:

@@ -176,10 +176,10 @@ export function useSearchTokenCombobox<T>(
       onKeyDown: isReadOnly
         ? props.onKeyDown
         : chain(state.isOpen && collectionProps.onKeyDown, onKeyDown, props.onKeyDown),
-      onBlur: onBlur as (e: FocusEvent) => void,
+      onBlur,
       value: state.inputValue,
       defaultValue: state.defaultInputValue,
-      onFocus: onFocus as (e: FocusEvent) => void,
+      onFocus,
       autoComplete: 'off',
       validate: undefined,
       [privateValidationStateProp]: state,
@@ -243,7 +243,7 @@ export function useSearchTokenCombobox<T>(
       shouldSelectOnPressUp: true,
       shouldFocusOnHover: true,
       linkBehavior: 'selection' as const,
-      ['UNSTABLE_itemBehavior']: 'action',
+      UNSTABLE_itemBehavior: 'action',
     }),
   };
 }

@@ -69,6 +69,14 @@ jest.mock('lodash/debounce', () =>
     return fn;
   })
 );
+// Keep callback and value debounces synchronous by default in tests. Suites that
+// assert scheduling behavior can load the real Pacer implementations explicitly.
+jest.mock('@tanstack/react-pacer', () => ({
+  ...jest.requireActual('@tanstack/react-pacer'),
+  useAsyncDebouncedCallback: <TFn>(fn: TFn) => fn,
+  useDebouncedCallback: <TFn>(fn: TFn) => fn,
+  useDebouncedValue: <T>(value: T) => [value] as const,
+}));
 jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
 jest
@@ -308,7 +316,7 @@ declare global {
 }
 
 // needed by cbor-web for webauthn
-window.TextEncoder = TextEncoder as typeof window.TextEncoder;
+window.TextEncoder = TextEncoder;
 window.TextDecoder = TextDecoder as typeof window.TextDecoder;
 
 // This is so we can use async/await in tests instead of wrapping with `setTimeout`.
@@ -408,7 +416,6 @@ if (globalThis.setImmediate === undefined) {
  */
 const FLAKY_RERUN_COUNT = 50;
 
-/* eslint-disable jest/valid-title */
 it.isKnownFlake = function isKnownFlake(
   name: string,
   fn: jest.ProvidesCallback,
@@ -425,4 +432,3 @@ it.isKnownFlake = function isKnownFlake(
     }
   });
 };
-/* eslint-enable jest/valid-title */

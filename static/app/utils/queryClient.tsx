@@ -1,7 +1,6 @@
 import type {
   QueryClient,
   QueryClientConfig,
-  SetDataOptions,
   Updater,
   UseQueryOptions,
   UseQueryResult,
@@ -122,8 +121,7 @@ export function getApiQueryData<TResponseData>(
 export function setApiQueryData<TResponseData>(
   queryClient: QueryClient,
   queryKey: ApiQueryKey,
-  updater: Updater<TResponseData | undefined, TResponseData | undefined>,
-  options?: SetDataOptions
+  updater: Updater<TResponseData | undefined, TResponseData | undefined>
 ): TResponseData | undefined {
   // eslint-disable-next-line @sentry/no-query-data-type-parameters
   const updateResult = queryClient.setQueryData<ApiResponse<TResponseData>>(
@@ -139,15 +137,14 @@ export function setApiQueryData<TResponseData>(
         return previous;
       }
       return {json: newData, headers: previous?.headers ?? {}};
-    },
-    options
+    }
   );
 
   return updateResult?.json;
 }
 
 type ApiMutationVariables = {
-  method: 'PUT' | 'POST' | 'DELETE';
+  method: 'PUT' | 'POST' | 'PATCH' | 'DELETE';
   url: string;
   data?: Record<string, unknown>;
   options?: Pick<

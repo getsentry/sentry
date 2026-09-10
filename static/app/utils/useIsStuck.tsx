@@ -7,11 +7,21 @@ interface Options {
 
 /**
  * Determine if a element with `position: sticky` is currently stuck.
+ *
+ * Accepts a ref object rather than `ref.current` so the element is read
+ * inside the effect, after React has attached the ref during commit —
+ * reading `ref.current` at render time would only ever see the value from
+ * the previous render (`null` on mount) since attaching a ref doesn't
+ * schedule a re-render.
  */
-export function useIsStuck(el: HTMLElement | null, options: Options = {}) {
+export function useIsStuck(
+  ref: React.RefObject<HTMLElement | null>,
+  options: Options = {}
+) {
   const [isStuck, setIsStuck] = useState(false);
 
   useEffect(() => {
+    const el = ref.current;
     if (el === null) {
       return () => {};
     }
@@ -30,7 +40,7 @@ export function useIsStuck(el: HTMLElement | null, options: Options = {}) {
     observer.observe(el);
 
     return () => observer.disconnect();
-  }, [el, options.position, options.offset]);
+  }, [ref, options.position, options.offset]);
 
   return isStuck;
 }

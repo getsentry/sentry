@@ -414,6 +414,10 @@ class ActivityNotificationTest(APITestCase):
             == f"Release {version_parsed} was deployed to {self.environment.name} for this project"
         )
         notification_uuid = get_notification_uuid(url)
+        assert (
+            f'href="http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={self.project.id}&amp;referrer=release_activity&amp;notification_uuid={notification_uuid}"'
+            in msg.alternatives[0][0]
+        )
         assert url == (
             f"http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={self.project.id}&unselectedSeries=Healthy&referrer=release_activity&notification_uuid={notification_uuid}"
         )

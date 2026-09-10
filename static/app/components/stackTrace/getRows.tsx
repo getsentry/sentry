@@ -203,5 +203,5 @@ export function getRows({
     rows = rows.slice(-maxDepth);
   }
 
-  return newestFirst ? [...rows].reverse() : rows;
+  return newestFirst ? rows.toReversed() : rows;
 }

@@ -10,8 +10,7 @@ from __future__ import annotations
 import logging
 import re
 import time
-from collections.abc import Callable, Mapping
-from datetime import datetime
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any, NotRequired, TypedDict
 
 import orjson
@@ -62,6 +61,33 @@ class AgentStateRequest(TypedDict):
     organization_id: int
 
 
+class RunsByIdsRequest(TypedDict):
+    run_ids: list[int]
+
+
+class UserOrgContextTeam(TypedDict):
+    id: int
+    slug: str
+
+
+class UserOrgContextProject(TypedDict):
+    id: int
+    slug: str
+    repos: list[dict[str, Any]]
+
+
+class UserOrgContext(TypedDict):
+    org_slug: str
+    user_id: NotRequired[int]
+    user_ip: NotRequired[str | None]
+    user_name: NotRequired[str | None]
+    user_email: NotRequired[str | None]
+    user_timezone: NotRequired[str | None]
+    user_teams: NotRequired[list[UserOrgContextTeam]]
+    user_projects: NotRequired[list[UserOrgContextProject]]
+    all_org_projects: NotRequired[list[UserOrgContextProject]]
+
+
 class AgentChatRequest(TypedDict):
     organization_id: int
     query: str
@@ -70,7 +96,9 @@ class AgentChatRequest(TypedDict):
     on_page_context: str | None
     external_idempotency_key: NotRequired[str]
     page_name: NotRequired[str | None]
-    user_org_context: NotRequired[dict[str, Any] | None]
+    page_location: NotRequired[dict[str, Any] | None]
+    sent_at: NotRequired[list[str] | None]
+    user_org_context: NotRequired[UserOrgContext | None]
     intelligence_level: NotRequired[str]
     reasoning_effort: NotRequired[str]
     is_interactive: NotRequired[bool]
@@ -91,20 +119,6 @@ class AgentChatRequest(TypedDict):
     available_monitoring_providers: NotRequired[list[dict[str, Any]]]
 
 
-class AgentRunsRequest(TypedDict):
-    organization_id: int
-    user_id: NotRequired[int]
-    category_key: NotRequired[str]
-    category_value: NotRequired[str]
-    offset: NotRequired[int]
-    project_ids: NotRequired[list[int]]
-    limit: NotRequired[int]
-    expand: NotRequired[str]
-    start: NotRequired[datetime]
-    end: NotRequired[datetime]
-    query: NotRequired[str]
-
-
 class AgentUpdateRequest(TypedDict):
     run_id: int
     organization_id: int
@@ -117,12 +131,23 @@ class AgentPrStateRequest(TypedDict):
     pr_id: int
 
 
-class SeerFeatureRunRequest(TypedDict):
-    """The feature-run body as enqueued onto the SEER_RUN_CREATE outbox."""
+class AgentRunOptions(TypedDict):
+    enable_frontend_code_search: NotRequired[bool | None]
+    is_context_engine_enabled: NotRequired[bool]
+    enable_bash_mode: NotRequired[bool]
+    enable_coding: NotRequired[bool]
+    enable_tool_summary: NotRequired[bool]
+    embed_widgets: NotRequired[list[dict[str, Any]] | None]
+    enable_streaming: NotRequired[bool]
+    is_agentic_triage_sort: NotRequired[bool]
 
+
+class SeerFeatureRunRequest(TypedDict):
     feature_id: str
     payload: dict[str, Any]
-    agent_run_options: NotRequired[dict[str, Any]]
+    agent_run_options: NotRequired[AgentRunOptions]
+    user_org_context: NotRequired[UserOrgContext]
+    referrer: str
 
 
 class SeerFeatureRunWireRequest(SeerFeatureRunRequest):
@@ -150,6 +175,19 @@ def make_agent_state_request(
     )
 
 
+def make_runs_by_ids_request(
+    body: RunsByIdsRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or agent_connection_pool,
+        "/v1/automation/explorer/runs/by-ids",
+        body=orjson.dumps(body),
+        viewer_context=viewer_context,
+    )
+
+
 def make_agent_repos_request(
     body: AgentReposRequest,
     connection_pool: HTTPConnectionPool | None = None,
@@ -171,19 +209,6 @@ def make_agent_chat_request(
     return make_signed_seer_api_request(
         connection_pool or agent_connection_pool,
         "/v1/automation/explorer/chat",
-        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
-        viewer_context=viewer_context,
-    )
-
-
-def make_agent_runs_request(
-    body: AgentRunsRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or agent_connection_pool,
-        "/v1/automation/explorer/runs",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
     )
@@ -376,7 +401,7 @@ def collect_user_org_context(
     user: SentryUser | RpcUser | AnonymousUser | None,
     organization: Organization,
     request: Request | None = None,
-) -> dict[str, Any]:
+) -> UserOrgContext:
     """Collect user and organization context for a new agent run."""
     all_projects = Project.objects.filter(
         organization=organization, status=ObjectStatus.ACTIVE
@@ -389,7 +414,7 @@ def collect_user_org_context(
         str(pid): [repo.dict() for repo in pref.repositories] for pid, pref in prefs_by_pid.items()
     }
 
-    all_org_projects = [
+    all_org_projects: list[UserOrgContextProject] = [
         {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
         for p in all_projects
     ]
@@ -416,7 +441,9 @@ def collect_user_org_context(
             "org_slug": organization.slug,
             "all_org_projects": all_org_projects,
         }
-    user_teams = [{"id": t.id, "slug": t.slug} for t in member.get_teams()]
+    user_teams: list[UserOrgContextTeam] = [
+        {"id": t.id, "slug": t.slug} for t in member.get_teams()
+    ]
     my_projects = (
         Project.objects.filter(
             organization=organization,
@@ -426,7 +453,7 @@ def collect_user_org_context(
         .distinct()
         .values("id", "slug")
     )
-    user_projects = [
+    user_projects: list[UserOrgContextProject] = [
         {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
         for p in my_projects
     ]
@@ -498,6 +525,33 @@ def fetch_run_status(
         raise ValueError(f"No session found for run_id {run_id}")
 
     return SeerRunState(**session)
+
+
+def fetch_run_statuses(
+    run_state_ids: Sequence[int],
+    organization: Organization,
+    viewer_context: SeerViewerContext | None = None,
+) -> dict[int, str]:
+    """Batch-fetch live Explorer run statuses. Best-effort: returns {} on failure."""
+    if not run_state_ids:
+        return {}
+    try:
+        response = make_runs_by_ids_request(
+            {"run_ids": list(run_state_ids)},
+            viewer_context=viewer_context or SeerViewerContext(organization_id=organization.id),
+        )
+        if response.status >= 400:
+            logger.warning("seer.run_statuses.error", extra={"status": response.status})
+            return {}
+        data = response.json()
+        return {
+            int(run_id): run["status"]
+            for run_id, run in data.get("data", {}).items()
+            if run.get("status") is not None
+        }
+    except Exception:
+        logger.warning("seer.run_statuses.request_failed", exc_info=True)
+        return {}
 
 
 def poll_until_done(
@@ -576,6 +630,32 @@ def _get_priority(node: dict[str, Any]) -> int:
     return priority if isinstance(priority, int) else 0
 
 
+def _render_location(location: Any) -> str:
+    """Render the snapshot's location block, or "" when it carries nothing.
+
+    Seer also receives `page_location` as a structured field and renders it there;
+    this keeps it in the markdown too so a client that only sends the snapshot is
+    not silently missing it. Every field is optional.
+    """
+    if not isinstance(location, dict):
+        return ""
+
+    lines = []
+    for label, key in (("URL", "url"), ("Route", "name")):
+        value = location.get(key)
+        if isinstance(value, str) and value:
+            lines.append(f"- **{label}**: {value}")
+    for label, key in (("Route params", "params"), ("Query params", "query")):
+        value = location.get(key)
+        if isinstance(value, dict) and value:
+            lines.append(f"- **{label}**: {orjson.dumps(value).decode()}")
+
+    if not lines:
+        return ""
+
+    return "## Current Page\n" + "\n".join(lines) + "\n\n"
+
+
 def snapshot_to_markdown(snapshot: dict[str, Any]) -> str:
     """Convert an LLMContextSnapshot dict to a markdown string.
 
@@ -587,13 +667,16 @@ def snapshot_to_markdown(snapshot: dict[str, Any]) -> str:
     guard against runaway token usage.
     """
     nodes = snapshot.get("nodes", [])
+    location = _render_location(snapshot.get("location"))
     if not nodes:
-        return ""
+        # Most routes register no nodes, but they still know where the user is —
+        # returning "" here would throw that away.
+        return location
     sorted_nodes = sorted(nodes, key=_get_priority, reverse=True)
     top_priority = _get_priority(sorted_nodes[0])
     selected = [n for n in sorted_nodes if _get_priority(n) == top_priority][:_MAX_ROOT_NODES]
     preamble = (
         "> This is a structured summary of the page the user is viewing, not an exact screenshot.\n"
     )
-    result = preamble + "\n".join(_render_node(node, 0) for node in selected)
+    result = location + preamble + "\n".join(_render_node(node, 0) for node in selected)
     return _normalize_wildcard_operators(result)

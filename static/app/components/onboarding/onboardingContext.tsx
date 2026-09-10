@@ -1,30 +1,64 @@
 import {createContext, useContext, useEffect, useMemo, useRef} from 'react';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  type CreatedProject,
+  type ScmMessagingSetup,
+  UNCONFIGURED_SCM_MESSAGING_SETUP,
+} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import {useSessionStorage} from 'sentry/utils/useSessionStorage';
+import {removeStorageValue, useSessionStorage} from 'sentry/utils/useSessionStorage';
 
 type OnboardingContextProps = {
   clearDerivedState: () => void;
-  setCreatedProjectSlug: (slug?: string) => void;
+  discardOnboardingSession: () => void;
+  messagingSetup: ScmMessagingSetup;
+  resetOnboarding: () => void;
+  setAgentSetupProjectBaseline: (
+    baseline?: OnboardingSessionState['agentSetupProjectBaseline']
+  ) => void;
+  setAgenticProgressClientRunId: (clientRunId?: string) => void;
+  setAgenticProgressOnboardingCode: (onboardingCode?: string) => void;
+  setCreatedProject: (createdProject?: CreatedProject) => void;
+  setMessagingSetup: (messagingSetup: ScmMessagingSetup) => void;
   setSelectedFeatures: (features?: ProductSolution[]) => void;
   setSelectedIntegration: (integration?: Integration) => void;
   setSelectedPlatform: (selectedSDK?: OnboardingSelectedSDK) => void;
   setSelectedRepository: (repo?: Repository) => void;
-  createdProjectSlug?: string;
+  agentSetupProjectBaseline?: OnboardingSessionState['agentSetupProjectBaseline'];
+  agenticProgressClientRunId?: string;
+  agenticProgressOnboardingCode?: string;
+  createdProject?: CreatedProject;
   selectedFeatures?: ProductSolution[];
   selectedIntegration?: Integration;
   selectedPlatform?: OnboardingSelectedSDK;
   selectedRepository?: Repository;
 };
 
+const ONBOARDING_SESSION_KEY = 'onboarding';
+
 type OnboardingSessionState = {
-  createdProjectSlug?: string;
+  agentSetupProjectBaseline?: {
+    organizationId: string;
+    projectIds: string[];
+  };
+  agenticProgressClientRunId?: string;
+  agenticProgressOnboardingCode?: string;
+  createdProject?: CreatedProject;
+  messagingSetup?: ScmMessagingSetup;
   selectedFeatures?: ProductSolution[];
   selectedIntegration?: Integration;
   selectedPlatform?: OnboardingSelectedSDK;
   selectedRepository?: Repository;
+};
+
+/**
+ * Session shape from before the created project carried its messaging
+ * destination. Read once on load to lift the slug; never written.
+ */
+type LegacyOnboardingSessionState = OnboardingSessionState & {
+  createdProjectSlug?: string;
 };
 
 /**
@@ -39,9 +73,19 @@ const OnboardingContext = createContext<OnboardingContextProps>({
   setSelectedRepository: () => {},
   selectedFeatures: undefined,
   setSelectedFeatures: () => {},
-  createdProjectSlug: undefined,
-  setCreatedProjectSlug: () => {},
+  createdProject: undefined,
+  setCreatedProject: () => {},
+  messagingSetup: UNCONFIGURED_SCM_MESSAGING_SETUP,
+  setMessagingSetup: () => {},
+  agentSetupProjectBaseline: undefined,
+  setAgentSetupProjectBaseline: () => {},
+  agenticProgressClientRunId: undefined,
+  setAgenticProgressClientRunId: () => {},
+  agenticProgressOnboardingCode: undefined,
+  setAgenticProgressOnboardingCode: () => {},
   clearDerivedState: () => {},
+  resetOnboarding: () => {},
+  discardOnboardingSession: () => {},
 });
 
 type ProviderProps = {
@@ -54,10 +98,34 @@ type ProviderProps = {
 };
 
 export function OnboardingContextProvider({children, initialValue}: ProviderProps) {
-  const [onboarding, setOnboarding, removeOnboarding] = useSessionStorage(
-    'onboarding',
-    initialValue
-  );
+  const [onboarding, setOnboarding, removeOnboarding] = useSessionStorage<
+    LegacyOnboardingSessionState | undefined
+  >(ONBOARDING_SESSION_KEY, initialValue);
+
+  // A session written before createdProject existed holds only the slug under
+  // createdProjectSlug. Lift it once on load so the docs step still resolves
+  // the real slug and the reuse check still finds the project. Those sessions
+  // never recorded the destination, so it lifts as undefined: a submission
+  // that stages a destination then creates a fresh project rather than
+  // reusing one whose workflow may target another channel. Declared before
+  // the stale-repo guard so that guard's clear of the derived state wins.
+  // Drop this once sessions written before it shipped are gone.
+  const hadLegacyCreatedProjectSlug = useRef(!!onboarding?.createdProjectSlug);
+  useEffect(() => {
+    if (hadLegacyCreatedProjectSlug.current) {
+      hadLegacyCreatedProjectSlug.current = false;
+      setOnboarding(prev => {
+        const {createdProjectSlug, ...rest}: LegacyOnboardingSessionState = prev ?? {};
+        if (rest.createdProject || !createdProjectSlug) {
+          return rest;
+        }
+        return {
+          ...rest,
+          createdProject: {slug: createdProjectSlug, messagingSelection: undefined},
+        };
+      });
+    }
+  }, [setOnboarding]);
 
   // An optimistic repo (empty id, see useScmRepoSelection) persisted by a
   // refresh mid-resolution can never fetch detection and would hold the
@@ -76,7 +144,7 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
         selectedRepository: undefined,
         selectedPlatform: undefined,
         selectedFeatures: undefined,
-        createdProjectSlug: undefined,
+        createdProject: undefined,
       }));
     }
   }, [setOnboarding]);
@@ -85,11 +153,7 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
     () => ({
       selectedPlatform: onboarding?.selectedPlatform,
       setSelectedPlatform: (selectedPlatform?: OnboardingSelectedSDK) => {
-        if (selectedPlatform === undefined) {
-          removeOnboarding();
-        } else {
-          setOnboarding(prev => ({...prev, selectedPlatform}));
-        }
+        setOnboarding(prev => ({...prev, selectedPlatform}));
       },
       selectedIntegration: onboarding?.selectedIntegration,
       setSelectedIntegration: (selectedIntegration?: Integration) => {
@@ -103,9 +167,27 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
       setSelectedFeatures: (selectedFeatures?: ProductSolution[]) => {
         setOnboarding(prev => ({...prev, selectedFeatures}));
       },
-      createdProjectSlug: onboarding?.createdProjectSlug,
-      setCreatedProjectSlug: (createdProjectSlug?: string) => {
-        setOnboarding(prev => ({...prev, createdProjectSlug}));
+      createdProject: onboarding?.createdProject,
+      setCreatedProject: (createdProject?: CreatedProject) => {
+        setOnboarding(prev => ({...prev, createdProject}));
+      },
+      messagingSetup: onboarding?.messagingSetup ?? UNCONFIGURED_SCM_MESSAGING_SETUP,
+      setMessagingSetup: (messagingSetup: ScmMessagingSetup) => {
+        setOnboarding(prev => ({...prev, messagingSetup}));
+      },
+      agentSetupProjectBaseline: onboarding?.agentSetupProjectBaseline,
+      setAgentSetupProjectBaseline: (
+        agentSetupProjectBaseline?: OnboardingSessionState['agentSetupProjectBaseline']
+      ) => {
+        setOnboarding(prev => ({...prev, agentSetupProjectBaseline}));
+      },
+      agenticProgressClientRunId: onboarding?.agenticProgressClientRunId,
+      setAgenticProgressClientRunId: (agenticProgressClientRunId?: string) => {
+        setOnboarding(prev => ({...prev, agenticProgressClientRunId}));
+      },
+      agenticProgressOnboardingCode: onboarding?.agenticProgressOnboardingCode,
+      setAgenticProgressOnboardingCode: (agenticProgressOnboardingCode?: string) => {
+        setOnboarding(prev => ({...prev, agenticProgressOnboardingCode}));
       },
       // Clear state derived from the selected repository (platform, features,
       // created project) without wiping the entire session. Use this when the
@@ -115,8 +197,25 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
           ...prev,
           selectedPlatform: undefined,
           selectedFeatures: undefined,
-          createdProjectSlug: undefined,
+          createdProject: undefined,
         }));
+      },
+      // Full-flow exits should clear every staged choice explicitly. Do not use
+      // a selected-platform reset for this: messaging setup is organization-
+      // scoped and must survive local repository/platform changes.
+      resetOnboarding: removeOnboarding,
+      // Drop the persisted session on the way out of the flow. Do not use
+      // resetOnboarding here: it goes through useSessionStorage's removeItem,
+      // which performs the removeStorageValue call inside a setState updater.
+      // React only runs an updater when it processes the queue during a render,
+      // so when leaving the flow — where the same click both clears state and
+      // navigates away — the provider unmounts first and the update, along with
+      // its storage write, is discarded. The session then survives and the next
+      // /onboarding visit silently resumes from it. Clearing storage directly
+      // does not depend on a render happening. The in-memory state needs no
+      // reset because the context unmounts with the flow.
+      discardOnboardingSession: () => {
+        removeStorageValue(ONBOARDING_SESSION_KEY);
       },
     }),
     [onboarding, setOnboarding, removeOnboarding]

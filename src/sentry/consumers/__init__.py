@@ -145,16 +145,6 @@ def issue_occurrence_options() -> list[click.Option]:
     ]
 
 
-def ingest_replay_recordings_options() -> list[click.Option]:
-    """Return a list of ingest-replay-recordings options."""
-    options = multiprocessing_options(default_max_batch_size=10)
-    options.append(click.Option(["--threads", "num_threads"], type=int, default=4))
-    options.append(
-        click.Option(["--max-pending-futures", "max_pending_futures"], type=int, default=100)
-    )
-    return options
-
-
 def ingest_monitors_options() -> list[click.Option]:
     """Return a list of ingest-monitors options."""
     options = [
@@ -175,6 +165,37 @@ def ingest_monitors_options() -> list[click.Option]:
             type=int,
             default=1,
             help="Maximum time spent batching check-ins to batch before processing in parallel.",
+        ),
+        click.Option(
+            ["--max-workers", "max_workers"],
+            type=int,
+            default=None,
+            help="The maximum number of threads to spawn in parallel mode.",
+        ),
+    ]
+    return options
+
+
+def clock_tasks_options() -> list[click.Option]:
+    """Return a list of monitors-clock-tasks options."""
+    options = [
+        click.Option(
+            ["--mode", "mode"],
+            type=click.Choice(["serial", "batched-parallel"]),
+            default="serial",
+            help="The mode to process clock tasks in. Parallel uses multithreading.",
+        ),
+        click.Option(
+            ["--max-batch-size", "max_batch_size"],
+            type=int,
+            default=500,
+            help="Maximum number of clock tasks to batch before processing in parallel.",
+        ),
+        click.Option(
+            ["--max-batch-time", "max_batch_time"],
+            type=int,
+            default=1,
+            help="Maximum time spent batching clock tasks before processing in parallel.",
         ),
         click.Option(
             ["--max-workers", "max_workers"],
@@ -315,11 +336,6 @@ _POST_PROCESS_FORWARDER_OPTIONS = multiprocessing_options(
 
 # consumer name -> consumer definition
 KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
-    "ingest-replay-recordings": {
-        "topic": Topic.INGEST_REPLAYS_RECORDINGS,
-        "strategy_factory": "sentry.replays.consumers.recording.ProcessReplayRecordingStrategyFactory",
-        "click_options": ingest_replay_recordings_options(),
-    },
     "ingest-monitors": {
         "topic": Topic.INGEST_MONITORS,
         "strategy_factory": "sentry.monitors.consumers.monitor_consumer.StoreMonitorCheckInStrategyFactory",
@@ -332,6 +348,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "monitors-clock-tasks": {
         "topic": Topic.MONITORS_CLOCK_TASKS,
         "strategy_factory": "sentry.monitors.consumers.clock_tasks_consumer.MonitorClockTasksStrategyFactory",
+        "click_options": clock_tasks_options(),
     },
     "monitors-incident-occurrences": {
         "topic": Topic.MONITORS_INCIDENT_OCCURRENCES,
@@ -342,10 +359,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.uptime.consumers.results_consumer.UptimeResultsStrategyFactory",
         "click_options": uptime_options(),
         "pass_consumer_group": True,
-    },
-    "billing-metrics-consumer": {
-        "topic": Topic.SNUBA_GENERIC_METRICS,
-        "strategy_factory": "sentry.ingest.billing_metrics_consumer.BillingMetricsConsumerStrategyFactory",
     },
     # Known differences to 'sentry run occurrences-ingest-consumer':
     # - ingest_consumer_types metric tag is missing. Use the kafka_topic and
@@ -468,19 +481,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
             ),
         ],
         "pass_kafka_slice_id": True,
-    },
-    "process-segments": {
-        "topic": Topic.BUFFERED_SEGMENTS,
-        "dlq_topic": Topic.BUFFERED_SEGMENTS_DLQ,
-        "strategy_factory": "sentry.spans.consumers.process_segments.factory.DetectPerformanceIssuesStrategyFactory",
-        "click_options": [
-            click.Option(
-                ["--skip-produce", "skip_produce"],
-                is_flag=True,
-                default=False,
-            ),
-            *multiprocessing_options(default_max_batch_size=100),
-        ],
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }

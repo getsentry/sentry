@@ -238,7 +238,7 @@ export function transformEventsResponseToTable(
   tableData = {
     ...data,
     meta: {...fields, ...otherMeta, fields},
-  } as TableData;
+  };
   return tableData;
 }
 

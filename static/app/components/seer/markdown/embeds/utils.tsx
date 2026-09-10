@@ -1,36 +1,67 @@
 import type {ReactNode} from 'react';
+import * as Sentry from '@sentry/react';
 import type {z} from 'zod';
 
 import {NODE_ENV} from 'sentry/constants/env';
 
 import type {SeerEmbedProps} from './registry';
-import {SEER_EMBED_SCHEMAS, type SeerEmbedName} from './schemas';
+import {useTrackEmbedRendered} from './renderTracking';
+import {ALL_SEER_EMBED_SCHEMAS, type SeerEmbedName} from './schemas';
 
 export type EmbedOutput<N extends SeerEmbedName> = z.output<
-  (typeof SEER_EMBED_SCHEMAS)[N]['schema']
+  (typeof ALL_SEER_EMBED_SCHEMAS)[N]['schema']
 >;
+
+/**
+ * Seer markdown re-lexes and re-renders on every streamed chunk, so an embed
+ * with invalid props would otherwise report once per chunk. Report each
+ * distinct failure only once per page load.
+ */
+const reportedInvalidEmbeds = new Set<string>();
+
+function reportInvalidEmbed(name: string, issues: readonly z.core.$ZodIssue[]) {
+  if (NODE_ENV === 'development') {
+    // eslint-disable-next-line no-console
+    console.warn(`[SeerEmbed] ${name}: invalid props`, issues);
+    return;
+  }
+
+  const key = `${name}:${issues.map(issue => `${issue.code}@${issue.path.join('.')}`).join('|')}`;
+  if (reportedInvalidEmbeds.has(key)) {
+    return;
+  }
+  reportedInvalidEmbeds.add(key);
+
+  Sentry.withScope(scope => {
+    scope.setLevel('warning');
+    scope.setTag('seer_embed.name', name);
+    scope.setExtra('issues', issues);
+    scope.setFingerprint(['seer-embed-invalid-props', name]);
+    Sentry.captureException(new Error(`[SeerEmbed] ${name}: invalid props`));
+  });
+}
 
 interface DefineSeerEmbedOptions<N extends SeerEmbedName> {
   name: N;
-  render: (props: EmbedOutput<N>) => ReactNode;
+  render: (props: EmbedOutput<N>, level: SeerEmbedProps['level']) => ReactNode;
 }
 
 export function defineSeerEmbed<N extends SeerEmbedName>({
   name,
   render,
 }: DefineSeerEmbedOptions<N>) {
-  const {schema} = SEER_EMBED_SCHEMAS[name];
+  const {schema} = ALL_SEER_EMBED_SCHEMAS[name];
 
-  function Embed({data}: SeerEmbedProps) {
+  function Embed({data, level, index}: SeerEmbedProps) {
     const parsed = schema.safeParse(data);
+    // Called before the early return so the hook stays unconditional; it
+    // no-ops for an embed that failed validation and renders nothing.
+    useTrackEmbedRendered({name, level, index, rendered: parsed.success});
     if (!parsed.success) {
-      if (NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.warn(`[SeerEmbed] ${name}: invalid props`, parsed.error.issues);
-      }
+      reportInvalidEmbed(name, parsed.error.issues);
       return null;
     }
-    return render(parsed.data as EmbedOutput<N>);
+    return render(parsed.data as EmbedOutput<N>, level);
   }
   Embed.displayName = name;
 

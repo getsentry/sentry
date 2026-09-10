@@ -101,6 +101,93 @@ class DashboardTranslationTestCase(TestCase):
 
         assert not DashboardWidgetQuery.objects.filter(id=query.id).exists()
 
+    def test_null_widget_type_with_discover_split(self) -> None:
+        transaction_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="transaction widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=None,
+            discover_widget_split=DashboardWidgetTypes.TRANSACTION_LIKE,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        query = DashboardWidgetQuery.objects.create(
+            widget=transaction_widget,
+            fields=["release", "count()", "count_unique(user)"],
+            columns=["release"],
+            aggregates=["count()", "count_unique(user)"],
+            conditions="transaction:foo",
+            order=0,
+        )
+
+        translate_dashboard_widget(transaction_widget)
+        transaction_widget.refresh_from_db()
+
+        assert transaction_widget.widget_snapshot
+        assert transaction_widget.changed_reason is not None
+        assert isinstance(transaction_widget.changed_reason, list)
+        assert len(transaction_widget.changed_reason) == 1
+        dropped_fields = transaction_widget.changed_reason[0]
+        assert dropped_fields["selected_columns"] == []
+        assert dropped_fields["equations"] == []
+        assert dropped_fields["orderby"] is None
+
+        snapshot_queries = transaction_widget.widget_snapshot["queries"]
+        assert len(snapshot_queries) == 1
+        original_snapshot_query = snapshot_queries[0]
+        assert original_snapshot_query["fields"] == ["release", "count()", "count_unique(user)"]
+        assert original_snapshot_query["conditions"] == "transaction:foo"
+        assert original_snapshot_query["aggregates"] == ["count()", "count_unique(user)"]
+        assert original_snapshot_query["columns"] == ["release"]
+
+        new_queries = DashboardWidgetQuery.objects.filter(widget=transaction_widget)
+        assert new_queries.count() == 1
+
+        new_query = new_queries.first()
+        assert new_query is not None
+        assert new_query.widget_id == transaction_widget.id
+        assert new_query.order == 0
+        assert new_query.fields == ["release", "count(span.duration)", "count_unique(user)"]
+        assert new_query.conditions == "(transaction:foo) AND is_transaction:1"
+        assert new_query.aggregates == ["count(span.duration)", "count_unique(user)"]
+        assert new_query.columns == ["release"]
+
+        # Assert widget type and dataset source are set correctly
+        assert transaction_widget.widget_type == DashboardWidgetTypes.SPANS
+        assert (
+            transaction_widget.dataset_source == DatasetSourcesTypes.SPAN_MIGRATION_VERSION_5.value
+        )
+
+        assert not DashboardWidgetQuery.objects.filter(id=query.id).exists()
+
+    def test_null_widget_type_without_discover_split_is_noop(self) -> None:
+        widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=None,
+            discover_widget_split=None,
+            interval="1d",
+        )
+        DashboardWidgetQuery.objects.create(
+            widget=widget,
+            fields=["release", "count()"],
+            columns=["release"],
+            aggregates=["count()"],
+            conditions="transaction:foo",
+            order=0,
+        )
+
+        result = translate_dashboard_widget(widget)
+        widget.refresh_from_db()
+
+        assert result is widget
+        assert widget.widget_snapshot is None
+        assert widget.changed_reason is None
+        assert widget.widget_type is None
+
     def test_field_order_preserved(self) -> None:
         transaction_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,

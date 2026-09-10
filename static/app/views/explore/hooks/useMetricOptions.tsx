@@ -3,7 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -16,7 +16,7 @@ import {
 } from 'sentry/views/explore/metrics/types';
 
 interface UseMetricOptionsProps {
-  datetime?: PageFilters['datetime'];
+  datetime?: PageFilterDatetime;
   enabled?: boolean;
   environments?: PageFilters['environments'];
   orgSlug?: string;

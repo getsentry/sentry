@@ -32,6 +32,31 @@ describe('javascript-angular onboarding docs', () => {
     ).toHaveLength(2);
   });
 
+  it('bootstraps the standalone component with the application config', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedOptions: {configType: AngularConfigType.APP},
+    });
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/bootstrapApplication\(AppComponent, appConfig\)/)
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('bootstraps the root module for NgModule applications', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedOptions: {configType: AngularConfigType.MODULE},
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/\.bootstrapModule\(AppModule\)/))
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/bootstrapApplication/))
+    ).not.toBeInTheDocument();
+  });
+
   it('displays sample rates by default', () => {
     renderWithOnboardingLayout(docs, {
       selectedOptions: {
@@ -104,26 +129,6 @@ describe('javascript-angular onboarding docs', () => {
     expect(
       screen.getByText(textWithMarkupMatcher(/profileSessionSampleRate: 1\.0/))
     ).toBeInTheDocument();
-  });
-
-  it('enables logs by setting enableLogs to true', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedOptions: {
-        configType: AngularConfigType.APP,
-      },
-      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
-    });
-
-    expect(
-      screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
-    ).toBeInTheDocument();
-
-    // When logs are selected, import statement should appear in verify section too
-    expect(
-      screen.getAllByText(
-        textWithMarkupMatcher(/import \* as Sentry from "@sentry\/angular";/)
-      )
-    ).toHaveLength(3);
   });
 
   it('shows Logging Integrations in next steps when logs is selected', () => {

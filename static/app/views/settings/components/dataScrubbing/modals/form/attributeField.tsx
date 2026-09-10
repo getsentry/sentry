@@ -8,7 +8,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -92,7 +91,7 @@ export function AttributeField({
   });
   const [suggestedAttributeValues, setSuggestedAttributeValues] = useLocalStorageState(
     `advanced-data-scrubbing.suggested-attribute-values:v3:${projectId ? projectId : 'all'}`,
-    {} as TagCollection
+    {}
   );
 
   const traceItemFieldSelector = TraceItemFieldSelector.fromSourceString(value);

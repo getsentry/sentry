@@ -16,9 +16,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import UptimeDetectorsList from 'sentry/views/detectors/list/uptime';
 
 describe('UptimeDetectorsList', () => {
-  const organization = OrganizationFixture({
-    features: ['workflow-engine-ui'],
-  });
+  const organization = OrganizationFixture();
 
   const initialRouterConfig: RouterConfig = {
     location: {

@@ -238,6 +238,19 @@ default_manager.add(events.IntegrationEditAuditLogEvent())
 default_manager.add(events.IntegrationRemoveAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
+        event_id=114,
+        name="INTEGRATION_PROJECT_MAPPINGS_UPDATE",
+        api_name="integration.project-mappings-update",
+        # `removed_project_mappings` carries the prior values of anything removed, so a
+        # mapping cleared by mistake can be rebuilt from this entry.
+        template=(
+            "updated project status mappings for the {provider} integration "
+            "({added_count} added, {updated_count} updated, {removed_count} removed)"
+        ),
+    )
+)
+default_manager.add(
+    AuditLogEvent(
         event_id=113,
         name="SENTRY_APP_ADD",
         api_name="sentry-app.add",
@@ -707,3 +720,35 @@ default_manager.add(
 default_manager.add(events.RepoAddedAuditLogEvent())
 default_manager.add(events.RepoDisabledAuditLogEvent())
 default_manager.add(events.RepoEnabledAuditLogEvent())
+default_manager.add(
+    AuditLogEvent(
+        event_id=219,
+        name="DASHBOARD_ADD",
+        api_name="dashboard.create",
+        template="created dashboard {title}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=220,
+        name="DASHBOARD_EDIT",
+        api_name="dashboard.edit",
+        template="edited dashboard {title}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=221,
+        name="DASHBOARD_REMOVE",
+        api_name="dashboard.remove",
+        template="removed dashboard {title}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=222,
+        name="DASHBOARD_RESTORE",
+        api_name="dashboard.restore",
+        template="restored dashboard {title}",
+    )
+)

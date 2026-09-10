@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
-from django.db.models import Count
+from django.db.models import Count, Prefetch, prefetch_related_objects
 from django.db.models.functions import TruncDay
 from snuba_sdk import Request
 from snuba_sdk.column import Column
@@ -15,7 +15,7 @@ from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 from snuba_sdk.query import Join, Limit, Query
 from snuba_sdk.relationships import Relationship
 
-from sentry.constants import DataCategory
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.issues.grouptype import (
     PERFORMANCE_ISSUE_CATEGORIES,
     GroupCategory,
@@ -23,15 +23,21 @@ from sentry.issues.grouptype import (
 )
 from sentry.models.group import DEFAULT_TYPE_ID, Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory
+from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
+from sentry.models.pullrequest import PullRequest, PullRequestAttribution
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.repository import Repository
 from sentry.models.team import TeamStatus
+from sentry.pr_metrics.attribution import is_seer_attribution
 from sentry.search.eap.occurrences.query_utils import keyed_counts_subset_match
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
+from sentry.seer.models import SeerRunPullRequest
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.spans_rpc import Spans
@@ -98,8 +104,8 @@ class ProjectContext:
         self.key_error_issues: list[tuple[Group, int]] = []
         # Array of (Group, count)
         self.key_performance_issues = []
-        # Array of (Group, event_count, resolution_label)
-        self.past_resolved_issues: list[tuple[Group, int, str]] = []
+        # Array of (Group, event_count, resolution_label, resolution_url)
+        self.past_resolved_issues: list[tuple[Group, int, str, str | None]] = []
 
         self.key_replay_events = []
 
@@ -509,7 +515,7 @@ PAST_ISSUES_LINK_BOOST = 2
 
 def project_past_resolved_issues(
     ctx: OrganizationReportContext, project: Project, referrer: str
-) -> list[tuple[Group, int, str]]:
+) -> list[tuple[Group, int, str, str | None]]:
     if not project.first_event:
         return []
 
@@ -575,12 +581,12 @@ def project_past_resolved_issues(
             event_counts.update(performance_counts)
 
         # resolution_label defaults to "Resolved"; enriched by fetch_past_resolved_issue_links at org level
-        scored = []
+        scored: list[tuple[Group, int, str, str | None]] = []
         for group_id, count in event_counts.items():
             group = group_id_to_group.get(group_id)
             if group is None:
                 continue
-            scored.append((group, count, "Resolved"))
+            scored.append((group, count, "Resolved", None))
 
         scored.sort(key=lambda x: x[1], reverse=True)
         return scored
@@ -661,15 +667,41 @@ def _past_resolved_performance_counts(
     return {row["group_id"]: row["count()"] for row in rows}
 
 
+def _pick_resolution(
+    group_id: int,
+    resolution_labels: dict[int, str],
+    pr_resolution_info: dict[int, tuple[bool, str | None]],
+) -> tuple[str, str | None]:
+    label = resolution_labels.get(group_id, "Resolved")
+    pr_info = pr_resolution_info.get(group_id)
+    if pr_info is None:
+        return (label, None)
+
+    is_seer_fix, url = pr_info
+    return ("Resolved by Seer Fix" if is_seer_fix else label, url)
+
+
+def _pull_request_url(pull_request: PullRequest, repository: Repository) -> str | None:
+    if not repository.url:
+        return None
+    provider = repository.get_provider()
+    if provider is None:
+        return None
+    return provider.pull_request_url(repository, pull_request)
+
+
 def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
     all_group_ids: list[int] = []
     for project_ctx in ctx.projects_context_map.values():
-        all_group_ids.extend(group.id for group, _count, _label in project_ctx.past_resolved_issues)
+        all_group_ids.extend(
+            group.id for group, _count, _label, _url in project_ctx.past_resolved_issues
+        )
 
     if not all_group_ids:
         return
 
     resolution_labels: dict[int, str] = {}
+    resolution_release_by_group: dict[int, int] = {}
 
     # GroupResolution.group is unique, so there is at most one row per group
     for gr in GroupResolution.objects.filter(group_id__in=all_group_ids):
@@ -681,10 +713,104 @@ def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
         else:
             resolution_labels[gr.group_id] = "Resolved in release"
 
+        if gr.status == GroupResolution.Status.resolved:
+            resolution_release_by_group[gr.group_id] = gr.release_id
+
+    pr_resolution_info: dict[int, tuple[bool, str | None]] = {}
+    release_ids = set(resolution_release_by_group.values())
+    if release_ids:
+        release_ids_by_repo_and_sha: dict[tuple[int, str], set[int]] = {}
+        for release_id, repository_id, commit_sha in ReleaseCommit.objects.filter(
+            release_id__in=release_ids,
+            organization_id=ctx.organization.id,
+        ).values_list("release_id", "commit__repository_id", "commit__key"):
+            release_ids_by_repo_and_sha.setdefault((repository_id, commit_sha), set()).add(
+                release_id
+            )
+
+        repository_ids = {key[0] for key in release_ids_by_repo_and_sha}
+        commit_shas = {key[1] for key in release_ids_by_repo_and_sha}
+        pull_requests: dict[int, PullRequest] = {}
+        release_ids_by_pr: dict[int, set[int]] = {}
+        for pull_request in PullRequest.objects.filter(
+            organization_id=ctx.organization.id,
+            repository_id__in=repository_ids,
+            merge_commit_sha__in=commit_shas,
+        ):
+            if pull_request.merge_commit_sha is None:
+                continue
+            matching_release_ids = release_ids_by_repo_and_sha.get(
+                (pull_request.repository_id, pull_request.merge_commit_sha)
+            )
+            if matching_release_ids is None:
+                continue
+            pull_requests[pull_request.id] = pull_request
+            release_ids_by_pr[pull_request.id] = matching_release_ids
+
+        repositories = Repository.objects.filter(
+            id__in={pull_request.repository_id for pull_request in pull_requests.values()},
+            organization_id=ctx.organization.id,
+            status=ObjectStatus.ACTIVE,
+        ).in_bulk()
+        pull_requests = {
+            pull_request_id: pull_request
+            for pull_request_id, pull_request in pull_requests.items()
+            if pull_request.repository_id in repositories
+        }
+
+        selected_pr_by_group: dict[int, int] = {}
+        for group_id, pull_request_id in (
+            GroupLink.objects.filter(
+                group_id__in=resolution_release_by_group,
+                project_id__in=ctx.projects_context_map,
+                linked_id__in=pull_requests,
+                linked_type=GroupLink.LinkedType.pull_request,
+                relationship=GroupLink.Relationship.resolves,
+            )
+            .order_by("-datetime", "-id")
+            .values_list("group_id", "linked_id")
+        ):
+            if resolution_release_by_group[group_id] not in release_ids_by_pr[pull_request_id]:
+                continue
+            selected_pr_by_group.setdefault(group_id, pull_request_id)
+
+        selected_pr_ids = set(selected_pr_by_group.values())
+        selected_pull_requests = [
+            pull_requests[pull_request_id] for pull_request_id in selected_pr_ids
+        ]
+        prefetch_related_objects(
+            selected_pull_requests,
+            Prefetch(
+                "pullrequestattribution_set",
+                queryset=PullRequestAttribution.objects.filter(is_valid=True),
+            ),
+        )
+        seer_pr_ids = set(
+            pull_request.id
+            for pull_request in selected_pull_requests
+            if any(
+                is_seer_attribution(attribution)
+                for attribution in pull_request.pullrequestattribution_set.all()
+            )
+        )
+        seer_pr_ids.update(
+            SeerRunPullRequest.objects.filter(pull_request_id__in=selected_pr_ids).values_list(
+                "pull_request_id", flat=True
+            )
+        )
+
+        for group_id, pull_request_id in selected_pr_by_group.items():
+            pull_request = pull_requests[pull_request_id]
+            repository = repositories[pull_request.repository_id]
+            pr_resolution_info[group_id] = (
+                pull_request_id in seer_pr_ids,
+                _pull_request_url(pull_request, repository),
+            )
+
     for project_ctx in ctx.projects_context_map.values():
         project_ctx.past_resolved_issues = [
-            (group, count, resolution_labels.get(group.id, "Resolved"))
-            for group, count, _label in project_ctx.past_resolved_issues
+            (group, count, *_pick_resolution(group.id, resolution_labels, pr_resolution_info))
+            for group, count, _label, _url in project_ctx.past_resolved_issues
         ]
 
     # Re-sort with link boost applied, then truncate to top 3

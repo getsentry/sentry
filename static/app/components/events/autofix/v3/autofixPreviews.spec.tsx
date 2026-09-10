@@ -380,9 +380,7 @@ describe('CodingAgentPreview', () => {
   it('renders default title for unknown provider', () => {
     render(
       <CodingAgentPreview
-        section={makeSection('coding_agents', [
-          [makeCodingAgent({provider: 'unknown' as any})],
-        ])}
+        section={makeSection('coding_agents', [[makeCodingAgent({provider: 'unknown'})]])}
       />
     );
 

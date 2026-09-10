@@ -47,10 +47,6 @@ type Props = {
    */
   sections: Section[];
   /**
-   * The default section to show first
-   */
-  defaultSectionKey?: string;
-  /**
    * Text rendered infront of the dropdown button
    */
   dropdownPrefix?: string;
@@ -61,13 +57,8 @@ type Props = {
   panelTitle?: string;
 };
 
-export function SelectableContainer({
-  dropdownPrefix,
-  sections,
-  panelTitle,
-  defaultSectionKey,
-}: Props) {
-  const [sectionKey, setSection] = useState(defaultSectionKey ?? sections[0]?.key ?? '');
+export function SelectableContainer({dropdownPrefix, sections, panelTitle}: Props) {
+  const [sectionKey, setSection] = useState(sections[0]?.key ?? '');
 
   const section = sections.find(s => s.key === sectionKey);
 

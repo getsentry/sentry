@@ -17,7 +17,7 @@ import {BreadcrumbDropdown} from './breadcrumbDropdown';
 import {findFirstRouteWithoutRouteParam} from './findFirstRouteWithoutRouteParam';
 import {CrumbLink} from '.';
 
-export function ProjectCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
+export function ProjectCrumb({routes, route, isLast}: SettingsBreadcrumbProps) {
   const navigate = useNavigate();
   const {projects, onSearch} = useProjects();
   const organization = useOrganization();
@@ -77,7 +77,7 @@ export function ProjectCrumb({routes, route, ...props}: SettingsBreadcrumbProps)
         leadingItems: <ProjectAvatar project={project} size={20} />,
         label: project.slug,
       }))}
-      {...props}
+      showDivider={!isLast}
     />
   );
 }

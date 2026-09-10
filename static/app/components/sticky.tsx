@@ -16,7 +16,7 @@ function TaggedSticky(props: React.ComponentProps<'div'>) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {pageContentTop} = useTopOffset();
 
-  const isStuck = useIsStuck(elementRef.current, {
+  const isStuck = useIsStuck(elementRef, {
     offset: Number.parseInt(pageContentTop, 10) ?? 0,
   });
 

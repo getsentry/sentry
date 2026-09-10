@@ -41,7 +41,7 @@ describe('useConversationDirectHitRedirect', () => {
 
     await waitFor(() => {
       expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/explore/conversations/conv-1/`
+        `/organizations/${organization.slug}/explore/agents/conversations/conv-1/`
       );
     });
   });

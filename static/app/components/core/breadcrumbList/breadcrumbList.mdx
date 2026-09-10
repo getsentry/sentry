@@ -13,8 +13,9 @@ import {ProjectsBadge} from '@sentry/scraps/badge';
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {IconEllipsis, IconGlobe} from 'sentry/icons';
+import {IconCopyId, IconEllipsis, IconGlobe} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 import {BreadcrumbListDemo} from './__stories__/breadcrumbListDemo';
 
@@ -444,19 +445,20 @@ a row of icons competing for the same space.
         item={{
           type: 'page-title',
           label: 'JAVASCRIPT-2X9',
-          trailingActions: [
-            {
-              type: 'copy',
-              text: 'JAVASCRIPT-2X9',
-              label: 'Copy Short-ID',
-            },
-            {
-              type: 'menu',
-              triggerLabel: 'More actions',
-              triggerIcon: <IconEllipsis />,
-              items: [{key: 'share', label: 'Share', leadingItems: <IconGlobe />}],
-            },
-          ],
+          trailingActions: {
+            type: 'menu',
+            triggerLabel: 'More actions',
+            triggerIcon: <IconEllipsis />,
+            items: [
+              {
+                key: 'copy-short-id',
+                label: 'Copy Short-ID',
+                leadingItems: <IconCopyId variant="muted" />,
+                onAction: () => copyToClipboard('JAVASCRIPT-2X9'),
+              },
+              {key: 'share', label: 'Share', leadingItems: <IconGlobe />},
+            ],
+          },
         }}
       />
     }
@@ -468,28 +470,27 @@ a row of icons competing for the same space.
     item={{
       type: 'page-title',
       label: group.shortId,
-      trailingActions: [
-        {
-          type: 'copy',
-          text: group.shortId,
-          label: 'Copy Short-ID',
-          onCopy: handleCopy,
-        },
-        isPublic && shareUrl
-          ? {
-              type: 'button',
-              element: (
-                <Button
-                  size="zero"
-                  variant="transparent"
-                  icon={<IconGlobe />}
-                  aria-label="Share"
-                  onClick={openShareModal}
-                />
-              ),
-            }
-          : null,
-      ],
+      trailingActions: {
+        type: 'menu',
+        triggerLabel: 'More actions',
+        triggerIcon: <IconEllipsis />,
+        items: [
+          {
+            key: 'copy-short-id',
+            label: 'Copy Short-ID',
+            leadingItems: <IconCopyId variant="muted" />,
+            onAction: () => copy(group.shortId),
+          },
+          isPublic && shareUrl
+            ? {
+                key: 'share',
+                label: 'Share',
+                leadingItems: <IconGlobe />,
+                onAction: openShareModal,
+              }
+            : null,
+        ].filter(item => item !== null),
+      },
     }}
   />
 </TopBar.Slot>

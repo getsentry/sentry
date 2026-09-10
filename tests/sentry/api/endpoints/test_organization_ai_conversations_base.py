@@ -36,6 +36,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         tool_name=None,
         tool_result=None,
         tool_output=None,
+        embeddings_input=None,
         user_id=None,
         user_email=None,
         user_username=None,
@@ -67,6 +68,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             tool_name: The gen_ai.tool.name attribute
             tool_result: The gen_ai.tool.call.result attribute
             tool_output: The gen_ai.tool.output attribute
+            embeddings_input: The gen_ai.embeddings.input attribute
             user_id: User ID (sentry.user.id)
             user_email: User email (sentry.user.email)
             user_username: User username (sentry.user.username)
@@ -107,6 +109,8 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             span_data["gen_ai.tool.call.result"] = tool_result
         if tool_output is not None:
             span_data["gen_ai.tool.output"] = tool_output
+        if embeddings_input is not None:
+            span_data["gen_ai.embeddings.input"] = embeddings_input
         # New format attributes
         if input_messages is not None:
             span_data["gen_ai.input.messages"] = json.dumps(input_messages)

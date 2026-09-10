@@ -11,6 +11,7 @@ import type {TraceShape, TraceTree} from './traceModels/traceTree';
 export type TraceTreeSource =
   | 'trace_view'
   | 'replay_details'
+  | 'feedback_details_trace_preview'
   | 'issue_details_trace_preview'
   | 'issue_details_span_evidence'
   | 'issue_details_anr_root_cause';

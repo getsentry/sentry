@@ -10,16 +10,8 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-export {SeerDrawer} from 'sentry/components/events/autofix/v3/drawer';
 
-export const useOpenSeerDrawer = ({
-  group,
-  project,
-}: {
-  group: Group;
-  project: Project;
-  buttonRef?: React.RefObject<HTMLButtonElement | null>;
-}) => {
+export const useOpenSeerDrawer = ({group, project}: {group: Group; project: Project}) => {
   const {openDrawer} = useDrawer();
   const navigate = useNavigate();
   const location = useLocation();
@@ -38,10 +30,11 @@ export const useOpenSeerDrawer = ({
     const issueBaseUrl = normalizeUrl(
       `/organizations/${organization.slug}/issues/${group.id}/`
     );
-
     openDrawer(() => <SeerDrawer group={group} project={project} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
+      drawerWidth: '80%',
+      drawerMaxWidth: '1600px',
       resizable: true,
       mode: 'passive',
       shouldCloseOnLocationChange: nextLocation => {
@@ -57,6 +50,7 @@ export const useOpenSeerDrawer = ({
             query: {
               ...locationRef.current.query,
               seerDrawer: undefined,
+              seerDrawerAction: undefined,
             },
           },
           {replace: true, preventScrollReset: true}

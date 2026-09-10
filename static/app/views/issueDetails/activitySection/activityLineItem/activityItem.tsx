@@ -33,6 +33,7 @@ import {getArchiveDetails} from './archiveDetails';
 interface ActivityItem {
   title: React.ReactNode;
   details?: React.ReactNode;
+  source?: string;
 }
 
 export function getActivityNoteAuthor(
@@ -132,6 +133,18 @@ interface GetActivityItemParams {
 
 const MINIMUM_SEER_ACTIVITY_DURATION_SECONDS = 5 * 60;
 
+function getSentryAppSource(activity: GroupActivity): string | undefined {
+  if (
+    !activity.sentry_app ||
+    activity.type === GroupActivityType.NOTE ||
+    activity.type === GroupActivityType.CREATE_ISSUE
+  ) {
+    return undefined;
+  }
+
+  return activity.sentry_app.name;
+}
+
 function getSeerActivityDuration(
   activity: CollapsedSeerActivity
 ): React.ReactNode | null {
@@ -162,7 +175,14 @@ function getCollapsedSeerIterationReferrer(item: ActivityFeedItem) {
   return getSeerIterationReferrer(item.startedActivity.data.referrer);
 }
 
-export function getActivityItem({
+export function getActivityItem(params: GetActivityItemParams): ActivityItem {
+  const activityItem = getActivityItemContent(params);
+  const source = getSentryAppSource(params.item.activity);
+
+  return source ? {...activityItem, source} : activityItem;
+}
+
+function getActivityItemContent({
   item,
   organization,
   project,

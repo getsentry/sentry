@@ -33,6 +33,12 @@ type PlatformOptionsControlProps = {
    * Whether the option is disabled
    */
   disabled?: boolean;
+  /**
+   * Option values pinned by another selection, keyed by option key. A locked
+   * option renders the given value and is disabled, e.g. a Cloudflare-only SDK
+   * pins the runtime selector to "cloudflare".
+   */
+  lockedValues?: Record<string, string>;
 };
 
 function OptionControl({option, value, onChange, disabled}: OptionControlProps) {
@@ -50,7 +56,14 @@ function OptionControl({option, value, onChange, disabled}: OptionControlProps) 
       value={value}
       onChange={onChange}
       options={option.items}
-      position="bottom-end"
+      // Anchor the menu's left edge to the trigger and grow rightward. Paired
+      // with menuWidth below, a menu wider than the trigger extends right rather
+      // than hanging off to the left.
+      position="bottom-start"
+      // Size the menu to its widest option so long SDK names (e.g. "Cloudflare
+      // Agents SDK") aren't truncated. min-width:100% still keeps it at least as
+      // wide as the trigger for short lists.
+      menuWidth="max-content"
       disabled={disabled}
     />
   );
@@ -60,6 +73,7 @@ export function PlatformOptionDropdown({
   platformOptions,
   disabled,
   connectors,
+  lockedValues,
 }: PlatformOptionsControlProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -85,17 +99,20 @@ export function PlatformOptionDropdown({
   return (
     <Fragment>
       {t('with')}
-      {Object.keys(platformOptions).map(key => (
-        <Fragment key={key}>
-          {connectors?.[key]}
-          <OptionControl
-            option={platformOptions[key]!}
-            value={urlOptionValues[key]!}
-            onChange={v => handleChange(key, v.value)}
-            disabled={disabled}
-          />
-        </Fragment>
-      ))}
+      {Object.keys(platformOptions).map(key => {
+        const lockedValue = lockedValues?.[key];
+        return (
+          <Fragment key={key}>
+            {connectors?.[key]}
+            <OptionControl
+              option={platformOptions[key]!}
+              value={lockedValue ?? urlOptionValues[key]!}
+              onChange={v => handleChange(key, v.value)}
+              disabled={disabled || lockedValue !== undefined}
+            />
+          </Fragment>
+        );
+      })}
     </Fragment>
   );
 }

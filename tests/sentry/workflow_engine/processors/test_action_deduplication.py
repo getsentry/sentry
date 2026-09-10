@@ -394,7 +394,7 @@ class TestActionDeduplication(TestCase):
             type=Action.Type.SENTRY_APP,
             config={
                 "target_type": ActionTarget.SENTRY_APP,
-                "target_identifier": "action-123",
+                "target_identifier": "123",
             },
         )
 
@@ -402,7 +402,7 @@ class TestActionDeduplication(TestCase):
             type=Action.Type.SENTRY_APP,
             config={
                 "target_type": ActionTarget.SENTRY_APP,
-                "target_identifier": "action-123",
+                "target_identifier": "123",
             },
         )
 

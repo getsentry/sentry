@@ -76,7 +76,7 @@ function FullscreenModalContent({
   const [localHighlightInsights, setLocalHighlightInsights] = useState(
     initialHighlightInsights
   );
-  const filteredRoot = filterTreemapElement(unfilteredRoot, localSearch, '');
+  const filteredRoot = filterTreemapElement(unfilteredRoot, localSearch);
 
   const handleSearchChange = (value: string) => {
     setLocalSearch(value);
@@ -225,9 +225,6 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         color: theme.colors.white,
         fontFamily: 'Rubik',
         padding: 0,
-        textShadowBlur: 2,
-        textShadowColor: theme.colors.gray800,
-        textShadowOffsetY: 0.5,
       },
       upperLabel: {
         show: true,
@@ -239,9 +236,6 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         borderRadius: [2, 2, 0, 0],
         fontFamily: 'Rubik',
         padding: 0,
-        textShadowBlur: 2,
-        textShadowColor: theme.colors.gray800,
-        textShadowOffsetY: 0.5,
       },
     };
 

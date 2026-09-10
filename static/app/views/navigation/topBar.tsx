@@ -11,6 +11,7 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SearchButton} from 'sentry/views/navigation/searchButton';
+import {useTopBarActionDisplay} from 'sentry/views/navigation/useTopBarActionDisplay';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {AskSeerButton} from 'sentry/views/seerExplorer/components/askSeerButton';
 import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
@@ -23,6 +24,7 @@ import {
 import {
   NAVIGATION_MOBILE_CONTENT_HEIGHT,
   PRIMARY_HEADER_HEIGHT,
+  PRIMARY_HEADER_TITLE_MIN_WIDTH,
   TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
 
@@ -33,6 +35,7 @@ function TopBarContent() {
   const {pageContentTop} = useTopOffset();
 
   const organization = useOrganization({allowNull: true});
+  const {isSearchInMobileRow} = useTopBarActionDisplay();
 
   useEffect(() => {
     document.documentElement.style.setProperty(TOP_BAR_HEIGHT_CSS_VAR, pageContentTop);
@@ -48,19 +51,20 @@ function TopBarContent() {
     if (isSeerExplorerOpen) {
       return getExplorerFeedbackOptions(seerExplorerRunId);
     }
-    return {tags: {['feedback.source']: 'top_navigation'}};
+    return {tags: {'feedback.source': 'top_navigation'}};
   }, [isSeerExplorerOpen, seerExplorerRunId]);
 
   return (
     <Flex
       as="header"
-      height={{
+      minHeight={{
         'screen:sm': `${NAVIGATION_MOBILE_CONTENT_HEIGHT}px`,
         'screen:md': `${PRIMARY_HEADER_HEIGHT}px`,
       }}
       justify="between"
       background="secondary"
       align="center"
+      gap="sm"
       padding={{'screen:sm': 'sm lg', 'screen:md': 'md xl'}}
       position="sticky"
       borderBottom="primary"
@@ -68,6 +72,7 @@ function TopBarContent() {
       style={{
         zIndex: theme.zIndex.sidebarPanel - 1,
       }}
+      wrap="wrap"
     >
       <SizeProvider size="sm">
         {/*
@@ -84,20 +89,15 @@ function TopBarContent() {
           align="center"
           gap="sm"
           minWidth="0"
-          flexGrow={1}
+          flex={`1 1 ${PRIMARY_HEADER_TITLE_MIN_WIDTH}px`}
           containerType="inline-size"
         >
           <Slot.Outlet name="breadcrumbs">
-            {(props, hasConsumers) => (
-              <Flex
-                {...props}
-                align="center"
-                gap="sm"
-                minWidth="0"
-                flex="0 1 auto"
-                display={hasConsumers ? 'flex' : 'none'}
-              />
-            )}
+            {(props, hasConsumers) =>
+              hasConsumers ? (
+                <Flex {...props} align="center" gap="sm" minWidth="0" flex="0 1 auto" />
+              ) : null
+            }
           </Slot.Outlet>
 
           <Slot.Outlet name="title">
@@ -113,15 +113,19 @@ function TopBarContent() {
 
         <Flex align="center" gap="sm">
           <Slot.Outlet name="search">
-            {props => <Flex {...props} align="center" gap="sm" />}
+            {(props, hasConsumers) =>
+              hasConsumers ? <Flex {...props} align="center" gap="sm" /> : null
+            }
           </Slot.Outlet>
 
           <Slot.Outlet name="actions">
-            {props => <Flex {...props} align="center" gap="sm" />}
+            {(props, hasConsumers) =>
+              hasConsumers ? <Flex {...props} align="center" gap="sm" /> : null
+            }
           </Slot.Outlet>
 
-          <SearchButton />
           {isSeerExplorerEnabled(organization) ? <AskSeerButton /> : null}
+          {isSearchInMobileRow ? null : <SearchButton />}
 
           <Slot.Outlet name="feedback">
             {props => (

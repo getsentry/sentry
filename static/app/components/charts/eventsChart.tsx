@@ -130,29 +130,6 @@ function Chart({
 }: ChartProps) {
   const [seriesSelection, setSeriesSelection] = useState<Record<string, boolean>>({});
 
-  function getChartComponent(): ChartComponent {
-    if (defined(chartComponent)) {
-      return chartComponent;
-    }
-
-    if (showDaily) {
-      return BarChart;
-    }
-
-    if (timeseriesData.length > 1) {
-      switch (forceChartType || aggregateMultiPlotType(yAxis)) {
-        case 'line':
-          return LineChart;
-        case 'area':
-          return AreaChart;
-        default:
-          throw new Error(`Unknown multi plot type for ${yAxis}`);
-      }
-    }
-
-    return AreaChart;
-  }
-
   function handleLegendSelectChanged(legendChange: any) {
     const {selected} = legendChange;
     const newSeriesSelection = Object.keys(selected).reduce<Record<string, boolean>>(
@@ -170,7 +147,16 @@ function Chart({
     setSeriesSelection(newSeriesSelection);
   }
 
-  const ChartComponent = getChartComponent();
+  const multiPlotType =
+    !defined(chartComponent) && !showDaily && timeseriesData.length > 1
+      ? forceChartType || aggregateMultiPlotType(yAxis)
+      : null;
+  if (multiPlotType !== null && multiPlotType !== 'line' && multiPlotType !== 'area') {
+    throw new Error(`Unknown multi plot type for ${yAxis}`);
+  }
+  const ChartComponent =
+    chartComponent ??
+    (showDaily ? BarChart : multiPlotType === 'line' ? LineChart : AreaChart);
 
   const data = [
     ...(currentSeriesNames.length > 0 ? currentSeriesNames : [t('Current')]),
@@ -261,7 +247,7 @@ function Chart({
             ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])
             : tooltipFormatter(value, aggregateOutputType(aggregateName));
         }
-        return tooltipFormatter(value, 'number');
+        return tooltipFormatter(value);
       },
     },
     xAxis: timeframe

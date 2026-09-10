@@ -8,6 +8,7 @@ import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Relay} from 'sentry/types/relay';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 import {createTrustedRelaysResponseError} from './createTrustedRelaysResponseError';
 import {Form} from './form';
@@ -136,10 +137,15 @@ export class ModalManager<
     );
 
     try {
-      const response = await api.requestPromise(`/organizations/${orgSlug}/`, {
-        method: 'PUT',
-        data: {trustedRelays},
-      });
+      const response = await api.requestPromise(
+        getApiUrl('/organizations/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: orgSlug},
+        }),
+        {
+          method: 'PUT',
+          data: {trustedRelays},
+        }
+      );
       onSubmitSuccess(response);
       closeModal();
     } catch (error: any) {

@@ -13,6 +13,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import ConversationDetailPage from './conversationDetail';
+import {CONVERSATIONS_SIDEBAR_LABEL} from './settings';
 
 const CONVERSATION_ID = 'conv-1';
 
@@ -53,7 +54,7 @@ function mockApis(
   spans: Array<Record<string, unknown>> = CONVERSATION_BODY
 ) {
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/ai-conversations/${CONVERSATION_ID}/`,
+    url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
     body: {conversationId: CONVERSATION_ID, title, spans},
   });
   MockApiClient.addMockResponse({
@@ -75,9 +76,9 @@ function renderPage(features: string[] = []) {
     {
       organization: OrganizationFixture({features}),
       initialRouterConfig: {
-        route: '/organizations/:orgId/explore/conversations/:conversationId/',
+        route: '/organizations/:orgId/explore/agents/conversations/:conversationId/',
         location: {
-          pathname: `/organizations/org-slug/explore/conversations/${CONVERSATION_ID}/`,
+          pathname: `/organizations/org-slug/explore/agents/conversations/${CONVERSATION_ID}/`,
         },
       },
     }
@@ -144,13 +145,13 @@ describe('ConversationDetailPage breadcrumbs', () => {
     mockApis();
   });
 
-  it('renders the parent link, conversation id heading, and copy action with the migration flag on', async () => {
-    renderPage(['ui-migration-breadcrumbs']);
+  it('renders the parent link, conversation id heading, and copy action', async () => {
+    renderPage();
 
     const topBar = screen.getByRole('banner');
 
     expect(
-      await within(topBar).findByRole('link', {name: 'Conversations'})
+      await within(topBar).findByRole('link', {name: CONVERSATIONS_SIDEBAR_LABEL})
     ).toBeInTheDocument();
     // The conversation id is the top-bar identifier, owned by the TopBar title
     // slot, alongside the copy affordance.
@@ -183,7 +184,7 @@ describe('ConversationDetailPage title', () => {
   });
 
   it('falls back to the conversation id heading when there is no title', async () => {
-    mockApis(null);
+    mockApis();
     renderPage();
 
     // Once loaded, the summary heading shows the id (no title available).
@@ -221,8 +222,47 @@ describe('ConversationDetailPage summary errors', () => {
     expect(await screen.findByTestId('conversation-error-icon')).toBeInTheDocument();
   });
 
+  it('renders the earliest span start as the conversation start time', async () => {
+    mockApis();
+    renderPage();
+
+    // The conversation opens with the 1000s span, not the 2000s one that follows.
+    expect(await screen.findByText('Jan 1, 1970 12:16 AM UTC')).toBeInTheDocument();
+  });
+
+  it('leads the tool tags with the ones that errored', async () => {
+    mockApis(null, [
+      ...CONVERSATION_BODY,
+      spanFixture({
+        span_id: 'span-tool-ok',
+        'span.name': 'alpha call',
+        'gen_ai.operation.type': 'tool',
+        'gen_ai.tool.name': 'alpha_tool',
+        'precise.start_ts': 3000,
+        'precise.finish_ts': 3000.5,
+      }),
+      spanFixture({
+        span_id: 'span-tool-failed',
+        'span.name': 'zeta call',
+        'span.status': 'internal_error',
+        'gen_ai.operation.type': 'tool',
+        'gen_ai.tool.name': 'zeta_tool',
+        'precise.start_ts': 4000,
+        'precise.finish_ts': 4000.5,
+      }),
+    ]);
+    renderPage();
+
+    expect(await screen.findByText('Tools:')).toBeInTheDocument();
+
+    // Alphabetically alpha_tool would lead, but the errored zeta_tool outranks it.
+    const tags = screen.getAllByText(/^(alpha|zeta)_tool$/);
+    const names = tags.map(tag => tag.textContent);
+    expect(names.indexOf('zeta_tool')).toBeLessThan(names.indexOf('alpha_tool'));
+  });
+
   it('omits the fire icon in the summary when there are no errors', async () => {
-    mockApis(null);
+    mockApis();
     renderPage();
 
     // Wait for the conversation to load before asserting the icon's absence.

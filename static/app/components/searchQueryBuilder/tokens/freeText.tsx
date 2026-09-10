@@ -211,8 +211,6 @@ function countPreviousItemsOfType({
   }
   const currentIndex = itemKeys.indexOf(focusedKey);
 
-  // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   return itemKeys.slice(0, currentIndex).reduce<number>((count, next) => {
     if (next.toString().includes(type)) {
       return count + 1;
@@ -405,10 +403,9 @@ function SearchQueryBuilderInputInternal({
     updateSelectionIndex();
   }, [trimmedTokenValue, updateSelectionIndex]);
 
-  const {customMenu, sectionItems, maxOptions, onKeyDownCapture, handleOptionSelected} =
-    useFilterKeyListBox({
-      filterValue,
-    });
+  const {customMenu, sectionItems, maxOptions, onKeyDownCapture} = useFilterKeyListBox({
+    filterValue,
+  });
   const {items: sortedFilteredItems, isLoading: isLoadingFilterKeys} =
     useSortedFilterKeyItems({
       filterValue,
@@ -614,13 +611,6 @@ function SearchQueryBuilderInputInternal({
         isLoading={isLoadingFilterKeys}
         placeholder={query === '' ? placeholder : undefined}
         onOptionSelected={option => {
-          if (handleOptionSelected) {
-            handleOptionSelected(option);
-            if (option.type === 'ask-seer' || option.type === 'ask-seer-consent') {
-              return;
-            }
-          }
-
           if (option.type === 'recent-query') {
             dispatch({
               type: 'UPDATE_QUERY',
@@ -744,7 +734,11 @@ function SearchQueryBuilderInputInternal({
           resetInputValue();
         }}
         onCustomValueCommitted={value => {
-          if (defaultToAskSeerOnFreeTextSearch && value.trim() && !hasFilter) {
+          if (
+            defaultToAskSeerOnFreeTextSearch &&
+            value.trim().split(/\s+/).length >= 2 &&
+            !hasFilter
+          ) {
             setAutoSubmitFromCurrentQuery(true);
             setAutoSubmitSeer(true);
             setDisplayAskSeer(true);

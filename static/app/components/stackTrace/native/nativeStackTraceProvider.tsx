@@ -48,8 +48,8 @@ export function NativeStackTraceProvider({
   const activeStacktrace =
     isMinified && minifiedStacktrace ? minifiedStacktrace : stacktrace;
   const activeFrames = useMemo(
-    () => activeStacktrace.frames ?? [],
-    [activeStacktrace.frames]
+    () => activeStacktrace?.frames ?? [],
+    [activeStacktrace?.frames]
   );
   const {
     imageByFrameIndex,

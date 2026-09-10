@@ -2,12 +2,12 @@ import type {ReactNode} from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {InfoTip} from '@sentry/scraps/info';
+import {Container, Flex, Grid, Stack, type FlexProps} from '@sentry/scraps/layout';
 
 import {Accordion} from 'sentry/components/container/accordion';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {Placeholder} from 'sentry/components/placeholder';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconCursorArrow, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -90,7 +90,6 @@ function AccordionWidget({
       ) : (
         <Stack flex="1 1 auto" justify="start">
           <Accordion
-            collapsible
             collapsedChevronDirection="right"
             expandedIndex={selectedListIndex}
             expandedChevronDirection="down"
@@ -152,7 +151,7 @@ function SelectorCardHeader({deadOrRage}: {deadOrRage: DeadOrRage}) {
       <StyledWidgetHeader>
         <Flex align="center" gap="md">
           {deadOrRage === 'dead' ? t('Most Dead Clicks') : t('Most Rage Clicks')}
-          <QuestionTooltip
+          <InfoTip
             size="xs"
             position="top"
             title={
@@ -164,7 +163,6 @@ function SelectorCardHeader({deadOrRage}: {deadOrRage: DeadOrRage}) {
                     'The top selectors your users have rage clicked on (i.e., 5 or more clicks on a dead element, which exhibits no page activity after 7 seconds).'
                   )
             }
-            isHoverable
           />
         </Flex>
       </StyledWidgetHeader>
@@ -222,14 +220,19 @@ function AccordionItemHeader({
   );
 }
 
-const SplitCardContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: max-content;
-  grid-auto-flow: column;
-  gap: 0 ${p => p.theme.space.xl};
-  align-items: stretch;
-`;
+function SplitCardContainer({children}: {children: ReactNode}) {
+  return (
+    <Grid
+      align="stretch"
+      columns={{zero: '1fr', xl: '1fr 1fr'}}
+      flow={{zero: 'row', xl: 'column'}}
+      gap={{zero: 'xl', xl: '0 xl'}}
+      rows="max-content"
+    >
+      {children}
+    </Grid>
+  );
+}
 
 const ClickCount = styled(TextOverflow)`
   color: ${p => p.theme.colors.gray500};

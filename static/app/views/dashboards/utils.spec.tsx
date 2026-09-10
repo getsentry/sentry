@@ -1,3 +1,4 @@
+import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -9,6 +10,7 @@ import {
   getCurrentPageFilters,
   getFieldsFromEquations,
   getNumEquations,
+  getSavedFiltersAsPageFilters,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   hasUnsavedFilterChanges,
@@ -50,6 +52,46 @@ describe('Dashboards util', () => {
       const eventView = eventViewFromWidget(widget.title, query, selection);
       expect(eventView.fields[0]!.field).toBe('count()');
       expect(eventView.sorts).toEqual([{field: 'count', kind: 'desc'}]);
+    });
+  });
+
+  describe('getSavedFiltersAsPageFilters', () => {
+    it('uses the dashboard default when no datetime is saved', () => {
+      expect(
+        getSavedFiltersAsPageFilters(
+          DashboardFixture([], {
+            environment: ['production'],
+            projects: [1],
+            utc: false,
+          })
+        )
+      ).toEqual({
+        datetime: {
+          end: null,
+          period: '24h',
+          start: null,
+          utc: false,
+        },
+        environments: ['production'],
+        projects: [1],
+      });
+    });
+
+    it('preserves a saved absolute datetime and UTC setting', () => {
+      expect(
+        getSavedFiltersAsPageFilters(
+          DashboardFixture([], {
+            end: '2026-08-31T14:00:00',
+            start: '2026-08-31T12:00:00',
+            utc: true,
+          })
+        ).datetime
+      ).toEqual({
+        end: '2026-08-31T14:00:00',
+        period: null,
+        start: '2026-08-31T12:00:00',
+        utc: true,
+      });
     });
   });
 
@@ -192,7 +234,7 @@ describe('Dashboards util', () => {
       );
       const queryString = url.split('?')[1];
       const urlParams = new URLSearchParams(queryString);
-      expect(urlParams.get('query')).toBe('(is:unresolved) release:["1.0.0","2.0.0"] ');
+      expect(urlParams.get('query')).toBe('is:unresolved release:["1.0.0","2.0.0"] ');
     });
     it('applies global filters scoped to the issue dataset', () => {
       const url = getWidgetIssueUrl(
@@ -216,7 +258,7 @@ describe('Dashboards util', () => {
       );
       const queryString = url.split('?')[1];
       const urlParams = new URLSearchParams(queryString);
-      expect(urlParams.get('query')).toBe('(is:unresolved) transaction:/api/foo');
+      expect(urlParams.get('query')).toBe('is:unresolved transaction:/api/foo');
     });
   });
 

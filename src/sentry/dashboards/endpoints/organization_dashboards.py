@@ -5,24 +5,14 @@ from typing import Required, TypedDict
 
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
-from django.db.models import (
-    Case,
-    Exists,
-    F,
-    IntegerField,
-    OrderBy,
-    OuterRef,
-    Subquery,
-    Value,
-    When,
-)
+from django.db.models import Case, Exists, F, IntegerField, OrderBy, OuterRef, Subquery, Value, When
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from sentry import features, options, quotas, roles
+from sentry import audit_log, features, options, quotas, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -43,7 +33,12 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
 )
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    DashboardParams,
+    GlobalParams,
+    VisibilityParams,
+)
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
@@ -99,6 +94,7 @@ class PrebuiltDashboard(TypedDict, total=False):
     title: Required[str]
     hidden: bool
     pre_favorited: bool
+    required_feature_flags: list[str]
 
 
 # Prebuilt dashboards store minimal fields in the database. The actual dashboard and widget settings are
@@ -235,6 +231,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.NODE_RUNTIME_METRICS,
         "title": "Node.js Runtime Metrics",
+        "required_feature_flags": ["organizations:tracemetrics-enabled"],
     },
 ]
 
@@ -258,6 +255,10 @@ def get_enabled_prebuilt_dashboards(
         dashboard
         for dashboard in all_prebuilt_dashboards
         if dashboard["prebuilt_id"] in enabled_prebuilt_dashboard_ids
+        and all(
+            features.has(feature, organization)
+            for feature in dashboard.get("required_feature_flags", [])
+        )
     ]
 
 
@@ -416,7 +417,15 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="listOrganizationDashboards",
         summary="List an Organization's Custom Dashboards",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, VisibilityParams.PER_PAGE, CursorQueryParam],
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            DashboardParams.FILTER,
+            DashboardParams.QUERY,
+            DashboardParams.SORT,
+            DashboardParams.PIN,
+            VisibilityParams.PER_PAGE,
+            CursorQueryParam,
+        ],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
@@ -628,6 +637,11 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         else:
             order_by = ["title"]
 
+        # Entries with null last visited need a deterministic tiebreaker,
+        # hence adding id to serve this purpose.
+        if use_user_last_visited:
+            order_by.append("-id")
+
         pin_by = request.query_params.get("pin")
         if pin_by == "favorites":
             favorited_by_subquery = DashboardFavoriteUser.objects.filter(
@@ -693,12 +707,16 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:dashboards-edit", organization, actor=request.user):
             return Response(status=404)
 
+        projects = self.get_projects(request, organization)
         serializer = DashboardSerializer(
             data=request.data,
             context={
                 "organization": organization,
                 "request": request,
-                "projects": self.get_projects(request, organization),
+                "projects": projects,
+                # allow_joinleave grants project access without team membership.
+                "validation_projects": projects
+                or self.get_projects(request, organization, include_all_accessible=True),
                 "environment": self.request.GET.getlist("environment"),
             },
         )
@@ -733,9 +751,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                     )
 
                 dashboard = serializer.save()
-
-            body: DashboardDetailsResponse = serialize(dashboard, request.user)
-            return Response(body, status=201)
         except IntegrityError:
             if retry >= MAX_RETRIES:
                 return Response("Dashboard title already taken", status=409)
@@ -747,3 +762,16 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             return self.post(request, organization, retry=retry + 1)
         except UnableToAcquireLock:
             return Response("Unable to create dashboard, please try again", status=503)
+
+        # Audit only after a successful create so title-conflict retries cannot
+        # emit multiple create entries.
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=dashboard.id,
+            event=audit_log.get_event_id("DASHBOARD_ADD"),
+            data=dashboard.get_audit_log_data(),
+        )
+
+        body: DashboardDetailsResponse = serialize(dashboard, request.user)
+        return Response(body, status=201)

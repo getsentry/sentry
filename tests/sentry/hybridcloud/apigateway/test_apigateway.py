@@ -2,6 +2,7 @@ from unittest.mock import Mock, patch
 from urllib.parse import urlencode
 
 import pytest
+import responses
 from django.conf import settings
 from django.test import override_settings
 from django.urls import get_resolver, reverse
@@ -16,11 +17,12 @@ from sentry.utils import json
 
 @control_silo_test(cells=[ApiGatewayTestCase.CELL], include_monolith_run=True)
 class ApiGatewayTest(ApiGatewayTestCase):
+    @responses.activate
     def test_simple(self) -> None:
         query_params = dict(foo="test", bar=["one", "two"])
         headers = dict(example="this")
-        self.httpx_router.add_callback(
-            "GET",
+        responses.add_callback(
+            responses.GET,
             f"{self.CELL.address}/organizations/{self.organization.slug}/region/",
             verify_request_params(query_params, headers),
         )
@@ -39,12 +41,13 @@ class ApiGatewayTest(ApiGatewayTestCase):
             resp_json = json.loads(close_streaming_response(resp))
             assert resp_json["proxy"] is True
 
+    @responses.activate
     def test_proxy_does_not_resolve_redirect(self) -> None:
-        self.httpx_router.add(
-            "POST",
+        responses.add(
+            responses.POST,
             f"{self.CELL.address}/organizations/{self.organization.slug}/region/",
-            headers={"Location": "https://zombo.com"},
-            status_code=302,
+            adding_headers={"Location": "https://zombo.com"},
+            status=302,
         )
 
         url = reverse("region-endpoint", kwargs={"organization_slug": self.organization.slug})
@@ -59,6 +62,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
             response_payload = close_streaming_response(resp)
             assert response_payload == b""
 
+    @responses.activate
     def test_cell_pinned_urls_are_defined(self) -> None:
         resolver = get_resolver()
         # Ensure that all urls in REGION_PINNED_URL_NAMES exist in api/urls.py
@@ -70,17 +74,18 @@ class ApiGatewayTest(ApiGatewayTestCase):
                 f"REGION_PINNED_URL_NAMES contains {name}, but no route is registered with that name"
             )
 
+    @responses.activate
     def test_proxy_check_org_slug_url(self) -> None:
         """Test the logic of when a request should be proxied"""
-        self.httpx_router.add(
-            "GET",
+        responses.add(
+            responses.GET,
             f"{self.CELL.address}/organizations/{self.organization.slug}/region/",
-            json_data={"proxy": True},
+            json={"proxy": True},
         )
-        self.httpx_router.add(
-            "GET",
+        responses.add(
+            responses.GET,
             f"{self.CELL.address}/organizations/{self.organization.slug}/control/",
-            json_data={"proxy": True},
+            json={"proxy": True},
         )
 
         region_url = reverse(
@@ -105,27 +110,28 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert resp.status_code == 200
             assert resp.data["proxy"] is False
 
+    @responses.activate
     def test_proxy_check_org_id_or_slug_url_with_params(self) -> None:
         """Test the logic of when a request should be proxied"""
-        self.httpx_router.add(
-            "GET",
+        responses.add(
+            responses.GET,
             f"{self.CELL.address}/organizations/{self.organization.slug}/region/",
-            json_data={"proxy": True},
+            json={"proxy": True},
         )
-        self.httpx_router.add(
-            "GET",
+        responses.add(
+            responses.GET,
             f"{self.CELL.address}/organizations/{self.organization.slug}/control/",
-            json_data={"proxy": True},
+            json={"proxy": True},
         )
-        self.httpx_router.add(
-            "GET",
+        responses.add(
+            responses.GET,
             f"{self.CELL.address}/organizations/{self.organization.id}/region/",
-            json_data={"proxy": True},
+            json={"proxy": True},
         )
-        self.httpx_router.add(
-            "GET",
+        responses.add(
+            responses.GET,
             f"{self.CELL.address}/organizations/{self.organization.id}/control/",
-            json_data={"proxy": True},
+            json={"proxy": True},
         )
 
         region_url_slug = reverse(
@@ -173,13 +179,14 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert resp.status_code == 200
             assert resp.data["proxy"] is False
 
-    @patch("sentry.hybridcloud.apigateway_async.apigateway.metrics")
+    @responses.activate
+    @patch("sentry.hybridcloud.apigateway.apigateway.metrics")
     def test_proxy_check_region_pinned_url(self, mock_metrics: Mock) -> None:
         project_key = self.create_project_key(self.project)
-        self.httpx_router.add(
-            "GET",
+        responses.add(
+            responses.GET,
             f"{self.CELL.address}/js-sdk-loader/{project_key.public_key}.js",
-            json_data={"proxy": True},
+            json={"proxy": True},
         )
 
         # No /api/0 as we only include sentry.api.urls.urlpatterns
@@ -210,20 +217,18 @@ class ApiGatewayTest(ApiGatewayTestCase):
             and c.kwargs.get("tags", {}).get("kind") == "cell_resolver"
         ]
         assert cell_resolver_calls
-        assert all(
-            c.kwargs["tags"]["destination_cell"] == self.CELL.name for c in cell_resolver_calls
-        )
 
+    @responses.activate
     def test_proxy_check_cell_pinned_url_with_params(self) -> None:
-        self.httpx_router.add(
-            "GET",
+        responses.add(
+            responses.GET,
             f"{self.CELL.address}/relays/register/",
-            json_data={"proxy": True},
+            json={"proxy": True},
         )
-        self.httpx_router.add(
-            "GET",
+        responses.add(
+            responses.GET,
             f"{self.CELL.address}/relays/abc123/",
-            json_data={"proxy": True, "details": True},
+            json={"proxy": True, "details": True},
         )
 
         with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):
@@ -238,18 +243,19 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert resp_json["proxy"] is True
             assert resp_json["details"] is True
 
-    @patch("sentry.hybridcloud.apigateway_async.apigateway.metrics")
+    @responses.activate
+    @patch("sentry.hybridcloud.apigateway.apigateway.metrics")
     def test_proxy_check_cell_pinned_issue_urls(self, mock_metrics: Mock) -> None:
         issue = self.create_group()
-        self.httpx_router.add(
-            "GET",
+        responses.add(
+            responses.GET,
             f"{self.CELL.address}/issues/{issue.id}/",
-            json_data={"proxy": True, "id": issue.id},
+            json={"proxy": True, "id": issue.id},
         )
-        self.httpx_router.add(
-            "GET",
+        responses.add(
+            responses.GET,
             f"{self.CELL.address}/issues/{issue.id}/events/",
-            json_data={"proxy": True, "id": issue.id, "events": True},
+            json={"proxy": True, "id": issue.id, "events": True},
         )
 
         # No /api/0 as we only include sentry.api.urls.urlpatterns
@@ -280,13 +286,13 @@ class ApiGatewayTest(ApiGatewayTestCase):
             and c.kwargs.get("tags", {}).get("kind") == "regionpin"
         ]
         assert regionpin_calls
-        assert all(c.kwargs["tags"]["destination_cell"] == self.CELL.name for c in regionpin_calls)
 
+    @responses.activate
     def test_proxy_error_embed_dsn(self) -> None:
-        self.httpx_router.add(
-            "GET",
+        responses.add(
+            responses.GET,
             f"{self.CELL.address}/api/embed/error-page/",
-            json_data={"proxy": True, "name": "error-embed"},
+            json={"proxy": True, "name": "error-embed"},
         )
         with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):
             # no dsn

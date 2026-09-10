@@ -1,4 +1,4 @@
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -6,9 +6,11 @@ import {createIssueViewFromUrl} from 'sentry/views/issueList/issueViews/createIs
 import {useFetchIssueCounts} from 'sentry/views/issueList/queries/useFetchIssueCounts';
 import {IssueCount} from 'sentry/views/navigation/secondary/sections/issues/issueCount';
 import type {IssueView} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 const constructCountTimeFrame = (
-  timeFilters: PageFilters['datetime']
+  timeFilters: PageFilterDatetime
 ): {
   end?: string;
   start?: string;
@@ -29,7 +31,7 @@ interface IssueViewQueryCountProps {
   view: IssueView;
 }
 
-export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) {
+function IssueViewQueryCountImpl({view, isActive}: IssueViewQueryCountProps) {
   const organization = useOrganization();
   const location = useLocation();
 
@@ -61,9 +63,21 @@ export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) 
     ? 0
     : (queryCount?.[view.query] ?? queryCount?.[defaultQuery ?? ''] ?? 0);
 
+  useLLMContext({
+    contextHint: 'The live issue count for one starred issue view.',
+    viewId: view.id,
+    viewLabel: view.label,
+    issueCount: isFetching ? null : count,
+  });
+
   if (isFetching) {
     return null;
   }
 
   return <IssueCount count={count} />;
 }
+
+export const IssueViewQueryCount = registerLLMContext(
+  'navigation',
+  IssueViewQueryCountImpl
+);

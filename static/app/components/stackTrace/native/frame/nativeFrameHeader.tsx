@@ -166,7 +166,6 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
             <Tooltip
               title={frame.absPath}
               disabled={!frame.absPath || frame.absPath === frame.filename}
-              isHoverable
             >
               <FileName>
                 {'('}

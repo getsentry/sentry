@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import type {CalendarProps, DateRangeProps, Range, RangeKeyDict} from 'react-date-range';
 import moment from 'moment-timezone';
 

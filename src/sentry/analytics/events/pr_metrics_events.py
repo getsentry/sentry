@@ -63,7 +63,7 @@ class PrCloseMetricsEvent(analytics.Event):
     # Derived from the stored activity log at the terminal event (not the webhook
     # payload above): ``reviews_count`` = total review submissions;
     # ``participants_count`` = distinct non-bot senders across the PR's activity.
-    # Only meaningful under ``pr-metrics-activity``; 0 when activity isn't tracked.
+    # Only meaningful under ``pr-metrics``; 0 when activity isn't tracked.
     participants_count: int = 0
     reviews_count: int = 0
     # Human-involvement splits, also activity-derived — the "self-healing loop"
@@ -121,6 +121,22 @@ class PrCloseMetricsEvent(analytics.Event):
     # Relevant datapoint for this PR, mostly related to the conversation and mostly
     # derived by the judge. Examples include "superseded", "ci_failing_at_close", etc.
     diagnosis_labels: list[str] | None = None
+
+    # Ordered JSON list of per-head CI results following ``sync_chain`` insertion
+    # order. Each item retains sequence, head/before SHA, derived ``actor``,
+    # whole-head outcome, and ``has_ci``. There is no ``sender_login`` or
+    # ``sender_type`` key: the pusher's GitHub identity is only an input to the
+    # actor classification and stays in the activity document, so no per-person
+    # identity reaches the warehouse — group on ``actor``
+    # (``seer``/``bot``/``human``/``unknown``). ``outcome`` is GitHub's own check
+    # conclusion for that head — ``success``/``failure``/``timed_out``/``cancelled``/
+    # ``action_required``/…, any-failure-wins across the head's suites — so query it
+    # as an open string set, not a fixed enum; the sole non-GitHub value is
+    # ``unknown``, meaning no suite concluded anything. Opening and synchronize
+    # heads with no checks are included; check heads missing from the bounded chain
+    # are appended with null sequence/identity. Null means unavailable (legacy storage
+    # or no authoring attribution), while ``[]`` means an available empty document.
+    ci_head_results: str | None = None
 
     # --- Conversation judge (set only on a judged close/merge row) ---
     # One of several judges' outputs. Columns are prefixed ``conversation_`` so a

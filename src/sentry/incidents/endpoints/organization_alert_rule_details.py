@@ -3,7 +3,7 @@ import logging
 from collections.abc import Callable
 
 from django.contrib.auth.models import AnonymousUser
-from drf_spectacular.utils import extend_schema, extend_schema_serializer
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -139,7 +139,6 @@ def remove_alert_rule(
         return Response("This rule has already been deleted", status=status.HTTP_400_BAD_REQUEST)
 
 
-@extend_schema_serializer(exclude_fields=["excludedProjects", "thresholdPeriod"])
 class OrganizationAlertRuleDetailsPutSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=256, help_text="The name for the rule.")
     aggregate = serializers.CharField(
@@ -240,7 +239,13 @@ Metric alert rule trigger actions follow the following structure:
     owner = OwnerActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
-    thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
+    thresholdPeriod = serializers.IntegerField(
+        required=False,
+        default=1,
+        min_value=1,
+        max_value=20,
+        help_text="Number of consecutive times the threshold must be met before the alert fires.",
+    )
 
 
 def _check_project_access[T](

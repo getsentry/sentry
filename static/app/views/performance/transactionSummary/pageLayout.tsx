@@ -67,12 +67,11 @@ type Props = {
   organization: Organization;
   projects: Project[];
   tab: Tab;
-  features?: string[];
   fillSpace?: boolean;
 };
 
 export function PageLayout(props: Props) {
-  const {location, organization, projects, tab, getDocumentTitle, features = []} = props;
+  const {location, organization, projects, tab, getDocumentTitle} = props;
 
   let projectId: string | undefined;
   const filterProjects = location.query.project;
@@ -254,7 +253,7 @@ export function PageLayout(props: Props) {
       projectSlug={project?.slug}
     >
       <Feature
-        features={['performance-view', ...features]}
+        features={['performance-view']}
         organization={organization}
         renderDisabled={NoAccess}
       >
@@ -339,12 +338,6 @@ const StyledBody = styled(Layout.Body)<{fillSpace?: boolean; hasError?: boolean}
       display: flex;
       flex-direction: column;
       gap: ${p.theme.space['2xl']};
-
-      @media (min-width: ${p.theme.breakpoints.lg}) {
-        display: flex;
-        flex-direction: column;
-        gap: ${p.theme.space['2xl']};
-      }
     `}
 `;
 
@@ -356,7 +349,7 @@ export function redirectToPerformanceHomepage(
   // If there is no transaction name, redirect to the Performance landing page
   navigate(
     normalizeUrl({
-      pathname: getPerformanceBaseUrl(organization.slug, 'backend'),
+      pathname: getPerformanceBaseUrl(organization.slug),
       query: {
         ...location.query,
       },

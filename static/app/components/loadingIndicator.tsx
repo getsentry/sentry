@@ -8,7 +8,6 @@ interface LoadingIndicatorProps {
    * @deprecated Use `size` instead.
    */
   mini?: boolean;
-  overlay?: boolean;
   relative?: boolean;
   size?: number;
   style?: React.CSSProperties;
@@ -18,7 +17,6 @@ export function LoadingIndicator(props: LoadingIndicatorProps) {
   return (
     <div
       className={classNames('loading', props.className, {
-        overlay: props.overlay,
         mini: props.mini,
       })}
       style={props.style}

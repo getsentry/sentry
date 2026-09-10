@@ -237,6 +237,22 @@ describe('artifactToMarkdown', () => {
       );
     });
 
+    it('filters out a PR whose creation has not finished', () => {
+      // 'creating' carries the number of an already-open PR when it is an update.
+      const prs = [
+        makeRepoPRState({pr_creation_status: 'creating'}),
+        makeRepoPRState({pr_creation_status: 'error'}),
+        makeRepoPRState(), // valid
+      ];
+      expect(artifactToMarkdown(prs)).toBe(
+        [
+          '# Pull Requests',
+          '',
+          '[getsentry/sentry#42](https://github.com/getsentry/sentry/pull/42)',
+        ].join('\n')
+      );
+    });
+
     it('returns null for empty array', () => {
       const prs: RepoPRState[] = [];
       expect(artifactToMarkdown(prs)).toBeNull();

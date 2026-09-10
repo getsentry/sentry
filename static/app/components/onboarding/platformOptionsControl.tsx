@@ -69,10 +69,6 @@ type PlatformOptionsControlProps = {
    */
   platformOptions: Record<string, PlatformOption>;
   /**
-   * Object with default value for each option
-   */
-  defaultOptions?: Record<string, string[]>;
-  /**
    * Fired when the value changes
    */
   onChange?: (options: SelectedPlatformOptions) => void;

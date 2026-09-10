@@ -49,11 +49,6 @@ describe('ProductSelect', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/promotions/trigger-check/`,
-      method: 'POST',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
     });

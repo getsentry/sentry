@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -9,6 +8,7 @@ import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Prose, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -54,11 +54,20 @@ import {
 import type {
   RunStatus,
   SeerNightShiftRun,
+  SeerNightShiftRunErrorType,
   SeerNightShiftRunIssue,
   SeerNightShiftRunPullRequest,
   WorkflowKind,
   WorkflowRow,
 } from 'sentry/views/seerWorkflows/types';
+
+const RUNS_COLUMNS: TableColumnConfig[] = [
+  {key: 'select', width: 'min-content'},
+  {key: 'date', width: 'max-content'},
+  {key: 'strategy', width: '1fr'},
+  {key: 'result', width: '2fr'},
+  {key: 'actions', width: 'min-content'},
+];
 
 function SeerWorkflows() {
   const organization = useOrganization();
@@ -89,10 +98,11 @@ function SeerWorkflows() {
   const sourceFilter = decodeList(location.query.source);
   const period = decodeScalar(location.query.period);
 
+  const [now] = useState(() => Date.now());
   const periodCutoffMs = useMemo(() => {
     const days = PERIOD_TO_DAYS[period ?? ''];
-    return days === undefined ? null : Date.now() - days * 24 * 60 * 60 * 1000;
-  }, [period]);
+    return days === undefined ? null : now - days * 24 * 60 * 60 * 1000;
+  }, [period, now]);
 
   const sourceOptions = useMemo(() => {
     const sources = new Set<string>();
@@ -150,7 +160,7 @@ function SeerWorkflows() {
   const sortedRows = useMemo(() => {
     const cmp = (a: WorkflowRow, b: WorkflowRow) =>
       Date.parse(a.dateAdded) - Date.parse(b.dateAdded);
-    const next = [...filteredRows].sort(cmp);
+    const next = filteredRows.toSorted(cmp);
     return sortDirection === 'desc' ? next.reverse() : next;
   }, [filteredRows, sortDirection]);
 
@@ -246,7 +256,7 @@ function SeerWorkflows() {
         ) : isPending ? (
           <LoadingIndicator />
         ) : (
-          <Container width={{'screen:md': '100%', 'screen:lg': '70%'}}>
+          <Fragment>
             <Container
               background="secondary"
               border="muted"
@@ -331,20 +341,23 @@ function SeerWorkflows() {
                 ) : null}
               </Flex>
             </Container>
-            <RunsTable>
-              <SimpleTable.Header>
-                <SimpleTable.HeaderCell />
-                <SimpleTable.HeaderCell
-                  sort={sortDirection}
-                  handleSortClick={toggleSortDirection}
-                >
-                  {t('Date')}
-                </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell>{t('Strategy')}</SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell>{t('Result')}</SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell />
-              </SimpleTable.Header>
-
+            <SimpleTable
+              columns={RUNS_COLUMNS}
+              header={
+                <SimpleTable.HeaderRow>
+                  <SimpleTable.HeaderCell />
+                  <SimpleTable.HeaderCell
+                    sort={sortDirection}
+                    handleSortClick={toggleSortDirection}
+                  >
+                    {t('Date')}
+                  </SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell>{t('Strategy')}</SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell>{t('Result')}</SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell />
+                </SimpleTable.HeaderRow>
+              }
+            >
               {sortedRows.length === 0 ? (
                 <SimpleTable.Empty>
                   {rows.length === 0
@@ -411,21 +424,22 @@ function SeerWorkflows() {
 
                       {isExpanded && (
                         <SimpleTable.Row variant="faded">
-                          <Container
+                          <SimpleTable.RowCell
+                            align="stretch"
                             background="secondary"
-                            padding="lg xl"
                             column="1 / -1"
+                            direction="column"
                           >
                             <RunDetail row={row} organizationSlug={organization.slug} />
-                          </Container>
+                          </SimpleTable.RowCell>
                         </SimpleTable.Row>
                       )}
                     </Fragment>
                   );
                 })
               )}
-            </RunsTable>
-          </Container>
+            </SimpleTable>
+          </Fragment>
         )}
       </Stack>
     </SentryDocumentTitle>
@@ -470,11 +484,10 @@ function SourceIcon({source}: {source: string | undefined}) {
   );
 }
 
-// toWorkflowRow only ever derives 'succeeded' or 'failed' from a run, so only
-// offer those as filter choices — 'skipped'/'running' would never match.
 const STATUS_FILTER_OPTIONS: Array<{label: string; value: RunStatus}> = [
   {value: 'succeeded', label: 'Succeeded'},
   {value: 'failed', label: 'Failed'},
+  {value: 'skipped', label: 'Skipped'},
 ];
 
 const PERIOD_FILTER_OPTIONS: Array<{label: string; value: string}> = [
@@ -519,7 +532,7 @@ function getResultContent(row: WorkflowRow) {
   if (row.status === 'failed') {
     return (
       <Text variant="danger" size="sm">
-        {t('Run failed')}
+        {row.resultText ?? t('Run failed')}
       </Text>
     );
   }
@@ -576,7 +589,7 @@ function RunDetail({
             </Flex>
           </Disclosure.Title>
           <Disclosure.Content>
-            <DebugSection row={row} organizationSlug={organizationSlug} />
+            <DebugSection row={row} />
           </Disclosure.Content>
         </Disclosure>
       ) : null}
@@ -633,13 +646,7 @@ function TriageDispatchesPanel({row}: {row: WorkflowRow}) {
   );
 }
 
-function DebugSection({
-  row,
-  organizationSlug,
-}: {
-  organizationSlug: string;
-  row: WorkflowRow;
-}) {
+function DebugSection({row}: {row: WorkflowRow}) {
   const {
     reasoning_effort,
     intelligence_level,
@@ -704,7 +711,7 @@ function DebugSection({
           {row.errorMessage}
         </Text>
       ) : null}
-      <TriageIssuesDebugAddendum row={row} organizationSlug={organizationSlug} />
+      <TriageIssuesDebugAddendum row={row} />
     </Stack>
   );
 }
@@ -851,13 +858,7 @@ function IssuePullRequestChip({
   );
 }
 
-function TriageIssuesDebugAddendum({
-  row,
-  organizationSlug,
-}: {
-  organizationSlug: string;
-  row: WorkflowRow;
-}) {
+function TriageIssuesDebugAddendum({row}: {row: WorkflowRow}) {
   const issues = row.triage?.issues ?? [];
   if (issues.length === 0) {
     return null;
@@ -905,10 +906,7 @@ function TriageIssuesDebugAddendum({
               key={`${issue.id}-explorer`}
               size="xs"
               icon={<IconOpen />}
-              to={{
-                pathname: `/organizations/${organizationSlug}/issues/autofix/`,
-                query: {explorerRunId: issue.seerRunId},
-              }}
+              to={getRelativeExplorerUrl(issue.seerRunId)}
             >
               {t('Explorer')}
             </LinkButton>
@@ -919,22 +917,19 @@ function TriageIssuesDebugAddendum({
   );
 }
 
-const RunsTable = styled(SimpleTable)`
-  grid-template-columns: min-content max-content 1fr 2fr min-content;
-`;
-
 function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
-  const status: RunStatus = run.errorMessage ? 'failed' : 'succeeded';
+  const errorPresentation = getErrorPresentation(run.errorType ?? null);
   const agentRunId = run.extras.agent_run_id;
   return {
     id: `${run.id}:agentic_triage`,
     runId: run.id,
     dateAdded: run.dateAdded,
     kind: 'agentic_triage',
-    status,
+    status: errorPresentation?.status ?? 'succeeded',
     source: run.extras.options?.source,
     errorMessage: run.errorMessage,
     options: run.extras.options,
+    resultText: errorPresentation?.resultText,
     triage: {
       maxCandidates: run.extras.options?.max_candidates,
       dryRun: run.extras.options?.dry_run,
@@ -946,6 +941,27 @@ function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
           : undefined,
     },
   };
+}
+
+function getErrorPresentation(
+  errorType: SeerNightShiftRunErrorType | null
+): {resultText: string; status: RunStatus} | null {
+  switch (errorType) {
+    case null:
+      return null;
+    case 'no_quota':
+      return {status: 'skipped', resultText: t('No Seer quota available')};
+    case 'no_seer_access':
+      return {status: 'skipped', resultText: t('Seer is not enabled')};
+    case 'eligible_projects_failed':
+      return {status: 'failed', resultText: t('Could not check eligible projects')};
+    case 'invalid_shard_plan':
+      return {status: 'failed', resultText: t('Could not prepare triage')};
+    case 'shard_dispatch_failed':
+      return {status: 'failed', resultText: t('Could not start all triage batches')};
+    default:
+      return {status: 'failed', resultText: t('Run failed')};
+  }
 }
 
 function getExplorerRunIds(row: WorkflowRow): Array<number | string> {

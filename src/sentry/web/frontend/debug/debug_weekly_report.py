@@ -26,7 +26,6 @@ from sentry.tasks.summaries.weekly_reports import (
     CHART_PALETTE,
     _pct_change,
     _top_spans_chart_url,
-    get_group_display,
     render_template_context,
 )
 from sentry.types.group import GroupSubStatus
@@ -207,11 +206,18 @@ class DebugWeeklyReportView(MailPreviewView):
                         substatus=GroupSubStatus.NEW,
                     ),
                     random.randint(100, 5000),
-                    random.choice(
+                    *random.choice(
                         [
-                            "Resolved",
-                            "Resolved in release",
-                            "Resolved in next release",
+                            ("Resolved", None),
+                            (
+                                "Resolved in release",
+                                "https://github.com/getsentry/sentry/pull/12345",
+                            ),
+                            ("Resolved in next release", None),
+                            (
+                                "Resolved by Seer Fix",
+                                "https://github.com/getsentry/sentry/pull/12345",
+                            ),
                         ]
                     ),
                 )
@@ -255,9 +261,6 @@ class DebugWeeklyReportView(MailPreviewView):
         ctx.project_ownership[user_id] = {pid for pid in ctx.projects_context_map}
         context = render_template_context(ctx, user_id)
         if context is not None:
-            context["show_week_over_week_metric"] = (
-                request.GET.get("show_week_over_week_metric", "1") != "0"
-            )
             context["show_past_issues"] = True
             total_spans = sum(ctx.spans_count_by_project.values())
             prev_total_spans = sum(ctx.prev_week_spans_count_by_project.values())
@@ -280,21 +283,6 @@ class DebugWeeklyReportView(MailPreviewView):
             chart_url = _top_spans_chart_url(context["top_spans_table"], ctx, None)
             if chart_url:
                 context["spans_chart_url"] = chart_url
-            past_issues: list[dict[str, Any]] = []
-            for project_ctx in ctx.projects_context_map.values():
-                for group, count, resolution_label in project_ctx.past_resolved_issues:
-                    display = get_group_display(group)
-                    past_issues.append(
-                        {
-                            "count": count,
-                            "group": group,
-                            "title": display["title"],
-                            "message": display["message"],
-                            "resolution_label": resolution_label,
-                        }
-                    )
-            past_issues.sort(key=lambda x: x["count"], reverse=True)
-            context["past_issues"] = past_issues[:3]
         return context
 
     @property

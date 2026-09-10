@@ -12,12 +12,17 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types/event';
+import {
+  EntryType,
+  type EntryBreadcrumbs,
+  type EventTransaction,
+} from 'sentry/types/event';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
+import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -53,7 +58,6 @@ import {MCPOutputSection} from 'sentry/views/performance/newTraceDetails/traceDr
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {BreadCrumbs} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/breadCrumbs';
 import {ReplayPreview} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/replayPreview';
-import {findSpanAttributeValue} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
@@ -469,6 +473,17 @@ function EAPSpanNodeDetailsContent({
   const links = traceItemData.links;
   const isTransaction = node.value.is_transaction;
 
+  // Contexts, breadcrumbs, and extra exist in traceItemData as of Aug 6 2026. Fall back to
+  // eventTransaction for older data. eventTransaction use can be removed once we're past the
+  // retention window.
+  const contexts = traceItemData.event?.contexts ?? eventTransaction?.contexts;
+  const extra = traceItemData.event?.extra ?? eventTransaction?.context;
+  const breadcrumbs =
+    traceItemData.event?.breadcrumbs ??
+    eventTransaction?.entries.find(
+      (entry): entry is EntryBreadcrumbs => entry.type === EntryType.BREADCRUMBS
+    )?.data;
+
   const threadIdAttribute = attributesMap['thread.id'];
   const threadId = typeof threadIdAttribute === 'string' ? threadIdAttribute : undefined;
 
@@ -595,8 +610,8 @@ function EAPSpanNodeDetailsContent({
           project={project}
         />
 
-        {isTransaction && eventTransaction ? (
-          <Contexts event={eventTransaction} project={project} />
+        {isTransaction && (contexts || extra) ? (
+          <Contexts contexts={contexts} extra={extra} project={project} />
         ) : null}
 
         <LogDetails />
@@ -626,8 +641,8 @@ function EAPSpanNodeDetailsContent({
         {isTransaction ? (
           <ReplayPreview
             replayId={
-              findSpanAttributeValue(attributes, 'replay.id') ||
-              findSpanAttributeValue(attributes, 'replayId')
+              getAttributeValue(attributes, 'replay.id', 'string') ||
+              getAttributeValue(attributes, 'replayId', 'string')
             }
             eventTimestampMs={Math.floor(node.value.start_timestamp * 1000)}
             organization={organization}
@@ -642,9 +657,7 @@ function EAPSpanNodeDetailsContent({
           />
         ) : null}
 
-        {isTransaction && eventTransaction ? (
-          <BreadCrumbs event={eventTransaction} />
-        ) : null}
+        {isTransaction && breadcrumbs ? <BreadCrumbs breadcrumbs={breadcrumbs} /> : null}
 
         {isTransaction && eventTransaction && project ? (
           <EventViewHierarchy

@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import type {BrowserClientReplayOptions} from '@sentry/core';
+import type {BrowserClientReplayOptions} from '@sentry/core/browser';
 import type {replayIntegration} from '@sentry/react';
 import {getClient} from '@sentry/react';
 

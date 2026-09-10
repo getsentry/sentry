@@ -34,29 +34,29 @@ describe('MetricSelectRow', () => {
       body: {
         data: [
           {
-            ['metric.name']: 'alpha_metric',
-            ['metric.type']: 'counter',
-            ['count(metric.name)']: 1,
+            'metric.name': 'alpha_metric',
+            'metric.type': 'counter',
+            'count(metric.name)': 1,
           },
           {
-            ['metric.name']: 'beta_metric',
-            ['metric.type']: 'counter',
-            ['count(metric.name)']: 1,
+            'metric.name': 'beta_metric',
+            'metric.type': 'counter',
+            'count(metric.name)': 1,
           },
           {
-            ['metric.name']: 'counter_metric',
-            ['metric.type']: 'counter',
-            ['count(metric.name)']: 1,
+            'metric.name': 'counter_metric',
+            'metric.type': 'counter',
+            'count(metric.name)': 1,
           },
           {
-            ['metric.name']: 'distribution_metric',
-            ['metric.type']: 'distribution',
-            ['count(metric.name)']: 1,
+            'metric.name': 'distribution_metric',
+            'metric.type': 'distribution',
+            'count(metric.name)': 1,
           },
           {
-            ['metric.name']: 'gauge_metric',
-            ['metric.type']: 'gauge',
-            ['count(metric.name)']: 1,
+            'metric.name': 'gauge_metric',
+            'metric.type': 'gauge',
+            'count(metric.name)': 1,
           },
         ],
       },
@@ -560,14 +560,14 @@ describe('MetricSelectRow', () => {
       body: {
         data: [
           {
-            ['metric.name']: 'counter_metric',
-            ['metric.type']: 'counter',
-            ['count(metric.name)']: 1,
+            'metric.name': 'counter_metric',
+            'metric.type': 'counter',
+            'count(metric.name)': 1,
           },
           {
-            ['metric.name']: 'gauge_metric',
-            ['metric.type']: 'gauge',
-            ['count(metric.name)']: 1,
+            'metric.name': 'gauge_metric',
+            'metric.type': 'gauge',
+            'count(metric.name)': 1,
           },
         ],
       },

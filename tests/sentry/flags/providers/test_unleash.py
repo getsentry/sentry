@@ -1,4 +1,7 @@
 from datetime import datetime, timezone
+from typing import Any
+
+import pytest
 
 from sentry.flags.models import PROVIDER_MAP
 from sentry.flags.providers import DeserializationError, UnleashProvider
@@ -147,3 +150,29 @@ def test_partial_fill() -> None:
         )
     except DeserializationError as exc:
         assert exc.errors["featureName"][0].code == "required"
+
+
+def _make_flag_request(feature_name: str) -> dict[str, Any]:
+    return {
+        "id": 28,
+        "tags": [],
+        "type": "feature-environment-enabled",
+        "project": "default",
+        "createdAt": "2024-12-30T00:00:00.000Z",
+        "createdBy": "admin",
+        "environment": "development",
+        "featureName": feature_name,
+        "createdByUserId": 1,
+    }
+
+
+def test_accepts_max_length_flag_name() -> None:
+    items = UnleashProvider(123, "abcdefgh").handle(_make_flag_request("a" * 256))
+    assert len(items) == 1
+    assert items[0]["flag"] == "a" * 256
+
+
+def test_rejects_over_max_length_flag_name() -> None:
+    with pytest.raises(DeserializationError) as excinfo:
+        UnleashProvider(123, "abcdefgh").handle(_make_flag_request("a" * 257))
+    assert excinfo.value.errors["featureName"][0].code == "max_length"

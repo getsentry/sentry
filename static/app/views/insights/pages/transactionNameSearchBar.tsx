@@ -42,14 +42,14 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
   const [highlightedItemIndex, setHighlightedItemIndex] = useState(-1);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const openDropdown = () => setIsDropdownOpen(true);
-  const closeDropdown = () => setIsDropdownOpen(false);
+  const closeDropdown = useCallback(() => setIsDropdownOpen(false), []);
   const [loading, setLoading] = useState(false);
   const [searchString, setSearchString] = useState(searchQuery);
   const containerRef = useRef<HTMLDivElement>(null);
   const {
     selection: {projects: selectedProjectIds},
   } = usePageFilters();
-  useOnClickOutside(containerRef, useCallback(closeDropdown, []));
+  useOnClickOutside(containerRef, closeDropdown);
 
   const getTraceItemAttributeValues = useGetTraceItemAttributeValues({
     traceItemType: TraceItemDataset.SPANS,

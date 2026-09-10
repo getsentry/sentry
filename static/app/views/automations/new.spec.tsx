@@ -29,7 +29,7 @@ import AutomationNewSettings from 'sentry/views/automations/new';
 jest.mock('sentry/utils/analytics');
 
 describe('AutomationNewSettings', () => {
-  const organization = OrganizationFixture({features: ['workflow-engine-ui']});
+  const organization = OrganizationFixture();
   const mockMember = MemberFixture({
     user: UserFixture({id: '1', name: 'Moo Deng', email: 'moo.deng@sentry.io'}),
   });
@@ -368,10 +368,9 @@ describe('AutomationNewSettings', () => {
     });
 
     await addAction('MS Teams');
-    const targets = screen.getAllByRole('textbox', {name: 'Target'});
-    const msTeamsTarget = targets.at(-1);
-    expect(msTeamsTarget).toBeDefined();
-    await userEvent.type(msTeamsTarget!, 'alerts-team', {delay: null});
+    await userEvent.type(screen.getByPlaceholderText('channel name'), 'alerts-team', {
+      delay: null,
+    });
 
     await addAction('Pagerduty');
     await addAction('Opsgenie');

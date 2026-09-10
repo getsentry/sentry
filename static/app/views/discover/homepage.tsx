@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
+import type {Query} from 'history';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -19,6 +20,7 @@ import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {EventView} from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
@@ -28,7 +30,9 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
+import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/results/data';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
 import {Results} from './results';
 
@@ -61,6 +65,11 @@ function Homepage() {
 
   const previousSavedQuery = usePrevious(savedQuery);
 
+  const shouldHideThisTransactionsQuery =
+    getDiscoverDeprecation(organization) &&
+    (savedQuery?.queryDataset === SavedQueryDatasets.TRANSACTIONS ||
+      savedQuery?.dataset === DiscoverDatasets.TRANSACTIONS);
+
   useEffect(() => {
     const hasFetchedSavedQuery = !previousSavedQuery && savedQuery;
     const sidebarClicked = savedQuery && location.search === '';
@@ -70,11 +79,24 @@ function Homepage() {
       savedQuery &&
       ((hasFetchedSavedQuery && !hasValidEventViewInURL) || sidebarClicked)
     ) {
-      const eventView = EventView.fromSavedQuery(savedQuery);
+      let query: Query = {};
       const pageFilterState = getPageFilterStorage(organization.slug);
-      let query = {
-        ...eventView.generateQueryStringObject(),
-      };
+      let dataset = savedQuery?.queryDataset;
+
+      if (shouldHideThisTransactionsQuery) {
+        // use default error view instead of homepage
+        const defaultEventView = EventView.fromNewQueryWithLocation(
+          DEFAULT_EVENT_VIEW_MAP[SavedQueryDatasets.ERRORS],
+          location
+        );
+        query = {...defaultEventView.generateQueryStringObject()};
+        dataset = SavedQueryDatasets.ERRORS;
+      } else {
+        const eventView = EventView.fromSavedQuery(savedQuery);
+        query = {
+          ...eventView.generateQueryStringObject(),
+        };
+      }
 
       // Handle locked filters explicitly because we can't expect
       // PageFilterContainer to properly overwrite stored filters
@@ -105,13 +127,20 @@ function Homepage() {
           ...location,
           query: {
             ...query,
-            queryDataset: savedQuery?.queryDataset,
+            queryDataset: dataset,
           },
         },
         {replace: true}
       );
     }
-  }, [savedQuery, location, previousSavedQuery, navigate, organization.slug]);
+  }, [
+    savedQuery,
+    location,
+    previousSavedQuery,
+    navigate,
+    organization.slug,
+    shouldHideThisTransactionsQuery,
+  ]);
 
   if (isLoading) {
     return <LoadingIndicator />;

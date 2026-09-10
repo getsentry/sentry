@@ -307,8 +307,8 @@ export const ValueSection = styled('div')<{hasEmptySubject: boolean; hasErrors: 
 const ValueWrapper = styled('div')<{hasSuffix: boolean}>`
   word-break: break-word;
   grid-column: ${p => (p.hasSuffix ? 'span 1' : '1 / -1')};
+  min-width: 0;
   max-width: 100%;
-  overflow: hidden;
 `;
 
 const TruncateWrapper = styled('a')`

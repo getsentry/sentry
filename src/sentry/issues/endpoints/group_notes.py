@@ -8,7 +8,6 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
@@ -20,12 +19,12 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.action_log import action_context_scope, resolve_action_source
 from sentry.issues.action_log.types import (
-    CommentAction,
     CommentDeleteAction,
     CommentEditAction,
     GroupActionActor,
     GroupActionType,
 )
+from sentry.issues.derived.gate import should_serve_action_log_activity
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
@@ -59,7 +58,7 @@ class GroupNotesEndpoint(GroupEndpoint):
         url_names=["sentry-api-0-group-notes"],
     )
     def get(self, request: Request, group: Group) -> Response:
-        if features.has("projects:issue-action-log-activity", group.project, actor=request.user):
+        if should_serve_action_log_activity(group.project, request.user):
             edit_entries = GroupActionLogEntry.objects.filter(
                 group_id=group.id, type=GroupActionType.COMMENT_EDIT.value
             ).order_by("-date_added", "-id")
@@ -96,14 +95,7 @@ class GroupNotesEndpoint(GroupEndpoint):
                             **(entry.data or {}),
                             "text": latest_edit_text_by_comment[entry.id],
                         }
-                serialized = serialize(comment_entries, request.user)
-                # Return the Activity id (in comment_id) as `id`, matching the
-                # flag-off contract so clients can still edit/delete via note_id.
-                for entry, item in zip(comment_entries, serialized):
-                    action = entry.action
-                    if isinstance(action, CommentAction):
-                        item["id"] = str(action.comment_id)
-                return serialized
+                return serialize(comment_entries, request.user)
 
             return self.paginate(
                 request=request,
@@ -195,17 +187,13 @@ class GroupNotesEndpoint(GroupEndpoint):
             sender="post",
         )
 
-        if features.has("projects:issue-action-log-activity", group.project, actor=request.user):
+        if should_serve_action_log_activity(group.project, request.user):
             entry = GroupActionLogEntry.objects.filter(
                 group_id=group.id,
                 idempotency_key=activity_action_idempotency_key(activity),
             ).first()
             if entry:
-                serialized = serialize(entry, request.user)
-                # Return the Activity id as `id`, matching the flag-off contract
-                # so clients can edit/delete via note_id.
-                serialized["id"] = str(activity.id)
-                return Response(serialized, status=201)
+                return Response(serialize(entry, request.user), status=201)
             logger.info("group_notes.groupactionlogentry.not_found", extra={"group_id": group.id})
 
         return Response(serialize(activity, request.user), status=201)

@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import {motion, type MotionProps} from 'framer-motion';
+import {AnimatePresence, motion, type MotionProps} from 'framer-motion';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -19,13 +19,18 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useExperiment} from 'sentry/utils/useExperiment';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {GenericFooter} from 'sentry/views/onboarding/components/genericFooter';
 import {
   NewWelcomeProductCard,
   type ProductOption,
 } from 'sentry/views/onboarding/components/newWelcomeProductCard';
-import {WelcomeBackgroundNewUi} from 'sentry/views/onboarding/components/welcomeBackground';
+import {
+  useWelcomeAgentRun,
+  WelcomeAgentSetup,
+} from 'sentry/views/onboarding/components/welcomeAgentSetup';
 import {WelcomeSkipButton} from 'sentry/views/onboarding/components/welcomeSkipButton';
 import {ONBOARDING_WELCOME_STAGGER_ITEM} from 'sentry/views/onboarding/consts';
 import {OnboardingWelcomeProductId, type StepProps} from 'sentry/views/onboarding/types';
@@ -63,27 +68,25 @@ const PRODUCT_OPTIONS: ProductOption[] = [
     id: OnboardingWelcomeProductId.ERROR_MONITORING,
     icon: <IconWarning size="md" variant="secondary" />,
     title: t('Error monitoring'),
-    description: t('Automatically capture exceptions and stack traces'),
+    description: t('Automatically capture exceptions and stack traces.'),
   },
   {
     id: OnboardingWelcomeProductId.LOGGING,
     icon: <IconTerminal size="md" variant="secondary" />,
     title: t('Logging'),
-    description: t('See logs in context with errors and performance issues'),
+    description: t('See logs in context with errors and performance issues.'),
   },
   {
     id: OnboardingWelcomeProductId.SESSION_REPLAY,
     icon: <IconTimer size="md" variant="secondary" />,
     title: t('Session replay'),
-    description: t('Watch real user sessions to see what went wrong'),
+    description: t('Watch real user sessions to see what went wrong.'),
   },
   {
     id: OnboardingWelcomeProductId.TRACING,
     icon: <IconSpan size="md" variant="secondary" />,
     title: t('Tracing'),
-    description: t(
-      'Find bottlenecks, broken requests, and understand application flow end-to-end.'
-    ),
+    description: t('Find bottlenecks, broken requests, and understand flows end-to-end.'),
   },
   {
     id: OnboardingWelcomeProductId.METRICS,
@@ -120,11 +123,63 @@ const PRODUCT_OPTIONS: ProductOption[] = [
   },
 ];
 
+function getAgentHeading({
+  hasRunFailed,
+  isSetupComplete,
+}: {
+  hasRunFailed: boolean;
+  isSetupComplete: boolean;
+}) {
+  if (hasRunFailed) {
+    return {
+      title: t('Setup Didn’t Finish'),
+      description: t(
+        'Your agent ran into a problem. You can pick up where it left off manually below.'
+      ),
+    };
+  }
+
+  if (isSetupComplete) {
+    return {
+      title: t("You're All Set"),
+      description: t(
+        'Sentry is watching your app. Anything it catches from here shows up in Issues.'
+      ),
+    };
+  }
+
+  return {
+    title: t('Agent Connected'),
+    description: t(
+      'Your agent is setting up Sentry in your application. For now, you’re off the hook. Sit back and let it do the work.'
+    ),
+  };
+}
+
 export function NewWelcomeUI(props: StepProps) {
+  const organization = useOrganization();
   const {inExperiment: hasScmOnboarding} = useExperiment({
     feature: 'onboarding-scm-experiment',
     reportExposure: false,
   });
+  const hasAgenticSetup = organization.features.includes('onboarding-agentic-setup');
+  const showAgentSetup = hasScmOnboarding && hasAgenticSetup;
+  const {
+    run,
+    onboardingCode,
+    isAgentConnected,
+    isSetupComplete,
+    hasRunFailed,
+    hasInitFailed,
+    restartRun,
+  } = useWelcomeAgentRun({enabled: showAgentSetup});
+  const showAgentHeading = showAgentSetup && isAgentConnected;
+  const scmHeading = showAgentHeading
+    ? getAgentHeading({hasRunFailed, isSetupComplete})
+    : {
+        title: t("Code breaks.\nWe'll help you fix it faster"),
+        description: t('Monitor, debug, and fix your code, all in one place.'),
+      };
 
   useWelcomeAnalyticsEffect();
 
@@ -138,19 +193,22 @@ export function NewWelcomeUI(props: StepProps) {
 
   const handleComplete = useWelcomeHandleComplete(props.onComplete);
 
+  const handleCopyCommand = (source: 'install_command' | 'prompt') => {
+    trackAnalytics('onboarding.scm_welcome_agent_command_copied', {organization, source});
+  };
+
   return (
     <MotionContainer width="100%" margin="0 auto" maxWidth="900px" position="relative">
       <MotionFlex direction="column" align="center" {...STAGGER_CONTAINER}>
-        <WelcomeBackgroundNewUi />
         <Stack gap="3xl" align="center" width="100%">
           <MotionStack gap="md" {...ONBOARDING_WELCOME_STAGGER_ITEM} width="100%">
             {hasScmOnboarding ? (
               <Stack gap="lg">
                 <Heading as="h2" size="4xl" wrap="pre-line">
-                  {t("Code breaks.\nWe'll help you fix it faster")}
+                  {scmHeading.title}
                 </Heading>
                 <Text variant="muted" size="xl" density="comfortable">
-                  {t('Monitor, debug, and fix your code, all in one place.')}
+                  {scmHeading.description}
                 </Text>
               </Stack>
             ) : (
@@ -193,43 +251,82 @@ export function NewWelcomeUI(props: StepProps) {
             )}
           </MotionStack>
 
-          <MotionGrid
-            columns={{'screen:xs': '1fr', 'screen:sm': 'repeat(3, 1fr)'}}
-            gap="3xl"
-            width="100%"
-            {...ONBOARDING_WELCOME_STAGGER_ITEM}
-            border="muted"
-            background="secondary"
-            radius="lg"
-            padding="2xl"
-          >
-            {PRODUCT_OPTIONS.map(product => (
-              <NewWelcomeProductCard key={product.id} product={product} />
-            ))}
-          </MotionGrid>
-
-          {hasScmOnboarding ? (
-            <MotionFlex {...ONBOARDING_WELCOME_STAGGER_ITEM} width="100%" justify="end">
-              <Button
-                variant="primary"
-                onClick={handleComplete}
-                data-test-id="onboarding-welcome-start"
+          {/* Let the onboarding step's exit animate through this nested boundary. */}
+          <AnimatePresence mode="wait" initial={false} propagate>
+            {showAgentSetup ? (
+              // The agent setup swaps in after the stagger has already run, so it
+              // drives the shared variants itself rather than inheriting them.
+              // Declaring `animate` makes it a variant root, which also stops the
+              // step-level exit label from propagating in — hence the explicit exit.
+              <MotionContainer
+                key="agent-setup"
+                width="100%"
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                {...ONBOARDING_WELCOME_STAGGER_ITEM}
               >
-                {t('Let’s get started')}
-              </Button>
-            </MotionFlex>
-          ) : (
-            <MotionContainer {...ONBOARDING_WELCOME_STAGGER_ITEM}>
-              <Flex align="center" gap="md" justify="center">
-                <IconCheckmark size="md" variant="success" />
-                <Text size="md" variant="muted">
-                  {t(
-                    "After the trial ends, you'll move to our free plan. You will not be charged for any usage, promise."
-                  )}
-                </Text>
-              </Flex>
-            </MotionContainer>
-          )}
+                <WelcomeAgentSetup
+                  hasInitFailed={hasInitFailed}
+                  isAgentConnected={isAgentConnected}
+                  onboardingCode={onboardingCode}
+                  onCopyCommand={handleCopyCommand}
+                  onRetry={restartRun}
+                  onSetupInBrowser={handleComplete}
+                  run={run}
+                />
+              </MotionContainer>
+            ) : (
+              <MotionStack
+                key="products"
+                gap="3xl"
+                width="100%"
+                transition={{staggerChildren: 0.125}}
+              >
+                <MotionGrid
+                  columns={{'screen:xs': '1fr', 'screen:sm': 'repeat(3, 1fr)'}}
+                  gap="3xl"
+                  width="100%"
+                  {...ONBOARDING_WELCOME_STAGGER_ITEM}
+                  border="muted"
+                  background="secondary"
+                  radius="lg"
+                  padding="2xl"
+                >
+                  {PRODUCT_OPTIONS.map(product => (
+                    <NewWelcomeProductCard key={product.id} product={product} />
+                  ))}
+                </MotionGrid>
+
+                {hasScmOnboarding ? (
+                  <MotionFlex
+                    {...ONBOARDING_WELCOME_STAGGER_ITEM}
+                    width="100%"
+                    justify="end"
+                  >
+                    <Button
+                      variant="primary"
+                      onClick={handleComplete}
+                      data-test-id="onboarding-welcome-start"
+                    >
+                      {t('Let’s get started')}
+                    </Button>
+                  </MotionFlex>
+                ) : (
+                  <MotionContainer {...ONBOARDING_WELCOME_STAGGER_ITEM}>
+                    <Flex align="center" gap="md" justify="center">
+                      <IconCheckmark size="md" variant="success" />
+                      <Text size="md" variant="muted">
+                        {t(
+                          "After the trial ends, you'll move to our free plan. You will not be charged for any usage, promise."
+                        )}
+                      </Text>
+                    </Flex>
+                  </MotionContainer>
+                )}
+              </MotionStack>
+            )}
+          </AnimatePresence>
         </Stack>
         {hasScmOnboarding ? null : (
           <GenericFooter gap="3xl" padding="0 3xl">

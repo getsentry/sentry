@@ -198,6 +198,60 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
+    def test_errors_dataset_has_trace(self) -> None:
+        """The has:trace filters limit error stats to events containing the requested ID."""
+        traced_event = self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "message": "event with a trace",
+                "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
+                "fingerprint": ["has-trace-group"],
+                "tags": {"sentry:user": self.user.email},
+                "contexts": {
+                    "trace": {
+                        "trace_id": uuid4().hex,
+                        "span_id": uuid4().hex[:16],
+                    }
+                },
+            },
+            project_id=self.project.id,
+        )
+        untraced_event = self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "message": "event without a trace",
+                "timestamp": (self.day_ago + timedelta(hours=1, minutes=2)).isoformat(),
+                "fingerprint": ["has-trace-group"],
+                "tags": {"sentry:user": self.user2.email},
+            },
+            project_id=self.project.id,
+        )
+        assert untraced_event.group_id == traced_event.group_id
+
+        for trace_field in ["trace", "trace.span"]:
+            response = self.do_request(
+                {
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=2),
+                    "interval": "1h",
+                    "dataset": "errors",
+                    "project": self.project.id,
+                    "query": f"issue:{traced_event.group.qualified_short_id} has:{trace_field}",
+                    "yAxis": ["count()", "count_unique(user)"],
+                    "partial": "1",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            assert [attrs for _time, attrs in response.data["count()"]["data"]] == [
+                [{"count": 1}],
+                [{"count": 1}],
+            ]
+            assert [attrs for _time, attrs in response.data["count_unique(user)"]["data"]] == [
+                [{"count": 1}],
+                [{"count": 1}],
+            ]
+
     def test_errors_dataset_with_environment(self) -> None:
         environment = self.create_environment(project=self.project)
         self.store_event(
@@ -3442,6 +3496,30 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
         other = data["Other"]
         assert other["order"] == 5
         assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
+
+    def test_top_events_empty_orderby(self) -> None:
+        """The non-RPC discover path must also treat an empty orderby as "no sort".
+
+        It fails with a different message than the RPC path ("Cannot sort by a field that is
+        not selected."), so it needs its own coverage.
+        """
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": self.day_ago.isoformat(),
+                    "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": [""],
+                    "field": ["count()", "message", "user.email"],
+                    "dataset": "errors",
+                    "topEvents": "5",
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
 
     def test_top_event_with_null_value(self):
         self.store_event(

@@ -55,7 +55,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
     useTransactionWebVitalsScoresQuery({limit: 4});
 
   const {data: timeseriesData, isLoading: isTimeseriesQueryLoading} =
-    useProjectWebVitalsScoresTimeseriesQuery({});
+    useProjectWebVitalsScoresTimeseriesQuery();
 
   const assembleAccordionItems = () =>
     getHeaders().map(header => ({header, content: getAreaChart()}));
@@ -121,7 +121,6 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
                     </ExternalLink>
                   </span>
                 }
-                isHoverable
               >
                 <PerformanceBadge score={listItem.totalScore} />
               </Tooltip>
@@ -141,7 +140,6 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
                     </ExternalLink>
                   </span>
                 }
-                isHoverable
                 showUnderline
                 skipWrapper
               >

@@ -85,7 +85,7 @@ export function BreadcrumbsDrawer({
 
   const displayCrumbs = useMemo(() => {
     const sortedCrumbs =
-      sort === BreadcrumbSort.OLDEST ? breadcrumbs : [...breadcrumbs].reverse();
+      sort === BreadcrumbSort.OLDEST ? breadcrumbs : breadcrumbs.toReversed();
     const filteredCrumbs = applyFilters(sortedCrumbs, filters);
     const searchedCrumbs = applyBreadcrumbSearch(filteredCrumbs, search);
     return searchedCrumbs;

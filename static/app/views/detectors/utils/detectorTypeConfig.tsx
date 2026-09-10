@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
-import {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
+import {UptimeMonitorMode} from 'sentry/views/detectors/components/uptime/types';
 
 type DetectorTypeConfig = {
   label: string;

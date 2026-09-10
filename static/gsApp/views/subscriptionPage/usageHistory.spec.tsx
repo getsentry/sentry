@@ -38,10 +38,6 @@ describe('Subscription > UsageHistory', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/promotions/trigger-check/`,
-      method: 'POST',
-    });
-    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {},
     });

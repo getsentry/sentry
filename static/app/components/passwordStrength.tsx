@@ -18,14 +18,6 @@ type Props = {
    * The password value.
    */
   value: string;
-  /**
-   * The color to make the progress bar for each strength level. 5 levels.
-   */
-  colors?: [string, string, string, string, string];
-  /**
-   * A set of labels to display for each password strength level. 5 levels.
-   */
-  labels?: [string, string, string, string, string];
 };
 
 /**
@@ -34,20 +26,14 @@ type Props = {
  */
 export function PasswordStrength(props: Props) {
   const theme = useTheme();
-  const colors = props.colors ?? [
+  const colors = [
     theme.colors.red400,
     theme.colors.red400,
     theme.colors.yellow400,
     theme.colors.green400,
     theme.colors.green400,
   ];
-  const labels = props.labels ?? [
-    'Very Weak',
-    'Very Weak',
-    'Weak',
-    'Strong',
-    'Very Strong',
-  ];
+  const labels = ['Very Weak', 'Very Weak', 'Weak', 'Strong', 'Very Strong'];
 
   if (props.value === '') {
     return null;

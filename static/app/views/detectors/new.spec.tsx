@@ -7,9 +7,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import DetectorNew from 'sentry/views/detectors/new';
 
 describe('DetectorNew', () => {
-  const organization = OrganizationFixture({
-    features: ['workflow-engine-ui'],
-  });
+  const organization = OrganizationFixture();
 
   const projects = [
     ProjectFixture({

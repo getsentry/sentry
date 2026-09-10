@@ -2,9 +2,9 @@ import styled from '@emotion/styled';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {IconClose} from 'sentry/icons/iconClose';
-import {t} from 'sentry/locale';
 
 const ModalHeader = styled('header')`
   display: flex;
@@ -37,6 +37,8 @@ const ModalHeader = styled('header')`
 `;
 
 function CloseButton(p: Omit<ButtonProps, 'aria-label'>) {
+  const {t} = useTranslation();
+
   return (
     <Button
       aria-label={t('Close Modal')}

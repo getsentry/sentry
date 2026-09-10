@@ -21,7 +21,7 @@ ENQUEUE_TARGET = (
     "preprod_artifact_snapshot_archive.build_snapshot_images_zip"
 )
 SESSION_TARGET = (
-    "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_archive.get_preprod_session"
+    "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_archive.get_session"
 )
 
 
@@ -61,6 +61,7 @@ class SnapshotArchiveTriggerTest(BaseSnapshotArchiveTest):
                 "project_id": self.project.id,
                 "artifact_id": artifact.id,
                 "user_id": self.user.id,
+                "include_manifest": True,
             }
         )
 
@@ -89,6 +90,7 @@ class SnapshotArchiveReadinessTest(BaseSnapshotArchiveTest):
         response = self.client.get(self._url(artifact.id))
         assert response.status_code == 200
         assert response.data["ready"] is True
+        session.get.assert_called_once_with(f"snapshot_archives/{artifact.id}.zip")
 
     @patch(SESSION_TARGET)
     def test_get_reports_not_ready_when_archive_absent(self, mock_session):
@@ -125,6 +127,7 @@ class SnapshotArchiveDownloadTest(BaseSnapshotArchiveTest):
         assert response.status_code == 200
         assert response["Content-Type"] == "application/zip"
         assert b"".join(response.streaming_content) == b"ZIPBYTES"
+        session.get.assert_called_once_with(f"snapshot_archives/{artifact.id}.zip")
 
     @patch(SESSION_TARGET)
     def test_download_returns_409_when_absent(self, mock_session):

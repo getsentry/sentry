@@ -8,7 +8,6 @@ from typing import Any
 from uuid import UUID
 
 import sentry_sdk
-from django.utils import timezone
 
 from sentry.constants import SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT, ObjectStatus
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
@@ -16,9 +15,10 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.agent.types import FeatureRunStatus
-from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_agent
+from sentry.seer.autofix.autofix_agent import trigger_autofix_agent
 from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.seer.autofix.issue_summary import referrer_map
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     bulk_read_preferences_from_sentry_db,
@@ -27,6 +27,7 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
+    SeerNightShiftRunErrorType,
     SeerNightShiftRunResult,
     SeerNightShiftRunShard,
 )
@@ -49,6 +50,7 @@ def deliver_night_shift_result(
     status: FeatureRunStatus,
     result: dict[str, Any] | None,
     error: str | None,
+    prompt_version: str | None = None,
 ) -> None:
     """Process a night_shift result from Seer."""
     shard = (
@@ -68,10 +70,17 @@ def deliver_night_shift_result(
     # Guaranteed by the seer_run__uuid filter above: a null FK can't match a uuid.
     assert shard.seer_run is not None
 
-    # Per-delivery error_message lives on the shard so a sibling shard's success
-    # can't clear it.
-    if error:
-        shard.update(extras={**(shard.extras or {}), "error_message": error})
+    # Per-delivery metadata lives on the shard so a sibling shard's success
+    # can't clear it. prompt_version is written even on error deliveries,
+    # which have no result rows to carry it.
+    if prompt_version or error:
+        extras = {**(shard.extras or {})}
+        if prompt_version:
+            extras["prompt_version"] = prompt_version
+        if error:
+            extras["error_type"] = SeerNightShiftRunErrorType.SHARD_DELIVERY_FAILED.value
+            extras["error_message"] = error
+        shard.update(extras=extras)
 
     log_extra: dict[str, object] = {
         "organization_id": run.organization_id,
@@ -101,10 +110,11 @@ def deliver_night_shift_result(
     options = (run.extras or {}).get("options") or {}
     dry_run = bool(options.get("dry_run", False))
 
-    # Clear any stale error_message now that this delivery has succeeded.
+    # Clear any stale delivery error now that this delivery has succeeded.
     if (shard.extras or {}).get("error_message"):
         extras = {**shard.extras}
         del extras["error_message"]
+        extras.pop("error_type", None)
         shard.update(extras=extras)
 
     _process_verdicts(
@@ -112,6 +122,7 @@ def deliver_night_shift_result(
         organization=run.organization,
         triage_response=triage_response,
         dry_run=dry_run,
+        prompt_version=prompt_version,
         log_extra=log_extra,
     )
 
@@ -122,6 +133,7 @@ def _process_verdicts(
     organization: Organization,
     triage_response: TriageResponse,
     dry_run: bool,
+    prompt_version: str | None,
     log_extra: Mapping[str, object],
 ) -> None:
     """Mark SKIPs, fire autofix for fixable verdicts, and persist one result row
@@ -222,7 +234,6 @@ def _process_verdicts(
                 if reason
                 else None
             )
-            triggered_at = timezone.now()
             try:
                 triggered_run = trigger_autofix_agent(
                     group=group,
@@ -230,6 +241,7 @@ def _process_verdicts(
                     referrer=referrer,
                     stopping_point=stopping_point_by_project_id[group.project_id],
                     user_context=user_context,
+                    allow_free_cohort=True,
                 )
             except Exception:
                 logger.exception(
@@ -245,7 +257,6 @@ def _process_verdicts(
                     ActivityType.TRIGGER_AUTOFIX,
                     data={"referrer": referrer.value},
                     send_notification=False,
-                    datetime=triggered_at,
                 )
 
         sentry_sdk.metrics.count("night_shift.autofix_triggered", len(run_by_group))
@@ -261,6 +272,9 @@ def _process_verdicts(
     rows: list[SeerNightShiftRunResult] = []
     for v in verdicts:
         extras: dict[str, Any] = {"action": str(v.action)}
+        # Denormalized onto each row so by-prompt-version analysis needs no join.
+        if prompt_version:
+            extras["prompt_version"] = prompt_version
         if v.reason:
             extras["reason"] = v.reason[:REASON_MAX_CHARS]
         if v.action == TriageAction.SKIP and v.skip_reason:

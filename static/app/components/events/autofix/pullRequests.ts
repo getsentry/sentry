@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils/defined';
 import type {
   ExplorerCodingAgentState,
   RepoPRState,
@@ -9,10 +10,33 @@ type CodingAgentResult = NonNullable<ExplorerCodingAgentState['results']>[number
 /**
  * A link to a pull request an autofix run produced, resolved from either of the two
  * shapes Seer reports one in so that every surface renders the same label.
+ *
+ * `label` is the button wording; surfaces that word the link themselves take
+ * `repoName` and `prNumber` instead.
  */
 interface AutofixResultLink {
   label: string;
+  prNumber: number | null;
+  repoName: string;
   url: string;
+}
+
+/**
+ * Whether this repo actually got a pull request onto GitHub.
+ *
+ * `repo_pr_states` also holds failed creates (error, no `pr_number`). Those
+ * are not PRs — treating them as such swaps "retry code changes" for the
+ * iteration form and 400s the submit. Matches
+ * `SeerRunState.get_created_pull_request_states`.
+ */
+export function isCreatedPullRequestState(state: RepoPRState): boolean {
+  return state.pr_creation_status !== 'error' || state.pr_number !== null;
+}
+
+export function hasCreatedPullRequests(
+  repoPrStates: Record<string, RepoPRState> | null | undefined
+): boolean {
+  return Object.values(repoPrStates ?? {}).some(isCreatedPullRequestState);
 }
 
 /** The PR Seer opened for this repo, or null if there isn't a finished one. */
@@ -28,6 +52,8 @@ export function getRepoPullRequestLink(state: RepoPRState): AutofixResultLink | 
 
   return {
     label: t('View %s#%s', state.repo_name, state.pr_number),
+    repoName: state.repo_name,
+    prNumber: state.pr_number,
     url: state.pr_url,
   };
 }
@@ -35,8 +61,8 @@ export function getRepoPullRequestLink(state: RepoPRState): AutofixResultLink | 
 /**
  * What a coding agent produced, or null if it reported no URL.
  *
- * `auto_create_pr=false` pushes a branch instead of opening a PR and `pr_url` holds
- * either, so the two are told apart by URL shape.
+ * `pr_url` holds a pushed branch rather than a PR when the agent ran with
+ * `auto_create_pr=false`, and results predating `pr_number` carry no number either way.
  */
 export function getCodingAgentResultLink(
   result: CodingAgentResult
@@ -46,7 +72,11 @@ export function getCodingAgentResultLink(
   }
 
   return {
-    label: result.pr_url.includes('/tree/') ? t('View Branch') : t('View Pull Request'),
+    label: defined(result.pr_number)
+      ? t('View %s#%s', result.repo_full_name, result.pr_number)
+      : t('View %s', result.repo_full_name),
+    repoName: result.repo_full_name,
+    prNumber: result.pr_number,
     url: result.pr_url,
   };
 }

@@ -75,6 +75,17 @@ def _resolve_viewer_context(
     )
 
     if vc is None:
+        logger.warning(
+            "seer.viewer_context_not_set",
+            extra={
+                "explicit_org_id": explicit_vc.organization_id,
+                "explicit_user_id": explicit_vc.user_id,
+            },
+        )
+        metrics.incr(
+            "seer.viewer_context_resolution",
+            tags={"outcome": "contextvar_missing"},
+        )
         return explicit_vc
 
     has_mismatch = False
@@ -106,6 +117,14 @@ def _resolve_viewer_context(
             )
             has_mismatch = True
         user_id = explicit_vc.user_id
+
+    metrics.incr(
+        "seer.viewer_context_resolution",
+        tags={
+            "outcome": "mismatch" if has_mismatch else "match",
+            "has_project": str(vc.project_id is not None).lower(),
+        },
+    )
 
     return ViewerContext(
         organization_id=org_id,

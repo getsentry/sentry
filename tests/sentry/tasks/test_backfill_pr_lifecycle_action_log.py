@@ -90,7 +90,9 @@ class BackfillPullRequestLifecycleActionLogTest(TestCase):
         with (
             self._options(),
             patch.object(backfill_pr_lifecycle_action_log_for_project, "apply_async"),
-            patch("sentry.issues.derived.tasks.process_project_derived_data.delay") as mock_derived,
+            patch(
+                "sentry.issues.derived.tasks.generate_project_derived_data.delay"
+            ) as mock_derived,
         ):
             backfill_pr_lifecycle_action_log_for_project(self.project.id)
 
@@ -120,7 +122,9 @@ class BackfillPullRequestLifecycleActionLogTest(TestCase):
                 backfill_pr_lifecycle_action_log_for_project,
                 "apply_async",
             ) as mock_apply,
-            patch("sentry.issues.derived.tasks.process_project_derived_data.delay") as mock_derived,
+            patch(
+                "sentry.issues.derived.tasks.generate_project_derived_data.delay"
+            ) as mock_derived,
         ):
             backfill_pr_lifecycle_action_log_for_project(self.project.id)
 
@@ -138,7 +142,9 @@ class BackfillPullRequestLifecycleActionLogTest(TestCase):
     def test_project_task_processes_derived_data_when_complete(self) -> None:
         with (
             self._options(),
-            patch("sentry.issues.derived.tasks.process_project_derived_data.delay") as mock_derived,
+            patch(
+                "sentry.issues.derived.tasks.generate_project_derived_data.delay"
+            ) as mock_derived,
         ):
             backfill_pr_lifecycle_action_log_for_project(self.project.id)
 
@@ -156,7 +162,7 @@ class BackfillPullRequestLifecycleActionLogTest(TestCase):
 
         with (
             self._options(),
-            patch("sentry.issues.derived.tasks.process_project_derived_data.delay"),
+            patch("sentry.issues.derived.tasks.generate_project_derived_data.delay"),
         ):
             backfill_pr_lifecycle_action_log_for_project(self.project.id, reset=True)
 

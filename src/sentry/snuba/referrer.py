@@ -25,6 +25,7 @@ class Referrer(StrEnum):
         "api.auth-token.events.metrics-enhanced.primary"
     )
     API_AUTH_TOKEN_EVENTS = "api.auth-token.events"
+    API_AUTH_TOKEN_EVENTS_FIND_TOPN = "api.auth-token.events.find-topn"
 
     # ** Dashboards **
 
@@ -128,6 +129,7 @@ class Referrer(StrEnum):
     API_EXPLORE_TRACEMETRICS_METRICS_LIST = "api.explore.tracemetrics.metrics-list"
     API_EXPLORE_SPANS_AGGREGATES_TABLE = "api.explore.spans-aggregates-table"
     API_EXPLORE_SPANS_SAMPLES_TABLE = "api.explore.spans-samples-table"
+    API_EXPLORE_SPAN_ITEM_DETAILS = "api.explore.span-item-details"
     API_EXPLORE_SPANS_EXTRAPOLATION_META = "api.explore.spans-extrapolation-meta"
     API_EXPLORE_LOGS_TABLE = "api.explore.logs-table"
     API_EXPLORE_LOGS_TABLE_ROW = "api.explore.logs-table-row"
@@ -438,6 +440,7 @@ class Referrer(StrEnum):
     API_METRICS_TOTALS = "api.metrics.totals"
     API_METRICS_TOTALS_INITIAL_QUERY = "api.metrics.totals.initial_query"
     API_METRICS_TOTALS_SECOND_QUERY = "api.metrics.totals.second_query"
+    API_METRICS_SERIES = "api.metrics.series"
     API_METRICS_SERIES_SECOND_QUERY = "api.metrics.series.second_query"
 
     API_ORGANIZATION_TRACE_ITEM_DETAILS = "api.organization-trace-item-details"
@@ -497,6 +500,7 @@ class Referrer(StrEnum):
     API_ORGANIZATION_METRICS_EAP_QUERY = "api.organization.metrics-eap-query"
     API_ORGANIZATION_ISSUES_COUNT = "api.organization-issues-count"
     API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
+    API_ISSUE_DETAILS_VERIFY_RECOMMENDED_REPLAY = "api.issue-details-verify-recommended-replay"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
     API_ORGANIZATION_SPAN_REPLAY_COUNT = "api.organization-span-replay-count"
     API_ORGANIZATION_VITALS_PER_PROJECT = "api.organization-vitals-per-project"
@@ -963,8 +967,6 @@ class Referrer(StrEnum):
     TEST_QUERY = "test_query"
     METRIC_VALIDATION = "metric_validation"
 
-    JOB_COMPARE_TIMESERIES = "job-runner.compare-timeseries"
-
 
 VALUES = {referrer.value for referrer in Referrer}
 
@@ -996,6 +998,6 @@ def validate_referrer(referrer: str | None) -> bool:
         raise Exception(error_message)
     except Exception:
         metrics.incr("snql.sdk.api.new_referrers", tags={"referrer": referrer})
-        logger.warning(error_message, exc_info=True)
+        logger.warning(error_message, extra={"referrer": referrer}, exc_info=True)
 
     return False

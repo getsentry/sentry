@@ -61,6 +61,17 @@ class AtlassianConnectTest(TestCase):
         result = get_query_hash(uri=self.path, method=self.method, query_params=self.query_params)
         assert result == self.query_hash
 
+    def test_get_query_hash_sorts_multi_value_params(self) -> None:
+        uri = "/rest/api/2/project/search"
+        method = "GET"
+        result_unsorted = get_query_hash(
+            uri=uri, method=method, query_params={"id": ["10002", "10000", "10001"]}
+        )
+        result_sorted = get_query_hash(
+            uri=uri, method=method, query_params={"id": ["10000", "10001", "10002"]}
+        )
+        assert result_unsorted == result_sorted
+
     def test_get_integration_from_jwt_success(self) -> None:
         integration = get_integration_from_jwt(
             token=self.valid_jwt,

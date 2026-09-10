@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
@@ -52,10 +52,6 @@ type RowProps = {
    */
   bold?: boolean;
   /**
-   * Button to expand outcome section
-   */
-  expandButton?: React.ReactNode;
-  /**
    * If the row should be indented
    */
   indent?: boolean;
@@ -71,7 +67,6 @@ function OutcomeRow({
   category,
   totals,
   tooltipTitle,
-  expandButton,
   indent,
   barColor,
   bold,
@@ -83,7 +78,7 @@ function OutcomeRow({
 
   return (
     <tr>
-      <td>
+      <td aria-label={name}>
         <Flex
           gap="xs"
           align="center"
@@ -92,12 +87,9 @@ function OutcomeRow({
           {barColor && <OutcomeLegend color={barColor} />}
           <OutcomeType indent={!barColor && indent}>
             <TextWrapper>
-              {expandButton}
               <Text bold={bold}>{name}</Text>
             </TextWrapper>
-            {tooltipTitle && (
-              <QuestionTooltip size="xs" position="top" title={tooltipTitle} />
-            )}
+            {tooltipTitle && <InfoTip size="xs" position="top" title={tooltipTitle} />}
           </OutcomeType>
         </Flex>
       </td>
@@ -119,7 +111,6 @@ type OutcomeSectionProps = {
   name: string;
   quantity: number;
   totals: BillingStatTotal;
-  expanded?: boolean;
   isEventBreakdown?: boolean;
 };
 

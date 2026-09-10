@@ -134,7 +134,6 @@ export function SeerRepoTableRow({
               },
               {
                 onError: () => {
-                  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
                   setApiQueryData<RepositoryWithSettings>(
                     queryClient,
                     queryKey,
@@ -158,7 +157,7 @@ export function SeerRepoTableRow({
       <SimpleTable.RowCell justify="end">
         <Text size="sm">
           {repository.settings?.codeReviewTriggers
-            .sort()
+            .toSorted()
             .map(triggerToLabel)
             .map((label, index, array) => (
               <div key={label}>

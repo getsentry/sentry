@@ -1,11 +1,9 @@
 import {Fragment} from 'react';
 
-import {Alert} from '@sentry/scraps/alert';
-
 import {NoActiveSeerSubscriptionBanner} from 'sentry/components/seer/noActiveSeerSubscriptionBanner';
-import {t} from 'sentry/locale';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 
@@ -25,13 +23,7 @@ export function SeerSettingsPageBanners() {
     <Fragment>
       {showNoActiveSeerSubscriptionBanner ? <NoActiveSeerSubscriptionBanner /> : null}
 
-      {canWrite ? null : (
-        <Alert data-test-id="org-permission-alert" variant="warning">
-          {t(
-            'These settings can only be edited by users with the organization owner or manager role.'
-          )}
-        </Alert>
-      )}
+      {canWrite ? null : <OrganizationPermissionAlert />}
     </Fragment>
   );
 }

@@ -26,6 +26,7 @@ export enum OnboardingStepId {
   SETUP_DOCS = 'setup-docs',
   // SCM-first onboarding flow
   SCM_CONNECT = 'scm-connect',
+  SCM_MESSAGING = 'scm-messaging',
   SCM_PLATFORM_FEATURES = 'scm-platform-features',
 }
 

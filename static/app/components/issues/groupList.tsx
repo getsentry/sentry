@@ -21,12 +21,9 @@ import type {Group, PriorityLevel} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {indexMembersByProject} from 'sentry/utils/members/shared';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
-import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
 import {GroupListHeader} from './groupListHeader';
 
@@ -48,7 +45,6 @@ type Props = {
   numPlaceholderRows: number;
   queryParams: Record<string, number | string | string[] | undefined | null>;
   canSelectGroups?: boolean;
-  customStatsPeriod?: TimePeriodType;
   /**
    * Defaults to path '/organizations/$organizationIdOrSlug/issues/'
    */
@@ -75,9 +71,9 @@ type Props = {
   query?: string;
   queryFilterDescription?: string;
   renderEmptyMessage?: () => React.ReactNode;
-  renderErrorMessage?: (props: {detail: string}, retry: () => void) => React.ReactNode;
   // where the group list is rendered
   source?: string;
+  staleTime?: number;
   useFilteredStats?: boolean;
   useTintRow?: boolean;
   withChart?: boolean;
@@ -109,10 +105,9 @@ export function GroupList({
   endpoint = {path: '/organizations/$organizationIdOrSlug/issues/'},
   onFetchSuccess,
   renderEmptyMessage,
-  renderErrorMessage,
-  customStatsPeriod,
   queryFilterDescription,
   source,
+  staleTime = 0,
   query,
   numPlaceholderRows,
   withColumns = DEFAULT_COLUMNS,
@@ -201,12 +196,12 @@ export function GroupList({
       ? apiOptions.as<Group[]>()(endpoint.path, {
           path: {organizationIdOrSlug: organization.slug},
           query: computedQueryParams,
-          staleTime: 0,
+          staleTime,
         })
       : apiOptions.as<Group[]>()(endpoint.path, {
           path: {organizationIdOrSlug: organization.slug, version: endpoint.version},
           query: computedQueryParams,
-          staleTime: 0,
+          staleTime,
         });
   const {
     data,
@@ -214,7 +209,6 @@ export function GroupList({
     isPending,
     isError: isQueryError,
     isSuccess: isQuerySuccess,
-    error: queryError,
     refetch,
   } = useQuery({
     ...issuesQueryOptions,
@@ -272,19 +266,6 @@ export function GroupList({
 
   const pageLinks = data?.headers.Link ?? null;
   const groups = groupsData ?? [];
-  const errorDetail = hasLogicBoolean
-    ? RELATED_ISSUES_BOOLEAN_QUERY_ERROR
-    : (() => {
-        const detail = (queryError as RequestError | undefined)?.responseJSON?.detail;
-        if (typeof detail === 'string') {
-          return detail;
-        }
-        if (detail?.message) {
-          return detail.message;
-        }
-        return (queryError as RequestError | undefined)?.message ?? null;
-      })();
-  const errorData = errorDetail ? {detail: errorDetail} : null;
   const hasError = hasLogicBoolean || isQueryError;
   const loading = !hasLogicBoolean && isPending;
 
@@ -316,10 +297,6 @@ export function GroupList({
   const columns = withColumns;
 
   if (hasError) {
-    if (typeof renderErrorMessage === 'function' && errorData) {
-      return renderErrorMessage(errorData, refetch);
-    }
-
     return <LoadingError onRetry={refetch} />;
   }
 
@@ -349,7 +326,7 @@ export function GroupList({
         {withHeader && <GroupListHeader withChart={!!withChart} withColumns={columns} />}
         <PanelBody>
           {loading
-            ? [...Array.from({length: numPlaceholderRows})].map((_, i) => (
+            ? Array.from({length: numPlaceholderRows}, (_, i) => (
                 <GroupPlaceholder key={i}>
                   <Placeholder height="50px" />
                 </GroupPlaceholder>
@@ -367,7 +344,6 @@ export function GroupList({
                     memberList={members}
                     useFilteredStats={useFilteredStats}
                     useTintRow={useTintRow}
-                    customStatsPeriod={customStatsPeriod}
                     statsPeriod={statsPeriod}
                     queryFilterDescription={queryFilterDescription}
                     source={source}

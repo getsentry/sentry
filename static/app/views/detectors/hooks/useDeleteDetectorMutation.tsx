@@ -2,6 +2,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -14,9 +15,14 @@ export function useDeleteDetectorMutation() {
 
   return useMutation<void, RequestError, string>({
     mutationFn: (detectorId: string) =>
-      api.requestPromise(`/organizations/${org.slug}/detectors/${detectorId}/`, {
-        method: 'DELETE',
-      }),
+      api.requestPromise(
+        getApiUrl('/organizations/$organizationIdOrSlug/detectors/$detectorId/', {
+          path: {organizationIdOrSlug: org.slug, detectorId},
+        }),
+        {
+          method: 'DELETE',
+        }
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: allDetectorListsQueryKey(org),

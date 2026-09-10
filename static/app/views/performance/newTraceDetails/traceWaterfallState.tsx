@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ExternalLink} from '@sentry/scraps/link';
@@ -72,13 +72,14 @@ function getTraceErrorMessage(status: number | undefined) {
 function TraceEmpty() {
   const traceQueryParams = useTraceQueryParams();
   const timestamp = traceQueryParams.timestamp;
+  // Frozen at mount so the message doesn't flip while the user is looking at it.
+  const [now] = useState(() => Date.now());
 
   // Traces take longer to ingest than spans, we could click on the id of a span
   // and be navigated to a trace that doesn't contain any data yet. We add a 10
   // minute buffer to account for this.
   const message =
-    timestamp &&
-    new Date(timestamp * 1000) >= new Date(Date.now() - TEN_MINUTES_IN_MS) ? (
+    timestamp && timestamp * 1000 >= now - TEN_MINUTES_IN_MS ? (
       t("We're still processing this trace. Please try refreshing after a minute")
     ) : (
       <div>

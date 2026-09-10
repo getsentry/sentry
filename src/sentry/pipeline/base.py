@@ -23,6 +23,8 @@ from .types import PipelineRequestState, PipelineStepAction, PipelineStepResult
 from .views.base import ApiPipelineEndpoint, ApiPipelineStep, ApiPipelineSteps, PipelineView
 from .views.nested import NestedPipelineView
 
+logger = logging.getLogger(__name__)
+
 ERR_MISMATCHED_USER = "Current user does not match user that started the pipeline."
 
 
@@ -93,6 +95,8 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
             )
             if org_context:
                 organization = org_context.organization
+            else:
+                return None
 
         provider_key = state.provider_key
 
@@ -147,11 +151,36 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
         raise NotImplementedError
 
     def is_valid(self) -> bool:
-        return (
+        if not (
             self.state.is_valid()
             and self.state.signature == self.signature
             and self.state.step_index is not None
-        )
+        ):
+            return False
+
+        if self.state.org_id != (self.organization.id if self.organization else None):
+            logger.warning(
+                "pipeline.org-mismatch",
+                extra={
+                    "pipeline_org_id": self.state.org_id,
+                    "request_org_id": self.organization.id if self.organization else None,
+                },
+            )
+            return False
+
+        if self.state.provider_model_id != (
+            self.provider_model.id if self.provider_model else None
+        ):
+            logger.warning(
+                "pipeline.provider-mismatch",
+                extra={
+                    "pipeline_provider_id": self.state.provider_model_id,
+                    "request_provider_id": self.provider_model.id if self.provider_model else None,
+                },
+            )
+            return False
+
+        return True
 
     def initialize(self) -> None:
         self.state.regenerate(self.get_initial_state())

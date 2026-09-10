@@ -90,12 +90,13 @@ export function SupergroupDetailDrawer({
             <Badge variant="experimental">{t('Experimental')}</Badge>
           </Flex>
           <FeedbackButton
+            variant="secondary"
             size="xs"
             feedbackOptions={{
               formTitle: t('Give feedback on Issue Groups'),
               messagePlaceholder: t('How can we make Issue Groups better for you?'),
               tags: {
-                ['feedback.source']: 'supergroup_drawer',
+                'feedback.source': 'supergroup_drawer',
               },
             }}
             tooltipProps={{title: t('Give feedback on Issue Groups')}}
@@ -220,7 +221,7 @@ function SupergroupIssueList({
   const sortedGroupIds = useMemo(
     () =>
       filterWithCurrentSearch
-        ? [...groupIds].sort(
+        ? groupIds.toSorted(
             (a, b) =>
               Number(matchedIds.has(String(b))) - Number(matchedIds.has(String(a)))
           )
@@ -267,7 +268,7 @@ function SupergroupIssueList({
           </LoadingHeader>
           <PanelBody>
             {visibleIds.map(id => (
-              <LoadingStreamGroup key={id} withChart withColumns={DRAWER_COLUMNS} />
+              <LoadingStreamGroup key={id} withColumns={DRAWER_COLUMNS} />
             ))}
           </PanelBody>
         </PanelContainer>
@@ -309,8 +310,6 @@ function SupergroupIssueList({
                   )}
                   <StreamGroup
                     group={group}
-                    canSelect
-                    withChart
                     withColumns={DRAWER_COLUMNS}
                     memberList={members}
                     statsPeriod={DEFAULT_STREAM_GROUP_STATS_PERIOD}
@@ -360,8 +359,7 @@ function DrawerActionsBar({groupIds}: {groupIds: string[]}) {
     useIssueSelectionSummary();
 
   const selectedProjectSlug = useMemo(() => {
-    const projects = [...selectedIdsSet]
-      .map(id => GroupStore.get(id))
+    const projects = Array.from(selectedIdsSet, id => GroupStore.get(id))
       .filter((group): group is Group => !!group?.project)
       .map(group => group.project.slug);
     const uniqProjects = uniq(projects);

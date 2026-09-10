@@ -250,12 +250,14 @@ function Details({detector}: {detector: Detector}) {
 
 export function DetectorLink({detector, className, openInNewTab}: DetectorLinkProps) {
   const org = useOrganization();
-  const project = useProjectFromId({project_id: detector.projectId});
+  const project = useProjectFromId({project_id: detector.projectId ?? undefined});
   const location = useLocation();
 
   const detectorName =
     detector.type === 'issue_stream'
-      ? t('All Issues in %s', project?.slug || 'project')
+      ? detector.projectId === null
+        ? t('All Projects')
+        : t('All Issues in %s', project?.slug || 'project')
       : detector.name;
 
   // Preserve page filters when navigating to detector details

@@ -64,7 +64,7 @@ function FlamegraphThreadSelector({
       }
     }
 
-    const sortedProfiles = [...profileGroup.profiles].sort(
+    const sortedProfiles = profileGroup.profiles.toSorted(
       compareProfiles(activeThreadId)
     );
 

@@ -294,7 +294,7 @@ describe('useDashboardsLimit', () => {
   it('handles missing subscription planDetails gracefully (defaults to 10)', async () => {
     const subscription = SubscriptionFixture({
       organization: mockOrganization,
-      planDetails: undefined as any,
+      planDetails: undefined,
     });
 
     SubscriptionStore.set(mockOrganization.slug, subscription);

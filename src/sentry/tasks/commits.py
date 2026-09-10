@@ -29,7 +29,7 @@ from sentry.plugins.base import bindings
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationResourceNotFoundError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.namespaces import issues_long_tasks, issues_tasks
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -330,7 +330,8 @@ def fetch_commits_for_ref_with_lifecycle(
 
 @instrumented_task(
     name="sentry.tasks.commits.fetch_commits",
-    namespace=issues_tasks,
+    namespace=issues_long_tasks,
+    alias_namespace=issues_tasks,
     processing_deadline_duration=60 * 15 + 5,
     retry=Retry(
         times=5,

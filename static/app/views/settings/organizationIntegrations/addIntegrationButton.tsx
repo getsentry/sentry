@@ -11,15 +11,19 @@ import {useAutoOpenInstallModal} from 'sentry/utils/integrations/useAutoOpenInst
 
 interface AddIntegrationButtonProps
   extends
-    Omit<ButtonProps, 'children' | 'analyticsParams'>,
+    Omit<ButtonProps, 'children' | 'analyticsParams' | 'onError'>,
     Pick<
       AddIntegrationParams,
-      'provider' | 'organization' | 'analyticsParams' | 'suppressSuccessMessage'
+      | 'provider'
+      | 'organization'
+      | 'analyticsParams'
+      | 'suppressSuccessMessage'
+      | 'onCancel'
+      | 'onError'
     > {
   onAddIntegration: (data: IntegrationWithConfig) => void;
   buttonText?: string;
   installStatus?: string;
-  reinstall?: boolean;
 }
 
 export function AddIntegrationButton({
@@ -27,19 +31,16 @@ export function AddIntegrationButton({
   buttonText,
   onAddIntegration,
   organization,
-  reinstall,
   analyticsParams,
   installStatus,
   suppressSuccessMessage,
+  onCancel,
+  onError,
   ...buttonProps
 }: AddIntegrationButtonProps) {
   const label =
     buttonText ??
-    (reinstall
-      ? t('Enable')
-      : installStatus === 'Disabled'
-        ? t('Reinstall')
-        : t('Add %s', provider.metadata.noun));
+    (installStatus === 'Disabled' ? t('Reinstall') : t('Add %s', provider.metadata.noun));
 
   const {startFlow} = useAddIntegration();
 
@@ -50,6 +51,7 @@ export function AddIntegrationButton({
     onInstall: onAddIntegration,
     analyticsParams,
     suppressSuccessMessage,
+    startFlow,
   });
 
   return (
@@ -73,6 +75,8 @@ export function AddIntegrationButton({
             onInstall: onAddIntegration,
             analyticsParams,
             suppressSuccessMessage,
+            onCancel,
+            onError,
           });
         }}
         aria-label={t('Add integration')}

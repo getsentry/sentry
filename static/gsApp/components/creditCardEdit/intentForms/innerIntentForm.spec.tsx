@@ -40,8 +40,8 @@ describe('InnerIntentForm', () => {
     jest.useFakeTimers();
 
     const stripeImport = await import('@stripe/react-stripe-js');
-    jest.spyOn(stripeImport, 'useStripe').mockReturnValue(null as any);
-    jest.spyOn(stripeImport, 'useElements').mockReturnValue(null as any);
+    jest.spyOn(stripeImport, 'useStripe').mockReturnValue(null);
+    jest.spyOn(stripeImport, 'useElements').mockReturnValue(null);
 
     render(<InnerIntentForm {...defaultProps} />);
 

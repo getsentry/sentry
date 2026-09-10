@@ -18,6 +18,10 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
         from sentry.integrations.models.repository_project_path_config import (
             RepositoryProjectPathConfig,
         )
+        from sentry.investigations.models import (
+            InvestigationBlockExecutionProject,
+            InvestigationProject,
+        )
         from sentry.models.activity import Activity
         from sentry.models.artifactbundle import ProjectArtifactBundle
         from sentry.models.debugfile import ProguardArtifactRelease, ProjectDebugFile
@@ -92,6 +96,8 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             ProguardArtifactRelease,
             DiscoverSavedQueryProject,
             IncidentProject,
+            InvestigationProject,
+            InvestigationBlockExecutionProject,
         ):
             relations.append(ModelRelation(m1, {"project_id": instance.id}, BulkModelDeletionTask))
 

@@ -112,7 +112,7 @@ export function ReleasesAdoptionChart({
       ),
       emphasis: {
         focus: 'series',
-      } as LineSeriesOption['emphasis'],
+      } as const satisfies LineSeriesOption['emphasis'],
     }));
   };
 

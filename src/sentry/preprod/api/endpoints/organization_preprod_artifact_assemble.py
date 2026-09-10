@@ -4,6 +4,7 @@ from typing import Any
 
 import jsonschema
 import orjson
+from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -12,6 +13,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.debug_files.upload import find_missing_chunks
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
@@ -34,6 +36,8 @@ SUPPORTED_VCS_PROVIDERS = [
     IntegrationProviderSlug.BITBUCKET,
     IntegrationProviderSlug.BITBUCKET_SERVER,
 ]
+
+MAX_INSTALL_GROUPS = 16
 
 
 def validate_vcs_parameters(data: dict[str, Any]) -> str | None:
@@ -80,8 +84,10 @@ def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict[str, Any
             "release_notes": {"type": "string"},
             "install_groups": {
                 "type": "array",
-                "items": {"type": "string", "maxLength": 255},
+                "items": {"type": "string", "minLength": 1, "maxLength": 255},
                 "minItems": 1,
+                "maxItems": MAX_INSTALL_GROUPS,
+                "uniqueItems": True,
             },
             **VCS_SCHEMA_PROPERTIES,
         },
@@ -94,7 +100,7 @@ def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict[str, Any
         "chunks": "The chunks field is required and must be provided as an array of 40-character hexadecimal strings.",
         "build_configuration": "The build_configuration field must be a string.",
         "release_notes": "The release_notes field must be a string.",
-        "install_groups": "The install_groups field must be an array of strings, each with maximum length of 255 characters.",
+        "install_groups": f"The install_groups field must contain between 1 and {MAX_INSTALL_GROUPS} unique, non-empty strings, each with a maximum length of 255 characters.",
         **VCS_ERROR_MESSAGES,
     }
 
@@ -135,6 +141,12 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
         """
         Assembles a preprod artifact (mobile build, etc.) and stores it in the database.
         """
+
+        if settings.SENTRY_MODE == SentryMode.SINGLE_TENANT:
+            return Response(
+                {"detail": "Size analysis uploads are not enabled for this organization."},
+                status=403,
+            )
 
         analytics.record(
             PreprodArtifactApiAssembleEvent(

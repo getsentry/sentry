@@ -64,10 +64,6 @@ describe('Legacy Tier Checkout', () => {
       body: BillingConfigFixture(PlanTier.AM2),
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/promotions/trigger-check/`,
-      method: 'POST',
-    });
-    MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
     });
@@ -170,10 +166,6 @@ describe('Default Tier Checkout', () => {
       url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/promotions/trigger-check/`,
-      method: 'POST',
     });
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,

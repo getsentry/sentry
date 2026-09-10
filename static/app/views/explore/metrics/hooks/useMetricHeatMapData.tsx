@@ -123,10 +123,15 @@ export function useMetricHeatMapData({
     isPartial,
   } = useQueries({queries, combine});
 
-  // Patch the metric unit onto the Y-axis, since the server can't infer this
-  const series = chunkSeries
-    ? mergeMetricUnit(chunkSeries, traceMetric.unit ?? undefined)
-    : chunkSeries;
+  // Patch the metric unit onto the Y-axis, since the server can't infer this.
+  // Memoized to make stable because `mergeMetricUnit` always returns a new object.
+  const series = useMemo(
+    () =>
+      chunkSeries
+        ? mergeMetricUnit(chunkSeries, traceMetric.unit ?? undefined)
+        : undefined,
+    [chunkSeries, traceMetric.unit]
+  );
 
   return {
     series,

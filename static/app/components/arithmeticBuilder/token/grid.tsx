@@ -108,13 +108,13 @@ function GridList({showPlaceholder, ...props}: GridListProps) {
   useApplyFocusOverride(state);
 
   const nextAllowedTokenKindsAtIndex = useMemo(() => {
-    const tokens = [...state.collection].map(item => item.value);
+    const tokens = Array.from(state.collection, item => item.value);
     return computeNextAllowedTokenKinds(tokens);
   }, [state.collection]);
 
   return (
     <TokenGridWrapper {...gridProps} ref={ref}>
-      {[...state.collection].map((item, i) => {
+      {Array.from(state.collection, (item, i) => {
         const token = item.value;
 
         if (!defined(token)) {
@@ -199,7 +199,7 @@ function GridList({showPlaceholder, ...props}: GridListProps) {
 const TokenGridWrapper = styled('div')`
   padding: ${p => p.theme.space.sm};
   display: flex;
-  align-items: stretch;
+  align-items: center;
   row-gap: ${p => p.theme.space.xs};
   flex-wrap: wrap;
 

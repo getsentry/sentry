@@ -27,6 +27,7 @@ export function FeedbackSummaryCategories() {
   const feedbackButton = ({type}: {type: 'positive' | 'negative'}) => {
     return (
       <FeedbackButton
+        variant="secondary"
         aria-label={t('Give feedback on the AI-powered summary')}
         icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
         tooltipProps={{
@@ -39,9 +40,9 @@ export function FeedbackSummaryCategories() {
               ? t('What did you like about the AI-powered summary?')
               : t('How can we make the summary work better for you?'),
           tags: {
-            ['feedback.source']: 'feedback_ai_summary',
-            ['feedback.owner']: 'replay',
-            ['feedback.type']: type,
+            'feedback.source': 'feedback_ai_summary',
+            'feedback.owner': 'replay',
+            'feedback.type': type,
           },
         }}
       >

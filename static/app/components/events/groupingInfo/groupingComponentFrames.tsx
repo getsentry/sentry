@@ -9,16 +9,14 @@ import {tct} from 'sentry/locale';
 interface GroupingComponentFramesProps {
   initialCollapsed: boolean;
   items: React.ReactNode[];
-  maxVisibleItems?: number;
 }
 
 export function GroupingComponentFrames({
   items,
-  maxVisibleItems = 2,
   initialCollapsed,
 }: GroupingComponentFramesProps) {
   const [collapsed, setCollapsed] = useState(initialCollapsed);
-  const isCollapsible = items.length > maxVisibleItems;
+  const isCollapsible = items.length > 2;
 
   useEffect(() => {
     // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
@@ -28,7 +26,7 @@ export function GroupingComponentFrames({
   return (
     <Fragment>
       {items.map((item, index) => {
-        if (!collapsed || index < maxVisibleItems) {
+        if (!collapsed || index < 2) {
           return (
             <GroupingComponentListItem isCollapsible={isCollapsible} key={index}>
               {item}
@@ -36,7 +34,7 @@ export function GroupingComponentFrames({
           );
         }
 
-        if (index === maxVisibleItems) {
+        if (index === 2) {
           return (
             <GroupingComponentListItem key={index}>
               <ToggleCollapse
@@ -46,7 +44,7 @@ export function GroupingComponentFrames({
                 onClick={() => setCollapsed(false)}
               >
                 {tct('show [numberOfFrames] similar', {
-                  numberOfFrames: items.length - maxVisibleItems,
+                  numberOfFrames: items.length - 2,
                 })}
               </ToggleCollapse>
             </GroupingComponentListItem>
@@ -56,7 +54,7 @@ export function GroupingComponentFrames({
         return null;
       })}
 
-      {!collapsed && items.length > maxVisibleItems && (
+      {!collapsed && items.length > 2 && (
         <GroupingComponentListItem>
           <ToggleCollapse
             size="sm"
@@ -65,7 +63,7 @@ export function GroupingComponentFrames({
             onClick={() => setCollapsed(true)}
           >
             {tct('collapse [numberOfFrames] similar', {
-              numberOfFrames: items.length - maxVisibleItems,
+              numberOfFrames: items.length - 2,
             })}
           </ToggleCollapse>
         </GroupingComponentListItem>

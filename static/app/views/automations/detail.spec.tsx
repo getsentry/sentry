@@ -4,6 +4,7 @@ import {
   AutomationFixture,
 } from 'sentry-fixture/automations';
 import {
+  AllProjectsDetectorFixture,
   IssueStreamDetectorFixture,
   MetricDetectorFixture,
 } from 'sentry-fixture/detectors';
@@ -18,7 +19,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import AutomationDetail from 'sentry/views/automations/detail';
 
 describe('AutomationDetail', () => {
-  const organization = OrganizationFixture({features: ['workflow-engine-ui']});
+  const organization = OrganizationFixture();
   const automation = AutomationFixture({
     id: '123',
     name: 'Test Automation',
@@ -98,6 +99,24 @@ describe('AutomationDetail', () => {
     expect(screen.getByRole('heading', {name: 'Throttling'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Conditions'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Details'})).toBeInTheDocument();
+  });
+
+  it('shows all projects for an all-projects detector', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [AllProjectsDetectorFixture({id: '10'})],
+      match: [MockApiClient.matchQuery({query: 'type:issue_stream workflow:123'})],
+    });
+
+    render(<AutomationDetail />, {
+      organization,
+      initialRouterConfig: {
+        route: '/alerts/:automationId/',
+        location: {pathname: '/alerts/123/'},
+      },
+    });
+
+    expect(await screen.findByText('All Projects')).toBeInTheDocument();
   });
 
   it('can disable an enabled automation', async () => {
@@ -277,7 +296,6 @@ describe('AutomationDetail', () => {
 
   it('disables action buttons without alerts:write permission', async () => {
     const noWriteOrg = OrganizationFixture({
-      features: ['workflow-engine-ui'],
       access: ['org:read', 'alerts:read'],
     });
 

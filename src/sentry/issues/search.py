@@ -225,14 +225,15 @@ def _query_params_for_generic(
 
 
 def get_search_strategy(
-    group_category: GroupCategory,
+    group_categories: Sequence[GroupCategory],
     visible_group_type_ids: Collection[int],
 ) -> GroupSearchStrategy:
-    if group_category == GroupCategory.ERROR:
+    if len(group_categories) == 1 and group_categories[0] == GroupCategory.ERROR:
         return _query_params_for_error
+    assert GroupCategory.ERROR not in group_categories
     return functools.partial(
         _query_params_for_generic,
-        categories=[group_category],
+        categories=group_categories,
         visible_group_type_ids=visible_group_type_ids,
     )
 

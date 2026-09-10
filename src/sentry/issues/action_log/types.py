@@ -7,9 +7,11 @@ from __future__ import annotations
 import abc
 import dataclasses
 from enum import IntEnum, StrEnum
-from typing import Any, ClassVar, Literal, NotRequired, Optional, TypedDict
+from typing import Any, ClassVar, Literal, NotRequired, Optional, TypeAlias, TypedDict
 
 from pydantic import BaseModel
+
+SeerPullRequestItem: TypeAlias = dict[str, str | dict[str, str | int]]
 
 
 class GroupActorType(IntEnum):
@@ -121,6 +123,7 @@ class GroupActionType(IntEnum):
     SEER_PR_CREATED = 1035
     SEER_ITERATION_STARTED = 1036
     SEER_ITERATION_COMPLETED = 1037
+    SEER_PR_READY_FOR_REVIEW = 1038
 
 
 class ActionSource(StrEnum):
@@ -552,7 +555,6 @@ class GroupActionLogPayload(TypedDict):
     data: dict[str, Any]
     force_async_derived: bool
     idempotency_key: NotRequired[str]
-    date_added: NotRequired[str]
 
 
 class SetPublicAction(GroupAction):
@@ -769,12 +771,22 @@ class SeerCodingCompletedAction(GroupAction):
 class SeerPRCreatedAction(GroupAction):
     user_visible = True
     run_id: Optional[int] = None
-    # TODO Break out as separate model?
-    pull_requests: Optional[list[dict[str, str | dict[str, str | int]]]] = None
+    pull_requests: Optional[list[SeerPullRequestItem]] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.SEER_PR_CREATED
+
+
+class SeerPRReadyForReviewAction(GroupAction):
+    user_visible = False
+    run_id: Optional[int] = None
+    # Same PR as SeerPRCreatedAction, but will not be in draft mode
+    pull_requests: Optional[list[SeerPullRequestItem]] = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SEER_PR_READY_FOR_REVIEW
 
 
 class SeerIterationStartedAction(GroupAction):

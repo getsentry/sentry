@@ -9,6 +9,7 @@ from django.db import IntegrityError, router
 
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
@@ -74,7 +75,9 @@ def set_commits(release, commit_list):
             )
 
     fill_in_missing_release_head_commits(release, head_commit_by_repo)
-    update_group_resolutions(release, commit_author_by_commit)
+
+    with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+        update_group_resolutions(release, commit_author_by_commit)
 
 
 @metrics.wraps("set_commits_on_release")

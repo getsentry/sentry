@@ -87,13 +87,11 @@ export function useNetworkFilters({networkFrames}: Options): Return {
       Array.from(new Set(networkFrames.map(getFrameMethod).concat('GET').concat(method)))
         .filter(Boolean)
         .sort()
-        .map(
-          (value): NetworkSelectOption => ({
-            value,
-            label: value,
-            qs: 'f_n_method',
-          })
-        ),
+        .map((value): NetworkSelectOption => ({
+          value,
+          label: value,
+          qs: 'f_n_method',
+        })),
     [networkFrames, method]
   );
 
@@ -108,13 +106,11 @@ export function useNetworkFilters({networkFrames}: Options): Return {
         )
       )
         .sort((a, b) => (operationName(a) < operationName(b) ? -1 : 1))
-        .map(
-          (value): NetworkSelectOption => ({
-            value,
-            label: value.split('.')?.[1] ?? value,
-            qs: 'f_n_type',
-          })
-        ),
+        .map((value): NetworkSelectOption => ({
+          value,
+          label: value.split('.')?.[1] ?? value,
+          qs: 'f_n_type',
+        })),
     [networkFrames, type]
   );
 
@@ -130,13 +126,11 @@ export function useNetworkFilters({networkFrames}: Options): Return {
         )
       )
         .sort()
-        .map(
-          (value): NetworkSelectOption => ({
-            value,
-            label: value,
-            qs: 'f_n_status',
-          })
-        ),
+        .map((value): NetworkSelectOption => ({
+          value,
+          label: value,
+          qs: 'f_n_status',
+        })),
     [networkFrames, status]
   );
 

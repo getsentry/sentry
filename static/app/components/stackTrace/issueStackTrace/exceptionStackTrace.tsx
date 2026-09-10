@@ -41,7 +41,7 @@ import {
 export interface IssueStackTraceFrameListProps {
   event: Event;
   hasScmSourceContext: boolean;
-  stacktrace: StacktraceType;
+  stacktrace: StacktraceType | null;
   exceptionIndex?: number;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   meta?: StackTraceMeta;
@@ -115,9 +115,11 @@ export function IssueExceptionStackTrace({
             />
           </Stack>
         ) : null}
-        <ErrorBoundary customComponent={null}>
-          <StacktraceBanners event={event} stacktrace={exception.stacktrace} />
-        </ErrorBoundary>
+        {exception.stacktrace && (
+          <ErrorBoundary customComponent={null}>
+            <StacktraceBanners event={event} stacktrace={exception.stacktrace} />
+          </ErrorBoundary>
+        )}
         <FrameListComponent
           event={event}
           exceptionIndex={isStandalone ? undefined : exception.exceptionIndex}
@@ -184,7 +186,7 @@ export function IssueExceptionStackTrace({
                   newestFirst={isNewestFirst}
                   onExceptionClick={expandException}
                 />
-                {index === firstVisibleExceptionIndex ? (
+                {exception.stacktrace && index === firstVisibleExceptionIndex ? (
                   <ErrorBoundary customComponent={null}>
                     <StacktraceBanners event={event} stacktrace={exception.stacktrace} />
                   </ErrorBoundary>

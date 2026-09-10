@@ -15,14 +15,20 @@ from slack_sdk.models.blocks import (
 )
 
 from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
+from sentry.notifications.platform.slack.provider import SlackNotificationProvider
 from sentry.notifications.platform.slack.renderers.seer import AUTOFIX_CONFIG, SeerSlackRenderer
+from sentry.notifications.platform.slack.renderers.seer_agent_write_approval import (
+    SeerAgentWriteApprovalSlackRenderer,
+)
 from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
     SeerAgentResponse,
+    SeerAgentWriteApproval,
     SeerAutofixCodeChange,
     SeerAutofixPullRequest,
     SeerAutofixUpdate,
 )
+from sentry.notifications.platform.types import NotificationCategory, NotificationRenderedTemplate
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.testutils.cases import TestCase
 
@@ -288,8 +294,6 @@ class SeerSlackRendererAgentErrorTest(TestCase):
         assert ">Timeout." in body_block.text.text
 
     def test_render_dispatches_to_agent_error(self) -> None:
-        from sentry.notifications.platform.types import NotificationRenderedTemplate
-
         data = SeerAgentError(error_message="Something went wrong.")
         renderable = SeerSlackRenderer.render(
             data=data,
@@ -307,6 +311,9 @@ class SeerSlackRendererAgentTest(TestCase):
         )
 
     def test_render_agent_response_with_summary(self) -> None:
+        seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=MOCK_RUN_ID
+        )
         data = self._create_agent_response(
             summary="Found a spike in 500 errors from the auth service."
         )
@@ -321,8 +328,25 @@ class SeerSlackRendererAgentTest(TestCase):
         assert "Found a spike in 500 errors from the auth service." in blocks[0].text
 
         assert isinstance(blocks[1], ContextBlock)
-        assert isinstance(blocks[1].elements[0], PlainTextObject)
-        assert f"Run ID: {MOCK_RUN_ID}" in blocks[1].elements[0].text
+        assert isinstance(blocks[1].elements[0], MarkdownTextObject)
+        run_id_text = blocks[1].elements[0].text
+        conversation_id = str(seer_run.uuid)
+        expected_url = self.organization.absolute_url(
+            f"/organizations/{self.organization.slug}/explore/agents/conversations/{conversation_id}/"
+        )
+        assert run_id_text == f"Agent Trace: <{expected_url}|{conversation_id}>"
+
+    def test_render_agent_response_without_seer_run_mirror(self) -> None:
+        data = self._create_agent_response(
+            summary="Found a spike in 500 errors from the auth service."
+        )
+        with self.feature("organizations:seer-run-id-in-slack"):
+            renderable = SeerSlackRenderer._render_agent_response(data)
+
+        assert renderable["text"] == "Seer Agent has finished"
+        blocks = renderable["blocks"]
+        assert len(blocks) == 1
+        assert isinstance(blocks[0], MarkdownBlock)
 
     def test_render_agent_response_without_run_id_flag(self) -> None:
         data = self._create_agent_response(
@@ -367,10 +391,39 @@ class SeerSlackRendererAgentTest(TestCase):
 
     def test_render_dispatches_to_agent_response(self) -> None:
         data = self._create_agent_response(summary="Test")
-        from sentry.notifications.platform.types import NotificationRenderedTemplate
-
         renderable = SeerSlackRenderer.render(
             data=data,
             rendered_template=NotificationRenderedTemplate(subject="", body=[]),
         )
         assert renderable["text"] == "Seer Agent has finished"
+
+
+class SeerAgentWriteApprovalSlackRendererTest(TestCase):
+    rendered_template = NotificationRenderedTemplate(subject="", body=[])
+
+    def test_render_request_and_provider_dispatch(self) -> None:
+        data = SeerAgentWriteApproval(
+            run_id=MOCK_RUN_ID,
+            organization_id=self.organization.id,
+            input_id="approval-1",
+            scopes=["org:write"],
+        )
+
+        renderer = SlackNotificationProvider.get_renderer(
+            data=data, category=NotificationCategory.SEER
+        )
+        assert renderer is SeerAgentWriteApprovalSlackRenderer
+        renderable = renderer.render(data=data, rendered_template=self.rendered_template)
+
+        assert renderable["text"] == "Seer needs approval to make a change"
+        assert len(renderable["blocks"]) == 3
+        actions = renderable["blocks"][2]
+        assert isinstance(actions, ActionsBlock)
+        reject_button, approve_button = actions.elements
+        assert isinstance(reject_button, ButtonElement)
+        assert isinstance(approve_button, ButtonElement)
+        assert reject_button.text is not None
+        assert approve_button.text is not None
+        assert [reject_button.text.text, approve_button.text.text] == ["Reject", "Approve"]
+        assert reject_button.value == "link_clicked"
+        assert approve_button.value == "link_clicked"

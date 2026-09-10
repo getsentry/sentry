@@ -15,6 +15,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {CreatedProject} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Repository} from 'sentry/types/integrations';
@@ -36,6 +37,7 @@ jest.mock('@tanstack/react-virtual', () => ({
       })),
     getTotalSize: () => count * 36,
     measureElement: jest.fn(),
+    scrollToIndex: jest.fn(),
   })),
 }));
 
@@ -57,7 +59,7 @@ jest.mock('sentry/data/platforms', () => {
 });
 
 interface StateOverrides {
-  createdProjectSlug?: string;
+  createdProject?: CreatedProject;
   selectedFeatures?: ProductSolution[];
   selectedPlatform?: OnboardingSelectedSDK;
   selectedRepository?: Repository;
@@ -68,10 +70,11 @@ function defaultProps(state: StateOverrides = {}) {
     selectedRepository: state.selectedRepository,
     selectedPlatform: state.selectedPlatform,
     selectedFeatures: state.selectedFeatures,
-    createdProjectSlug: state.createdProjectSlug,
+    createdProject: state.createdProject,
+    deferProjectCreation: false,
     onPlatformChange: jest.fn(),
     onFeaturesChange: jest.fn(),
-    onProjectCreated: jest.fn(),
+    onCreatedProjectChange: jest.fn(),
     onComplete: jest.fn(),
   };
 }
@@ -626,6 +629,31 @@ describe('ScmPlatformFeatures', () => {
       });
     });
 
+    it('defers project creation for the messaging treatment', async () => {
+      const createRequest = MockApiClient.addMockResponse({
+        url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+        method: 'POST',
+        body: ProjectFixture(),
+      });
+      const props = {
+        ...defaultProps({
+          selectedPlatform: nextJsPlatform,
+          selectedFeatures: [ProductSolution.ERROR_MONITORING],
+        }),
+        deferProjectCreation: true,
+      };
+
+      render(<ScmPlatformFeatures {...props} />, {organization});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      expect(createRequest).not.toHaveBeenCalled();
+      expect(props.onCreatedProjectChange).not.toHaveBeenCalled();
+      expect(props.onComplete).toHaveBeenCalledWith(nextJsPlatform, {
+        product: [ProductSolution.ERROR_MONITORING],
+      });
+    });
+
     it('auto-creates the project on Continue and forwards selected features', async () => {
       const createdProject = ProjectFixture({
         slug: 'javascript-nextjs',
@@ -664,7 +692,10 @@ describe('ScmPlatformFeatures', () => {
       expect(props.onComplete).toHaveBeenCalledWith(nextJsPlatform, {
         product: [ProductSolution.ERROR_MONITORING],
       });
-      expect(props.onProjectCreated).toHaveBeenCalledWith(createdProject.slug);
+      expect(props.onCreatedProjectChange).toHaveBeenCalledWith({
+        slug: createdProject.slug,
+        messagingSelection: undefined,
+      });
     });
 
     it('links selected repository to project after creation', async () => {
@@ -780,7 +811,7 @@ describe('ScmPlatformFeatures', () => {
       const props = defaultProps({
         selectedPlatform: nextJsPlatform,
         selectedFeatures: [ProductSolution.ERROR_MONITORING],
-        createdProjectSlug: existingProject.slug,
+        createdProject: {slug: existingProject.slug, messagingSelection: undefined},
       });
       render(<ScmPlatformFeatures {...props} />, {organization});
 
@@ -816,7 +847,7 @@ describe('ScmPlatformFeatures', () => {
       const props = defaultProps({
         selectedPlatform: nextJsPlatform,
         selectedFeatures: [ProductSolution.ERROR_MONITORING],
-        createdProjectSlug: stalePythonProject.slug,
+        createdProject: {slug: stalePythonProject.slug, messagingSelection: undefined},
       });
       render(<ScmPlatformFeatures {...props} />, {organization});
 

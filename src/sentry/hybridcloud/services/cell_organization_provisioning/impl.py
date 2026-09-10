@@ -21,7 +21,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationslugreservation import OrganizationSlugReservationType
 from sentry.services.organization import OrganizationOptions, OrganizationProvisioningOptions
-from sentry.signals import terms_accepted
+from sentry.signals import organization_created, terms_accepted
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.audit import create_audit_entry_from_user
 
@@ -214,6 +214,12 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
                 )
             except Exception as e:
                 capture_exception(e)
+
+        organization_created.send_robust(
+            organization=organization,
+            user=provision_options.owner,
+            sender=type(self),
+        )
 
     def update_organization_slug_from_reservation(
         self,

@@ -140,6 +140,7 @@ describe('getTraceAttributesTreeActions', () => {
         attribute_key: 'description',
         attribute_value: 'GET /api/users',
         original_attribute_key: 'span.description',
+        type: 'str',
       },
     });
 

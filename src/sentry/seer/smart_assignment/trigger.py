@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 
 from sentry import features, options
 from sentry.models.activity import Activity
@@ -8,12 +9,15 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.ratelimits import backend as ratelimiter
 from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.autofix.utils import bulk_read_preferences_from_sentry_db
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerRun
 from sentry.seer.smart_assignment.models import (
     RESOLUTION_ACTIVITIES,
     SEER_FEATURE_ID,
+    SEER_START_ACTIVITIES,
     SmartAssignmentPayload,
+    is_unscorable_assignment,
 )
 from sentry.seer.smart_assignment.scoring import record_ground_truth, resolver_user_id
 from sentry.seer.utils import runs_for_group
@@ -53,7 +57,13 @@ def trigger_smart_assignment(
     """
     organization = group.organization
 
-    if not features.has(FEATURE_FLAG, organization):
+    if not (
+        features.has(FEATURE_FLAG, organization)
+        and (
+            features.has("organizations:seer-added", organization)
+            or features.has("organizations:seat-based-seer-enabled", organization)
+        )
+    ):
         return
 
     if activity_type in RESOLUTION_ACTIVITIES and resolver_user_id(activity) is None:
@@ -64,11 +74,24 @@ def trigger_smart_assignment(
         )
         return
 
+    if is_unscorable_assignment(activity):
+        # We only want to run Smart Assignment on issues that are manually assigned.
+        metrics.incr(
+            "smart_assignment.trigger.skipped",
+            tags={"reason": "automatic_assignment"},
+            sample_rate=1.0,
+        )
+        return
+
     # Policy gate: today we predict at most once per issue, ever. This lives in app
     # code (not a DB constraint) so re-runs are cheap to enable later -- e.g. gate on
     # a cooldown or a new-signal check against the latest run instead. The run mirror
     # is our durable record that a run was dispatched.
-    if not _already_predicted(group) and not _dispatch_rate_limited(organization):
+    if (
+        not _already_predicted(group)
+        and _should_sample_for_eval(activity_type)
+        and not _dispatch_rate_limited(organization)
+    ):
         _dispatch(group, activity_type, activity)
 
     record_ground_truth(group, activity_type, activity)
@@ -82,6 +105,20 @@ def _already_predicted(group: Group) -> bool:
     run past this before the first mirror commits, which the daily caps still bound.
     """
     return runs_for_group(group.id, SEER_FEATURE_ID).exists()
+
+
+def _should_sample_for_eval(activity_type: ActivityType) -> bool:
+    if activity_type in SEER_START_ACTIVITIES:
+        return True
+    rate = options.get("seer.smart_assignment.eval_sample_rate")
+    if random.random() >= rate:
+        metrics.incr(
+            "smart_assignment.trigger.skipped",
+            tags={"reason": "eval_sampled_out"},
+            sample_rate=1.0,
+        )
+        return False
+    return True
 
 
 def _dispatch_rate_limited(organization: Organization) -> bool:
@@ -144,13 +181,23 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity) -> 
         "triggering_activity_id": activity.id,
     }
 
-    payload = SmartAssignmentPayload(group_id=group.id, project_slug=group.project.slug)
+    preferences = bulk_read_preferences_from_sentry_db(organization.id, [group.project_id])
+    preference = preferences.get(group.project_id)
+    connected_repos = (
+        [f"{repo.owner}/{repo.name}" for repo in preference.repositories] if preference else []
+    )
+    payload = SmartAssignmentPayload(
+        group_id=group.id,
+        project_slug=group.project.slug,
+        connected_repos=connected_repos,
+    )
     title = f"Smart assignment for {group.qualified_short_id or group.id}"
     try:
         run = client.start_feature_run(
             feature_id=SEER_FEATURE_ID,
             payload=payload.dict(),
             title=title,
+            referrer=SEER_FEATURE_ID,
             flush=False,
             extras=extras,
         )

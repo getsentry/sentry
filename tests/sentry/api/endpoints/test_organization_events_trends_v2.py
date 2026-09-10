@@ -5,11 +5,15 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
-from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [
+    pytest.mark.sentry_metrics,
+    pytest.mark.skip(
+        reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+    ),
+]
 
 
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
@@ -22,7 +26,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         self.url = reverse("sentry-api-0-organization-events-trends-statsv2", args=[self.org.slug])
 
         self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
+            name="d:transactions/duration@millisecond",
             tags={"transaction": "foo"},
             org_id=self.org.id,
             project_id=self.project.id,
@@ -30,7 +34,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
             hours_before_now=1,
         )
         self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
+            name="d:transactions/duration@millisecond",
             tags={"transaction": "foo"},
             org_id=self.org.id,
             project_id=self.project.id,
@@ -38,7 +42,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
             hours_before_now=2,
         )
         self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
+            name="d:transactions/duration@millisecond",
             tags={"transaction": "foo"},
             org_id=self.org.id,
             project_id=self.project.id,
@@ -144,7 +148,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         mock_detect_breakpoints.return_value = {"data": mock_trends_result}
 
         self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
+            name="d:transactions/duration@millisecond",
             tags={"transaction": "bar"},
             org_id=self.org.id,
             project_id=self.project.id,
@@ -254,7 +258,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
     def test_simple_with_top_events(self, mock_detect_breakpoints: mock.MagicMock) -> None:
         # store second metric but with lower count
         self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
+            name="d:transactions/duration@millisecond",
             tags={"transaction": "bar"},
             org_id=self.org.id,
             project_id=self.project.id,
@@ -291,7 +295,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         project2 = self.create_project(organization=self.org)
 
         self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
+            name="d:transactions/duration@millisecond",
             tags={"transaction": "bar"},
             org_id=self.org.id,
             project_id=project1.id,
@@ -299,7 +303,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
             hours_before_now=2,
         )
         self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
+            name="d:transactions/duration@millisecond",
             tags={"transaction": "bar"},
             org_id=self.org.id,
             project_id=project2.id,
@@ -340,7 +344,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         # to fall into the FIRST bucket when querying
         for i in range(2):
             self.store_performance_metric(
-                name=TransactionMRI.DURATION.value,
+                name="d:transactions/duration@millisecond",
                 tags={"transaction": "foo bar*"},
                 org_id=self.org.id,
                 project_id=project1.id,
@@ -348,7 +352,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
                 hours_before_now=2,
             )
             self.store_performance_metric(
-                name=TransactionMRI.DURATION.value,
+                name="d:transactions/duration@millisecond",
                 tags={"transaction": 'foo bar\\\\"'},
                 org_id=self.org.id,
                 project_id=project2.id,
@@ -358,7 +362,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         # force these 2 transactions from different projects
         # to fall into the SECOND bucket when querying
         self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
+            name="d:transactions/duration@millisecond",
             tags={"transaction": "foo bar*"},
             org_id=self.org.id,
             project_id=project2.id,
@@ -366,7 +370,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
             hours_before_now=2,
         )
         self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
+            name="d:transactions/duration@millisecond",
             tags={"transaction": 'foo bar\\\\"'},
             org_id=self.org.id,
             project_id=project1.id,

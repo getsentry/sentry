@@ -980,12 +980,10 @@ export function useWidgetBuilderState(): {
         case BuilderStateAction.SET_SORT: {
           if (dataset === WidgetType.ISSUE) {
             setSort(
-              action.payload.map(
-                ({field}): Sort => ({
-                  field,
-                  kind: REVERSED_ORDER_FIELD_SORT_LIST.includes(field) ? 'desc' : 'asc',
-                })
-              ),
+              action.payload.map(({field}): Sort => ({
+                field,
+                kind: REVERSED_ORDER_FIELD_SORT_LIST.includes(field) ? 'desc' : 'asc',
+              })),
               options
             );
           } else {

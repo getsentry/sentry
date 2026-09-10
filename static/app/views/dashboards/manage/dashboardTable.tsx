@@ -1,6 +1,4 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
-import {useQueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -11,10 +9,7 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  updateDashboardFavorite,
-  updateDashboardPermissions,
-} from 'sentry/actionCreators/dashboards';
+import {updateDashboardPermissions} from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
@@ -24,13 +19,12 @@ import {
   COL_WIDTH_UNDEFINED,
   GridEditable,
   type GridColumnOrder,
+  type GridColumnSort,
 } from 'sentry/components/tables/gridEditable';
-import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {withApi} from 'sentry/utils/withApi';
@@ -38,6 +32,7 @@ import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWr
 import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
+import {useToggleDashboardFavorite} from 'sentry/views/dashboards/hooks/useToggleDashboardFavorite';
 import type {
   DashboardDetails,
   DashboardListItem,
@@ -73,22 +68,13 @@ const SortKeys = {
 };
 
 type FavoriteButtonProps = {
-  api: Client;
-  dashboardId: string;
+  dashboard: DashboardListItem;
   isFavorited: boolean;
-  onDashboardsChange: () => void;
-  organization: Organization;
 };
 
-function FavoriteButton({
-  isFavorited,
-  api,
-  organization,
-  dashboardId,
-  onDashboardsChange,
-}: FavoriteButtonProps) {
-  const queryClient = useQueryClient();
-  const [favorited, setFavorited] = useState(isFavorited);
+function FavoriteButton({isFavorited, dashboard}: FavoriteButtonProps) {
+  const toggleFavorite = useToggleDashboardFavorite();
+
   return (
     <Button
       aria-label={t('Favorite Button')}
@@ -96,33 +82,13 @@ function FavoriteButton({
       variant="transparent"
       icon={
         <IconStar
-          variant={favorited ? 'warning' : 'muted'}
-          isSolid={favorited}
-          aria-label={favorited ? t('Unstar') : t('Star')}
+          variant={isFavorited ? 'warning' : 'muted'}
+          isSolid={isFavorited}
+          aria-label={isFavorited ? t('Unstar') : t('Star')}
           size="sm"
         />
       }
-      onClick={async () => {
-        try {
-          setFavorited(!favorited);
-          await updateDashboardFavorite(
-            api,
-            queryClient,
-            organization,
-            dashboardId,
-            !favorited
-          );
-          onDashboardsChange();
-          trackAnalytics('dashboards_manage.toggle_favorite', {
-            organization,
-            dashboard_id: dashboardId,
-            favorited: !favorited,
-          });
-        } catch (error) {
-          // If the api call fails, revert the state
-          setFavorited(favorited);
-        }
-      }}
+      onClick={() => toggleFavorite({dashboard, shouldFavorite: !isFavorited})}
     />
   );
 }
@@ -148,7 +114,7 @@ function DashboardTable({
 
   // TODO: When `dashboards-user-last-visited` is fully rolled out, delete the
   // flag-off `columnOrder` branch below, the `createdBy` SortKeys entry and its
-  // special case in `renderHeadCell`, and the `mydashboards` default/fallback.
+  // special case in `getColumnSort`, and the `mydashboards` default/fallback.
   const columnOrder: Array<GridColumnOrder<ResponseKeys>> = hasUserLastVisited
     ? [
         {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
@@ -202,7 +168,6 @@ function DashboardTable({
                 e.stopPropagation();
                 openConfirmModal({
                   message: t('Are you sure you want to duplicate this dashboard?'),
-                  priority: 'primary',
                   onConfirm: () => handleDuplicateDashboard(dataRow, 'table'),
                 });
               }}
@@ -245,37 +210,32 @@ function DashboardTable({
     );
   };
 
-  function renderHeadCell(column: GridColumnOrder<string>) {
-    if (column.key in SortKeys) {
-      const sortKey = SortKeys[column.key as keyof typeof SortKeys];
-      const urlSort = decodeScalar(
-        location.query.sort,
-        hasUserLastVisited ? 'recentlyViewed' : 'mydashboards'
-      );
-      const currentDirection =
-        urlSort === sortKey.asc ? 'asc' : urlSort === sortKey.desc ? 'desc' : undefined;
-      const isCurrentSort = currentDirection !== undefined;
-      const sortDirection =
-        !isCurrentSort || column.key === 'createdBy' ? undefined : currentDirection;
-
-      return (
-        <SortLink
-          align="left"
-          title={column.name}
-          direction={sortDirection}
-          canSort
-          generateSortLink={() => {
-            const newSort =
-              isCurrentSort && currentDirection === 'asc' ? sortKey.desc : sortKey.asc;
-            return {
-              ...location,
-              query: {...location.query, sort: newSort},
-            };
-          }}
-        />
-      );
+  function getColumnSort(column: GridColumnOrder<string>): GridColumnSort | undefined {
+    if (!(column.key in SortKeys)) {
+      return;
     }
-    return column.name;
+
+    const sortKey = SortKeys[column.key as keyof typeof SortKeys];
+    const urlSort = decodeScalar(
+      location.query.sort,
+      hasUserLastVisited ? 'recentlyViewed' : 'mydashboards'
+    );
+    const currentDirection =
+      urlSort === sortKey.asc ? 'asc' : urlSort === sortKey.desc ? 'desc' : undefined;
+    const isCurrentSort = currentDirection !== undefined;
+
+    return {
+      align: 'left',
+      direction:
+        !isCurrentSort || column.key === 'createdBy' ? undefined : currentDirection,
+      to: {
+        ...location,
+        query: {
+          ...location.query,
+          sort: isCurrentSort && currentDirection === 'asc' ? sortKey.desc : sortKey.asc,
+        },
+      },
+    };
   }
 
   const renderBodyCell = (
@@ -286,10 +246,7 @@ function DashboardTable({
       return (
         <FavoriteButton
           isFavorited={dataRow[ResponseKeys.FAVORITE] ?? false}
-          api={api}
-          organization={organization}
-          dashboardId={dataRow.id}
-          onDashboardsChange={onDashboardsChange}
+          dashboard={dataRow}
           key={dataRow.id}
         />
       );
@@ -396,10 +353,9 @@ function DashboardTable({
     <GridEditable
       data={dashboards ?? []}
       columnOrder={columnOrder}
-      columnSortBy={[]}
       grid={{
         renderBodyCell,
-        renderHeadCell: column => renderHeadCell(column),
+        getColumnSort,
         // favorite column
         renderPrependColumns: (isHeader: boolean, dataRow?: any) => {
           const favoriteColumn = {

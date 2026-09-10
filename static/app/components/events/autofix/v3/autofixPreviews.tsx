@@ -8,6 +8,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
+import {getRepoPullRequestLink} from 'sentry/components/events/autofix/pullRequests';
 import {
   CodingAgentStatus,
   getCodingAgentName,
@@ -159,14 +160,11 @@ export function PullRequestsPreview({section}: ArtifactPreviewProps) {
           return <Placeholder key={pullRequest.repo_name} height="1.5rem" />;
         }
 
-        if (
-          pullRequest.pr_creation_status === 'completed' &&
-          pullRequest.pr_url &&
-          pullRequest.pr_number
-        ) {
+        const link = getRepoPullRequestLink(pullRequest);
+        if (link) {
           return (
-            <ExternalLink key={pullRequest.repo_name} href={pullRequest.pr_url}>
-              {pullRequest.repo_name}#{pullRequest.pr_number}
+            <ExternalLink key={link.repoName} href={link.url}>
+              {link.repoName}#{link.prNumber}
             </ExternalLink>
           );
         }

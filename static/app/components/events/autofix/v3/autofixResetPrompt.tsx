@@ -30,6 +30,7 @@ export function AutofixResetPrompt({
       <TextArea
         autosize
         rows={2}
+        autoFocus
         placeholder={placeholder}
         value={userContext}
         onChange={event => setUserContext(event.target.value)}

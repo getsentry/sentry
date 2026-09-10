@@ -50,13 +50,10 @@ export function useSpanSamplesWebVitalsQuery({
   const sort = useWebVitalsSort({
     sortName,
     defaultSort: DEFAULT_INDEXED_SPANS_SORT,
-    sortableFields: filteredSortableFields as unknown as string[],
+    sortableFields: filteredSortableFields,
   });
 
-  const mutableSearch = MutableSearch.fromQueryObject({
-    has: 'message',
-    [`!${SpanFields.SPAN_DESCRIPTION}`]: '<unknown>',
-  });
+  const mutableSearch = new MutableSearch('');
   if (transaction !== undefined) {
     mutableSearch.addFilterValue(SpanFields.TRANSACTION, transaction);
   }
@@ -110,7 +107,7 @@ export function useSpanSamplesWebVitalsQuery({
         SpanFields.USER_ID,
         SpanFields.USER_IP,
         SpanFields.PROJECT,
-        SpanFields.SPAN_DESCRIPTION,
+        SpanFields.NAME,
         SpanFields.TIMESTAMP,
         SpanFields.SPAN_SELF_TIME,
         SpanFields.TRANSACTION,

@@ -341,7 +341,7 @@ function builtInIssuesFields({
         value,
         type: ItemType.TAG_VALUE,
         children: [],
-      })) as SearchGroup[],
+      })),
       predefined: true,
     },
     [FieldKey.LAST_SEEN]: {
@@ -429,7 +429,7 @@ function builtInIssuesFields({
     ...semverFields,
   };
 
-  if (!organization.features.includes('issue-stream-progress-ui')) {
+  if (!organization.features.includes('issue-inbox')) {
     delete allFields[FieldKey.ISSUE_PROGRESS];
   }
 

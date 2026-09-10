@@ -13,6 +13,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.releases.util import SemverFilter
 from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.constants import (
+    PROFILER_ID_CONTEXT_COLUMN,
     SEMVER_ALIAS,
     SEMVER_BUILD_ALIAS,
     SEMVER_EMPTY_RELEASE,
@@ -1579,6 +1580,64 @@ class DetectorFilterTest(TestCase):
 
 
 class ConvertSearchFilterToSnubaQueryTest(unittest.TestCase):
+    def test_profiler_id_has_filter_is_null_safe(self) -> None:
+        result = convert_search_filter_to_snuba_query(
+            SearchFilter(
+                SearchKey("profiler.id"),
+                "!=",
+                SearchValue(""),
+            )
+        )
+        assert result == [["ifNull", [PROFILER_ID_CONTEXT_COLUMN, "''"]], "!=", ""]
+
+    def test_profiler_id_not_has_filter_is_null_safe(self) -> None:
+        result = convert_search_filter_to_snuba_query(
+            SearchFilter(
+                SearchKey("profiler.id"),
+                "=",
+                SearchValue(""),
+            )
+        )
+        assert result == [["ifNull", [PROFILER_ID_CONTEXT_COLUMN, "''"]], "=", ""]
+
+    def test_profiler_id_wildcard_value_targets_context_column(self) -> None:
+        result = convert_search_filter_to_snuba_query(
+            SearchFilter(
+                SearchKey("profiler.id"),
+                "=",
+                SearchValue("abc123*"),
+            )
+        )
+        assert result == [["match", [PROFILER_ID_CONTEXT_COLUMN, "'(?i)^abc123.*$'"]], "=", 1]
+
+    def test_profiler_id_mixed_wildcard_list_targets_context_column(self) -> None:
+        result = convert_search_filter_to_snuba_query(
+            SearchFilter(
+                SearchKey("profiler.id"),
+                "IN",
+                SearchValue(["abc123*", "def456"]),
+            )
+        )
+        assert result == [
+            ["match", [PROFILER_ID_CONTEXT_COLUMN, "'(?i)(^abc123.*$|^def456$)'"]],
+            "=",
+            1,
+        ]
+
+    def test_profiler_id_negated_mixed_wildcard_list_is_single_regex_exclusion(self) -> None:
+        result = convert_search_filter_to_snuba_query(
+            SearchFilter(
+                SearchKey("profiler.id"),
+                "NOT IN",
+                SearchValue(["abc123*", "def456"]),
+            )
+        )
+        assert result == [
+            ["match", [PROFILER_ID_CONTEXT_COLUMN, "'(?i)(^abc123.*$|^def456$)'"]],
+            "!=",
+            1,
+        ]
+
     def test_all_wildcard_in_on_array_field(self) -> None:
         result = convert_search_filter_to_snuba_query(
             SearchFilter(

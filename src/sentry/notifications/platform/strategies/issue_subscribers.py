@@ -26,5 +26,5 @@ class IssueSubscribersActivityStrategy(NotificationStrategy):
             return []
         participant_map = get_participants_for_group(group=group, user_id=self.activity.user_id)
         return get_targets_from_participant_map(
-            participant_map, organization_id=group.project.organization_id
+            participant_map, organization_id=group.project.organization_id, project=group.project
         )

@@ -29,7 +29,6 @@ export function getProductCheckoutDescription({
 }: {
   product: AddOnCategory;
   withPunctuation: boolean;
-  includedBudget?: string;
 }) {
   if (product === AddOnCategory.LEGACY_SEER) {
     return tct('Detect and fix issues faster with our AI agent[punctuation]', {
@@ -189,7 +188,6 @@ export function ProductSelect({
                               {getSingularCategoryName({
                                 plan: activePlan,
                                 category: category as DataCategory,
-                                hadCustomDynamicSampling: false,
                               })}
                               {' - '}
                               {eventPrice &&

@@ -1,7 +1,5 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 
 function TestComponent({other}: {other: string}) {
@@ -9,52 +7,28 @@ function TestComponent({other}: {other: string}) {
   return (
     <div>
       <span>{other}</span>
-      {customMeasurements &&
-        Object.keys(customMeasurements).map(customMeasurement => (
-          <em key={customMeasurement}>{customMeasurement}</em>
-        ))}
+      {Object.keys(customMeasurements).map(customMeasurement => (
+        <em key={customMeasurement}>{customMeasurement}</em>
+      ))}
     </div>
   );
 }
 
-function mockMeasurementsMeta() {
-  return MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/measurements-meta/',
-    body: {
-      'measurements.custom.measurement': {
-        functions: ['p99'],
-      },
-      'measurements.another.custom.measurement': {
-        functions: ['p99'],
-      },
-    },
-  });
-}
-
 describe('useCustomMeasurements', () => {
-  it('provides customMeasurements from the custom measurements context', async () => {
-    const {organization} = initializeOrg({
-      organization: {features: []},
-      projects: [],
+  it('returns an empty collection without fetching measurements-meta', () => {
+    const measurementsMetaMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/measurements-meta/',
+      body: {
+        'measurements.custom.measurement': {
+          functions: ['p99'],
+        },
+      },
     });
-    const measurementsMetaMock = mockMeasurementsMeta();
-    render(
-      <CustomMeasurementsProvider organization={organization}>
-        <TestComponent other="value" />
-      </CustomMeasurementsProvider>
-    );
 
-    // Should forward prop
+    render(<TestComponent other="value" />);
+
     expect(screen.getByText('value')).toBeInTheDocument();
-
-    expect(measurementsMetaMock).toHaveBeenCalledTimes(1);
-
-    // Renders custom measurements
-    expect(
-      await screen.findByText('measurements.custom.measurement')
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('measurements.another.custom.measurement')
-    ).toBeInTheDocument();
+    expect(measurementsMetaMock).not.toHaveBeenCalled();
+    expect(screen.queryByText('measurements.custom.measurement')).not.toBeInTheDocument();
   });
 });

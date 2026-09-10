@@ -39,7 +39,6 @@ export default Storybook.story('useAggregatedQueryKeys', story => {
         const defaults = Object.fromEntries(aggregates.map(id => [id, 0]));
         return {...defaults, ...prevState, ...response.json};
       }, []),
-      bufferLimit: 50,
     });
 
     useEffect(() => {

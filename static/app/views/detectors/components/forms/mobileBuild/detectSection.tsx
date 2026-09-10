@@ -55,7 +55,7 @@ export function MobileBuildDetectSection() {
   const maybePlatform = project ? guessPlatformForProject(project) : undefined;
 
   const metricOptions = useMemo(() => getMetricOptions(maybePlatform), [maybePlatform]);
-  const thresholdTypeOptions = useMemo(getThresholdTypeOptions, []);
+  const thresholdTypeOptions = useMemo(() => getThresholdTypeOptions(), []);
 
   return (
     <Fragment>

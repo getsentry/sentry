@@ -1,5 +1,7 @@
 import orderBy from 'lodash/orderBy';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import type {Relay, RelayActivity} from 'sentry/types/relay';
 
 import {ActivityList} from './activityList';
@@ -40,12 +42,12 @@ export function List({
   };
 
   return (
-    <div>
+    <Stack gap="xl">
       {Object.keys(relaysByPublicKey).map(relayByPublicKey => {
         const {name, description, created, activities} =
           relaysByPublicKey[relayByPublicKey]!;
         return (
-          <div key={relayByPublicKey}>
+          <Stack key={relayByPublicKey} gap="md">
             <CardHeader
               publicKey={relayByPublicKey}
               name={name}
@@ -61,9 +63,9 @@ export function List({
               }
             />
             {renderCardContent(activities)}
-          </div>
+          </Stack>
         );
       })}
-    </div>
+    </Stack>
   );
 }

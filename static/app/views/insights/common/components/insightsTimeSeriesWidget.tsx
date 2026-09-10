@@ -197,9 +197,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     );
   }
 
-  if (
-    [...(props.series ?? []), ...(props.timeSeries ?? [])].filter(Boolean).length === 0
-  ) {
+  if (![...(props.series ?? []), ...(props.timeSeries ?? [])].some(Boolean)) {
     return (
       <ChartContainer height={props.height}>
         <Widget

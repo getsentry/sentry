@@ -2,6 +2,8 @@ from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 
+FORMATTER_FEATURE = "organizations:issue-standardized-markdown-for-llm"
+
 
 class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
     def setUp(self) -> None:
@@ -130,3 +132,40 @@ class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
         url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/events/{event.event_id}/"
         response = self.client.get(url, format="json", data={"query": "release.version:foobar"})
         assert response.status_code == 400
+
+    def _latest_url(self, query: str = "") -> str:
+        base = (
+            f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/events/latest/"
+        )
+        return base + query
+
+    def test_format_markdown_adds_formatted_field(self) -> None:
+        with self.feature(FORMATTER_FEATURE):
+            response = self.client.get(self._latest_url("?llmFormat=markdown"))
+
+        assert response.status_code == 200
+        assert response.data["id"] == str(self.event2.event_id)
+        assert response.data["formatted"]["format"] == "markdown"
+        assert "## Title" in response.data["formatted"]["content"]
+
+    def test_no_format_param_has_no_formatted_field(self) -> None:
+        with self.feature(FORMATTER_FEATURE):
+            response = self.client.get(self._latest_url())
+
+        assert response.status_code == 200
+        assert "formatted" not in response.data
+
+    def test_format_ignored_when_feature_off(self) -> None:
+        # feature defaults off -> ?llmFormat is inert, response unchanged
+        response = self.client.get(self._latest_url("?llmFormat=markdown"))
+
+        assert response.status_code == 200
+        assert "formatted" not in response.data
+
+    def test_invalid_format_is_ignored(self) -> None:
+        # an unrecognized value is inert, not a 400 -> response is unchanged
+        with self.feature(FORMATTER_FEATURE):
+            response = self.client.get(self._latest_url("?llmFormat=banana"))
+
+        assert response.status_code == 200
+        assert "formatted" not in response.data

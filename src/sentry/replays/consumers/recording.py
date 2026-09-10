@@ -1,22 +1,14 @@
 import logging
 import zlib
-from collections.abc import Mapping
 from typing import cast
 
 import sentry_sdk
-from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.processing.strategies import RunTaskInThreads
-from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
-from arroyo.processing.strategies.commit import CommitOffsets
-from arroyo.types import Commit, Message, Partition
-from django.conf import settings
 from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 from sentry_sdk import set_tag
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.replays.lib.cache import AutoCache
 from sentry.replays.usecases.ingest import (
     DropEvent,
     Event,
@@ -25,11 +17,10 @@ from sentry.replays.usecases.ingest import (
     process_recording_event,
     track_recording_metadata,
 )
-from sentry.replays.usecases.ingest.cache import make_has_sent_replays_cache, make_options_cache
 from sentry.replays.usecases.ingest.types import ProcessorContext
 from sentry.services.filestore.gcs import GCS_RETRYABLE_ERRORS
 from sentry.utils import json, metrics
-from sentry.utils.tracing import start_span, trace
+from sentry.utils.tracing import trace
 
 RECORDINGS_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
 
@@ -38,70 +29,6 @@ logger = logging.getLogger(__name__)
 
 class DropSilently(Exception):
     pass
-
-
-class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def __init__(
-        self,
-        input_block_size: int | None,
-        max_batch_size: int,
-        max_batch_time: int,
-        num_processes: int,
-        output_block_size: int | None,
-        num_threads: int = 4,  # Defaults to 4 for self-hosted.
-        force_synchronous: bool = False,  # Force synchronous runner (only used in test suite).
-        max_pending_futures: int = 100,
-    ) -> None:
-        # For information on configuring this consumer refer to this page:
-        #   https://getsentry.github.io/arroyo/strategies/run_task_with_multiprocessing.html
-        self.input_block_size = input_block_size
-        self.max_batch_size = max_batch_size
-        self.max_batch_time = max_batch_time
-        self.num_processes = num_processes
-        self.num_threads = num_threads
-        self.output_block_size = output_block_size
-        self.force_synchronous = force_synchronous
-        self.max_pending_futures = max_pending_futures
-
-    def create_with_partitions(
-        self,
-        commit: Commit,
-        partitions: Mapping[Partition, int],
-    ) -> ProcessingStrategy[KafkaPayload]:
-        has_sent_replays_cache: AutoCache[int, bool] | None = None
-        options_cache: AutoCache[int, tuple[bool, bool]] | None = None
-
-        if options.get("replay.consumer.enable_new_query_caching_system"):
-            has_sent_replays_cache = make_has_sent_replays_cache()
-            options_cache = make_options_cache()
-
-        context: ProcessorContext = {
-            "has_sent_replays_cache": has_sent_replays_cache,
-            "options_cache": options_cache,
-        }
-
-        return RunTaskInThreads(
-            processing_function=lambda msg: process_and_commit_message(msg, context),
-            concurrency=self.num_threads,
-            max_pending_futures=self.max_pending_futures,
-            next_step=CommitOffsets(commit),
-        )
-
-
-def process_and_commit_message(message: Message[KafkaPayload], context: ProcessorContext) -> None:
-    isolation_scope = sentry_sdk.get_isolation_scope().fork()
-    with sentry_sdk.scope.use_isolation_scope(isolation_scope):
-        with start_span(
-            name="replays.consumer.recording.process_and_commit_message",
-            op="replays.consumer.recording.process_and_commit_message",
-            custom_sampling_context={
-                "sample_rate": settings.SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING
-            },
-            transaction=True,
-        ):
-            processed_message = process_message(message.payload.value)
-            if processed_message:
-                commit_message(processed_message, context)
 
 
 # Processing Task

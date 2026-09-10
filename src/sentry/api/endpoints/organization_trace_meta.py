@@ -205,7 +205,12 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
                     name="logs_meta",
                 ),
                 TableQuery(
-                    query_string=f"trace:{trace_id}",
+                    # Metrics tagged with `sentry.metric.source=span` are derived from spans
+                    # and are intentionally excluded from `metricsCount`.
+                    query_string=(
+                        f"trace:{trace_id} "
+                        "(!has:sentry.metric.source OR !sentry.metric.source:span)"
+                    ),
                     selected_columns=[
                         "count(value)",
                     ],

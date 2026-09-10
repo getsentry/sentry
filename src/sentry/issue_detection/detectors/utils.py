@@ -1,25 +1,76 @@
 import hashlib
 import logging
+import math
 import re
+import sys
 from datetime import timedelta
 from typing import Any, TypedDict
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import ParseResult, parse_qs, urlparse
+
+from sentry.utils.http import is_valid_ip
 
 from ..types import Span
 
 logger = logging.getLogger("issue_detectors")
 
 
-FILTERED_KEYWORDS = [
-    "[Filtered]",
-    "[ip]",
-    "[REDACTED]",
-    "[id]",
-    "[Filtered Email]",
-    "[filtered]",
-    "[Filtered email]",
-    "[Email]",
-]
+URL_WITH_BRACKETED_HOSTNAME_REGEX = re.compile(
+    r"""
+    ^
+    # Scheme (`http`, `https`, `ftp`, `mailto`, `file`, etc). Everything before the `//` is optional
+    # to handle the legacy case where it used to be left off to allow for both `http` and `https`
+    # (before `https` was the default).
+    ([a-z][a-z0-9+.-]{1,32}:)?//
+    # The full hostname - everything between the `//` after the scheme and the `/` which marks the
+    # start of the path
+    (?P<full_hostname>
+        # One or more copies of a bracketed value, optionally surrounded by non-bracketed characters
+        (
+            # Zero or more non-bracket, non-slash, legal hostname characters. (To avoid lots of
+            # typing, let's call them NB-NS-LH characters.)
+            [^\[\]/'"`\\<>{}|\^\s?#]*
+            # The bracketed value itself
+            (
+                \[
+                (
+                    # At least one NB-NS-LH character. Also allows spaces in order to catch values
+                    # like `[Filtered UUID]` and `[REDACTED IP]`.
+                    [^\[\]/'"`\\<>{}|\^?#]+
+                )
+                \]
+            )
+            # Another set of zero or more NB-NS-LH characters
+            [^\[\]/'"`\\<>{}|\^\s?#]*
+        )+
+    )
+    # The rest of the URL (path, query string, and fragment) is technically optional
+    (
+        /
+        # Any number of copies of anything not globally invalid - slashes and brackets allowed now
+        # that we've gotten to the path
+        [^'"`\\<>{}|\^\s]*
+        # Final character - must be both valid in general and allowable in the last spot (so no
+        # trailing punctuation)
+        [^'"`\\<>{}|\^\s.,;]
+    )?
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
+
+# Regex for bracketed URL values, which can come from data scrubbing (things like `[Filtered]`,
+# `[REDACTED]`, `[filtered UUID]`, etc.) or from parameterization (things like `[id]` and `[email]`)
+BRACKETED_URL_PLACEHOLDER_REGEX = re.compile(
+    r"""
+    \[
+    (
+        # Zero or more non-bracket valid URL characters. Allows spaces in order to catch values like
+        # `[Filtered UUID]` and `[REDACTED IP]`.
+        [^'"`\\<>{}|\^\[\]]{0,32}
+    )
+    \]
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
 
 PARAMETERIZED_URL_REGEX = re.compile(
     r"""(?x)
@@ -80,13 +131,80 @@ def escape_transaction(transaction: str) -> str:
     return transaction
 
 
-def is_filtered_url(url: str) -> bool:
-    return any(keyword in url for keyword in FILTERED_KEYWORDS)
+def span_has_obfuscated_hostname(span: Span) -> bool:
+    """
+    Check if the span's URL has a hostname we can use for matching up request spans.
+
+    If two spans have parameterized and/or scrubbed hostnames in their URLs (indicated by the
+    presence of any non-IP bracketed value), it's impossible to tell if they originally pointed to
+    the same domain. This presents an obvious problem in detectors where we do hostname matching, so
+    we need to be able to recognize such spans so we can skip over them in those detectors.
+    """
+    url = get_url_from_span(span)
+    bracketed_hostname_match = URL_WITH_BRACKETED_HOSTNAME_REGEX.search(url)
+
+    # If there are no bracketed values, we can definitely use the hostname
+    if not bracketed_hostname_match:
+        return False
+
+    full_hostname = bracketed_hostname_match.group("full_hostname")
+    hostname_bracketed_values = BRACKETED_URL_PLACEHOLDER_REGEX.findall(full_hostname)
+
+    # We can still use the hostname as long as there's only one bracketed value and it's a valid IP
+    # address
+    if len(hostname_bracketed_values) == 1 and is_valid_ip(hostname_bracketed_values[0]):
+        return False
+
+    return True
+
+
+def safer_urlparse(url: str) -> ParseResult:
+    """
+    `urlparse`, but tolerant of hostnames which include bracketed values as a result of having been
+    scrubbed and/or parameterized.
+
+    `urlparse` reads `[...]` in a URL's hostname as an IPv6 literal and errors out if it isn't a
+    valid IP. In cases where that happens, this temporarily strips the brackets for parsing, then
+    restores them in the final result.
+
+    Reraises parsing errors caused by other invalid URL patterns.
+    """
+    try:
+        return urlparse(url)
+    except ValueError:
+        bracketed_hostname_match = URL_WITH_BRACKETED_HOSTNAME_REGEX.search(url)
+
+        if bracketed_hostname_match:
+            orig_hostname = bracketed_hostname_match.group("full_hostname")
+
+            # Strip brackets and spaces from the hostname, and use that in place of the original.
+            # (Spaces aren't normally allowed in hostnames, but they show up in bracketed values
+            # like `[Filtered ip]`.)
+            debracketed_hostname = orig_hostname.replace("[", "").replace(" ", "").replace("]", "")
+            debracketed_url = url.replace(
+                orig_hostname,
+                debracketed_hostname,
+                # In cases like `http://[Filtered]/some/[Filtered]/path`, where the entire hostname
+                # is a single parameterization that also appears in the path, we only want to
+                # replace the hostname.
+                count=1,
+            )
+
+            # Now that we've gotten rid of all brackets, try parsing again, then restore the
+            # original hostname before returning the result. This is purposely not wrapped in a
+            # try-except because if parsing errors at this point, it's for some other non-brackets
+            # reason we want to know about.
+            parsed = urlparse(debracketed_url)
+            return parsed._replace(netloc=orig_hostname)
+
+        # If the problem isn't a bracketed hostname, reraise to surface the issue
+        else:
+            raise
 
 
 # Creates a stable fingerprint for resource spans from their description (url), removing common cache busting tokens.
 def fingerprint_resource_span(span: Span) -> str:
-    url = urlparse(span.get("description") or "")
+    url = safer_urlparse(span.get("description") or "")
     path = url.path
     path = UUID_REGEX.sub("*", path)
     path = CHUNK_HASH_REGEX.sub(".*.chunk", path)
@@ -109,7 +227,7 @@ def parameterize_url_with_result(url: str) -> ParameterizedUrl:
     Given a URL, return the URL with parsed path and query parameters replaced with '*',
     a list of the path parameters, and a dict of the query parameters.
     """
-    parsed_url = urlparse(str(url))
+    parsed_url = safer_urlparse(str(url))
 
     protocol_fragments = []
     if parsed_url.scheme:
@@ -128,7 +246,10 @@ def parameterize_url_with_result(url: str) -> ParameterizedUrl:
         path_fragments.append(parsed_url.path)
     else:
         for fragment in parsed_url.path.split("/"):
-            path_param = PARAMETERIZED_URL_REGEX.search(fragment)
+            # Treat bracketed placeholders as pre-parameterized values
+            path_param = BRACKETED_URL_PLACEHOLDER_REGEX.search(
+                fragment
+            ) or PARAMETERIZED_URL_REGEX.search(fragment)
             if path_param:
                 path_fragments.append("*")
                 path_params.append(path_param.group())
@@ -166,9 +287,9 @@ def fingerprint_http_spans(spans: list[Span]) -> str:
     url_paths = []
     for http_span in spans:
         url = get_url_from_span(http_span)
-        if url and not is_filtered_url(url):
+        if url:
             parametrized_url = parameterize_url(url)
-            path = urlparse(parametrized_url).path
+            path = safer_urlparse(parametrized_url).path
             if path not in url_paths:
                 url_paths.append(path)
     url_paths.sort()
@@ -352,3 +473,98 @@ def log_invalid_span_data(
             **(extra_data or {}),
         },
     )
+
+
+def _presumably_safe_ensure_numeric_type[T: (int, float)](
+    value: Any, desired_type: type[T]
+) -> tuple[bool, T | None, str | None]:
+    """
+    Attempt to coerce `value` to be either an int or float. Returns a tuple of the form `(True,
+    new_value, None)` if conversion is successful, and `(False, None, failure_reason)` if it's not,
+    where `failure_reason` is a string describing the kind of invalid value found.
+
+    Rejects bools, `NaN`, and `inf` because they don't represent usable numbers, even if they
+    technically would pass a typecheck. Also rejects non-integral floats and oversize ints, because
+    conversion would be lossy or raise errors, respectively.
+
+    Note: This theoretically covers all of the ways a value can be invalid, and therefore shouldn't
+    ever error out. That said, it purposefully doesn't wrap the final conversion in a try-except, so
+    that if a new way to be wrong ever does show up, it'll be noisier than just a warning log and
+    we'll know to come and fix this helper. Thus "presumably safe" rather than "safe."
+    """
+    # Strings are the one non-number type we might be able to use. If we find one, first try
+    # converting it into a number before doing the other checks/the final conversion. We use `float`
+    # here because it will accept both stringified floats and stringified ints, whereas `int` only
+    # accepts the latter.
+    if isinstance(value, str):
+        try:
+            value = float(value)
+        except Exception:
+            return (False, None, "non_number_string")
+
+    # Not a number at all
+    if not isinstance(value, (int, float)):
+        return (False, None, type(value).__name__)
+
+    # Technically a number, typecheck-wise, but not a true numerical value
+    if isinstance(value, bool):
+        return (False, None, "bool")
+    if isinstance(value, float) and not math.isfinite(value):
+        return (False, None, "non_number_float")
+
+    # A real numerical value, but not one we can convert to the type we want
+    if desired_type is int and not value.is_integer():
+        return (False, None, "non_integer_float")
+    if desired_type is float and abs(value) > sys.float_info.max:
+        return (False, None, "oversize_int")
+
+    # If we get here, we've got a value which is both valid and convertible. To save ourselves a
+    # bunch more typechecking, we unconditionally apply the conversion function, even though it'll
+    # end up just being a pass-through for values which are already the right type.
+    return (True, desired_type(value), None)
+
+
+def get_numeric_value_from_span[T: (int, float)](
+    span: Span,
+    keys: list[str],  # A list of keys under which to look for the data
+    detector: str,  # Detector identifier to use in invalid data logs
+    number_type: type[T],  # `int` or `float`, used for converting string values
+    default: T | None = None,  # Optional default value to return instead of None
+) -> T | None:
+    """
+    Pull a numeric value from a span's `data` attribute, attempting to convert it to the desired
+    type if necessary. Tracks invalid values using the `log_invalid_span_data` util. Returns `None`
+    (or the optional default, if given) for missing or invalid values.
+    """
+    if not keys:  # Failsafe - shouldn't happen
+        return default
+
+    data = span.get("data")
+    if not data:
+        return default
+
+    # Some data might exist under multiple potential keys
+    for key in keys:
+        value = data.get(key)
+        if value is not None:
+            break
+
+    if value is None:
+        return default
+
+    # Check value type and attempt to convert if necessary
+    success, result, bad_value_type = _presumably_safe_ensure_numeric_type(value, number_type)
+
+    if success:
+        return result
+    else:
+        log_invalid_span_data(
+            span,
+            detector=detector,
+            key=key,
+            value=value,
+            error=ValueError(
+                f"Couldn't convert <{bad_value_type}> to <{number_type.__name__}>. Invalid value: {value}"
+            ),
+        )
+        return default

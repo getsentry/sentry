@@ -283,7 +283,7 @@ function getStoredSpansContent(
 }
 
 const MAX_PROJECTS_COLLAPSED = 3;
-const TableRow = memo(function TableRow({
+const TableRow = memo(function TableRowImpl({
   project,
   hasAccess,
   canEdit,

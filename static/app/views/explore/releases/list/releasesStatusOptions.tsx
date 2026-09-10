@@ -1,4 +1,4 @@
-import styled from '@emotion/styled';
+import {Container} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 
@@ -21,18 +21,17 @@ type Props = {
 
 export function ReleasesStatusOptions({selected, onSelect}: Props) {
   return (
-    <StyledReleasesDropdown
-      label={t('Status')}
-      options={options}
-      selected={selected}
-      onSelect={onSelect}
-    />
+    <Container width={{zero: '100%', '2xl': 'max-content'}}>
+      {containerProps => (
+        <ReleasesDropdown
+          {...containerProps}
+          label={t('Status')}
+          options={options}
+          selected={selected}
+          onSelect={onSelect}
+          style={{zIndex: 3}}
+        />
+      )}
+    </Container>
   );
 }
-
-const StyledReleasesDropdown = styled(ReleasesDropdown)`
-  z-index: 3;
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    order: 1;
-  }
-`;

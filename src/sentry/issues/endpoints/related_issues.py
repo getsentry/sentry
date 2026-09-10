@@ -6,11 +6,13 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
-from sentry.constants import CELL_API_DEPRECATION_DATE
+from sentry.api.helpers.projects import filter_projects_by_permissions
+from sentry.constants import CELL_API_DEPRECATION_DATE, ObjectStatus
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.related.same_root_cause import same_root_cause_analysis
 from sentry.issues.related.trace_connected import trace_connected_analysis
 from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -57,13 +59,23 @@ class RelatedIssuesEndpoint(GroupEndpoint):
         _data = serializer.validated_data
         related_type = _data["type"]
         try:
-            data, meta = (
-                same_root_cause_analysis(group)
-                if related_type == "same_root_cause"
-                else trace_connected_analysis(
-                    group, event_id=_data.get("event_id"), project_id=_data.get("project_id")
+            if related_type == "same_root_cause":
+                data, meta = same_root_cause_analysis(group)
+            else:
+                # A trace can span any project in the organization
+                org_projects = Project.objects.filter(
+                    organization_id=group.project.organization_id, status=ObjectStatus.ACTIVE
                 )
-            )
+                data, meta = trace_connected_analysis(
+                    group,
+                    projects=filter_projects_by_permissions(
+                        projects=list(org_projects),
+                        request=request,
+                        include_all_accessible=True,
+                    ),
+                    event_id=_data.get("event_id"),
+                    project_id=_data.get("project_id"),
+                )
             return Response({"type": related_type, "data": data, "meta": meta})
         except AssertionError:
             return Response({}, status=400)

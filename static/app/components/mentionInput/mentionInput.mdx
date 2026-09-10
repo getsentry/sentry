@@ -1,0 +1,44 @@
+---
+title: Mention Input
+description: A controlled, composable editor for structured inline references.
+source: sentry/components/mentionInput/mentionInput
+---
+
+import * as Storybook from 'sentry/stories';
+
+import {
+  AsyncMentionInputDemo,
+  MentionInputDemo,
+  RestoredMentionInputDemo,
+} from './__stories__/demos';
+
+export const documentation =
+  import('!!type-loader!sentry/components/mentionInput/mentionInput');
+
+`<MentionInput>` keeps editable text and structured references in one controlled value. Sources provide their own data, identity, inserted text, and suggestion presentation.
+
+## Compose with multiple sources
+
+This example combines local member and team sources. Selected references remain editable and are emphasized while their range is valid.
+
+Suggestion objects stay within their source. The controlled value stores only stable IDs and text ranges.
+
+<Storybook.Demo overflow="visible">
+  <MentionInputDemo />
+</Storybook.Demo>
+
+## Restore a value
+
+Persisted text and reference ranges can be supplied together, preserving identity across sessions.
+
+<Storybook.Demo overflow="visible">
+  <RestoredMentionInputDemo />
+</Storybook.Demo>
+
+## Load queried suggestions
+
+Async sources provide TanStack Query options, sharing the application's loading, caching, cancellation, and error behavior.
+
+<Storybook.Demo overflow="visible">
+  <AsyncMentionInputDemo />
+</Storybook.Demo>

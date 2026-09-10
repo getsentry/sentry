@@ -153,7 +153,7 @@ function AutomateSectionInner({
             icon={<IconAdd />}
             onClick={openCreateDrawer}
             disabled={!canEditAutomation}
-            tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+            tooltipProps={{title: permissionTooltipText}}
           >
             {t('Create New Alert')}
           </Button>
@@ -162,7 +162,7 @@ function AutomateSectionInner({
             icon={<IconEdit />}
             onClick={toggleDrawer}
             disabled={!canEditAutomation}
-            tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+            tooltipProps={{title: permissionTooltipText}}
           >
             {t('Edit Alerts')}
           </Button>
@@ -191,7 +191,7 @@ function AutomateSectionInner({
                   style={{width: 'min-content'}}
                   onClick={toggleDrawer}
                   disabled={!canEditAutomation}
-                  tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+                  tooltipProps={{title: permissionTooltipText}}
                 >
                   {t('Connect Existing Alerts')}
                 </Button>
@@ -199,7 +199,7 @@ function AutomateSectionInner({
                   size="sm"
                   onClick={openCreateDrawer}
                   disabled={!canEditAutomation}
-                  tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+                  tooltipProps={{title: permissionTooltipText}}
                 >
                   {t('Create New Alert')}
                 </Button>

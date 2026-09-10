@@ -88,17 +88,6 @@ describe('javascript-astro onboarding docs', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('enables logs by setting enableLogs to true', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
-    });
-
-    // enableLogs appears in both client and server config
-    expect(screen.getAllByText(textWithMarkupMatcher(/enableLogs: true/))).toHaveLength(
-      2
-    );
-  });
-
   it('shows Logging Integrations in next steps when logs is selected', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [

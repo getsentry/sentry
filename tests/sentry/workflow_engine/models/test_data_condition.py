@@ -1,10 +1,12 @@
 from enum import IntEnum
+from typing import Any, cast
 from unittest import mock
 
 import pytest
 
 from sentry.testutils.cases import TestCase
-from sentry.workflow_engine.models.data_condition import Condition
+from sentry.utils.registry import NoRegistrationExistsError
+from sentry.workflow_engine.models.data_condition import Condition, get_condition_handler
 from sentry.workflow_engine.processors.evaluations import DataConditionEvaluationException
 from sentry.workflow_engine.types import ConditionError, DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, DataConditionHandlerMixin
@@ -45,10 +47,26 @@ class GetConditionResultTest(TestCase):
         assert dc.get_condition_result() is True
 
 
+class GetConditionHandlerTest(TestCase):
+    def test_operator_condition(self) -> None:
+        assert get_condition_handler(Condition.EQUAL) is None
+
+    def test_registered_condition(self) -> None:
+        assert get_condition_handler(Condition.EVERY_EVENT) is not None
+
+    @mock.patch("sentry.workflow_engine.models.data_condition.condition_handler_registry.get")
+    def test_unregistered_condition(self, mock_get: mock.Mock) -> None:
+        mock_get.side_effect = NoRegistrationExistsError
+
+        assert get_condition_handler(Condition.AGE_COMPARISON) is None
+
+
 class EvaluateValueTest(DataConditionHandlerMixin, BaseWorkflowTest):
     def test(self) -> None:
         dc = self.create_data_condition(
-            type=Condition.GREATER, comparison=1.0, condition_result=DetectorPriorityLevel.HIGH
+            type=Condition.GREATER,
+            comparison=cast(Any, 1.0),
+            condition_result=DetectorPriorityLevel.HIGH,
         )
         evaluation = dc.evaluate_value(2)
         assert evaluation.triggered is True
@@ -84,7 +102,9 @@ class EvaluateValueTest(DataConditionHandlerMixin, BaseWorkflowTest):
         with pytest.raises(ValueError):
             # Raises ValueError because the condition is invalid
             self.create_data_condition(
-                type="invalid", comparison=1.0, condition_result=DetectorPriorityLevel.HIGH
+                type=cast(Any, "invalid"),
+                comparison=cast(Any, 1.0),
+                condition_result=DetectorPriorityLevel.HIGH,
             )
 
     def test_bad_comparison(self) -> None:
@@ -100,7 +120,7 @@ class EvaluateValueTest(DataConditionHandlerMixin, BaseWorkflowTest):
     def test_condition_result_comparison_fails(self) -> None:
         dc = self.create_data_condition(
             type=Condition.GREATER,
-            comparison=1.0,
+            comparison=cast(Any, 1.0),
             condition_result="wrong",
         )
         evaluation = dc.evaluate_value(2)

@@ -211,12 +211,6 @@ describe('groupDetails', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/projects/${defaultInit.organization.slug}/${project.slug}/events/${event.id}/committers/`,
-      body: {
-        committers: [],
-      },
-    });
-    MockApiClient.addMockResponse({
       url: `/projects/${defaultInit.organization.slug}/${project.slug}/events/${event.id}/actionable-items/`,
       body: {errors: []},
     });

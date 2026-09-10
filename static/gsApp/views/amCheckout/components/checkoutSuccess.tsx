@@ -501,8 +501,8 @@ const checkoutSuccessFeedbackOptions = {
   formTitle: t('Give feedback'),
   messagePlaceholder: t('How can we make the checkout experience better for you?'),
   tags: {
-    ['feedback.source']: 'checkout_success',
-    ['feedback.owner']: 'billing',
+    'feedback.source': 'checkout_success',
+    'feedback.owner': 'billing',
   },
 };
 
@@ -615,7 +615,11 @@ export function CheckoutSuccess({
             >
               {t('Edit plan')}
             </LinkButton>
-            <FeedbackButton feedbackOptions={checkoutSuccessFeedbackOptions} size="md" />
+            <FeedbackButton
+              variant="secondary"
+              feedbackOptions={checkoutSuccessFeedbackOptions}
+              size="md"
+            />
           </Flex>
         </Stack>
       </Stack>

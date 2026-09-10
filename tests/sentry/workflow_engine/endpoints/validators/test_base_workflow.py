@@ -337,6 +337,7 @@ class TestWorkflowValidatorCreate(TestCase):
         self.context = {
             "organization": self.organization,
             "request": self.make_request(user=self.user),
+            "access": SystemAccess(),
         }
 
         self.integration, self.org_integration = self.create_provider_integration_for(
@@ -696,9 +697,11 @@ class TestWorkflowValidatorCreate(TestCase):
 )
 class TestWorkflowValidatorUpdate(TestCase):
     def setUp(self) -> None:
+        request = self.make_request()
+        request.access = SystemAccess()
         self.context = {
             "organization": self.organization,
-            "request": self.make_request(),
+            "request": request,
         }
 
         self.integration, self.org_integration = self.create_provider_integration_for(
@@ -809,10 +812,24 @@ class TestWorkflowValidatorUpdate(TestCase):
         }
 
         validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
-        assert validator.is_valid() is True
 
-        with pytest.raises(ValidationError):
-            validator.update(self.workflow, validator.validated_data)
+        with pytest.raises(ValidationError) as excinfo:
+            validator.is_valid(raise_exception=True)
+
+        assert excinfo.value.detail == {
+            "triggers": [
+                ErrorDetail(
+                    string=f"Invalid Condition Group ID {fake_dcg.id}",
+                    code="invalid",
+                )
+            ]
+        }
+
+        # The workflow keeps its own trigger group, and the other group is untouched
+        self.workflow.refresh_from_db()
+
+        assert self.workflow.when_condition_group_id != fake_dcg.id
+        assert fake_dcg.conditions.count() == 0
 
     def test_update__remove_action_filter(self, mock_action_validator: mock.MagicMock) -> None:
         self.valid_saved_data["actionFilters"] = []

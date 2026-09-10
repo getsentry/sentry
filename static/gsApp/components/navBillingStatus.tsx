@@ -14,6 +14,7 @@ import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {
   PrimaryNavigation,
   usePrimaryNavigationButtonOverlay,
@@ -437,18 +438,20 @@ export function PrimaryNavigationQuotaExceeded({
     return Object.values(isPromptDismissed).every(Boolean);
   }, [isPromptDismissed]);
 
+  const [lastShownCategories, setLastShownCategories] = useLocalStorageState<
+    string | null
+  >(`billing-status-last-shown-categories-${organization.id}`, null);
+  const [lastShownDate, setLastShownDate] = useLocalStorageState<string | null>(
+    `billing-status-last-shown-date-${organization.id}`,
+    null
+  );
+
   const hasAutoOpenedAlertRef = useRef(false);
   useEffect(() => {
     // auto open the alert if it hasn't been explicitly dismissed, and
     // either it has been more than a day since the last shown date,
     // the categories have changed, or
     // the last time it was shown was before the current usage cycle started
-    const lastShownCategories = localStorage.getItem(
-      `billing-status-last-shown-categories-${organization.id}`
-    );
-    const lastShownDate = localStorage.getItem(
-      `billing-status-last-shown-date-${organization.id}`
-    );
     const daysSinceLastShown = lastShownDate ? getDaysSinceDate(lastShownDate) : 0;
     const currentCategories = exceededCategories.join('-');
     const lastShownBeforeCurrentPeriod = moment(subscription?.onDemandPeriodStart)
@@ -463,14 +466,8 @@ export function PrimaryNavigationQuotaExceeded({
     ) {
       hasAutoOpenedAlertRef.current = true;
       overlayState.open();
-      localStorage.setItem(
-        `billing-status-last-shown-categories-${organization.id}`,
-        currentCategories
-      );
-      localStorage.setItem(
-        `billing-status-last-shown-date-${organization.id}`,
-        moment().utc().toISOString()
-      );
+      setLastShownCategories(currentCategories);
+      setLastShownDate(moment().utc().toISOString());
     }
   }, [
     exceededCategories,
@@ -478,6 +475,10 @@ export function PrimaryNavigationQuotaExceeded({
     hasSnoozedAllPrompts,
     overlayState,
     subscription?.onDemandPeriodStart,
+    lastShownCategories,
+    lastShownDate,
+    setLastShownCategories,
+    setLastShownDate,
   ]);
 
   const shouldShow = exceededCategories.length > 0 && subscription?.canSelfServe;

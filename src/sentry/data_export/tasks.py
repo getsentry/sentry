@@ -178,13 +178,13 @@ def export_chunk_to_stored_blobs(
             page_token=page_token,
         )
         csv_headers = [str(header) for header in processor.header_fields]
-        set_span_data(span, "data_export.csv_headers", csv_headers)
+        set_span_data(span, "csv_headers", csv_headers)
         if first_page:
             sentry_sdk.logger.info(
                 "dataexport.csv_headers",
                 attributes={
                     "data_export.data_export_id": data_export.id,
-                    "data_export.csv_headers": csv_headers,
+                    "csv_headers": csv_headers,
                 },
             )
 
@@ -789,12 +789,12 @@ def merge_export_blobs(
                     if blob.checksum != blob_checksum.hexdigest():
                         raise AssembleChecksumMismatch("Checksum mismatch")
 
-                set_span_data(span, "data_export.blob_offsets", blob_offsets)
+                set_span_data(span, "blob_offsets", blob_offsets)
                 sentry_sdk.logger.info(
                     "dataexport.blob_offsets",
                     attributes={
                         "data_export.data_export_id": data_export_id,
-                        "data_export.blob_offsets": blob_offsets,
+                        "blob_offsets": blob_offsets,
                     },
                 )
 

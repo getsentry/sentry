@@ -257,15 +257,6 @@ class OrganizationEventsTraceEndpointTest(
     def assert_performance_issues(self, root):
         """Broken in the non-spans endpoint, but we're not maintaining that anymore"""
 
-    def client_get(self, data, url=None):
-        if url is None:
-            url = self.url
-        return self.client.get(
-            url,
-            data,
-            format="json",
-        )
-
     def test_no_projects(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
@@ -276,10 +267,7 @@ class OrganizationEventsTraceEndpointTest(
             kwargs={"organization_id_or_slug": org.slug, "trace_id": uuid4().hex},
         )
 
-        response = self.client.get(
-            url,
-            format="json",
-        )
+        response = self.client_get(url=url)
 
         assert response.status_code == 404, response.content
 
@@ -507,11 +495,15 @@ class OrganizationEventsTraceEndpointTest(
             )
         assert response.status_code == 200, response.content
 
-        mock_metrics.incr.assert_any_call(
-            "performance.trace.span_with_errors_ok_status",
-            sample_rate=mock.ANY,
-            tags=mock.ANY,
-        )
+        tags = [
+            call.kwargs["tags"]
+            for call in mock_metrics.incr.call_args_list
+            if call.args[0] == "performance.trace.span_with_errors_ok_status"
+        ]
+        assert tags, "expected the span.status inconsistency metric to be emitted"
+        # Project identifiers are unbounded and would explode the stored series count.
+        for tag in tags:
+            assert set(tag) == {"sdk_name", "sdk_version", "origin"}
 
     def test_with_performance_issues(self) -> None:
         self.load_trace()

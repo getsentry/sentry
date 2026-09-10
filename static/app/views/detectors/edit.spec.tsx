@@ -38,7 +38,7 @@ import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 describe('DetectorEdit', () => {
   const organization = OrganizationFixture({
-    features: ['workflow-engine-ui', 'visibility-explore-view'],
+    features: ['visibility-explore-view'],
   });
   const project = ProjectFixture({id: '1', organization, environments: ['production']});
   const initialRouterConfig = {
@@ -189,11 +189,69 @@ describe('DetectorEdit', () => {
       // Verify the button text has changed to "Enable"
       expect(await screen.findByRole('button', {name: 'Enable'})).toBeInTheDocument();
     });
+
+    it('renders a Cancel link back to the monitor details page', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      render(<DetectorEdit />, {organization, initialRouterConfig});
+
+      await screen.findAllByText(mockDetector.name);
+
+      expect(await screen.findByRole('button', {name: 'Cancel'})).toHaveAttribute(
+        'href',
+        `/organizations/${organization.slug}/monitors/${mockDetector.id}/`
+      );
+      expect(screen.getByRole('separator')).toBeInTheDocument();
+    });
+
+    it('keeps Cancel available without alerts:write, hiding Disable and Delete', async () => {
+      const readOnlyOrganization = OrganizationFixture({
+        features: ['visibility-explore-view'],
+        access: ['org:read', 'project:read'],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${readOnlyOrganization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      render(<DetectorEdit />, {
+        organization: readOnlyOrganization,
+        initialRouterConfig,
+      });
+
+      await screen.findAllByText(mockDetector.name);
+
+      expect(await screen.findByRole('button', {name: 'Cancel'})).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Disable'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Delete'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+    });
   });
 
   describe('Error', () => {
     const name = 'Test Error Detector';
     const mockDetector = ErrorDetectorFixture({id: '1', name, projectId: project.id});
+
+    it('renders a Cancel link back to the monitor details page', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      render(<DetectorEdit />, {organization, initialRouterConfig});
+
+      await screen.findAllByText(name);
+
+      expect(await screen.findByRole('button', {name: 'Cancel'})).toHaveAttribute(
+        'href',
+        `/organizations/${organization.slug}/monitors/${mockDetector.id}/`
+      );
+      expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+    });
 
     it('allows editing the detector name/environment and saving changes', async () => {
       MockApiClient.addMockResponse({
@@ -855,11 +913,7 @@ describe('DetectorEdit', () => {
 
     it('shows transactions dataset when editing existing transactions detector even with deprecation flag enabled', async () => {
       const organizationWithDeprecation = OrganizationFixture({
-        features: [
-          'workflow-engine-ui',
-          'visibility-explore-view',
-          'discover-saved-queries-deprecation',
-        ],
+        features: ['visibility-explore-view', 'discover-saved-queries-deprecation'],
       });
 
       const existingTransactionsDetector = MetricDetectorFixture({

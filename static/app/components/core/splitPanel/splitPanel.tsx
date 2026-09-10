@@ -1,9 +1,10 @@
-import {useCallback, useImperativeHandle, useRef} from 'react';
+import {useCallback, useImperativeHandle, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {DRAG_HANDLE_SIZE, DragHandle} from '@sentry/scraps/dragHandle';
 import {Flex, type Responsive, Stack} from '@sentry/scraps/layout';
 import {useResponsivePropValue} from '@sentry/scraps/layout/styles';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
@@ -30,8 +31,6 @@ interface SplitPanelProps {
   initialSize?: number;
   maxSize?: number;
   minSize?: number;
-  /** Fires during drag with the new size. */
-  onResize?: (newSize: number) => void;
   /** Fires once when a drag ends. */
   onResizeEnd?: (payload: {
     direction: 'increase' | 'decrease';
@@ -40,8 +39,6 @@ interface SplitPanelProps {
   }) => void;
   /** Layout direction. Accepts a responsive value. */
   orientation?: Responsive<'horizontal' | 'vertical'>;
-  /** Which side the `sized` pane sits on. Defaults to `start`. */
-  placement?: 'start' | 'end';
   /** Imperative handle exposing `setSize`. */
   ref?: React.Ref<SplitPanelHandle>;
 }
@@ -67,18 +64,16 @@ export function SplitPanel({
   fill,
   ref,
   orientation: orientationProp = 'horizontal',
-  placement = 'start',
   defaultSize,
   initialSize = defaultSize,
   minSize = 0,
   maxSize,
   fillMinSize = 0,
-  onResize,
   onResizeEnd,
 }: SplitPanelProps) {
+  const {t} = useTranslation();
   const orientation =
     useResponsivePropValue(orientationProp) === 'vertical' ? 'vertical' : 'horizontal';
-  const isSizedFirst = placement === 'start';
   const hasFill = fill !== undefined && fill !== null;
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -111,26 +106,14 @@ export function SplitPanel({
     [onResizeEnd]
   );
 
-  const {
-    isHeld,
-    onPointerDown,
-    setSize,
-    size: containerSize,
-  } = useResizableDrawer({
-    // Flip the drag axis when the sized pane sits after the divider.
-    direction:
-      orientation === 'horizontal'
-        ? isSizedFirst
-          ? 'left'
-          : 'right'
-        : isSizedFirst
-          ? 'down'
-          : 'up',
+  const [isHeld, setIsHeld] = useState(false);
+  const dragStateRef = useRef<{size: number; startSize: number} | null>(null);
+
+  const {setSize, size: containerSize} = useResizableDrawer({
+    direction: orientation === 'horizontal' ? 'left' : 'down',
     initialSize,
     min,
     max,
-    onResize: newSize => onResize?.(newSize),
-    onResizeEnd: ({startSize, endSize}) => handleResizeEnd(startSize, endSize),
   });
 
   useImperativeHandle(ref, () => ({setSize}), [setSize]);
@@ -148,44 +131,49 @@ export function SplitPanel({
     handleResizeEnd(visibleSize, target);
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
-    const step = event.shiftKey ? 50 : 10;
-    const isHorizontal = orientation === 'horizontal';
-    const towardStartKey = isHorizontal ? 'ArrowLeft' : 'ArrowUp';
-    const towardEndKey = isHorizontal ? 'ArrowRight' : 'ArrowDown';
+  const handleMoveStart = () => {
+    dragStateRef.current = {size: visibleSize, startSize: visibleSize};
+    setIsHeld(true);
+  };
 
-    // Keys map to physical separator direction; moving it toward `end` grows
-    // the sized pane only when it sits first, and shrinks it otherwise.
-    const growKey = isSizedFirst ? towardEndKey : towardStartKey;
-    const shrinkKey = isSizedFirst ? towardStartKey : towardEndKey;
-
-    // Step from the visible size so it still moves after the container shrank.
-    const current = visibleSize;
-
-    let newSize: number | null = null;
-    if (event.key === shrinkKey) {
-      newSize = Math.max(min, current - step);
-    } else if (event.key === growKey) {
-      newSize = Math.min(max, current + step);
-    } else if (event.key === 'Home') {
-      // Separator to the start edge.
-      newSize = isSizedFirst ? min : max;
-    } else if (event.key === 'End') {
-      // Separator to the end edge.
-      newSize = isSizedFirst ? max : min;
+  const handleMove = (delta: number) => {
+    const state = dragStateRef.current;
+    if (!state) {
+      return;
     }
 
-    // Skip when the target is an unbounded max (not yet measured); min and
-    // stepped targets are always finite, so this only gates the edge keys.
-    if (newSize !== null && Number.isFinite(newSize)) {
-      event.preventDefault();
-      setSize(newSize, true);
-      handleResizeEnd(current, newSize);
+    state.size = Math.max(min, Math.min(max, state.size + delta));
+
+    setSize(Math.round(state.size), true);
+  };
+
+  const handleMoveEnd = () => {
+    const state = dragStateRef.current;
+    dragStateRef.current = null;
+    setIsHeld(false);
+
+    if (state) {
+      handleResizeEnd(state.startSize, Math.round(state.size));
     }
   };
 
-  // Ordered sized -> divider -> fill; reversed for `placement="end"`. Keys keep
-  // pane identity across the flip.
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    let newSize: number | null = null;
+    if (event.key === 'Home') {
+      newSize = min;
+    } else if (event.key === 'End') {
+      newSize = max;
+    }
+
+    // Skip when the target is an unbounded max (not yet measured).
+    if (newSize !== null && Number.isFinite(newSize)) {
+      event.preventDefault();
+      setSize(newSize, true);
+      handleResizeEnd(visibleSize, newSize);
+    }
+  };
+
+  // Ordered sized -> divider -> fill. Keys keep pane identity.
   const panes = [
     <Pane key="sized" size={hasFill ? visibleSize : null}>
       {sized}
@@ -195,15 +183,17 @@ export function SplitPanel({
     panes.push(
       <DragHandle
         key="divider"
-        isHeld={isHeld}
-        isSizedFirst={isSizedFirst}
+        aria-label={t('Resize panels')}
+        isSizedFirst
         max={max}
         min={min}
         orientation={orientation}
         value={visibleSize}
         onDoubleClick={handleDoubleClick}
         onKeyDown={handleKeyDown}
-        onPointerDown={onPointerDown}
+        onMove={handleMove}
+        onMoveEnd={handleMoveEnd}
+        onMoveStart={handleMoveStart}
       />,
       <Pane key="fill" size={null}>
         {fill}
@@ -230,7 +220,7 @@ export function SplitPanel({
           // pane gets its basis.
           style={hasFill && availableSize === 0 ? {visibility: 'hidden'} : undefined}
         >
-          {isSizedFirst ? panes : [...panes].reverse()}
+          {panes}
         </RootElement>
       )}
     </Flex>

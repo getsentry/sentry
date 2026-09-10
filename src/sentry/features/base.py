@@ -7,7 +7,6 @@ __all__ = [
     "FeatureHandlerStrategy",
     "OrganizationFeature",
     "ProjectFeature",
-    "ProjectPluginFeature",
     "SystemFeature",
 ]
 
@@ -59,16 +58,6 @@ class ProjectFeature(Feature):
     def __init__(self, name: str, project: Project) -> None:
         super().__init__(name)
         self.project = project
-
-    def get_subject(self) -> Organization:
-        return self.project.organization
-
-
-class ProjectPluginFeature(Feature):
-    def __init__(self, name: str, project: Project, plugin: Any) -> None:
-        super().__init__(name)
-        self.project = project
-        self.plugin = plugin
 
     def get_subject(self) -> Organization:
         return self.project.organization

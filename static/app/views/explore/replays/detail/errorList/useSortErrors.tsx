@@ -61,7 +61,7 @@ function sortErrors(
   frames: ErrorFrame[],
   sortConfig: SortConfig<ErrorFrame>
 ): ErrorFrame[] {
-  return [...frames].sort((a, b) => {
+  return frames.toSorted((a, b) => {
     let valueA = sortConfig.getValue(a);
     let valueB = sortConfig.getValue(b);
 

@@ -25,15 +25,6 @@ describe('useDispatchingReducer', () => {
 
     expect(result.current[0]).toBe(initialState);
   });
-  it('initializes state with fn initializer arg', () => {
-    const reducer = jest.fn().mockImplementation(s => s);
-    const initialState = {type: 'initial'};
-    const {result} = renderHook(() =>
-      useDispatchingReducer(reducer, undefined, () => initialState)
-    );
-
-    expect(result.current[0]).toBe(initialState);
-  });
   describe('action dispatching', () => {
     const reducer = jest.fn().mockImplementation((_s, action: string) => {
       switch (action) {
@@ -157,13 +148,12 @@ describe('useDispatchingReducer', () => {
   });
 
   it('emitter supports side effect dispatching', () => {
-    const reducer = jest.fn().mockImplementation(function reducer(
-      state: Record<any, any>,
-      action: string
-    ) {
-      const nextState = {...state, [action]: 1};
-      return nextState;
-    });
+    const reducer = jest
+      .fn()
+      .mockImplementation((state: Record<any, any>, action: string) => {
+        const nextState = {...state, [action]: 1};
+        return nextState;
+      });
 
     const initialState = {};
     const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));

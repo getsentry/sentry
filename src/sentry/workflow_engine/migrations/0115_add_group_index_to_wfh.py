@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("sentry", "1120_add_organization_identity"),
-        ("workflow_engine", "0114_sanitize_dynamic_form_field_choices"),
+        ("workflow_engine", "0001_squashed_0114_sanitize_dynamic_form_field_choices"),
     ]
 
     operations = [

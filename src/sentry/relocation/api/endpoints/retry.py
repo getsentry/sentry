@@ -13,7 +13,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import SentryIsAuthenticated
+from sentry.api.permissions import DisallowAgentToken, SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.models.files.file import File
 from sentry.relocation.api.endpoints.index import (
@@ -45,7 +45,7 @@ class RelocationRetryEndpoint(Endpoint):
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (SentryIsAuthenticated,)
+    permission_classes = (SentryIsAuthenticated, DisallowAgentToken)
 
     def post(self, request: Request, relocation_uuid: str) -> Response:
         """

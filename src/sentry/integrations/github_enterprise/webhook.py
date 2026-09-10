@@ -40,6 +40,7 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.github_enterprise.client import GitHubEnterpriseApiClient
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent
 from sentry.integrations.utils.scope import clear_organization_info
+from sentry.issues.action_log import ActionSource, action_context_scope, resolve_action_actor
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.utils import metrics
 
@@ -102,6 +103,7 @@ def get_installation_metadata(event, host):
         external_id=external_id,
         provider=IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
         status=ObjectStatus.ACTIVE,
+        using_replica=options.get("integration_service.get_integration.using_replica"),
     )
     if integration is None:
         metrics.incr("integrations.github_enterprise.does_not_exist")
@@ -237,6 +239,11 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             return metadata.get("webhook_secret")
         else:
             return None
+
+    @method_decorator(csrf_exempt)
+    def post(self, request: HttpRequest) -> HttpResponse:
+        with action_context_scope(ActionSource.GITHUB_ENTERPRISE, resolve_action_actor(request)):
+            return self._handle(request)
 
     def _handle(self, request: HttpRequest) -> HttpResponse:
         clear_organization_info()
@@ -439,10 +446,6 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
 
         return super().dispatch(request, *args, **kwargs)
 
-    @method_decorator(csrf_exempt)
-    def post(self, request: HttpRequest) -> HttpResponse:
-        return self._handle(request)
-
 
 @cell_silo_endpoint
 class GitHubEnterpriseGitHubComWebhookEndpoint(GitHubEnterpriseWebhookBase):
@@ -466,4 +469,4 @@ class GitHubEnterpriseGitHubComWebhookEndpoint(GitHubEnterpriseWebhookBase):
             "integrations.github_enterprise.webhook.routed",
             tags={"variant": "github_com"},
         )
-        return self._handle(request)
+        return super().post(request)

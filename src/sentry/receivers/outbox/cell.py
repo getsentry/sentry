@@ -10,12 +10,10 @@ from __future__ import annotations
 
 import json  # noqa: S003 - urllib3 raises stdlib JSONDecodeError, not simplejson's
 import logging
-from datetime import datetime
 from typing import Any, assert_never, cast
 
 from django.db import IntegrityError, router, transaction
 from django.dispatch import receiver
-from django.utils import timezone
 
 from sentry.audit_log.services.log import AuditLogEvent, UserIpEvent, log_rpc_service
 from sentry.auth.services.auth import auth_service
@@ -279,6 +277,16 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
             # raising would stall the org's outbox shard on every drain.
             _mark_seer_run_failed(run, "seer_run_create.pr_review_unsupported")
             return
+        case SeerRunType.INVESTIGATION:
+            # Investigation orchestration runs are not started through this
+            # outbox. Seer creates its own run and Sentry adopts the id, so a
+            # SeerRun of this type is a mirror with nothing to dispatch. Nothing
+            # enqueues one today; log rather than drop it silently if that changes.
+            logger.warning(
+                "seer_run_create.investigation_not_dispatched",
+                extra={"organization_id": run.organization_id, "run_id": run.id},
+            )
+            return
         case SeerRunType.ASSISTED_QUERY:
             response = make_search_agent_start_request(
                 cast(SearchAgentStartRequest, body), viewer_context=viewer_context
@@ -353,7 +361,6 @@ def process_group_action_log_event(payload: GroupActionLogPayload, **kwds: Any) 
 
         group_id = payload["group_id"]
         force_async_derived = payload["force_async_derived"]
-        date_added = payload.get("date_added")
 
         try:
             with transaction.atomic(using=using):
@@ -366,9 +373,6 @@ def process_group_action_log_event(payload: GroupActionLogPayload, **kwds: Any) 
                     source=payload["source"],
                     data=payload["data"],
                     idempotency_key=payload.get("idempotency_key"),
-                    date_added=(
-                        datetime.fromisoformat(date_added) if date_added else timezone.now()
-                    ),
                 )
         except IntegrityError:
             # Idempotency conflict; we treat this as a no-op.

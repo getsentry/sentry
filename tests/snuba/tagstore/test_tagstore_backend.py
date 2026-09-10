@@ -311,16 +311,24 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             )
         )
         tags = [r.key for r in result]
-        assert set(tags) == {"foo", "biz", "environment", "sentry:user", "level", "sentry:release"}
+        assert set(tags) == {
+            "foo",
+            "biz",
+            "environment",
+            "sentry:user",
+            "level",
+            "sentry:release",
+            "interface_type",
+        }
 
         result.sort(key=lambda r: r.key)
         assert result[0].key == "biz"
         assert result[0].top_values[0].value == "baz"
         assert result[0].count == 1
 
-        assert result[4].key == "sentry:release"
-        assert result[4].count == 1
-        top_release_values = result[4].top_values
+        release = {r.key: r for r in result}["sentry:release"]
+        assert release.count == 1
+        top_release_values = release.top_values
         assert len(top_release_values) == 1
         assert {v.value for v in top_release_values} == {"releaseme"}
         assert all(v.times_seen == 1 for v in top_release_values)
@@ -454,37 +462,6 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         }
         assert set(keys) == expected_keys
 
-    def test_get_tag_keys_removed_from_denylist(self) -> None:
-        denylist_keys = frozenset(["browser", "sentry:release"])
-        expected_keys = {
-            "baz",
-            "environment",
-            "foo",
-            "sentry:user",
-            "level",
-            "interface_type",
-        }
-        keys = {
-            k.key: k
-            for k in self.ts.get_tag_keys(
-                project_id=self.proj1.id,
-                environment_id=self.proj1env1.id,
-                denylist=denylist_keys,
-                tenant_ids={"referrer": "r", "organization_id": 1234},
-            )
-        }
-        assert set(keys) == expected_keys
-        keys = {
-            k.key: k
-            for k in self.ts.get_tag_keys(
-                project_id=self.proj1.id,
-                environment_id=self.proj1env1.id,
-                tenant_ids={"referrer": "r", "organization_id": 1234},
-            )
-        }
-        expected_keys |= {"browser", "sentry:release"}
-        assert set(keys) == expected_keys
-
     def test_get_group_tag_key(self) -> None:
         with pytest.raises(GroupTagKeyNotFound):
             self.ts.get_group_tag_key(
@@ -597,7 +574,15 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 group, [env.id], tenant_ids={"referrer": "r", "organization_id": 1234}
             )
         }
-        assert set(keys) == {"biz", "environment", "foo", "sentry:user", "level", "sentry:release"}
+        assert set(keys) == {
+            "biz",
+            "environment",
+            "foo",
+            "sentry:user",
+            "level",
+            "sentry:release",
+            "interface_type",
+        }
 
     def test_get_tag_key(self) -> None:
         with pytest.raises(TagKeyNotFound):

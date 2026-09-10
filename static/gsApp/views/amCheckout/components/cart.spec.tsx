@@ -69,10 +69,6 @@ describe('Cart', () => {
       body: billingConfig,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/promotions/trigger-check/`,
-      method: 'POST',
-    });
-    MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/preview/`,
       method: 'GET',
       body: {

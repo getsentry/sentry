@@ -6,12 +6,13 @@ import {CompactSelect as mockCompactSelect} from 'sentry-test/snapshots/mocks/co
 import {Tag} from '@sentry/scraps/badge';
 
 import {t} from 'sentry/locale';
-// eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 import type {DiffMode} from './imageDisplay/diffImageDisplay';
 
 jest.mock('@sentry/scraps/compactSelect', () => ({CompactSelect: mockCompactSelect}));
+
+import {Container} from '@sentry/scraps/layout';
 
 import {
   ColorPickerButton,
@@ -75,42 +76,46 @@ function SnapshotsToolbarWithControls({
   }
 
   return (
-    <ToolbarContainer
-      toggle={<ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />}
-      sortDropdown={
-        sort ? <SortDropdown value={sort.value} onChange={sort.onChange} /> : null
-      }
-      progressIndicator={
-        progress ? (
-          <ProgressPill>
-            <ToolbarProgressBar value={progress.percent} />
-            <ProgressCounter size="xs" variant="muted">
-              {progress.current}/{progress.total}
-            </ProgressCounter>
-          </ProgressPill>
-        ) : null
-      }
-      diffControls={
-        diff ? (
-          <Fragment>
-            {diff.mode === 'split' && (
-              <ColorPickerButton
-                color={diff.overlayColor}
-                onChange={diff.onOverlayColorChange}
-                opacity={diff.overlayOpacity}
-                onOpacityChange={diff.onOverlayOpacityChange}
+    <Container containerType="inline-size">
+      <ToolbarContainer
+        toggle={
+          <ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
+        }
+        sortDropdown={
+          sort ? <SortDropdown value={sort.value} onChange={sort.onChange} /> : null
+        }
+        progressIndicator={
+          progress ? (
+            <ProgressPill>
+              <ToolbarProgressBar value={progress.percent} />
+              <ProgressCounter size="xs" variant="muted">
+                {progress.current}/{progress.total}
+              </ProgressCounter>
+            </ProgressPill>
+          ) : null
+        }
+        diffControls={
+          diff ? (
+            <Fragment>
+              {diff.mode === 'split' && (
+                <ColorPickerButton
+                  color={diff.overlayColor}
+                  onChange={diff.onOverlayColorChange}
+                  opacity={diff.overlayOpacity}
+                  onOpacityChange={diff.onOverlayOpacityChange}
+                />
+              )}
+              <DiffModeToggle
+                diffMode={diff.mode}
+                onDiffModeChange={diff.onModeChange}
+                showSplit={diff.showSplit ?? true}
               />
-            )}
-            <DiffModeToggle
-              diffMode={diff.mode}
-              onDiffModeChange={diff.onModeChange}
-              showSplit={diff.showSplit ?? true}
-            />
-          </Fragment>
-        ) : null
-      }
-      soloDiffToggle={soloDiffToggle}
-    />
+            </Fragment>
+          ) : null
+        }
+        soloDiffToggle={soloDiffToggle}
+      />
+    </Container>
   );
 }
 

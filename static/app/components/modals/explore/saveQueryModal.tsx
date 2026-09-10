@@ -14,7 +14,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import type {Organization, SavedQuery} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -23,7 +23,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export type SaveQueryModalProps = {
   organization: Organization;
-  saveQuery: (name: string, starred?: boolean) => Promise<SavedQuery>;
+  saveQuery: (variables: {name: string; starred?: boolean}) => Promise<{id: string}>;
   traceItemDataset: TraceItemDataset;
   name?: string;
   source?: 'toolbar' | 'table' | 'conversations';
@@ -53,7 +53,10 @@ function SaveQueryModal({
     try {
       setIsSaving(true);
       addLoadingMessage(t('Saving query...'));
-      const {id} = await saveQuery(name, initialName === undefined ? starred : undefined);
+      const {id} = await saveQuery({
+        name,
+        starred: initialName === undefined ? starred : undefined,
+      });
       if (initialName === undefined) {
         setQueryParamsSavedQuery(id, name);
       }

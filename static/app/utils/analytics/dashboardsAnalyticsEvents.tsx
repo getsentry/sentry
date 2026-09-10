@@ -91,7 +91,10 @@ export type DashboardsEventParameters = {
   };
   'dashboards_manage.create.start': Record<string, unknown>;
   'dashboards_manage.delete': {dashboard_id: number; view_type: 'table'};
-  'dashboards_manage.duplicate': {dashboard_id: number; view_type: 'table'};
+  'dashboards_manage.duplicate': {
+    dashboard_id: number;
+    view_type: 'details' | 'table';
+  };
   'dashboards_manage.generate.start': Record<string, unknown>;
   'dashboards_manage.paginate': Record<string, unknown>;
   'dashboards_manage.search': Record<string, unknown>;

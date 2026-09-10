@@ -2,18 +2,13 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils/defined';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
 import type {DetectorDetails} from 'sentry/views/issueDetails/sidebar/detectorDetails';
@@ -100,18 +95,10 @@ export function getDetectorDetails({
 
 export function DetectorSection({group, project}: {group: Group; project: Project}) {
   const issueConfig = getConfigForIssueType(group, project);
-  const organization = useOrganization();
   const {detectorDetails} = useIssueDetails();
-  const {detectorPath, description, detectorId, detectorType} = detectorDetails;
+  const {detectorPath, description} = detectorDetails;
   const detectorCtaText = issueConfig.detector.ctaText ?? t('View detector details');
   const title = issueConfig.detector.title ?? t('Detector');
-
-  const hasWorkflowEngineUi = organization.features.includes('workflow-engine-ui');
-  const shouldUseMetricRuleLink = detectorType === 'metric_alert' && !hasWorkflowEngineUi;
-
-  if (shouldUseMetricRuleLink) {
-    return <MetricAlertSection detectorId={detectorId} />;
-  }
 
   return (
     <DetectorSectionContent
@@ -119,42 +106,6 @@ export function DetectorSection({group, project}: {group: Group; project: Projec
       description={description}
       title={title}
       to={detectorPath}
-    />
-  );
-}
-
-// This section is only shown when metric issues are enabled, but the full workflow engine UI is not.
-// Remove this section once the new Monitors/Alerts UI is fully rolled out.
-function MetricAlertSection({detectorId}: {detectorId: string | undefined}) {
-  const organization = useOrganization();
-  const {data: metricDetector, isLoading} = useDetectorQuery<MetricDetector>(
-    detectorId ?? '',
-    {
-      enabled: Boolean(detectorId),
-    }
-  );
-  const metricRuleId = metricDetector?.alertRuleId
-    ? String(metricDetector.alertRuleId)
-    : null;
-  const metricRulePath = metricRuleId
-    ? makeAlertsPathname({
-        path: `/rules/details/${metricRuleId}/`,
-        organization,
-      })
-    : undefined;
-
-  if (!defined(detectorId) || (!isLoading && !metricDetector?.alertRuleId)) {
-    return <LoadingError message={t('Corresponding metric alert not found')} />;
-  }
-
-  return (
-    <DetectorSectionContent
-      ctaText={t('View metric alert details')}
-      description={t(
-        'This issue was created by a metric alert. View the alert details to learn more.'
-      )}
-      title={t('Metric Alert')}
-      to={metricRulePath}
     />
   );
 }

@@ -4,7 +4,7 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
-import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {useQueryParamsTopEventsLimit} from 'sentry/views/explore/queryParams/context';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';

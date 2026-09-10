@@ -33,6 +33,7 @@ describe('IssueTraceWaterfallOverlay', () => {
         groupId={event.groupID}
         tree={{list: []} as unknown as IssuesTraceTree}
         viewManager={viewManager}
+        source="issues"
       />,
       {
         organization,

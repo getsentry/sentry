@@ -9,7 +9,6 @@ from typing import (
     Any,
     ClassVar,
     Generic,
-    Literal,
     Sequence,
     TypeAlias,
     TypedDict,
@@ -34,7 +33,7 @@ if TYPE_CHECKING:
     from sentry.snuba.dataset import Dataset
     from sentry.snuba.models import ExtrapolationMode, SnubaQuery, SnubaQueryEventType
     from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
-    from sentry.workflow_engine.handlers.detector import DetectorHandler
+    from sentry.workflow_engine.handlers.detector import BaseDetectorHandler
     from sentry.workflow_engine.models import Action, Detector
     from sentry.workflow_engine.models.data_condition import Condition
     from sentry.workflow_engine.models.data_source import DataSource
@@ -43,6 +42,7 @@ T = TypeVar("T")
 
 ERROR_DETECTOR_NAME = "Error Monitor"
 ISSUE_STREAM_DETECTOR_NAME = "Issue Stream"
+ALL_PROJECTS_DETECTOR_NAME = "Issue Stream: All Projects"
 
 ActionId: TypeAlias = int
 DataConditionGroupId: TypeAlias = int
@@ -89,8 +89,6 @@ class ConditionError:
 
 
 type DetectorResult = IssueOccurrence | StatusChangeMessage | None
-type WorkflowEvaluationDeferred = Literal["deferred"]
-type WorkflowEvaluationResult = Sequence[Action] | WorkflowEvaluationDeferred
 
 
 class _WorkflowEventLocalCache(TypedDict, total=False):
@@ -289,7 +287,7 @@ class SnubaQueryDataSourceType(TypedDict, total=False):
 
 @dataclass(frozen=True)
 class DetectorSettings:
-    handler: type[DetectorHandler[Any]] | None = None
+    handler: type[BaseDetectorHandler[Any]] | None = None
     validator: type[BaseDetectorTypeValidator] | None = None
     config_schema: dict[str, Any] = field(default_factory=dict)
     filter: Q | None = None

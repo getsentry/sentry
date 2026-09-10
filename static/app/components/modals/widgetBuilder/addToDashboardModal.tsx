@@ -362,7 +362,7 @@ function AddToDashboardModal({
       widgets: [...selectedDashboard.widgets, ...normalizeWidgets(widgetsWithLayouts)],
     };
 
-    await updateDashboard(api, organization.slug, newDashboard);
+    await updateDashboard(organization.slug, newDashboard);
   }
 
   const canSubmit = selectedDashboardId !== null;
@@ -383,7 +383,7 @@ function AddToDashboardModal({
           value: 'new',
           disabled: hasReachedDashboardLimit || isLoading,
           tooltip: hasReachedDashboardLimit ? limitMessage : undefined,
-          tooltipOptions: {position: 'right', isHoverable: true},
+          tooltipOptions: {position: 'right'},
         } satisfies SelectValue<string>,
         ...dashboards
           .filter(dashboard =>

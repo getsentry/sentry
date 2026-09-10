@@ -162,6 +162,147 @@ def test_deobfuscate_value_preserves_quotes_in_replacements() -> None:
     assert exc["raw_value"].startswith("Got '")
 
 
+def test_cast_message_class_names_are_matched_when_bare() -> None:
+    data = build_event(
+        [
+            {"value": "a0o$b cannot be cast to chf"},
+            {"value": "ft70$a cannot be cast to l260"},
+            {"value": "ymu cannot be cast to nbx"},
+        ]
+    )
+
+    excs = Exceptions(data)
+    assert excs.get_exception_class_names() == ["a0o$b", "chf", "ft70$a", "l260", "ymu", "nbx"]
+
+
+def test_cast_message_class_names_are_matched_when_mixed() -> None:
+    # A keep rule can preserve one class while R8 flattens the other.
+    data = build_event(
+        [
+            {"value": "com.example.Foo cannot be cast to chf"},
+            {"value": "chf cannot be cast to com.example.Foo"},
+        ]
+    )
+
+    excs = Exceptions(data)
+    class_names = excs.get_exception_class_names()
+
+    assert class_names == ["com.example.Foo", "chf", "chf", "com.example.Foo"]
+
+
+def test_deobfuscate_mixed_cast_message_class_names() -> None:
+    # com.example.Foo is kept by a keep rule, so it has no mapping of its own.
+    bare_target = {"value": "com.example.Foo cannot be cast to chf"}
+    bare_source = {"value": "chf cannot be cast to com.example.Foo"}
+    data = build_event([bare_target, bare_source])
+
+    excs = Exceptions(data)
+
+    excs.deobfuscate_and_save({"chf": "com.example.CastTarget"}, mapped_exceptions=[])
+
+    assert bare_target["value"] == "com.example.Foo cannot be cast to com.example.CastTarget"
+    assert bare_target["raw_value"] == "com.example.Foo cannot be cast to chf"
+    assert bare_source["value"] == "com.example.CastTarget cannot be cast to com.example.Foo"
+    assert bare_source["raw_value"] == "chf cannot be cast to com.example.Foo"
+
+
+def test_deobfuscate_qualified_cast_message_class_names() -> None:
+    # Fully qualified operands take the same rebuild path as bare ones, so an
+    # unmapped operand is kept as-is rather than dropped.
+    exc = {"value": "com.example.Foo cannot be cast to com.example.Bar"}
+    data = build_event([exc])
+
+    excs = Exceptions(data)
+
+    excs.deobfuscate_and_save({"com.example.Bar": "com.example.MappedBar"}, mapped_exceptions=[])
+
+    assert exc["value"] == "com.example.Foo cannot be cast to com.example.MappedBar"
+    assert exc["raw_value"] == "com.example.Foo cannot be cast to com.example.Bar"
+
+
+def test_deobfuscate_array_cast_message_class_names() -> None:
+    exc = {"value": "a0o$b[][] cannot be cast to chf[]"}
+    data = build_event([exc])
+
+    excs = Exceptions(data)
+
+    assert excs.get_exception_class_names() == ["a0o$b", "chf"]
+
+    classes = {
+        "a0o$b": "com.example.CastSource",
+        "chf": "com.example.CastTarget",
+    }
+    excs.deobfuscate_and_save(classes, mapped_exceptions=[])
+
+    assert exc["value"] == ("com.example.CastSource[][] cannot be cast to com.example.CastTarget[]")
+    assert exc["raw_value"] == "a0o$b[][] cannot be cast to chf[]"
+
+
+def test_cast_message_is_not_matched_in_prose() -> None:
+    # A real cast message ends on the target class. Without that anchor, ordinary
+    # prose that happens to contain the word "cast" would offer candidates.
+    data = build_event(
+        [
+            {"value": "The provided value cannot be cast to a number, check the input"},
+            {"value": "Failed to cast the vote before the deadline"},
+        ]
+    )
+
+    excs = Exceptions(data)
+
+    assert excs.get_exception_class_names() == []
+
+
+def test_deobfuscate_bare_cast_message_class_names() -> None:
+    mapped_both = {"value": "a0o$b cannot be cast to chf"}
+    mapped_from = {"value": "a0o$b cannot be cast to missing"}
+    mapped_to = {"value": "unknown cannot be cast to chf"}
+    unmapped = {"value": "unknown cannot be cast to missing"}
+    data = build_event([mapped_both, mapped_from, mapped_to, unmapped])
+
+    excs = Exceptions(data)
+
+    classes = {
+        "a0o$b": "com.example.CastSource",
+        "chf": "com.example.CastTarget",
+    }
+
+    excs.deobfuscate_and_save(classes, mapped_exceptions=[])
+
+    assert mapped_both["value"] == (
+        "com.example.CastSource cannot be cast to com.example.CastTarget"
+    )
+    assert mapped_both["raw_value"] == "a0o$b cannot be cast to chf"
+    assert mapped_from["value"] == "com.example.CastSource cannot be cast to missing"
+    assert mapped_from["raw_value"] == "a0o$b cannot be cast to missing"
+    assert mapped_to["value"] == "unknown cannot be cast to com.example.CastTarget"
+    assert mapped_to["raw_value"] == "unknown cannot be cast to chf"
+    assert unmapped["value"] == "unknown cannot be cast to missing"
+    assert "raw_value" not in unmapped
+
+
+def test_deobfuscate_bare_cast_message_uses_atomic_reconstruction() -> None:
+    # `to` is a valid obfuscated class name and also appears in the message
+    # template. Reconstructing the value avoids replacing both occurrences.
+    exc = {"value": "a0o$b cannot be cast to to"}
+    data = build_event([exc])
+
+    excs = Exceptions(data)
+
+    classes = {
+        "a0o$b": "com.example.FirstNavigationResult$Declared",
+        "to": "com.example.SecondRegionResult",
+    }
+
+    excs.deobfuscate_and_save(classes, mapped_exceptions=[])
+
+    assert exc["value"] == (
+        "com.example.FirstNavigationResult$Declared cannot be cast to "
+        "com.example.SecondRegionResult"
+    )
+    assert exc["raw_value"] == "a0o$b cannot be cast to to"
+
+
 def test_deobfuscate_is_noop_when_no_classes_mapping() -> None:
     # Only value matches; no module/type entries and no classes mapping
     original = "Refs com.example.A and a.b$c$1 and 'o'"

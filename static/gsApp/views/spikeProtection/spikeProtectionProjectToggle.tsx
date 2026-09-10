@@ -5,6 +5,7 @@ import {AutoSaveForm} from '@sentry/scraps/form';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {ProjectSummaryWithOptions} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -59,7 +60,9 @@ function SpikeProtectionProjectToggle({
         mutationOptions={{
           mutationFn: data =>
             fetchMutation({
-              url: `/organizations/${organization.slug}/spike-protections/`,
+              url: getApiUrl('/organizations/$organizationIdOrSlug/spike-protections/', {
+                path: {organizationIdOrSlug: organization.slug},
+              }),
               method: data.enabled ? 'POST' : 'DELETE',
               data: {projects: [project.slug]},
             }),

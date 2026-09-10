@@ -3,22 +3,19 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Button, LinkButton} from '@sentry/scraps/button';
-import {Hotkey} from '@sentry/scraps/hotkey';
-import {Flex, Grid, Container} from '@sentry/scraps/layout';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Container} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
-import type {BooleanOperator, SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {HighlightQuery} from 'sentry/components/searchSyntax/renderer';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 
 import {SearchInvalidTag} from './searchInvalidTag';
-import type {SearchGroup, SearchItem, Shortcut} from './types';
+import type {SearchGroup, SearchItem} from './types';
 import {invalidTypes, ItemType} from './types';
 
 const getDropdownItemKey = (item: SearchItem): string =>
@@ -31,53 +28,21 @@ type Props = {
   loading: boolean;
   onClick: (value: string, item: SearchItem) => void;
   searchSubstring: string;
-  booleanKeys?: Set<string>;
   className?: string;
-  customInvalidTagMessage?: (item: SearchItem) => React.ReactNode;
-  dateKeys?: Set<string>;
-  disallowFreeText?: boolean;
-  disallowWildcard?: boolean;
-  disallowedLogicalOperators?: Set<BooleanOperator>;
-  durationKeys?: Set<string>;
-  invalidMessages?: SearchConfig['invalidMessages'];
   maxMenuHeight?: number;
-  mergeItemsWith?: Record<string, SearchItem>;
-  numericKeys?: Set<string>;
   onDocsOpen?: () => void;
   onIconClick?: (value: string) => void;
-  percentageKeys?: Set<string>;
-  runShortcut?: (shortcut: Shortcut) => void;
-  sizeKeys?: Set<string>;
-  supportedTags?: TagCollection;
-  textOperatorKeys?: Set<string>;
-  visibleShortcuts?: Shortcut[];
 };
 
 export function SearchDropdown({
   className,
   loading,
   items,
-  runShortcut,
-  visibleShortcuts,
   maxMenuHeight,
   onIconClick,
   searchSubstring,
   onClick,
-  supportedTags,
-  customInvalidTagMessage,
-  mergeItemsWith,
-  booleanKeys,
-  dateKeys,
-  durationKeys,
-  numericKeys,
-  percentageKeys,
   onDocsOpen,
-  sizeKeys,
-  textOperatorKeys,
-  disallowedLogicalOperators,
-  disallowWildcard,
-  disallowFreeText,
-  invalidMessages,
 }: Props) {
   return (
     <SearchDropdownOverlay className={className} data-test-id="smart-search-dropdown">
@@ -104,28 +69,10 @@ export function SearchDropdown({
                   {item.children?.map(child => (
                     <DropdownItem
                       key={getDropdownItemKey(child)}
-                      item={{
-                        ...child,
-                        ...mergeItemsWith?.[child.title!],
-                      }}
+                      item={child}
                       searchSubstring={searchSubstring}
                       onClick={onClick}
                       onIconClick={onIconClick}
-                      additionalSearchConfig={{
-                        supportedTags,
-                        disallowWildcard,
-                        disallowedLogicalOperators,
-                        disallowFreeText,
-                        invalidMessages,
-                        booleanKeys,
-                        dateKeys,
-                        durationKeys,
-                        numericKeys,
-                        percentageKeys,
-                        sizeKeys,
-                        textOperatorKeys,
-                      }}
-                      customInvalidTagMessage={customInvalidTagMessage}
                     />
                   ))}
                 </Wrapper>
@@ -137,25 +84,6 @@ export function SearchDropdown({
       )}
 
       <DropdownFooter>
-        <Grid flow="column" align="center" gap="md">
-          {runShortcut &&
-            visibleShortcuts?.map(shortcut => (
-              <Button
-                variant="transparent"
-                size="xs"
-                key={shortcut.text}
-                onClick={() => runShortcut(shortcut)}
-              >
-                <HotkeyGlyphWrapper>
-                  <Hotkey
-                    value={shortcut.hotkeys?.display ?? shortcut.hotkeys?.actual ?? []}
-                  />
-                </HotkeyGlyphWrapper>
-                <IconWrapper>{shortcut.icon}</IconWrapper>
-                {shortcut.text}
-              </Button>
-            ))}
-        </Grid>
         <LinkButton
           size="xs"
           href="https://docs.sentry.io/product/sentry-basics/search/"
@@ -321,8 +249,6 @@ type DropdownItemProps = {
   item: SearchItem;
   onClick: (value: string, item: SearchItem) => void;
   searchSubstring: string;
-  additionalSearchConfig?: Partial<SearchConfig>;
-  customInvalidTagMessage?: (item: SearchItem) => React.ReactNode;
   isChild?: boolean;
   onIconClick?: (value: string) => void;
 };
@@ -333,16 +259,13 @@ function DropdownItem({
   searchSubstring,
   onClick,
   onIconClick,
-  additionalSearchConfig,
-  customInvalidTagMessage,
 }: DropdownItemProps) {
   const isDisabled = item.value === null;
   let children: React.ReactNode;
   if (item.type === ItemType.RECENT_SEARCH) {
-    children = <QueryItem item={item} additionalSearchConfig={additionalSearchConfig} />;
+    children = <QueryItem item={item} />;
   } else if (item.type && invalidTypes.includes(item.type)) {
-    const customInvalidMessage = customInvalidTagMessage?.(item);
-    children = customInvalidMessage ?? (
+    children = (
       <SearchInvalidTag
         highlightMessage={
           item.type === ItemType.INVALID_QUERY_WITH_WILDCARD
@@ -404,11 +327,7 @@ function DropdownItem({
         className={`${isChild ? 'group-child' : ''} ${item.active ? 'active' : ''}`}
         data-test-id="search-autocomplete-item"
         onClick={
-          isDisabled
-            ? undefined
-            : item.type && invalidTypes.includes(item.type) && !!customInvalidTagMessage
-              ? undefined
-              : (item.callback ?? onClick.bind(null, item.value, item))
+          isDisabled ? undefined : (item.callback ?? onClick.bind(null, item.value, item))
         }
         ref={element => {
           if (item.active && element) {
@@ -428,7 +347,6 @@ function DropdownItem({
             onClick={onClick}
             searchSubstring={searchSubstring}
             isChild
-            additionalSearchConfig={additionalSearchConfig}
           />
         ))}
     </Fragment>
@@ -466,15 +384,14 @@ function DropdownDocumentation({
 
 type QueryItemProps = {
   item: SearchItem;
-  additionalSearchConfig?: Partial<SearchConfig>;
 };
 
-function QueryItem({item, additionalSearchConfig}: QueryItemProps) {
+function QueryItem({item}: QueryItemProps) {
   if (!item.value) {
     return null;
   }
 
-  const parsedQuery = parseSearch(item.value, additionalSearchConfig);
+  const parsedQuery = parseSearch(item.value);
 
   if (!parsedQuery) {
     return null;
@@ -632,30 +549,10 @@ const DropdownFooter = styled('div')`
   flex-direction: row;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: ${p => p.theme.space.md};
   flex-wrap: wrap;
   gap: ${p => p.theme.space.md};
-`;
-
-const HotkeyGlyphWrapper = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-  margin-right: ${p => p.theme.space.xs};
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
-`;
-
-const IconWrapper = styled('span')`
-  display: none;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: flex;
-    margin-right: ${p => p.theme.space.xs};
-    align-items: center;
-    justify-content: center;
-  }
 `;
 
 const QueryItemWrapper = styled('span')`

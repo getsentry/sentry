@@ -11,7 +11,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -20,7 +20,6 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -174,8 +173,6 @@ export default function SnapshotsPage() {
 
   const pushHistory = {history: 'push' as const};
   const palette = theme.chart.getColorPalette(10);
-  // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   const [overlayColor, setOverlayColor] = useLocalStorageState<string>(
     'snapshot-overlay-color',
     palette.at(-3) ?? palette[0]
@@ -188,8 +185,8 @@ export default function SnapshotsPage() {
     'snapshot-overlay-opacity',
     50
   );
-  const breakpoints = useBreakpoints();
-  const effectiveDiffMode = !breakpoints.sm && diffMode === 'split' ? 'wipe' : diffMode;
+  const isNarrow = useResponsivePropValue({zero: true, xl: false});
+  const effectiveDiffMode = isNarrow && diffMode === 'split' ? 'wipe' : diffMode;
   const [viewMode, setViewMode] = useQueryState(
     'view',
     parseAsStringLiteral(['list', 'single'] as const)
@@ -470,7 +467,7 @@ export default function SnapshotsPage() {
       ? tagFilteredItems.filter(item => activeStatuses.has(item.type as DiffStatus))
       : tagFilteredItems;
 
-    return [...base].sort((a, b) => {
+    return base.toSorted((a, b) => {
       const typeOrder = (DIFF_TYPE_ORDER[a.type] ?? 99) - (DIFF_TYPE_ORDER[b.type] ?? 99);
       if (typeOrder !== 0) {
         return typeOrder;
@@ -783,8 +780,8 @@ export default function SnapshotsPage() {
           flexShrink={0}
           overflow="auto"
           borderRight="primary"
-          display={{'screen:2xs': 'none', 'screen:xs': 'none', 'screen:sm': 'flex'}}
-          maxWidth={{'screen:sm': '300px', 'screen:md': 'none'}}
+          display={{zero: 'none', xl: 'flex'}}
+          maxWidth={{zero: '300px', '3xl': 'none'}}
           style={{
             width: sidebarWidth,
             height: 'calc(100dvh - var(--top-bar-height, 53px))',
@@ -897,7 +894,7 @@ const DragHandle = styled('div')`
   display: grid;
   place-items: center;
 
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
+  @container (max-width: ${p => p.theme.container['3xl']}) {
     display: none;
   }
   width: ${p => p.theme.space.xl};

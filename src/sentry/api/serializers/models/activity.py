@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, TypeAlias, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
@@ -17,12 +17,21 @@ from sentry.types.activity import ActivityType
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 
+ActivityId: TypeAlias = int
+
 
 class _ActivitySentryAppEmbed(TypedDict):
     id: str
     name: str
     slug: str
     avatars: list[SentryAppAvatarSerializerResponse]
+
+
+class ResolvedMention(TypedDict):
+    """A Sentry user @mentioned by an activity, resolved from the stored id ref."""
+
+    name: str
+    email: str
 
 
 class ActivitySerializerResponse(TypedDict):
@@ -59,10 +68,42 @@ PULL_REQUEST_ACTIVITY_TYPES = {
 }
 
 
+def _resolve_mentioned_users(
+    activities: list[Activity],
+) -> dict[ActivityId, list[ResolvedMention]]:
+    """The Sentry users each activity @mentions, keyed by activity id, resolved in one batch.
+
+    Returns shape: { activity.id: [{ "name": "David Cramer", "email": "david@sentry.io"}] }
+    """
+    activity_to_user_ids = {
+        activity.id: [
+            mention["id"]
+            for mention in (activity.data or {}).get("mentions") or []
+            if isinstance(mention, dict) and mention.get("actor_type") == "User"
+        ]
+        for activity in activities
+        if activity.type == ActivityType.NOTE.value
+    }
+    all_user_ids = {user_id for ids in activity_to_user_ids.values() for user_id in ids}
+    if not all_user_ids:
+        return {}
+
+    users = {u.id: u for u in user_service.get_many_by_id(ids=list(all_user_ids))}
+    return {
+        activity_id: [
+            {"name": user.get_display_name(), "email": user.email}
+            for user_id in user_ids
+            if (user := users.get(user_id))
+        ]
+        for activity_id, user_ids in activity_to_user_ids.items()
+    }
+
+
 @register(Activity)
 class ActivitySerializer(Serializer):
-    def __init__(self, environment_func=None):
+    def __init__(self, environment_func=None, resolve_mentions: bool = False):
         self.environment_func = environment_func
+        self.resolve_mentions = resolve_mentions
 
     def get_attrs(self, item_list, user, **kwargs):
         from sentry.api.serializers.models.group import GroupSerializer
@@ -146,10 +187,15 @@ class ActivitySerializer(Serializer):
             ).items()
         }
 
+        mentions: dict[ActivityId, list[ResolvedMention]] = (
+            _resolve_mentioned_users(item_list) if self.resolve_mentions else {}
+        )
+
         return {
             item: {
                 "user": users.get(str(item.user_id)) if item.user_id else None,
                 "sentry_app": sentry_apps.get(str(item.user_id)) if item.user_id else None,
+                "mentions": mentions.get(item.id) or [],
                 "source": (
                     groups.get(item.data["source_id"])
                     if item.type == ActivityType.UNMERGE_DESTINATION.value
@@ -181,13 +227,17 @@ class ActivitySerializer(Serializer):
             data = {"fingerprints": obj.data["fingerprints"], "source": attrs["source"]}
         elif obj.type == ActivityType.UNMERGE_SOURCE.value:
             data = {"fingerprints": obj.data["fingerprints"], "destination": attrs["destination"]}
-        else:
-            data = obj.data or {}
+        elif obj.type == ActivityType.NOTE.value:
+            data = dict(obj.data or {})
             # XXX: We had a problem where Users were embedded into the mentions
             # attribute of group notes which needs to be removed
             # While group_note update has been fixed there are still many skunky comments
             # in the database.
             data.pop("mentions", None)
+            if attrs["mentions"]:
+                data["mentions"] = attrs["mentions"]
+        else:
+            data = obj.data or {}
 
         return {
             "id": str(obj.id),

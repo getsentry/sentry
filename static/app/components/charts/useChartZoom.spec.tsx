@@ -114,4 +114,69 @@ describe('useChartZoom', () => {
       })
     );
   });
+
+  it('ignores synced zooms relayed from another chart', () => {
+    const {result, router} = renderHookWithProviders<
+      ReturnType<typeof useChartZoom>,
+      UseChartZoomProps
+    >((props: UseChartZoomProps) => useChartZoom(props), {
+      initialProps: {usePageDate: true},
+      initialRouterConfig: {
+        location: {pathname: '/dashboard/1/', query: {statsPeriod: '7d'}},
+      },
+    });
+
+    act(() => {
+      result.current.onDataZoom(
+        dataZoomPayload(
+          Date.UTC(2026, 6, 4, 11, 1, 30),
+          Date.UTC(2026, 6, 4, 16, 54, 30)
+        ),
+        {
+          __connectUpdateStatus: 0, // This flag the zoom as a synced action from another chart.
+        } as any
+      );
+    });
+
+    expect(router.location.query.statsPeriod).toBe('7d');
+    expect(router.location.query.start).toBeUndefined();
+    expect(router.location.query.end).toBeUndefined();
+  });
+
+  it('only writes URL state once for user zooms on main chart', () => {
+    const {result, router} = renderHookWithProviders<
+      ReturnType<typeof useChartZoom>,
+      UseChartZoomProps
+    >((props: UseChartZoomProps) => useChartZoom(props), {
+      initialProps: {usePageDate: true},
+      initialRouterConfig: {
+        location: {pathname: '/dashboard/1/', query: {statsPeriod: '7d'}},
+      },
+    });
+
+    act(() => {
+      result.current.onDataZoom(
+        dataZoomPayload(
+          Date.UTC(2026, 6, 4, 11, 1, 30),
+          Date.UTC(2026, 6, 4, 16, 54, 30)
+        ),
+        {} as any
+      );
+      result.current.onDataZoom(
+        dataZoomPayload(
+          Date.UTC(2026, 6, 4, 11, 1, 30),
+          Date.UTC(2026, 6, 4, 16, 54, 30)
+        ),
+        {
+          __connectUpdateStatus: 0, // This flag the zoom as a synced action from another chart.
+        } as any
+      );
+    });
+
+    expect(router.location.query.start).toBe('2026-07-04T11:01:00');
+    expect(router.location.query.end).toBe('2026-07-04T16:55:00');
+    router.navigate(-1); // Should return to the pre-zoom period.
+    expect(router.location.query.start).toBeUndefined();
+    expect(router.location.query.end).toBeUndefined();
+  });
 });

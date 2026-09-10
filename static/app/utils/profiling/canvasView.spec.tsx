@@ -19,7 +19,7 @@ const makeCanvasAndView = (
   canvas: HTMLCanvasElement,
   flamegraph: Flamegraph,
   origin: vec2 = vec2.fromValues(0, 0),
-  configSpaceTransform: Rect = Rect.Empty()
+  configSpaceTransform: Rect = Rect.empty()
 ) => {
   const flamegraphCanvas = new FlamegraphCanvas(canvas, origin);
   const canvasView = new CanvasView<Flamegraph>({

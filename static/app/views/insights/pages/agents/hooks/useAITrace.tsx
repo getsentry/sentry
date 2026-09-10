@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {useEffect, useState} from 'react';
 
 import {useApi} from 'sentry/utils/useApi';
@@ -108,7 +107,7 @@ export function useAITrace(traceSlug: string, timestamp?: number): UseAITraceRes
 
         setNodes(flattenedNodes);
         setIsLoading(false);
-      } catch (err) {
+      } catch {
         setError(true);
         setIsLoading(false);
       }

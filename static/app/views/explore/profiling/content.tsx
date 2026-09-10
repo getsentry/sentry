@@ -4,7 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Stack} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
@@ -47,6 +47,10 @@ import {Onboarding} from 'sentry/views/explore/profiling/onboarding';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {LandingWidgetSelector} from './landing/landingWidgetSelector';
 import type {DataState} from './useLandingAnalytics';
@@ -112,14 +116,18 @@ function ProfilingContentInner() {
   }, [selection, projects]);
 
   const tab = decodeTab(location.query.tab);
+  const selectedProjects = useSelectedProjectsForLLMContext();
 
   useLLMContext({
     contextHint:
-      'Sentry profiling explorer page. Users browse transaction profiles and aggregate flamegraphs to identify performance bottlenecks and hot code paths. You can search profiling data by transaction name, view aggregate flamegraphs, and analyze individual profile samples.',
+      'Sentry profiling explorer page. Users browse transaction profiles and aggregate flamegraphs to identify performance bottlenecks and hot code paths. You can search profiling data by transaction name, view aggregate flamegraphs, and analyze individual profile samples. ' +
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     currentTab: tab,
     searchQuery: decodeScalar(location.query.query, ''),
     sort: decodeScalar(location.query.sort, ''),
     currentSelectedDateRange: selection.datetime,
+    ...toLLMContextProjectFields(selectedProjects),
   });
 
   const onTabChange = (newTab: 'flamegraph' | 'transactions') => {
@@ -191,7 +199,7 @@ function ProfilingContentInner() {
                   {organization.features.includes(
                     'profiling-global-suspect-functions'
                   ) && (
-                    <WidgetsContainer>
+                    <Grid columns={{zero: '1fr', xl: '1fr 1fr'}} gap="xl">
                       <LandingWidgetSelector
                         cursorName={LEFT_WIDGET_CURSOR}
                         widgetHeight="410px"
@@ -210,7 +218,7 @@ function ProfilingContentInner() {
                         storageKey="profiling-landing-widget-1"
                         onDataState={updateWidget2DataState}
                       />
-                    </WidgetsContainer>
+                    </Grid>
                   )}
                   <Stack gap="lg">
                     <Tabs value={tab} onChange={onTabChange}>
@@ -436,15 +444,6 @@ const LandingAggregateFlamegraphContainer = styled('div')`
   position: relative;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-`;
-
-const WidgetsContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space.xl};
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr;
-  }
 `;
 
 const StyledPagination = styled(Pagination)`

@@ -498,24 +498,6 @@ class TestSentryAppCellService(TestCase):
         assert getattr(records[0], "actor_type") == "user"
         assert getattr(records[0], "actor_id") == str(self.user.id)
 
-    def test_create_external_issue_without_user_records_system_actor(self) -> None:
-        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
-            result = sentry_app_cell_service.create_external_issue(
-                organization_id=self.org.id,
-                installation=self.rpc_installation,
-                group_id=self.group.id,
-                web_url="https://example.com/project/issue-1",
-                project="ProjectName",
-                identifier="issue-1",
-                user=None,
-            )
-
-        assert result.error is None
-        records = self._action_log_records(logs.records, "create_platform_external_issue")
-        assert len(records) == 1
-        assert getattr(records[0], "actor_type") == "system"
-        assert getattr(records[0], "actor_id") == "0"
-
     def test_delete_external_issue_records_action_log(self) -> None:
         with assume_test_silo_mode_of(PlatformExternalIssue):
             external_issue = PlatformExternalIssue.objects.create(
@@ -583,46 +565,6 @@ class TestSentryAppCellService(TestCase):
         assert result.error.status_code == 403
         assert result.external_issue is None
 
-    def test_create_external_issue_legacy_skips_project_access_without_user(self) -> None:
-        """RPC user is optional during rollout; None skips has_project_access (temporary)."""
-        with assume_test_silo_mode_of(Organization):
-            self.org.flags.allow_joinleave = False
-            self.org.save()
-
-        other_team = self.create_team(organization=self.org, name="cei-legacy-other-team")
-        other_project = self.create_project(
-            organization=self.org, teams=[other_team], name="cei-legacy-other-proj"
-        )
-        other_group = self.create_group(project=other_project)
-
-        result = sentry_app_cell_service.create_external_issue(
-            organization_id=self.org.id,
-            installation=self.rpc_installation,
-            group_id=other_group.id,
-            web_url="https://example.com/p/i",
-            project="P",
-            identifier="1",
-            user=None,
-        )
-
-        assert result.error is None
-        assert result.external_issue is not None
-
-        with assume_test_silo_mode_of(Activity):
-            activity = Activity.objects.get(
-                group_id=other_group.id,
-                type=ActivityType.CREATE_ISSUE.value,
-            )
-        assert activity.project_id == other_project.id
-        assert activity.user_id is None
-        assert activity.data == {
-            "title": "P#1",
-            "provider": self.sentry_app.name,
-            "location": "https://example.com/p/i",
-            "label": "P#1",
-            "new": True,
-        }
-
     def test_get_select_options_denied_without_project_access(self) -> None:
         with assume_test_silo_mode_of(Organization):
             self.org.flags.allow_joinleave = False
@@ -655,47 +597,6 @@ class TestSentryAppCellService(TestCase):
 
         assert result.error is not None
         assert result.error.status_code == 403
-
-    @responses.activate
-    def test_get_select_options_legacy_skips_project_access_without_user(self) -> None:
-        """RPC user is optional during rollout; None skips has_project_access (temporary)."""
-        with assume_test_silo_mode_of(Organization):
-            self.org.flags.allow_joinleave = False
-            self.org.save()
-
-        other_team = self.create_team(organization=self.org, name="gso-legacy-other-team")
-        other_project = self.create_project(
-            organization=self.org, teams=[other_team], name="gso-legacy-other-proj"
-        )
-
-        options = [{"label": "Other", "value": "99"}]
-        qs = urlencode(
-            {
-                "projectSlug": other_project.slug,
-                "installationId": self.install.uuid,
-                "query": "q",
-            }
-        )
-        responses.add(
-            method=responses.GET,
-            url="https://example.com/get-projects",
-            match=[query_string_matcher(qs)],
-            json=options,
-            status=200,
-            content_type="application/json",
-        )
-
-        result = sentry_app_cell_service.get_select_options(
-            organization_id=self.org.id,
-            installation=self.rpc_installation,
-            uri="/get-projects",
-            user=None,
-            project_id=other_project.id,
-            query="q",
-        )
-
-        assert result.error is None
-        assert result.choices == [["99", "Other"]]
 
     def test_get_select_options_unknown_project_id_returns_404(self) -> None:
         result = sentry_app_cell_service.get_select_options(
@@ -753,39 +654,6 @@ class TestSentryAppCellService(TestCase):
         assert result.error.status_code == 403
         with assume_test_silo_mode_of(PlatformExternalIssue):
             assert PlatformExternalIssue.objects.filter(id=external_issue.id).exists()
-
-    def test_delete_external_issue_legacy_skips_project_access_without_user(self) -> None:
-        """RPC user is optional during rollout; None skips has_project_access (temporary)."""
-        with assume_test_silo_mode_of(Organization):
-            self.org.flags.allow_joinleave = False
-            self.org.save()
-
-        other_team = self.create_team(organization=self.org, name="dei-legacy-other-team")
-        other_project = self.create_project(
-            organization=self.org, teams=[other_team], name="dei-legacy-other-proj"
-        )
-        other_group = self.create_group(project=other_project)
-
-        with assume_test_silo_mode_of(PlatformExternalIssue):
-            external_issue = PlatformExternalIssue.objects.create(
-                group_id=other_group.id,
-                project_id=other_project.id,
-                service_type=self.sentry_app.slug,
-                display_name="X#1",
-                web_url="https://example.com/issue/1",
-            )
-
-        result = sentry_app_cell_service.delete_external_issue(
-            organization_id=self.org.id,
-            installation=self.rpc_installation,
-            external_issue_id=external_issue.id,
-            user=None,
-        )
-
-        assert result.success is True
-        assert result.error is None
-        with assume_test_silo_mode_of(PlatformExternalIssue):
-            assert not PlatformExternalIssue.objects.filter(id=external_issue.id).exists()
 
     def test_get_service_hook_projects(self) -> None:
         project2 = self.create_project(organization=self.org)

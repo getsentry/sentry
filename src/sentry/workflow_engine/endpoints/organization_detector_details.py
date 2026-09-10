@@ -44,6 +44,7 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     can_delete_detector,
     can_edit_detector,
     get_unknown_detector_type_error,
+    should_include_all_projects_detector,
 )
 from sentry.workflow_engine.models import DataSource, Detector
 
@@ -135,23 +136,26 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         self, request: Request, detector_id: str, *args: Any, **kwargs: Any
     ) -> tuple[tuple[Any, ...], dict[str, Organization | Detector]]:
         args, kwargs = super().convert_args(request, *args, **kwargs)
+        organization = kwargs["organization"]
         validated_detector_id = to_valid_int_id("detector_id", detector_id, raise_404=True)
         try:
             detector = (
-                Detector.objects.with_type_filters()
+                Detector.objects.by_organization(organization.id)
+                .with_type_filters()
                 .select_related("project")
-                .get(
-                    id=validated_detector_id,
-                    project__organization_id=kwargs["organization"].id,
-                )
+                .get(id=validated_detector_id)
             )
             kwargs["detector"] = detector
         except Detector.DoesNotExist:
             raise ResourceDoesNotExist
 
-        # Verify user has access to the detector's project (respects Open Membership setting)
-        if not request.access.has_project_access(detector.linked_project):
-            raise PermissionDenied
+        if detector.project is None:
+            if not should_include_all_projects_detector(organization=organization, request=request):
+                raise PermissionDenied
+        else:
+            # Verify user has access to the detector's project (respects Open Membership setting)
+            if not request.access.has_project_access(detector.project):
+                raise PermissionDenied
 
         return args, kwargs
 

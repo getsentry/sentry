@@ -3,7 +3,6 @@ from unittest import mock
 
 import pytest
 from django.db import connections, router, transaction
-from django.db.transaction import TransactionManagementError
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.options.project_option import ProjectOption
@@ -17,7 +16,6 @@ from sentry.tasks.relay import (
     schedule_build_project_config,
     schedule_invalidate_project_config,
 )
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -540,34 +538,11 @@ def test_invalidate_hierarchy(
 
 
 @django_db_all(transaction=True)
-@override_options({"relay.invalidation-direct-outside-atomic": False})
-def test_schedule_invalidate_project_config_without_autocommit_option_off(default_project):
+def test_schedule_invalidate_project_config_without_autocommit(default_project):
     """
-    Without the option, the old behavior is preserved: on_commit() is called
-    unconditionally, which raises TransactionManagementError when autocommit
-    is off and there is no active atomic block.
-    """
-    conn = connections["default"]
-    conn.ensure_connection()
-    try:
-        conn.set_autocommit(False)
-        with pytest.raises(TransactionManagementError):
-            schedule_invalidate_project_config(
-                project_id=default_project.id,
-                trigger="test",
-            )
-    finally:
-        conn.rollback()
-        conn.set_autocommit(True)
-
-
-@django_db_all(transaction=True)
-@override_options({"relay.invalidation-direct-outside-atomic": True})
-def test_schedule_invalidate_project_config_without_autocommit_option_on(default_project):
-    """
-    Regression test: with the option enabled, schedule_invalidate_project_config
-    must not raise TransactionManagementError when called without autocommit and
-    outside an atomic block, as happens in the taskworker.
+    Regression test: schedule_invalidate_project_config must not raise
+    TransactionManagementError when called without autocommit and outside an
+    atomic block, as happens in the taskworker.
 
     See: https://sentry.sentry.io/issues/7223923952/
     """

@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import {Image} from '@sentry/scraps/image';
 
@@ -42,5 +43,22 @@ describe('Image', () => {
       <Image src="https://example.com/image.png" alt="Example Image" aspectRatio="16/9" />
     );
     expect(screen.getByRole('img')).toBeInTheDocument();
+  });
+
+  it('supports responsive width and height props', () => {
+    render(
+      <Image
+        src="https://example.com/image.png"
+        alt="Example Image"
+        width={{zero: '100%', md: '400px'}}
+        height={{zero: 'auto', md: '300px'}}
+      />
+    );
+
+    expect(screen.getByRole('img')).toBeInTheDocument();
+
+    const styles = getEmotionRules(screen.getByRole('img')).join('');
+    expect(styles).toMatch(/width:\s*400px/);
+    expect(styles).toMatch(/height:\s*300px/);
   });
 });

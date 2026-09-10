@@ -20,9 +20,7 @@ import {StatusPageComponent} from 'sentry/types/system';
 import CronDetectorsList from 'sentry/views/detectors/list/cron';
 
 describe('CronDetectorsList', () => {
-  const organization = OrganizationFixture({
-    features: ['workflow-engine-ui'],
-  });
+  const organization = OrganizationFixture();
 
   const initialRouterConfig: RouterConfig = {
     location: {

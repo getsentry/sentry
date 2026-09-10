@@ -129,6 +129,50 @@ class GetTargetsFromParticipantMapTest(TestCase):
 
         assert targets == []
 
+    def test_email_uses_project_specific_routing(self) -> None:
+        project = self.create_project(organization=self.organization)
+        alternate_email = "project-route@example.com"
+        self.create_useremail(user=self.user, email=alternate_email)
+        self.create_user_option(
+            user=self.user, project_id=project.id, key="mail:email", value=alternate_email
+        )
+
+        participant_map = ParticipantMap()
+        participant_map.add(
+            ExternalProviders.EMAIL,
+            Actor(id=self.user.id, actor_type=ActorType.USER),
+            0,
+        )
+
+        targets = get_targets_from_participant_map(
+            participant_map, organization_id=self.organization.id, project=project
+        )
+
+        assert len(targets) == 1
+        assert targets[0].resource_id == alternate_email
+
+    def test_email_uses_primary_email_without_project(self) -> None:
+        project = self.create_project(organization=self.organization)
+        alternate_email = "project-route@example.com"
+        self.create_useremail(user=self.user, email=alternate_email)
+        self.create_user_option(
+            user=self.user, project_id=project.id, key="mail:email", value=alternate_email
+        )
+
+        participant_map = ParticipantMap()
+        participant_map.add(
+            ExternalProviders.EMAIL,
+            Actor(id=self.user.id, actor_type=ActorType.USER),
+            0,
+        )
+
+        targets = get_targets_from_participant_map(
+            participant_map, organization_id=self.organization.id
+        )
+
+        assert len(targets) == 1
+        assert targets[0].resource_id == self.user.email
+
 
 class GetTargetsSlackUserTest(TestCase):
     def setUp(self) -> None:

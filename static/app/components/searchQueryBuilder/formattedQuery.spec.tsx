@@ -77,6 +77,7 @@ describe('FormattedQuery', () => {
     render(<FormattedQuery {...defaultProps} query="(a OR b)" />);
 
     expect(screen.getByText('OR')).toBeInTheDocument();
+    expect(screen.getByLabelText('OR')).toBeInTheDocument();
     expect(screen.getAllByTestId('icon-parenthesis')).toHaveLength(2);
   });
 
@@ -105,6 +106,7 @@ describe('FormattedQuery', () => {
   });
 
   it('renders an escaped asterisk with the escape visible', () => {
+    // oxlint-disable-next-line react/jsx-curly-brace-presence -- Preserve the escaped string exactly.
     render(<FormattedQuery {...defaultProps} query={'message:foo\\*bar'} />);
 
     expect(screen.getByText('foo\\*bar')).toBeInTheDocument();

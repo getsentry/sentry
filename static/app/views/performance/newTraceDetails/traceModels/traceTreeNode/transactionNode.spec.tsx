@@ -56,7 +56,7 @@ describe('TransactionNode', () => {
       );
 
       const child = new TransactionNode(
-        parent as any,
+        parent,
         makeTransaction({start_timestamp: 500}),
         createMockExtra()
       );
@@ -361,7 +361,7 @@ describe('TransactionNode', () => {
 
     it('should handle missing transaction with fallback', () => {
       const transaction = makeTransaction({
-        transaction: undefined as any,
+        transaction: undefined,
         'transaction.op': 'http.server',
       });
       const node = new TransactionNode(null, transaction, createMockExtra());
@@ -372,7 +372,7 @@ describe('TransactionNode', () => {
     it('should handle missing operation with fallback', () => {
       const transaction = makeTransaction({
         transaction: 'GET /api/users',
-        'transaction.op': undefined as any,
+        'transaction.op': undefined,
       });
       const node = new TransactionNode(null, transaction, createMockExtra());
 

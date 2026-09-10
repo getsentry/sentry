@@ -5,8 +5,8 @@ import orderBy from 'lodash/orderBy';
 import moment from 'moment-timezone';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import type {PageFilters} from 'sentry/types/core';
-import type {ECharts, ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {PageFilterDatetime} from 'sentry/types/core';
+import type {ECharts, ReactEchartsRef} from 'sentry/types/echarts';
 import type {
   EventsStats,
   GroupedMultiSeriesEventsStats,
@@ -43,7 +43,7 @@ export const FIVE_MINUTES = 5;
  */
 export const RELEASE_LINES_THRESHOLD = 50;
 
-export type DateTimeObject = Partial<PageFilters['datetime']>;
+export type DateTimeObject = Partial<PageFilterDatetime>;
 
 export function truncationFormatter(
   value: string,
@@ -447,10 +447,6 @@ export function computeEchartsAriaLabels(
     enabled: true,
     label: {description: [title].concat(seriesDescriptions).join('. ')},
   };
-}
-
-export function isEmptySeries(series: Series) {
-  return series.data.every(dataPoint => dataPoint.value === 0);
 }
 
 /**

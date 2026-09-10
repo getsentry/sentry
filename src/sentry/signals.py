@@ -99,6 +99,7 @@ transaction_processed = BetterSignal()  # ["project", "event"]
 event_accepted = BetterSignal()  # ["ip", "data", "project"]
 
 # Organization Onboarding Signals
+organization_created = BetterSignal()  # ["organization", "user"]
 project_created = BetterSignal()  # ["project", "user", "default_rules"]
 project_transferred = BetterSignal()  # ["old_org_id", "project"]
 

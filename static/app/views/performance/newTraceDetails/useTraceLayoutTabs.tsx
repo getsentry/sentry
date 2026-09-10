@@ -53,7 +53,7 @@ const TAB_DEFINITIONS: Record<TraceLayoutTabKeys, Tab> = {
   },
   [TraceLayoutTabKeys.AI_SPANS]: {
     slug: TraceLayoutTabKeys.AI_SPANS,
-    label: t('Agent Timeline'),
+    label: t('Agent Activity'),
   },
 };
 

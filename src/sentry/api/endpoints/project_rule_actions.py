@@ -12,6 +12,11 @@ from sentry.api.bases import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers.rest_framework import DummyRuleSerializer
 from sentry.constants import ALERTS_API_DEPRECATION_DATE, ALERTS_API_DEPRECATION_KEY
+from sentry.issues.action_log import (
+    action_context_scope,
+    resolve_action_actor,
+    resolve_action_source,
+)
 from sentry.models.rule import Rule
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.plugins import HIDDEN_PLUGINS
@@ -98,7 +103,10 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
             group=test_event.group,
         )
 
-        return self.execute_future_on_test_event_workflow_engine(group_event, rule)
+        with action_context_scope(
+            source=resolve_action_source(request), actor=resolve_action_actor(request)
+        ):
+            return self.execute_future_on_test_event_workflow_engine(group_event, rule)
 
     def execute_future_on_test_event_workflow_engine(
         self,

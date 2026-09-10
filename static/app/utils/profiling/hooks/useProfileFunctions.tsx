@@ -2,7 +2,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -13,12 +13,11 @@ interface UseProfileFunctionsOptions<F extends string> {
   referrer: string;
   sort: Sort<F>;
   cursor?: string;
-  datetime?: PageFilters['datetime'];
+  datetime?: PageFilterDatetime;
   enabled?: boolean;
   limit?: number;
   projects?: Array<number | string>;
   query?: string;
-  refetchOnMount?: boolean;
 }
 
 export function useProfileFunctionsOptions<F extends string>({
@@ -60,7 +59,6 @@ export function useProfileFunctionsOptions<F extends string>({
 
 export function useProfileFunctions<F extends string>({
   enabled,
-  refetchOnMount,
   ...rest
 }: UseProfileFunctionsOptions<F>) {
   const options = useProfileFunctionsOptions(rest);
@@ -68,7 +66,6 @@ export function useProfileFunctions<F extends string>({
   return useQuery({
     ...options,
     refetchOnWindowFocus: false,
-    refetchOnMount,
     retry: false,
     enabled,
   });

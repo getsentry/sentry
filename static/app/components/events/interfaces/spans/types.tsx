@@ -1,4 +1,4 @@
-import type {Fuse} from 'sentry/utils/fuzzySearch';
+import type {FuseResult} from 'fuse.js/basic';
 
 import type {SpanTreeModel} from './spanTreeModel';
 
@@ -13,16 +13,16 @@ export type GapSpanType = {
 
 interface SpanSourceCodeAttributes {
   'code.column'?: number;
-  'code.filepath'?: string;
+  'code.file.path'?: string;
   'code.function'?: string;
-  'code.lineno'?: number;
+  'code.line.number'?: number;
   'code.namespace'?: string;
 }
 
 interface SpanDatabaseAttributes {
   'db.name'?: string;
   'db.operation'?: string;
-  'db.system'?: string;
+  'db.system.name'?: string;
   'db.user'?: string;
 }
 
@@ -232,7 +232,7 @@ export type OrphanTreeDepth = {
 
 export type TreeDepthType = SpanTreeDepth | OrphanTreeDepth;
 
-export type IndexedFusedSpan = {
+type IndexedFusedSpan = {
   dataKeys: string[];
   dataValues: string[];
   indexed: string[];
@@ -242,7 +242,7 @@ export type IndexedFusedSpan = {
 };
 
 export type FilterSpans = {
-  results: Array<Fuse.FuseResult<IndexedFusedSpan>>;
+  results: Array<FuseResult<IndexedFusedSpan>>;
   spanIDs: Set<string>;
 };
 

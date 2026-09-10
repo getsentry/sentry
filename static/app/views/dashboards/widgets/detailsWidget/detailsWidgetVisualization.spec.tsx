@@ -56,11 +56,11 @@ describe('DetailsWidgetVisualization', () => {
   it('renders a span', () => {
     const span: TestSpan = {
       id: '123',
-      ['span.op']: 'span_op',
-      ['span.description']: 'span_description',
-      ['span.group']: 'span_group',
-      ['span.category']: 'span_category',
-      ['project.id']: 1,
+      'span.op': 'span_op',
+      'span.description': 'span_description',
+      'span.group': 'span_group',
+      'span.category': 'span_category',
+      'project.id': 1,
     };
     render(<DetailsWidgetVisualization span={span} />);
     expect(
@@ -71,11 +71,11 @@ describe('DetailsWidgetVisualization', () => {
   it('renders a db span', async () => {
     const span: TestSpan = {
       id: '123',
-      ['span.op']: 'db',
-      ['span.description']: 'SELECT * FROM users',
-      ['span.group']: 'span_group',
-      ['span.category']: 'db',
-      ['project.id']: 1,
+      'span.op': 'db',
+      'span.description': 'SELECT * FROM users',
+      'span.group': 'span_group',
+      'span.category': 'db',
+      'project.id': 1,
     };
     render(<DetailsWidgetVisualization span={span} />);
 
@@ -89,11 +89,11 @@ describe('DetailsWidgetVisualization', () => {
   it('renders an http domain status link', async () => {
     const span: TestSpan = {
       id: '123',
-      ['span.op']: 'http',
-      ['span.description']: 'GET /users',
-      ['span.group']: 'span_group',
-      ['span.category']: 'http',
-      ['project.id']: 1,
+      'span.op': 'http',
+      'span.description': 'GET /users',
+      'span.group': 'span_group',
+      'span.category': 'http',
+      'project.id': 1,
     };
     render(<DetailsWidgetVisualization span={span} />);
 

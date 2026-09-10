@@ -138,11 +138,11 @@ export interface FileSavingsResultGroup {
   total_savings: number;
 }
 
-export interface FilesInsightResult extends BaseInsightResult {
+interface FilesInsightResult extends BaseInsightResult {
   files: FileSavingsResult[];
 }
 
-export interface GroupsInsightResult extends BaseInsightResult {
+interface GroupsInsightResult extends BaseInsightResult {
   groups: FileSavingsResultGroup[];
 }
 

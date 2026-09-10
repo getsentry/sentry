@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {css, useTheme} from '@emotion/react';
 
 import {Container, type ContainerProps} from '@sentry/scraps/layout';
@@ -25,19 +24,21 @@ export function IssueStreamHeaderLabel({align, hideDivider, ...props}: Props) {
         color: ${theme.tokens.content.secondary};
         text-align: ${align === 'right' ? 'right' : 'left'};
 
-        ${!hideDivider &&
-        css`
-          &::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -${theme.space.xl};
-            width: 1px;
-            height: 100%;
+        ${
+          !hideDivider &&
+          css`
+            &::before {
+              content: '';
+              position: absolute;
+              top: 0;
+              left: -${theme.space.xl};
+              width: 1px;
+              height: 100%;
 
-            background-color: ${theme.colors.gray200};
-          }
-        `}
+              background-color: ${theme.colors.gray200};
+            }
+          `
+        }
       `}
     />
   );

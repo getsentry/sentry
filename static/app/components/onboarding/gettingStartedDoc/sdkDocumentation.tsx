@@ -3,7 +3,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DeprecatedPlatformInfo} from 'sentry/components/onboarding/gettingStartedDoc/deprecatedPlatformInfo';
 import {OnboardingLayout} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import type {
-  ConfigType,
   DocsFlow,
   ProductSolution,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -17,7 +16,6 @@ type SdkDocumentationProps = {
   organization: Organization;
   platform: PlatformIntegration;
   project: Project;
-  configType?: ConfigType;
   docsFlow?: DocsFlow;
   onProductSelectionSync?: (products: ProductSolution[]) => void;
 };
@@ -28,7 +26,6 @@ export function SdkDocumentation({
   project,
   activeProductSelection,
   docsFlow,
-  configType,
   organization,
   onProductSelectionSync,
 }: SdkDocumentationProps) {
@@ -96,7 +93,6 @@ export function SdkDocumentation({
       docsFlow={docsFlow}
       platformKey={platform.id}
       project={project}
-      configType={configType}
       projectKeyId={projectKeyId}
       onProductSelectionSync={onProductSelectionSync}
     />

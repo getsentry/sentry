@@ -13,13 +13,18 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import cell_silo_test
+from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.models import (
     Action,
+    DataCondition,
     DataConditionGroup,
+    DataConditionGroupAction,
     DetectorWorkflow,
     Workflow,
+    WorkflowDataConditionGroup,
     WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.data_condition import Condition
@@ -384,6 +389,46 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             self.organization.slug, qs_params=[("project", empty_project.id)]
         ).data
 
+    def test_all_projects_id_sentinel_includes_detached_workflows(self) -> None:
+        self.create_detector_workflow(
+            workflow=self.workflow, detector=self.create_detector(project=self.project)
+        )
+
+        response = self.get_success_response(self.organization.slug, qs_params={"project": "-1"})
+
+        assert {workflow["id"] for workflow in response.data} == {
+            str(self.workflow.id),
+            str(self.workflow_two.id),
+            str(self.workflow_three.id),
+        }
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_filter_by_project_includes_workflow_attached_to_all_projects_detector(self) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        self.create_detector_workflow(
+            workflow=self.workflow,
+            detector=all_projects_detector,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params=[("project", self.project.id)]
+        )
+
+        assert str(self.workflow.id) in {workflow["id"] for workflow in response.data}
+
+    def test_filter_by_project_excludes_all_projects_workflow_without_flag(self) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        self.create_detector_workflow(
+            workflow=self.workflow,
+            detector=all_projects_detector,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params=[("project", self.project.id)]
+        )
+
+        assert str(self.workflow.id) not in {workflow["id"] for workflow in response.data}
+
     def test_query_filter_by_action(self) -> None:
         self._create_action_for_workflow(self.workflow, Action.Type.SLACK, self.FAKE_SLACK_CONFIG)
         self._create_action_for_workflow(self.workflow, Action.Type.SLACK, self.FAKE_SLACK_CONFIG)
@@ -592,6 +637,13 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             role="member",
             organization=self.organization,
         )
+        self.team_admin_user = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=self.team_admin_user,
+            role="member",
+            organization=self.organization,
+        )
         self.basic_condition = [
             {
                 "type": Condition.EQUAL.value,
@@ -614,6 +666,51 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             {"name": "teamId", "value": "1"},
             {"name": "assigneeId", "value": "3"},
         ]
+
+    def _workflow_creation_model_counts(self) -> tuple[int, int, int, int, int, int, int]:
+        return (
+            Workflow.objects.count(),
+            DataConditionGroup.objects.count(),
+            DataCondition.objects.count(),
+            Action.objects.count(),
+            WorkflowDataConditionGroup.objects.count(),
+            DataConditionGroupAction.objects.count(),
+            DetectorWorkflow.objects.count(),
+        )
+
+    def _assert_create_rejected_without_writes(
+        self, data: dict[str, Any], status_code: int = 403
+    ) -> None:
+        model_counts = self._workflow_creation_model_counts()
+        workflow_data = {
+            **self.valid_workflow,
+            "triggers": {
+                "logicType": "any",
+                "conditions": self.basic_condition,
+            },
+            "actionFilters": [
+                {
+                    "logicType": "any",
+                    "conditions": self.basic_condition,
+                    "actions": [
+                        {
+                            "type": Action.Type.EMAIL,
+                            "config": {"targetType": "issue_owners"},
+                            "data": {"fallthroughType": "ActiveMembers"},
+                        }
+                    ],
+                }
+            ],
+            **data,
+        }
+
+        self.get_error_response(
+            self.organization.slug,
+            raw_data=workflow_data,
+            status_code=status_code,
+        )
+
+        assert self._workflow_creation_model_counts() == model_counts
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.workflow.create_audit_entry")
     def test_create_workflow__basic(self, mock_audit: mock.MagicMock) -> None:
@@ -1072,6 +1169,82 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         ]
         assert len(detector_workflow_audit_calls) == 2
 
+    def test_team_admin_can_create_project_scoped_workflow(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(user=self.team_admin_user)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data={**self.valid_workflow, "detectorIds": [detector.id]},
+        )
+
+        assert response.status_code == 201
+        assert DetectorWorkflow.objects.filter(
+            workflow_id=response.data["id"], detector=detector
+        ).exists()
+
+    def test_team_contributor_cannot_create_project_scoped_workflow(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(user=self.member_user)
+
+        self._assert_create_rejected_without_writes({"detectorIds": [detector.id]})
+
+    def test_team_admin_cannot_create_workflow_for_another_teams_detector(self) -> None:
+        other_team = self.create_team(organization=self.organization)
+        other_project = self.create_project(
+            organization=self.organization,
+            teams=[other_team],
+        )
+        detector = self.create_detector(project=other_project)
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(user=self.team_admin_user)
+
+        self._assert_create_rejected_without_writes({"detectorIds": [detector.id]})
+
+    def test_team_admin_cannot_create_workflow_with_mixed_project_access(self) -> None:
+        accessible_detector = self.create_detector(project=self.project)
+        other_team = self.create_team(organization=self.organization)
+        other_project = self.create_project(
+            organization=self.organization,
+            teams=[other_team],
+        )
+        inaccessible_detector = self.create_detector(project=other_project)
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(user=self.team_admin_user)
+
+        self._assert_create_rejected_without_writes(
+            {"detectorIds": [accessible_detector.id, inaccessible_detector.id]}
+        )
+
+    def test_team_admin_cannot_create_detached_workflow(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(user=self.team_admin_user)
+
+        self._assert_create_rejected_without_writes({})
+
+    def test_team_admin_cannot_create_workflow_with_cross_organization_detector(self) -> None:
+        other_organization = self.create_organization()
+        other_project = self.create_project(organization=other_organization)
+        detector = self.create_detector(project=other_project)
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(user=self.team_admin_user)
+
+        self._assert_create_rejected_without_writes({"detectorIds": [detector.id]}, status_code=400)
+
+    def test_organization_alert_writer_can_create_detached_workflow(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", True)
+        self.login_as(user=self.member_user)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+
+        assert response.status_code == 201
+        assert not DetectorWorkflow.objects.filter(workflow_id=response.data["id"]).exists()
+
     @mock.patch("sentry.workflow_engine.endpoints.validators.utils.create_audit_entry")
     def test_create_workflow_connected_to_error_detector(self, mock_audit: mock.MagicMock) -> None:
         """
@@ -1101,6 +1274,35 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             if call.kwargs.get("event") == audit_log.get_event_id("DETECTOR_WORKFLOW_ADD")
         ]
         assert len(detector_workflow_audit_calls) == 1
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_create_workflow_with_all_projects_detector(self) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        workflow_data = {**self.valid_workflow, "detectorIds": [all_projects_detector.id]}
+
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=workflow_data,
+        )
+
+        assert response.status_code == 201
+
+        created_detector_workflows = DetectorWorkflow.objects.filter(
+            workflow_id=response.data["id"]
+        )
+        assert created_detector_workflows.count() == 1
+        assert created_detector_workflows.get().detector_id == all_projects_detector.id
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_create_workflow_with_all_projects_detector_requires_org_write(self) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+
+        self.organization.update_option("sentry:alerts_member_write", True)
+        self.login_as(user=self.member_user)
+
+        self._assert_create_rejected_without_writes({"detectorIds": [all_projects_detector.id]})
 
     def test_create_workflow_with_invalid_detector_ids(self) -> None:
         workflow_data = {
@@ -1334,6 +1536,105 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
             organization_id=self.organization.id, name="Third Workflow", enabled=False
         )
 
+    def test_team_admin_can_update_project_scoped_workflow(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.workflow.id)},
+            raw_data={"enabled": True},
+        )
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.enabled is True
+
+    def test_team_contributor_cannot_update_project_scoped_workflow(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_contributor = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "contributor")],
+            user=team_contributor,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_contributor)
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": str(self.workflow.id)},
+            raw_data={"enabled": True},
+            status_code=403,
+        )
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.enabled is False
+
+    def test_team_admin_project_filter_excludes_detached_workflows(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": str(self.project.id)},
+            raw_data={"enabled": True},
+        )
+
+        self.workflow.refresh_from_db()
+        self.workflow_two.refresh_from_db()
+        self.workflow_three.refresh_from_db()
+        assert self.workflow.enabled is True
+        assert self.workflow_two.enabled is False
+        assert self.workflow_three.enabled is False
+
+    def test_team_admin_cannot_partially_update_mixed_scope_workflows(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params=[
+                ("id", str(self.workflow.id)),
+                ("id", str(self.workflow_two.id)),
+            ],
+            raw_data={"enabled": True},
+            status_code=403,
+        )
+
+        self.workflow.refresh_from_db()
+        self.workflow_two.refresh_from_db()
+        assert self.workflow.enabled is False
+        assert self.workflow_two.enabled is False
+
     def test_bulk_enable_workflows_by_ids_success(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
@@ -1356,6 +1657,29 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
         # Verify third workflow is unaffected
         self.workflow_three.refresh_from_db()
         assert self.workflow_three.enabled is False
+
+    def test_bulk_enable_all_projects_slug_sentinel_includes_detached_workflows(self) -> None:
+        self.create_detector_workflow(
+            workflow=self.workflow, detector=self.create_detector(project=self.project)
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"projectSlug": "$all"},
+            raw_data={"enabled": True},
+        )
+
+        self.workflow.refresh_from_db()
+        self.workflow_two.refresh_from_db()
+        self.workflow_three.refresh_from_db()
+        assert self.workflow.enabled is True
+        assert self.workflow_two.enabled is True
+        assert self.workflow_three.enabled is True
+        assert {workflow["id"] for workflow in response.data} == {
+            str(self.workflow.id),
+            str(self.workflow_two.id),
+            str(self.workflow_three.id),
+        }
 
     def test_bulk_disable_workflows_by_ids_success(self) -> None:
         self.workflow.update(enabled=True)
@@ -1486,6 +1810,77 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
         self.workflow_three = self.create_workflow(
             organization_id=self.organization.id, name="Third Workflow"
         )
+
+    def test_team_admin_can_delete_project_scoped_workflow(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                qs_params={"id": str(self.workflow.id)},
+                status_code=204,
+            )
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.status == ObjectStatus.PENDING_DELETION
+
+    def test_team_admin_project_filter_excludes_detached_workflows(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                qs_params={"project": str(self.project.id)},
+                status_code=204,
+            )
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.status == ObjectStatus.PENDING_DELETION
+        self.assert_unaffected_workflows([self.workflow_two, self.workflow_three])
+
+    def test_team_admin_cannot_partially_delete_mixed_scope_workflows(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params=[
+                ("id", str(self.workflow.id)),
+                ("id", str(self.workflow_two.id)),
+            ],
+            status_code=403,
+        )
+
+        self.assert_unaffected_workflows([self.workflow, self.workflow_two])
 
     def test_delete_workflows_by_ids_success(self) -> None:
         """Test successful deletion of workflows by specific IDs"""
@@ -1848,6 +2243,39 @@ class OrganizationWorkflowPutProjectAccessTest(
         self.user_workflow.refresh_from_db()
         assert self.user_workflow.enabled is True
 
+    def test_put_cannot_partially_modify_accessible_and_inaccessible_workflows(self) -> None:
+        self.login_as(self.limited_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params=[
+                ("id", str(self.user_workflow.id)),
+                ("id", str(self.other_workflow.id)),
+            ],
+            raw_data={"enabled": True},
+            status_code=403,
+        )
+
+        self.user_workflow.refresh_from_db()
+        self.other_workflow.refresh_from_db()
+        assert self.user_workflow.enabled is False
+        assert self.other_workflow.enabled is False
+
+    def test_put_cannot_modify_mixed_all_projects_workflow_without_org_write(self) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        self.create_detector_workflow(workflow=self.user_workflow, detector=all_projects_detector)
+        self.login_as(self.limited_user)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.user_workflow.id)},
+            raw_data={"enabled": True},
+        )
+
+        assert "No workflows found" in response.data["detail"]
+        self.user_workflow.refresh_from_db()
+        assert self.user_workflow.enabled is False
+
 
 @cell_silo_test
 class OrganizationWorkflowDeleteProjectAccessTest(
@@ -1889,7 +2317,7 @@ class OrganizationWorkflowDeleteProjectAccessTest(
             object_id=self.other_workflow.id,
         ).exists()
 
-    def test_delete_can_delete_workflows_from_accessible_projects(self) -> None:
+    def test_delete_can_edit_workflows_from_accessible_projects(self) -> None:
         """
         Test that users CAN DELETE workflows connected to projects they have access to.
         """
@@ -1910,3 +2338,39 @@ class OrganizationWorkflowDeleteProjectAccessTest(
             model_name="Workflow",
             object_id=self.user_workflow.id,
         ).exists()
+
+    def test_delete_cannot_partially_delete_accessible_and_inaccessible_workflows(self) -> None:
+        self.login_as(self.limited_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params=[
+                ("id", str(self.user_workflow.id)),
+                ("id", str(self.other_workflow.id)),
+            ],
+            status_code=403,
+        )
+
+        self.user_workflow.refresh_from_db()
+        self.other_workflow.refresh_from_db()
+        assert self.user_workflow.status != ObjectStatus.PENDING_DELETION
+        assert self.other_workflow.status != ObjectStatus.PENDING_DELETION
+        assert not CellScheduledDeletion.objects.filter(
+            model_name="Workflow",
+            object_id__in=[self.user_workflow.id, self.other_workflow.id],
+        ).exists()
+
+    def test_delete_cannot_delete_mixed_all_projects_workflow_without_org_write(self) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        self.create_detector_workflow(workflow=self.user_workflow, detector=all_projects_detector)
+        self.login_as(self.limited_user)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.user_workflow.id)},
+            status_code=200,
+        )
+
+        assert "No workflows found" in response.data["detail"]
+        self.user_workflow.refresh_from_db()
+        assert self.user_workflow.status != ObjectStatus.PENDING_DELETION

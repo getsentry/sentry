@@ -1,11 +1,18 @@
 import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {InfoTip} from '@sentry/scraps/info';
+
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
 import {EventTagsTree} from 'sentry/components/events/eventTags/eventTagsTree';
+import {
+  TracePreview,
+  TracePreviewFullTraceButton,
+} from 'sentry/components/events/interfaces/performance/tracePreview';
+import {eventHasSyntheticTrace} from 'sentry/components/events/interfaces/performance/utils';
 import {CrashReportSection} from 'sentry/components/feedback/feedbackItem/crashReportSection';
 import {FeedbackActivitySection} from 'sentry/components/feedback/feedbackItem/feedbackActivitySection';
 import {FeedbackItemHeader} from 'sentry/components/feedback/feedbackItem/feedbackItemHeader';
@@ -14,11 +21,9 @@ import {FeedbackReplay} from 'sentry/components/feedback/feedbackItem/feedbackRe
 import {FeedbackUrl} from 'sentry/components/feedback/feedbackItem/feedbackUrl';
 import {MessageSection} from 'sentry/components/feedback/feedbackItem/messageSection';
 import {MessageTitle} from 'sentry/components/feedback/feedbackItem/messageTitle';
-import {TraceDataSection} from 'sentry/components/feedback/feedbackItem/traceDataSection';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import {IconChat, IconFire, IconTag} from 'sentry/icons';
+import {IconChat, IconFire, IconSpan, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -36,6 +41,8 @@ interface Props {
 export function FeedbackItem({feedbackItem, eventData, onBackToList}: Props) {
   const organization = useOrganization();
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
+  const hasTracePreview =
+    !!eventData?.contexts.trace?.trace_id && !eventHasSyntheticTrace(eventData);
 
   const overflowRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -91,10 +98,28 @@ export function FeedbackItem({feedbackItem, eventData, onBackToList}: Props) {
             organization={organization}
           />
 
-          {eventData ? (
-            <ErrorBoundary mini>
-              <TraceDataSection eventData={eventData} crashReportId={crashReportId} />
-            </ErrorBoundary>
+          {eventData && hasTracePreview ? (
+            <FeedbackItemSection
+              actions={
+                <TracePreviewFullTraceButton
+                  event={eventData}
+                  organization={organization}
+                  source="feedback"
+                />
+              }
+              collapsible
+              icon={<IconSpan size="xs" />}
+              sectionKey="trace"
+              title={t('Trace Preview')}
+            >
+              <ErrorBoundary mini>
+                <TracePreview
+                  event={eventData}
+                  organization={organization}
+                  source="feedback"
+                />
+              </ErrorBoundary>
+            </FeedbackItemSection>
           ) : null}
 
           {eventData && feedbackItem.project ? (
@@ -134,7 +159,7 @@ export function FeedbackItem({feedbackItem, eventData, onBackToList}: Props) {
               title={
                 <Fragment>
                   {t('Internal Activity')}
-                  <QuestionTooltip
+                  <InfoTip
                     size="xs"
                     title={t(
                       'Use this section to post comments that are visible only to your organization. It will also automatically update when someone resolves or assigns the feedback.'
@@ -168,22 +193,28 @@ function FeedbackItemContexts({
       return [name, value];
     }) ?? []
   );
-  eventData.contexts = eventData.contexts ?? {};
-  eventData.contexts.feedback = eventData.contexts.feedback ?? {};
-  eventData.contexts.feedback['auto_spam.detection_enabled'] =
-    evidenceObject.spam_detection_enabled;
-  if (evidenceObject.spam_detection_enabled) {
-    eventData.contexts.feedback['auto_spam.is_spam'] = evidenceObject.is_spam;
-  }
+  const eventDataWithSpamContext: Event = {
+    ...eventData,
+    contexts: {
+      ...eventData.contexts,
+      feedback: {
+        ...eventData.contexts?.feedback,
+        'auto_spam.detection_enabled': evidenceObject.spam_detection_enabled,
+        ...(evidenceObject.spam_detection_enabled
+          ? {'auto_spam.is_spam': evidenceObject.is_spam}
+          : {}),
+      },
+    },
+  };
 
-  const cards = getOrderedContextItems(eventData).map(
+  const cards = getOrderedContextItems(eventDataWithSpamContext).map(
     ({alias, type, value: contextValue}) => (
       <ContextCard
         key={alias}
         type={type}
         alias={alias}
         value={contextValue}
-        event={eventData}
+        event={eventDataWithSpamContext}
         project={project}
       />
     )

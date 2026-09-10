@@ -3,10 +3,11 @@ from __future__ import annotations
 import builtins
 import logging
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, ClassVar, TypedDict
+from typing import TYPE_CHECKING, Any, ClassVar, Self, TypedDict
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 from jsonschema import ValidationError
 
 from sentry.backup.scopes import RelocationScope
@@ -22,12 +23,13 @@ from sentry.models.owner_base import OwnerModel
 from sentry.utils.cache import cache
 from sentry.workflow_engine.models import DataCondition
 from sentry.workflow_engine.types import DetectorSettings
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 from .json_config import JSONConfigBase
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
-    from sentry.workflow_engine.handlers.detector import DetectorHandler
+    from sentry.workflow_engine.handlers.detector import BaseDetectorHandler
     from sentry.workflow_engine.models.data_condition_group import DataConditionGroupSnapshot
 
 logger = logging.getLogger(__name__)
@@ -46,15 +48,8 @@ class DetectorSnapshot(TypedDict):
     trigger_condition: DataConditionGroupSnapshot | None
 
 
-class DetectorManager(BaseManager["Detector"]):
-    def get_queryset(self) -> BaseQuerySet[Detector]:
-        return (
-            super()
-            .get_queryset()
-            .exclude(status__in=(ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS))
-        )
-
-    def with_type_filters(self) -> BaseQuerySet[Detector]:
+class DetectorQuerySet(BaseQuerySet["Detector"]):
+    def with_type_filters(self) -> Self:
         """
         Returns a queryset with detector type-specific filters applied. This
         filters out detectors based on their type settings
@@ -63,7 +58,37 @@ class DetectorManager(BaseManager["Detector"]):
         code to ensure filtered detectors are hidden. This is the recommended
         way to query detectors.
         """
-        return self.get_queryset().filter(grouptype.registry.get_detector_type_filters())
+        return self.filter(grouptype.registry.get_detector_type_filters())
+
+    def by_organization(self, organization_id: int) -> Self:
+        """
+        Returns a queryset of detectors scoped to the given organization.
+        Project-scoped detectors are matched via project__organization.
+        Null-project (all-projects) detectors are matched via config__organization_id.
+        """
+        from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+
+        return self.filter(
+            Q(project__organization_id=organization_id)
+            | Q(
+                project__isnull=True,
+                type=IssueStreamGroupType.slug,
+                config__organization_id=organization_id,
+            )
+        )
+
+
+class DetectorManager(BaseManager["Detector"]):
+    def get_queryset(self) -> DetectorQuerySet:
+        return DetectorQuerySet(self.model, using=self._db).exclude(
+            status__in=(ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS)
+        )
+
+    def with_type_filters(self) -> DetectorQuerySet:
+        return self.get_queryset().with_type_filters()
+
+    def by_organization(self, organization_id: int) -> DetectorQuerySet:
+        return self.get_queryset().by_organization(organization_id)
 
 
 @cell_silo_model
@@ -110,6 +135,13 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     class Meta(OwnerModel.Meta):
         constraints = OwnerModel.Meta.constraints
+        indexes = [
+            models.Index(
+                models.F("config__organization_id"),
+                name="detector_all_projects_org_idx",
+                condition=models.Q(project__isnull=True, type=IssueStreamGroupType.slug),
+            )
+        ]
 
     error_detector_project_options = {
         "fingerprinting_rules": "sentry:fingerprinting_rules",
@@ -154,7 +186,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         return group_type
 
     @property
-    def detector_handler(self) -> DetectorHandler[Any] | None:
+    def detector_handler(self) -> BaseDetectorHandler[Any] | None:
         group_type = self.group_type
 
         if self.settings.handler is None:

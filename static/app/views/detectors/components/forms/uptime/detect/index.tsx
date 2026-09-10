@@ -11,13 +11,13 @@ import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t, tct} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import {HTTPSnippet} from 'sentry/views/alerts/rules/uptime/httpSnippet';
 import {UptimeHeadersField} from 'sentry/views/detectors/components/forms/uptime/detect/uptimeHeadersField';
 import {
   UPTIME_DEFAULT_DOWNTIME_THRESHOLD,
   useUptimeDetectorFormField,
 } from 'sentry/views/detectors/components/forms/uptime/fields';
 import {UptimeSectionGrid} from 'sentry/views/detectors/components/forms/uptime/styles';
+import {HTTPSnippet} from 'sentry/views/detectors/components/uptime/httpSnippet';
 
 const HTTP_METHOD_OPTIONS = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];
 const HTTP_METHODS_NO_BODY = ['GET', 'HEAD', 'OPTIONS'];
@@ -73,7 +73,7 @@ export function UptimeDetectorFormDetectSection({step}: {step?: number}) {
             label={t('Interval')}
             defaultValue={60}
             flexibleControlStateSize
-            showHelpInTooltip={{isHoverable: true}}
+            showHelpInTooltip
             help={({model}) =>
               tct(
                 'The amount of time between each uptime check request. Selecting a period of [interval] means it will take at least [expectedFailureInterval] until you are notified of a failure. [link:Learn more].',
@@ -145,7 +145,7 @@ export function UptimeDetectorFormDetectSection({step}: {step?: number}) {
           <BooleanField
             name="traceSampling"
             label={t('Allow Sampling')}
-            showHelpInTooltip={{isHoverable: true}}
+            showHelpInTooltip
             help={tct(
               'Defer the sampling decision to a Sentry SDK configured in your application. Disable to prevent all span sampling. [link:Learn more].',
               {

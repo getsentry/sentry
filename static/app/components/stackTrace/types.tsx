@@ -59,7 +59,7 @@ export type StackTraceMeta = {
 export interface StackTraceProviderProps {
   children: ReactNode;
   event: Event;
-  stacktrace: StacktraceType;
+  stacktrace: StacktraceType | null;
   /** When true, all frames start collapsed regardless of their position. */
   collapseAll?: boolean;
   /** Frame index to expand by default. Null means no default-expanded frame. */

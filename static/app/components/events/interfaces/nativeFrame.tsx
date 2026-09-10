@@ -367,7 +367,6 @@ export function NativeFrame({
                 title={frame.absPath}
                 disabled={!(defined(frame.absPath) && frame.absPath !== frame.filename)}
                 delay={tooltipDelay}
-                isHoverable
                 maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
               >
                 <FileName>

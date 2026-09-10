@@ -10,6 +10,7 @@ import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/even
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
 import {useEventLogsUrl} from 'sentry/components/events/ourlogs/useEventLogsUrl';
 import {LazyRender} from 'sentry/components/lazyRender';
+import {DataTable} from 'sentry/components/tables/dataTable';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -24,7 +25,6 @@ import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {TableBody} from 'sentry/views/explore/components/table';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {
   LogsPageDataProvider,
@@ -260,7 +260,7 @@ function OurlogsSectionContent({
     >
       <Stack>
         <SmallTable>
-          <TableBody>
+          <DataTable.Body>
             {abbreviatedTableData?.map((row, index) => (
               <LogRowContent
                 dataRow={row}
@@ -273,7 +273,7 @@ function OurlogsSectionContent({
                 onEmbeddedRowClick={onEmbeddedRowClick}
               />
             ))}
-          </TableBody>
+          </DataTable.Body>
         </SmallTable>
         {tableData.data && tableData.data.length > 5 ? (
           <div>

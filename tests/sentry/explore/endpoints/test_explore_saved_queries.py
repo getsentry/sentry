@@ -238,6 +238,29 @@ class ExploreSavedQueriesTest(APITestCase):
                 assert values[0] == expected[0]
                 assert values[1] == expected[1]
 
+    def test_get_sortby_recently_viewed_stable_order(self) -> None:
+        query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
+        same_date = before_now(minutes=1)
+        created = [
+            ExploreSavedQuery.objects.create(
+                organization=self.org,
+                created_by_id=self.user.id,
+                name=f"Unvisited {i}",
+                query=query,
+                date_added=same_date,
+                date_updated=same_date,
+            )
+            for i in range(3)
+        ]
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"sortBy": "recentlyViewed"})
+
+        assert response.status_code == 200, response.content
+        expected = [q.name for q in sorted(created, key=lambda q: q.id, reverse=True)]
+        returned = [row["name"] for row in response.data if row["name"].startswith("Unvisited ")]
+        assert returned == expected
+
     def test_get_sortby_myqueries(self) -> None:
         uhoh_user = self.create_user(username="uhoh")
         self.create_member(organization=self.org, user=uhoh_user)

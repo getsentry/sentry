@@ -1,0 +1,114 @@
+---
+title: RelativeTime
+description: A detail card for a single timestamp, showing the relative time alongside the absolute time in both the viewer's timezone and UTC.
+category: utilities
+source: '@sentry/scraps/relativeTime'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/relativeTime/relativeTime.tsx
+---
+
+import {RelativeTime} from '@sentry/scraps/relativeTime';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/relativeTime');
+
+`RelativeTime` is the hover detail for a timestamp rendered elsewhere. Sentry surfaces
+timestamps as relative strings — "43min ago", "8 months ago" — which are quick to scan but
+ambiguous when you are debugging across timezones. This card resolves that ambiguity by
+showing the absolute time twice: once in the viewer's timezone and once in UTC.
+
+<Storybook.Demo>
+  <RelativeTime date="2026-07-29T06:40:00Z" label="Last Seen" suffix="ago" />
+</Storybook.Demo>
+
+```jsx
+<RelativeTime date="2026-07-29T06:40:00Z" label="Last Seen" suffix="ago" />
+```
+
+## Usage
+
+You usually do not render this yourself. `TimeSince` is the trigger this card belongs to, and
+it renders one for every timestamp — pass `tooltipPrefix` to give the card its header.
+
+```jsx
+<TimeSince date={date} suffix="ago" unitStyle="short" tooltipPrefix={t('Last Seen')} />
+```
+
+Reach for `RelativeTime` directly only when you are building the tooltip yourself. It is
+composed out of `Tooltip.Header` and `Tooltip.Grid`, which pad themselves, and the overlay
+drops its own padding on seeing them, so all you pass is the card's width.
+
+```jsx
+import {RELATIVE_TIME_MAX_WIDTH, RelativeTime} from '@sentry/scraps/relativeTime';
+
+<Tooltip
+  maxWidth={RELATIVE_TIME_MAX_WIDTH}
+  title={<RelativeTime date={date} label={t('Last Seen')} />}
+>
+  {trigger}
+</Tooltip>;
+```
+
+## The header is optional
+
+Most timestamps in the app are already labelled by what they sit beside, so a card without a
+`label` is the two timezone rows on their own.
+
+<Storybook.Demo>
+  <RelativeTime date="2026-07-29T06:40:00Z" suffix="ago" />
+</Storybook.Demo>
+
+```jsx
+<RelativeTime date={date} suffix="ago" />
+```
+
+## Matching the trigger
+
+The header repeats the relative time so the card reads as an expansion of what was hovered
+rather than a separate fact. For that to hold, give `RelativeTime` the same `unitStyle`,
+`suffix`, and `prefix` as the trigger. A trigger reading "43min ago" should open a card whose
+header also reads "43min ago", not "43 minutes ago".
+
+<Storybook.Demo>
+  <RelativeTime
+    date="2026-07-29T06:40:00Z"
+    label="Last Seen"
+    suffix="ago"
+    unitStyle="short"
+  />
+</Storybook.Demo>
+
+```jsx
+<RelativeTime date={date} label={t('Last Seen')} suffix="ago" unitStyle="short" />
+```
+
+## Timezones
+
+The first row follows the viewer's timezone, taken from `useTimezone()` — the user's
+configured timezone, falling back to the browser's. The second row is always UTC. The
+abbreviation in each badge is derived from the date itself, so it reflects daylight saving at
+that moment rather than today: a July timestamp shows `PDT` even when read in December.
+
+Both rows honor the viewer's 24-hour clock preference.
+
+A viewer whose own timezone is UTC gets a single row rather than the same one twice. Zones
+that merely share UTC's offset — `GMT`, or `Europe/London` in winter — keep both rows, since
+there the differing label is the useful part.
+
+Zones without an abbreviation format as an offset instead (`+0545`, `+1245`). The card sizes
+to its content and is allowed to grow to `RELATIVE_TIME_MAX_WIDTH` to fit those rather than
+clipping them.
+
+## Seconds
+
+Timestamps that the minute alone does not identify — spans in a trace, say — can show seconds
+on both rows with `showSeconds`.
+
+<Storybook.Demo>
+  <RelativeTime date="2026-07-29T06:40:00Z" label="Span start" showSeconds />
+</Storybook.Demo>
+
+```jsx
+<RelativeTime date={date} label={t('Span start')} showSeconds />
+```

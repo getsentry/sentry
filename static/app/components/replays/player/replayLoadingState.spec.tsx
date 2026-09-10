@@ -24,7 +24,7 @@ function makeReaderResult(overrides: Partial<ReaderResult> = {}): ReaderResult {
     replayRecord: undefined,
     status: 'success',
     ...overrides,
-  } as ReaderResult;
+  };
 }
 
 function requestError(status: number) {

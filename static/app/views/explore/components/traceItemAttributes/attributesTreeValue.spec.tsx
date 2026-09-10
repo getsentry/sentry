@@ -5,6 +5,7 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
+import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTreeValue} from 'sentry/views/explore/components/traceItemAttributes/attributesTreeValue';
 
 jest.mock('sentry/actionCreators/modal', () => ({
@@ -16,16 +17,19 @@ describe('AttributesTreeValue', () => {
   const location = LocationFixture();
   const theme = ThemeFixture();
 
-  const defaultProps = {
-    content: {
-      subtree: {},
-      value: 'test-value',
-      originalAttribute: {
-        attribute_key: 'test.key',
-        attribute_value: 'test-value',
-        original_attribute_key: 'test.key',
-      },
+  const defaultContent: AttributesTreeContent = {
+    subtree: {},
+    value: 'test-value',
+    originalAttribute: {
+      attribute_key: 'test.key',
+      attribute_value: 'test-value',
+      original_attribute_key: 'test.key',
+      type: 'str',
     },
+  };
+
+  const defaultProps = {
+    content: defaultContent,
     rendererExtra: {
       organization,
       navigate: jest.fn(),

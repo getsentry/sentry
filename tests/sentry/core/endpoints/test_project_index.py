@@ -1,9 +1,13 @@
+import pytest
 import responses
 from django.db import router
 from django.urls import reverse
 from rest_framework import status
+from rest_framework.exceptions import PermissionDenied
 
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.constants import ObjectStatus
+from sentry.core.endpoints.project_index import ProjectIndexEndpoint
 from sentry.deletions.tasks.hybrid_cloud import (
     schedule_hybrid_cloud_foreign_key_jobs,
     schedule_hybrid_cloud_foreign_key_jobs_control,
@@ -11,16 +15,47 @@ from sentry.deletions.tasks.hybrid_cloud import (
 from sentry.models.apitoken import ApiToken
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
+from sentry.seer import agent_token
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode
 
 
 class ProjectsListTest(APITestCase):
     endpoint = "sentry-api-0-projects"
+
+    def test_agent_auth_missing_required_context_is_forbidden(self) -> None:
+        user = self.create_user()
+
+        for missing_context, auth in (
+            (
+                "organization",
+                AuthenticatedToken(
+                    kind=agent_token.AGENT_TOKEN_KIND,
+                    scopes=["project:read"],
+                    user_id=user.id,
+                ),
+            ),
+            (
+                "user",
+                AuthenticatedToken(
+                    kind=agent_token.AGENT_TOKEN_KIND,
+                    scopes=["project:read"],
+                    organization_id=self.organization.id,
+                ),
+            ),
+        ):
+            with self.subTest(missing_context=missing_context):
+                request = drf_request_from_request(
+                    self.make_request(user=user, auth=auth, method="GET")
+                )
+
+                with pytest.raises(PermissionDenied):
+                    ProjectIndexEndpoint().get(request)
 
     def test_member_constraints(self) -> None:
         user = self.create_user(is_superuser=True)

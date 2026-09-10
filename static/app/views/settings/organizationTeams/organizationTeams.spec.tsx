@@ -5,21 +5,67 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {OrganizationTeams} from 'sentry/views/settings/organizationTeams/organizationTeams';
 
 jest.mocked(recreateRoute).mockReturnValue('');
+jest.unmock('@tanstack/react-pacer');
 
 jest.mock('sentry/actionCreators/modal', () => ({
   openCreateTeamModal: jest.fn(),
 }));
 
+const TEAM_SEARCH = 'frontend';
+
 describe('OrganizationTeams', () => {
+  beforeEach(() => TeamStore.loadInitialData([], false, null));
+
+  afterEach(() => {
+    jest.useRealTimers();
+    act(() => TeamStore.reset());
+  });
+
+  it('debounces team search requests', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+    const {organization} = initializeOrg();
+    OrganizationStore.onUpdate(organization, {replace: true});
+    TeamStore.loadInitialData([TeamFixture()], false, null);
+    const matchingTeam = TeamFixture({id: '2', slug: TEAM_SEARCH});
+    const searchRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      match: [MockApiClient.matchQuery({query: TEAM_SEARCH})],
+      body: [matchingTeam],
+    });
+
+    render(
+      <OrganizationTeams
+        organization={organization}
+        access={new Set()}
+        features={new Set()}
+        requestList={[]}
+        onRemoveAccessRequest={() => {}}
+      />,
+      {organization}
+    );
+
+    await user.type(screen.getByPlaceholderText('Search teams'), TEAM_SEARCH);
+
+    expect(searchRequest).not.toHaveBeenCalled();
+
+    await act(() => jest.advanceTimersByTimeAsync(DEFAULT_DEBOUNCE_DURATION));
+
+    expect(searchRequest).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText(`#${TEAM_SEARCH}`)).toBeInTheDocument();
+  });
+
   describe('Open Membership', () => {
     const {organization} = initializeOrg({
       organization: {

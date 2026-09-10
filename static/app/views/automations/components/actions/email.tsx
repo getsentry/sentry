@@ -64,7 +64,7 @@ function AssignedToTeam({teamId}: {teamId: string}) {
 
 function AssignedToMember({memberId}: {memberId: number}) {
   const {data: user} = useUserFromId({id: memberId});
-  return t('Notify %s', `${user?.name ?? user?.email ?? 'unknown'}`);
+  return t('Notify %s', user?.name ?? user?.email ?? 'unknown');
 }
 
 export function EmailNode() {

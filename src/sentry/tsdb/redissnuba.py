@@ -40,12 +40,6 @@ method_specifications = {
     "record_multi": (WRITE, lambda callargs: {model for model, key, values in callargs["items"]}),
     "merge_distinct_counts": (WRITE, single_model_argument),
     "delete_distinct_counts": (WRITE, multiple_model_argument),
-    "record_frequency_multi": (
-        WRITE,
-        lambda callargs: {model for model, data in callargs["requests"]},
-    ),
-    "merge_frequencies": (WRITE, single_model_argument),
-    "delete_frequencies": (WRITE, multiple_model_argument),
     "flush": (WRITE, dont_do_this),
 }
 

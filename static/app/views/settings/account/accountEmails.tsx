@@ -218,7 +218,6 @@ type EmailRowProps = {
   email: string;
   onRemove: (email: string) => void;
   onVerify: (email: string) => void;
-  hideRemove?: boolean;
   isPrimary?: boolean;
   isVerified?: boolean;
   onSetPrimary?: (email: string) => void;
@@ -231,7 +230,6 @@ function EmailRow({
   onSetPrimary,
   isVerified,
   isPrimary,
-  hideRemove,
 }: EmailRowProps) {
   return (
     <EmailItem>
@@ -251,7 +249,7 @@ function EmailRow({
             {t('Resend verification')}
           </Button>
         )}
-        {!hideRemove && !isPrimary && (
+        {!isPrimary && (
           <Confirm
             onConfirm={() => onRemove(email)}
             priority="danger"

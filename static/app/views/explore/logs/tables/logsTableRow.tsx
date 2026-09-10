@@ -1,7 +1,7 @@
 import type {ComponentProps, SyntheticEvent} from 'react';
 import {Fragment, memo, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import type {UseQueryResult} from '@tanstack/react-query';
+import {useMutation, type UseQueryResult} from '@tanstack/react-query';
 import classNames from 'classnames';
 import omit from 'lodash/omit';
 
@@ -34,6 +34,7 @@ import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
+import {getPageUrlWithParams} from 'sentry/utils/url/getPageUrlWithParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -166,13 +167,51 @@ const ALLOWED_CELL_ACTIONS: Actions[] = [
 ];
 const EXPLORE_SIMILAR_SPANS_REFERRER = 'trace-logs-table-similar-spans';
 
+function getExploreSimilarSpansUrl({
+  message,
+  organization,
+  selection,
+}: {
+  message: string;
+  organization: Organization;
+  selection: PageFilters;
+}) {
+  return getExploreUrl({
+    organization,
+    selection: {
+      ...selection,
+      datetime: {
+        period: '24h',
+        start: null,
+        end: null,
+        utc: selection.datetime.utc,
+      },
+    },
+    mode: Mode.SAMPLES,
+    referrer: EXPLORE_SIMILAR_SPANS_REFERRER,
+    crossEvents: [
+      {
+        type: 'logs',
+        query: `${OurLogKnownFieldKey.MESSAGE}:"${escapeDoubleQuotes(message)}"`,
+      },
+    ],
+  });
+}
+
 function getExploreSimilarSpansMenuItems({
   message,
+  onResolveMessage,
   organization,
   selection,
   showExploreSimilarSpansLink,
 }: {
   message: string | number | null | undefined;
+  /**
+   * Set while the untruncated message has not loaded. The item resolves the
+   * message on click rather than linking to a query built from a shortened one,
+   * so it trades the href for correctness only for as long as that lasts.
+   */
+  onResolveMessage: (() => void) | undefined;
   organization: Organization;
   selection: PageFilters;
   showExploreSimilarSpansLink?: boolean;
@@ -187,26 +226,15 @@ function getExploreSimilarSpansMenuItems({
     {
       key: 'explore-similar-spans',
       label: t('Explore similar spans'),
-      to: getExploreUrl({
-        organization,
-        selection: {
-          ...selection,
-          datetime: {
-            period: '24h',
-            start: null,
-            end: null,
-            utc: selection.datetime.utc,
-          },
-        },
-        mode: Mode.SAMPLES,
-        referrer: EXPLORE_SIMILAR_SPANS_REFERRER,
-        crossEvents: [
-          {
-            type: 'logs',
-            query: `${OurLogKnownFieldKey.MESSAGE}:"${escapeDoubleQuotes(messageString)}"`,
-          },
-        ],
-      }),
+      ...(onResolveMessage
+        ? {onAction: onResolveMessage}
+        : {
+            to: getExploreSimilarSpansUrl({
+              message: messageString,
+              organization,
+              selection,
+            }),
+          }),
     },
   ];
 }
@@ -226,7 +254,7 @@ function isInsideButton(element: Element | null): boolean {
   return false;
 }
 
-export const LogRowContent = memo(function LogRowContent({
+export const LogRowContent = memo(function LogRowContentImpl({
   dataRow,
   embedded = false,
   embeddedOptions,
@@ -357,17 +385,24 @@ export const LogRowContent = memo(function LogRowContent({
   const logTimestampSeconds = isRegularLogResponseItem(dataRow)
     ? getLogRowTimestampMillis(dataRow) / 1000
     : null;
-  const {hoverProps, prefetch, isProjectReady, traceItemMeta, traceItemAttributes} =
-    usePrefetchTraceItemDetailsOnHover({
-      traceItemId: rowId,
-      projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
-      traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID]),
-      traceItemType: TraceItemDataset.LOGS,
-      referrer: 'api.explore.log-item-details',
-      timestamp: logTimestampSeconds,
-      sharedHoverTimeoutRef,
-      timeout: prefetchTimeout,
-    });
+  const {
+    fetchTraceItemDetails,
+    hoverProps,
+    prefetch,
+    isProjectReady,
+    isTraceItemDetailsPending,
+    traceItemMeta,
+    traceItemAttributes,
+  } = usePrefetchTraceItemDetailsOnHover({
+    traceItemId: rowId,
+    projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
+    traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID]),
+    traceItemType: TraceItemDataset.LOGS,
+    referrer: 'api.explore.log-item-details',
+    timestamp: logTimestampSeconds,
+    sharedHoverTimeoutRef,
+    timeout: prefetchTimeout,
+  });
   usePrefetchTraceItemDetailsOnMount({
     prefetch,
     enabled: isHighlighted,
@@ -375,13 +410,74 @@ export const LogRowContent = memo(function LogRowContent({
   });
   const [caseInsensitivity] = useCaseInsensitivity();
 
+  // The table asks the API to truncate long strings for display, so the rendered
+  // cell value can be cut short. Trace item details come back untruncated.
+  async function resolveFullCellValue(field: string, cellValue: string | number) {
+    if (typeof cellValue !== 'string') {
+      return cellValue;
+    }
+
+    const attributes = traceItemAttributes ?? (await fetchTraceItemDetails())?.attributes;
+    const fullValue = attributes?.find(attribute => attribute.name === field)?.value;
+
+    return typeof fullValue === 'string' ? fullValue : cellValue;
+  }
+
+  function filterOnValue(field: string, value: string | number, negated: boolean) {
+    const filter = getMessageFilter(field, dataRow, value);
+    addSearchFilter({key: filter.key, value: filter.value, negated});
+  }
+
+  function exploreSimilarSpansFor(message: string | number) {
+    navigate(
+      getExploreSimilarSpansUrl({message: String(message), organization, selection})
+    );
+  }
+
+  const copyCellValue = useMutation({
+    mutationFn: ({cellValue, field}: {cellValue: string | number; field: string}) =>
+      resolveFullCellValue(field, cellValue),
+    onSuccess: value => copyToClipboard(value),
+    onError: (_error, {cellValue}) => copyToClipboard(cellValue),
+  });
+
+  const exploreSimilarSpans = useMutation({
+    mutationFn: ({cellValue, field}: {cellValue: string | number; field: string}) =>
+      resolveFullCellValue(field, cellValue),
+    onSuccess: value => exploreSimilarSpansFor(value),
+    onError: (_error, {cellValue}) => exploreSimilarSpansFor(cellValue),
+  });
+
+  const filterOnCellValue = useMutation({
+    mutationFn: ({
+      cellValue,
+      field,
+    }: {
+      cellValue: string | number;
+      field: string;
+      negated: boolean;
+    }) => resolveFullCellValue(field, cellValue),
+    onSuccess: (value, {field, negated}) => filterOnValue(field, value, negated),
+    onError: (_error, {cellValue, field, negated}) =>
+      filterOnValue(field, cellValue, negated),
+  });
+
   const observedTimestamp = traceItemAttributes?.find(
-    a => a.name === 'sentry.observed_timestamp_nanos'
+    a => a.name === OurLogKnownFieldKey.OBSERVED_TIMESTAMP_NANOS
   );
+
+  // The table asks the API to truncate long strings for display, so the row's
+  // message can be cut short. Trace item details come back untruncated, and
+  // hovering the row prefetches them before the cell actions are reachable.
+  const fullMessage = traceItemAttributes?.find(
+    a => a.name === OurLogKnownFieldKey.MESSAGE
+  )?.value;
 
   const rendererExtra: RendererExtra = {
     highlightTerms,
     caseSensitiveHighlighting: !caseInsensitivity,
+    datetime: selection.datetime,
+    isTraceItemDetailsPending,
     logColors,
     useFullSeverityText: false,
     location,
@@ -392,7 +488,7 @@ export const LogRowContent = memo(function LogRowContent({
       ...(observedTimestamp && {
         [OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: String(observedTimestamp.value),
       }),
-    } as OurLogsResponseItem,
+    },
     attributeTypes: meta?.fields ?? {},
     theme,
     projectSlug,
@@ -552,7 +648,12 @@ export const LogRowContent = memo(function LogRowContent({
             const extraMenuItems =
               field === OurLogKnownFieldKey.MESSAGE
                 ? getExploreSimilarSpansMenuItems({
-                    message: value,
+                    message: typeof fullMessage === 'string' ? fullMessage : value,
+                    onResolveMessage:
+                      typeof fullMessage === 'string'
+                        ? undefined
+                        : () =>
+                            exploreSimilarSpans.mutate({cellValue: value ?? '', field}),
                     organization,
                     selection,
                     showExploreSimilarSpansLink,
@@ -605,47 +706,40 @@ export const LogRowContent = memo(function LogRowContent({
                     column={discoverColumn}
                     dataRow={dataRow}
                     handleCellAction={(actions, cellValue) => {
-                      const filter = getMessageFilter(field, dataRow, cellValue);
                       switch (actions) {
                         case Actions.ADD:
-                          addSearchFilter({
-                            key: filter.key,
-                            value: filter.value,
-                          });
+                          filterOnCellValue.mutate({cellValue, field, negated: false});
                           break;
                         case Actions.EXCLUDE:
-                          addSearchFilter({
-                            key: filter.key,
-                            value: filter.value,
-                            negated: true,
-                          });
+                          filterOnCellValue.mutate({cellValue, field, negated: true});
                           break;
                         case Actions.COPY_TO_CLIPBOARD:
-                          copyToClipboard(cellValue);
+                          copyCellValue.mutate({cellValue, field});
                           break;
                         case Actions.COPY_LINK: {
                           const logId = String(dataRow[OurLogKnownFieldKey.ID]);
-                          const url = new URL(window.location.origin + location.pathname);
-                          const params = new URLSearchParams(location.search);
                           // In frozen/embedded views (e.g. trace details) the row set is
                           // bounded, so link to the row and let it highlight + expand in
                           // context. On the standalone logs page the row may not be loaded,
                           // so filter to it instead.
-                          if (isFrozen) {
-                            params.set(LOGS_ROW_ID_KEY, logId);
-                          } else {
-                            params.set(LOGS_QUERY_KEY, `id:${logId}`);
-                            params.delete(LOGS_ROW_ID_KEY);
-                          }
-                          url.search = params.toString();
-                          copy(url.toString(), {
+                          const url = getPageUrlWithParams(location, params => {
+                            if (isFrozen) {
+                              params.set(LOGS_ROW_ID_KEY, logId);
+                            } else {
+                              params.set(LOGS_QUERY_KEY, `id:${logId}`);
+                              params.delete(LOGS_ROW_ID_KEY);
+                            }
+                          });
+                          copy(url, {
                             successMessage: t('Copied!'),
                             errorMessage: t('Failed to copy'),
-                          }).then(() => {
-                            trackAnalytics('logs.table.row_link_copied', {
-                              log_id: logId,
-                              organization,
-                            });
+                          }).then(copied => {
+                            if (copied) {
+                              trackAnalytics('logs.table.row_link_copied', {
+                                log_id: logId,
+                                organization,
+                              });
+                            }
                           });
                           break;
                         }
@@ -713,6 +807,7 @@ function LogRowDetails({
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const project = useProjectFromId({
     project_id: '' + dataRow[OurLogKnownFieldKey.PROJECT_ID],
   });
@@ -798,6 +893,7 @@ function LogRowDetails({
                       location,
                       navigate,
                       organization,
+                      datetime: selection.datetime,
                       caseSensitiveHighlighting: !caseInsensitivity,
                       projectSlug,
                       attributes,
@@ -829,6 +925,7 @@ function LogRowDetails({
                   renderers={LogAttributesRendererMap}
                   rendererExtra={{
                     caseSensitiveHighlighting: !caseInsensitivity,
+                    datetime: selection.datetime,
                     highlightTerms,
                     logColors,
                     location,

@@ -46,16 +46,13 @@ import {trackAiQueryOutcome} from 'sentry/components/searchQueryBuilder/askSeerC
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconEllipsis} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
-import {t, tct, tctCode} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {DataCategory, type PageFilters} from 'sentry/types/core';
 import {SavedSearchType} from 'sentry/types/group';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
-import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import {defined} from 'sentry/utils/defined';
 import {EventView, isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
@@ -70,8 +67,7 @@ import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
-import {generateQueryWithTag} from 'sentry/utils/queryString';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {generateQueryWithTag, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
@@ -116,6 +112,7 @@ import {
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
+import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 type Props = {
   addAlert: AddAlert;
@@ -215,6 +212,7 @@ export class Results extends Component<Props, State> {
   componentDidMount() {
     const {organization, selection, location, isHomepage, navigate} = this.props;
     if (location.query[SHOW_UNPARAM_BANNER]) {
+      // oxlint-disable-next-line react/no-did-mount-set-state -- Legacy class lifecycle.
       this.setState({showUnparameterizedBanner: true});
       navigate(
         {
@@ -238,6 +236,7 @@ export class Results extends Component<Props, State> {
     const {eventView, confirmedQuery, savedQuery} = this.state;
 
     if (location.query.incompatible) {
+      // oxlint-disable-next-line react/no-did-update-set-state -- Legacy class lifecycle.
       this.setState({showQueryIncompatibleWithDataset: true});
       this.props.navigate(
         {
@@ -690,161 +689,158 @@ export class Results extends Component<Props, State> {
             splitDecision={splitDecision}
           />
           <Layout.Body>
-            <CustomMeasurementsProvider organization={organization} selection={selection}>
-              <Top width="full">
-                {showUnparameterizedBanner ? <MetricsFallbackBanner /> : null}
-                {error ? (
-                  <Alert.Container>
-                    <Alert variant="danger">{error}</Alert>
-                  </Alert.Container>
-                ) : null}
-                <Tips tips={tips} />
-                {hasDatasetSelectorFeature && showQueryIncompatibleWithDataset ? (
-                  <QueryIncompatibleWithDatasetBanner
-                    onClick={() =>
-                      this.setState({showQueryIncompatibleWithDataset: false})
-                    }
-                  />
-                ) : null}
-                <TransactionsDatasetDeprecationBanner
-                  location={location}
-                  organization={organization}
-                  savedQuery={savedQuery}
-                  savedQueryDataset={savedQueryDataset}
-                  selection={selection}
+            <Top width="full">
+              {showUnparameterizedBanner ? <MetricsFallbackBanner /> : null}
+              {error ? (
+                <Alert.Container>
+                  <Alert variant="danger">{error}</Alert>
+                </Alert.Container>
+              ) : null}
+              <Tips tips={tips} />
+              {hasDatasetSelectorFeature && showQueryIncompatibleWithDataset ? (
+                <QueryIncompatibleWithDatasetBanner
+                  onClick={() => this.setState({showQueryIncompatibleWithDataset: false})}
                 />
-                {savedQueryDataset === SavedQueryDatasets.ERRORS &&
-                  !getDiscoverDeprecationEnabled(organization) &&
-                  getTransactionsDeprecation(organization) && (
-                    <Alert.Container>
-                      <Alert variant="info">
-                        {t(
-                          'Discover \u2192 Errors will be moving soon to Explore \u2192 Errors. Same functionality, just even easier to find.'
-                        )}
-                      </Alert>
-                    </Alert.Container>
-                  )}
-
-                {!hasDatasetSelectorFeature && <SampleDataAlert query={query} />}
-
-                <DiscoverPageFilters
-                  eventView={eventView}
-                  organization={organization}
-                  location={location}
-                  savedQuery={savedQuery}
-                  yAxis={yAxisArray}
-                  isHomepage={isHomepage}
-                  setSavedQuery={setSavedQuery}
-                  errorCode={errorCode}
-                />
-                <CustomMeasurementsContext.Consumer>
-                  {contextValue => (
-                    <SearchBar
-                      organization={organization}
-                      eventView={eventView}
-                      handleSearch={this.handleSearch}
-                      customMeasurements={contextValue?.customMeasurements ?? undefined}
-                    />
-                  )}
-                </CustomMeasurementsContext.Consumer>
-                {!transactionsUnsupported && (
-                  <MetricsCardinalityProvider
-                    organization={organization}
-                    location={location}
-                  >
-                    <ResultsChart
-                      api={api}
-                      organization={organization}
-                      eventView={eventView}
-                      location={location}
-                      onAxisChange={this.handleYAxisChange}
-                      onDisplayChange={this.handleDisplayChange}
-                      onTopEventsChange={this.handleTopEventsChange}
-                      onIntervalChange={this.handleIntervalChange}
-                      total={totalValues}
-                      confirmedQuery={confirmedQuery}
-                      yAxis={yAxisArray}
-                    />
-                  </MetricsCardinalityProvider>
-                )}
-              </Top>
-              <Layout.Main
-                width={showTags && !transactionsUnsupported ? 'twothirds' : 'full'}
-              >
-                {transactionsUnsupported ? (
+              ) : null}
+              <TransactionsDatasetDeprecationBanner
+                location={location}
+                organization={organization}
+                savedQuery={savedQuery}
+                savedQueryDataset={savedQueryDataset}
+                selection={selection}
+              />
+              {savedQueryDataset === SavedQueryDatasets.ERRORS &&
+                !getDiscoverDeprecationEnabled(organization) &&
+                getTransactionsDeprecation(organization) &&
+                // so we know the transaction migration is done before showing this banner
+                organization.features.includes('expose-migrated-discover-queries') && (
                   <Alert.Container>
                     <Alert variant="info">
-                      {tct(
-                        'Your saved transactions queries are no longer available in this UI. Try them out in the [exploreLink:Explore Queries] page instead.',
-                        {
-                          exploreLink: <Link to="/explore/saved-queries/" />,
-                        }
+                      {t(
+                        'Discover \u2192 Errors will be moving soon to Explore \u2192 Errors. Same functionality, just even easier to find.'
                       )}
                     </Alert>
                   </Alert.Container>
-                ) : (
-                  <Table
+                )}
+
+              {!hasDatasetSelectorFeature && <SampleDataAlert query={query} />}
+
+              <DiscoverPageFilters
+                eventView={eventView}
+                organization={organization}
+                location={location}
+                savedQuery={savedQuery}
+                yAxis={yAxisArray}
+                isHomepage={isHomepage}
+                setSavedQuery={setSavedQuery}
+                errorCode={errorCode}
+              />
+              <SearchBar
+                organization={organization}
+                eventView={eventView}
+                handleSearch={this.handleSearch}
+              />
+              {!transactionsUnsupported && (
+                <MetricsCardinalityProvider
+                  organization={organization}
+                  location={location}
+                >
+                  <ResultsChart
+                    api={api}
                     organization={organization}
                     eventView={eventView}
                     location={location}
-                    title={title}
-                    setError={this.setError}
-                    onChangeShowTags={this.handleChangeShowTags}
-                    showTags={showTags}
+                    onAxisChange={this.handleYAxisChange}
+                    onDisplayChange={this.handleDisplayChange}
+                    onTopEventsChange={this.handleTopEventsChange}
+                    onIntervalChange={this.handleIntervalChange}
+                    total={totalValues}
                     confirmedQuery={confirmedQuery}
-                    onCursor={this.handleCursor}
-                    isHomepage={isHomepage}
-                    setTips={this.setTips}
-                    queryDataset={savedQueryDataset}
-                    setSplitDecision={(value?: SavedQueryDatasets) => {
-                      if (
-                        hasDatasetSelectorFeature &&
-                        value !== SavedQueryDatasets.DISCOVER &&
-                        value !== savedQuery?.dataset
-                      ) {
-                        this.setSplitDecision(value);
-                      }
-                    }}
-                    dataset={hasDatasetSelectorFeature ? eventView.dataset : undefined}
+                    yAxis={yAxisArray}
                   />
-                )}
-              </Layout.Main>
-              {showTags && !transactionsUnsupported ? (
-                <TagsTable
-                  confirmedQuery={confirmedQuery}
-                  eventView={eventView}
-                  isHomepage={isHomepage}
-                  location={location}
-                  organization={organization}
-                  savedQueryDataset={savedQueryDataset}
-                  totalValues={totalValues}
-                />
-              ) : null}
-              <Confirm
-                priority="primary"
-                header={<strong>{t('May lead to thumb twiddling')}</strong>}
-                confirmText={t('Do it')}
-                cancelText={t('Nevermind')}
-                onConfirm={this.handleConfirmed}
-                onCancel={this.handleCancelled}
-                message={
-                  <p>
+                </MetricsCardinalityProvider>
+              )}
+            </Top>
+            <Layout.Main
+              width={showTags && !transactionsUnsupported ? 'twothirds' : 'full'}
+            >
+              {transactionsUnsupported ? (
+                <Alert.Container>
+                  <Alert variant="info">
                     {tct(
-                      `You've created a query that will search for events made
+                      'Your saved transactions queries are no longer available in this UI. Try them out in the [exploreLink:Explore Queries] page instead.',
+                      {
+                        exploreLink: (
+                          <Link
+                            to={`/organizations/${organization.slug}/explore/saved-queries/`}
+                          />
+                        ),
+                      }
+                    )}
+                  </Alert>
+                </Alert.Container>
+              ) : (
+                <Table
+                  organization={organization}
+                  eventView={eventView}
+                  location={location}
+                  title={title}
+                  setError={this.setError}
+                  onChangeShowTags={this.handleChangeShowTags}
+                  showTags={showTags}
+                  confirmedQuery={confirmedQuery}
+                  onCursor={this.handleCursor}
+                  isHomepage={isHomepage}
+                  setTips={this.setTips}
+                  queryDataset={savedQueryDataset}
+                  setSplitDecision={(value?: SavedQueryDatasets) => {
+                    if (
+                      hasDatasetSelectorFeature &&
+                      value !== SavedQueryDatasets.DISCOVER &&
+                      value !== savedQuery?.dataset
+                    ) {
+                      this.setSplitDecision(value);
+                    }
+                  }}
+                  dataset={hasDatasetSelectorFeature ? eventView.dataset : undefined}
+                />
+              )}
+            </Layout.Main>
+            {showTags && !transactionsUnsupported ? (
+              <TagsTable
+                confirmedQuery={confirmedQuery}
+                eventView={eventView}
+                isHomepage={isHomepage}
+                location={location}
+                organization={organization}
+                savedQueryDataset={savedQueryDataset}
+                totalValues={totalValues}
+              />
+            ) : null}
+            <Confirm
+              priority="primary"
+              header={<strong>{t('May lead to thumb twiddling')}</strong>}
+              confirmText={t('Do it')}
+              cancelText={t('Nevermind')}
+              onConfirm={this.handleConfirmed}
+              onCancel={this.handleCancelled}
+              message={
+                <p>
+                  {tct(
+                    `You've created a query that will search for events made
                       [dayLimit:over more than 30 days] for [projectLimit:more than 10 projects].
                       A lot has happened during that time, so this might take awhile.
                       Are you sure you want to do this?`,
-                      {
-                        dayLimit: <strong />,
-                        projectLimit: <strong />,
-                      }
-                    )}
-                  </p>
-                }
-              >
-                {this.setOpenFunction}
-              </Confirm>
-            </CustomMeasurementsProvider>
+                    {
+                      dayLimit: <strong />,
+                      projectLimit: <strong />,
+                    }
+                  )}
+                </p>
+              }
+            >
+              {this.setOpenFunction}
+            </Confirm>
           </Layout.Body>
         </Stack>
       </SentryDocumentTitle>
@@ -972,10 +968,18 @@ function TransactionsDatasetDeprecationBanner({
             />
           }
         >
-          {tctCode(
+          {tct(
             'The transactions dataset is being deprecated. Please use [traceLink:Explore / Traces] with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
             {
-              traceLink: <Link to="/explore/traces/?query=is_transaction:true" />,
+              code: <code />,
+              traceLink: (
+                <Link
+                  to={{
+                    pathname: makeTracesPathname({organization, path: '/'}),
+                    query: {query: 'is_transaction:true'},
+                  }}
+                />
+              ),
               FAQLink: (
                 <ExternalLink href="https://www.sentry.help/en/articles/13964151-faq-transactions-spans-migration" />
               ),
@@ -989,12 +993,10 @@ function TransactionsDatasetDeprecationBanner({
 }
 
 function SearchBar({
-  customMeasurements,
   eventView,
   handleSearch,
   organization,
 }: {
-  customMeasurements: CustomMeasurementCollection | undefined;
   eventView: EventView;
   handleSearch: (query: string) => void;
   organization: Organization;
@@ -1012,19 +1014,24 @@ function SearchBar({
   }
 
   return (
-    <Wrapper>
+    <Flex
+      direction={{zero: 'column', xl: 'row'}}
+      justify="between"
+      gap="md"
+      marginBottom="xl"
+    >
       <ResultsSearchQueryBuilder
         projectIds={eventView.project}
         query={eventView.query}
         fields={fields}
         onSearch={handleSearch}
-        customMeasurements={customMeasurements}
+        customMeasurements={undefined}
         dataset={eventView.dataset}
         enableAISearch
         includeTransactions
         recentSearches={savedSearchType}
       />
-    </Wrapper>
+    </Flex>
   );
 }
 
@@ -1146,7 +1153,7 @@ function DiscoverContextMenu({
       key: 'add-to-dashboard',
       label: t('Add to Dashboard'),
       disabled: deprecatingTransactionsDataset,
-      tooltipOptions: {isHoverable: true},
+      tooltipOptions: {},
       tooltip:
         deprecatingTransactionsDataset && getTransactionDeprecationMessage(tracesUrl),
       onAction: () => {
@@ -1361,7 +1368,6 @@ function SaveQueryButton({
                   deprecatingTransactionsDataset &&
                   getTransactionDeprecationMessage(tracesUrl)
                 }
-                isHoverable
               >
                 <Button
                   onClick={handleUpdate}
@@ -1378,7 +1384,6 @@ function SaveQueryButton({
                   currentDataset !== DiscoverDatasets.TRANSACTIONS ||
                   !organization.features.includes('discover-saved-queries-deprecation')
                 }
-                isHoverable
                 title={getTransactionDeprecationMessage(tracesUrl)}
               >
                 <SaveAsDropdown
@@ -1398,7 +1403,6 @@ function SaveQueryButton({
               currentDataset !== DiscoverDatasets.TRANSACTIONS ||
               !organization.features.includes('discover-saved-queries-deprecation')
             }
-            isHoverable
             title={getTransactionDeprecationMessage(tracesUrl)}
           >
             <SaveAsDropdown
@@ -1470,7 +1474,12 @@ function DiscoverPageFilters({
   }
 
   return (
-    <Wrapper>
+    <Flex
+      direction={{zero: 'column', xl: 'row'}}
+      justify="between"
+      gap="md"
+      marginBottom="xl"
+    >
       <PageFilterBar condensed>
         <ProjectPageFilter />
         <EnvironmentPageFilter />
@@ -1478,29 +1487,23 @@ function DiscoverPageFilters({
       </PageFilterBar>
       <Flex gap="md" align="center">
         {!shouldHideCreateAlert && (
-          <Feature organization={organization} features="incidents">
-            {({hasFeature}) =>
-              hasFeature && (
-                <GuideAnchor target="create_alert_from_discover">
-                  <CreateAlertFromViewButton
-                    eventView={buttonEventView}
-                    organization={organization}
-                    projects={projects}
-                    onClick={() => {
-                      trackAnalytics('discover_v2.create_alert_clicked', {
-                        organization,
-                        status: 'success',
-                      });
-                    }}
-                    referrer="discover"
-                    size="sm"
-                    data-test-id="discover2-create-from-discover"
-                    alertType={alertType}
-                  />
-                </GuideAnchor>
-              )
-            }
-          </Feature>
+          <GuideAnchor target="create_alert_from_discover">
+            <CreateAlertFromViewButton
+              eventView={buttonEventView}
+              organization={organization}
+              projects={projects}
+              onClick={() => {
+                trackAnalytics('discover_v2.create_alert_clicked', {
+                  organization,
+                  status: 'success',
+                });
+              }}
+              referrer="discover"
+              size="sm"
+              data-test-id="discover2-create-from-discover"
+              alertType={alertType}
+            />
+          </GuideAnchor>
         )}
         <DiscoverContextMenu
           organization={organization}
@@ -1521,21 +1524,9 @@ function DiscoverPageFilters({
           errorCode={errorCode}
         />
       </Flex>
-    </Wrapper>
+    </Flex>
   );
 }
-
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex-direction: column;
-  }
-`;
 
 const Top = styled(Layout.Main)`
   flex-grow: 0;

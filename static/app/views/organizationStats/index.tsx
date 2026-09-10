@@ -1,12 +1,11 @@
 import {Component} from 'react';
-import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
@@ -301,22 +300,23 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
     });
 
     return (
-      <PageControl>
+      <Grid
+        columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, max-content)'}}
+        width={{zero: '100%', xl: 'max-content'}}
+      >
         <PageFilterBar>
           <ProjectPageFilter />
-          <DropdownDataCategory
+          <CompactSelect
             trigger={triggerProps => (
               <OverlayTrigger.Button {...triggerProps} prefix={t('Category')} />
             )}
             value={this.dataCategory}
             options={options}
-            onChange={opt =>
-              this.setStateOnUrl({dataCategory: opt.value as DataCategory})
-            }
+            onChange={opt => this.setStateOnUrl({dataCategory: opt.value})}
           />
           <DatePageFilter />
         </PageFilterBar>
-      </PageControl>
+      </Grid>
     );
   };
 
@@ -414,31 +414,3 @@ export default function OrganizationStats() {
     />
   );
 }
-
-const DropdownDataCategory = styled(CompactSelect)`
-  width: auto;
-  position: relative;
-  grid-column: auto / span 1;
-
-  button[aria-haspopup='listbox'] {
-    width: 100%;
-    height: 100%;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-column: auto / span 2;
-  }
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-column: auto / span 1;
-  }
-`;
-
-const PageControl = styled('div')`
-  display: grid;
-
-  margin-bottom: 0;
-  grid-template-columns: minmax(0, max-content);
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: minmax(0, 1fr);
-  }
-`;

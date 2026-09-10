@@ -18,12 +18,13 @@ from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import ClockPulse, Ing
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.monitors.clock_dispatch import try_monitor_clock_tick
-from sentry.options.rollout import in_random_rollout
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import crons_tasks
-from sentry.taskworker.producer import get_task_producer
-from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
+from sentry.utils.arroyo_producer import (
+    get_arroyo_producer,
+    get_future_tracking_producer,
+)
 from sentry.utils.kafka_config import get_kafka_admin_cluster_options, get_topic_definition
 
 logger = logging.getLogger("sentry")
@@ -39,8 +40,7 @@ def _get_producer():
     )
 
 
-_checkin_producer = SingletonProducer(_get_producer)
-_checkin_task_producer = get_task_producer(
+_checkin_producer = get_future_tracking_producer(
     producer_name="sentry.monitors.tasks.clock_pulse",
     producer_factory=_get_producer,
 )
@@ -92,7 +92,4 @@ def clock_pulse(current_datetime=None):
     topic = ArroyoTopic(get_topic_definition(Topic.INGEST_MONITORS)["real_topic_name"])
     for partition in _get_partitions().values():
         dest = Partition(topic, partition.id)
-        if in_random_rollout("tasks.producer.clock-pulse.rollout"):
-            _checkin_task_producer.produce(dest, payload)
-        else:
-            _checkin_producer.produce(dest, payload)
+        _checkin_producer.produce(dest, payload)

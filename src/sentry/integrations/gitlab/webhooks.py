@@ -29,16 +29,20 @@ from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_organization_info
+from sentry.integrations.utils.status_sync import PROVIDER_EVENT_TIME_KEY
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.issues.action_log import ActionSource, action_context_scope, resolve_action_actor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.pr_metrics.lifecycle_mapping import (
+    map_gitlab_state_to_pullrequest_lifecycle,
+    update_pull_request_from_scm_snapshot,
+)
 from sentry.seer.code_review.webhooks.logging import debug_log
 from sentry.seer.code_review.webhooks.merge_request import (
     handle_merge_request_event,
@@ -248,7 +252,13 @@ class IssuesEventWebhook(GitlabWebhook):
 
         # Handle status changes (CLOSE and REOPEN)
         if action in [GitLabIssueAction.CLOSE, GitLabIssueAction.REOPEN] and organization:
-            self._handle_status_change(integration, external_issue_key, action, organization.id)
+            self._handle_status_change(
+                integration,
+                external_issue_key,
+                action,
+                organization.id,
+                object_attributes.get("updated_at"),
+            )
 
     def _handle_assignment(
         self,
@@ -260,9 +270,11 @@ class IssuesEventWebhook(GitlabWebhook):
         Handle issue assignment and unassignment events.
 
         GitLab sends webhooks with the current assignees array, so we sync based on
-        the current state to avoid race conditions.
+        the current state to avoid race conditions, and pass `object_attributes.updated_at`
+        along so stale deliveries can be dropped.
         """
         assignees = event.get("assignees", [])
+        updated_at = event.get("object_attributes", {}).get("updated_at")
 
         # If there are no assignees, deassign
         if not assignees:
@@ -271,6 +283,7 @@ class IssuesEventWebhook(GitlabWebhook):
                 external_user_name="",
                 external_issue_key=external_issue_key,
                 assign=False,
+                provider_event_updated_at=updated_at,
             )
             logger.info(
                 "gitlab.webhook.assignment.synced",
@@ -308,6 +321,7 @@ class IssuesEventWebhook(GitlabWebhook):
             external_issue_key=external_issue_key,
             assign=True,
             external_user_id=assignee_id,
+            provider_event_updated_at=updated_at,
         )
 
         logger.info(
@@ -327,11 +341,14 @@ class IssuesEventWebhook(GitlabWebhook):
         external_issue_key: str,
         action: str,
         organization_id: int,
+        updated_at: str | None,
     ) -> None:
         """
         Handle issue status changes (close/reopen).
 
         Triggers the sync_status_inbound task to update linked Sentry issues.
+
+        `updated_at` is GitLab's own timestamp, used to order deliveries.
         """
         org_integrations = integration_service.get_organization_integrations(
             integration_id=integration.id,
@@ -344,7 +361,7 @@ class IssuesEventWebhook(GitlabWebhook):
             if isinstance(installation, IssueSyncIntegration):
                 installation.sync_status_inbound(
                     external_issue_key,
-                    {"action": action},
+                    {"action": action, PROVIDER_EVENT_TIME_KEY: updated_at},
                 )
                 logger.info(
                     "gitlab.webhook.status.synced",
@@ -380,15 +397,6 @@ class IssuesEventWebhook(GitlabWebhook):
             return None
 
         return f"{integration.metadata['domain_name']}:{path_with_namespace}#{issue_iid}"
-
-
-def _map_gitlab_state_to_pullrequest_lifecycle(gitlab_state: str | None) -> str | None:
-    return {
-        "opened": PullRequestLifecycleState.OPEN,
-        "closed": PullRequestLifecycleState.CLOSED,
-        "merged": PullRequestLifecycleState.MERGED,
-        "locked": PullRequestLifecycleState.LOCKED,
-    }.get(gitlab_state or "")
 
 
 class MergeEventWebhook(GitlabWebhook):
@@ -447,6 +455,7 @@ class MergeEventWebhook(GitlabWebhook):
 
         try:
             number = event["object_attributes"]["iid"]
+            external_id = event["object_attributes"]["id"]
             title = event["object_attributes"]["title"]
             body = event["object_attributes"]["description"]
             created_at = event["object_attributes"]["created_at"]
@@ -463,7 +472,7 @@ class MergeEventWebhook(GitlabWebhook):
 
             updated_at = event["object_attributes"].get("updated_at")
             merged_at = event["object_attributes"].get("merged_at")
-            state = _map_gitlab_state_to_pullrequest_lifecycle(
+            state = map_gitlab_state_to_pullrequest_lifecycle(
                 event["object_attributes"].get("state")
             )
             action = event["object_attributes"].get("action")
@@ -496,6 +505,8 @@ class MergeEventWebhook(GitlabWebhook):
         )[0]
 
         opened_at = parse_date(created_at).astimezone(timezone.utc)
+        # Doubles as the ordering high-water mark and as the fallback for the
+        # timestamps GitLab doesn't report.
         state_changed_at = parse_date(updated_at).astimezone(timezone.utc) if updated_at else None
         merged_at_dt = parse_date(merged_at).astimezone(timezone.utc) if merged_at else None
 
@@ -508,8 +519,10 @@ class MergeEventWebhook(GitlabWebhook):
             "date_added": opened_at,
             "opened_at": opened_at,
             "merged_at": merged_at_dt,
+            "provider_updated_at": state_changed_at,
             "state": state,
             "draft": draft,
+            "external_id": external_id,
         }
 
         # GitLab has no closed_at, so derive it from the lifecycle action. A
@@ -524,11 +537,14 @@ class MergeEventWebhook(GitlabWebhook):
 
         author.preload_users()
         try:
-            PullRequest.objects.update_or_create(
+            update_pull_request_from_scm_snapshot(
+                provider=self.provider,
                 organization_id=organization.id,
                 repository_id=repo.id,
                 key=number,
                 defaults=defaults,
+                event_state=state,
+                event_updated_at=state_changed_at,
             )
         except IntegrityError:
             pass

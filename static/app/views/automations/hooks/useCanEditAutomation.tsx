@@ -8,6 +8,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useCanEditAutomation(): boolean {
   const organization = useOrganization();
+  // TODO(Leander): Workflows connected to the all-projects detector require elevated permissions
+  // (org:write) but at the moment, not every callsite for this hook has the context to determine
+  // whether that applies. The backend still gates the mutations correctly, but this means some
+  // buttons don't appear disabled when they should.
   return hasEveryAccess(['alerts:write'], {organization});
 }
 

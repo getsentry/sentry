@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';

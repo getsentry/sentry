@@ -12,7 +12,6 @@ import orderBy from 'lodash/orderBy';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex, Stack, Container} from '@sentry/scraps/layout';
 
 import {IconCheckmark} from 'sentry/icons';
@@ -41,7 +40,6 @@ interface StepProps {
   stepKey: string;
   title: React.ReactNode;
   isCompleted?: boolean;
-  onClick?: () => void;
   optional?: boolean;
   trailingItems?: React.ReactNode;
 }
@@ -169,18 +167,13 @@ function Step(props: StepProps) {
   }, [advanceToNextIncompleteStep, isActive, isCompleted, previousIsCompleted]);
 
   const headingContent = (
-    <StepButton
-      hasTrailingItems={!!props.trailingItems}
-      disabled={!props.onClick}
-      onClick={props.onClick}
-    >
+    <StepButton hasTrailingItems={!!props.trailingItems} disabled>
       <Flex align="center" gap="lg">
         <StepNumber isActive={isActive}>{stepNumber}</StepNumber>
         <StepHeading isActive={isActive}>
           {props.title}
           {isCompleted && <StepDoneIcon isActive={isActive} size="sm" />}
         </StepHeading>
-        {props.onClick ? <InteractionStateLayer /> : null}
       </Flex>
     </StepButton>
   );
@@ -188,14 +181,7 @@ function Step(props: StepProps) {
   return (
     <StepWrapper data-test-id={`guided-step-${stepNumber}`}>
       {props.trailingItems ? (
-        <Flex
-          direction={{'screen:xs': 'column', 'screen:md': 'row'}}
-          align={{'screen:xs': 'start', 'screen:md': 'center'}}
-          paddingLeft={{'screen:xs': 'lg', 'screen:md': '0'}}
-          justify="between"
-          gap="sm"
-          area="heading"
-        >
+        <Flex align="center" justify="between" gap="sm" wrap="wrap" area="heading">
           {headingContent}
           <Flex align="center" onClick={e => e.stopPropagation()}>
             {props.trailingItems}
@@ -298,9 +284,7 @@ const StepWrapper = styled('div')`
 
 const StepButton = styled('button')<{hasTrailingItems: boolean}>`
   ${p =>
-    p.hasTrailingItems
-      ? 'flex: 1; min-width: 0; text-align: left;'
-      : 'grid-area: heading;'}
+    p.hasTrailingItems ? 'flex: 1 1 auto; text-align: left;' : 'grid-area: heading;'}
 
   position: relative;
   background: none;

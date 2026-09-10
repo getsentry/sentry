@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -16,7 +15,8 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {NotAvailable} from 'sentry/components/notAvailable';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {Panel} from 'sentry/components/panels/panel';
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {HeaderCellContent} from 'sentry/components/tables/sortableHeaderCell';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {
@@ -30,6 +30,7 @@ import {
   type ReleaseWithHealth,
 } from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
@@ -192,18 +193,18 @@ export function ReleaseComparisonChart({
           query: {
             field: ['failure_rate()', 'count()'],
             query: new MutableSearch([
-              'event.type:transaction',
+              'is_transaction:true',
               `release:${release.version}`,
             ]).formatString(),
-            dataset: DiscoverDatasets.METRICS_ENHANCED,
+            dataset: DiscoverDatasets.SPANS,
             ...commonQuery,
           },
         }),
         api.requestPromise(url, {
           query: {
             field: ['failure_rate()', 'count()'],
-            query: new MutableSearch(['event.type:transaction']).formatString(),
-            dataset: DiscoverDatasets.METRICS_ENHANCED,
+            query: new MutableSearch(['is_transaction:true']).formatString(),
+            dataset: DiscoverDatasets.SPANS,
             ...commonQuery,
           },
         }),
@@ -259,7 +260,9 @@ export function ReleaseComparisonChart({
 
     try {
       const response = await api.requestPromise(
-        `/organizations/${organization.slug}/issues-count/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/issues-count/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           query: {
             project: project.id,
@@ -966,13 +969,25 @@ export function ReleaseComparisonChart({
 
   function getTableHeaders(withExpanders: boolean) {
     const headers = [
-      <DescriptionCell key="description">{t('Description')}</DescriptionCell>,
-      <Cell key="releases">{t('All Releases')}</Cell>,
-      <Cell key="release">{t('This Release')}</Cell>,
-      <Cell key="change">{t('Change')}</Cell>,
+      <SimpleTable.HeaderCell key="description">
+        <DescriptionCell>{t('Description')}</DescriptionCell>
+      </SimpleTable.HeaderCell>,
+      <NumericHeaderCell key="releases">
+        <Cell>{t('All Releases')}</Cell>
+      </NumericHeaderCell>,
+      <NumericHeaderCell key="release">
+        <Cell>{t('This Release')}</Cell>
+      </NumericHeaderCell>,
+      <NumericHeaderCell key="change">
+        <Cell>{t('Change')}</Cell>
+      </NumericHeaderCell>,
     ];
     if (withExpanders) {
-      headers.push(<Cell key="expanders" />);
+      headers.push(
+        <NumericHeaderCell key="expanders">
+          <Cell />
+        </NumericHeaderCell>
+      );
     }
     return headers;
   }
@@ -1106,29 +1121,33 @@ export function ReleaseComparisonChart({
         </ErrorBoundary>
       </ChartPanel>
       <ChartTable
-        headers={getTableHeaders(withExpanders)}
         data-test-id="release-comparison-table"
         withExpanders={withExpanders}
+        header={
+          <SimpleTable.HeaderRow>{getTableHeaders(withExpanders)}</SimpleTable.HeaderRow>
+        }
       >
         {charts.map(chartRow => renderChartRow(chartRow))}
         {isOtherExpanded && additionalCharts.map(chartRow => renderChartRow(chartRow))}
         {additionalCharts.length > 0 && (
-          <ShowMoreWrapper onClick={() => setIsOtherExpanded(!isOtherExpanded)}>
-            <ShowMoreTitle>
-              <IconList size="xs" />
-              {isOtherExpanded
-                ? tn('Hide %s Other', 'Hide %s Others', additionalCharts.length)
-                : tn('Show %s Other', 'Show %s Others', additionalCharts.length)}
-            </ShowMoreTitle>
-            <Flex justify="end" align="center" column="2 / -1">
+          <ShowMoreRow onClick={() => setIsOtherExpanded(!isOtherExpanded)}>
+            <SimpleTable.RowCell>
+              <ShowMoreTitle>
+                <IconList size="xs" />
+                {isOtherExpanded
+                  ? tn('Hide %s Other', 'Hide %s Others', additionalCharts.length)
+                  : tn('Show %s Other', 'Show %s Others', additionalCharts.length)}
+              </ShowMoreTitle>
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell justify="end" column="2 / -1">
               <Button
                 variant="transparent"
                 size="zero"
                 icon={<IconChevron direction={isOtherExpanded ? 'up' : 'down'} />}
                 aria-label={t('Toggle additional charts')}
               />
-            </Flex>
-          </ShowMoreWrapper>
+            </SimpleTable.RowCell>
+          </ShowMoreRow>
         )}
       </ChartTable>
     </Fragment>
@@ -1156,24 +1175,35 @@ const DescriptionCell = styled(Cell)`
   overflow: visible;
 `;
 
+const NumericHeaderCell = styled(SimpleTable.HeaderCell)`
+  ${HeaderCellContent} {
+    justify-content: flex-end;
+  }
+`;
+
 const Change = styled('div')<{color?: string}>`
   font-size: ${p => p.theme.font.size.md};
   ${p => p.color && `color: ${p.color}`}
 `;
 
-const ChartTable = styled(PanelTable)<{withExpanders: boolean}>`
+const ChartTable = styled(SimpleTable, {
+  shouldForwardProp: prop => prop !== 'withExpanders',
+})<{withExpanders: boolean}>`
   border-top-left-radius: 0;
   border-top-right-radius: 0;
-  grid-template-columns: minmax(400px, auto) repeat(3, minmax(min-content, 1fr)) ${p =>
-      p.withExpanders ? '75px' : ''};
 
-  > * {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
+  && {
     grid-template-columns: repeat(4, minmax(min-content, 1fr)) ${p =>
         p.withExpanders ? '75px' : ''};
+  }
+
+  @container (min-width: ${p => p.theme.container['4xl']}) {
+    && {
+      grid-template-columns: minmax(400px, auto) repeat(
+          3,
+          minmax(min-content, 1fr)
+        ) ${p => (p.withExpanders ? '75px' : '')};
+    }
   }
 `;
 
@@ -1181,12 +1211,12 @@ const StyledNotAvailable = styled(NotAvailable)`
   display: inline-block;
 `;
 
-const ShowMoreWrapper = styled('div')`
-  display: contents;
+const ShowMoreRow = styled(SimpleTable.Row)`
   &:hover {
     cursor: pointer;
   }
-  > * {
+
+  [role='cell'] {
     padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
 `;

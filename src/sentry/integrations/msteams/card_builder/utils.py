@@ -65,8 +65,8 @@ class InstallationMessages:
     TEAM_INSTALLATION_CONFIRMATION_INSTRUCTION = (
         "Now that setup is complete, you can continue by configuring alerts."
     )
-    TEAM_INSTALLATION_CONFIRMATION_BUTTON = "Add Alert Rules"
-    ALERT_RULE_URL = "organizations/{organization_slug}/alerts/rules/"
+    TEAM_INSTALLATION_CONFIRMATION_BUTTON = "Add Monitors"
+    MONITORS_URL = "organizations/{organization_slug}/monitors/"
 
     PERSONAL_INSTALLATION_CONFIRMATION_TITLE = "Personal installation successful"
     PERSONAL_INSTALLATION_CONFIRMATION_INSTRUCTION = (

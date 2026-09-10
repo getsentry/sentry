@@ -134,42 +134,23 @@ def get_arroyo_producer(
     )
 
 
-class _FutureTrackingProducer(FutureTrackingProducer):
-    """
-    HACK(bmckerry): We can't read options during module import (since there's no option cache yet),
-    so this class overrides FutureTrackingProducer's `_backpressure` attribute to be read from the option at
-    runtime. This will be deleted once FTP backpressure is enabled everywhere.
-    """
-
-    _resolved_backpressure: bool | None = None
-
-    @property
-    def _backpressure(self) -> bool:
-        """
-        This makes the `self._backpressure` check during produce() read the option.
-        """
-        if self._resolved_backpressure is None:
-            self._resolved_backpressure = options.get("arroyo.ftp.backpressure")
-        return self._resolved_backpressure
-
-    @_backpressure.setter
-    def _backpressure(self, value: bool) -> None:
-        """
-        This overrides when FTP assigns `self._backpressure` during __init__ to be a no-op.
-        """
-        pass
-
-
-def get_producer(
+def get_future_tracking_producer(
     producer_name: str,
     producer_factory: Callable[[], CloseableProducerProtocol],
 ) -> FutureTrackingProducer:
     """
-    Helper function to get a FutureTrackingProducer instance with future tracking
-    controlled by the ARROYO_TRACK_PRODUCER_FUTURES environment variable.
+    Helper function to get a FutureTrackingProducer instance.
+    This producer:
+    - Applies backpressure on produces if the librdkafka produce buffer is filling up
+    - Optionally tracks producer futures if the `ARROYO_TRACK_PRODUCER_FUTURES` env var
+      is configured
+      - This is used by taskworkers to guarantee at-least-once delivery for messages
+        produced from tasks
+
+    For more information please see the `FutureTrackingProducer` docstring.
     """
 
-    return _FutureTrackingProducer(
+    return FutureTrackingProducer(
         name=producer_name,
         producer_factory=producer_factory,
         should_track_futures=os.getenv("ARROYO_TRACK_PRODUCER_FUTURES", "").lower() == "true",

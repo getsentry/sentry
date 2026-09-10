@@ -1,6 +1,6 @@
 ---
 name: setup-dev
-description: Set up and manage the Sentry development environment using devenv. Handles fresh setup, updating existing environments, starting dev services, and troubleshooting. Use when asked to "set up sentry", "setup dev environment", "get sentry running", "start dev server", "devenv setup", "devservices not working", "sentry won't start", or any development environment issue.
+description: Set up and manage the Sentry development environment using devenv. Handles fresh setup, updating existing environments, starting dev services, resetting the database, per-worktree environment setup (each worktree needs its own devenv sync/.venv), and troubleshooting. Use when asked to "set up sentry", "setup dev environment", "get sentry running", "start dev server", "devenv setup", "devservices not working", "sentry won't start", "reset the database", "new worktree venv/devenv setup", or any development environment issue.
 ---
 
 # Set Up Sentry Development Environment
@@ -299,6 +299,16 @@ After pulling new code:
 ```bash
 devenv sync              # update dependencies + migrations (2-5 min)
 ```
+
+### Reset the database
+
+```bash
+make reset-db
+```
+
+### Git worktrees
+
+Each worktree has its own `.venv`. When you create a worktree with `git worktree add`, a post-checkout hook runs `devenv sync` in it to set up the dev environment. Otherwise run `devenv sync` once in the new worktree, then `direnv allow` to validate and activate it.
 
 ## Troubleshooting Decision Tree
 

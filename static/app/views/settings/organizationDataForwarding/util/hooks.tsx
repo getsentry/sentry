@@ -5,7 +5,7 @@ import {t, tct} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {
@@ -20,16 +20,9 @@ const makeDataForwarderQueryKey = (params: {orgSlug: string}): ApiQueryKey => [
   }),
 ];
 
-export function useDataForwarders({
-  params,
-  options,
-}: {
-  params: {orgSlug: string};
-  options?: Partial<UseApiQueryOptions<DataForwarder[]>>;
-}) {
+export function useDataForwarders({params}: {params: {orgSlug: string}}) {
   return useApiQuery<DataForwarder[]>(makeDataForwarderQueryKey(params), {
     staleTime: 30000,
-    ...options,
   });
 }
 
@@ -94,7 +87,7 @@ export function useDeleteDataForwarder({
         makeDataForwarderMutationQueryKey({
           dataForwarderId: dfId,
           orgSlug: os,
-        })[0] as string,
+        })[0],
         {method: 'DELETE'}
       ),
     onSuccess: () => {

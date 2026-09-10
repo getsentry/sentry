@@ -70,11 +70,12 @@ export function MetricQueryRows({
   // restore this state after a mode or dataset toggle.
   useEffect(() => {
     if (equationSnapshot) {
+      // oxlint-disable-next-line react/immutability
       equationSnapshot.current = {queries: metricQueries, selectedLabel};
     }
   }, [equationSnapshot, metricQueries, selectedLabel]);
   const referenceMap = useMetricReferences(metricQueries);
-  const addAggregate = useAddMetricQuery({type: 'aggregate'});
+  const addAggregate = useAddMetricQuery({});
 
   const aggregateSource = getTraceMetricAggregateSource(
     state.displayType,

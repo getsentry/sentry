@@ -198,8 +198,10 @@ describe('MetricsTabContent', () => {
 
     await userEvent.click(addButtons[0]!);
 
-    toolbars = await screen.findAllByTestId('metric-toolbar');
-    expect(toolbars).toHaveLength(2);
+    await waitFor(() => {
+      expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(2);
+    });
+    toolbars = screen.getAllByTestId('metric-toolbar');
     // copies the last metric as a starting point
     expect(within(toolbars[1]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(2);
@@ -221,8 +223,10 @@ describe('MetricsTabContent', () => {
 
     await userEvent.click(addButtons[0]!);
 
-    toolbars = await screen.findAllByTestId('metric-toolbar');
-    expect(toolbars).toHaveLength(3);
+    await waitFor(() => {
+      expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(3);
+    });
+    toolbars = screen.getAllByTestId('metric-toolbar');
     // copies the last metric as a starting point
     expect(within(toolbars[2]!).getByRole('button', {name: 'foo'})).toBeInTheDocument();
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(3);
@@ -480,6 +484,12 @@ describe('MetricsTabContent', () => {
   it('should fire analytics with no metrics available', async () => {
     MockApiClient.clearMockResponses();
     setupPageFilters();
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: validationBody,
+    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,

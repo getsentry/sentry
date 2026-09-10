@@ -5,45 +5,7 @@ import {MonitorFixture} from 'sentry-fixture/monitor';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 import {MonitorStatus} from 'sentry/views/insights/crons/types';
 
-import {
-  getAggregateEnvStatus,
-  getMonitorRefetchInterval,
-  getNextCheckInEnv,
-} from './utils';
-
-describe('getAggregateEnvStatus', () => {
-  it('returns ERROR when any environment has ERROR status', () => {
-    const environments = [
-      CronMonitorEnvironmentFixture({status: MonitorStatus.OK}),
-      CronMonitorEnvironmentFixture({status: MonitorStatus.ERROR}),
-      CronMonitorEnvironmentFixture({status: MonitorStatus.ACTIVE}),
-    ];
-
-    expect(getAggregateEnvStatus(environments)).toBe(MonitorStatus.ERROR);
-  });
-
-  it('returns OK when all environments are OK or ACTIVE', () => {
-    const environments = [
-      CronMonitorEnvironmentFixture({status: MonitorStatus.OK}),
-      CronMonitorEnvironmentFixture({status: MonitorStatus.ACTIVE}),
-    ];
-
-    expect(getAggregateEnvStatus(environments)).toBe(MonitorStatus.OK);
-  });
-
-  it('returns ACTIVE when no environments have ERROR or OK status', () => {
-    const environments = [
-      CronMonitorEnvironmentFixture({status: MonitorStatus.ACTIVE}),
-      CronMonitorEnvironmentFixture({status: MonitorStatus.DISABLED}),
-    ];
-
-    expect(getAggregateEnvStatus(environments)).toBe(MonitorStatus.ACTIVE);
-  });
-
-  it('returns ACTIVE for empty array', () => {
-    expect(getAggregateEnvStatus([])).toBe(MonitorStatus.ACTIVE);
-  });
-});
+import {getMonitorRefetchInterval, getNextCheckInEnv} from './utils';
 
 describe('getNextCheckInEnv', () => {
   it('prioritizes by status (OK > ERROR > DISABLED > ACTIVE) then by earliest nextCheckIn', () => {
