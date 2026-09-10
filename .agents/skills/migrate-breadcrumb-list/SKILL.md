@@ -44,33 +44,36 @@ Through a **spread it compiles clean** — and spreading legacy crumbs is the mi
 .map(crumb => ({type: 'link' as const, ...crumb}))
 ```
 
-Excess-property checking only applies to fresh object literals, so a `Crumb` carrying `preservePageFilters` passes straight through to `<Link>`, which ignores it. No type error, no failing test. **Destructure explicitly instead of spreading**, and rebuild the query yourself:
+Excess-property checking only applies to fresh object literals, so a `Crumb` carrying `preservePageFilters` passes straight through to `<Link>`, which ignores it. No type error, no failing test. **Destructure explicitly instead of spreading**, then rebuild the query.
+
+Note the stakes. A crumb that loses the flag does not merely fail to carry filters — it **clears** them. `PageFiltersContainer` reconciles its store against the URL on navigation, and an absent `project` reads as an empty selection rather than "unchanged". Replicating the flag is not polish; skipping it changes what the destination shows.
 
 ```tsx
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 
-// Build the query once, above the items array. Override any param the destination
-// needs different — and drop `start`/`end` whenever you override `statsPeriod`, or
-// an absolute range and a relative period both travel and the destination picks.
-const query = {
-  ...extractSelectionParameters(location.query),
-  statsPeriod: '24h',
-  start: undefined,
-  end: undefined,
+// Preserve all six — project, environment, statsPeriod, start, end, utc.
+// A legacy `to` is often a bare pathname string; restructure it into an
+// object, as there is nowhere to hang a query otherwise.
+const preserveAll = {
+  pathname: makeReleasesPathname({organization, path: '/'}),
+  query: extractSelectionParameters(location.query),
 };
 
-// A legacy `to` is often a bare pathname string. Restructure it into an object —
-// there is nowhere to hang a query otherwise.
-const items = [
-  {
-    type: 'link' as const,
-    label: t('Releases'),
-    to: {pathname: makeReleasesPathname({organization, path: '/'}), query},
+// Preserve some — spread, then override. Clearing `start`/`end` is required
+// whenever you set `statsPeriod`, or an absolute range and a relative period
+// both travel and the destination picks one.
+const preserveSome = {
+  pathname: makeReleasesPathname({organization, path: '/'}),
+  query: {
+    ...extractSelectionParameters(location.query),
+    statsPeriod: '24h',
+    start: undefined,
+    end: undefined,
   },
-];
+};
 ```
 
-A bare pass-through is the default and is exactly what `preservePageFilters` did — override a param only when the destination genuinely needs something else, as the `statsPeriod` example above does. When the crumb already has a `to` object, merge rather than replace: `{...to, query: {...query, ...to.query}}`.
+Preserve nothing by leaving the bare pathname alone — that is what a crumb _without_ the flag did, and migrating one is not an occasion to start preserving. When the crumb already has a `to` object, merge rather than replace: `{...to, query: {...extractSelectionParameters(location.query), ...to.query}}`.
 
 Six call sites still pass it: `grep -rln "preservePageFilters: true" static/app --include='*.tsx'`.
 
