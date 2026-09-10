@@ -708,11 +708,21 @@ const TablePagination = styled(Pagination)`
 `;
 
 const FixedRowHeightGrid = styled('div')`
+  container-type: inline-size;
+
   /* Pin data rows to a fixed height by sizing their body cells. Head cells are
      <th> (unaffected), and the empty/loading/error status cell keeps its own
      size because its larger min-height wins over this fixed height. */
   tbody td {
     height: ${ROW_HEIGHT}px;
+  }
+
+  /* The fixed-width columns can make the grid wider than its scroll container.
+     Keep empty/loading/error content centered in the visible table frame. */
+  tbody > tr > td:only-child {
+    position: sticky;
+    left: 0;
+    width: 100cqw;
   }
 `;
 
