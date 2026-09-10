@@ -17,12 +17,18 @@ interface PlatformDetectionResponse {
   platforms: DetectedPlatform[];
 }
 
-const SUPPORTED_PROVIDER = 'integrations:github';
+// Providers whose backend client can serve platform detection. Kept in sync with
+// SUPPORTED_PROVIDERS in organization_repository_platforms.py -- a repo not listed
+// here skips detection and falls back to the manual platform picker.
+const SUPPORTED_PROVIDERS: readonly string[] = [
+  'integrations:github',
+  'integrations:cursor_origin',
+];
 
 export function useScmPlatformDetection(repository: Repository | undefined) {
   const organization = useOrganization();
   const repoId = repository?.id;
-  const isSupported = repository?.provider.id === SUPPORTED_PROVIDER;
+  const isSupported = SUPPORTED_PROVIDERS.includes(repository?.provider.id ?? '');
   // Empty id means we have an optimistic repo from useScmRepoSelection;
   // the resolved repo with a real id arrives via a subsequent onSelect
   // call. The query can only fetch once we have a real id.

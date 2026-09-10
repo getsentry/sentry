@@ -29,6 +29,7 @@ export const POPULARITY_WEIGHT: Record<string, number> = {
   msteams: 15,
   aws_lambda: 10,
   cursor: 14,
+  cursor_origin: 14,
 
   // Plugins
   webhooks: 10,

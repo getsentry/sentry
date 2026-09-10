@@ -166,6 +166,7 @@ const SCM_PROVIDER_ORDER = [
   'bitbucket',
   'bitbucket_server',
   'vsts',
+  'cursor_origin',
 ];
 
 export default function OrganizationRepositories() {
