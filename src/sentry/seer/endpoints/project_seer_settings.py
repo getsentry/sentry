@@ -421,7 +421,7 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
             organization=project.organization,
             target_object=project.id,
             event=audit_log.get_event_id("AUTOFIX_SETTINGS_EDIT"),
-            data={"project_id": project.id, **data},
+            data={"project_id": project.id, "project_count": 1, **data},
         )
 
         return Response(serialize_project(project))
