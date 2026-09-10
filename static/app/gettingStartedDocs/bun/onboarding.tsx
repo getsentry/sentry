@@ -123,7 +123,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Libraries such as [code:express], [code:fastify], [code:mysql] and [code:postgres] are instrumented while your app is bundled. [code:bun run] cannot do this, so build your app with [code:sentryBunPlugin()] to get their spans and their errors.',
+            'Libraries such as [code:express], [code:mysql] and [code:postgres] are instrumented while your app is bundled. [code:bun run] cannot do this, so build your app with [code:sentryBunPlugin()] to get their spans and their errors.',
             {code: <code />}
           ),
         },
