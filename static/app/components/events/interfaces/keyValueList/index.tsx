@@ -33,89 +33,90 @@ export function KeyValueList({
   const keyValueData = shouldSort ? sortBy(data, [({key}) => key?.toLowerCase()]) : data;
 
   return (
-    <Grid
-      className={className}
-      columns={{zero: 'minmax(0, 1fr)', sm: '175px minmax(0, 500px)'}}
-      gap="md"
-      role="table"
-      width="100%"
-      {...props}
-    >
-      {keyValueData.map(
-        (
-          {
-            key,
-            subject,
-            value = null,
-            meta,
-            subjectIcon,
-            subjectDataTestId,
-            action,
-            actionButton,
-            isContextData: valueIsContextData,
-            isMultiValue,
-          },
-          idx
-        ) => {
-          const valueProps = {
-            isContextData: valueIsContextData || isContextData,
-            meta,
-            subjectIcon,
-            value,
-            raw,
-          };
+    <Container containerType="inline-size">
+      <Grid
+        className={className}
+        columns={{zero: 'minmax(0, 1fr)', sm: '175px minmax(0, 500px)'}}
+        gap="md"
+        role="table"
+        width="100%"
+        {...props}
+      >
+        {keyValueData.map(
+          (
+            {
+              key,
+              subject,
+              value = null,
+              meta,
+              subjectIcon,
+              subjectDataTestId,
+              action,
+              actionButton,
+              isContextData: valueIsContextData,
+              isMultiValue,
+            },
+            idx
+          ) => {
+            const valueProps = {
+              isContextData: valueIsContextData || isContextData,
+              meta,
+              subjectIcon,
+              value,
+              raw,
+            };
 
-          const valueItem = action?.link ? (
-            <ValueLink to={action.link}>{<Value {...valueProps} />}</ValueLink>
-          ) : (
-            <Value {...valueProps} />
-          );
-
-          const valueContainer =
-            isMultiValue && Array.isArray(value) ? (
-              <MultiValueContainer values={value} />
+            const valueItem = action?.link ? (
+              <ValueLink to={action.link}>{<Value {...valueProps} />}</ValueLink>
             ) : (
-              valueItem
+              <Value {...valueProps} />
             );
 
-          return (
-            <Grid
-              align="start"
-              column="1 / -1"
-              columns="subgrid"
-              gap="md lg"
-              key={`${key}-${idx}`}
-              role="row"
-            >
-              <Container role="cell">
-                <Text bold density="comfortable" wordBreak="break-word">
-                  {subject}
-                </Text>
-              </Container>
-              <Container
-                className="val"
-                data-test-id={subjectDataTestId}
-                minWidth="0"
-                role="cell"
+            const valueContainer =
+              isMultiValue && Array.isArray(value) ? (
+                <MultiValueContainer values={value} />
+              ) : (
+                valueItem
+              );
+            return (
+              <Grid
+                align="start"
+                column="1 / -1"
+                columns="subgrid"
+                gap="md lg"
+                key={`${key}-${idx}`}
+                role="row"
               >
-                <Tablevalue>
-                  {actionButton ? (
-                    <ValueWithActionButton>
-                      {valueContainer}
-                      <Flex align="start" height="100%">
-                        {actionButton}
-                      </Flex>
-                    </ValueWithActionButton>
-                  ) : (
-                    valueContainer
-                  )}
-                </Tablevalue>
-              </Container>
-            </Grid>
-          );
-        }
-      )}
-    </Grid>
+                <Container role="cell">
+                  <Text bold density="comfortable" wordBreak="break-word">
+                    {subject}
+                  </Text>
+                </Container>
+                <Container
+                  className="val"
+                  data-test-id={subjectDataTestId}
+                  minWidth="0"
+                  role="cell"
+                >
+                  <Tablevalue>
+                    {actionButton ? (
+                      <ValueWithActionButton>
+                        {valueContainer}
+                        <Flex align="start" height="100%">
+                          {actionButton}
+                        </Flex>
+                      </ValueWithActionButton>
+                    ) : (
+                      valueContainer
+                    )}
+                  </Tablevalue>
+                </Container>
+              </Grid>
+            );
+          }
+        )}
+      </Grid>
+    </Container>
   );
 }
 
