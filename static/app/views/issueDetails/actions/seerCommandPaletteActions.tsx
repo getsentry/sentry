@@ -92,6 +92,7 @@ export function SeerCommandPaletteActions({
     }
     if (integration.requires_identity && !integration.has_identity) {
       const currentUrl = window.location.href;
+      // oxlint-disable-next-line react/immutability
       window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
       return;
     }

@@ -51,6 +51,8 @@ type Props = {
   subscription: Subscription;
 };
 
+const DEFAULT_SPEND_ALLOCATION_PERIODS = 1;
+
 export function SpendAllocationsRoot({subscription}: Props) {
   const organization = useOrganization();
   const {openModal} = useModal();
@@ -131,69 +133,62 @@ export function SpendAllocationsRoot({subscription}: Props) {
     return root;
   }, [currentRootAllocations, selectedMetric]);
 
-  const fetchSpendAllocations = useCallback(
-    // Target timestamp allows us to specify a period
-    // Periods allows us to specify how many periods we want to fetch
-    async (targetTimestamp?: number, periods = 1) => {
-      try {
-        setIsLoading(true);
-        // NOTE: we cannot just use the subscription period start since newly created allocations could start after the period start
-        // we cannot use the middle of the subscription period since it's possible to have a current allocation that ends before mid period
-        if (!targetTimestamp) {
-          targetTimestamp = Math.max(Date.now() / 1000, period[0]!.getTime() / 1000);
-        }
-        const SPEND_ALLOCATIONS_PATH = `/organizations/${organization.slug}/spend-allocations/`;
+  const fetchSpendAllocations = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      // NOTE: we cannot just use the subscription period start since newly created allocations could start after the period start
+      // we cannot use the middle of the subscription period since it's possible to have a current allocation that ends before mid period
+      const targetTimestamp = Math.max(Date.now() / 1000, period[0]!.getTime() / 1000);
+      const periods = DEFAULT_SPEND_ALLOCATION_PERIODS;
+      const SPEND_ALLOCATIONS_PATH = `/organizations/${organization.slug}/spend-allocations/`;
 
-        // there should only be one root allocation per billing metric, so we don't need to pass the cursor
-        const rootAllocationsResp = await api.requestPromise(SPEND_ALLOCATIONS_PATH, {
+      // there should only be one root allocation per billing metric, so we don't need to pass the cursor
+      const rootAllocationsResp = await api.requestPromise(SPEND_ALLOCATIONS_PATH, {
+        method: 'GET',
+        query: {
+          timestamp: targetTimestamp,
+          periods,
+          target_id: organization.id,
+          target_type: 'Organization',
+        },
+      });
+      setRootAllocations(rootAllocationsResp);
+
+      const [projectAllocations, _, resp] = await api.requestPromise(
+        SPEND_ALLOCATIONS_PATH,
+        {
           method: 'GET',
+          includeAllArgs: true,
           query: {
             timestamp: targetTimestamp,
             periods,
-            target_id: organization.id,
-            target_type: 'Organization',
+            target_type: 'Project',
+            cursor: currentCursor,
+            billing_metric: getCategoryInfoFromPlural(selectedMetric)?.name, // TODO: we should update the endpoint to use camelCase api name
           },
-        });
-        setRootAllocations(rootAllocationsResp);
-
-        const [projectAllocations, _, resp] = await api.requestPromise(
-          SPEND_ALLOCATIONS_PATH,
-          {
-            method: 'GET',
-            includeAllArgs: true,
-            query: {
-              timestamp: targetTimestamp,
-              periods,
-              target_type: 'Project',
-              cursor: currentCursor,
-              billing_metric: getCategoryInfoFromPlural(selectedMetric)?.name, // TODO: we should update the endpoint to use camelCase api name
-            },
-          }
-        );
-        setOrgEnabledFlag(true);
-        setSpendAllocations(projectAllocations);
-        setErrors(null);
-
-        const links =
-          (resp?.getResponseHeader('Link') || resp?.getResponseHeader('link')) ??
-          undefined;
-        setPageLinks(links);
-      } catch (err: any) {
-        if (err.status === 404) {
-          setErrors('Error fetching spend allocations');
-        } else if (err.status === 403) {
-          // NOTE: If spend allocations are not enabled, API will return a 403 not found
-          // So capture this case and set enabled to false
-          setOrgEnabledFlag(false);
-        } else {
-          setErrors(err.statusText);
         }
+      );
+      setOrgEnabledFlag(true);
+      setSpendAllocations(projectAllocations);
+      setErrors(null);
+
+      const links =
+        (resp?.getResponseHeader('Link') || resp?.getResponseHeader('link')) ?? undefined;
+      setPageLinks(links);
+    } catch (err: any) {
+      if (err.status === 404) {
+        setErrors('Error fetching spend allocations');
+      } else if (err.status === 403) {
+        // NOTE: If spend allocations are not enabled, API will return a 403 not found
+        // So capture this case and set enabled to false
+        setOrgEnabledFlag(false);
+      } else {
+        setErrors(err.statusText);
       }
-      setIsLoading(false);
-      setShouldRetry(true);
-    },
-    [api, currentCursor, organization.id, organization.slug, period, selectedMetric]
-  );
+    }
+    setIsLoading(false);
+    setShouldRetry(true);
+  }, [api, currentCursor, organization.id, organization.slug, period, selectedMetric]);
 
   const deleteSpendAllocation =
     (

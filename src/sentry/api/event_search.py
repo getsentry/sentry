@@ -160,7 +160,8 @@ explicit_array_tag_key =   "tags" open_bracket escaped_key spaces comma spaces "
 
 aggregate_key                    = key open_paren spaces function_args? spaces closed_paren
 function_args                    = aggregate_param (spaces comma spaces !comma aggregate_param?)*
-aggregate_param                  = explicit_tag_key_aggregate_param / quoted_aggregate_param / raw_aggregate_param
+aggregate_param                  = explicit_tag_key_aggregate_param / query_aggregate_param / quoted_aggregate_param / raw_aggregate_param
+query_aggregate_param            = "`" (quoted_value / ~r"[^`\"]+")* "`"
 raw_aggregate_param              = ~r"[^()\t\n, \"]+"
 quoted_aggregate_param           = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
 explicit_tag_key_aggregate_param = explicit_tag_key / explicit_number_tag_key / explicit_string_tag_key / explicit_boolean_tag_key
@@ -1697,6 +1698,9 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
 
     def visit_aggregate_param(self, node: Node, children: tuple[str]) -> str:
         return children[0]
+
+    def visit_query_aggregate_param(self, node: Node, children: object) -> str:
+        return node.text
 
     def visit_raw_aggregate_param(self, node: Node, children: object) -> str:
         return node.text

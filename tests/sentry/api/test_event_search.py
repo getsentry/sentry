@@ -116,6 +116,15 @@ def result_transformer(result):
         if token["type"] == "keyExplicitBooleanTag":
             return SearchKey(name=f"tags[{token['key']['value']},boolean]")
 
+        if token["type"] == "keyExplicitArrayTag":
+            return SearchKey(name=f"tags[{token['key']['value']},array]")
+
+        if token["type"] == "keyArrayIncludes":
+            # The `[*]` membership suffix carries the operation, not the key
+            # name, so the backend key drops it and resolves to the inner
+            # (array tag or simple) key, matching visit_array_includes_key.
+            return node_visitor(token["key"])
+
         if token["type"] == "keyExplicitFlag":
             return SearchKey(name=f"flags[{token['key']['value']}]")
 
@@ -349,6 +358,21 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             "AND",
             SearchFilter(key=SearchKey(name="z"), operator="=", value=SearchValue(raw_value="1")),
         ]
+
+    def test_conditional_aggregate_query_argument(self) -> None:
+        for predicate in [
+            "x:1 AND (y:2 OR z:3)",
+            'span.description:"hello world"',
+            'gen_ai.tool.name:["search docs",calculator]',
+            r'span.description:"say \"hello\""',
+        ]:
+            assert parse_search_query(f"count_if(`{predicate}`,span.duration):>0") == [
+                AggregateFilter(
+                    key=AggregateKey(f"count_if(`{predicate}`, span.duration)"),
+                    operator=">",
+                    value=SearchValue(0.0),
+                )
+            ]
 
     def test_paren_expression_of_empty_string(self) -> None:
         assert parse_search_query('("")') == parse_search_query('""') == []
