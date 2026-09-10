@@ -28,6 +28,8 @@ function getDefaultPlatform(stacktrace: StacktraceType, event: Event): PlatformK
 export function StackTraceProvider({
   children,
   collapseAll = false,
+  thread,
+  lockAddress,
   exceptionIndex,
   event,
   frameSourceMapDebuggerData,
@@ -133,6 +135,8 @@ export function StackTraceProvider({
   const value = useMemo<StackTraceContextValue>(
     () => ({
       allRows,
+      thread,
+      lockAddress,
       collapseAll,
       exceptionIndex,
       event,
@@ -152,6 +156,8 @@ export function StackTraceProvider({
     }),
     [
       allRows,
+      lockAddress,
+      thread,
       collapseAll,
       exceptionIndex,
       event,
