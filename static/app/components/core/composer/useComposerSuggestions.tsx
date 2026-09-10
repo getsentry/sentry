@@ -53,7 +53,9 @@ function useSourceSuggestions(
     ),
   });
 
-  const asyncData: Array<readonly unknown[] | undefined> = asyncQueries.map(q => q.data);
+  const asyncData = asyncQueries.map((q): readonly unknown[] | undefined =>
+    Array.isArray(q.data) ? q.data : undefined
+  );
   const asyncStatuses = asyncQueries.map(q => q.status);
 
   const asyncDataBySourceId = useMemo(() => {
