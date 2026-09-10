@@ -16,18 +16,14 @@ const bodyPath =
 const eyePath =
   'M8.01857 5.5C5.93882 5.50013 4.03972 6.99814 3.14259 9.3291C4.50943 9.74712 6.18916 9.99997 8.01857 10C9.84849 9.99998 11.5258 9.74671 12.8955 9.32812C11.9966 6.998 10.098 5.50012 8.01857 5.5Z';
 
-// 32x32 viewBox paths for the idle spin animation (stroked, not filled).
-const IDLE_BODY =
+// 32x32 stroked paths for the loading pyramid-spin animation.
+const SPIN_BODY =
   'M16 2C11.58 7.02 4.02 17.18 1.5 25.3L1.463 25.316C5.701 27.158 10 28.5 16 28.5C22 28.5 26.295 27.152 30.54 25.3L30.5 25.3C27.98 17.16 20.42 7 16 2Z';
-const IDLE_EYE =
+const SPIN_EYE =
   'M27.649 19.599C24.5 20.785 20.443 21.5 16 21.5C11.559 21.5 7.494 20.785 4.355 19.6C6.02 13.72 10.6 9.5 16 9.5C21.414 9.5 25.985 13.766 27.649 19.599Z';
-const IDLE_SWEEP_LEFT = 'M16 2C11.568 7.025 3.995 17.191 1.463 25.316';
-const IDLE_SWEEP_RIGHT = 'M16 2C20.432 6.98 28.005 17.16 30.54 25.3';
+const SPIN_SWEEP_L = 'M16 2C11.568 7.025 3.995 17.191 1.463 25.316';
+const SPIN_SWEEP_R = 'M16 2C20.432 6.98 28.005 17.16 30.54 25.3';
 
-// Faux-3D pyramid spin. Two eye copies crossfade with scaleX squish;
-// two sweep paths morph via CSS `d` to draw the rotating crease line.
-// Transform chain per eye: translate to pivot, rotate, scaleX, translate
-// back to origin. Values extracted from the SMIL reference animation.
 const loadingStyles = `
 @keyframes seerR {
   0%      { visibility: visible; transform: translate(16px,18px) rotate(0deg) scale(1,1) translate(-16px,-18px); }
@@ -57,41 +53,32 @@ const loadingStyles = `
   100%    { visibility: hidden;  transform: translate(5.1px,18px) rotate(0deg) scale(0.001,1) translate(-16px,-18px); }
 }
 @keyframes seerSwA {
-  0%      { visibility: hidden;  d: path("${IDLE_SWEEP_LEFT}"); }
-  7.99%   { visibility: hidden;  d: path("${IDLE_SWEEP_LEFT}"); }
+  0%      { visibility: hidden;  d: path("${SPIN_SWEEP_L}"); }
+  7.99%   { visibility: hidden;  d: path("${SPIN_SWEEP_L}"); }
   8%      { visibility: visible; d: path("M16 2C11.614 7.046 4.088 17.231 1.601 25.376"); }
   16%     { visibility: visible; d: path("M16 2C12.414 7.515 5.847 17.911 4.066 26.369"); }
   25%     { visibility: visible; d: path("M16 2C13.786 8.726 9.466 18.899 8.526 27.705"); }
   33%     { visibility: visible; d: path("M16 2C15.505 10.412 14.541 19.59 14.329 28.464"); }
   41%     { visibility: visible; d: path("M16 2C17.64 9.294 20.866 19.194 21.547 28.073"); }
   47%     { visibility: visible; d: path("M16 2C20.057 7.188 27.224 17.486 29.4 25.784"); }
-  47.99%  { visibility: visible; d: path("${IDLE_SWEEP_RIGHT}"); }
-  48%     { visibility: hidden;  d: path("${IDLE_SWEEP_RIGHT}"); }
-  100%    { visibility: hidden;  d: path("${IDLE_SWEEP_RIGHT}"); }
+  47.99%  { visibility: visible; d: path("${SPIN_SWEEP_R}"); }
+  48%     { visibility: hidden;  d: path("${SPIN_SWEEP_R}"); }
+  100%    { visibility: hidden;  d: path("${SPIN_SWEEP_R}"); }
 }
 @keyframes seerSwB {
-  0%      { visibility: hidden;  d: path("${IDLE_SWEEP_LEFT}"); }
-  53.99%  { visibility: hidden;  d: path("${IDLE_SWEEP_LEFT}"); }
-  54%     { visibility: visible; d: path("${IDLE_SWEEP_LEFT}"); }
+  0%      { visibility: hidden;  d: path("${SPIN_SWEEP_L}"); }
+  53.99%  { visibility: hidden;  d: path("${SPIN_SWEEP_L}"); }
+  54%     { visibility: visible; d: path("${SPIN_SWEEP_L}"); }
   60%     { visibility: visible; d: path("M16 2C14.134 9.077 10.472 19.094 9.693 27.944"); }
   68%     { visibility: visible; d: path("M16 2C16.295 10.586 16.865 19.625 16.993 28.487"); }
   76%     { visibility: visible; d: path("M16 2C18.059 8.868 22.089 18.974 22.956 27.813"); }
   82%     { visibility: visible; d: path("M16 2C19.466 7.581 25.865 17.983 27.556 26.497"); }
   90%     { visibility: visible; d: path("M16 2C20.349 7.038 27.837 17.233 30.287 25.41"); }
   93%     { visibility: visible; d: path("M16 2C20.349 7.038 27.837 17.233 30.287 25.41"); }
-  93.99%  { visibility: visible; d: path("${IDLE_SWEEP_RIGHT}"); }
-  94%     { visibility: hidden;  d: path("${IDLE_SWEEP_RIGHT}"); }
-  100%    { visibility: hidden;  d: path("${IDLE_SWEEP_RIGHT}"); }
+  93.99%  { visibility: visible; d: path("${SPIN_SWEEP_R}"); }
+  94%     { visibility: hidden;  d: path("${SPIN_SWEEP_R}"); }
+  100%    { visibility: hidden;  d: path("${SPIN_SWEEP_R}"); }
 }`;
-
-const ICON_SIZES: Record<string, string> = {
-  xs: '12px',
-  sm: '14px',
-  md: '16px',
-  lg: '24px',
-  xl: '32px',
-  '2xl': '72px',
-};
 
 export function IconSeer({animation, ...props}: IconSeerProps) {
   const clipId = useId();
@@ -129,7 +116,7 @@ export function IconSeer({animation, ...props}: IconSeerProps) {
   }
 
   if (!prefersReducedMotion && animation === 'loading') {
-    const size = iconProps.legacySize ?? ICON_SIZES[iconProps.size ?? 'md'];
+    const size = iconProps.legacySize ?? SvgIcon.ICON_SIZES[iconProps.size ?? 'md'];
     const fill =
       iconProps.variant === 'warning'
         ? theme.tokens.graphics.warning.vibrant
@@ -154,22 +141,22 @@ export function IconSeer({animation, ...props}: IconSeerProps) {
         <style>{loadingStyles}</style>
         <defs>
           <clipPath id={clipId}>
-            <path d={IDLE_BODY} />
+            <path d={SPIN_BODY} />
           </clipPath>
         </defs>
-        <path d={IDLE_BODY} />
+        <path d={SPIN_BODY} />
         <g clipPath={`url(#${clipId})`}>
           <g style={{transformBox: 'view-box', animation: 'seerR 2s linear infinite'}}>
-            <path d={IDLE_EYE} />
+            <path d={SPIN_EYE} />
             <circle cx="16" cy="18" r="4" fill={fill} stroke="none" />
           </g>
           <g style={{transformBox: 'view-box', animation: 'seerL 2s linear infinite'}}>
-            <path d={IDLE_EYE} />
+            <path d={SPIN_EYE} />
             <circle cx="16" cy="18" r="4" fill={fill} stroke="none" />
           </g>
         </g>
-        <path d={IDLE_SWEEP_LEFT} style={{animation: 'seerSwA 2s linear infinite'}} />
-        <path d={IDLE_SWEEP_LEFT} style={{animation: 'seerSwB 2s linear infinite'}} />
+        <path d={SPIN_SWEEP_L} style={{animation: 'seerSwA 2s linear infinite'}} />
+        <path d={SPIN_SWEEP_L} style={{animation: 'seerSwB 2s linear infinite'}} />
       </svg>
     );
   }
