@@ -1,12 +1,12 @@
+from unittest import mock
 from unittest.mock import call, patch
 
 from sentry.api.serializers import serialize
 from sentry.integrations.api.serializers.models.integration import IntegrationConfigSerializer
-from sentry.integrations.utils.github_permissions import GITHUB_APP_REQUIRED_PERMISSIONS_OPTION
+from sentry.integrations.utils.github_permissions import GITHUB_APP_REQUIRED_PERMISSIONS
 from sentry.organizations.services.organization import organization_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
 
@@ -29,7 +29,7 @@ class IntegrationSerializerTest(TestCase):
 
         assert result["outOfDate"] is None
 
-    @override_options({GITHUB_APP_REQUIRED_PERMISSIONS_OPTION: {"contents": "write"}})
+    @mock.patch.dict(GITHUB_APP_REQUIRED_PERMISSIONS, {"contents": "write"}, clear=True)
     def test_github_out_of_date_when_missing_permissions(self) -> None:
         integration = self.create_provider_integration(
             provider="github",
@@ -42,7 +42,7 @@ class IntegrationSerializerTest(TestCase):
 
         assert result["outOfDate"] is True
 
-    @override_options({GITHUB_APP_REQUIRED_PERMISSIONS_OPTION: {"contents": "write"}})
+    @mock.patch.dict(GITHUB_APP_REQUIRED_PERMISSIONS, {"contents": "write"}, clear=True)
     def test_github_not_out_of_date_when_permissions_satisfied(self) -> None:
         integration = self.create_provider_integration(
             provider="github",
