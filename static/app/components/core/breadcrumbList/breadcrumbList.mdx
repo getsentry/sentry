@@ -121,20 +121,18 @@ To carry the whole selection, build the query with `extractSelectionParameters`
 from `sentry/components/pageFilters/parse`:
 
 ```tsx
-<TopBar.Slot name="breadcrumbs">
-  <BreadcrumbList
-    items={[
-      {
-        type: 'link',
-        label: 'Releases',
-        to: {
-          pathname: makeReleasesPathname({organization, path: '/'}),
-          query: extractSelectionParameters(location.query),
-        },
+<BreadcrumbList
+  items={[
+    {
+      type: 'link',
+      label: 'Releases',
+      to: {
+        pathname: makeReleasesPathname({organization, path: '/'}),
+        query: extractSelectionParameters(location.query),
       },
-    ]}
-  />
-</TopBar.Slot>
+    },
+  ]}
+/>
 ```
 
 To carry part of it, spread and override. Clearing `start` and `end` is required
@@ -181,18 +179,16 @@ Page filters are not carried automatically — see [Page filters](#page-filters)
   />
 </Storybook.Demo>
 ```tsx
-<TopBar.Slot name="breadcrumbs">
-  <BreadcrumbList
-    items={[
-      {type: 'link', label: 'Projects', to: '/organizations/org-slug/projects/'},
-      {
-        type: 'link',
-        label: 'Issues',
-        to: {pathname: '/issues/', query: extractSelectionParameters(location.query)},
-      },
-    ]}
-  />
-</TopBar.Slot>
+<BreadcrumbList
+  items={[
+    {type: 'link', label: 'Projects', to: '/organizations/org-slug/projects/'},
+    {
+      type: 'link',
+      label: 'Issues',
+      to: {pathname: '/issues/', query: extractSelectionParameters(location.query)},
+    },
+  ]}
+/>
 ```
 
 ### `'page-title'` — the current page
@@ -216,19 +212,15 @@ demo below mirrors that heading and flex layout.
   />
 </Storybook.Demo>
 ```tsx
-<TopBar.Slot name="breadcrumbs">
-  <BreadcrumbList
-    items={[{type: 'link', label: 'Issues', to: '/organizations/org-slug/issues/'}]}
-  />
-</TopBar.Slot>
-<TopBar.Slot name="title">
-  <BreadcrumbList.Title
-    item={{
-      type: 'page-title',
-      label: 'Issue details',
-    }}
-  />
-</TopBar.Slot>
+<BreadcrumbList
+  items={[{type: 'link', label: 'Issues', to: '/organizations/org-slug/issues/'}]}
+/>
+<BreadcrumbList.Title
+  item={{
+    type: 'page-title',
+    label: 'Issue details',
+  }}
+/>
 ```
 
 ### `'editable-title'` — rename in place
@@ -261,23 +253,17 @@ edit affordance.
   />
 </Storybook.Demo>
 ```tsx
-<TopBar.Slot name="breadcrumbs">
-  <BreadcrumbList
-    items={[
-      {type: 'link', label: 'Dashboards', to: '/organizations/org-slug/dashboards/'},
-    ]}
-  />
-</TopBar.Slot>
-<TopBar.Slot name="title">
-  <BreadcrumbList.Title
-    item={{
-      type: 'editable-title',
-      value: dashboard.title,
-      onChange: handleRename,
-      'aria-label': 'Edit dashboard name',
-    }}
-  />
-</TopBar.Slot>
+<BreadcrumbList
+  items={[{type: 'link', label: 'Dashboards', to: '/organizations/org-slug/dashboards/'}]}
+/>
+<BreadcrumbList.Title
+  item={{
+    type: 'editable-title',
+    value: dashboard.title,
+    onChange: handleRename,
+    'aria-label': 'Edit dashboard name',
+  }}
+/>
 ```
 
 ## Props
@@ -320,27 +306,23 @@ the meaning.
   />
 </Storybook.Demo>
 ```tsx
-<TopBar.Slot name="breadcrumbs">
-  <BreadcrumbList
-    items={[
-      {
-        type: 'link',
-        label: 'My Projects',
-        to: '/settings/org-slug/projects/',
-        leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
-      },
-    ]}
-  />
-</TopBar.Slot>
-<TopBar.Slot name="title">
-  <BreadcrumbList.Title
-    item={{
-      type: 'page-title',
-      label: 'Client Keys (DSN)',
+<BreadcrumbList
+  items={[
+    {
+      type: 'link',
+      label: 'My Projects',
+      to: '/settings/org-slug/projects/',
       leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
-    }}
-  />
-</TopBar.Slot>
+    },
+  ]}
+/>
+<BreadcrumbList.Title
+  item={{
+    type: 'page-title',
+    label: 'Client Keys (DSN)',
+    leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
+  }}
+/>
 ```
 
 ### Pagination
@@ -375,23 +357,19 @@ item happens to have no neighbours.
   />
 </Storybook.Demo>
 ```tsx
-<TopBar.Slot name="breadcrumbs">
-  <BreadcrumbList
-    items={[{type: 'link', label: 'Issues', to: '/organizations/org-slug/issues/'}]}
-  />
-</TopBar.Slot>
-<TopBar.Slot name="title">
-  <BreadcrumbList.Title
-    item={{
-      type: 'page-title',
-      label: group.shortId,
-      pagination: {
-        previous: {ariaLabel: 'Previous issue', to: previousIssueUrl},
-        next: {ariaLabel: 'Next issue', to: nextIssueUrl},
-      },
-    }}
-  />
-</TopBar.Slot>
+<BreadcrumbList
+  items={[{type: 'link', label: 'Issues', to: '/organizations/org-slug/issues/'}]}
+/>
+<BreadcrumbList.Title
+  item={{
+    type: 'page-title',
+    label: group.shortId,
+    pagination: {
+      previous: {ariaLabel: 'Previous issue', to: previousIssueUrl},
+      next: {ariaLabel: 'Next issue', to: nextIssueUrl},
+    },
+  }}
+/>
 ```
 
 The `tooltip` accepts rich content, not just a string. Pagination tooltips are
@@ -498,35 +476,33 @@ a row of icons competing for the same space.
   />
 </Storybook.Demo>
 ```tsx
-<TopBar.Slot name="title">
-  <BreadcrumbList.Title
-    item={{
-      type: 'page-title',
-      label: group.shortId,
-      trailingActions: {
-        type: 'menu',
-        triggerLabel: 'More actions',
-        triggerIcon: <IconEllipsis />,
-        items: [
-          {
-            key: 'copy-short-id',
-            label: 'Copy Short-ID',
-            leadingItems: <IconCopyId variant="muted" />,
-            onAction: () => copy(group.shortId),
-          },
-          isPublic && shareUrl
-            ? {
-                key: 'share',
-                label: 'Share',
-                leadingItems: <IconGlobe />,
-                onAction: openShareModal,
-              }
-            : null,
-        ].filter(item => item !== null),
-      },
-    }}
-  />
-</TopBar.Slot>
+<BreadcrumbList.Title
+  item={{
+    type: 'page-title',
+    label: group.shortId,
+    trailingActions: {
+      type: 'menu',
+      triggerLabel: 'More actions',
+      triggerIcon: <IconEllipsis />,
+      items: [
+        {
+          key: 'copy-short-id',
+          label: 'Copy Short-ID',
+          leadingItems: <IconCopyId variant="muted" />,
+          onAction: () => copy(group.shortId),
+        },
+        isPublic && shareUrl
+          ? {
+              key: 'share',
+              label: 'Share',
+              leadingItems: <IconGlobe />,
+              onAction: openShareModal,
+            }
+          : null,
+      ].filter(item => item !== null),
+    },
+  }}
+/>
 ```
 
 ## Overflow (container query)
