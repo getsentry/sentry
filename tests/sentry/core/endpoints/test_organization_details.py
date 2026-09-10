@@ -43,8 +43,8 @@ from sentry.models.organizationslugreservation import OrganizationSlugReservatio
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.signals import project_created
 from sentry.silo.safety import unguarded_write
-from sentry.snuba.metrics import SpanMRI
-from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase, TwoFactorAPITestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase, SpanTestCase, TwoFactorAPITestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -95,7 +95,7 @@ cells = create_test_cells("us", "de")
 
 
 @cell_silo_test(cells=cells, include_monolith_run=True)
-class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestCase):
+class OrganizationDetailsTest(OrganizationDetailsTestBase, SnubaTestCase, SpanTestCase):
     @property
     def now(self):
         return datetime.now().replace(microsecond=0)
@@ -569,10 +569,28 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         assert response.status_code == 403
 
     @django_db_all
+    def test_change_org_target_sample_rate_schedules_per_org_calculation(self) -> None:
+        self.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
+        )
+
+        with (
+            self.feature("organizations:dynamic-sampling-custom"),
+            patch(
+                "sentry.core.endpoints.organization_details.run_calculations_per_org_task_entry"
+            ) as task,
+        ):
+            response = self.get_response(self.organization.slug, method="put", targetSampleRate=0.1)
+
+        assert response.status_code == 200
+        task.delay.assert_called_once_with(self.organization.id)
+
+    @django_db_all
     @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
-    def test_sampling_mode_change_with_deleted_projects_that_had_metrics(self) -> None:
+    def test_sampling_mode_change_with_deleted_projects_that_had_spans(self) -> None:
         project_1 = self.create_project(organization=self.organization)
         project_2 = self.create_project(organization=self.organization)
+        self.organization.update_option("sentry:target_sample_rate", 0.5)
 
         # Create a team member for project_1 only
         team_1 = self.create_team(organization=self.organization)
@@ -583,21 +601,17 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         )
         self.login_as(user=member_user)
 
-        self.store_performance_metric(
-            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"is_segment": "true", "decision": "keep"},
-            minutes_before_now=60 * 24 * 12,
-            value=1,
-            project_id=project_1.id,
-            org_id=self.organization.id,
-        )
-        self.store_performance_metric(
-            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"is_segment": "true", "decision": "keep"},
-            minutes_before_now=60 * 24 * 12,
-            value=1,
-            project_id=project_2.id,
-            org_id=self.organization.id,
+        timestamp = before_now(days=12)
+        self.store_spans(
+            [
+                self.create_span(
+                    {"is_segment": True, "sentry_tags": {"dsc.project_id": str(project.id)}},
+                    organization=self.organization,
+                    project=project,
+                    start_ts=timestamp,
+                )
+                for project in (project_1, project_2)
+            ]
         )
 
         project_2.delete()
