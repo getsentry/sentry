@@ -125,8 +125,8 @@ class IntegrationSerializerTest(TestCase):
         ):
             client.return_value.get_user.return_value = {"username": "example"}
             client.return_value.get_projects.return_value = []
-            result = serialize(
-                integration, self.user, IntegrationConfigSerializer(self.organization.id)
+            result = IntegrationConfigSerializer(self.organization.id).serialize(
+                integration, {}, self.user
             )
 
         get_org.assert_called_once_with(id=self.organization.id)
