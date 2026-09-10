@@ -191,6 +191,7 @@ function TransactionBreadcrumbsContent({
             label: transactionName,
             leadingGraphic: project ? (
               <IdBadge
+                disableLink
                 project={project}
                 avatarSize={16}
                 hideName

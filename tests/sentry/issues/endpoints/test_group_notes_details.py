@@ -13,11 +13,14 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 
 
+# The default Activity fixture represents a comment created before GALE dual writes.
+@with_feature({"projects:issue-action-log-write-to-db": False})
 class GroupNotesDetailsTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -62,17 +65,45 @@ class GroupNotesDetailsTest(APITestCase):
         assert response.status_code == 404
 
     def test_delete(self) -> None:
-        self.login_as(user=self.user)
-
-        url = self.url
+        self.organization.update_option("sentry:events_member_admin", False)
+        member = self.create_user()
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.activity.update(user_id=member.id)
+        token = self.create_user_auth_token(user=member, scope_list=["event:write"])
 
         assert Group.objects.get(id=self.group.id).num_comments == 1
 
-        response = self.client.delete(url, format="json")
+        response = self.client.delete(self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
         assert response.status_code == 204, response.status_code
         assert not Activity.objects.filter(id=self.activity.id).exists()
 
         assert Group.objects.get(id=self.group.id).num_comments == 0
+
+    def test_delete_with_read_only_token(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["event:read"])
+
+        response = self.client.delete(
+            self.url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}"
+        )
+
+        assert response.status_code == 403, response.content
+        assert Activity.objects.filter(id=self.activity.id).exists()
+
+    def test_delete_another_users_comment_with_write_token(self) -> None:
+        member = self.create_user()
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        token = self.create_user_auth_token(user=member, scope_list=["event:write"])
+
+        response = self.client.delete(
+            self.url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}"
+        )
+
+        assert response.status_code == 404, response.content
+        assert Activity.objects.filter(id=self.activity.id).exists()
 
     def test_delete_comment_and_subscription(self) -> None:
         """Test that if a user deletes their comment on an issue, we delete the subscription too"""
@@ -193,7 +224,7 @@ class GroupNotesDetailsTest(APITestCase):
             "text": f"hi **@{self.user.username}**",
         }
 
-    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
+    @action_log_activity_enabled()
     def test_put_returns_gale(self) -> None:
         self.login_as(user=self.user)
         group = self.group
@@ -221,7 +252,7 @@ class GroupNotesDetailsTest(APITestCase):
         assert response.data["data"]["text"] == "updated text"
         assert response.data["data"]["comment_id"] == activity_id
 
-    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
+    @action_log_activity_enabled()
     def test_put_writes_comment_edit_entry(self) -> None:
         self.login_as(user=self.user)
         group = self.group
@@ -252,7 +283,7 @@ class GroupNotesDetailsTest(APITestCase):
         original_entry.refresh_from_db()
         assert original_entry.data["text"] == "original"
 
-    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
+    @action_log_activity_enabled()
     def test_delete_writes_comment_delete_entry(self) -> None:
         self.login_as(user=self.user)
         group = self.group
@@ -279,13 +310,11 @@ class GroupNotesDetailsTest(APITestCase):
         # same way COMMENT_EDIT entries do, so it can be joined to the COMMENT row
         assert delete_entry.data["comment_id"] == original_entry.id
 
-    @with_feature("projects:issue-action-log-activity")
+    @action_log_activity_enabled()
     def test_put_returns_404_without_gale_entry(self) -> None:
-        # activity flag on: GALE is authoritative for existence, so a missing
+        # backfilled project, so GALE is authoritative for existence: a missing
         # entry means the note is already gone and we 404 instead of editing
-        # the Activity. (In production the activity flag is only turned on for
-        # projects where write-to-db is already on, so there should always be
-        # a mirror GALE for any Activity note.)
+        # the Activity.
         del self.activity.data["external_id"]
         self.activity.save()
         self.login_as(user=self.user)

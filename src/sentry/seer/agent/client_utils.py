@@ -147,6 +147,8 @@ class SeerFeatureRunRequest(TypedDict):
     payload: dict[str, Any]
     agent_run_options: NotRequired[AgentRunOptions]
     user_org_context: NotRequired[UserOrgContext]
+    proxy_headers: NotRequired[dict[str, str] | None]
+    referrer: str
 
 
 class SeerFeatureRunWireRequest(SeerFeatureRunRequest):

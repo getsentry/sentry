@@ -2,7 +2,6 @@ import {useQuery} from '@tanstack/react-query';
 
 import type {Group} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
@@ -59,7 +58,7 @@ export function useGroup({groupId, options}: UseGroupOptions) {
       organizationSlug: organization.slug,
       groupId,
       environments,
-      expandDerivedData: orgHasIssueInbox(organization),
+      expandDerivedData: organization.features.includes('issue-inbox'),
     }),
     gcTime: 30_000,
     retry: false,

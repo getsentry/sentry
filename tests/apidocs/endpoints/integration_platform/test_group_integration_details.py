@@ -49,12 +49,21 @@ class GroupIntegrationDetailsDocs(APIDocsTestCase):
         self.validate_schema(request, response)
 
     def test_put(self) -> None:
-        data = {"externalIssue": "APP-123"}
+        data = {
+            "externalIssue": "APP-123",
+            "repo": "example/project",
+            "comment": "Linked from Sentry",
+        }
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.put(self.base_url, data=data)
         request = RequestFactory().put(self.base_url, data=data)
 
         self.validate_schema(request, response)
+        schema = self.cached_schema.content()["paths"][
+            "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/integrations/{integration_id}/"
+        ]["put"]["requestBody"]["content"]["application/json"]["schema"]
+        assert {"externalIssue", "repo", "comment"} <= schema["properties"].keys()
+        assert schema["required"] == ["externalIssue"]
 
     def test_delete(self) -> None:
         external_issue = ExternalIssue.objects.create(

@@ -15,7 +15,7 @@ function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
   return null;
 }
 
-type UseTraceScrollToPath =
+export type UseTraceScrollToPath =
   | {eventId?: string; path?: TraceTree.NodePath[]}
   | null
   | undefined;
@@ -39,20 +39,28 @@ export function getScrollToPath(): UseTraceScrollToPath {
 
 export function useTraceScrollToPath({
   traceSlug,
+  scrollToNode,
 }: {
   traceSlug: string;
+  /**
+   * When set, the caller owns the scroll target and the URL is never read. Pass `null` for
+   * "no target" — embedded waterfalls use this so the host page's `?node=`/`?eventId=` (which
+   * may belong to an entirely different trace) cannot steer them. Must be referentially stable.
+   */
+  scrollToNode?: UseTraceScrollToPath;
 }): React.MutableRefObject<UseTraceScrollToPath> {
   const scrollQueueRef = useRef<
     {eventId?: string; path?: TraceTree.NodePath[]} | null | undefined
   >(undefined);
 
   useEffect(() => {
-    scrollQueueRef.current = getScrollToPath();
+    scrollQueueRef.current =
+      scrollToNode === undefined ? getScrollToPath() : scrollToNode;
 
     // Only re-run this effect when the traceSlug changes, not on every render since we manage
     // scroll internally in the traceWaterfall component, and only update the url for state consistency across
     // subsequent loads
-  }, [traceSlug]);
+  }, [traceSlug, scrollToNode]);
 
   return scrollQueueRef;
 }

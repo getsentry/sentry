@@ -1449,6 +1449,7 @@ class TestStartFeatureRun(TestCase):
             title="Agentic triage (2 candidates)",
             flush=False,
             user_org_context=context,
+            referrer="night_shift",
         )
 
         mock_request.assert_not_called()
@@ -1466,6 +1467,25 @@ class TestStartFeatureRun(TestCase):
         # ref/external_idempotency_key are stamped by the handler at dispatch, not enqueue.
         assert "ref" not in body
         assert outbox.payload["viewer_context"]["organization_id"] == self.organization.id
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    def test_feature_run_enqueues_proxy_headers(self, mock_request, _mock_access) -> None:
+        proxy_headers = {"X-Viewer-Context": "signed-viewer-context"}
+        client = SeerAgentClient(self.organization, self.user)
+        run = client.start_feature_run(
+            feature_id="autofix",
+            payload={},
+            title="Autofix RCA",
+            flush=False,
+            referrer="autofix",
+            proxy_headers=proxy_headers,
+        )
+
+        mock_request.assert_not_called()
+        outbox = self._outbox_for(run)
+        assert outbox is not None and outbox.payload is not None
+        assert outbox.payload["body"]["proxy_headers"] == proxy_headers
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
@@ -1491,7 +1511,11 @@ class TestStartFeatureRun(TestCase):
     def test_truncates_long_title(self, mock_request, _mock_access) -> None:
         client = SeerAgentClient(self.organization, self.user)
         run = client.start_feature_run(
-            feature_id="night_shift", payload={}, flush=False, title="x" * 300
+            feature_id="night_shift",
+            payload={},
+            flush=False,
+            title="x" * 300,
+            referrer="night_shift",
         )
 
         agent_run = SeerAgentRun.objects.get(run=run)
@@ -1509,6 +1533,7 @@ class TestStartFeatureRun(TestCase):
             payload={"candidates": [1, 2]},
             title="Agentic triage (2 candidates)",
             flush=False,
+            referrer="night_shift",
         )
 
         agent_run = SeerAgentRun.objects.get(run=run)
@@ -1530,6 +1555,7 @@ class TestStartFeatureRun(TestCase):
             title="Agentic triage (2 candidates)",
             flush=False,
             on_run_created=linked.append,
+            referrer="night_shift",
         )
 
         assert linked == [run]
@@ -1542,7 +1568,7 @@ class TestStartFeatureRun(TestCase):
 
         client = SeerAgentClient(self.organization, self.user)
         run = client.start_feature_run(
-            feature_id="night_shift", payload={}, title="Test feature run"
+            feature_id="night_shift", payload={}, title="Test feature run", referrer="night_shift"
         )
 
         assert run.mirror_status == SeerRunMirrorStatus.LIVE
@@ -1562,7 +1588,12 @@ class TestStartFeatureRun(TestCase):
 
         client = SeerAgentClient(self.organization, self.user)
         with pytest.raises(SeerApiError):
-            client.start_feature_run(feature_id="night_shift", payload={}, title="Test feature run")
+            client.start_feature_run(
+                feature_id="night_shift",
+                payload={},
+                title="Test feature run",
+                referrer="night_shift",
+            )
 
         run = SeerRun.objects.get(organization=self.organization, type=SeerRunType.FEATURE_RUN)
         assert run.mirror_status == SeerRunMirrorStatus.FAILED
@@ -1581,7 +1612,11 @@ class TestStartFeatureRun(TestCase):
     def test_inherits_context_engine_from_org(self, mock_request, _mock_access) -> None:
         client = SeerAgentClient(self.organization, self.user)
         run = client.start_feature_run(
-            feature_id="night_shift", payload={}, title="Test feature run", flush=False
+            feature_id="night_shift",
+            payload={},
+            title="Test feature run",
+            flush=False,
+            referrer="night_shift",
         )
 
         outbox = self._outbox_for(run)
@@ -1595,7 +1630,11 @@ class TestStartFeatureRun(TestCase):
     def test_inherits_frontend_code_search_from_org(self, mock_request, _mock_access) -> None:
         client = SeerAgentClient(self.organization, self.user)
         run = client.start_feature_run(
-            feature_id="night_shift", payload={}, title="Test feature run", flush=False
+            feature_id="night_shift",
+            payload={},
+            title="Test feature run",
+            flush=False,
+            referrer="night_shift",
         )
 
         outbox = self._outbox_for(run)
@@ -1609,7 +1648,11 @@ class TestStartFeatureRun(TestCase):
     def test_forwards_bash_mode(self, mock_request, _mock_access) -> None:
         client = SeerAgentClient(self.organization, self.user, enable_bash_tools=True)
         run = client.start_feature_run(
-            feature_id="night_shift", payload={}, title="Test feature run", flush=False
+            feature_id="night_shift",
+            payload={},
+            title="Test feature run",
+            flush=False,
+            referrer="night_shift",
         )
 
         outbox = self._outbox_for(run)
@@ -1622,7 +1665,11 @@ class TestStartFeatureRun(TestCase):
     def test_omits_bash_mode_without_org_flag(self, mock_request, _mock_access) -> None:
         client = SeerAgentClient(self.organization, self.user, enable_bash_tools=True)
         run = client.start_feature_run(
-            feature_id="night_shift", payload={}, title="Test feature run", flush=False
+            feature_id="night_shift",
+            payload={},
+            title="Test feature run",
+            flush=False,
+            referrer="night_shift",
         )
 
         outbox = self._outbox_for(run)
@@ -1635,7 +1682,11 @@ class TestStartFeatureRun(TestCase):
     def test_agent_run_options_empty_without_org_flags(self, mock_request, _mock_access) -> None:
         client = SeerAgentClient(self.organization, self.user)
         run = client.start_feature_run(
-            feature_id="night_shift", payload={}, title="Test feature run", flush=False
+            feature_id="night_shift",
+            payload={},
+            title="Test feature run",
+            flush=False,
+            referrer="night_shift",
         )
 
         outbox = self._outbox_for(run)

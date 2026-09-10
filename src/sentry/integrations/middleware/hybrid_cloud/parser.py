@@ -2,24 +2,25 @@ from __future__ import annotations
 
 import logging
 from abc import ABC
+from collections.abc import Mapping
 from concurrent.futures import as_completed
 from typing import TYPE_CHECKING, Any, ClassVar
 
 import orjson
-from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.urls import ResolverMatch, resolve
 from rest_framework import status
 
-from sentry.api.base import ONE_DAY
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.mailbox import MailboxName
 from sentry.hybridcloud.models.webhookpayload import DestinationType, WebhookPayload
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.hybridcloud.tasks.deliver_webhooks import maybe_trigger_drain
 from sentry.hybridcloud.webhook_event_types import MAILBOX_EVENT_TYPES
+from sentry.hybridcloud.webhook_mailbox_sizing import mailbox_bucket_count
 from sentry.integrations.middleware.metrics import (
     MiddlewareHaltReason,
     MiddlewareOperationEvent,
@@ -30,12 +31,12 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.killswitches import KillswitchConfig, get_killswitch_value, value_matches
 from sentry.logging.handlers import SamplingFilter
-from sentry.ratelimits import backend as ratelimiter
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import CellSiloClient, SiloClientError
 from sentry.types.cell import Cell, find_cells_for_org_mappings, get_cell_by_name
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
@@ -77,17 +78,6 @@ class BaseRequestParser(ABC):
 
     webhook_identifier: ClassVar[WebhookProviderIdentifier]
     """The webhook provider identifier"""
-
-    mailbox_bucket_count: ClassVar[int] = 100
-    """How many sub-mailboxes `mailbox_bucket_id` is spread over.
-
-    Every mailbox costs a scheduler row and a dispatch slot, so splitting past what
-    the volume needs buys queue rows rather than parallelism.
-    """
-
-    always_bucket: ClassVar[bool] = False
-    """Split every integration's mailbox by `mailbox_bucket_id` instead of waiting
-    for it to exceed the hourly rate limit first."""
 
     def __init__(self, request: HttpRequest, response_handler: ResponseHandler):
         self.request = request
@@ -201,12 +191,20 @@ class BaseRequestParser(ABC):
     def get_response_from_webhookpayload(
         self,
         cells: list[Cell],
-        identifier: int | str | None = None,
+        mailbox: MailboxName | None = None,  # TODO(getsentry): make required
         integration_id: int | None = None,
+        identifier: int | str | None = None,  # TODO(getsentry): remove
     ) -> HttpResponseBase:
         """
         Used to create webhookpayloads for provided cells to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.
+
+        A provider that resolved nothing to key its mailbox on falls back to its
+        own webhook identifier, which puts every one of its payloads in one mailbox.
+
+        `identifier` is the older spelling of a subject-only `mailbox`, kept while the
+        parsers in getsentry still pass it -- the two repos cannot change in one commit.
+        The fallback to `webhook_identifier` goes when it does; no caller relies on it.
         """
         shed_response = self.get_shed_response(integration_id=integration_id)
         if shed_response is not None:
@@ -215,14 +213,14 @@ class BaseRequestParser(ABC):
         if len(cells) < 1:
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
-        shard_identifier = identifier or self.webhook_identifier.value
+        target = mailbox or MailboxName(
+            self.provider, str(identifier or self.webhook_identifier.value)
+        )
         # Create all payloads first, then trigger one drain per (cell-scoped) mailbox.
         payloads = [
             WebhookPayload.create_from_request(
                 destination_type=DestinationType.SENTRY_CELL,
-                cell=cell.name,
-                provider=self.provider,
-                identifier=shard_identifier,
+                mailbox=target.in_cell(cell.name),
                 integration_id=integration_id,
                 request=self.request,
             )
@@ -309,68 +307,84 @@ class BaseRequestParser(ABC):
             return {}
         return body if isinstance(body, dict) else {}
 
-    def get_mailbox_identifier(
+    def get_mailbox(
         self, integration: RpcIntegration | Integration, data: dict[str, Any]
-    ) -> str:
+    ) -> MailboxName:
         """
         Used by integrations with higher hook volumes to create smaller mailboxes
         that can be delivered in parallel. Requires the integration to implement
         `mailbox_bucket_id`
+
+        The event type is resolved before the bucket because the split is sized per
+        event type, and only the validated value may reach that: it is read out of a
+        body control has not verified.
         """
-        identifier = self._bucketed_mailbox_identifier(integration, data)
-        event_type = self._mailbox_event_type(data)
-        return f"{identifier}:{event_type}" if event_type else identifier
+        mailbox = MailboxName(
+            provider=self.provider,
+            subject=str(integration.id),
+            event_type=self._mailbox_event_type(data),
+        )
+        # Callers build the mailbox as an argument, so this runs before the shed check
+        # in get_response_from_webhookpayload. A shed payload is never queued, so it
+        # must not raise the rate that sizes the split -- nor pay the Redis write that
+        # shedding exists to avoid.
+        if self._should_shed(integration.id):
+            return mailbox
+        return self._bucketed(mailbox, data)
 
-    def _bucketed_mailbox_identifier(
-        self, integration: RpcIntegration | Integration, data: dict[str, Any]
-    ) -> str:
-        """The mailbox identifier up to the bucket, before any event-type suffix.
+    def _bucketed(self, mailbox: MailboxName, data: dict[str, Any]) -> MailboxName:
+        """`mailbox` in a bucket, or unchanged where the payload does not get one.
 
-        Falls back to the integration-level mailbox when the integration is below
-        the volume that warrants buckets, or when no bucket ID is available."""
-        if not self.always_bucket and not self._exceeds_bucketing_volume(integration):
-            self._record_mailbox_routing(bucketed=False, reason="under_volume_gate")
-            return str(integration.id)
-
+        A keyless payload lands on the unsplit mailbox however wide the split is, so
+        it is left out of the rate that sizes it.
+        """
         mailbox_bucket_id = self.mailbox_bucket_id(data)
         if mailbox_bucket_id is None:
             self._record_mailbox_routing(bucketed=False, reason="no_bucket_key")
-            return str(integration.id)
+            return mailbox
 
-        bucket_number = mailbox_bucket_id % self.mailbox_bucket_count
-        self._record_mailbox_routing(bucketed=True, reason="bucketed")
+        bucket_count = mailbox_bucket_count(mailbox)
+        if bucket_count == 1:
+            self._record_mailbox_routing(bucketed=False, reason="under_rate", buckets=1)
+            return mailbox
 
-        return f"{integration.id}:{bucket_number}"
+        self._record_mailbox_routing(bucketed=True, reason="bucketed", buckets=bucket_count)
 
-    def _exceeds_bucketing_volume(self, integration: RpcIntegration | Integration) -> bool:
-        # If we get fewer than 3000 in 1 hour we don't need to split into buckets
-        ratelimit_key = f"webhookpayload:{self.provider}:{integration.id}"
-        use_buckets_key = f"{ratelimit_key}:use_buckets"
+        return mailbox.in_bucket(mailbox_bucket_id % bucket_count)
 
-        if cache.get(use_buckets_key):
-            return True
-        if ratelimiter.is_limited(key=ratelimit_key, window=60 * 60, limit=3000):
-            # Once we have gone over the rate limit in a day, we use smaller
-            # buckets for the next day.
-            cache.set(use_buckets_key, 1, timeout=ONE_DAY)
-            return True
-        return False
+    def _record_mailbox_routing(
+        self, bucketed: bool, reason: str, buckets: int | None = None
+    ) -> None:
+        """`reason` is the full breakdown; `bucketed` stays for the dashboards on it.
 
-    def _record_mailbox_routing(self, bucketed: bool, reason: str) -> None:
-        """`reason` is the full breakdown; `bucketed` stays for the dashboards on it."""
-        metrics.incr(
-            "hybridcloud.webhookpayload.mailbox_routing",
-            tags={
-                "provider": self.provider,
-                "bucketed": "true" if bucketed else "false",
-                "reason": reason,
-            },
-        )
+        `buckets` is left off the path that never consults a count, so a query for
+        split width does not average in routing that has no width.
+        """
+        tags = {
+            "provider": self.provider,
+            "bucketed": "true" if bucketed else "false",
+            "reason": reason,
+        }
+        if buckets is not None:
+            tags["buckets"] = str(buckets)
+        metrics.incr("hybridcloud.webhookpayload.mailbox_routing", tags=tags)
 
     def mailbox_bucket_id(self, data: dict[str, Any]) -> int | None:
         raise NotImplementedError(
             "You must implement mailbox_bucket_id to use bucketed identifiers"
         )
+
+    @staticmethod
+    def bucket_key_at(data: Mapping[str, Any], *path: str) -> int | None:
+        """Read a bucket key out of `data`, or None if it is missing or not numeric.
+
+        Shared so every provider degrades the same way rather than raising out of the
+        parser on a body it did not expect.
+        """
+        try:
+            return int(get_path(data, *path))
+        except (TypeError, ValueError):
+            return None
 
     def _mailbox_event_type(self, data: dict[str, Any]) -> str | None:
         """Validation lives here, not in the subclass: the discriminator comes out of

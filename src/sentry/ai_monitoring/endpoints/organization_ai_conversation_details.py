@@ -10,6 +10,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.ai_monitoring.conversation_titles import fetch_conversation_title
+from sentry.ai_monitoring.utils import (
+    ConversationProject,
+    get_conversation_url,
+    serialize_conversation_project,
+)
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -22,6 +27,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.examples.ai_conversation_examples import AIConversationExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -119,6 +125,8 @@ class AIConversationDetailsResponse(TypedDict):
 
     conversationId: str
     title: str | None
+    projects: list[ConversationProject]
+    webUrl: str
     spans: list[dict[str, Any]]
 
 
@@ -151,6 +159,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=AIConversationExamples.RETRIEVE_AI_CONVERSATION,
     )
     def get(
         self, request: Request, organization: Organization, conversation_id: str
@@ -198,9 +207,19 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             def on_results(spans: list[SpanRow]) -> AIConversationDetailsResponse:
                 self._repair_parent_links(spans, resolved_params, conversation_id)
                 self._annotate_issues(spans, resolved_params, organization)
+                # Treat conversations as single-project for now. Multi-project conversations are
+                # an edge case, so this response exposes only one of their projects.
+                project_id = next(
+                    (value for span in spans if isinstance(value := span.get("project.id"), int)),
+                    None,
+                )
+                projects_by_id = {project.id: project for project in resolved_params.projects}
+                project = projects_by_id.get(project_id)
                 return {
                     "conversationId": conversation_id,
                     "title": self._resolve_title(conversation_id, spans, organization),
+                    "projects": [serialize_conversation_project(project)] if project else [],
+                    "webUrl": get_conversation_url(organization, conversation_id, project_id),
                     "spans": spans,
                 }
 

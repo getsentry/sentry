@@ -25,7 +25,6 @@ from sentry.api.serializers.rest_framework.base import (
 )
 from sentry.constants import ObjectStatus
 from sentry.integrations.gcp.client import verify_gcp_connection
-from sentry.integrations.gcp.utils import resolve_project_error_detail
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
@@ -44,14 +43,14 @@ class GcpVerifyConnectionSerializer(CamelSnakeSerializer["GcpVerifyConnectionSer
 class GcpVerifyConnectionServiceResultSerializer(Serializer[dict[str, object]]):
     service = CharField()
     status = CharField()
-    error_detail = CharField(required=False, allow_null=True)
+    error_detail = CharField(required=False, allow_null=True, default=None)
 
 
 class GcpVerifyConnectionProjectResultSerializer(Serializer[dict[str, object]]):
     gcp_project_id = CharField()
     connection_status = CharField()
     services = GcpVerifyConnectionServiceResultSerializer(many=True)
-    error_detail = CharField(required=False, allow_null=True)
+    error_detail = CharField(required=False, allow_null=True, default=None)
 
 
 class GcpVerifyConnectionResponseSerializer(Serializer[dict[str, object]]):
@@ -96,6 +95,7 @@ def _record_verification_result(
                 {
                     "gcp_project_id": project["gcp_project_id"],
                     "connection_status": project["connection_status"],
+                    "services": project["services"],
                     "error_detail": project.get("error_detail"),
                 }
                 for project in result["projects"]
@@ -149,9 +149,6 @@ class OrganizationMonitoringProviderVerifyConnectionEndpoint(OrganizationEndpoin
             )
 
         verified_result = response_serializer.validated_data
-        for project in verified_result["projects"]:
-            project["error_detail"] = resolve_project_error_detail(project)
-
         try:
             _record_verification_result(organization, data, verified_result)
         except Exception:

@@ -386,7 +386,7 @@ function OptimizableImageFileRow({
             {file.path}
           </Text>
           {hasMetadata && (
-            <Tooltip title={tooltipContent} isHoverable skipWrapper>
+            <Tooltip title={tooltipContent} skipWrapper>
               <Flex align="center" flexShrink={0}>
                 <IconFlag size="xs" variant="muted" />
               </Flex>

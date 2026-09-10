@@ -54,7 +54,6 @@ from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status, get_agent_state_from_pr_id
 from sentry.seer.autofix.autofix_agent import (
-    AutofixStep,
     PrIterationNoPullRequestException,
     trigger_autofix_agent,
 )
@@ -103,6 +102,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
     pop_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
 )
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
@@ -290,6 +290,7 @@ def comment_on_missing_permissions(
     pr_number: int,
     pr_id: int | None,
     integration_id: int,
+    repository_id: int | None = None,
     *args: Any,
     **kwargs: Any,
 ) -> None:
@@ -299,6 +300,10 @@ def comment_on_missing_permissions(
     GitHub call never runs inside a webhook task's deadline or the synchronous
     autofix endpoint. Retries on ``UnableToAcquireLock`` instead of waiting on
     the lock, so a losing activation requeues rather than parking a worker.
+
+    ``repository_id`` is what the gate resolved and defaults to None so
+    activations queued by an older deploy still run; the comment path resolves
+    the repo again and only uses this to notice a change in between.
     """
     organization = _organization_for_gate(run_id, organization_id)
     if organization is None:
@@ -324,6 +329,7 @@ def comment_on_missing_permissions(
         pr_number=pr_number,
         pr_id=pr_id,
         integration_id=integration_id,
+        queued_repository_id=repository_id,
         log_ctx=PrIterationLogContext.for_run(logger, state, organization_id, group_id),
     )
 
@@ -474,9 +480,30 @@ def _drain_queued_autofix_feedback(
         )
         return
 
+    # The previous iteration's push (triggered separately, from the
+    # on_completion_hook) races this drain. If it left unpushed changes
+    # behind, wait for it rather than starting a new iteration against a PR
+    # that's about to change underneath it. has_code_changes() reports
+    # synced when there was nothing to push, so that case is unaffected.
+    _, all_changes_pushed = state.has_code_changes()
+    if not all_changes_pushed:
+        log_ctx.info(
+            "autofix.pr_iteration.consume_feedback.drain",
+            outcome="skipped",
+            reason="push_pending",
+            run_status=state.status,
+            trigger_id=trigger_id,
+            trigger_source=trigger_source,
+            left_queued_count=count_queued_autofix_feedback(run_id),
+        )
+        return
+
     # Claim before the pop, so feedback arriving mid-drain opens its own row.
     iteration_id = trigger_pr_iteration_details(
-        log_ctx=log_ctx, run_id=run_id, organization_id=organization_id
+        log_ctx=log_ctx,
+        run_id=run_id,
+        organization_id=organization_id,
+        trigger_source=trigger_source,
     )
 
     queued_items = pop_queued_autofix_feedback(run_id)
@@ -1461,9 +1488,9 @@ def trigger_pr_iteration_from_review(
     review author must have repo write/admin access, so an untrusted reviewer can't
     spend Autofix quota or inject feedback that rewrites the PR.
 
-    ``author_is_bot`` reviews (test-coverage bots and the like) count toward the
-    automated-iteration streak cap and are dropped once it's reached; human
-    reviews always drive an iteration and reset that streak.
+    ``author_is_bot`` reviews (test-coverage bots and the like) are dropped when
+    they have no inline comments, and count toward the automated-iteration streak
+    cap. Human reviews always drive an iteration and reset that streak.
     """
     log_extra = {
         "organization_id": organization_id,
@@ -1569,6 +1596,16 @@ def trigger_pr_iteration_from_review(
         )
 
     inline_comments = _fetch_all_review_comments(scm, pr_number=pr_number, review_id=review_id)
+
+    # A bot review with no inline comments has nothing to act on; a human summary does.
+    if author_is_bot and not inline_comments:
+        metrics.incr("autofix.pr_iteration.review_trigger.bot_review_no_inline_comments")
+        logger.info(
+            "autofix.pr_iteration.review_trigger.bot_review_no_inline_comments",
+            extra=log_extra,
+        )
+        return None
+
     review = _fetch_review_body(scm, pr_number=pr_number, review_id=review_id)
     review_body = (review.get("body") or "").strip() if review else None
     review_html_url = review.get("html_url") if review else None

@@ -1,4 +1,5 @@
 from sentry.issues.action_log import ActionSource
+from sentry.models.group import Group
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.testutils.cases import APITestCase
 
@@ -18,10 +19,19 @@ class GroupExternalIssueDetailsEndpointTest(APITestCase):
         self.url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/external-issues/{self.external_issue.id}/"
 
     def test_deletes_external_issue(self) -> None:
-        response = self.client.delete(self.url, format="json")
+        self.organization.update_option("sentry:events_member_admin", False)
+        member = self.create_user()
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        token = self.create_user_auth_token(user=member, scope_list=["event:write"])
+        self.client.cookies.clear()
+
+        response = self.client.delete(self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
         assert response.status_code == 204, response.content
         assert not PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
+        assert Group.objects.get(id=self.group.id).status == self.group.status
 
     def test_deletes_external_issue_records_action_log(self) -> None:
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
@@ -74,3 +84,5 @@ class GroupExternalIssueDetailsEndpointTest(APITestCase):
         response = self.client.delete(url, format="json")
 
         assert response.status_code == 403, response.content
+        assert PlatformExternalIssue.objects.filter(id=external_issue.id).exists()
+        assert Group.objects.get(id=group.id).status == group.status
