@@ -1,4 +1,5 @@
-import {ATTRIBUTE_SEARCH_METADATA, type AttributeValue} from '@sentry/conventions';
+import type {AttributeValue} from '@sentry/conventions/attributes';
+import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions/attributes/search';
 
 const TYPED_TAG_KEY_RE = /tags\[(\S*),(\S*)\]/;
 const ATTRIBUTE_DEPRECATION_CHAIN_BY_KEY = new Map<

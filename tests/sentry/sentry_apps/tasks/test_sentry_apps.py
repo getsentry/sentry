@@ -999,13 +999,19 @@ class TestProcessResourceChange(TestCase):
             ServiceHookProject.objects.all().delete()
             ServiceHook.objects.all().delete()
 
+        # Sentry app hooks always have a NULL project_id in production; per-project
+        # filtering is expressed with ServiceHookProject rows, not the project_id column.
         self.create_service_hook(
-            project_ids=[self.project.id],  # matches project of issue
+            project_ids=[],
             installation=self.install,
             application=self.sentry_app,
             events=["issue.created"],
             org=self.organization,
             actor=self.install,
+        )
+        self.create_service_hook_project_for_installation(
+            project_id=self.project.id,  # matches project of issue
+            installation_id=self.install.id,
         )
 
         event = self.store_event(data={}, project_id=self.project.id)
@@ -1063,13 +1069,19 @@ class TestProcessResourceChange(TestCase):
             name="Bar2", slug="bar2", teams=[self.team], fire_project_created=False
         )
 
+        # Sentry app hooks always have a NULL project_id in production; per-project
+        # filtering is expressed with ServiceHookProject rows, not the project_id column.
         self.create_service_hook(
-            project_ids=[project_2.id],  # no match
+            project_ids=[],
             installation=self.install,
             application=self.sentry_app,
             events=["issue.created"],
             org=self.organization,
             actor=self.install,
+        )
+        self.create_service_hook_project_for_installation(
+            project_id=project_2.id,  # no match
+            installation_id=self.install.id,
         )
 
         event = self.store_event(data={}, project_id=self.project.id)
@@ -1707,6 +1719,60 @@ class TestWorkflowNotification(TestCase):
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
         )
+
+    def test_repairs_service_hook_missing_organization_id(self, safe_urlopen: MagicMock) -> None:
+        with assume_test_silo_mode_of(ServiceHook):
+            ServiceHook.objects.filter(installation_id=self.install.id).update(organization_id=None)
+
+        workflow_notification(self.install.id, self.issue.id, "resolved", self.user.id)
+
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        assert kwargs["url"] == self.sentry_app.webhook_url
+
+        with assume_test_silo_mode_of(ServiceHook):
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
+        assert hook.organization_id == self.project.organization.id
+
+    def test_does_not_repair_when_multiple_hooks_missing_organization_id(
+        self, safe_urlopen: MagicMock
+    ) -> None:
+        self.create_service_hook(
+            actor=self.user,
+            org=self.project.organization,
+            project_ids=[],
+            events=["issue.resolved"],
+            installation_id=self.install.id,
+            application_id=self.sentry_app.application_id,
+            url=self.sentry_app.webhook_url,
+        )
+        with assume_test_silo_mode_of(ServiceHook):
+            ServiceHook.objects.filter(installation_id=self.install.id).update(organization_id=None)
+
+        with pytest.raises(SentryAppSentryError):
+            workflow_notification(self.install.id, self.issue.id, "resolved", self.user.id)
+        assert not safe_urlopen.called
+
+        with assume_test_silo_mode_of(ServiceHook):
+            assert not ServiceHook.objects.filter(
+                installation_id=self.install.id, organization_id__isnull=False
+            ).exists()
+
+    def test_does_not_repair_hook_belonging_to_another_organization(
+        self, safe_urlopen: MagicMock
+    ) -> None:
+        other_org = self.create_organization()
+        with assume_test_silo_mode_of(ServiceHook):
+            ServiceHook.objects.filter(installation_id=self.install.id).update(
+                organization_id=other_org.id
+            )
+
+        with pytest.raises(SentryAppSentryError):
+            workflow_notification(self.install.id, self.issue.id, "resolved", self.user.id)
+        assert not safe_urlopen.called
+
+        with assume_test_silo_mode_of(ServiceHook):
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
+        assert hook.organization_id == other_org.id
 
 
 class TestWebhookRequests(TestCase):

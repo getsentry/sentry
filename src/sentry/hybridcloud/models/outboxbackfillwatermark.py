@@ -37,12 +37,12 @@ class BaseOutboxBackfillWatermark(DefaultFieldsModel):
 @cell_silo_model
 class CellOutboxBackfillWatermark(BaseOutboxBackfillWatermark):
     class Meta:
-        app_label = "sentry"
-        db_table = "sentry_celloutboxbackfillwatermark"
+        app_label = "hybridcloud"
+        db_table = "hybridcloud_celloutboxbackfillwatermark"
         constraints = [
             models.UniqueConstraint(
                 fields=["table_name"],
-                name="sentry_celloutboxbackfillwatermark_key_uniq",
+                name="hybridcloud_celloutboxbackfillwatermark_key_uniq",
             ),
         ]
 
@@ -50,11 +50,11 @@ class CellOutboxBackfillWatermark(BaseOutboxBackfillWatermark):
 @control_silo_model
 class ControlOutboxBackfillWatermark(BaseOutboxBackfillWatermark):
     class Meta:
-        app_label = "sentry"
-        db_table = "sentry_controloutboxbackfillwatermark"
+        app_label = "hybridcloud"
+        db_table = "hybridcloud_controloutboxbackfillwatermark"
         constraints = [
             models.UniqueConstraint(
                 fields=["table_name"],
-                name="sentry_controloutboxbackfillwatermark_key_uniq",
+                name="hybridcloud_controloutboxbackfillwatermark_key_uniq",
             ),
         ]

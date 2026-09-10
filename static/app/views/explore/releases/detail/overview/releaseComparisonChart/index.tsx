@@ -16,7 +16,6 @@ import {NotAvailable} from 'sentry/components/notAvailable';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {Panel} from 'sentry/components/panels/panel';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {HeaderCellContent} from 'sentry/components/tables/sortableHeaderCell';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {
@@ -972,21 +971,21 @@ export function ReleaseComparisonChart({
       <SimpleTable.HeaderCell key="description">
         <DescriptionCell>{t('Description')}</DescriptionCell>
       </SimpleTable.HeaderCell>,
-      <NumericHeaderCell key="releases">
+      <SimpleTable.HeaderCell align="right" key="releases">
         <Cell>{t('All Releases')}</Cell>
-      </NumericHeaderCell>,
-      <NumericHeaderCell key="release">
+      </SimpleTable.HeaderCell>,
+      <SimpleTable.HeaderCell align="right" key="release">
         <Cell>{t('This Release')}</Cell>
-      </NumericHeaderCell>,
-      <NumericHeaderCell key="change">
+      </SimpleTable.HeaderCell>,
+      <SimpleTable.HeaderCell align="right" key="change">
         <Cell>{t('Change')}</Cell>
-      </NumericHeaderCell>,
+      </SimpleTable.HeaderCell>,
     ];
     if (withExpanders) {
       headers.push(
-        <NumericHeaderCell key="expanders">
+        <SimpleTable.HeaderCell align="right" key="expanders">
           <Cell />
-        </NumericHeaderCell>
+        </SimpleTable.HeaderCell>
       );
     }
     return headers;
@@ -1122,7 +1121,19 @@ export function ReleaseComparisonChart({
       </ChartPanel>
       <ChartTable
         data-test-id="release-comparison-table"
-        withExpanders={withExpanders}
+        columns={[
+          {
+            key: 'description',
+            width: {
+              zero: 'minmax(min-content, 1fr)',
+              '4xl': 'minmax(400px, auto)',
+            },
+          },
+          {key: 'releases', width: 'minmax(min-content, 1fr)'},
+          {key: 'release', width: 'minmax(min-content, 1fr)'},
+          {key: 'change', width: 'minmax(min-content, 1fr)'},
+          {key: 'expanders', visible: withExpanders, width: '75px'},
+        ]}
         header={
           <SimpleTable.HeaderRow>{getTableHeaders(withExpanders)}</SimpleTable.HeaderRow>
         }
@@ -1175,36 +1186,14 @@ const DescriptionCell = styled(Cell)`
   overflow: visible;
 `;
 
-const NumericHeaderCell = styled(SimpleTable.HeaderCell)`
-  ${HeaderCellContent} {
-    justify-content: flex-end;
-  }
-`;
-
 const Change = styled('div')<{color?: string}>`
   font-size: ${p => p.theme.font.size.md};
   ${p => p.color && `color: ${p.color}`}
 `;
 
-const ChartTable = styled(SimpleTable, {
-  shouldForwardProp: prop => prop !== 'withExpanders',
-})<{withExpanders: boolean}>`
+const ChartTable = styled(SimpleTable)`
   border-top-left-radius: 0;
   border-top-right-radius: 0;
-
-  && {
-    grid-template-columns: repeat(4, minmax(min-content, 1fr)) ${p =>
-        p.withExpanders ? '75px' : ''};
-  }
-
-  @container (min-width: ${p => p.theme.container['4xl']}) {
-    && {
-      grid-template-columns: minmax(400px, auto) repeat(
-          3,
-          minmax(min-content, 1fr)
-        ) ${p => (p.withExpanders ? '75px' : '')};
-    }
-  }
 `;
 
 const StyledNotAvailable = styled(NotAvailable)`

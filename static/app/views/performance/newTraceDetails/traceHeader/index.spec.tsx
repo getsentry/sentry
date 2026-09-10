@@ -1,5 +1,4 @@
 import {TransactionEventFixture} from 'sentry-fixture/event';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -7,7 +6,6 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
-import {useLocation} from 'sentry/utils/useLocation';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
@@ -29,7 +27,6 @@ import {
 
 jest.mock('sentry/views/performance/newTraceDetails/traceState/traceStateProvider');
 jest.mock('sentry/views/performance/newTraceDetails/traceHeader/projects');
-jest.mock('sentry/utils/useLocation');
 
 const baseProps: Partial<TraceMetadataHeaderProps> = {
   metaResults: {
@@ -69,8 +66,16 @@ const baseProps: Partial<TraceMetadataHeaderProps> = {
 };
 let organization: Organization;
 
-const useLocationMock = jest.mocked(useLocation);
 const projectsMock = jest.mocked(Projects);
+
+function TestHeader(props: TraceMetadataHeaderProps) {
+  return (
+    <TopBar.Slot.Provider>
+      <TopBar />
+      <TraceMetaDataHeader {...props} organization={organization} />
+    </TopBar.Slot.Provider>
+  );
+}
 
 describe('TraceMetaDataHeader', () => {
   beforeEach(() => {
@@ -86,26 +91,18 @@ describe('TraceMetaDataHeader', () => {
   });
 
   describe('breadcrumbs', () => {
-    function renderHeader(props: TraceMetadataHeaderProps) {
-      return render(
-        <TopBar.Slot.Provider>
-          <TopBar />
-          <TraceMetaDataHeader {...props} organization={organization} />
-        </TopBar.Slot.Provider>
-      );
-    }
-
     it('should render module breadcrumbs', () => {
-      useLocationMock.mockReturnValue(
-        LocationFixture({
-          pathname: '/organizations/org-slug/insights/backend/trace/trace-slug',
-          query: {
-            source: TraceViewSources.REQUESTS_MODULE,
-          },
-        })
-      );
       const props = {...baseProps} as TraceMetadataHeaderProps;
-      renderHeader(props);
+      render(<TestHeader {...props} />, {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/insights/backend/trace/trace-slug',
+            query: {
+              source: TraceViewSources.REQUESTS_MODULE,
+            },
+          },
+        },
+      });
 
       const topBar = screen.getByRole('banner');
       const breadcrumbsLinks = within(topBar).getAllByRole('link');
@@ -118,17 +115,18 @@ describe('TraceMetaDataHeader', () => {
     });
 
     it('should show insights from transaction summary with perf removal feature', () => {
-      useLocationMock.mockReturnValue(
-        LocationFixture({
-          pathname: '/organizations/org-slug/traces/trace/123',
-          query: {
-            source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
-            transaction: 'transaction-name',
-          },
-        })
-      );
       const props = {...baseProps} as TraceMetadataHeaderProps;
-      renderHeader(props);
+      render(<TestHeader {...props} />, {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/traces/trace/123',
+            query: {
+              source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+              transaction: 'transaction-name',
+            },
+          },
+        },
+      });
 
       const topBar = screen.getByRole('banner');
       const breadcrumbsLinks = within(topBar).getAllByRole('link');
@@ -144,17 +142,18 @@ describe('TraceMetaDataHeader', () => {
     });
 
     it('should show insights from transaction summary', () => {
-      useLocationMock.mockReturnValue(
-        LocationFixture({
-          pathname: '/organizations/org-slug/traces/trace/123',
-          query: {
-            source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
-            transaction: 'transaction-name',
-          },
-        })
-      );
       const props = {...baseProps} as TraceMetadataHeaderProps;
-      renderHeader(props);
+      render(<TestHeader {...props} />, {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/traces/trace/123',
+            query: {
+              source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+              transaction: 'transaction-name',
+            },
+          },
+        },
+      });
 
       const topBar = screen.getByRole('banner');
       const breadcrumbsLinks = within(topBar).getAllByRole('link');
@@ -170,16 +169,17 @@ describe('TraceMetaDataHeader', () => {
     });
 
     it('should render domain overview breadcrumbs', () => {
-      useLocationMock.mockReturnValue(
-        LocationFixture({
-          pathname: '/organizations/org-slug/insights/frontend/trace/123',
-          query: {
-            source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
-          },
-        })
-      );
       const props = {...baseProps} as TraceMetadataHeaderProps;
-      render(<TraceMetaDataHeader {...props} organization={organization} />);
+      render(<TraceMetaDataHeader {...props} organization={organization} />, {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/insights/frontend/trace/123',
+            query: {
+              source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+            },
+          },
+        },
+      });
 
       const breadcrumbsLinks = screen.getAllByRole('link');
       const breadcrumbsItems = [screen.getByText(/trace-slug/)];
@@ -193,12 +193,6 @@ describe('TraceMetaDataHeader', () => {
 
     it('renders loading-state breadcrumbs in the top bar', () => {
       const pageFrameOrganization = OrganizationFixture();
-
-      useLocationMock.mockReturnValue(
-        LocationFixture({
-          pathname: '/organizations/org-slug/traces/trace/trace-slug',
-        })
-      );
 
       render(
         <TopBar.Slot.Provider>
@@ -219,6 +213,9 @@ describe('TraceMetaDataHeader', () => {
           />
         </TopBar.Slot.Provider>,
         {
+          initialRouterConfig: {
+            location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+          },
           organization: pageFrameOrganization,
         }
       );
@@ -230,12 +227,6 @@ describe('TraceMetaDataHeader', () => {
 
   describe('uptime check header', () => {
     it('should render uptime check header with title and subtitle', () => {
-      useLocationMock.mockReturnValue(
-        LocationFixture({
-          pathname: '/organizations/org-slug/traces/trace/trace-slug',
-        })
-      );
-
       // Create uptime check using test utility
       const uptimeCheckEvent = makeUptimeCheck({
         additional_attributes: {
@@ -277,7 +268,11 @@ describe('TraceMetaDataHeader', () => {
         rootEventResults: {data: uptimeCheckWithContexts} as any,
       } as TraceMetadataHeaderProps;
 
-      render(<TraceMetaDataHeader {...props} organization={organization} />);
+      render(<TraceMetaDataHeader {...props} organization={organization} />, {
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+        },
+      });
 
       // Check for uptime monitor title
       expect(screen.getByText('Uptime Monitor Check')).toBeInTheDocument();
@@ -288,11 +283,6 @@ describe('TraceMetaDataHeader', () => {
 
   describe('meta', () => {
     it('renders the core header while optional overview data is loading', () => {
-      useLocationMock.mockReturnValue(
-        LocationFixture({
-          pathname: '/organizations/org-slug/traces/trace/trace-slug',
-        })
-      );
       const overviewOrganization = OrganizationFixture({
         features: ['ourlogs-enabled', 'tracemetrics-enabled'],
       });
@@ -315,7 +305,11 @@ describe('TraceMetaDataHeader', () => {
         },
       } as TraceMetadataHeaderProps;
 
-      render(<TraceMetaDataHeader {...props} organization={overviewOrganization} />);
+      render(<TraceMetaDataHeader {...props} organization={overviewOrganization} />, {
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+        },
+      });
 
       expect(screen.getByText('Issues')).toBeInTheDocument();
       expect(screen.getByText('Logs')).toBeInTheDocument();
@@ -323,11 +317,6 @@ describe('TraceMetaDataHeader', () => {
     });
 
     it('keeps the core header for an empty tree while overview availability loads', () => {
-      useLocationMock.mockReturnValue(
-        LocationFixture({
-          pathname: '/organizations/org-slug/traces/trace/trace-slug',
-        })
-      );
       const overviewOrganization = OrganizationFixture({
         features: ['ourlogs-enabled', 'tracemetrics-enabled'],
       });
@@ -357,7 +346,11 @@ describe('TraceMetaDataHeader', () => {
         },
       } as TraceMetadataHeaderProps;
 
-      render(<TraceMetaDataHeader {...props} organization={overviewOrganization} />);
+      render(<TraceMetaDataHeader {...props} organization={overviewOrganization} />, {
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+        },
+      });
 
       expect(screen.getByText('Issues')).toBeInTheDocument();
       expect(screen.getByText('Logs')).toBeInTheDocument();
@@ -365,11 +358,6 @@ describe('TraceMetaDataHeader', () => {
     });
 
     it('renders the core header when root event details fail', () => {
-      useLocationMock.mockReturnValue(
-        LocationFixture({
-          pathname: '/organizations/org-slug/traces/trace/trace-slug',
-        })
-      );
       const props = {
         ...baseProps,
         rootEventResults: {
@@ -380,19 +368,20 @@ describe('TraceMetaDataHeader', () => {
         },
       } as TraceMetadataHeaderProps;
 
-      render(<TraceMetaDataHeader {...props} organization={organization} />);
+      render(<TraceMetaDataHeader {...props} organization={organization} />, {
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+        },
+      });
 
       expect(screen.getByText('Issues')).toBeInTheDocument();
       expect(screen.getByText('Spans')).toBeInTheDocument();
     });
 
     it('renders representative information for a log-only trace', () => {
-      useLocationMock.mockReturnValue(
-        LocationFixture({
-          pathname: '/organizations/org-slug/traces/trace/trace-slug',
-        })
-      );
-      const logsOrganization = OrganizationFixture({features: ['ourlogs-enabled']});
+      const logsOrganization = OrganizationFixture({
+        features: ['ourlogs-enabled'],
+      });
       const projects = [
         ProjectFixture({id: '1', slug: 'project-one'}),
         ProjectFixture({id: '2', slug: 'project-two'}),
@@ -430,7 +419,11 @@ describe('TraceMetaDataHeader', () => {
         },
       } as TraceMetadataHeaderProps;
 
-      render(<TraceMetaDataHeader {...props} organization={logsOrganization} />);
+      render(<TraceMetaDataHeader {...props} organization={logsOrganization} />, {
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+        },
+      });
 
       expect(screen.getByText('Representative log message')).toBeInTheDocument();
       expect(screen.getByText('Logs')).toBeInTheDocument();
@@ -444,11 +437,6 @@ describe('TraceMetaDataHeader', () => {
     });
 
     it('should render logs count from trace meta before logs have loaded', () => {
-      useLocationMock.mockReturnValue(
-        LocationFixture({
-          pathname: '/organizations/org-slug/traces/trace/trace-slug',
-        })
-      );
       const logsOrganization = OrganizationFixture({
         features: ['ourlogs-enabled'],
       });
@@ -471,18 +459,17 @@ describe('TraceMetaDataHeader', () => {
         },
       } as TraceMetadataHeaderProps;
 
-      render(<TraceMetaDataHeader {...props} organization={logsOrganization} />);
+      render(<TraceMetaDataHeader {...props} organization={logsOrganization} />, {
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+        },
+      });
 
       expect(screen.getByText('Logs')).toBeInTheDocument();
       expect(screen.getByText('5')).toBeInTheDocument();
     });
 
     it('should render metrics count', () => {
-      useLocationMock.mockReturnValue(
-        LocationFixture({
-          pathname: '/organizations/org-slug/traces/trace/trace-slug',
-        })
-      );
       const metricsOrganization = OrganizationFixture({
         features: ['tracemetrics-enabled'],
       });
@@ -505,19 +492,17 @@ describe('TraceMetaDataHeader', () => {
         },
       } as TraceMetadataHeaderProps;
 
-      render(<TraceMetaDataHeader {...props} organization={metricsOrganization} />);
+      render(<TraceMetaDataHeader {...props} organization={metricsOrganization} />, {
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+        },
+      });
 
       expect(screen.getByText('Metrics')).toBeInTheDocument();
       expect(screen.getByText('5')).toBeInTheDocument();
     });
 
     it('does not render metrics count when the metrics feature is disabled', () => {
-      useLocationMock.mockReturnValue(
-        LocationFixture({
-          pathname: '/organizations/org-slug/traces/trace/trace-slug',
-        })
-      );
-
       const props = {
         ...baseProps,
         metrics: {count: 5},
@@ -536,18 +521,16 @@ describe('TraceMetaDataHeader', () => {
         },
       } as TraceMetadataHeaderProps;
 
-      render(<TraceMetaDataHeader {...props} organization={organization} />);
+      render(<TraceMetaDataHeader {...props} organization={organization} />, {
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+        },
+      });
 
       expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
     });
 
     it('should render meta with different spans count', async () => {
-      useLocationMock.mockReturnValue(
-        LocationFixture({
-          pathname: '/organizations/org-slug/traces/trace/trace-slug',
-        })
-      );
-
       const tree = TraceTree.FromTrace(
         makeEAPTrace([
           makeEAPSpan({
@@ -578,7 +561,11 @@ describe('TraceMetaDataHeader', () => {
           },
         },
       } as TraceMetadataHeaderProps;
-      render(<TraceMetaDataHeader {...props} organization={organization} />);
+      render(<TraceMetaDataHeader {...props} organization={organization} />, {
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/traces/trace/trace-slug'},
+        },
+      });
 
       expect(screen.getByText('20')).toBeInTheDocument();
       await userEvent.hover(screen.getByText('20'));

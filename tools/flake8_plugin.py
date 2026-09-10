@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import os
 from collections.abc import Generator
 from datetime import datetime, timezone
 from typing import Any
@@ -155,6 +156,38 @@ S024_safelist = frozenset(("tools/migrations/squash.py",))
 _S024_discovery_methods = frozenset(("rglob", "glob", "iglob"))
 
 
+# Rules whose diagnostics are fatal. Empty ships every rule off; adding one
+# gates every endpoint of that shape at once, with no baseline to maintain.
+ENFORCED: frozenset[str] = frozenset()
+
+# Emit regardless of ENFORCED, so a plain flake8 run is the backlog inventory.
+INPUT_LINT_ALL_ENV = "SENTRY_INPUT_LINT_ALL"
+
+S025_query_msg = (
+    "S025 {} validates the query string but is not declared in "
+    "@extend_schema(parameters=...), so the schema does not document what this "
+    "endpoint accepts. Add it to parameters=."
+)
+S026_msg = (
+    "S026 {} is read straight off the {}, so the schema has nothing to document and "
+    "the value is an unchecked string. Read it through a serializer declared in "
+    "@extend_schema."
+)
+S027_msg = (
+    "S027 the {} is read with the computed key {}, so no schema can document it. "
+    "Read a literal key, or declare this endpoint's input as an exception."
+)
+S028_msg = (
+    "S028 the whole {} is handed to {}, so what this endpoint accepts cannot be "
+    "determined. Read the values here, or declare this endpoint's input as an exception."
+)
+S025_body_msg = (
+    "S025 {} validates the request body but is not declared in "
+    "@extend_schema(request=...), so the schema does not document what this "
+    "endpoint accepts. Add it as request=."
+)
+
+
 def _s015_msg() -> str:
     return (
         "S015 Do not hardcode datetime with current or future UTC year at module/class "
@@ -286,6 +319,73 @@ def extend_schema_kwarg(decorators: list[ast.expr], name: str) -> Generator[ast.
         for kw in dec.keywords:
             if kw.arg == name:
                 yield kw.value
+
+
+_QUERY_ATTRS = frozenset(("GET", "query_params"))
+_READ_METHODS = frozenset(("get", "getlist", "pop"))
+# Counting or iterating the dict does not read a parameter out of it, so these
+# are not hand-offs. Anything else receiving the whole dict might read anything.
+_CONTAINER_OPS = frozenset(
+    (
+        "len",
+        "list",
+        "set",
+        "tuple",
+        "sorted",
+        "dict",
+        "bool",
+        "any",
+        "all",
+        "iter",
+        "append",
+        "extend",
+        "update",
+        "dumps",
+    )
+)
+_COPY_METHODS = frozenset(("copy", "dict"))
+
+
+def _looks_like_a_class(func: ast.expr) -> bool:
+    """Callee named like a class, which is how a serializer is spelled."""
+    return _name_of(func).rsplit(".", 1)[-1][:1].isupper()
+
+
+def _is_request(node: ast.expr) -> bool:
+    """The handler's request argument, as `request` or `self.request`."""
+    if isinstance(node, ast.Name):
+        return node.id == "request"
+    return isinstance(node, ast.Attribute) and node.attr == "request"
+
+
+def _unwrap_copy(node: ast.expr) -> ast.expr:
+    """Strip `.copy()` / `.dict()` so `request.GET.copy()` still reads as the source."""
+    while (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in _COPY_METHODS
+    ):
+        node = node.func.value
+    return node
+
+
+def _declared_elements(value: ast.expr) -> list[ast.expr]:
+    """Serializers in one `@extend_schema` value, which may be a sequence or a
+    media-type mapping such as `request={"multipart/form-data": Upload}`."""
+    if isinstance(value, (ast.List, ast.Tuple)):
+        return list(value.elts)
+    if isinstance(value, ast.Dict):
+        return [v for v in value.values if v is not None]
+    return [value]
+
+
+def _declared_names(decorators: list[ast.expr], keyword: str) -> set[str]:
+    """Short names declared under `@extend_schema(<keyword>=...)`."""
+    names: set[str] = set()
+    for value in extend_schema_kwarg(decorators, keyword):
+        for element in _declared_elements(value):
+            names.add(_name_of(element).rsplit(".", 1)[-1])
+    return names
 
 
 def _name_of(node: ast.expr) -> str:
@@ -517,6 +617,53 @@ def _repo_relative(filename: str) -> str:
     return normalized.lstrip("./")
 
 
+class _InputCtx:
+    """One PUBLIC method's input sources, gathered during the single traversal."""
+
+    def __init__(self, declared_params: set[str], declared_body: set[str]) -> None:
+        self.declared_params = declared_params
+        self.declared_body = declared_body
+        self.query_locals: set[str] = set()
+        self.body_locals: set[str] = set()
+        # (line, col, serializer) for each serializer built from that source
+        self.query_validators: list[tuple[int, int, str]] = []
+        self.body_validators: list[tuple[int, int, str]] = []
+        # (line, col, key, source) reads with a literal key
+        self.literal_reads: list[tuple[int, int, str, str]] = []
+        # (line, col, rendered key, source) reads whose key is computed
+        self.computed_reads: list[tuple[int, int, str, str]] = []
+        # (line, col, callee, source) the whole dict passed somewhere
+        self.hand_offs: list[tuple[int, int, str, str]] = []
+
+    def _is(self, node: ast.expr, attrs: frozenset[str], locals_: set[str]) -> bool:
+        node = _unwrap_copy(node)
+        if isinstance(node, ast.Name):
+            return node.id in locals_
+        # The attribute has to hang off the request. `serializer.data` and
+        # `response.data` are outputs, not parameters a client sent.
+        return isinstance(node, ast.Attribute) and node.attr in attrs and _is_request(node.value)
+
+    def is_query(self, node: ast.expr) -> bool:
+        return self._is(node, _QUERY_ATTRS, self.query_locals)
+
+    def is_body(self, node: ast.expr) -> bool:
+        return self._is(node, frozenset(("data",)), self.body_locals)
+
+    def source_of(self, node: ast.expr) -> str | None:
+        """ "query string" / "request body" for an input source, else None."""
+        if self.is_query(node):
+            return "query string"
+        if self.is_body(node):
+            return "request body"
+        return None
+
+    def record_read(self, key: ast.expr, source: str, line: int, col: int) -> None:
+        if isinstance(key, ast.Constant) and isinstance(key.value, str):
+            self.literal_reads.append((line, col, key.value, source))
+        else:
+            self.computed_reads.append((line, col, ast.unparse(key), source))
+
+
 class SentryVisitor(ast.NodeVisitor):
     def __init__(
         self,
@@ -541,6 +688,9 @@ class SentryVisitor(ast.NodeVisitor):
         self._module_classes: dict[str, ast.ClassDef] = {}
         # publish_status of the enclosing module-level class, for S022.
         self._publish_status: dict[str, str] | None = None
+        # Input rules: per-method accumulation, innermost last.
+        self._input_stack: list[_InputCtx] = []
+        self._class_decorators: list[ast.expr] = []
         self._class_stack: list[str] = []
         self._function_stack: list[str] = []
 
@@ -679,17 +829,21 @@ class SentryVisitor(ast.NodeVisitor):
             self._check_S023(node)
         outer_publish_status = self._publish_status
         self._publish_status = publish_status(node) if top_level else None
+        outer_decorators = self._class_decorators
+        self._class_decorators = node.decorator_list if top_level else []
         self._class_stack.append(node.name)
         try:
             self.generic_visit(node)
         finally:
             self._class_stack.pop()
             self._publish_status = outer_publish_status
+            self._class_decorators = outer_decorators
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         if len(self._class_stack) == 1 and self._function_depth == 0:
             self._check_S021(node)
             self._check_S022(node)
+        entered = self._enter_input(node)
         self._function_depth += 1
         self._function_stack.append(node.name)
         try:
@@ -697,11 +851,14 @@ class SentryVisitor(ast.NodeVisitor):
         finally:
             self._function_stack.pop()
             self._function_depth -= 1
+            if entered:
+                self._exit_input()
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
         if len(self._class_stack) == 1 and self._function_depth == 0:
             self._check_S021(node)
             self._check_S022(node)
+        entered = self._enter_input(node)
         self._function_depth += 1
         self._function_stack.append(node.name)
         try:
@@ -709,6 +866,8 @@ class SentryVisitor(ast.NodeVisitor):
         finally:
             self._function_stack.pop()
             self._function_depth -= 1
+            if entered:
+                self._exit_input()
 
     def visit_Lambda(self, node: ast.Lambda) -> None:
         self._function_depth += 1
@@ -718,6 +877,15 @@ class SentryVisitor(ast.NodeVisitor):
             self._function_depth -= 1
 
     def visit_Assign(self, node: ast.Assign) -> None:
+        if self._input_stack:
+            ctx = self._input_stack[-1]
+            for target in node.targets:
+                if not isinstance(target, ast.Name):
+                    continue
+                if ctx.is_query(node.value):
+                    ctx.query_locals.add(target.id)
+                elif ctx.is_body(node.value):
+                    ctx.body_locals.add(target.id)
         if (
             _is_tests_path(self.filename)
             and self._function_depth == 0
@@ -823,8 +991,97 @@ class SentryVisitor(ast.NodeVisitor):
             if self._s024_parses is None:
                 self._s024_parses = (node.lineno, node.col_offset)
 
+    def visit_Subscript(self, node: ast.Subscript) -> None:
+        # Load only: `request.data["title"] = ...` writes a value, it does not
+        # read a parameter the client sent.
+        if self._input_stack and isinstance(node.ctx, ast.Load):
+            ctx = self._input_stack[-1]
+            source = ctx.source_of(node.value)
+            if source is not None:
+                ctx.record_read(node.slice, source, node.lineno, node.col_offset)
+        self.generic_visit(node)
+
+    def _enter_input(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+        """Push an accumulator for a PUBLIC HTTP method on an endpoint class."""
+        if len(self._class_stack) != 1 or self._function_depth != 0:
+            return False
+        if not self._publish_status or node.name not in HTTP_METHODS:
+            return False
+        if self._publish_status.get(node.name.upper()) != "PUBLIC":
+            return False
+        decorators = self._class_decorators + node.decorator_list
+        self._input_stack.append(
+            _InputCtx(
+                _declared_names(decorators, "parameters"),
+                _declared_names(decorators, "request"),
+            )
+        )
+        return True
+
+    def _record_input_call(self, node: ast.Call) -> None:
+        """A `.get()` read, or the whole dict handed to something else."""
+        ctx = self._input_stack[-1]
+        func = node.func
+        if isinstance(func, ast.Attribute) and func.attr in _READ_METHODS:
+            source = ctx.source_of(func.value)
+            if source is not None and node.args:
+                ctx.record_read(node.args[0], source, node.lineno, node.col_offset)
+            # On anything but the request this is an ordinary lookup, and
+            # `options.get("k", request.GET)` passes a default, not the dict.
+            return
+        # Only a serializer's data= is the target shape. `my_func(data=...)`
+        # hands the dict over exactly as a positional argument would.
+        if _looks_like_a_class(func) and any(kw.arg == "data" for kw in node.keywords):
+            return
+        for argument in [*node.args, *(keyword.value for keyword in node.keywords)]:
+            source = ctx.source_of(argument)
+            if source is not None:
+                name = _name_of(func).rsplit(".", 1)[-1]
+                if name not in _CONTAINER_OPS:
+                    ctx.hand_offs.append((node.lineno, node.col_offset, name, source))
+                return
+
+    def _record_validator(self, node: ast.Call) -> None:
+        """A serializer built from the query string or the request body."""
+        ctx = self._input_stack[-1]
+        for keyword in node.keywords:
+            if keyword.arg != "data":
+                continue
+            # A class, by convention. Skips plain calls taking data=, and
+            # runtime-chosen classes the schema could not name either.
+            if not _looks_like_a_class(node.func):
+                continue
+            name = _name_of(node.func).rsplit(".", 1)[-1]
+            if ctx.is_query(keyword.value):
+                ctx.query_validators.append((node.lineno, node.col_offset, name))
+            elif ctx.is_body(keyword.value):
+                ctx.body_validators.append((node.lineno, node.col_offset, name))
+
+    def _report_input(self, line: int, col: int, msg: str, rule: str) -> None:
+        """Fatal only for an enforced rule; otherwise recorded unless asked for."""
+        if rule in ENFORCED or os.environ.get(INPUT_LINT_ALL_ENV):
+            self.errors.append((line, col, msg))
+
+    def _exit_input(self) -> None:
+        ctx = self._input_stack.pop()
+        for line, col, name in ctx.query_validators:
+            if name not in ctx.declared_params:
+                self._report_input(line, col, S025_query_msg.format(name), "declared")
+        for line, col, name in ctx.body_validators:
+            if name not in ctx.declared_body:
+                self._report_input(line, col, S025_body_msg.format(name), "declared")
+        for line, col, key, source in ctx.literal_reads:
+            self._report_input(line, col, S026_msg.format(repr(key), source), "shaped")
+        for line, col, key, source in ctx.computed_reads:
+            self._report_input(line, col, S027_msg.format(source, key), "shaped")
+        for line, col, callee, source in ctx.hand_offs:
+            self._report_input(line, col, S028_msg.format(source, callee), "shaped")
+
     def visit_Call(self, node: ast.Call) -> None:
         self._s024_visit_call(node)
+        if self._input_stack:
+            self._record_validator(node)
+            self._record_input_call(node)
         if _is_tests_path(self.filename):
             if (
                 isinstance(node.func, ast.Name)

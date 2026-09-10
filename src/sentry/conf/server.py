@@ -1144,22 +1144,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "performance:sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
         "schedule": crontab("17", "*", "*", "*", "*"),
     },
-    "dynamic-sampling-boost-low-volume-projects": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_projects",
-        "schedule": crontab("*/10", "*", "*", "*", "*"),
-    },
-    "dynamic-sampling-boost-low-volume-transactions": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
-        "schedule": crontab("*/10", "*", "*", "*", "*"),
-    },
-    "dynamic-sampling-recalibrate-orgs": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.recalibrate_orgs",
-        "schedule": crontab("*/10", "*", "*", "*", "*"),
-    },
-    "dynamic-sampling-sliding-window-org": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.sliding_window_org",
-        "schedule": crontab("*/10", "*", "*", "*", "*"),
-    },
     "dynamic-sampling-schedule-per-org-calculations": {
         "task": "telemetry-experience:sentry.dynamic_sampling.per_org.schedule_per_org_calculations",
         "schedule": timedelta(seconds=10),
