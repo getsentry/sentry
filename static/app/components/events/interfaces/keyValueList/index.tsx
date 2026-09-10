@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import sortBy from 'lodash/sortBy';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
 import {ValueLink} from 'sentry/components/keyValueData';
 import type {KeyValueListData} from 'sentry/types/group';
@@ -33,68 +33,74 @@ export function KeyValueList({
   const keyValueData = shouldSort ? sortBy(data, [({key}) => key?.toLowerCase()]) : data;
 
   return (
-    <Table className={classNames('table key-value', className)} {...props}>
-      <tbody>
-        {keyValueData.map(
-          (
-            {
-              key,
-              subject,
-              value = null,
-              meta,
-              subjectIcon,
-              subjectDataTestId,
-              action,
-              actionButton,
-              isContextData: valueIsContextData,
-              isMultiValue,
-            },
-            idx
-          ) => {
-            const valueProps = {
-              isContextData: valueIsContextData || isContextData,
-              meta,
-              subjectIcon,
-              value,
-              raw,
-            };
+    <Container containerType="inline-size">
+      <Table className={classNames('table key-value', className)} {...props}>
+        <tbody>
+          {keyValueData.map(
+            (
+              {
+                key,
+                subject,
+                value = null,
+                meta,
+                subjectIcon,
+                subjectDataTestId,
+                action,
+                actionButton,
+                isContextData: valueIsContextData,
+                isMultiValue,
+              },
+              idx
+            ) => {
+              const valueProps = {
+                isContextData: valueIsContextData || isContextData,
+                meta,
+                subjectIcon,
+                value,
+                raw,
+              };
 
-            const valueItem = action?.link ? (
-              <ValueLink to={action.link}>{<Value {...valueProps} />}</ValueLink>
-            ) : (
-              <Value {...valueProps} />
-            );
-
-            const valueContainer =
-              isMultiValue && Array.isArray(value) ? (
-                <MultiValueContainer values={value} />
+              const valueItem = action?.link ? (
+                <ValueLink to={action.link}>{<Value {...valueProps} />}</ValueLink>
               ) : (
-                valueItem
+                <Value {...valueProps} />
               );
 
-            return (
-              <tr key={`${key}-${idx}`}>
-                <td className="key">{subject}</td>
-                <td className="val" data-test-id={subjectDataTestId}>
-                  <Tablevalue>
-                    {actionButton ? (
-                      <ValueWithButtonContainer>
-                        {valueContainer}
-                        <Flex align="start" height="100%">
-                          {actionButton}
-                        </Flex>
-                      </ValueWithButtonContainer>
-                    ) : (
-                      valueContainer
-                    )}
-                  </Tablevalue>
-                </td>
-              </tr>
-            );
-          }
-        )}
-      </tbody>
-    </Table>
+              const valueContainer =
+                isMultiValue && Array.isArray(value) ? (
+                  <MultiValueContainer values={value} />
+                ) : (
+                  valueItem
+                );
+
+              return (
+                <tr key={`${key}-${idx}`}>
+                  <td className="key">{subject}</td>
+                  <td className="val" data-test-id={subjectDataTestId}>
+                    <Tablevalue>
+                      {actionButton ? (
+                        <Grid align="center" columns="1fr max-content" gap="md">
+                          {({className: gridClassName}) => (
+                            <ValueWithButtonContainer className={gridClassName}>
+                              {valueContainer}
+                              <Flex align="start" height="100%">
+                                {actionButton}
+                              </Flex>
+                            </ValueWithButtonContainer>
+                          )}
+                        </Grid>
+                      ) : (
+                        valueContainer
+                      )}
+                    </Tablevalue>
+                  </td>
+                </tr>
+              );
+            }
+          )}
+        </tbody>
+      </Table>
+    </Container>
   );
 }
 
@@ -119,9 +125,6 @@ const Tablevalue = styled('div')`
   }
 `;
 const ValueWithButtonContainer = styled('div')`
-  display: grid;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.sm};
   background: ${p => p.theme.tokens.background.secondary};
   padding: ${p => p.theme.space.md} 10px;
@@ -131,13 +134,26 @@ const ValueWithButtonContainer = styled('div')`
     padding: 0 !important;
     margin: 0 !important;
   }
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr max-content;
-  }
 `;
 
 const Table = styled('table')`
+  @container (max-width: ${p => p.theme.container.sm}) {
+    &,
+    > tbody,
+    > tbody > tr,
+    > tbody > tr > td {
+      display: block;
+      width: 100%;
+      max-width: none;
+    }
+
+    > tbody > tr > td.key {
+      width: auto;
+      max-width: none;
+      padding-bottom: 0 !important;
+    }
+  }
+
   > * pre > pre {
     margin: 0 !important;
     padding: 0 !important;
