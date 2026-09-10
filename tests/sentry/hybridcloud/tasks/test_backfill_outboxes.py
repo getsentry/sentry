@@ -865,9 +865,12 @@ def test_a_missing_postgres_row_falls_back_to_redis() -> None:
         assert read_processing_state(AuthProvider._meta.db_table) == (4242, 3)
 
     # The read path writes nothing, so the row is still missing and the fallback is
-    # counted on every read until the write path fills it.
+    # counted on every read, from either reader, until the write path fills it.
     assert not ControlOutboxBackfillWatermark.objects.filter(table_name=table_name).exists()
-    assert _counter_tables(metrics_mock, WATERMARK_READ_REDIS_FALLBACK_METRIC) == [table_name]
+    assert _counter_tables(metrics_mock, WATERMARK_READ_REDIS_FALLBACK_METRIC) == [
+        table_name,
+        table_name,
+    ]
 
     # The reporting sweep does not repair it either. It is a pre-cutover sync site, so the
     # read option turns it off, and the fallback keeps answering from Redis.
@@ -1078,7 +1081,10 @@ def test_a_cutover_cycle_does_not_restart_a_table() -> None:
     table_name = AuthProvider._meta.db_table
     set_processing_state(AuthProvider._meta.db_table, 4242, 3)
 
-    with override_options(READ_FROM_POSTGRES_OPTIONS):
+    with (
+        override_options(READ_FROM_POSTGRES_OPTIONS),
+        patch("sentry.hybridcloud.tasks.backfill_outboxes.metrics") as metrics_mock,
+    ):
         # No budget at all, so only the report pass runs.
         assert not backfill_outboxes_for(SiloMode.CONTROL, scheduled_count=10_000)
 
@@ -1087,6 +1093,9 @@ def test_a_cutover_cycle_does_not_restart_a_table() -> None:
 
     # The report pass no longer mirrors after the cutover, so it wrote nothing.
     assert not ControlOutboxBackfillWatermark.objects.filter(table_name=table_name).exists()
+    # The report pass reads through the same fallback, so it is counted even when no
+    # batch runs at all.
+    assert table_name in _counter_tables(metrics_mock, WATERMARK_READ_REDIS_FALLBACK_METRIC)
 
 
 @django_db_all

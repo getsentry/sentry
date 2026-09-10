@@ -134,14 +134,6 @@ def _write_postgres_watermark(table_name: str, value: int, version: int) -> None
 
 
 def read_processing_state(table_name: str) -> tuple[int, int] | None:
-    if _read_from_postgres_enabled():
-        postgres_state = _read_postgres_watermark(table_name)
-        if postgres_state is not None:
-            return postgres_state
-    return _read_redis_watermark(table_name)
-
-
-def get_processing_state(table_name: str) -> tuple[int, int]:
     postgres_enabled = _read_from_postgres_enabled()
 
     if postgres_enabled:
@@ -150,20 +142,25 @@ def get_processing_state(table_name: str) -> tuple[int, int]:
             return postgres_state
 
     redis_state = _read_redis_watermark(table_name)
-    if redis_state is not None:
-        if postgres_enabled:
-            metrics.incr(
-                WATERMARK_READ_REDIS_FALLBACK_METRIC,
-                tags=dict(table_name=table_name),
-                skip_internal=True,
-                sample_rate=1.0,
-            )
-        return redis_state
+    if redis_state is not None and postgres_enabled:
+        metrics.incr(
+            WATERMARK_READ_REDIS_FALLBACK_METRIC,
+            tags=dict(table_name=table_name),
+            skip_internal=True,
+            sample_rate=1.0,
+        )
+    return redis_state
+
+
+def get_processing_state(table_name: str) -> tuple[int, int]:
+    state = read_processing_state(table_name)
+    if state is not None:
+        return state
 
     state = (0, 1)
     lower, version = state
     _get_redis_client().set(get_backfill_key(table_name), json.dumps(state))
-    if postgres_enabled:
+    if _read_from_postgres_enabled():
         _write_postgres_watermark(table_name, lower, version)
     return state
 
