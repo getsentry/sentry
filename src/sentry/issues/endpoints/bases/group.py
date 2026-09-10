@@ -36,20 +36,12 @@ class GroupPermission(ProjectPermission):
         "GET": ["event:read", "event:write", "event:admin"],
         "POST": ["event:write", "event:admin"],
         "PUT": ["event:write", "event:admin"],
-        "DELETE": ["event:admin"],
+        "DELETE": ["event:write", "event:admin"],
     }
 
     def has_object_permission(self, request: Request, view: APIView, group: Any) -> bool:
         assert isinstance(group, Group)
         return super().has_object_permission(request, view, group.project)
-
-
-class GroupLinkPermission(GroupPermission):
-    scope_map = {
-        **GroupPermission.scope_map,
-        # Unlinking removes an association, not the Sentry issue or external resource.
-        "DELETE": ["event:write", "event:admin"],
-    }
 
 
 class GroupEndpoint(Endpoint):

@@ -14,14 +14,13 @@ from sentry.issues.action_log import (
     resolve_action_source,
 )
 from sentry.issues.action_log.types import UnlinkPlatformExternalIssueAction
-from sentry.issues.endpoints.bases.group import GroupEndpoint, GroupLinkPermission
+from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 
 
 @cell_silo_endpoint
 class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
     owner = ApiOwner.PROJECT_MANAGEMENT_INTEGRATIONS
-    permission_classes = (GroupLinkPermission,)
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
     }

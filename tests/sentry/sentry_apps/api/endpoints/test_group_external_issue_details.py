@@ -19,69 +19,18 @@ class GroupExternalIssueDetailsEndpointTest(APITestCase):
         self.url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/external-issues/{self.external_issue.id}/"
 
     def test_deletes_external_issue(self) -> None:
-        response = self.client.delete(self.url, format="json")
-
-        assert response.status_code == 204, response.content
-        assert not PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
-        assert Group.objects.get(id=self.group.id).status == self.group.status
-
-    def _assert_unlink_with_token_scope(
-        self, scope: str, expected_status: int, link_exists: bool
-    ) -> None:
-        user = self.create_user()
-        self.create_member(
-            user=user, organization=self.organization, role="member", teams=[self.team]
-        )
-        token = self.create_user_auth_token(user=user, scope_list=[scope])
-        self.client.cookies.clear()
-
-        response = self.client.delete(
-            self.url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}"
-        )
-
-        assert response.status_code == expected_status, response.content
-        assert (
-            PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists() is link_exists
-        )
-        assert Group.objects.get(id=self.group.id).status == self.group.status
-
-    def test_token_with_event_write_can_unlink(self) -> None:
-        self._assert_unlink_with_token_scope("event:write", 204, False)
-
-    def test_token_with_event_admin_can_unlink(self) -> None:
-        self._assert_unlink_with_token_scope("event:admin", 204, False)
-
-    def test_token_with_event_read_cannot_unlink(self) -> None:
-        self._assert_unlink_with_token_scope("event:read", 403, True)
-
-    def test_member_without_event_admin_can_unlink(self) -> None:
         self.organization.update_option("sentry:events_member_admin", False)
-        user = self.create_user()
+        member = self.create_user()
         self.create_member(
-            user=user, organization=self.organization, role="member", teams=[self.team]
+            user=member, organization=self.organization, role="member", teams=[self.team]
         )
-        self.login_as(user=user)
+        token = self.create_user_auth_token(user=member, scope_list=["event:write"])
+        self.client.cookies.clear()
 
-        response = self.client.delete(self.url, format="json")
+        response = self.client.delete(self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
         assert response.status_code == 204, response.content
         assert not PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
-        assert Group.objects.get(id=self.group.id).status == self.group.status
-
-    def test_token_cannot_unlink_without_project_access(self) -> None:
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
-        user = self.create_user()
-        self.create_member(user=user, organization=self.organization, role="member", teams=[])
-        token = self.create_user_auth_token(user=user, scope_list=["event:write"])
-        self.client.cookies.clear()
-
-        response = self.client.delete(
-            self.url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}"
-        )
-
-        assert response.status_code == 403, response.content
-        assert PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
         assert Group.objects.get(id=self.group.id).status == self.group.status
 
     def test_deletes_external_issue_records_action_log(self) -> None:

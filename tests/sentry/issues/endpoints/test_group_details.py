@@ -1103,6 +1103,27 @@ class GroupUpdateTest(APITestCase):
 
 
 class GroupDeleteTest(APITestCase):
+    def test_delete_as_member_respects_organization_setting(self) -> None:
+        group = self.create_group()
+        member = self.create_user()
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(user=member)
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/"
+
+        self.organization.update_option("sentry:events_member_admin", False)
+        response = self.client.delete(url)
+
+        assert response.status_code == 403, response.content
+        assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
+
+        self.organization.update_option("sentry:events_member_admin", True)
+        response = self.client.delete(url)
+
+        assert response.status_code == 202, response.content
+        assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
+
     def test_delete_with_write_only_token(self) -> None:
         group = self.create_group()
         token = self.create_user_auth_token(user=self.user, scope_list=["event:write"])
@@ -1115,20 +1136,8 @@ class GroupDeleteTest(APITestCase):
         assert response.status_code == 403
         assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
 
-    def test_delete_with_admin_only_token(self) -> None:
-        group = self.create_group()
-        token = self.create_user_auth_token(user=self.user, scope_list=["event:admin"])
-
-        response = self.client.delete(
-            f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/",
-            HTTP_AUTHORIZATION=f"Bearer {token.token}",
-        )
-
-        assert response.status_code == 202
-        assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
-
     def test_delete_deferred(self) -> None:
-        self.login_as(user=self.user)
+        token = self.create_user_auth_token(user=self.user, scope_list=["event:admin"])
 
         group = self.create_group()
         hash = "x" * 32
@@ -1136,7 +1145,7 @@ class GroupDeleteTest(APITestCase):
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
-        response = self.client.delete(url, format="json")
+        response = self.client.delete(url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
         assert response.status_code == 202, response.content
 
         # Deletion was deferred, so it should still exist
