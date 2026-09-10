@@ -449,6 +449,14 @@ def validate_regex_pattern(key: str, pattern: str) -> None:
         raise InvalidSearchQuery(f"{key}: Invalid regex: {exc.msg}")
 
 
+def as_regex_value(key: str, value: SearchValue) -> SearchValue:
+    patterns = value.raw_value if isinstance(value.raw_value, (list, tuple)) else [value.raw_value]
+    for pattern in patterns:
+        if isinstance(pattern, str):
+            validate_regex_pattern(key, pattern)
+    return value._replace(is_regex=True)
+
+
 def add_leading_wildcard(value: str) -> str:
     if value.startswith('"') and value.endswith('"'):
         return f"*{value[1:-1]}"
@@ -561,11 +569,9 @@ class SearchValue(NamedTuple):
 
     @property
     def value(self) -> Any:
-        if self.use_raw_value:
-            return self.raw_value
-        elif self.is_regex:
-            # Escape sequences are meaningful to the regex engine, so the pattern passes through
-            # untouched. `\*` is a literal asterisk here, not an escaped wildcard.
+        # Escape sequences are meaningful to the regex engine, so a pattern passes through
+        # untouched. `\*` is a literal asterisk there, not an escaped wildcard.
+        if self.use_raw_value or self.is_regex:
             return self.raw_value
         elif self.is_wildcard() and isinstance(self.raw_value, str):
             return translate_wildcard(self.raw_value)
@@ -585,27 +591,20 @@ class SearchValue(NamedTuple):
         # we do that because a simple str() would not be usable for strings
         # str(["a","b"]) == "['a', 'b']" but we would like "[a,b]"
         if isinstance(self.raw_value, (list, tuple)):
-            values = (
-                [quote_regex_pattern(str(x)) for x in self.raw_value]
-                if self.is_regex
-                else [str(x) for x in self.raw_value]
-            )
-            ret_val = ", ".join(values)
+            ret_val = ", ".join(self._serialize(x) for x in self.raw_value)
             ret_val = f"[{ret_val}]"
             return ret_val
         elif isinstance(self.raw_value, datetime):
             return self.raw_value.isoformat()
-        elif self.is_regex:
-            return quote_regex_pattern(str(self.value))
         else:
-            return str(self.value)
+            return self._serialize(self.value)
+
+    def _serialize(self, value: Any) -> str:
+        return quote_regex_pattern(str(value)) if self.is_regex else str(value)
 
     def is_wildcard(self) -> bool:
-        # If we're using the raw value only it'll never be a wildcard
-        if self.use_raw_value:
-            return False
-        # A `*` in a regex is a quantifier, not a wildcard
-        if self.is_regex:
+        # The raw value is never a wildcard, and a `*` in a regex is a quantifier
+        if self.use_raw_value or self.is_regex:
             return False
         if self.is_str_sequence():
             return isinstance(self.raw_value, list) and any(
@@ -1491,11 +1490,8 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
 
         operator = handle_negation(negation, operator)
 
-        if has_regex_op(wildcard_op) and isinstance(search_value.raw_value, list):
-            for value in search_value.raw_value:
-                if isinstance(value, str):
-                    validate_regex_pattern(search_key.name, value)
-            search_value = search_value._replace(is_regex=True)
+        if has_regex_op(wildcard_op):
+            search_value = as_regex_value(search_key.name, search_value)
         elif has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, list):
             wildcarded_values = []
             found_wildcard_op = get_wildcard_op(wildcard_op)
@@ -1535,9 +1531,8 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
 
         operator_s = handle_negation(negation, operator_s)
 
-        if has_regex_op(wildcard_op) and isinstance(search_value.raw_value, str):
-            validate_regex_pattern(search_key.name, search_value.raw_value)
-            search_value = search_value._replace(is_regex=True)
+        if has_regex_op(wildcard_op):
+            search_value = as_regex_value(search_key.name, search_value)
         elif has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, str):
             wildcarded_value = gen_wildcard_value(
                 search_value.raw_value, get_wildcard_op(wildcard_op)
@@ -2000,9 +1995,8 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             raise InvalidSearchQuery("In Array Queries, only EQUAL/NOT_EQUAL operators are allowed")
         operator_s = handle_negation(negation, operator_s)
 
-        if has_regex_op(wildcard_op) and isinstance(search_value.raw_value, str):
-            validate_regex_pattern(search_key.name, search_value.raw_value)
-            search_value = search_value._replace(is_regex=True)
+        if has_regex_op(wildcard_op):
+            search_value = as_regex_value(search_key.name, search_value)
         elif has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, str):
             wildcard_value = gen_wildcard_value(
                 search_value.raw_value, get_wildcard_op(wildcard_op)
