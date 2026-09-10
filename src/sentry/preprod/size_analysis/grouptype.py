@@ -25,10 +25,11 @@ from sentry.workflow_engine.processors.data_condition_group import (
     process_data_condition_group,
 )
 from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
-from sentry.workflow_engine.types import (
-    DetectorPriorityLevel,
-    DetectorSettings,
+from sentry.workflow_engine.registry import (
+    detector_handler_registry,
+    detector_validator_registry,
 )
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 if TYPE_CHECKING:
     from sentry.preprod.models import PreprodArtifact
@@ -189,7 +190,10 @@ SizeAnalysisDataPacket = DataPacket[SizeAnalysisValue]
 # int for absolute values (bytes), float for relative diffs (ratios).
 SizeAnalysisEvaluation: TypeAlias = int | float
 
+GROUP_TYPE_PREPROD_SIZE_ANALYSIS = "preprod_size_analysis"
 
+
+@detector_handler_registry.register(GROUP_TYPE_PREPROD_SIZE_ANALYSIS)
 class PreprodSizeAnalysisDetectorHandler(
     DetectorHandler[SizeAnalysisValue, SizeAnalysisEvaluation]
 ):
@@ -396,14 +400,38 @@ class PreprodSizeAnalysisDetectorHandler(
         return occurrence, event_data
 
 
+@detector_validator_registry.register(GROUP_TYPE_PREPROD_SIZE_ANALYSIS)
 class PreprodSizeAnalysisDetectorValidator(BaseDetectorTypeValidator):
+    config_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "Configuration for preprod static analysis detector",
+        "type": "object",
+        "properties": {
+            "threshold_type": {
+                "type": "string",
+                "enum": ["absolute_diff", "absolute", "relative_diff"],
+                "description": "The type of threshold to apply",
+            },
+            "measurement": {
+                "type": "string",
+                "enum": ["install_size", "download_size"],
+                "description": "The measurement to track",
+            },
+            "query": {
+                "type": "string",
+                "description": "Search query to filter which artifacts are monitored",
+            },
+        },
+        "required": ["threshold_type", "measurement"],
+        "additionalProperties": False,
+    }
     data_source_required = False
 
 
 @dataclass(frozen=True)
 class PreprodSizeAnalysisGroupType(GroupType):
     type_id = 11003
-    slug = "preprod_size_analysis"
+    slug = GROUP_TYPE_PREPROD_SIZE_ANALYSIS
     description = "Size Analysis"
     category = GroupCategory.PREPROD.value
     default_priority = PriorityLevel.LOW
@@ -413,31 +441,4 @@ class PreprodSizeAnalysisGroupType(GroupType):
     notification_config = NotificationConfig(
         context=[],
         text_code_formatted=False,
-    )
-    detector_settings = DetectorSettings(
-        handler=PreprodSizeAnalysisDetectorHandler,
-        validator=PreprodSizeAnalysisDetectorValidator,
-        config_schema={
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "description": "Configuration for preprod static analysis detector",
-            "type": "object",
-            "properties": {
-                "threshold_type": {
-                    "type": "string",
-                    "enum": ["absolute_diff", "absolute", "relative_diff"],
-                    "description": "The type of threshold to apply",
-                },
-                "measurement": {
-                    "type": "string",
-                    "enum": ["install_size", "download_size"],
-                    "description": "The measurement to track",
-                },
-                "query": {
-                    "type": "string",
-                    "description": "Search query to filter which artifacts are monitored",
-                },
-            },
-            "required": ["threshold_type", "measurement"],
-            "additionalProperties": False,
-        },
     )
