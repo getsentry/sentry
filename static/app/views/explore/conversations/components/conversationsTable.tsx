@@ -245,6 +245,13 @@ export function ConversationsTable() {
     () => collapseToolsColumnWhenUnused(columnOrder, hasNoTools),
     [columnOrder, hasNoTools]
   );
+  const staticColumnWidths = useMemo(
+    () =>
+      storedWidths.conversation === undefined
+        ? {conversation: `minmax(${COL_WIDTH_MINIMUM}px, 1fr)`}
+        : undefined,
+    [storedWidths.conversation]
+  );
 
   const handlePaginate: typeof setCursor = (cursor, path, query, pageDelta) => {
     trackAnalytics('conversations.table.paginate', {
@@ -336,6 +343,7 @@ export function ConversationsTable() {
             renderHeadCell,
             renderBodyCell,
             onResizeColumn: handleResizeColumn,
+            staticColumnWidths,
           }}
           onRowClick={handleRowClick}
           isRowClickable={() => true}
