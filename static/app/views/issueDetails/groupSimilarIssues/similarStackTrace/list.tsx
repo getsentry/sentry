@@ -16,11 +16,14 @@ import type {Project} from 'sentry/types/project';
 import {SimilarStackTraceItem, SimilarStackTraceItemSkeleton} from './item';
 import type {SimilarItem} from './types';
 
+// The count and score columns are sized by content rather than by a pixel width:
+// their cells are narrower than their own headers, so any width wide enough for
+// the English labels is still too narrow for the longer translations.
 const SIMILAR_ISSUE_COLUMNS: TableColumnConfig[] = [
   {key: 'merge', width: 'minmax(0, 1fr)'},
-  {key: 'events', width: '70px'},
-  {key: 'exception', width: '90px'},
-  {key: 'message', width: '90px'},
+  {key: 'events', width: 'max-content'},
+  {key: 'exception', width: 'max-content'},
+  {key: 'message', width: 'max-content'},
   {key: 'actions', width: '80px'},
 ];
 
