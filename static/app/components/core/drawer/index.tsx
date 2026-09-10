@@ -56,6 +56,11 @@ export interface DrawerOptions {
    */
   onOpen?: () => void;
   /**
+   * Viewport edge the drawer is anchored to, and the edge it slides in from.
+   * Defaults to 'right'.
+   */
+  position?: 'left' | 'right';
+  /**
    * If true (default), allows the drawer to be resized - requires `drawerKey`
    * to be defined
    */
@@ -238,6 +243,7 @@ export function GlobalDrawer({children}: any) {
               drawerWidth={currentDrawerConfig?.options?.drawerWidth}
               drawerMaxWidth={currentDrawerConfig?.options?.drawerMaxWidth}
               drawerKey={currentDrawerConfig?.options?.drawerKey}
+              position={currentDrawerConfig?.options?.position}
               resizable={currentDrawerConfig?.options?.resizable}
             >
               {renderedChild}

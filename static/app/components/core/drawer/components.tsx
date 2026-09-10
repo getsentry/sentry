@@ -40,7 +40,13 @@ export function useDrawerContentContext() {
  */
 interface DrawerPanelProps extends Pick<
   DrawerOptions,
-  'ariaLabel' | 'drawerKey' | 'drawerWidth' | 'drawerMaxWidth' | 'resizable' | 'onClose'
+  | 'ariaLabel'
+  | 'drawerKey'
+  | 'drawerWidth'
+  | 'drawerMaxWidth'
+  | 'position'
+  | 'resizable'
+  | 'onClose'
 > {
   children: React.ReactNode;
   /** Required — GlobalDrawer applies the default before passing it down. */
@@ -57,6 +63,7 @@ function DrawerPanel({
   drawerWidth,
   drawerMaxWidth,
   drawerKey,
+  position = 'right',
   resizable = true,
 }: DrawerPanelProps) {
   const {panelRef, resizeHandleRef, handleResizeStart, persistedWidthPercent, enabled} =
@@ -64,6 +71,7 @@ function DrawerPanel({
       drawerKey,
       drawerWidth,
       drawerMaxWidth,
+      position,
       enabled: resizable,
     });
   const [tooltipContainer, setTooltipContainer] = useState<HTMLDivElement | null>(null);
@@ -78,7 +86,7 @@ function DrawerPanel({
         <DrawerSlidePanel
           mode={mode}
           ariaLabel={ariaLabel}
-          position="right"
+          position={position}
           ref={mergeRefs(panelRef, ref, (node: HTMLDivElement | null) =>
             setTooltipContainer(node)
           )}
@@ -88,6 +96,8 @@ function DrawerPanel({
           {drawerKey && enabled && (
             <ResizeHandle
               ref={resizeHandleRef}
+              position={position}
+              data-test-id="drawer-resize-handle"
               onMouseDown={handleResizeStart}
               data-at-min-width={(persistedWidthPercent <= MIN_WIDTH_PERCENT).toString()}
               data-at-max-width={(
@@ -223,17 +233,36 @@ const DrawerContainer = styled('div')<{mode?: DrawerOptions['mode']}>`
 `;
 
 const DrawerSlidePanel = styled(SlideOverPanel)`
-  border-left: 1px solid ${p => p.theme.tokens.border.primary};
-  position: relative;
+  ${p =>
+    p.position === 'left'
+      ? css`
+          border-right: 1px solid ${p.theme.tokens.border.primary};
+
+          /* The base panel lays its left variant out in flow, for slideouts that
+             sit beside page content. A drawer overlays the page instead, so pin
+             it to the viewport edge and drop the in-flow variant's width floor.
+             Doubled selector to outrank the base panel's own rule. */
+          && {
+            position: fixed;
+            left: 0;
+            right: auto;
+            min-width: 0;
+          }
+        `
+      : css`
+          border-left: 1px solid ${p.theme.tokens.border.primary};
+          position: relative;
+        `}
   pointer-events: auto;
   height: 100%;
 
-  /* Extend the panel's background 20px past its right edge so the bounce-in
+  /* Extend the panel's background 20px past its outer edge so the bounce-in
      overshoot doesn't briefly expose the page beneath. A box-shadow is used
      (vs. a pseudo-element) because the panel's own overflow: auto would clip
      anything positioned outside its bounds. */
   box-shadow:
-    20px 0 0 ${p => p.theme.tokens.background.overlay},
+    ${p => (p.position === 'left' ? '-20px' : '20px')} 0 0
+      ${p => p.theme.tokens.background.overlay},
     ${p => p.theme.shadow.high};
 
   --drawer-width: ${DEFAULT_WIDTH_PERCENT}%;
@@ -280,21 +309,22 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
   }
 `;
 
-const ResizeHandle = styled('div')`
+const ResizeHandle = styled('div')<{position: 'left' | 'right'}>`
   position: absolute;
-  left: -2px;
+  ${p => (p.position === 'left' ? 'right' : 'left')}: -2px;
   top: 0;
   bottom: 0;
   width: 8px;
   cursor: ew-resize;
   z-index: ${p => p.theme.zIndex.drawer + 2};
 
+  /* Only the direction that still has room to travel is offered. */
   &[data-at-min-width='true'] {
-    cursor: w-resize;
+    cursor: ${p => (p.position === 'left' ? 'e-resize' : 'w-resize')};
   }
 
   &[data-at-max-width='true'] {
-    cursor: e-resize;
+    cursor: ${p => (p.position === 'left' ? 'w-resize' : 'e-resize')};
   }
 
   &:hover,
@@ -307,7 +337,7 @@ const ResizeHandle = styled('div')`
   &::after {
     content: '';
     position: absolute;
-    left: 2px;
+    ${p => (p.position === 'left' ? 'right' : 'left')}: 2px;
     top: 0;
     bottom: 0;
     width: 4px;

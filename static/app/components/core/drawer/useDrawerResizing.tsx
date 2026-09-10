@@ -17,6 +17,7 @@ interface UseDrawerResizingOptions {
   drawerMaxWidth?: string;
   drawerWidth?: string;
   enabled?: boolean;
+  position?: 'left' | 'right';
 }
 
 interface UseDrawerResizingResult {
@@ -31,6 +32,7 @@ export function useDrawerResizing({
   drawerKey,
   drawerWidth,
   drawerMaxWidth,
+  position = 'right',
   enabled = true,
 }: UseDrawerResizingOptions): UseDrawerResizingResult {
   const theme = useTheme();
@@ -128,8 +130,11 @@ export function useDrawerResizing({
             return;
           }
 
-          const newWidthPercent =
-            ((viewportWidth - moveEvent.clientX) / viewportWidth) * 100;
+          // The pinned edge stays put, so width is the distance from it to the
+          // cursor.
+          const widthPx =
+            position === 'left' ? moveEvent.clientX : viewportWidth - moveEvent.clientX;
+          const newWidthPercent = (widthPx / viewportWidth) * 100;
 
           panel.style.setProperty('--drawer-width', `${newWidthPercent}%`);
 
@@ -170,7 +175,7 @@ export function useDrawerResizing({
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
     },
-    [isSmallScreen, enabled, setPersistedWidthPercent]
+    [isSmallScreen, enabled, position, setPersistedWidthPercent]
   );
 
   useLayoutEffect(() => {

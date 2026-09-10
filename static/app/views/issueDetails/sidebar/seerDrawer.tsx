@@ -35,6 +35,7 @@ export const useOpenSeerDrawer = ({group, project}: {group: Group; project: Proj
       drawerKey: 'seer-autofix-drawer',
       drawerWidth: '80%',
       drawerMaxWidth: '1600px',
+      position: 'left',
       resizable: true,
       mode: 'passive',
       shouldCloseOnLocationChange: nextLocation => {

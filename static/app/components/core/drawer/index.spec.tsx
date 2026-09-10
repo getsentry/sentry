@@ -1,9 +1,11 @@
 import {Fragment} from 'react';
 
 import {
+  fireEvent,
   render,
   screen,
   userEvent,
+  waitFor,
   waitForDrawerToHide,
   within,
 } from 'sentry-test/reactTestingLibrary';
@@ -386,5 +388,49 @@ describe('GlobalDrawer', () => {
 
     expect(drawer.style.getPropertyValue('--drawer-width')).toBe('50%');
     expect(drawer.style.getPropertyValue('--drawer-max-width')).toBe('85%');
+  });
+
+  describe('resizing', () => {
+    // The pinned edge stays put, so the same cursor position means opposite
+    // widths depending on which edge the drawer is anchored to.
+    async function dragResizeHandleTo(
+      position: 'left' | 'right',
+      clientX: number
+    ): Promise<HTMLElement> {
+      render(
+        <GlobalDrawerTestComponent
+          config={{
+            renderer: () => (
+              <DrawerBody data-test-id="drawer-test-content">resize</DrawerBody>
+            ),
+            options: {ariaLabel, drawerKey: `drawer-test-resize-${position}`, position},
+          }}
+        />
+      );
+
+      await userEvent.click(screen.getByTestId('drawer-test-open'));
+      expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
+
+      fireEvent.mouseDown(screen.getByTestId('drawer-resize-handle'));
+      fireEvent.mouseMove(document, {clientX});
+
+      return screen.getByRole('complementary', {name: ariaLabel});
+    }
+
+    it('widens a right-anchored drawer as the cursor moves left', async () => {
+      const drawer = await dragResizeHandleTo('right', window.innerWidth * 0.25);
+
+      await waitFor(() =>
+        expect(drawer.style.getPropertyValue('--drawer-width')).toBe('75%')
+      );
+    });
+
+    it('widens a left-anchored drawer as the cursor moves right', async () => {
+      const drawer = await dragResizeHandleTo('left', window.innerWidth * 0.75);
+
+      await waitFor(() =>
+        expect(drawer.style.getPropertyValue('--drawer-width')).toBe('75%')
+      );
+    });
   });
 });
