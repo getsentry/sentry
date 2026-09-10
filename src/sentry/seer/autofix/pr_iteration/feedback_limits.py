@@ -9,7 +9,7 @@ from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.utils import metrics
 
 # Keep in sync with AUTOFIX_USER_CONTEXT_MAX_LENGTH in the frontend autofix types.
-MANUAL_FEEDBACK_MAX_LENGTH = 3000
+MANUAL_FEEDBACK_MAX_LENGTH = 1000
 
 
 def _bot_feedback_allowlist() -> frozenset[str]:
