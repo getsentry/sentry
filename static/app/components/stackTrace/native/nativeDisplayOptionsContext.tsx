@@ -1,20 +1,17 @@
 import {createContext, useCallback, useContext, useMemo, useState} from 'react';
 
-import {
-  StackTraceViewStateContext,
-  useStackTraceViewState,
-} from 'sentry/components/stackTrace/stackTraceContext';
+import {StackTraceViewStateContext} from 'sentry/components/stackTrace/stackTraceContext';
 import type {
   StackTraceView,
   StackTraceViewState,
   StackTraceViewStateProviderProps,
 } from 'sentry/components/stackTrace/types';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 import {
-  getNativeDisplayOptionDefaults,
   getNativeDisplayOptions,
   NATIVE_DISPLAY_OPTION,
-  useNativeDisplayOptionsStorage,
+  type NativePersistedDisplayOption,
 } from './nativeDisplayOptionsPersistence';
 
 interface NativeDisplayOptionsState {
@@ -38,7 +35,7 @@ interface NativeStackTraceViewStateProviderProps extends StackTraceViewStateProv
   storageKey?: string;
 }
 
-type PersistedOptions = ReturnType<typeof getNativeDisplayOptions>;
+type PersistedOptions = NativePersistedDisplayOption[];
 type SetPersistedOptions = React.Dispatch<React.SetStateAction<PersistedOptions>>;
 
 const NativeDisplayOptionsContext =
@@ -61,8 +58,10 @@ function PersistedNativeStackTraceViewStateProvider({
   storageKey,
   ...props
 }: Omit<NativeStackTraceViewStateProviderProps, 'storageKey'> & {storageKey: string}) {
-  const [persistedOptions, setPersistedOptions] =
-    useNativeDisplayOptionsStorage(storageKey);
+  const [persistedOptions, setPersistedOptions] = useLocalStorageState<PersistedOptions>(
+    storageKey,
+    []
+  );
 
   return (
     <NativeStackTraceViewStateRoot
@@ -74,26 +73,14 @@ function PersistedNativeStackTraceViewStateProvider({
   );
 }
 
-function LocalNativeStackTraceViewStateProvider({
-  defaultIsMinified = false,
-  defaultView = 'app',
-  ...props
-}: Omit<NativeStackTraceViewStateProviderProps, 'storageKey'>) {
-  const [persistedOptions, setPersistedOptions] = useState<PersistedOptions>(() =>
-    getNativeDisplayOptions({
-      absoluteAddresses: false,
-      absoluteFilePaths: false,
-      isMinified: defaultIsMinified,
-      verboseFunctionNames: false,
-      view: defaultView,
-    })
-  );
+function LocalNativeStackTraceViewStateProvider(
+  props: Omit<NativeStackTraceViewStateProviderProps, 'storageKey'>
+) {
+  const [persistedOptions, setPersistedOptions] = useState<PersistedOptions>([]);
 
   return (
     <NativeStackTraceViewStateRoot
       {...props}
-      defaultIsMinified={defaultIsMinified}
-      defaultView={defaultView}
       persistedOptions={persistedOptions}
       setPersistedOptions={setPersistedOptions}
     />
@@ -113,22 +100,20 @@ function NativeStackTraceViewStateRoot({
   persistedOptions: PersistedOptions;
   setPersistedOptions: SetPersistedOptions;
 }) {
-  const defaults = getNativeDisplayOptionDefaults({
-    defaultIsMinified,
-    defaultView,
-    persistedOptions,
-  });
-
-  // Keep user choices across threads, but show all frames when app filtering
-  // would hide a system-only trace and use raw data only where it is available.
+  // Preferences survive thread changes; effective settings depend on available data.
   const [selectedView, setView] = useState<StackTraceView>(() =>
-    defaults.defaultView === 'raw' ? 'raw' : 'app'
+    defaultView === 'raw' ||
+    persistedOptions.includes(NATIVE_DISPLAY_OPTION.RAW_STACK_TRACE)
+      ? 'raw'
+      : 'app'
   );
-  const [prefersMinified, setIsMinified] = useState(defaults.defaultIsMinified);
+  const [prefersMinified, setIsMinified] = useState(
+    () => defaultIsMinified || persistedOptions.includes(NATIVE_DISPLAY_OPTION.MINIFIED)
+  );
   const [isNewestFirst, setIsNewestFirst] = useState(defaultIsNewestFirst);
   const view = selectedView === 'app' && defaultView === 'full' ? 'full' : selectedView;
   const isMinified = hasMinifiedStacktrace && prefersMinified;
-  const value = useMemo<StackTraceViewState>(
+  const viewState = useMemo<StackTraceViewState>(
     () => ({
       view,
       setView,
@@ -142,31 +127,6 @@ function NativeStackTraceViewStateRoot({
     [view, isMinified, isNewestFirst, hasMinifiedStacktrace, platform]
   );
 
-  return (
-    <StackTraceViewStateContext value={value}>
-      <NativeDisplayOptionsProvider
-        prefersMinified={prefersMinified}
-        persistedOptions={persistedOptions}
-        setPersistedOptions={setPersistedOptions}
-      >
-        {children}
-      </NativeDisplayOptionsProvider>
-    </StackTraceViewStateContext>
-  );
-}
-
-function NativeDisplayOptionsProvider({
-  children,
-  prefersMinified,
-  persistedOptions,
-  setPersistedOptions,
-}: {
-  children: React.ReactNode;
-  persistedOptions: PersistedOptions;
-  prefersMinified: boolean;
-  setPersistedOptions: SetPersistedOptions;
-}) {
-  const {setIsMinified, setIsNewestFirst, setView, view} = useStackTraceViewState();
   const updateDisplayOptions = useCallback(
     (options: NativeDisplayOptionsState) => {
       if (options.view !== view) {
@@ -186,7 +146,7 @@ function NativeDisplayOptionsProvider({
     },
     [setIsMinified, setIsNewestFirst, setPersistedOptions, setView, view]
   );
-  const value = useMemo<NativeDisplayOptionsContextValue>(
+  const displayOptions = useMemo<NativeDisplayOptionsContextValue>(
     () => ({
       absoluteAddresses: persistedOptions.includes(
         NATIVE_DISPLAY_OPTION.ABSOLUTE_ADDRESSES
@@ -204,7 +164,11 @@ function NativeDisplayOptionsProvider({
   );
 
   return (
-    <NativeDisplayOptionsContext value={value}>{children}</NativeDisplayOptionsContext>
+    <StackTraceViewStateContext value={viewState}>
+      <NativeDisplayOptionsContext value={displayOptions}>
+        {children}
+      </NativeDisplayOptionsContext>
+    </StackTraceViewStateContext>
   );
 }
 

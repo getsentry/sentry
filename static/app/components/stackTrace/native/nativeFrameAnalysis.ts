@@ -7,28 +7,23 @@ import type {Event, Frame} from 'sentry/types/event';
 
 import {getSymbolicatorStatus} from './frame/actions/getSymbolicatorStatus';
 
-interface NativeFrameAnalysis {
-  hasAbsoluteAddresses: boolean;
-  hasAbsoluteFilePaths: boolean;
-  hasAnyStatusIcons: boolean;
-  hasVerboseFunctionNames: boolean;
-  imageByFrameIndex: Map<number, Image | null>;
-  maxLengthOfRelativeAddress: number;
+export function getNativeFrameCapabilities(frames: Frame[]) {
+  return {
+    hasAbsoluteAddresses: frames.some(frame => !!frame.instructionAddr),
+    hasAbsoluteFilePaths: frames.some(
+      frame => !!frame.filename && !!frame.absPath && frame.filename !== frame.absPath
+    ),
+    hasVerboseFunctionNames: frames.some(
+      frame =>
+        !!frame.function && !!frame.rawFunction && frame.function !== frame.rawFunction
+    ),
+  };
 }
 
-export function analyzeNativeFrames({
-  event,
-  frames,
-}: {
-  event: Event;
-  frames: Frame[];
-}): NativeFrameAnalysis {
+export function analyzeNativeFrames({event, frames}: {event: Event; frames: Frame[]}) {
   const imageByFrameIndex = new Map<number, Image | null>();
   let maxLengthOfRelativeAddress = 0;
   let hasAnyStatusIcons = false;
-  let hasAbsoluteAddresses = false;
-  let hasAbsoluteFilePaths = false;
-  let hasVerboseFunctionNames = false;
 
   for (let i = 0; i < frames.length; i++) {
     const frame = frames[i]!;
@@ -48,20 +43,11 @@ export function analyzeNativeFrames({
 
     hasAnyStatusIcons =
       hasAnyStatusIcons || getSymbolicatorStatus(frame, image ?? null) !== null;
-    hasAbsoluteAddresses = hasAbsoluteAddresses || !!frame.instructionAddr;
-    hasAbsoluteFilePaths =
-      hasAbsoluteFilePaths ||
-      (!!frame.filename && !!frame.absPath && frame.filename !== frame.absPath);
-    hasVerboseFunctionNames =
-      hasVerboseFunctionNames ||
-      (!!frame.function && !!frame.rawFunction && frame.function !== frame.rawFunction);
   }
 
   return {
-    hasAbsoluteAddresses,
-    hasAbsoluteFilePaths,
+    ...getNativeFrameCapabilities(frames),
     hasAnyStatusIcons,
-    hasVerboseFunctionNames,
     imageByFrameIndex,
     maxLengthOfRelativeAddress,
   };

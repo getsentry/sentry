@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -94,6 +95,8 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
   return (
     <HeaderContainer>
       <HeaderGrid
+        align="center"
+        gap="sm md"
         data-test-id="native-stack-trace-frame-title"
         data-sub-frame={isSubFrame ? true : undefined}
         isExpandable={isExpandable}
@@ -110,17 +113,25 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
         onMouseLeave={() => setIsHovering(false)}
       >
         {hasAnyStatusIcons ? (
-          <StatusCell data-test-id="native-stack-trace-status-cell">
+          <StatusCell
+            align="center"
+            justify="center"
+            data-test-id="native-stack-trace-status-cell"
+          >
             <SymbolicatorStatusIcon />
           </StatusCell>
         ) : null}
 
-        <PackageCell>
+        <PackageCell
+          direction="column"
+          align="start"
+          justify="center"
+          minWidth={0}
+          overflow="hidden"
+        >
           {showLeadHint ? (
-            <LeadHint>
-              <Text as="span" size="xs" variant="muted">
-                {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
-              </Text>
+            <LeadHint size="xs" variant="muted" ellipsis>
+              {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
             </LeadHint>
           ) : null}
           <Tooltip
@@ -132,7 +143,7 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
             delay={1000}
             skipWrapper
           >
-            <PackageLabel>
+            <PackageLabel variant="inherit" ellipsis>
               {packageLabel ??
                 (isDartAsync ? (
                   t('Dart async')
@@ -145,11 +156,11 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
           </Tooltip>
         </PackageCell>
 
-        <AddressCell>
+        <AddressCell align="center" minWidth={0}>
           <NativeFrameAddress />
         </AddressCell>
 
-        <FunctionCell>
+        <FunctionCell wrap="wrap" align="baseline" gap="2xs xs" minWidth={0}>
           {functionLabel ? (
             <Tooltip
               title={frame.rawFunction ?? frame.symbol}
@@ -167,7 +178,7 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
               title={frame.absPath}
               disabled={!frame.absPath || frame.absPath === frame.filename}
             >
-              <FileName>
+              <FileName size="sm" variant="muted">
                 {'('}
                 {absoluteFilePaths ? (frame.absPath ?? frame.filename) : frame.filename}
                 {frame.lineNo ? `:${frame.lineNo}` : ''}
@@ -177,30 +188,28 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
           ) : null}
         </FunctionCell>
 
-        <ActionsCell>{resolvedActions}</ActionsCell>
+        <ActionsCell align="center" justify="end" gap="xs" justifySelf="end">
+          {resolvedActions}
+        </ActionsCell>
       </HeaderGrid>
     </HeaderContainer>
   );
 }
 
-const HeaderContainer = styled('div')`
+const HeaderContainer = styled(Container)`
   container: native-frame-header / inline-size;
 `;
 
-const HeaderGrid = styled('div')<{
+const HeaderGrid = styled(Grid)<{
   hasStatusColumn: boolean;
   isExpandable: boolean;
   isInAppFrame: boolean;
   isSubFrame: boolean;
 }>`
-  display: grid;
   grid-template-columns: ${p =>
     p.hasStatusColumn
       ? '16px 150px 120px minmax(0, 1fr) minmax(168px, auto)'
       : '150px 120px minmax(0, 1fr) minmax(168px, auto)'};
-  align-items: center;
-  column-gap: ${p => p.theme.space.md};
-  row-gap: ${p => p.theme.space.sm};
   padding: ${p =>
     `${p.theme.space.xs} ${p.theme.space.md} ${p.theme.space.xs} ${
       p.hasStatusColumn
@@ -237,23 +246,13 @@ const HeaderGrid = styled('div')<{
   }
 `;
 
-const StatusCell = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
+const StatusCell = styled(Flex)`
   @container native-frame-header (max-width: ${NATIVE_FRAME_COMPACT_BREAKPOINT}) {
     grid-area: status;
   }
 `;
 
-const PackageCell = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  min-width: 0;
-  overflow: hidden;
+const PackageCell = styled(Flex)`
   line-height: 1.4;
 
   @container native-frame-header (max-width: ${NATIVE_FRAME_COMPACT_BREAKPOINT}) {
@@ -264,14 +263,11 @@ const PackageCell = styled('div')`
   }
 `;
 
-const LeadHint = styled('span')`
+const LeadHint = styled(Text)`
   display: block;
   max-width: 100%;
   line-height: 1.2;
   padding-right: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 
   @container native-frame-header (max-width: ${NATIVE_FRAME_COMPACT_BREAKPOINT}) {
     display: inline;
@@ -280,14 +276,11 @@ const LeadHint = styled('span')`
   }
 `;
 
-const PackageLabel = styled('span')`
+const PackageLabel = styled(Text)`
   display: block;
   flex: 0 1 auto;
   min-width: 0;
   max-width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 
   @container native-frame-header (max-width: ${NATIVE_FRAME_COMPACT_BREAKPOINT}) {
     display: inline-block;
@@ -295,10 +288,7 @@ const PackageLabel = styled('span')`
   }
 `;
 
-const AddressCell = styled('div')`
-  display: flex;
-  align-items: center;
-  min-width: 0;
+const AddressCell = styled(Flex)`
   line-height: 1.4;
 
   @container native-frame-header (max-width: ${NATIVE_FRAME_COMPACT_BREAKPOINT}) {
@@ -309,13 +299,7 @@ const AddressCell = styled('div')`
   }
 `;
 
-const FunctionCell = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  column-gap: ${p => p.theme.space.xs};
-  row-gap: ${p => p.theme.space['2xs']};
-  min-width: 0;
+const FunctionCell = styled(Flex)`
   word-break: break-all;
 
   @container native-frame-header (max-width: ${NATIVE_FRAME_COMPACT_BREAKPOINT}) {
@@ -329,18 +313,12 @@ const FunctionName = styled(AnnotatedText)`
   word-break: break-all;
 `;
 
-const FileName = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
+const FileName = styled(Text)`
   border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
 `;
 
-const ActionsCell = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: ${p => p.theme.space.xs};
+const ActionsCell = styled(Flex)`
   min-width: 168px;
-  margin-left: auto;
 
   @container native-frame-header (max-width: ${NATIVE_FRAME_COMPACT_BREAKPOINT}) {
     grid-area: actions;

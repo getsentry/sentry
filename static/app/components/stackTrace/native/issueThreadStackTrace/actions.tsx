@@ -5,6 +5,7 @@ import {displayRawContent} from 'sentry/components/events/interfaces/crashConten
 import {DisplayOptions} from 'sentry/components/stackTrace/displayOptions';
 import {getOrderedExceptions} from 'sentry/components/stackTrace/issueStackTrace/utils';
 import {NativeDisplayOptionsMenu} from 'sentry/components/stackTrace/native/nativeDisplayOptions';
+import {getNativeFrameCapabilities} from 'sentry/components/stackTrace/native/nativeFrameAnalysis';
 import {RawDownloadAction} from 'sentry/components/stackTrace/native/rawDownloadAction';
 import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
 import {isNativePlatform} from 'sentry/utils/platform';
@@ -33,18 +34,7 @@ export function IssueThreadStackTraceActions() {
   const frames = displayedStacktraces.flatMap(trace => trace?.frames ?? []);
   const displayOptions = displayedStacktraces.some(Boolean) ? (
     isNativeStackTrace ? (
-      <NativeDisplayOptionsMenu
-        hasAbsoluteAddresses={frames.some(frame => !!frame.instructionAddr)}
-        hasAbsoluteFilePaths={frames.some(
-          frame => !!frame.filename && !!frame.absPath && frame.filename !== frame.absPath
-        )}
-        hasVerboseFunctionNames={frames.some(
-          frame =>
-            !!frame.function &&
-            !!frame.rawFunction &&
-            frame.function !== frame.rawFunction
-        )}
-      />
+      <NativeDisplayOptionsMenu {...getNativeFrameCapabilities(frames)} />
     ) : (
       <DisplayOptions />
     )

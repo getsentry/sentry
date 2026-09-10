@@ -51,14 +51,7 @@ export function NativeStackTraceProvider({
     () => activeStacktrace?.frames ?? [],
     [activeStacktrace?.frames]
   );
-  const {
-    imageByFrameIndex,
-    maxLengthOfRelativeAddress,
-    hasAnyStatusIcons,
-    hasAbsoluteAddresses,
-    hasAbsoluteFilePaths,
-    hasVerboseFunctionNames,
-  } = useMemo(
+  const frameAnalysis = useMemo(
     () => analyzeNativeFrames({event, frames: activeFrames}),
     [activeFrames, event]
   );
@@ -81,24 +74,8 @@ export function NativeStackTraceProvider({
   );
 
   const value = useMemo<NativeStackTraceContextValue>(
-    () => ({
-      hasAbsoluteAddresses,
-      hasAbsoluteFilePaths,
-      hasAnyStatusIcons,
-      hasVerboseFunctionNames,
-      imageByFrameIndex,
-      isHoverPreviewed,
-      maxLengthOfRelativeAddress,
-    }),
-    [
-      hasAbsoluteAddresses,
-      hasAbsoluteFilePaths,
-      hasAnyStatusIcons,
-      hasVerboseFunctionNames,
-      imageByFrameIndex,
-      isHoverPreviewed,
-      maxLengthOfRelativeAddress,
-    ]
+    () => ({...frameAnalysis, isHoverPreviewed}),
+    [frameAnalysis, isHoverPreviewed]
   );
 
   return (

@@ -1,5 +1,4 @@
 import type {StackTraceView} from 'sentry/components/stackTrace/types';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 export const NATIVE_DISPLAY_OPTION = {
   ABSOLUTE_ADDRESSES: 'absolute-addresses',
@@ -9,39 +8,8 @@ export const NATIVE_DISPLAY_OPTION = {
   VERBOSE_FUNCTION_NAMES: 'verbose-function-names',
 } as const;
 
-type NativePersistedDisplayOption =
+export type NativePersistedDisplayOption =
   (typeof NATIVE_DISPLAY_OPTION)[keyof typeof NATIVE_DISPLAY_OPTION];
-
-export function useNativeDisplayOptionsStorage(storageKey: string) {
-  return useLocalStorageState<NativePersistedDisplayOption[]>(storageKey, []);
-}
-
-export function getNativeDisplayOptionDefaults({
-  defaultIsMinified = false,
-  defaultView = 'app',
-  persistedOptions,
-}: {
-  persistedOptions: NativePersistedDisplayOption[];
-  defaultIsMinified?: boolean;
-  defaultView?: StackTraceView;
-}) {
-  return {
-    defaultAbsoluteAddresses: persistedOptions.includes(
-      NATIVE_DISPLAY_OPTION.ABSOLUTE_ADDRESSES
-    ),
-    defaultAbsoluteFilePaths: persistedOptions.includes(
-      NATIVE_DISPLAY_OPTION.ABSOLUTE_FILE_PATHS
-    ),
-    defaultIsMinified:
-      defaultIsMinified || persistedOptions.includes(NATIVE_DISPLAY_OPTION.MINIFIED),
-    defaultVerboseFunctionNames: persistedOptions.includes(
-      NATIVE_DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES
-    ),
-    defaultView: persistedOptions.includes(NATIVE_DISPLAY_OPTION.RAW_STACK_TRACE)
-      ? ('raw' as const)
-      : defaultView,
-  };
-}
 
 export function getNativeDisplayOptions({
   absoluteAddresses,
