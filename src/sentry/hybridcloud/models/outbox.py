@@ -89,30 +89,12 @@ class OutboxBase(Model):
         return outbox_model
 
     @classmethod
-    def reserve_object_identifiers_for_bulk_create(cls, count: int) -> list[int]:
-        """Reserve IDs for one bounded ``bulk_create`` operation.
-
-        WARNING: PostgreSQL sequence values are a global, non-transactional resource. Every
-        value reserved here is consumed permanently, even if the transaction rolls back or the
-        caller does not use it. Use with caution and prefer ``next_object_identifier`` where
-        possible.
-        """
-        if not 0 <= count <= 10_000:
-            raise ValueError("bulk identifier reservation count must be between 0 and 10,000")
-        if count == 0:
-            return []
-
-        using = router.db_for_write(cls)
-        with connections[using].cursor() as cursor:
-            cursor.execute(
-                "SELECT nextval(%s) FROM generate_series(1,%s);",
-                [f"{cls._meta.db_table}_id_seq", count],
-            )
-            return [identifier for (identifier,) in cursor.fetchall()]
-
-    @classmethod
     def next_object_identifier(cls) -> int:
-        return cls.reserve_object_identifiers_for_bulk_create(1)[0]
+        using = router.db_for_write(cls)
+        with transaction.atomic(using=using):
+            with connections[using].cursor() as cursor:
+                cursor.execute("SELECT nextval(%s)", [f"{cls._meta.db_table}_id_seq"])
+                return cursor.fetchone()[0]
 
     @classmethod
     def find_scheduled_shards(cls, low: int = 0, hi: int | None = None) -> list[Mapping[str, Any]]:
@@ -224,6 +206,10 @@ class OutboxBase(Model):
                 self._drain_shard_with_metrics, using=router.db_for_write(type(self))
             )
 
+    def record_saved_metric(self, count: int = 1) -> None:
+        tags = {"category": OutboxCategory(self.category).name, **self._silo_and_type_tags()}
+        metrics.incr("outbox.saved", count, tags=tags)
+
     def save(self, *args: Any, **kwargs: Any) -> None:
         if not OutboxScope.scope_has_category(self.shard_scope, self.category):
             raise InvalidOutboxError(
@@ -231,9 +217,7 @@ class OutboxBase(Model):
             )
 
         self.schedule_drain_on_commit()
-
-        tags = {"category": OutboxCategory(self.category).name, **self._silo_and_type_tags()}
-        metrics.incr("outbox.saved", 1, tags=tags)
+        self.record_saved_metric()
         super().save(*args, **kwargs)
 
     def _drain_shard_with_metrics(self) -> None:

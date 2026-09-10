@@ -288,6 +288,37 @@ class TestPublishActionFromContext(TestCase):
 
 
 class TestPublishActionsFromContextBulk(TestCase):
+    def test_reserve_object_identifiers_for_bulk_create(self) -> None:
+        with self.assertNumQueries(1):
+            identifiers = GroupActionLogOutbox.reserve_object_identifiers_for_bulk_create(3)
+
+        assert len(identifiers) == 3
+        assert len(set(identifiers)) == 3
+
+    def test_reserve_object_identifiers_for_bulk_create_empty(self) -> None:
+        with self.assertNumQueries(0):
+            assert GroupActionLogOutbox.reserve_object_identifiers_for_bulk_create(0) == []
+
+    def test_reserve_object_identifiers_for_bulk_create_rejects_negative_count(self) -> None:
+        with (
+            self.assertNumQueries(0),
+            pytest.raises(
+                ValueError,
+                match="bulk identifier reservation count must be between 0 and 10,000",
+            ),
+        ):
+            GroupActionLogOutbox.reserve_object_identifiers_for_bulk_create(-1)
+
+    def test_reserve_object_identifiers_for_bulk_create_rejects_above_maximum(self) -> None:
+        with (
+            self.assertNumQueries(0),
+            pytest.raises(
+                ValueError,
+                match="bulk identifier reservation count must be between 0 and 10,000",
+            ),
+        ):
+            GroupActionLogOutbox.reserve_object_identifiers_for_bulk_create(10_001)
+
     def test_bulk_inserts_outboxes(self) -> None:
         from sentry.issues.action_log import action_context_scope, publish_actions_from_context_bulk
 
@@ -297,6 +328,7 @@ class TestPublishActionsFromContextBulk(TestCase):
             self.feature("projects:issue-action-log-write-to-db"),
             action_context_scope(source="web"),
             outbox_context(flush=False),
+            patch("sentry.hybridcloud.models.outbox.metrics.incr") as metrics_incr,
             CaptureQueriesContext(connections[using]) as queries,
         ):
             publish_actions_from_context_bulk(
@@ -325,6 +357,15 @@ class TestPublishActionsFromContextBulk(TestCase):
         )
         assert len(outboxes) == 2
         assert len({outbox.object_identifier for outbox in outboxes}) == 2
+        metrics_incr.assert_any_call(
+            "outbox.saved",
+            2,
+            tags={
+                "category": "GROUP_ACTION_LOG_EVENT",
+                "silo": "region",
+                "type": "GroupActionLogOutbox",
+            },
+        )
 
     def test_schedules_one_drain(self) -> None:
         from sentry.issues.action_log import action_context_scope, publish_actions_from_context_bulk
@@ -781,9 +822,10 @@ class TestPublishActionWrite(TestCase):
         )
 
     def test_dedicated_outbox_flushes_on_commit(self) -> None:
-        with self.feature(
-            "projects:issue-action-log-write-to-db"
-        ), self.captureOnCommitCallbacks(execute=True):
+        with (
+            self.feature("projects:issue-action-log-write-to-db"),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
             publish_action(
                 ViewAction(),
                 source=ActionSource.API,

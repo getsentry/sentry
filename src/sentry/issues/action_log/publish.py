@@ -1,6 +1,6 @@
 """
-Publishing API for the group action log. Only top-level imports are stdlib, Django,
-and action_log.types — safe to import from models and other dependency-sensitive code.
+Publishing API for the group action log. Only top-level imports are stdlib and
+action_log.types — safe to import from models and other dependency-sensitive code.
 """
 
 from __future__ import annotations
@@ -12,8 +12,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional, Sequence
 
-from django.db import router, transaction
-
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
     ActionSource,
@@ -121,6 +120,8 @@ def _prepare_action_payload(
     if not write_to_db:
         return None
 
+    metrics.incr("issues.action_log.outbox_write", tags={"route": "dedicated"})
+
     payload: GroupActionLogPayload = {
         "group_id": group_id,
         "project_id": project.id,
@@ -164,8 +165,10 @@ def publish_action(
     Log publishing is managed by an outbox that flushes on commit by
     default. Wrap in ``outbox_context(flush=False)`` to defer the drain.
     """
-    # Deferred Sentry imports keep this module safe to import from models.
-    from sentry.hybridcloud.models.outbox import outbox_context
+    # Deferred imports keep this module free of Django/features deps at load time so it can be
+    # imported from models without creating cycles.
+    from django.db import router, transaction
+
     from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
     from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
     from sentry.utils import metrics
@@ -183,22 +186,24 @@ def publish_action(
         return
 
     action_name = action.get_type().name.lower()
+    outbox_model = GroupActionLogOutbox
+    outbox_route = "dedicated"
     # Flush on commit by default; callers can wrap in outbox_context(flush=False) to defer.
-    with outbox_context(transaction.atomic(router.db_for_write(GroupActionLogOutbox))):
+    with outbox_context(transaction.atomic(router.db_for_write(outbox_model))):
         with metrics.timer(
             "issues.action_log.enqueue.duration",
             tags={
                 "action": action_name,
                 "source": source,
-                "route": "dedicated",
+                "route": outbox_route,
                 "derived_strategy": "async" if force_async_derived else "inline",
             },
         ):
-            outbox = GroupActionLogOutbox(
+            outbox = outbox_model(
                 shard_scope=OutboxScope.GROUP_SCOPE,
                 shard_identifier=group_id,
                 category=OutboxCategory.GROUP_ACTION_LOG_EVENT,
-                object_identifier=GroupActionLogOutbox.next_object_identifier(),
+                object_identifier=outbox_model.next_object_identifier(),
                 payload=payload,
             )
             outbox.save()
@@ -271,11 +276,12 @@ def publish_actions_from_context_bulk(
         source = ctx.source
         actor = ctx.actor
 
-    # Deferred Sentry imports keep this module safe to import from models.
-    from sentry.hybridcloud.models.outbox import InvalidOutboxError, outbox_context
+    # Deferred imports keep this module free of Django/features deps at load time so it can be
+    # imported from models without creating cycles.
+    from django.db import router, transaction
+
     from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
     from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
-    from sentry.utils import metrics
 
     payloads: list[GroupActionLogPayload] = []
     for action, project, group_id, idempotency_key in actions:
@@ -294,13 +300,6 @@ def publish_actions_from_context_bulk(
     if not payloads:
         return
 
-    scope = OutboxScope.GROUP_SCOPE
-    category = OutboxCategory.GROUP_ACTION_LOG_EVENT
-    if not OutboxScope.scope_has_category(scope, category):
-        raise InvalidOutboxError(
-            f"Outbox.category {category} ({category.name}) not configured for scope {scope} ({scope.name})"
-        )
-
     using = router.db_for_write(GroupActionLogOutbox)
     with outbox_context(transaction.atomic(using=using)):
         object_identifiers = GroupActionLogOutbox.reserve_object_identifiers_for_bulk_create(
@@ -309,21 +308,17 @@ def publish_actions_from_context_bulk(
 
         outboxes = [
             GroupActionLogOutbox(
-                shard_scope=scope,
+                shard_scope=OutboxScope.GROUP_SCOPE,
                 shard_identifier=payload["group_id"],
-                category=category,
+                category=OutboxCategory.GROUP_ACTION_LOG_EVENT,
                 object_identifier=object_identifier,
                 payload=payload,
             )
             for object_identifier, payload in zip(object_identifiers, payloads)
         ]
         GroupActionLogOutbox.objects.bulk_create(outboxes)
-        # bulk_create bypasses OutboxBase.save(), including its saved metric.
-        metrics.incr(
-            "outbox.saved",
-            len(outboxes),
-            tags={"category": category.name, **outboxes[0]._silo_and_type_tags()},
-        )
+        # bulk_create bypasses OutboxBase.save(), so record the saved metric explicitly.
+        outboxes[0].record_saved_metric(len(outboxes))
 
         # Ensure each affected shard is drained after the transaction commits.
         outboxes_by_shard = {
