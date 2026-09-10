@@ -2,7 +2,12 @@ import fetchMock from 'jest-fetch-mock';
 
 import {setWindowLocation} from 'sentry-test/utils';
 
-import {Client, registerApiErrorHandler, Request} from 'sentry/api';
+import {
+  Client,
+  initApiClientErrorHandling,
+  registerApiErrorHandler,
+  Request,
+} from 'sentry/api';
 import {PROJECT_MOVED} from 'sentry/constants/apiErrorCodes';
 import type {ResponseMeta} from 'sentry/types/api';
 
@@ -120,5 +125,31 @@ describe('api', () => {
     fetchMock.mockResponseOnce(JSON.stringify({detail: 'Still nope'}), {status: 500});
     await expect(client.requestPromise('/second/')).rejects.toBeDefined();
     expect(errorHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it('delegates organization SSO authentication errors', async () => {
+    const onSsoRequired = jest.fn(() => true);
+    const unregister = initApiClientErrorHandling({onSsoRequired});
+    const client = new Client();
+    const completed = Promise.withResolvers<void>();
+    const loginUrl = '/auth/login/acme/?next=%2Forganizations%2Facme%2Fissues%2F';
+    const organizationSlug = 'acme';
+
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        detail: {
+          code: 'sso-required',
+          extra: {loginUrl, organizationSlug},
+          message: 'Must login via SSO',
+        },
+      }),
+      {status: 401}
+    );
+
+    client.request('/organizations/acme/issues/', {complete: () => completed.resolve()});
+    await completed.promise;
+    expect(onSsoRequired).toHaveBeenCalledWith({organizationSlug});
+
+    unregister();
   });
 });

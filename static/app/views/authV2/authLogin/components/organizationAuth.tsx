@@ -19,12 +19,14 @@ interface OrganizationAuthProps {
   authOrganization: AuthOrganization;
   hideClearButton?: boolean;
   onClear?: () => void;
+  ssoFormAction?: string;
 }
 
 export function OrganizationAuth({
   authOrganization,
   hideClearButton = false,
   onClear,
+  ssoFormAction,
 }: OrganizationAuthProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const theme = useTheme();
@@ -62,7 +64,7 @@ export function OrganizationAuth({
     </Flex>
   );
   const ssoAction = (
-    <form method="POST" onSubmit={() => setIsSubmitting(true)}>
+    <form action={ssoFormAction} method="POST" onSubmit={() => setIsSubmitting(true)}>
       <input type="hidden" name="csrfmiddlewaretoken" value={getCsrfToken()} />
       <input type="hidden" name="init" value="1" />
       <Tooltip
