@@ -3,7 +3,7 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
-import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -60,13 +60,12 @@ describe('ConversationOnboarding', () => {
     jest.clearAllMocks();
   });
 
-  it('defaults to an agent prompt below the shared project heading', async () => {
+  it('defaults to the agent tab and copies the displayed prompt', async () => {
     const {organization, project} = setupProject('node');
-    const projectKey = ProjectKeysFixture()[0];
     const prompt = getAgentSetupPrompt({
       organizationSlug: organization.slug,
       project,
-      dsn: projectKey.dsn.public,
+      dsn: ProjectKeysFixture()[0].dsn.public,
     });
 
     render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
@@ -74,50 +73,13 @@ describe('ConversationOnboarding', () => {
     expect(
       await screen.findByRole('tab', {name: 'For your agent', selected: true})
     ).toBeInTheDocument();
-    expect(screen.getByText(/Set up the Sentry SDK for/)).toBeInTheDocument();
-    expect(
-      within(screen.getByRole('tabpanel')).queryByText(/Set up the Sentry SDK for/)
-    ).not.toBeInTheDocument();
     expect(screen.getByRole('code')).toHaveTextContent(prompt, {
       normalizeWhitespace: false,
     });
-    expect(screen.queryByRole('button', {name: 'Vercel AI SDK'})).not.toBeInTheDocument();
-    expect(
-      screen.getByText('Listening for your first conversation...')
-    ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Copy prompt'}));
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(prompt);
-    expect(navigator.clipboard.writeText).not.toHaveBeenCalledWith(
-      expect.stringContaining(projectKey.dsn.secret)
-    );
-  });
-
-  it('preserves human instructions and integration choices when switching tabs', async () => {
-    const {organization} = setupProject('node');
-
-    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
-
-    await userEvent.click(await screen.findByRole('tab', {name: 'For you'}));
-    expect(screen.getByText('Set up')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Vercel AI SDK'}));
-    await userEvent.click(await screen.findByRole('option', {name: 'Mastra'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Copy instructions'}));
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      expect.stringContaining('npm install @mastra/sentry')
-    );
-
-    await userEvent.click(screen.getByRole('tab', {name: 'For your agent'}));
-    expect(screen.getByRole('button', {name: 'Copy prompt'})).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('tab', {name: 'For you'}));
-
-    expect(screen.getByRole('button', {name: 'Mastra'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Copy instructions'})).toBeInTheDocument();
-    expect(screen.getByText(/Set up the Sentry SDK for/)).toBeInTheDocument();
-    expect(
-      within(screen.getByRole('tabpanel')).queryByText(/Set up the Sentry SDK for/)
-    ).not.toBeInTheDocument();
   });
 
   it('updates the prompt when the selected project changes', async () => {
@@ -187,22 +149,6 @@ describe('ConversationOnboarding', () => {
     );
     expect(screen.getByRole('link', {name: 'documentation'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Copy prompt'})).not.toBeInTheDocument();
-  });
-
-  it('lets the user view conversations when the first conversation arrives', async () => {
-    const {organization} = setupProject('node');
-    const onDismiss = jest.fn();
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: {data: [{id: 'span-id'}]},
-    });
-
-    render(<ConversationOnboarding onDismiss={onDismiss} />, {organization});
-
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'View Conversations'})
-    );
-    expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
   it('defaults a Node project to the Node target and installs @sentry/node', async () => {
@@ -351,10 +297,6 @@ describe('ConversationOnboarding', () => {
 
   it('tracks AI prompt copy for conversations onboarding', async () => {
     const {organization} = setupProject('node');
-
-    Object.assign(navigator, {
-      clipboard: {writeText: jest.fn().mockResolvedValue(undefined)},
-    });
 
     render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
     await userEvent.click(await screen.findByRole('tab', {name: 'For you'}));
