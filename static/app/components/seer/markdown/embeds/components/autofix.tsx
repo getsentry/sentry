@@ -7,7 +7,7 @@ import {Link} from '@sentry/scraps/link';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
-import {notifyAutofixInteraction} from 'sentry/components/events/autofix/autofixInteractionStore';
+import {useAnnounceAutofixResult} from 'sentry/components/events/autofix/autofixResultStore';
 import {getRepoPullRequestLink} from 'sentry/components/events/autofix/pullRequests';
 import {
   collectPatches,
@@ -125,14 +125,24 @@ function AutofixStepBody({
   return <Markdown raw={result} />;
 }
 
+/**
+ * Seer writes this embed itself once a step is done, so its arrival is the
+ * result — there is no run state to watch for a status.
+ */
+function AutofixContent({id, shortId, ...content}: AutofixContentProps) {
+  useAnnounceAutofixResult(id, content.step, true);
+
+  return (
+    <AutofixDisclosure id={id} shortId={shortId} step={content.step}>
+      <AutofixStepBody {...content} />
+    </AutofixDisclosure>
+  );
+}
+
 export const Autofix = defineSeerEmbed({
   name: 'autofix',
-  render({id, shortId, ...content}: AutofixContentProps) {
-    return (
-      <AutofixDisclosure id={id} shortId={shortId} step={content.step}>
-        <AutofixStepBody {...content} />
-      </AutofixDisclosure>
-    );
+  render(props: AutofixContentProps) {
+    return <AutofixContent {...props} />;
   },
 });
 
@@ -198,21 +208,17 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
   const section = useMemo(() => findStepSection(sections, step), [sections, step]);
 
   useRefreshOnStepResult(id, section);
+  useAnnounceAutofixResult(id, step, section?.status === 'completed');
 
-  // Each of these hands the run back to Seer, so the result lands on the issue
-  // page behind the chat panel. Announce it so the page can offer to go there.
   const handleRetry = () => {
-    notifyAutofixInteraction(id);
     sendMessage?.(t('Retry the %s step for %s.', STEP_LABELS[step], shortId));
   };
 
   const handleContinue = (nextStep: AutofixExplorerStep) => {
-    notifyAutofixInteraction(id);
     sendMessage?.(t('Continue to the %s step for %s.', STEP_LABELS[nextStep], shortId));
   };
 
   const handleCreatePR = () => {
-    notifyAutofixInteraction(id);
     sendMessage?.(t('Draft a pull request for %s.', shortId));
   };
 

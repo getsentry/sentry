@@ -1,6 +1,6 @@
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {notifyAutofixInteraction} from 'sentry/components/events/autofix/autofixInteractionStore';
+import {useAnnounceAutofixResult} from 'sentry/components/events/autofix/autofixResultStore';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {ScrollToAutofixButton} from 'sentry/views/issueDetails/scrollToAutofixButton';
 
@@ -42,15 +42,41 @@ function installIntersectionObserver() {
   } as unknown as typeof IntersectionObserver;
 }
 
-function renderButton(groupId = '1') {
+/**
+ * Stands in for an autofix embed in the chat, so tests announce results the
+ * same way the embeds do rather than reaching into the store.
+ */
+function FakeEmbed({
+  groupId,
+  step,
+  isComplete,
+}: {
+  groupId: string;
+  isComplete: boolean;
+  step: string;
+}) {
+  useAnnounceAutofixResult(groupId, step, isComplete);
+  return null;
+}
+
+interface RenderOptions {
+  groupId: string;
+  isComplete?: boolean;
+  step?: string;
+}
+
+function renderPage({groupId, step = 'root_cause', isComplete = false}: RenderOptions) {
   return render(
     <div>
       <ScrollToAutofixButton groupId={groupId} />
       <div id={SectionKey.SEER}>Seer Autofix</div>
+      <FakeEmbed groupId={groupId} step={step} isComplete={isComplete} />
     </div>
   );
 }
 
+// The store dedupes announcements per issue and step for the life of the page,
+// so each test uses its own issue id rather than resetting module state.
 describe('ScrollToAutofixButton', () => {
   beforeEach(() => {
     installIntersectionObserver();
@@ -60,16 +86,21 @@ describe('ScrollToAutofixButton', () => {
     });
   });
 
-  it('stays hidden until someone interacts with an autofix embed', () => {
-    renderButton();
+  it('stays hidden while the step is still processing', () => {
+    renderPage({groupId: 'processing'});
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('offers to scroll down when autofix is below the viewport', async () => {
-    renderButton();
-
-    act(() => notifyAutofixInteraction('1'));
+  it('offers to scroll down when a completed step is below the viewport', async () => {
+    const {rerender} = renderPage({groupId: 'below'});
+    rerender(
+      <div>
+        <ScrollToAutofixButton groupId="below" />
+        <div id={SectionKey.SEER}>Seer Autofix</div>
+        <FakeEmbed groupId="below" step="root_cause" isComplete />
+      </div>
+    );
     reportPosition('below');
 
     const button = await screen.findByRole('button', {name: 'Scroll down to Autofix'});
@@ -83,9 +114,7 @@ describe('ScrollToAutofixButton', () => {
   });
 
   it('offers to scroll up when autofix is above the viewport', async () => {
-    renderButton();
-
-    act(() => notifyAutofixInteraction('1'));
+    renderPage({groupId: 'above', isComplete: true});
     reportPosition('above');
 
     expect(
@@ -94,34 +123,57 @@ describe('ScrollToAutofixButton', () => {
   });
 
   it('stays hidden when autofix is already on screen', () => {
-    renderButton();
-
-    act(() => notifyAutofixInteraction('1'));
+    renderPage({groupId: 'onscreen', isComplete: true});
     reportPosition('onScreen');
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('ignores interactions with another issue', () => {
-    renderButton();
-
-    act(() => notifyAutofixInteraction('2'));
+  it('ignores a step that completed for another issue', () => {
+    render(
+      <div>
+        <ScrollToAutofixButton groupId="watched" />
+        <div id={SectionKey.SEER}>Seer Autofix</div>
+        <FakeEmbed groupId="other" step="root_cause" isComplete />
+      </div>
+    );
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('returns on a later interaction after the reader has seen the section', async () => {
-    renderButton();
-
-    act(() => notifyAutofixInteraction('1'));
+  it('announces a completed step only once, however often the embed remounts', () => {
+    const {rerender} = renderPage({groupId: 'remount', isComplete: true});
     reportPosition('onScreen');
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
 
-    act(() => notifyAutofixInteraction('1'));
+    // A remount is what streaming does to an embed; it is not fresh news.
+    rerender(
+      <div>
+        <ScrollToAutofixButton groupId="remount" />
+        <div id={SectionKey.SEER}>Seer Autofix</div>
+        <FakeEmbed key="second" groupId="remount" step="root_cause" isComplete />
+      </div>
+    );
+
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('returns when a later step completes', async () => {
+    renderPage({groupId: 'later', isComplete: true});
+    reportPosition('onScreen');
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+
+    render(
+      <div>
+        <ScrollToAutofixButton groupId="later" />
+        <div id={SectionKey.SEER}>Seer Autofix</div>
+        <FakeEmbed groupId="later" step="solution" isComplete />
+      </div>
+    );
     reportPosition('below');
 
     expect(
-      await screen.findByRole('button', {name: 'Scroll down to Autofix'})
-    ).toBeInTheDocument();
+      await screen.findAllByRole('button', {name: 'Scroll down to Autofix'})
+    ).not.toHaveLength(0);
   });
 });
