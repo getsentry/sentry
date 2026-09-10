@@ -26,11 +26,9 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import {displayBudgetName} from 'getsentry/utils/billing';
-import {
-  BudgetModeSettings,
-  SpendLimitInput,
-  SpendLimitSettings,
-} from 'getsentry/views/spendLimits/spendLimitSettings';
+import {BudgetModeSettings} from 'getsentry/views/spendLimits/budgetModeSettings';
+import {SpendLimitInput} from 'getsentry/views/spendLimits/spendLimitInput';
+import {SpendLimitSettings} from 'getsentry/views/spendLimits/spendLimitSettings';
 
 import {
   convertOnDemandBudget,
@@ -109,16 +107,13 @@ function getFormSchema(subscription: Subscription) {
       ),
       sharedMaxBudget: nonNegativeBudgetSchema,
     })
-    .superRefine((values, context) => {
-      const onDemandBudgets = getOnDemandBudgets(values);
-      if (exceedsInvoicedBudgetLimit(subscription, onDemandBudgets)) {
-        context.addIssue({
-          code: 'custom',
-          message: getBudgetExceededInvoicedLimitError(subscription.planDetails),
-          path: ['sharedMaxBudget'],
-        });
+    .refine(
+      values => !exceedsInvoicedBudgetLimit(subscription, getOnDemandBudgets(values)),
+      {
+        message: getBudgetExceededInvoicedLimitError(subscription.planDetails),
+        path: ['sharedMaxBudget'],
       }
-    });
+    );
 }
 
 function renderRequestError(error: Error | null, plan: Plan) {
