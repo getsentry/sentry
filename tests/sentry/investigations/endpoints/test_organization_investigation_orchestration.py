@@ -258,6 +258,44 @@ class OrganizationInvestigationOrchestrationCommandsTest(APITestCase):
         stored = self.orchestration_run.commands.get()
         assert stored.payload["targetId"] == "h-1"
 
+    @mock.patch("sentry.investigations.services.orchestration.logger")
+    @mock.patch(
+        "sentry.tasks.seer.investigation.dispatch_investigation_orchestration_commands.delay"
+    )
+    def test_unknown_hypothesis_logs_identifiers_without_the_payload(
+        self, dispatch: mock.Mock, logger: mock.Mock
+    ) -> None:
+        body = self.command(
+            command={
+                "type": "steer",
+                "target": "hypothesis",
+                "targetId": "missing-hypothesis",
+                "instruction": "User-provided investigation context must not appear in logs",
+            }
+        )
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(self.command_url, data=body, format="json")
+
+        assert response.status_code == 400
+        assert response.data == {"detail": "Hypothesis was not found."}
+        assert logger.mock_calls == [
+            mock.call.info(
+                "investigation.orchestration.command.invalid_hypothesis",
+                extra={
+                    "investigation_id": self.investigation.id,
+                    "orchestration_run_id": self.orchestration_run.id,
+                    "request_id": body["requestId"],
+                    "command_type": "steer",
+                    "hypothesis_id": "missing-hypothesis",
+                },
+            )
+        ]
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 1
+        assert not self.orchestration_run.commands.exists()
+        dispatch.assert_not_called()
+
     def test_workflow_command_preserves_notebook_until_seer_clears_the_report(self) -> None:
         block = self.create_investigation_block(
             investigation=self.investigation,

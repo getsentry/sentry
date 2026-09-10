@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
@@ -36,6 +37,8 @@ from sentry.investigations.services.investigations import (
     update_investigation,
 )
 from sentry.models.organization import Organization
+
+logger = logging.getLogger(__name__)
 
 _ARCHIVE_CANCEL_NAMESPACE = UUID("cde61615-4bc3-43a4-a022-1608dc33d512")
 _CONTROL_KEY = "_sentryControl"
@@ -187,6 +190,7 @@ def _hypothesis_ids(run: InvestigationOrchestrationRun) -> set[str]:
 def _validate_command_target(
     run: InvestigationOrchestrationRun,
     *,
+    request_id: UUID,
     command_type: str,
     payload: dict[str, Any],
 ) -> None:
@@ -200,6 +204,16 @@ def _validate_command_target(
     if targets_hypothesis and (
         not isinstance(hypothesis_id, str) or hypothesis_id not in _hypothesis_ids(run)
     ):
+        logger.info(
+            "investigation.orchestration.command.invalid_hypothesis",
+            extra={
+                "investigation_id": run.investigation_id,
+                "orchestration_run_id": run.id,
+                "request_id": str(request_id),
+                "command_type": command_type,
+                "hypothesis_id": hypothesis_id if isinstance(hypothesis_id, str) else None,
+            },
+        )
         raise InvestigationValidationError({"detail": "Hypothesis was not found."})
 
 
@@ -690,7 +704,9 @@ def accept_orchestration_command(
         if run.workflow_version != expected_workflow_version:
             raise InvestigationConflictError("Workflow version does not match.")
 
-        _validate_command_target(run, command_type=command_type, payload=payload)
+        _validate_command_target(
+            run, request_id=request_id, command_type=command_type, payload=payload
+        )
 
         if run.seer_run_id is None and _is_run_retry(command_type, payload):
             command = InvestigationOrchestrationCommand.objects.create(
