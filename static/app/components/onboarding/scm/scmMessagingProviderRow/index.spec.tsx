@@ -1,4 +1,5 @@
 import {act, useState} from 'react';
+import {focusManager} from '@tanstack/react-query';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
@@ -194,7 +195,10 @@ function renderRow(
 }
 
 describe('ScmMessagingProviderRow', () => {
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => {
+    jest.restoreAllMocks();
+    focusManager.setFocused(undefined);
+  });
 
   describe('installable state', () => {
     it('opens the install flow when Connect is clicked', async () => {
@@ -254,6 +258,46 @@ describe('ScmMessagingProviderRow', () => {
       ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Teams Marketplace'})).toBeInTheDocument();
       expect(pipelineModal.openPipelineModal).not.toHaveBeenCalled();
+    });
+
+    it('closes the marketplace modal and completes the install once MS Teams appears', async () => {
+      // Start unfocused so the later focus transition deterministically refetches.
+      focusManager.setFocused(false);
+      jest.spyOn(window, 'open').mockImplementation(() => null);
+      const installableMsteams: ScmMessagingResolvedProvider = {
+        providerKey: 'msteams',
+        provider: msteamsProvider,
+        status: 'installable',
+        eligibleIntegrations: [],
+        permissionLimitedIntegration: undefined,
+      };
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/',
+        body: [],
+      });
+      const onInstallComplete = jest.fn();
+      const {waitForModalToHide} = renderGlobalModal({organization});
+      renderRow(installableMsteams, UNCONFIGURED_SCM_MESSAGING_SETUP, {
+        onInstallComplete,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: /Connect/}));
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Teams Marketplace'})
+      );
+
+      expect(onInstallComplete).not.toHaveBeenCalled();
+
+      // The user finishes in the Marketplace and returns to the tab: the focus
+      // refetch surfaces the new team installation.
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/',
+        body: [{...msteamsIntegration, configData: {installationType: 'team'}}],
+      });
+      act(() => focusManager.setFocused(true));
+
+      await waitForModalToHide();
+      expect(onInstallComplete).toHaveBeenCalledWith('msteams');
     });
   });
 
