@@ -1,3 +1,4 @@
+import {ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -7,6 +8,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconBot} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import {AgentInfo} from 'sentry/views/onboarding/components/agentInfo';
 import {SETUP_CARD_ICON_PX, SETUP_CARD_ICON_SIZE} from 'sentry/views/onboarding/consts';
 
@@ -75,13 +77,13 @@ export function AgentSetupCard({
           <Container borderLeft="muted" />
         </Flex>
         <Container flexGrow={1} minWidth="0px" paddingTop="lg" paddingBottom="2xl">
-          <CodeBlock
+          <DarkCodeBlock
             alwaysShowCopyButton
             onCopy={() => onCopyCommand('install_command')}
             wrapMode="wrap"
           >
             {INSTALL_PLUGIN_COMMAND}
-          </CodeBlock>
+          </DarkCodeBlock>
         </Container>
       </Flex>
 
@@ -96,19 +98,40 @@ export function AgentSetupCard({
               {t('Point it to your project folder and paste this.')}
             </Text>
           </Stack>
-          <CodeBlock
+          <DarkCodeBlock
             alwaysShowCopyButton={!hasSetupFailed}
             hideCopyButton={hasSetupFailed}
             onCopy={() => onCopyCommand('prompt')}
             wrapMode="wrap"
           >
             {prompt}
-          </CodeBlock>
+          </DarkCodeBlock>
         </Stack>
       </Flex>
     </Stack>
   );
 }
+
+function DarkCodeBlock(props: React.ComponentProps<typeof CodeBlock>) {
+  const theme = useTheme();
+  const invertedTheme = useInvertedTheme();
+  const isInverted = theme.type === 'light';
+  return (
+    <ThemeProvider theme={isInverted ? invertedTheme : theme}>
+      <DarkCodeSurface isInverted={isInverted}>
+        <CodeBlock {...props} />
+      </DarkCodeSurface>
+    </ThemeProvider>
+  );
+}
+
+const DarkCodeSurface = styled('div')<{isInverted: boolean}>`
+  --prism-base: ${p => p.theme.tokens.syntax.base};
+  --prism-block-background: ${p =>
+    p.isInverted
+      ? p.theme.tokens.background.secondary
+      : p.theme.tokens.background.tertiary};
+`;
 
 const StepNumber = styled('span')`
   display: inline-flex;
