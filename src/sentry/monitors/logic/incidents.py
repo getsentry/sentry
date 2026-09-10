@@ -99,7 +99,6 @@ def try_incident_threshold(
                 metrics.incr(
                     "monitors.incidents.threshold_history_underrun",
                     tags={
-                        "organization_id": str(monitor_env.monitor.organization_id),
                         "checkin_count_at_incident": str(checkin_count_at_incident),
                         "failure_issue_threshold": str(failure_issue_threshold),
                     },
