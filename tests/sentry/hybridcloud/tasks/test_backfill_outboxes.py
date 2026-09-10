@@ -137,7 +137,9 @@ def test_control_processing_auth(task_runner: Callable[..., Any]) -> None:
         run_for_model(AuthIdentity)
         run_for_model(AuthProvider)
 
-    assert get_processing_state(AuthIdentity._meta.db_table)[1] == AuthIdentity.replication_version + 1
+    assert (
+        get_processing_state(AuthIdentity._meta.db_table)[1] == AuthIdentity.replication_version + 1
+    )
 
     with outbox_runner():
         assert ControlOutbox.objects.all().count() == 6
