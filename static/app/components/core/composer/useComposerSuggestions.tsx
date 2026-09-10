@@ -2,9 +2,7 @@ import {useId, useMemo, useRef} from 'react';
 import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selection';
 import {Item} from '@react-stately/collections';
 import {useListState} from '@react-stately/list';
-import {skipToken, useQuery} from '@tanstack/react-query';
-
-import {NODE_ENV} from 'sentry/constants';
+import {skipToken, useQueries} from '@tanstack/react-query';
 
 import type {ActiveTrigger} from './matching';
 import type {AsyncComposerSource, ComposerSource} from './types';
@@ -39,25 +37,33 @@ function useSourceSuggestions(
   activeSources: ReadonlyArray<ComposerSource<unknown>>,
   query: string | undefined
 ) {
-  // Multiple async sources per trigger group are not supported: hook count
-  // must be stable across renders. Local sources can be arbitrarily many.
-  if (NODE_ENV !== 'production') {
-    const asyncCount = activeSources.filter(source => 'queryOptions' in source).length;
-    if (asyncCount > 1) {
-      throw new Error(
-        `Composer supports at most one async source per trigger, found ${asyncCount}.`
-      );
-    }
-  }
-  const asyncSource = activeSources.find(
-    (source): source is AsyncComposerSource<unknown> => 'queryOptions' in source
+  const asyncSources = useMemo(
+    () =>
+      activeSources.filter(
+        (source): source is AsyncComposerSource<unknown> => 'queryOptions' in source
+      ),
+    [activeSources]
   );
 
-  const suggestionsQuery = useQuery<readonly unknown[]>(
-    asyncSource && query !== undefined
-      ? asyncSource.queryOptions(query)
-      : {queryKey: ['composer-suggestions'], queryFn: skipToken}
-  );
+  const asyncQueries = useQueries({
+    queries: asyncSources.map(source =>
+      query === undefined
+        ? {queryKey: ['composer-suggestions', source.id], queryFn: skipToken}
+        : source.queryOptions(query)
+    ),
+  });
+
+  const asyncData: Array<readonly unknown[] | undefined> = asyncQueries.map(q => q.data);
+  const asyncStatuses = asyncQueries.map(q => q.status);
+
+  const asyncDataBySourceId = useMemo(() => {
+    const map = new Map<string, readonly unknown[]>();
+    asyncSources.forEach((source, i) => {
+      map.set(source.id, asyncData[i] ?? []);
+    });
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [asyncSources, ...asyncData]);
 
   const suggestionsBySource = useMemo(() => {
     return activeSources.map(source => {
@@ -67,12 +73,18 @@ function useSourceSuggestions(
           suggestions: query === undefined ? [] : source.getSuggestions(query),
         };
       }
-      return {source, suggestions: suggestionsQuery.data ?? []};
+      return {source, suggestions: asyncDataBySourceId.get(source.id) ?? []};
     });
-  }, [activeSources, query, suggestionsQuery.data]);
+  }, [activeSources, query, asyncDataBySourceId]);
+
+  const queryStatus: 'pending' | 'error' | 'success' = asyncStatuses.includes('pending')
+    ? 'pending'
+    : asyncStatuses.includes('error')
+      ? 'error'
+      : 'success';
 
   return {
-    queryStatus: asyncSource ? suggestionsQuery.status : 'success',
+    queryStatus: asyncSources.length > 0 ? queryStatus : ('success' as const),
     suggestionsBySource,
   };
 }
