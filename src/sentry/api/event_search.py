@@ -440,7 +440,8 @@ def validate_regex_pattern(key: str, pattern: str) -> None:
     if unsupported is not None:
         raise InvalidSearchQuery(
             f"{key}: Invalid regex: `{unsupported.group()}` is not supported. "
-            "Backreferences and lookaround are unavailable."
+            "Patterns are matched with RE2, which has no backreferences, lookaround, "
+            "or other PCRE extensions."
         )
 
     try:

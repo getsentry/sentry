@@ -331,8 +331,10 @@ WILDCARD_OPERATOR_MAP = {
 # pattern must reach the backend verbatim rather than being rewritten into a wildcard pattern.
 REGEX_OPERATOR = f"{WILDCARD_UNICODE}Matches{WILDCARD_UNICODE}"
 
-# RE2, which backs the ClickHouse `match` this compiles to, has no backreferences or lookarounds.
-UNSUPPORTED_REGEX_SYNTAX = re.compile(r"\\[1-9]|\(\?[=!<]")
+# RE2, which backs the ClickHouse `match` this compiles to, rejects the PCRE extensions that
+# Python's `re` accepts, and ClickHouse only reports that as a query failure once the pattern
+# has already reached it.
+UNSUPPORTED_REGEX_SYNTAX = re.compile(r"\\[1-9]|\\Z|\(\?(?:[=!>#(]|<[=!]|P=)")
 
 MAX_SEARCH_RELEASES = 1000
 SEMVER_EMPTY_RELEASE = "____SENTRY_EMPTY_RELEASE____"

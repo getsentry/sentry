@@ -1548,6 +1548,12 @@ def test_round_trips_a_regex_op_through_to_query_string(query) -> None:
     assert parse_search_query(filters[0].to_query_string()) == filters
 
 
+UNSUPPORTED_REGEX_MESSAGE = (
+    "Patterns are matched with RE2, which has no backreferences, lookaround, "
+    "or other PCRE extensions."
+)
+
+
 @pytest.mark.parametrize(
     ["query", "expected_message"],
     [
@@ -1563,21 +1569,38 @@ def test_round_trips_a_regex_op_through_to_query_string(query) -> None:
         ),
         pytest.param(
             f'span.op:{REGEX_OPERATOR}"(foo)\\1"',
-            "span.op: Invalid regex: `\\1` is not supported. "
-            "Backreferences and lookaround are unavailable.",
+            "span.op: Invalid regex: `\\1` is not supported. " + UNSUPPORTED_REGEX_MESSAGE,
             id="backreference",
         ),
         pytest.param(
             f'span.op:{REGEX_OPERATOR}"foo(?=bar)"',
-            "span.op: Invalid regex: `(?=` is not supported. "
-            "Backreferences and lookaround are unavailable.",
+            "span.op: Invalid regex: `(?=` is not supported. " + UNSUPPORTED_REGEX_MESSAGE,
             id="lookahead",
         ),
         pytest.param(
             f'span.op:{REGEX_OPERATOR}"foo(?<!bar)"',
-            "span.op: Invalid regex: `(?<` is not supported. "
-            "Backreferences and lookaround are unavailable.",
+            "span.op: Invalid regex: `(?<!` is not supported. " + UNSUPPORTED_REGEX_MESSAGE,
             id="lookbehind",
+        ),
+        pytest.param(
+            f'span.op:{REGEX_OPERATOR}"foo\\Z"',
+            "span.op: Invalid regex: `\\Z` is not supported. " + UNSUPPORTED_REGEX_MESSAGE,
+            id="end of string escape",
+        ),
+        pytest.param(
+            f'span.op:{REGEX_OPERATOR}"(?>foo)"',
+            "span.op: Invalid regex: `(?>` is not supported. " + UNSUPPORTED_REGEX_MESSAGE,
+            id="atomic group",
+        ),
+        pytest.param(
+            f'span.op:{REGEX_OPERATOR}"(foo)(?(1)bar|baz)"',
+            "span.op: Invalid regex: `(?(` is not supported. " + UNSUPPORTED_REGEX_MESSAGE,
+            id="conditional",
+        ),
+        pytest.param(
+            f'span.op:{REGEX_OPERATOR}"(?P<name>foo)(?P=name)"',
+            "span.op: Invalid regex: `(?P=` is not supported. " + UNSUPPORTED_REGEX_MESSAGE,
+            id="named backreference",
         ),
         pytest.param(
             f'span.op:{REGEX_OPERATOR}""',
