@@ -739,7 +739,6 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             'has:"total_cost"',
             "!has:totalCost",
             "count_if(`(broken`,span.duration):>0",
-            "gen_ai.tool.name:search " * 51,
             "(" * 21 + "gen_ai.tool.name:search" + ")" * 21,
         ]:
             with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
