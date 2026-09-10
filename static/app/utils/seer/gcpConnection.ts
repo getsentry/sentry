@@ -1,3 +1,5 @@
+import {z} from 'zod';
+
 import {t} from 'sentry/locale';
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -26,7 +28,7 @@ function isKnownStatus(status: string): status is GcpConnectionStatus {
 }
 
 /** One MCP server's result, as returned by Seer's verification endpoint. */
-export interface GcpServiceResult {
+interface GcpServiceResult {
   service: string;
   status: string;
   errorDetail?: string | null;
@@ -118,21 +120,27 @@ export function buildGcpVerifyPayload(
   return {customerSaEmail, gcpProjectIds};
 }
 
-export interface GcpStoredProjectResult {
-  connection_status: string;
-  error_detail: string | null;
-  gcp_project_id: string;
-  services: Array<{
-    error_detail: string | null;
-    service: string;
-    status: string;
-  }>;
-}
+const gcpStoredProjectResultsSchema = z.array(
+  z.object({
+    gcp_project_id: z.string(),
+    connection_status: z.string(),
+    error_detail: z.string().nullable(),
+    services: z.array(
+      z.object({
+        service: z.string(),
+        status: z.string(),
+        error_detail: z.string().nullable(),
+      })
+    ),
+  })
+);
 
-export function getGcpProjectResults(
-  projects: GcpStoredProjectResult[]
-): GcpProjectResult[] {
-  return projects.map(project => ({
+export function getGcpProjectResults(projects: unknown): GcpProjectResult[] | null {
+  const parsed = gcpStoredProjectResultsSchema.safeParse(projects);
+  if (!parsed.success) {
+    return null;
+  }
+  return parsed.data.map(project => ({
     gcpProjectId: project.gcp_project_id,
     connectionStatus: project.connection_status,
     errorDetail: project.error_detail,

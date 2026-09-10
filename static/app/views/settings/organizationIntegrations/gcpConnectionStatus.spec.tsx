@@ -344,4 +344,28 @@ describe('GcpConnectionStatus', () => {
 
     expect(screen.getByRole('button', {name: 'Re-test'})).toBeDisabled();
   });
+
+  it('offers a re-test when saved results are malformed instead of showing a misleading success', () => {
+    renderStatus({
+      configData: {
+        ...baseConfig,
+        connection_status: 'connected',
+        project_statuses: [
+          {
+            gcp_project_id: 'project-prod',
+            connection_status: 'connected',
+            error_detail: null,
+            services: [{service: 'logging', error_detail: null}],
+          },
+        ],
+      },
+    });
+    expect(
+      screen.getByText(
+        "Saved connection results couldn't be loaded. Re-test the connection."
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Connected')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Re-test'})).toBeEnabled();
+  });
 });

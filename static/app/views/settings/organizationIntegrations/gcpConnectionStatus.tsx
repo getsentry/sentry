@@ -19,7 +19,6 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {
   buildGcpVerifyPayload,
   getGcpProjectResults,
-  type GcpStoredProjectResult,
 } from 'sentry/utils/seer/gcpConnection';
 
 interface GcpConnectionStatusProps {
@@ -44,9 +43,7 @@ export function GcpConnectionStatus({
       ? configData.connection_status
       : 'unverified';
   const lastVerifiedAt = configData?.last_verified_at;
-  const projects = getGcpProjectResults(
-    (configData?.project_statuses as GcpStoredProjectResult[] | undefined) ?? []
-  );
+  const projects = getGcpProjectResults(configData?.project_statuses ?? []);
 
   const payload = buildGcpVerifyPayload(configData);
 
@@ -100,7 +97,15 @@ export function GcpConnectionStatus({
                   {t('Previous verification result')}
                 </Text>
               )}
-              <GcpVerificationResults result={{connectionStatus: status, projects}} />
+              {projects === null ? (
+                <Alert variant="warning">
+                  {t(
+                    "Saved connection results couldn't be loaded. Re-test the connection."
+                  )}
+                </Alert>
+              ) : (
+                <GcpVerificationResults result={{connectionStatus: status, projects}} />
+              )}
             </Stack>
           )}
         </Stack>
