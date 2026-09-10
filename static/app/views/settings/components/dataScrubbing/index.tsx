@@ -72,7 +72,7 @@ export function DataScrubbing({
       : `/settings/${organization.slug}/security-and-privacy/`;
 
     navigate(path);
-  }, [navigate, organization.slug, project?.slug]);
+  }, [navigate, organization.slug, project]);
 
   useEffect(() => {
     if (
