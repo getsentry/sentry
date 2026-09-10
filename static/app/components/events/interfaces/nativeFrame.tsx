@@ -277,26 +277,12 @@ export function NativeFrame({
     <StackTraceFrame data-test-id="stack-trace-frame">
       <StrictClick onClick={handleToggleContext}>
         <RowHeader
-          align="center"
-          alignContent="center"
-          as="span"
-          columns={{
-            zero: 'auto minmax(0, 1fr) 56px 24px',
-            xl: 'auto 150px 120px minmax(0, 1fr) auto auto 24px',
-            '2xl': 'auto 150px 120px minmax(120px, 4fr) repeat(3, auto) 24px',
-          }}
           expandable={!!expandable}
-          gap={{zero: 'xs sm', xl: '0 sm'}}
+          hasHiddenFrames={!!hiddenFrameCount}
           isInAppFrame={frame.inApp}
           isSubFrame={!!isSubFrame}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
-          padding={{zero: 'md', xl: 'sm lg'}}
-          position="relative"
-          rows={{
-            zero: hiddenFrameCount ? 'auto auto auto auto' : 'auto auto auto',
-            xl: 'auto',
-          }}
         >
           {expandable ? <InteractionStateLayer /> : null}
           <Container
@@ -539,7 +525,33 @@ const FileName = styled('span')`
   border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
 `;
 
-const RowHeader = styled(Grid)<{
+function RowHeader({
+  hasHiddenFrames,
+  ...props
+}: React.ComponentProps<typeof StyledRowHeader> & {hasHiddenFrames: boolean}) {
+  return (
+    <Grid
+      align="center"
+      alignContent="center"
+      columns={{
+        zero: 'auto minmax(0, 1fr) 56px 24px',
+        xl: 'auto 150px 120px minmax(0, 1fr) auto auto 24px',
+        '2xl': 'auto 150px 120px minmax(120px, 4fr) repeat(3, auto) 24px',
+      }}
+      gap={{zero: 'xs sm', xl: '0 sm'}}
+      padding={{zero: 'md', xl: 'sm lg'}}
+      position="relative"
+      rows={{
+        zero: hasHiddenFrames ? 'auto auto auto auto' : 'auto auto auto',
+        xl: 'auto',
+      }}
+    >
+      {({className}) => <StyledRowHeader {...props} className={className} />}
+    </Grid>
+  );
+}
+
+const StyledRowHeader = styled('span')<{
   expandable: boolean;
   isInAppFrame: boolean;
   isSubFrame: boolean;
@@ -556,7 +568,7 @@ const RowHeader = styled(Grid)<{
 
 const StackTraceFrame = styled('li')`
   :not(:last-child) {
-    ${RowHeader} {
+    ${StyledRowHeader} {
       border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     }
   }
