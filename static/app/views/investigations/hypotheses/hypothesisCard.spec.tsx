@@ -163,6 +163,27 @@ describe('HypothesisCard', () => {
     ).toBeInTheDocument();
   });
 
+  it.each([
+    ['supported', 'accent'],
+    ['accepted', 'accent'],
+    ['inconclusive', 'dotted'],
+    // Ruling a hypothesis out is a real outcome, so it gets an ordinary border
+    // rather than one that reads as a fault.
+    ['refuted', 'default'],
+    ['rejected', 'default'],
+    ['investigating', 'default'],
+    ['failed', 'default'],
+  ] as const)('draws a %s hypothesis with a %s border', (effectiveStatus, border) => {
+    render(
+      <HypothesisCard hypothesis={InvestigationHypothesisFixture({effectiveStatus})} />
+    );
+
+    expect(screen.getByTestId('investigation-hypothesis')).toHaveAttribute(
+      'data-border',
+      border
+    );
+  });
+
   it('hides the evidence section when there are no steps', () => {
     render(
       <HypothesisCard

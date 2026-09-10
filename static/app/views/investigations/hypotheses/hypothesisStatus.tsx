@@ -108,6 +108,28 @@ export function getHypothesisStatusVariant(
 }
 
 /**
+ * How a card's edge should be drawn for a given verdict.
+ *
+ * - `accent` — supported, or endorsed by a person. The purple border marks the
+ *   explanation the evidence backs.
+ * - `dotted` — inconclusive. Checked, but not settled either way, so the edge
+ *   reads as unfinished rather than as a result.
+ * - `default` — everything else, including refuted. Ruling a hypothesis out is
+ *   a real outcome, so it gets an ordinary border rather than a warning color.
+ */
+export function getHypothesisCardBorder(
+  status: InvestigationHypothesisStatus
+): 'accent' | 'dotted' | 'default' {
+  if (status === 'supported' || status === 'accepted') {
+    return 'accent';
+  }
+  if (status === 'inconclusive') {
+    return 'dotted';
+  }
+  return 'default';
+}
+
+/**
  * What a verification step says about itself while it has no result yet. A step
  * only carries a `result` once it has finished, so everything short of that
  * needs a stand-in line rather than an empty row.

@@ -207,6 +207,11 @@ describe('InvestigationFixtureApi', () => {
       expect(
         await screen.findByText('Accepted by you · 91% Confidence')
       ).toBeInTheDocument();
+      // Accepting settles the hypothesis, so its edge picks up the accent.
+      expect(screen.getAllByTestId('investigation-hypothesis')[1]).toHaveAttribute(
+        'data-border',
+        'accent'
+      );
     });
 
     it('clears a disposition back to the agent verdict', async () => {

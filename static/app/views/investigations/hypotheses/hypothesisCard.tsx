@@ -7,6 +7,7 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
+  getHypothesisCardBorder,
   getVerificationStepStatusLabel,
   HypothesisStatus,
 } from 'sentry/views/investigations/hypotheses/hypothesisStatus';
@@ -26,8 +27,9 @@ type HypothesisCardProps = {
   className?: string;
   /**
    * Whether this is the hypothesis the report leads with
-   * (`report.primaryHypothesisId`). It gets an accent border so the conclusion
-   * is findable without reading every card.
+   * (`report.primaryHypothesisId`). It lifts off the page so the conclusion is
+   * findable without reading every card. The border says where a hypothesis
+   * landed; this says which one the report is built around.
    */
   isPrimary?: boolean;
 };
@@ -58,7 +60,7 @@ export function HypothesisCard({
       padding="lg"
       radius="md"
       background="primary"
-      border={isPrimary ? 'accent' : 'primary'}
+      data-border={getHypothesisCardBorder(hypothesis.effectiveStatus)}
       data-primary={isPrimary}
       data-test-id="investigation-hypothesis"
     >
@@ -108,11 +110,11 @@ export function HypothesisCard({
           <Text size="sm" bold>
             {t('Evidence checked')}
           </Text>
-          <Stack as="ul" gap="xs" padding="0">
+          <EvidenceList as="ul" gap="xs" padding="0">
             {steps.map(step => (
               <VerificationStepRow key={step.id} step={step} />
             ))}
-          </Stack>
+          </EvidenceList>
         </Stack>
       ) : null}
     </Card>
@@ -144,14 +146,35 @@ function VerificationStepRow({step}: {step: InvestigationVerificationStep}) {
   );
 }
 
-// The accent border alone is easy to miss against a wall of cards, so the
-// primary hypothesis also lifts off the page. Driven by a data attribute rather
-// than a styled prop: `Stack` forwards every prop it does not recognize to the
-// DOM, and a bare `isPrimary` would land there as an unknown attribute.
+/**
+ * The card border carries the verdict, which is why it is CSS rather than the
+ * `border` prop: `getBorder` only ever emits `1px solid`, and an unsettled
+ * hypothesis needs a dotted edge. The colors still come from border tokens.
+ *
+ * Both variants are driven by data attributes because `Stack` forwards props it
+ * does not recognize to the DOM, where a bare `isPrimary` would land as an
+ * unknown attribute.
+ */
 const Card = styled(Stack)`
   list-style: none;
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+
+  /* Supported, or endorsed by a person: the explanation the evidence backs. */
+  &[data-border='accent'] {
+    border-color: ${p => p.theme.tokens.border.accent.vibrant};
+  }
+
+  /* Checked, but not settled either way. The broken edge reads as unfinished. */
+  &[data-border='dotted'] {
+    border-style: dotted;
+  }
 
   &[data-primary='true'] {
     box-shadow: ${p => p.theme.shadow.low};
   }
+`;
+
+// `ul` markers would otherwise sit in the card's padding next to each step.
+const EvidenceList = styled(Stack)`
+  list-style: none;
 `;

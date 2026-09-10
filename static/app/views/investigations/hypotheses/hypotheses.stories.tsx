@@ -1,8 +1,5 @@
 import {Fragment} from 'react';
 
-import {Container, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
-
 import * as Storybook from 'sentry/stories';
 import {InvestigationFixtureApi} from 'sentry/views/investigations/__stories__/investigationFixtureApi';
 import {
@@ -25,49 +22,21 @@ export default Storybook.story('Investigations — Hypotheses', story => {
       </p>
       <p>
         The data comes from <code>projection.hypotheses</code> on the orchestration
-        endpoint, and the highlighted card is <code>report.primaryHypothesisId</code>.
+        endpoint, and the lifted card is <code>report.primaryHypothesisId</code>.
       </p>
-      <HypothesisList
-        hypotheses={InvestigationHypothesesFixture()}
-        primaryHypothesisId="hypothesis-1"
-      />
-    </Fragment>
-  ));
-
-  story('Reflows on its container, not the viewport', () => (
-    <Stack gap="xl">
       <p>
         The row is a grid of <code>minmax(260px, 1fr)</code> tracks with{' '}
         <code>auto-fit</code>, so it drops columns whenever its own box stops fitting
-        another readable card. Nothing about the viewport is consulted, which is what lets
-        the same component sit in a full-width detail view and in a narrow drawer.
+        another readable card — the viewport is never consulted. Drag the demo's edge to
+        watch it reflow.
       </p>
-      {(
-        [
-          {label: 'Wide — three columns', width: '900px'},
-          {label: 'Medium — two columns', width: '600px'},
-          {label: 'Narrow — one column', width: '340px'},
-        ] as const
-      ).map(({label, width}) => (
-        <Stack key={width} gap="sm">
-          <Text size="sm" variant="muted">
-            {label}
-          </Text>
-          <Container
-            width={width}
-            maxWidth="100%"
-            border="muted"
-            radius="md"
-            padding="md"
-          >
-            <HypothesisList
-              hypotheses={InvestigationHypothesesFixture()}
-              primaryHypothesisId="hypothesis-1"
-            />
-          </Container>
-        </Stack>
-      ))}
-    </Stack>
+      <Storybook.Demo resizable direction="column" align="stretch">
+        <HypothesisList
+          hypotheses={InvestigationHypothesesFixture()}
+          primaryHypothesisId="hypothesis-1"
+        />
+      </Storybook.Demo>
+    </Fragment>
   ));
 
   story('Statuses', () => (
@@ -78,74 +47,88 @@ export default Storybook.story('Investigations — Hypotheses', story => {
         agent has settled on a verdict, so work in progress shows a bare label and a
         pulsing dot.
       </p>
-      <HypothesisList
-        hypotheses={[
-          InvestigationHypothesisFixture({
-            id: 'pending',
-            order: 0,
-            statement: 'Queued behind the broad scan',
-            rationale: '',
-            status: 'queued',
-            effectiveStatus: 'pending',
-            confidence: null,
-            agentVerdict: null,
-            verificationSteps: [],
-          }),
-          InvestigationHypothesisFixture({
-            id: 'investigating',
-            order: 1,
-            statement: 'A slow dependency upgrade changed request timing',
-            rationale: 'Checking whether the regression tracks the deploy.',
-            status: 'running',
-            effectiveStatus: 'investigating',
-            confidence: null,
-            agentVerdict: null,
-            verificationSteps: [
-              InvestigationVerificationStepFixture({
-                id: 'running-step',
-                title: 'Compare timing across releases',
-                status: 'running',
-                result: null,
-              }),
-              InvestigationVerificationStepFixture({
-                id: 'queued-step',
-                order: 1,
-                title: 'Inspect dependency spans',
-                status: 'queued',
-                result: null,
-              }),
-            ],
-          }),
-          InvestigationHypothesisFixture({
-            id: 'failed',
-            order: 2,
-            statement: 'A regional outage degraded the response',
-            rationale: 'The investigator could not complete this check.',
-            status: 'failed',
-            effectiveStatus: 'failed',
-            confidence: null,
-            agentVerdict: null,
-            error: {
-              code: 'no_data',
-              message: 'No traces covered the incident window.',
-              retryable: false,
-            },
-            verificationSteps: [
-              InvestigationVerificationStepFixture({
-                id: 'failed-step',
-                title: 'Compare error rate by region',
-                status: 'failed',
-                result: null,
-                error: {
-                  code: 'timeout',
-                  message: 'The query timed out.',
-                  retryable: true,
-                },
-              }),
-            ],
-          }),
-        ]}
-      />
+      <p>
+        The border carries the verdict: accent for a supported hypothesis, dotted while a
+        hypothesis is inconclusive, and an ordinary border everywhere else — refuted
+        included, since ruling something out is a result rather than a fault.
+      </p>
+      <Storybook.Demo direction="column" align="stretch">
+        <HypothesisList hypotheses={InvestigationHypothesesFixture()} />
+      </Storybook.Demo>
+      <p>
+        Nothing has settled yet in these, so none of them carry confidence and the failed
+        hypothesis shows why it stopped.
+      </p>
+      <Storybook.Demo direction="column" align="stretch">
+        <HypothesisList
+          hypotheses={[
+            InvestigationHypothesisFixture({
+              id: 'pending',
+              order: 0,
+              statement: 'Queued behind the broad scan',
+              rationale: '',
+              status: 'queued',
+              effectiveStatus: 'pending',
+              confidence: null,
+              agentVerdict: null,
+              verificationSteps: [],
+            }),
+            InvestigationHypothesisFixture({
+              id: 'investigating',
+              order: 1,
+              statement: 'A slow dependency upgrade changed request timing',
+              rationale: 'Checking whether the regression tracks the deploy.',
+              status: 'running',
+              effectiveStatus: 'investigating',
+              confidence: null,
+              agentVerdict: null,
+              verificationSteps: [
+                InvestigationVerificationStepFixture({
+                  id: 'running-step',
+                  title: 'Compare timing across releases',
+                  status: 'running',
+                  result: null,
+                }),
+                InvestigationVerificationStepFixture({
+                  id: 'queued-step',
+                  order: 1,
+                  title: 'Inspect dependency spans',
+                  status: 'queued',
+                  result: null,
+                }),
+              ],
+            }),
+            InvestigationHypothesisFixture({
+              id: 'failed',
+              order: 2,
+              statement: 'A regional outage degraded the response',
+              rationale: 'The investigator could not complete this check.',
+              status: 'failed',
+              effectiveStatus: 'failed',
+              confidence: null,
+              agentVerdict: null,
+              error: {
+                code: 'no_data',
+                message: 'No traces covered the incident window.',
+                retryable: false,
+              },
+              verificationSteps: [
+                InvestigationVerificationStepFixture({
+                  id: 'failed-step',
+                  title: 'Compare error rate by region',
+                  status: 'failed',
+                  result: null,
+                  error: {
+                    code: 'timeout',
+                    message: 'The query timed out.',
+                    retryable: true,
+                  },
+                }),
+              ],
+            }),
+          ]}
+        />
+      </Storybook.Demo>
     </Fragment>
   ));
 
@@ -162,16 +145,19 @@ export default Storybook.story('Investigations — Hypotheses', story => {
       <p>
         Accept or reject a hypothesis from its overflow menu: the fixture applies the
         command, bumps <code>workflowVersion</code>, and returns the new projection, which
-        the mutation writes straight into the query cache. Choosing the same decision
-        twice clears it and hands the hypothesis back to the agent's verdict.
+        the mutation writes straight into the query cache. Accepting turns the border
+        accent; choosing the same decision twice clears it and hands the hypothesis back
+        to the agent's verdict.
       </p>
-      <InvestigationFixtureApi
-        organizationSlug="hypotheses-story"
-        details={[InvestigationDetailFixture({id: 'investigation-1', blocks: []})]}
-        orchestration={{'investigation-1': InvestigationOrchestrationFixture()}}
-      >
-        <InvestigationHypotheses investigationId="investigation-1" />
-      </InvestigationFixtureApi>
+      <Storybook.Demo direction="column" align="stretch">
+        <InvestigationFixtureApi
+          organizationSlug="hypotheses-story"
+          details={[InvestigationDetailFixture({id: 'investigation-1', blocks: []})]}
+          orchestration={{'investigation-1': InvestigationOrchestrationFixture()}}
+        >
+          <InvestigationHypotheses investigationId="investigation-1" />
+        </InvestigationFixtureApi>
+      </Storybook.Demo>
     </Fragment>
   ));
 
@@ -180,31 +166,26 @@ export default Storybook.story('Investigations — Hypotheses', story => {
       <p>
         Cards do not own commands. The surface rendering them decides which of accept,
         reject, steer, and retry apply, and posts the chosen one to{' '}
-        <code>/orchestration/commands/</code>. Leave <code>getActions</code> off for a
-        read-only surface.
+        <code>/orchestration/commands/</code>. Leave <code>getActions</code> off — as the
+        rows above do — and the overflow menu disappears, which is what a read-only
+        surface wants.
       </p>
-      <HypothesisList
-        hypotheses={InvestigationHypothesesFixture()}
-        primaryHypothesisId="hypothesis-1"
-        getActions={hypothesis => [
-          {
-            key: 'accept',
-            label: 'Accept',
-            onAction: () => {},
-          },
-          {
-            key: 'reject',
-            label: 'Reject',
-            onAction: () => {},
-          },
-          {
-            key: 'retry',
-            label: 'Investigate again',
-            disabled: hypothesis.effectiveStatus === 'investigating',
-            onAction: () => {},
-          },
-        ]}
-      />
+      <Storybook.Demo direction="column" align="stretch">
+        <HypothesisList
+          hypotheses={InvestigationHypothesesFixture()}
+          primaryHypothesisId="hypothesis-1"
+          getActions={hypothesis => [
+            {key: 'accept', label: 'Accept', onAction: () => {}},
+            {key: 'reject', label: 'Reject', onAction: () => {}},
+            {
+              key: 'retry',
+              label: 'Investigate again',
+              disabled: hypothesis.effectiveStatus === 'investigating',
+              onAction: () => {},
+            },
+          ]}
+        />
+      </Storybook.Demo>
     </Fragment>
   ));
 });
