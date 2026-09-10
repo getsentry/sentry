@@ -7,6 +7,7 @@ from django.db import models, router, transaction
 from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 
+from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
@@ -130,6 +131,15 @@ class ExploreSavedQuery(DefaultFieldsModel):
 
 
 class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
+    def has_migrate_feature(
+        self,
+        organization: Organization,
+    ) -> bool:
+        """
+        Returns True if the user has any starred queries in the organization.
+        """
+        return features.has("organizations:discover-queries-in-all-queries", organization)
+
     def get_last_position(self, organization: Organization, user_id: int) -> int:
         """
         Returns the last position of a user's starred queries in an organization.
@@ -211,12 +221,17 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
         Returns:
             True if the query was starred, False if the query was already starred
         """
+        from sentry.explore.utils import next_starred_position
+
         with transaction.atomic(using=router.db_for_write(ExploreSavedQueryStarred)):
             if self.get_starred_query(organization, user_id, query):
                 return False
 
-            position = self.get_last_position(organization, user_id) + 1
-
+            position: int
+            if self.has_migrate_feature(organization):
+                position = next_starred_position(organization, user_id)
+            else:
+                position = self.get_last_position(organization, user_id) + 1
             self.create(
                 organization=organization,
                 user_id=user_id,
@@ -237,6 +252,8 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
         whose name sorts after this one, shifting later positions by 1. Falls back
         to appending at the end when nothing sorts later.
         """
+        from sentry.explore.utils import next_starred_position, shift_starred_positions
+
         with transaction.atomic(using=router.db_for_write(ExploreSavedQueryStarred)):
             if self.get_starred_query(organization, user_id, query):
                 return False
@@ -256,14 +273,22 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
 
             position: int
             if next_prebuilt is None or next_prebuilt.position is None:
-                position = self.get_last_position(organization, user_id) + 1
+                if self.has_migrate_feature(organization):
+                    position = next_starred_position(organization, user_id)
+                else:
+                    position = self.get_last_position(organization, user_id) + 1
             else:
                 position = next_prebuilt.position
-                self.filter(
-                    organization=organization,
-                    user_id=user_id,
-                    position__gte=position,
-                ).update(position=models.F("position") + 1)
+                if self.has_migrate_feature(organization):
+                    shift_starred_positions(
+                        organization, user_id, from_position=position, delta=1, inclusive=True
+                    )
+                else:
+                    self.filter(
+                        organization=organization,
+                        user_id=user_id,
+                        position__gte=position,
+                    ).update(position=models.F("position") + 1)
 
             self.create(
                 organization=organization,
@@ -289,12 +314,21 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
         Returns:
             True if the query was unstarred, False if the query was already unstarred
         """
+        from sentry.explore.utils import shift_starred_positions
+
         with transaction.atomic(using=router.db_for_write(ExploreSavedQueryStarred)):
             if not (starred_query := self.get_starred_query(organization, user_id, query)):
                 return False
 
             deleted_position = starred_query.position
             starred_query.delete()
+
+            if self.has_migrate_feature(organization):
+                if deleted_position is not None:
+                    shift_starred_positions(
+                        organization, user_id, from_position=deleted_position, delta=-1
+                    )
+                return True
 
             self.filter(
                 organization=organization, user_id=user_id, position__gt=deleted_position
@@ -311,13 +345,18 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
         """
         Updates the starred status of a query.
         """
+        from sentry.explore.utils import next_starred_position
+
         with transaction.atomic(using=router.db_for_write(ExploreSavedQueryStarred)):
             if not (starred_query := self.get_starred_query(organization, user_id, query)):
                 return False
 
             starred_query.starred = starred
             if starred:
-                starred_query.position = self.get_last_position(organization, user_id) + 1
+                if self.has_migrate_feature(organization):
+                    starred_query.position = next_starred_position(organization, user_id)
+                else:
+                    starred_query.position = self.get_last_position(organization, user_id) + 1
             else:
                 starred_query.position = None
 

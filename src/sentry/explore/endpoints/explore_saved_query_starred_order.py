@@ -10,6 +10,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.explore.models import ExploreSavedQueryStarred
+from sentry.explore.types import SavedQueryRef, SavedQueryType
+from sentry.explore.utils import reorder_starred_queries
 from sentry.models.organization import Organization
 
 
@@ -40,6 +42,11 @@ class ExploreSavedQueryStarredOrderEndpoint(OrganizationEndpoint):
             "organizations:visibility-explore-view", organization, actor=request.user
         )
 
+    def has_migrate_feature(self, organization, request):
+        return features.has(
+            "organizations:discover-queries-in-all-queries", organization, actor=request.user
+        )
+
     def put(self, request: Request, organization: Organization) -> Response:
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -58,11 +65,18 @@ class ExploreSavedQueryStarredOrderEndpoint(OrganizationEndpoint):
 
         try:
             with transaction.atomic(using=router.db_for_write(ExploreSavedQueryStarred)):
-                ExploreSavedQueryStarred.objects.reorder_starred_queries(
-                    organization=organization,
-                    user_id=request.user.id,
-                    new_query_positions=query_ids,
-                )
+                # This is for transitioning from this endpoint to the new SavedQueryStarredEndpoint
+                if self.has_migrate_feature(organization, request):
+                    refs = [
+                        SavedQueryRef(SavedQueryType.EXPLORE, query_id) for query_id in query_ids
+                    ]
+                    reorder_starred_queries(organization, request.user.id, refs)
+                else:
+                    ExploreSavedQueryStarred.objects.reorder_starred_queries(
+                        organization=organization,
+                        user_id=request.user.id,
+                        new_query_positions=query_ids,
+                    )
         except (IntegrityError, ValueError):
             raise ParseError("Mismatch between existing and provided starred queries.")
 
