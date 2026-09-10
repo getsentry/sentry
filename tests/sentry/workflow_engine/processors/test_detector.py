@@ -133,7 +133,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 "event_id": None,
                 "group_key": None,
                 "priority": DetectorPriorityLevel.HIGH.value,
-                "trigger_group_evaluation": {
+                "trigger_evaluation": {
                     "logic_type": "any",
                     "result": True,
                     "condition_evaluations": [],
@@ -159,7 +159,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                     "workflow_engine.evaluation_logs_direct_to_sentry": False,
                 }
             ),
-            mock.patch.object(type(handler), "evaluate", return_value={}),
+            mock.patch.object(type(handler), "_evaluate", return_value={}),
             mock.patch("sentry.workflow_engine.processors.detector.logger") as mock_logger,
         ):
             assert process_detectors(self.build_data_packet(), [detector]) == []
@@ -181,7 +181,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
         handler = detector.detector_handler
         assert handler is not None
-        evaluations = handler.evaluate(
+        evaluations = handler._evaluate(
             DataPacket("1", {"dedupe": 2, "group_vals": {"group_1": 6, "group_2": 10}})
         )
         mock_logger = mock.MagicMock()
@@ -220,7 +220,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         detector = self.create_detector(type=self.handler_type.slug)
         handler = detector.detector_handler
         assert handler is not None
-        evaluations = handler.evaluate(self.build_data_packet())
+        evaluations = handler._evaluate(self.build_data_packet())
         mock_logger = mock.MagicMock()
 
         with (
@@ -307,7 +307,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         detector = self.create_detector(type=self.handler_type.slug)
         handler = detector.detector_handler
         assert handler is not None
-        evaluation = handler.evaluate(self.build_data_packet())[None]
+        evaluation = handler._evaluate(self.build_data_packet())[None]
         result = ProcessDetectorsResult(
             detector_id=detector.id,
             detector_type=detector.type,
@@ -796,7 +796,7 @@ class TestCommitStateUpdateData(BaseDetectorHandlerTest):
 class TestEvaluate(BaseDetectorHandlerTest):
     def test(self) -> None:
         handler = self.build_handler()
-        assert handler.evaluate(DataPacket("1", {"dedupe": 1})) == {}
+        assert handler._evaluate(DataPacket("1", {"dedupe": 1})) == {}
 
         detector_occurrence, _ = build_mock_occurrence_and_event(
             handler, "val1", PriorityLevel.HIGH
@@ -811,7 +811,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
             occurrence_id=str(self.mock_uuid4.return_value),
         )
 
-        result = handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 6}}))
+        result = handler._evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 6}}))
         assert set(result.keys()) == {"val1"}
         self.assert_evaluation(
             result["val1"],
@@ -836,7 +836,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
 
     def test_above_below_threshold(self) -> None:
         handler = self.build_handler()
-        assert handler.evaluate(DataPacket("1", {"dedupe": 1, "group_vals": {"val1": 0}})) == {}
+        assert handler._evaluate(DataPacket("1", {"dedupe": 1, "group_vals": {"val1": 0}})) == {}
 
         detector_occurrence, _ = build_mock_occurrence_and_event(
             handler, "val1", PriorityLevel.HIGH
@@ -851,7 +851,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
             occurrence_id=str(self.mock_uuid4.return_value),
         )
 
-        result = handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 6}}))
+        result = handler._evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 6}}))
         assert set(result.keys()) == {"val1"}
         self.assert_evaluation(
             result["val1"],
@@ -861,8 +861,8 @@ class TestEvaluate(BaseDetectorHandlerTest):
             result=issue_occurrence,
             event_data=event_data,
         )
-        assert handler.evaluate(DataPacket("1", {"dedupe": 3, "group_vals": {"val1": 6}})) == {}
-        result = handler.evaluate(DataPacket("1", {"dedupe": 4, "group_vals": {"val1": 0}}))
+        assert handler._evaluate(DataPacket("1", {"dedupe": 3, "group_vals": {"val1": 6}})) == {}
+        result = handler._evaluate(DataPacket("1", {"dedupe": 4, "group_vals": {"val1": 0}}))
         assert set(result.keys()) == {"val1"}
         self.assert_evaluation(
             result["val1"],
@@ -885,7 +885,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
             "sentry.workflow_engine.handlers.detector.stateful.metrics"
         ) as mock_metrics:
             assert (
-                handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 100}})) == {}
+                handler._evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 100}})) == {}
             )
             mock_metrics.incr.assert_called_once_with(
                 "workflow_engine.detector.skipping_invalid_condition_group"
@@ -908,7 +908,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
             occurrence_id=str(self.mock_uuid4.return_value),
         )
 
-        result = handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 100}}))
+        result = handler._evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 100}}))
 
         assert set(result.keys()) == {"val1"}
         self.assert_evaluation(
@@ -931,7 +931,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
             DetectorPriorityLevel.HIGH,
         )
         # This detector is already triggered, so no status change occurred. Should be no result
-        assert handler.evaluate(DataPacket("1", {"dedupe": 3, "group_vals": {"val1": 200}})) == {}
+        assert handler._evaluate(DataPacket("1", {"dedupe": 3, "group_vals": {"val1": 200}})) == {}
 
     def test_dedupe(self) -> None:
         handler = self.build_handler()
@@ -949,7 +949,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
             occurrence_id=str(self.mock_uuid4.return_value),
         )
 
-        result = handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 8}}))
+        result = handler._evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 8}}))
 
         assert set(result.keys()) == {"val1"}
         self.assert_evaluation(
@@ -974,7 +974,9 @@ class TestEvaluate(BaseDetectorHandlerTest):
         with mock.patch(
             "sentry.workflow_engine.handlers.detector.stateful.metrics"
         ) as mock_metrics:
-            assert handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 0}})) == {}
+            assert (
+                handler._evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 0}})) == {}
+            )
             mock_metrics.incr.assert_called_once_with(
                 "workflow_engine.detector.skipping_already_processed_update"
             )
@@ -1023,7 +1025,7 @@ class TestEvaluateGroupValue(BaseDetectorHandlerTest):
                 source_id="1234",
                 packet={"id": "1234", "group_vals": {"group_key": 10}, "dedupe": 100},
             )
-            result = handler.evaluate(data_packet)
+            result = handler._evaluate(data_packet)
             if not result:
                 raise AssertionError("Expected result to not be empty")
 
@@ -1052,7 +1054,7 @@ class TestEvaluateGroupValue(BaseDetectorHandlerTest):
             handler.state_manager.enqueue_dedupe_update("group_key", 100)
             handler.state_manager.commit_state_updates()
 
-            handler.evaluate(
+            handler._evaluate(
                 DataPacket[dict[str, Any]](
                     source_id="1234",
                     packet={"id": "1234", "group_vals": {"group_key": 10}, "dedupe": 100},
@@ -1078,7 +1080,7 @@ class TestEvaluateGroupValue(BaseDetectorHandlerTest):
             )
         }
 
-        handler.evaluate(data_packet)
+        handler._evaluate(data_packet)
 
         assert handler.state_manager.get_state_data(["group_key"]) == {
             "group_key": DetectorStateData(
@@ -1282,6 +1284,18 @@ class TestEventDetectorsAllProject(TestCase):
         assert ed.has_detectors is True
         assert ed.detectors == {self.all_projects_detector}
 
+    def test_missing_all_projects_detector(self) -> None:
+        self.all_projects_detector.delete()
+        cache.clear()
+        assert get_all_projects_detector(self.organization.id) is None
+
+    def test_many_all_projects_detectors(self) -> None:
+        self.create_all_projects_detector(self.organization)
+        self.create_all_projects_detector(self.organization)
+        self.create_all_projects_detector(self.organization)
+        cache.clear()
+        assert get_all_projects_detector(self.organization.id) is None
+
     def test_cached_miss_is_invalidated_when_detector_is_created(self) -> None:
         self.all_projects_detector.delete()
         cache.clear()
@@ -1349,7 +1363,7 @@ class TestGetDetectorsForEventAllProject(TestCase):
         assert self.all_projects_detector not in result.detectors
         assert result.preferred_detector == self.error_detector
 
-    @override_options({"workflow_engine.all_projects_detectors_enabled": True})
+    @override_options({"workflow_engine.all_projects_detectors.rollout-rate": 1.0})
     def test_includes_all_projects_detector_with_option(self) -> None:
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
         result = get_detectors_for_event_data(event_data)
@@ -1357,7 +1371,7 @@ class TestGetDetectorsForEventAllProject(TestCase):
         assert self.all_projects_detector in result.detectors
         assert result.preferred_detector == self.error_detector
 
-    @override_options({"workflow_engine.all_projects_detectors_enabled": True})
+    @override_options({"workflow_engine.all_projects_detectors.rollout-rate": 1.0})
     def test_missing_all_projects_detector_no_effect(self) -> None:
         self.all_projects_detector.delete()
         event_data = WorkflowEventData(event=self.group_event, group=self.group)

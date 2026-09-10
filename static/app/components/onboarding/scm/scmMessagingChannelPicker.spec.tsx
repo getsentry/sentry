@@ -140,7 +140,7 @@ describe('ScmMessagingChannelPicker', () => {
       const {onConfigured} = renderPicker({eligibleIntegrations: [slackIntegration]});
 
       await selectEvent.select(screen.getByLabelText('channel'), '#general');
-      await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm and continue'}));
 
       expect(onConfigured).toHaveBeenCalledWith({
         mode: 'selected',
@@ -159,7 +159,7 @@ describe('ScmMessagingChannelPicker', () => {
       });
 
       await selectEvent.select(screen.getByLabelText('channel'), '#general (1234567890)');
-      await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm and continue'}));
 
       expect(onConfigured).toHaveBeenCalledWith({
         mode: 'selected',
@@ -170,11 +170,11 @@ describe('ScmMessagingChannelPicker', () => {
       });
     });
 
-    it('disables Add destination until a channel is chosen', () => {
+    it('disables Confirm and continue until a channel is chosen', () => {
       mockChannels('10', [slackChannel]);
       renderPicker({eligibleIntegrations: [slackIntegration]});
 
-      expect(screen.getByRole('button', {name: 'Add destination'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Confirm and continue'})).toBeDisabled();
     });
   });
 
@@ -195,7 +195,7 @@ describe('ScmMessagingChannelPicker', () => {
       await selectEvent.create(screen.getByLabelText('channel'), channelUrl, {
         createOptionText: channelUrl,
       });
-      await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm and continue'}));
 
       // Stored as-is: the backend resolves URL to ID in both the validate
       // endpoint and DiscordNotifyServiceForm.clean.
@@ -218,7 +218,7 @@ describe('ScmMessagingChannelPicker', () => {
         providerKey: 'discord',
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm and continue'}));
 
       expect(onConfigured).toHaveBeenCalledWith({
         mode: 'selected',
@@ -236,7 +236,7 @@ describe('ScmMessagingChannelPicker', () => {
         existingSetup: selectedSlackSetup,
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm and continue'}));
 
       expect(onConfigured).toHaveBeenCalledWith({
         mode: 'selected',
@@ -248,9 +248,9 @@ describe('ScmMessagingChannelPicker', () => {
     });
 
     it('preserves stored MS Teams identifiers when the channel list is empty', async () => {
-      // msteams selects by id but validates by name, so overwriting channelName
-      // with the id (the fallback when the list can't resolve the selection)
-      // breaks revalidation. An empty /channels/ must not corrupt the saved name.
+      // The seed carries both identifiers, so an empty /channels/ must not
+      // replace the saved channelId with the name (the fallback when the list
+      // can't resolve the selection).
       mockChannels('30', []);
       const {onConfigured} = renderPicker({
         eligibleIntegrations: [msteamsIntegration],
@@ -258,7 +258,7 @@ describe('ScmMessagingChannelPicker', () => {
         providerKey: 'msteams',
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm and continue'}));
 
       expect(onConfigured).toHaveBeenCalledWith({
         mode: 'selected',
@@ -279,7 +279,7 @@ describe('ScmMessagingChannelPicker', () => {
         providerKey: 'discord',
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm and continue'}));
 
       expect(onConfigured).toHaveBeenCalledWith({
         mode: 'selected',
@@ -314,13 +314,6 @@ describe('ScmMessagingChannelPicker', () => {
       expect(screen.getByLabelText('workspace')).toBeEnabled();
     });
 
-    it('disables the Workspace select when there is only one eligible integration', () => {
-      mockChannels('10', [slackChannel]);
-      renderPicker({eligibleIntegrations: [slackIntegration]});
-
-      expect(screen.getByLabelText('workspace')).toBeDisabled();
-    });
-
     it('writes the selected workspace integrationId on save', async () => {
       mockChannels('10', [slackChannel]);
       mockChannels('11', [slackChannel]);
@@ -331,7 +324,7 @@ describe('ScmMessagingChannelPicker', () => {
       // Switch to the second workspace.
       await selectEvent.select(screen.getByLabelText('workspace'), 'second-workspace');
       await selectEvent.select(screen.getByLabelText('channel'), '#general');
-      await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm and continue'}));
 
       expect(onConfigured).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -351,9 +344,9 @@ describe('ScmMessagingChannelPicker', () => {
       });
 
       // The saved workspace (id 10) seeds a channel; wait for channel loading to
-      // settle before checking the Add destination button is enabled.
+      // settle before checking the Confirm and continue button is enabled.
       await waitFor(() => {
-        expect(screen.getByRole('button', {name: 'Add destination'})).toBeEnabled();
+        expect(screen.getByRole('button', {name: 'Confirm and continue'})).toBeEnabled();
       });
     });
 
@@ -386,12 +379,12 @@ describe('ScmMessagingChannelPicker', () => {
 
       // Workspace falls back to the first survivor and channel is cleared.
       await waitFor(() => {
-        expect(screen.getByRole('button', {name: 'Add destination'})).toBeDisabled();
+        expect(screen.getByRole('button', {name: 'Confirm and continue'})).toBeDisabled();
       });
 
       // Save writes the surviving integration id.
       await selectEvent.select(screen.getByLabelText('channel'), '#general');
-      await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm and continue'}));
 
       expect(onConfigured).toHaveBeenCalledWith(
         expect.objectContaining({integrationId: '10'})
@@ -421,7 +414,7 @@ describe('ScmMessagingChannelPicker', () => {
       // switched workspaces, so selectedIntegrationId is initialized to '10' and
       // remains at its initial value throughout.
       await waitFor(() => {
-        expect(screen.getByRole('button', {name: 'Add destination'})).toBeEnabled();
+        expect(screen.getByRole('button', {name: 'Confirm and continue'})).toBeEnabled();
       });
 
       // Saved workspace (id 10) is removed from the list — e.g. after a refetch.
@@ -434,15 +427,15 @@ describe('ScmMessagingChannelPicker', () => {
         />
       );
 
-      // Channel must be cleared; Add destination disabled.
+      // Channel must be cleared; Confirm and continue disabled.
       await waitFor(() => {
-        expect(screen.getByRole('button', {name: 'Add destination'})).toBeDisabled();
+        expect(screen.getByRole('button', {name: 'Confirm and continue'})).toBeDisabled();
       });
 
       // Save must write the surviving workspace id, not the vanished one paired
       // with the stale channel.
       await selectEvent.select(screen.getByLabelText('channel'), '#general');
-      await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm and continue'}));
 
       expect(onConfigured).toHaveBeenCalledWith(
         expect.objectContaining({integrationId: '11'})
@@ -452,33 +445,12 @@ describe('ScmMessagingChannelPicker', () => {
       );
     });
 
-    it('only shows the integrations it receives — eligibility is enforced upstream', () => {
-      // The row (via the resolved provider) is responsible for filtering to eligibleIntegrations
-      // before passing them to the picker. The picker renders whatever it receives.
-      const msteamsTeam = OrganizationIntegrationsFixture({
-        id: '41',
-        name: 'team-workspace',
-        provider: {
-          key: 'msteams',
-          slug: 'msteams',
-          name: 'Microsoft Teams',
-          canAdd: true,
-          canDisable: false,
-          features: [],
-          aspects: {},
-        },
-        configData: {installationType: 'team'},
-      });
+    it('hides the Workspace select and shows the channel control when there is one integration', () => {
+      mockChannels('10', [slackChannel]);
+      renderPicker({eligibleIntegrations: [slackIntegration]});
 
-      mockChannels('41', []);
-      // Only the eligible team integration is passed; the tenant was excluded by the row.
-      renderPicker({
-        eligibleIntegrations: [msteamsTeam],
-        providerKey: 'msteams',
-      });
-
-      expect(screen.getByLabelText('workspace')).toBeDisabled(); // only 1 workspace
-      expect(screen.getByText('team-workspace')).toBeInTheDocument();
+      expect(screen.queryByLabelText('workspace')).not.toBeInTheDocument();
+      expect(screen.getByLabelText('channel')).toBeInTheDocument();
     });
   });
 
@@ -500,9 +472,9 @@ describe('ScmMessagingChannelPicker', () => {
       );
 
       // Wait for the channel list to settle: the pre-seeded channel resolves its
-      // label once the list loads, enabling Add destination.
+      // label once the list loads, enabling Confirm and continue.
       await waitFor(() =>
-        expect(screen.getByRole('button', {name: 'Add destination'})).toBeEnabled()
+        expect(screen.getByRole('button', {name: 'Confirm and continue'})).toBeEnabled()
       );
 
       MockApiClient.addMockResponse({
@@ -515,13 +487,13 @@ describe('ScmMessagingChannelPicker', () => {
 
       // A failed background refetch (isLoadingError false) must not show the
       // error alert or clear the cached selection.
-      expect(screen.getByRole('button', {name: 'Add destination'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Confirm and continue'})).toBeEnabled();
       expect(
         screen.queryByText('Failed to load channels. You can still type a channel name.')
       ).not.toBeInTheDocument();
     });
 
-    it('keeps Add destination enabled when a later typed-channel validate refetch fails', async () => {
+    it('keeps Confirm and continue enabled when a later typed-channel validate refetch fails', async () => {
       const queryClient = makeTestQueryClient();
       mockChannels('10', [slackChannel]);
       mockChannelValidate(true, '10');
@@ -542,7 +514,7 @@ describe('ScmMessagingChannelPicker', () => {
       });
 
       await waitFor(() =>
-        expect(screen.getByRole('button', {name: 'Add destination'})).toBeEnabled()
+        expect(screen.getByRole('button', {name: 'Confirm and continue'})).toBeEnabled()
       );
 
       MockApiClient.addMockResponse({
@@ -554,8 +526,8 @@ describe('ScmMessagingChannelPicker', () => {
       });
 
       // A failed background refetch (isLoadingError false) must not set channelError
-      // or disable Add destination.
-      expect(screen.getByRole('button', {name: 'Add destination'})).toBeEnabled();
+      // or disable Confirm and continue.
+      expect(screen.getByRole('button', {name: 'Confirm and continue'})).toBeEnabled();
       expect(
         screen.queryByText('Unexpected integration channel validation error')
       ).not.toBeInTheDocument();

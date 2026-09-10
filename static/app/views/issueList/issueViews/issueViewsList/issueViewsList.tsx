@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
@@ -392,7 +393,7 @@ export default function IssueViewsList() {
           </FeedbackButton>
         </TopBar.Slot>
         <Layout.Body>
-          <MainTableLayout width="full">
+          <MainTableLayout>
             <FilterSortBar>
               <SearchBar
                 defaultQuery={query}
@@ -521,6 +522,12 @@ const TableHeading = styled('h2')`
   margin-bottom: ${p => p.theme.space.lg};
 `;
 
-const MainTableLayout = styled(Layout.Main)`
-  container-type: inline-size;
-`;
+// A scraps container rather than raw `container-type`, so that the tables inside
+// can resolve their responsive columns against it in JS as well as in CSS.
+function MainTableLayout({children}: {children: ReactNode}) {
+  return (
+    <Layout.Main width="full">
+      <Container containerType="inline-size">{children}</Container>
+    </Layout.Main>
+  );
+}

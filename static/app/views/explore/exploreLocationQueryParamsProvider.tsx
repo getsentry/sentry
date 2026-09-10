@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import {useCallback, useMemo, useRef} from 'react';
+import type {NavigateOptions} from 'react-router-dom';
 import type {Location} from 'history';
 
 import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
@@ -54,7 +55,7 @@ export function ExploreLocationQueryParamsProvider({
   );
 
   const setWritableQueryParams = useCallback(
-    (writableQueryParams: WritableQueryParams) => {
+    (writableQueryParams: WritableQueryParams, options?: NavigateOptions) => {
       onSetWritableQueryParams?.(writableQueryParams);
 
       const target = getTargetWithReadableQueryParams(
@@ -62,7 +63,7 @@ export function ExploreLocationQueryParamsProvider({
         writableQueryParams
       );
 
-      navigateIfQueryChanged(navigate, locationRef.current, target);
+      navigateIfQueryChanged(navigate, locationRef.current, target, options);
     },
     [navigate, getTargetWithReadableQueryParams, onSetWritableQueryParams]
   );

@@ -1,13 +1,4 @@
-import 'echarts/lib/component/grid';
-import 'echarts/lib/component/graphic';
-import 'echarts/lib/component/toolbox';
-import 'echarts/lib/component/brush';
-import 'echarts/lib/component/visualMap';
 import 'echarts/theme/v5.js';
-import 'zrender/lib/svg/svg';
-// Canvas backend. Explicit so `renderer: 'canvas'` never silently relies on
-// another module importing the full `echarts` bundle.
-import 'zrender/lib/canvas/canvas';
 
 import {useEffect, useId, useMemo, useRef} from 'react';
 import type {Theme} from '@emotion/react';
@@ -29,8 +20,33 @@ import type {
   YAXisComponentOption,
 } from 'echarts';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
-import {AriaComponent} from 'echarts/components';
+import {
+  BarChart,
+  CustomChart,
+  HeatmapChart,
+  LineChart,
+  PieChart,
+  ScatterChart,
+  TreemapChart,
+} from 'echarts/charts';
+import {
+  AriaComponent,
+  AxisPointerComponent,
+  BrushComponent,
+  DataZoomInsideComponent,
+  GraphicComponent,
+  GridComponent,
+  LegendComponent,
+  MarkAreaComponent,
+  MarkLineComponent,
+  MarkPointComponent,
+  ToolboxComponent,
+  TooltipComponent,
+  VisualMapComponent,
+} from 'echarts/components';
 import * as echarts from 'echarts/core';
+import {LegacyGridContainLabel} from 'echarts/features';
+import {CanvasRenderer, SVGRenderer} from 'echarts/renderers';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
 import {markLine} from 'sentry/components/charts/components/markLine';
@@ -53,16 +69,16 @@ import type {
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
 
-import {Grid} from './components/grid';
+import {createGridOptions} from './components/grid';
 import {legend as makeLegend} from './components/legend';
 import {
   CHART_TOOLTIP_VIEWPORT_OFFSET,
   computeChartTooltip,
   type TooltipSubLabel,
 } from './components/tooltip';
-import {XAxis} from './components/xAxis';
-import {YAxis} from './components/yAxis';
-import {lineSeries} from './series/lineSeries';
+import {createXAxisOptions} from './components/xAxis';
+import {createYAxisOptions} from './components/yAxis';
+import {createLineSeries} from './series/lineSeries';
 import {
   computeEchartsAriaLabels,
   getDiffInMinutes,
@@ -85,7 +101,34 @@ const handleClick = (clickSeries: any, instance: ECharts) => {
   }
 };
 
-echarts.use(AriaComponent);
+// Keep registrations explicit so importing a small API such as `connect` never
+// pulls in ECharts' all-inclusive, side-effectful entry point. The legacy grid
+// layout preserves the containLabel behavior from the previous full import.
+echarts.use([
+  AriaComponent,
+  AxisPointerComponent,
+  BarChart,
+  BrushComponent,
+  CanvasRenderer,
+  CustomChart,
+  DataZoomInsideComponent,
+  GraphicComponent,
+  GridComponent,
+  HeatmapChart,
+  LegacyGridContainLabel,
+  LegendComponent,
+  LineChart,
+  MarkAreaComponent,
+  MarkLineComponent,
+  MarkPointComponent,
+  PieChart,
+  ScatterChart,
+  SVGRenderer,
+  ToolboxComponent,
+  TooltipComponent,
+  TreemapChart,
+  VisualMapComponent,
+]);
 
 type ReactEchartProps = React.ComponentProps<typeof ReactEchartsCore>;
 type ReactEChartOpts = NonNullable<ReactEchartProps['opts']>;
@@ -459,7 +502,7 @@ export function BaseChart({
 
     const transformedPreviousPeriod =
       previousPeriod?.map((previous, seriesIndex) =>
-        lineSeries({
+        createLineSeries({
           name: previous.seriesName,
           data: previous.data.map(({name, value}) => [name, value]),
           lineStyle: {
@@ -536,16 +579,16 @@ export function BaseChart({
 
     const yAxisOrCustom = yAxes
       ? Array.isArray(yAxes)
-        ? yAxes.map(axis => YAxis({...axis, theme}))
-        : [YAxis(defaultAxesProps), YAxis(defaultAxesProps)]
+        ? yAxes.map(axis => createYAxisOptions({...axis, theme}))
+        : [createYAxisOptions(defaultAxesProps), createYAxisOptions(defaultAxesProps)]
       : yAxis === null
         ? undefined
-        : YAxis({theme, ...yAxis});
+        : createYAxisOptions({theme, ...yAxis});
 
     const xAxisOrCustom = xAxes
       ? Array.isArray(xAxes)
         ? xAxes.map(axis =>
-            XAxis({
+            createXAxisOptions({
               ...axis,
               theme,
               useShortDate,
@@ -558,10 +601,10 @@ export function BaseChart({
               utc,
             })
           )
-        : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)]
+        : [createXAxisOptions(defaultAxesProps), createXAxisOptions(defaultAxesProps)]
       : xAxis === null
         ? undefined
-        : XAxis({
+        : createXAxisOptions({
             ...xAxis,
             theme,
             useShortDate,
@@ -579,7 +622,7 @@ export function BaseChart({
       animation,
       useUTC: utc,
       color: color as string[],
-      grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
+      grid: Array.isArray(grid) ? grid.map(createGridOptions) : createGridOptions(grid),
       tooltip: tooltipOrNone,
       legend: legend ? makeLegend({theme, ...legend}) : undefined,
       yAxis: yAxisOrCustom,

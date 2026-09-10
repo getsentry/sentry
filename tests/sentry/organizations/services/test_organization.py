@@ -1,7 +1,12 @@
 from django.conf import settings
 
+from sentry.hybridcloud.services.organization_mapping.serial import (
+    serialize_organization_mapping_flags,
+)
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.organizations.services.organization import RpcOrganizationMappingFlags
 from sentry.organizations.services.organization.service import organization_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
@@ -163,3 +168,22 @@ class FindOrganizationIdByOptionValueTest(TestCase):
             )
             is None
         )
+
+
+def test_no_mapping_flag_silently_defaults() -> None:
+    control_flag_names = set(RpcOrganizationMappingFlags.get_field_names())
+
+    mapping_columns = {field.name for field in OrganizationMapping._meta.get_fields()}
+    assert control_flag_names <= mapping_columns, (
+        f"{sorted(control_flag_names - mapping_columns)} have no OrganizationMapping column. "
+        "Declare them on RpcOrganizationFlags instead."
+    )
+
+    control_flags = serialize_organization_mapping_flags(
+        OrganizationMapping(**{name: True for name in control_flag_names})
+    )
+    unpopulated = sorted(name for name in control_flag_names if not getattr(control_flags, name))
+    assert not unpopulated, (
+        f"serialize_organization_mapping_flags does not populate {unpopulated}, so they always "
+        "fall back to their default when flags are built from control silo data."
+    )

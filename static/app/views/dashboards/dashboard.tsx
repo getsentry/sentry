@@ -7,13 +7,12 @@ import {forceCheck} from 'react-lazyload';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {connect} from 'echarts/core';
 import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
 
 import {Button} from '@sentry/scraps/button';
 
-import {validateWidget} from 'sentry/actionCreators/dashboards';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconResize} from 'sentry/icons';
@@ -55,7 +54,7 @@ import {
 import {SortableWidget} from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardFilterKeys} from './types';
-import {connectDashboardCharts, getMergedDashboardFilters} from './utils';
+import {getMergedDashboardFilters} from './utils';
 import type {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
@@ -90,12 +89,10 @@ type Props = {
   widgetLimitReached: boolean;
   isEmbedded?: boolean;
   isPreview?: boolean;
-  newWidget?: Widget;
   newlyAddedWidget?: Widget;
   onAddWidget?: (dataset: DataSet, openWidgetTemplates?: boolean) => void;
   onEditWidget?: (widget: Widget) => void;
   onNewWidgetScrollComplete?: () => void;
-  onSetNewWidget?: () => void;
   widgetInterval?: string;
 };
 
@@ -106,7 +103,6 @@ interface LayoutState extends Record<string, Layout[]> {
 
 function DashboardInner({
   dashboard,
-  handleAddCustomWidget,
   handleUpdateWidgetList,
   isEditingDashboard,
   onUpdate,
@@ -114,12 +110,10 @@ function DashboardInner({
   widgetLimitReached,
   isEmbedded,
   isPreview,
-  newWidget,
   newlyAddedWidget,
   onAddWidget,
   onEditWidget,
   onNewWidgetScrollComplete,
-  onSetNewWidget,
   widgetInterval,
 }: Props) {
   const theme = useTheme();
@@ -175,19 +169,6 @@ function DashboardInner({
     []
   );
 
-  const addNewWidget = useCallback(async () => {
-    if (newWidget) {
-      try {
-        await validateWidget(api, organization.slug, newWidget);
-        handleAddCustomWidget(newWidget);
-        onSetNewWidget?.();
-      } catch (error: any) {
-        // Don't do anything, widget isn't valid
-        addErrorMessage(error);
-      }
-    }
-  }, [newWidget, handleAddCustomWidget, onSetNewWidget, api, organization.slug]);
-
   useEffect(() => {
     // Always load organization tags on dashboards
     loadOrganizationTags(api, organization.slug, selection, addAlert);
@@ -197,7 +178,7 @@ function DashboardInner({
   useEffect(() => {
     window.addEventListener('resize', debouncedHandleResize);
 
-    connectDashboardCharts(DASHBOARD_CHART_GROUP);
+    connect(DASHBOARD_CHART_GROUP);
     trackEngagementAnalytics(
       dashboard.widgets,
       organization,
@@ -216,13 +197,6 @@ function DashboardInner({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Handle newWidget parsed from Add to Dashboard flows
-  useEffect(() => {
-    if (newWidget) {
-      addNewWidget();
-    }
-  }, [newWidget, addNewWidget]);
 
   const handleDeleteWidget = useCallback(
     (widgetToDelete: Widget) => () => {

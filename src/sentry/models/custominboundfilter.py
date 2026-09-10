@@ -18,6 +18,7 @@ class CustomInboundFilterConditionType(StrEnum):
 
 
 class CustomInboundFilterDataType(StrEnum):
+    ALL = "all"
     ERROR = "error"
     LOG = "log"
     METRIC = "metric"
@@ -45,6 +46,13 @@ class CustomInboundFilter(DefaultFieldsModel):
     )
     name = models.CharField(max_length=256, null=True, blank=True)
     active = models.BooleanField(default=True, db_default=True)
+    # Nullable only because the column was added to an existing table. A reader
+    # refuses a filter without one rather than guessing.
+    data_type = models.CharField(
+        max_length=32,
+        choices=[(data_type, data_type) for data_type in CustomInboundFilterDataType],
+        null=True,
+    )
     conditions = models.JSONField(default=list)
 
     class Meta:

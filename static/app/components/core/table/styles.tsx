@@ -17,6 +17,10 @@ export const TableGrid = styled('table')`
   box-sizing: border-box;
   border-collapse: collapse;
   margin: 0;
+
+  [hidden] {
+    display: none;
+  }
 `;
 
 const subgrid = css`

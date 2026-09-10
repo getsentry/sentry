@@ -12,6 +12,9 @@ from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue
 
 from sentry.testutils.cases import APITestCase, OurLogTestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils import snuba_rpc
+
+TRUNCATED_ATTRIBUTE_NAME_LIMIT = 5
 
 
 class OrganizationEventsValidateEndpointTest(
@@ -288,6 +291,141 @@ class OrganizationEventsValidateEndpointTest(
             {"error": None, "name": "my.custom.tag", "valid": True, "attrType": "string"},
             {"error": "Unknown attribute", "name": "my.fake.tag", "valid": False, "attrType": None},
         ]
+
+    @mock.patch(
+        "sentry.search.eap.utils.ATTRIBUTE_NAME_LIMIT",
+        TRUNCATED_ATTRIBUTE_NAME_LIMIT,
+    )
+    def test_tag_beyond_the_attribute_name_limit(self) -> None:
+        tags = {f"my.tag.{i:03}": "hello" for i in range(TRUNCATED_ATTRIBUTE_NAME_LIMIT)}
+        tags["zz.custom.tag"] = "hello"
+        self.store_spans(
+            [
+                self.create_span(
+                    {"tags": tags},
+                    start_ts=before_now(days=0, minutes=10),
+                ),
+            ],
+        )
+
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["zz.custom.tag"],
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["valid"]
+        assert response.data["field"] == [
+            {"error": None, "name": "zz.custom.tag", "valid": True, "attrType": "string"}
+        ]
+
+    @mock.patch(
+        "sentry.search.eap.utils.ATTRIBUTE_NAME_LIMIT",
+        TRUNCATED_ATTRIBUTE_NAME_LIMIT,
+    )
+    def test_unknown_tag_beyond_the_attribute_name_limit(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "tags": {
+                            f"my.tag.{i:03}": "hello" for i in range(TRUNCATED_ATTRIBUTE_NAME_LIMIT)
+                        }
+                    },
+                    start_ts=before_now(days=0, minutes=10),
+                ),
+            ],
+        )
+
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["zz.fake.tag"],
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert not response.data["valid"]
+        assert response.data["field"] == [
+            {"error": "Unknown attribute", "name": "zz.fake.tag", "valid": False, "attrType": None}
+        ]
+
+    @mock.patch(
+        "sentry.search.eap.utils.ATTRIBUTE_NAME_LIMIT",
+        TRUNCATED_ATTRIBUTE_NAME_LIMIT,
+    )
+    @mock.patch(
+        "sentry.search.eap.utils.snuba_rpc.attribute_names_rpc",
+        wraps=snuba_rpc.attribute_names_rpc,
+    )
+    def test_resolves_a_narrowed_tag_without_paging(
+        self, mock_attribute_names_rpc: mock.MagicMock
+    ) -> None:
+        noisy = {f"my.tag.{i:03}": "hello" for i in range(TRUNCATED_ATTRIBUTE_NAME_LIMIT)}
+        noisy["aa.custom.tag"] = "hello"
+        self.store_spans(
+            [
+                self.create_span({"tags": noisy}, start_ts=before_now(days=0, minutes=10)),
+                self.create_span(
+                    {"tags": {"zz.custom.tag": "hello"}},
+                    start_ts=before_now(days=0, minutes=10),
+                ),
+            ],
+        )
+
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["aa.custom.tag", "zz.custom.tag"],
+            }
+        )
+
+        offsets = [
+            call.args[0].page_token.offset for call in mock_attribute_names_rpc.call_args_list
+        ]
+        assert offsets == [0, 0]
+        assert response.status_code == 200, response.content
+        assert response.data["field"] == [
+            {"error": None, "name": "aa.custom.tag", "valid": True, "attrType": "string"},
+            {"error": None, "name": "zz.custom.tag", "valid": True, "attrType": "string"},
+        ]
+
+    @mock.patch(
+        "sentry.search.eap.utils.ATTRIBUTE_NAME_LIMIT",
+        TRUNCATED_ATTRIBUTE_NAME_LIMIT,
+    )
+    @mock.patch(
+        "sentry.search.eap.utils.snuba_rpc.attribute_names_rpc",
+        wraps=snuba_rpc.attribute_names_rpc,
+    )
+    def test_does_not_scale_requests_with_the_number_of_attributes(
+        self, mock_attribute_names_rpc: mock.MagicMock
+    ) -> None:
+        tags = {f"my.tag.{i:03}": "hello" for i in range(TRUNCATED_ATTRIBUTE_NAME_LIMIT)}
+        tags["zz.custom.tag"] = "hello"
+        self.store_spans(
+            [
+                self.create_span({"tags": tags}, start_ts=before_now(days=0, minutes=10)),
+            ],
+        )
+
+        def call_count_for(unknown: int) -> int:
+            mock_attribute_names_rpc.reset_mock()
+            self.do_request(
+                {
+                    "project": [self.project.id],
+                    "dataset": "spans",
+                    "field": ["zz.custom.tag"] + [f"zz.fake.tag.{i:03}" for i in range(unknown)],
+                }
+            )
+            return mock_attribute_names_rpc.call_count
+
+        assert call_count_for(20) == call_count_for(1)
 
     def test_private_attribute(self) -> None:
         response = self.do_request(

@@ -1,7 +1,13 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {ThemeFixture} from 'sentry-fixture/theme';
+
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
+
+const theme = ThemeFixture();
 
 function renderWithTracking(ui: React.ReactElement) {
   const tracking = jest.fn();
@@ -15,6 +21,53 @@ function renderWithTracking(ui: React.ReactElement) {
 describe('Button', () => {
   it('renders', () => {
     render(<Button variant="primary">Button</Button>);
+  });
+
+  describe('responsive sizing', () => {
+    let resizeCallback: ResizeObserverCallback | undefined;
+    let originalResizeObserver: typeof window.ResizeObserver;
+
+    beforeEach(() => {
+      originalResizeObserver = window.ResizeObserver;
+      window.ResizeObserver = class {
+        constructor(callback: ResizeObserverCallback) {
+          resizeCallback = callback;
+        }
+
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      };
+      jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(0);
+    });
+
+    afterEach(() => {
+      window.ResizeObserver = originalResizeObserver;
+      jest.restoreAllMocks();
+    });
+
+    it('updates its size at container breakpoints', () => {
+      render(
+        <Container containerType="inline-size">
+          <Button size={{zero: 'xs', lg: 'sm'}}>Button</Button>
+        </Container>
+      );
+
+      const button = screen.getByRole('button', {name: 'Button'});
+      expect(getEmotionRules(button).join('')).toContain(
+        `height: ${theme.form.xs.height}`
+      );
+
+      act(() => {
+        resizeCallback?.(
+          [{contentBoxSize: [{inlineSize: 800}]} as unknown as ResizeObserverEntry],
+          {} as ResizeObserver
+        );
+      });
+      expect(getEmotionRules(button).join('')).toContain(
+        `height: ${theme.form.sm.height}`
+      );
+    });
   });
 
   it('calls `onClick` callback', async () => {

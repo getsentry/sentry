@@ -51,6 +51,7 @@ from sentry.models.release import ReleaseStatus
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -751,14 +752,18 @@ class UpdateGroupsTest(TestCase):
         request = _wrap_request(http_request, data={"status": "resolvedInNextRelease"})
 
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
-        with self.feature("projects:issue-action-log-activity"):
+        with action_log_activity_enabled():
             response = update_groups(request, group_list)
 
         activity = response.data["activity"]
-        assert [entry["type"] for entry in activity] == ["set_resolved", "first_seen"]
+        # the manually logged RESOLVE exists only in GALE, so its presence means
+        # the action log was served rather than Activity
+        assert "set_resolved" in [entry["type"] for entry in activity]
         assert activity[-1]["id"] == "0"
 
-    def test_resolve_in_next_release_no_activity_without_action_log(self) -> None:
+    def test_resolve_in_next_release_no_activity_when_action_log_is_empty(self) -> None:
+        # A gated project can still read an empty log: the GALE write for this
+        # resolve goes through an outbox that may not have drained yet.
         self.create_release(project=self.project, version="test@1.0.0.0")
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
@@ -768,7 +773,8 @@ class UpdateGroupsTest(TestCase):
 
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
         with (
-            self.feature("projects:issue-action-log-activity"),
+            action_log_activity_enabled(),
+            patch.object(GroupActionLogEntry.objects, "get_actions_for_group", return_value=[]),
             self.assertLogs("sentry.api.helpers.group_index.update", level="INFO") as logs,
         ):
             response = update_groups(request, group_list)
@@ -778,7 +784,32 @@ class UpdateGroupsTest(TestCase):
         )
         assert response is not None
         assert "activity" not in response.data
-        assert GroupActionLogEntry.objects.filter(group_id=group.id).count() == 0
+
+    def test_resolve_in_next_release_ignores_action_log_when_disabled(self) -> None:
+        # With the gate closed the log may cover only part of this project's history,
+        # so serving it could silently drop older entries. Fall back to Activity.
+        self.create_release(project=self.project, version="test@1.0.0.0")
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        GroupActionLogEntry.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            type=GroupActionType.COMMENT.value,
+            actor_type=GroupActorType.USER.value,
+            actor_id=self.user.id,
+            source="web",
+            data={"comment_id": 123, "text": "hello world"},
+        )
+
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={group.id}")
+        request = _wrap_request(http_request, data={"status": "resolvedInNextRelease"})
+
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        response = update_groups(request, group_list)
+
+        # the COMMENT only exists in the log, so its absence means Activity was served
+        activity = response.data["activity"]
+        assert "note" not in [entry["type"] for entry in activity]
 
 
 class MergeGroupsTest(TestCase):

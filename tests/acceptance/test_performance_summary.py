@@ -5,7 +5,6 @@ from urllib.parse import urlencode
 import pytest
 
 from fixtures.page_objects.transaction_summary import TransactionSummaryPage
-from sentry.models.assistant import AssistantActivity
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
@@ -38,10 +37,6 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             urlencode({"transaction": "/country_by_code/", "project": self.project.id}),
         )
 
-        AssistantActivity.objects.create(
-            user=self.user, guide_id=20, viewed_ts=before_now(minutes=1)
-        )
-
         self.page = TransactionSummaryPage(self.browser)
 
     @patch("django.utils.timezone.now")
@@ -65,4 +60,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature(FEATURES):
             self.browser.get(self.path)
             self.page.wait_until_loaded()
+            # The threshold action lives in the page title's actions menu.
+            self.browser.click('[aria-label="Transaction Actions"]')
             self.browser.click('[data-test-id="set-transaction-threshold"]')
+            self.browser.wait_until('[role="dialog"]')

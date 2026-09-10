@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from urllib3.connectionpool import ConnectionPool
 from urllib3.exceptions import ReadTimeoutError
 
-from sentry.issues.endpoints.group_events import FULL_PAYLOAD_MAX_PER_PAGE
+from sentry.api.serializers.models.event import FULL_PAYLOAD_MAX_PER_PAGE
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.group import Group
 from sentry.search.eap.occurrences.rollout_utils import EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION

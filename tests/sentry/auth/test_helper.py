@@ -288,6 +288,8 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
             )
 
         assert assigned_member.id == member.id
+        assert getattr(assigned_member.flags, "sso:linked")
+        assert not getattr(assigned_member.flags, "sso:invalid")
 
     def test_demo_user_can_be_added_new_user_when_demo_org(self) -> None:
         # Force demo user behavior, and mark org as demo org

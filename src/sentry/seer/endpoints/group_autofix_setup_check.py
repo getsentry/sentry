@@ -9,8 +9,7 @@ from sentry import options, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.helpers.deprecation import deprecated
-from sentry.constants import CELL_API_DEPRECATION_DATE, DataCategory, ObjectStatus
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
@@ -76,11 +75,6 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         }
     )
 
-    @deprecated(
-        CELL_API_DEPRECATION_DATE,
-        suggested_api="sentry-api-0-organization-group-group-autofix-setup",
-        url_names=["sentry-api-0-group-autofix-setup"],
-    )
     def get(self, request: Request, group: Group) -> Response:
         """
         Checks if we are able to run Autofix on the given group.
@@ -102,7 +96,8 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         # True only when a run exists (so they see results), False otherwise (shows paywall).
         is_free_cohort = is_free_cohort_org(org)
         if is_free_cohort:
-            # Existing runs can use either the legacy autofix source or the RCA feature source.
+            # Night shift can go through either the regular autofix path (source="autofix") or
+            # the RCA feature path (source="autofix_rca") depending on the organizations:autofix-rca-in-seer.
             has_autofix_quota = (
                 runs_for_group(group.id, "autofix").exists()
                 or runs_for_group(group.id, "autofix_rca").exists()

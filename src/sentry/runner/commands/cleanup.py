@@ -716,7 +716,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
 
 
 def models_which_use_expiry_deletions() -> list[tuple[type[BaseModel], str, str]]:
-    from sentry.models.eventattachment import EventAttachment
+    from sentry.models.eventattachment import EventAttachment, PendingEventAttachment
     from sentry.models.profilechunkattachment import ProfileChunkAttachment
 
     # Models deleted based on their per-record expiry date, independent of --days.
@@ -724,6 +724,7 @@ def models_which_use_expiry_deletions() -> list[tuple[type[BaseModel], str, str]
     # regardless of the --days value passed to the cleanup command.
     return [
         (EventAttachment, "date_expires", "date_expires"),
+        (PendingEventAttachment, "date_expires", "date_expires"),
         (ProfileChunkAttachment, "date_expires", "date_expires"),
     ]
 
