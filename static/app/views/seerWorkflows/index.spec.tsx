@@ -299,9 +299,7 @@ describe('SeerWorkflows', () => {
 
     render(<SeerWorkflows />, {organization});
 
-    const expandButton = await screen.findByRole('button', {
-      name: 'Expand run',
-    });
+    const expandButton = await screen.findByRole('button', {name: 'Expand run'});
     await userEvent.click(expandButton);
 
     // User-facing view shows the friendly action label, not the raw enum.

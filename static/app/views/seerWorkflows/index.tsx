@@ -722,13 +722,13 @@ function DebugSection({row}: {row: WorkflowRow}) {
         <Text size="xs" variant="muted">
           {t('Run %s', row.runId)}
         </Text>
-        {row.monitorCleanup.results
-          .filter(result => result.seerRunId)
-          .map(result => (
-            <Link key={result.id} to={getRelativeExplorerUrl(result.seerRunId!)}>
+        {row.monitorCleanup.results.map(result =>
+          result.seerRunId ? (
+            <Link key={result.id} to={getRelativeExplorerUrl(result.seerRunId)}>
               {t('View prompt and agent run %s', result.seerRunId)}
             </Link>
-          ))}
+          ) : null
+        )}
       </Stack>
     );
   }
@@ -1004,7 +1004,6 @@ function TriageIssuesDebugAddendum({row}: {row: WorkflowRow}) {
 
 function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
   if (run.strategy === 'duplicate_monitors') {
-    const coverage = run.extras.coverage;
     const status = run.extras.status;
     const results = (run.results ?? []).filter(
       result => result.kind === 'duplicate_monitors'
@@ -1028,7 +1027,7 @@ function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
               : findings,
       monitorCleanup: {
         results,
-        coverage,
+        coverage: run.extras.coverage,
       },
     };
   }
@@ -1063,17 +1062,11 @@ function getErrorPresentation(
     case 'no_seer_access':
       return {status: 'skipped', resultText: t('Seer is not enabled')};
     case 'eligible_projects_failed':
-      return {
-        status: 'failed',
-        resultText: t('Could not check eligible projects'),
-      };
+      return {status: 'failed', resultText: t('Could not check eligible projects')};
     case 'invalid_shard_plan':
       return {status: 'failed', resultText: t('Could not prepare triage')};
     case 'shard_dispatch_failed':
-      return {
-        status: 'failed',
-        resultText: t('Could not start all triage batches'),
-      };
+      return {status: 'failed', resultText: t('Could not start all triage batches')};
     default:
       return {status: 'failed', resultText: t('Run failed')};
   }

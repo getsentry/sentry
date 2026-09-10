@@ -310,12 +310,9 @@ export function MonitorCleanupResults({
   results: SeerWorkflowResult[];
   coverage?: SeerNightShiftRunExtras['coverage'];
 }) {
-  const parsed = results.map(result => ({
-    id: result.id,
-    output: outputSchema.safeParse(result.extras),
-  }));
+  const parsed = results.map(result => outputSchema.safeParse(result.extras));
   const projects = new Map(
-    parsed.flatMap(({output}) =>
+    parsed.flatMap(output =>
       output.success ? [[output.data.projectId, output.data] as const] : []
     )
   );
@@ -324,7 +321,7 @@ export function MonitorCleanupResults({
     0
   );
   const incomplete =
-    parsed.some(({output}) => !output.success || output.data.scan.status === 'partial') ||
+    parsed.some(output => !output.success || output.data.scan.status === 'partial') ||
     (coverage && coverage.complete < coverage.total);
   return (
     <Stack gap="xl" containerType="inline-size">
@@ -346,7 +343,7 @@ export function MonitorCleanupResults({
           )}
         </Stack>
       )}
-      {parsed.some(({output}) => !output.success) && (
+      {parsed.some(output => !output.success) && (
         <Text variant="warning">{t('This monitor scan output is not supported.')}</Text>
       )}
       {Array.from(projects.values(), output => (
