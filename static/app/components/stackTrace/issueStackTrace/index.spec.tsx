@@ -85,6 +85,55 @@ describe('IssueStackTrace', () => {
     });
   });
 
+  it('loads the Apple crash report for a native exception without threads', async () => {
+    const {stacktrace} = makeCopyTestData();
+    stacktrace.frames = [
+      FrameFixture({
+        platform: 'cocoa',
+        function: 'causeCrash',
+        rawFunction: null,
+        module: null,
+      }),
+    ];
+    const exception = {
+      type: 'EXC_BAD_ACCESS',
+      value: 'invalid address',
+      module: null,
+      mechanism: null,
+      threadId: null,
+      rawStacktrace: null,
+      stacktrace,
+    };
+    const event = EventFixture({
+      platform: 'cocoa',
+      entries: [{type: 'exception', data: {values: [exception]}}],
+    });
+    const report = MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/events/${event.id}/apple-crash-report`,
+      match: [MockApiClient.matchQuery({minified: 'false'})],
+      body: 'Thread 0 Crashed: causeCrash',
+    });
+
+    render(
+      <IssueStackTrace event={event} values={[exception]} projectSlug="project-slug" />
+    );
+
+    expect(await screen.findByText('causeCrash')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'EXC_BAD_ACCESS'})).toBeInTheDocument();
+    expect(report).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Raw Stack Trace'}));
+    await userEvent.keyboard('{Escape}');
+
+    expect(await screen.findByText('Thread 0 Crashed: causeCrash')).toBeInTheDocument();
+    expect(report).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', {name: 'Download'})).toHaveAttribute(
+      'href',
+      `/projects/org-slug/project-slug/events/${event.id}/apple-crash-report?minified=false&download=1`
+    );
+  });
+
   it('does not render when event has threads', () => {
     const {event, stacktrace} = makeStackTraceData();
     const eventWithThreads = EventFixture({
