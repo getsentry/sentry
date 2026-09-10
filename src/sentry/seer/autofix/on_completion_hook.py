@@ -24,7 +24,7 @@ from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import Artifact
 from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
-from sentry.seer.autofix.analytics import record_funnel_event
+from sentry.seer.autofix.analytics import record_autofix_event
 from sentry.seer.autofix.artifact_schemas import FixabilityAssessment, RootCauseArtifact
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
@@ -600,7 +600,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 webhook_action_type = SeerActionType.PR_CREATED
                 webhook_payload["pull_requests"] = format_pull_requests_payload(state)
                 is_pr_created = True
-                record_funnel_event(
+                record_autofix_event(
                     AiAutofixPrCreatedCompletedEvent(
                         organization_id=organization.id,
                         project_id=group.project_id,
@@ -733,7 +733,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             )
             completed_event_cls = STEP_CONFIGS[current_step].completed_event
             if completed_event_cls is not None:
-                record_funnel_event(
+                record_autofix_event(
                     completed_event_cls(
                         organization_id=organization.id,
                         project_id=group.project_id,

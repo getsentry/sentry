@@ -13,7 +13,7 @@ from sentry.seer.agent.client_models import (
     RepoPRState,
     SeerRunState,
 )
-from sentry.seer.autofix.analytics import record_funnel_event
+from sentry.seer.autofix.analytics import record_autofix_event
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
     NoSeerQuotaException,
@@ -1448,7 +1448,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         assert repos[0].name == "repo"
         assert call_kwargs["issue_short_id"] == self.group.qualified_short_id
 
-    @patch("sentry.seer.autofix.autofix_agent.analytics.record")
+    @patch("sentry.seer.autofix.analytics.analytics.record")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_trigger_coding_agent_handoff_records_referrer(self, mock_client_class, mock_record):
         mock_client = MagicMock()
@@ -1963,7 +1963,7 @@ class TestAutofixFunnelAnalytics:
             referrer="test",
         )
 
-        record_funnel_event(event)
+        record_autofix_event(event)
 
         mock_record.assert_called_once_with(event)
         mock_metrics_incr.assert_called_once_with("ai.autofix.solution.completed")
