@@ -1485,6 +1485,38 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.status_code == 200, resp.content
         assert resp is not None
 
+    @patch(
+        "sentry.integrations.slack.tasks.member_approval.OrganizationMember.objects.get",
+        side_effect=OrganizationMember.DoesNotExist,
+    )
+    def test_approver_membership_removed_during_task(self, mock_get: MagicMock) -> None:
+        other_user = self.create_user()
+        member = self.create_member(
+            organization=self.organization,
+            email="hello@sentry.io",
+            role="member",
+            inviter_id=other_user.id,
+            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+        )
+        callback_id = orjson.dumps(
+            {"member_id": member.id, "member_email": "hello@sentry.io"}
+        ).decode()
+
+        with self.tasks():
+            resp = self.post_webhook(
+                action_data=[{"value": "approve_member"}], callback_id=callback_id
+            )
+
+        assert resp.status_code == 200, resp.content
+        mock_get.assert_called_once_with(user_id=self.user.id, organization=self.organization)
+        self.mock_post.assert_called_once_with(
+            text="You do not have access to the organization for the invitation.",
+            response_type="in_channel",
+            replace_original=False,
+        )
+        member.refresh_from_db()
+        assert member.invite_status == InviteStatus.REQUESTED_TO_JOIN.value
+
     def test_no_member_admin(self) -> None:
         with unguarded_write(using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(user_id=self.user.id).update(role="admin")

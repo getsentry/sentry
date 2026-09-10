@@ -64,7 +64,22 @@ def process_member_approval(
         _send_response(webhook_client, NO_ACCESS_MESSAGE)
         return
 
-    member_of_approver = OrganizationMember.objects.get(user_id=actor.id, organization=organization)
+    try:
+        member_of_approver = OrganizationMember.objects.get(
+            user_id=actor.id, organization=organization
+        )
+    except OrganizationMember.DoesNotExist:
+        logger.warning(
+            "slack.action.member-approver-no-longer-exists",
+            extra={
+                "organization_id": organization.id,
+                "member_id": member.id,
+                "actor_id": actor.id,
+            },
+        )
+        _send_response(webhook_client, NO_ACCESS_MESSAGE)
+        return
+
     access = from_member(member_of_approver)
     if not access.has_scope("member:admin"):
         _send_response(webhook_client, NO_PERMISSION_MESSAGE)
