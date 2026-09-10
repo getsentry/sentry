@@ -133,7 +133,7 @@ function MultiValueContainer({values}: {values: string[]}): React.JSX.Element {
 const Tablevalue = styled('div')`
   > pre {
     margin: 0;
-    padding: 8px 10px;
+    padding: ${p => p.theme.space.md} 10px;
   }
   pre {
     && {
