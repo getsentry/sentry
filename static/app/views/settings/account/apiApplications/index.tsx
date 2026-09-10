@@ -138,11 +138,7 @@ export default function ApiApplications() {
 
 const APPLICATION_COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: {zero: 'minmax(0, 1fr)', xl: 'minmax(220px, 1fr)'}},
-  {
-    key: 'age',
-    visible: {zero: false, xl: true},
-    width: 'minmax(100px, 160px)',
-  },
+  {key: 'age', visible: {xl: true}, width: 'minmax(100px, 160px)'},
   {key: 'actions', width: 'max-content'},
 ];
 

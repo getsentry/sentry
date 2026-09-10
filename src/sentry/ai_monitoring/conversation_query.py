@@ -8,7 +8,7 @@ different spans, so we instead count matching spans after grouping by conversati
       AND count_if(`gen_ai.tool.name:search`,span.duration):>0
 
 We use `event_search_grammar` because values can contain spaces, quotes, and parentheses.
-For `gen_ai.tool.name:search OR totalCost:>10`, its named nodes are:
+For `gen_ai.tool.name:search OR conversation.totalCost:>10`, its named nodes are:
 
     search
     ├── term → filter → text_filter
@@ -16,7 +16,7 @@ For `gen_ai.tool.name:search OR totalCost:>10`, its named nodes are:
     │                    └── search_value → value: search
     ├── term → boolean_operator → or_operator: OR
     └── term → filter → numeric_filter
-                         ├── search_key → key: totalCost
+                         ├── search_key → key: conversation.totalCost
                          ├── operator: >
                          └── numeric_value → numeric: 10
 
@@ -38,7 +38,7 @@ from sentry.search.eap.resolver import SearchResolver
 def _nodes(node: Node, names: set[str], depth: int = 0) -> Iterator[Node]:
     """Yield requested parts of a parsed search query.
 
-    For example, `(toolCalls:>0 OR errors:0)` is a `paren_group` containing two
+    For example, `(conversation.toolCalls:>0 OR conversation.errors:0)` is a `paren_group` containing two
     `filter` nodes and a `boolean_operator`. Asking for `filter` yields both filters.
     """
     # Only parenthesized search groups count toward this limit. Function calls do not.
@@ -48,7 +48,7 @@ def _nodes(node: Node, names: set[str], depth: int = 0) -> Iterator[Node]:
         raise InvalidSearchQuery("Conversation query has too many nested groups.")
     if node.expr_name in names:
         # Treat a match as one unit. For example, asking for `filter` returns
-        # `toolCalls:>0`, not its nested `search_key` and `operator` nodes.
+        # `conversation.toolCalls:>0`, not its nested `search_key` and `operator` nodes.
         yield node
     else:
         for child in node.children:
@@ -56,7 +56,7 @@ def _nodes(node: Node, names: set[str], depth: int = 0) -> Iterator[Node]:
 
 
 def _is_aggregate_alias(name: str) -> bool:
-    """Return whether a name is a filterable aggregate alias, such as `totalCost`."""
+    """Return whether a name is a filterable aggregate alias, such as `conversation.totalCost`."""
     field = AI_CONVERSATIONS_FIELDS.get(name.strip('"'))
     # Conversation ID is a stored field. max(timestamp) aliases are only expanded
     # when sorting, not when filtering.
@@ -66,7 +66,7 @@ def _is_aggregate_alias(name: str) -> bool:
 def _compile_alias_filter(condition: Node, key: Node, resolver: SearchResolver) -> str:
     """Replace a table alias with the EAP expression that calculates it.
 
-    For example, `totalCost:>10` becomes
+    For example, `conversation.totalCost:>10` becomes
     `sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client):>10`.
     """
     expression, _ = AI_CONVERSATIONS_FIELDS[key.text.strip('"')]
@@ -113,22 +113,24 @@ def _compile_condition(condition: Node, resolver: SearchResolver) -> str:
         if any(operator.text == "!=" for operator in _nodes(condition, {"operator"})):
             positive = positive.replace("!=", "", 1)
             excluded = not excluded
-        if keys and keys[0].text.strip('"') == "conversationId":
-            # Replace UI alias with stored span field.
-            positive = positive.replace(keys[0].text, "gen_ai.conversation.id", 1)
+        if keys:
+            field = AI_CONVERSATIONS_FIELDS.get(keys[0].text.strip('"'))
+            if field and field[0] == "gen_ai.conversation.id":
+                # Replace UI alias with stored span field.
+                positive = positive.replace(keys[0].text, field[0], 1)
     return f"count_if(`{positive}`,span.duration):{'=0' if excluded else '>0'}"
 
 
 def compile_conversation_query(query: str, resolver: SearchResolver) -> str:
     """Turn span filters into conversation filters while keeping Boolean logic.
 
-    For example, `gen_ai.tool.name:search OR errors:>0` can match either any search
-    span or the conversation's error total.
+    For example, `gen_ai.tool.name:search OR conversation.errors:>0` can match either
+    any search span or the conversation's error total.
     """
     try:
         conditions = list(_nodes(event_search_grammar.parse(query), {"filter", "free_text"}))
     except (ParseError, RecursionError) as error:
-        # Convert malformed input such as `(errors:0` into a 400.
+        # Convert malformed input such as `(conversation.errors:0` into a 400.
         raise InvalidSearchQuery(
             "Invalid conversation query. Check parentheses and quoting."
         ) from error

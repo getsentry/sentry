@@ -224,8 +224,8 @@ export default function OrganizationFeatureFlagsChangeTrackingRoute() {
 
 const SECRET_COLUMNS: TableColumnConfig[] = [
   {key: 'provider', width: {zero: '1fr', xl: 'auto'}},
-  {key: 'created', visible: {zero: false, xl: true}, width: 'auto'},
-  {key: 'createdBy', visible: {zero: false, xl: true}, width: 'auto'},
+  {key: 'created', visible: {xl: true}, width: 'auto'},
+  {key: 'createdBy', visible: {xl: true}, width: 'auto'},
   {key: 'actions', width: {zero: '1fr', xl: 'auto'}},
 ];
 

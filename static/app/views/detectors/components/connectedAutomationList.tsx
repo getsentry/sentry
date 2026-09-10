@@ -108,16 +108,8 @@ export function ConnectedAutomationsList({
 
   const columns: TableColumnConfig[] = [
     {key: 'name', width: '1fr'},
-    {
-      key: 'last-triggered',
-      visible: {zero: false, xl: true},
-      width: '200px',
-    },
-    {
-      key: 'action-filters',
-      visible: {zero: false, sm: true},
-      width: '180px',
-    },
+    {key: 'last-triggered', visible: {xl: true}, width: '200px'},
+    {key: 'action-filters', visible: {sm: true}, width: '180px'},
     ...(canEdit ? [{key: 'connected', width: '140px'} satisfies TableColumnConfig] : []),
   ];
 

@@ -350,28 +350,16 @@ function savedQueryColumns(hasLogsEnabled: boolean): TableColumnConfig[] {
       ? [
           {
             key: 'dataset',
-            visible: {zero: false, xl: true},
+            visible: {xl: true},
             width: 'min-content',
           } satisfies TableColumnConfig,
         ]
       : []),
-    {
-      key: 'project',
-      visible: {zero: false, xl: true},
-      width: 'minmax(auto, 120px)',
-    },
-    {
-      key: 'envs',
-      visible: {zero: false, '3xl': true},
-      width: 'minmax(auto, 120px)',
-    },
+    {key: 'project', visible: {xl: true}, width: 'minmax(auto, 120px)'},
+    {key: 'envs', visible: {'3xl': true}, width: 'minmax(auto, 120px)'},
     {key: 'query', width: 'minmax(0, 1fr)'},
-    {key: 'created-by', visible: {zero: false, xl: true}, width: 'auto'},
-    {
-      key: 'last-visited',
-      visible: {zero: false, '3xl': true},
-      width: 'auto',
-    },
+    {key: 'created-by', visible: {xl: true}, width: 'auto'},
+    {key: 'last-visited', visible: {'3xl': true}, width: 'auto'},
     {key: 'actions', width: '48px'},
   ];
 }

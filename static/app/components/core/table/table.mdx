@@ -83,6 +83,7 @@ Pass `onColumnResize` to control them instead, which is how `GridEditable` persi
 
 `width` and `visible` both accept responsive values, so a table can resize and shed columns as its container narrows.
 Keys are container breakpoints on the `theme.container` scale, and both resolve mobile-first, like every other responsive prop.
+A responsive `visible` cascades from hidden, so naming only the breakpoints a column appears at is enough: `{'3xl': true}` means hidden until `3xl`.
 
 A column whose `visible` resolves to `false` loses its track entirely, so the remaining columns divide the full width.
 Cells are matched to columns by position, so a row still renders a cell for a hidden column and the shell hides whatever sits in that position.
@@ -91,7 +92,7 @@ Every column a row renders a cell for needs an entry, in the order the cells are
 ```jsx
 const columns = [
   {key: 'transaction', width: {zero: 'minmax(0, 1fr)', '3xl': 260}},
-  {key: 'browser', visible: {zero: false, '3xl': true}, width: 160},
+  {key: 'browser', visible: {'3xl': true}, width: 160},
   {key: 'count'},
 ];
 

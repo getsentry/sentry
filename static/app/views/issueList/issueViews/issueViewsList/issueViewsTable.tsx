@@ -197,37 +197,21 @@ function issueViewColumns(hideCreatedBy: boolean): TableColumnConfig[] {
   return [
     {key: 'star', width: '40px'},
     {key: 'name', width: {zero: '30%', xl: '20%'}},
-    {
-      key: 'project',
-      visible: {zero: false, xl: true},
-      width: 'minmax(auto, 120px)',
-    },
-    {
-      key: 'envs',
-      visible: {zero: false, '3xl': true},
-      width: 'minmax(auto, 120px)',
-    },
+    {key: 'project', visible: {xl: true}, width: 'minmax(auto, 120px)'},
+    {key: 'envs', visible: {'3xl': true}, width: 'minmax(auto, 120px)'},
     {key: 'query', width: 'minmax(0, 1fr)'},
     ...(hideCreatedBy
       ? []
       : [
           {
             key: 'creator',
-            visible: {zero: false, xl: true},
+            visible: {xl: true},
             width: 'auto',
           } satisfies TableColumnConfig,
         ]),
-    {
-      key: 'last-visited',
-      visible: {zero: false, '3xl': true},
-      width: 'auto',
-    },
-    {key: 'created', visible: {zero: false, '3xl': true}, width: 'auto'},
-    {
-      key: 'stars',
-      visible: {zero: false, '3xl': true},
-      width: 'minmax(80px, max-content)',
-    },
+    {key: 'last-visited', visible: {'3xl': true}, width: 'auto'},
+    {key: 'created', visible: {'3xl': true}, width: 'auto'},
+    {key: 'stars', visible: {'3xl': true}, width: 'minmax(80px, max-content)'},
     {key: 'actions', width: '48px'},
   ];
 }

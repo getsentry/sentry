@@ -8,6 +8,7 @@ from sentry_relay.processing import normalize_project_config
 from sentry.constants import HEALTH_CHECK_GLOBS
 from sentry.discover.models import TeamKeyTransaction
 from sentry.dynamic_sampling import ENVIRONMENT_GLOBS, generate_rules, get_redis_client_for_ds
+from sentry.dynamic_sampling.per_org.cache import set_adjusted_factor
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.dynamic_sampling.rules.utils import (
     LATEST_RELEASES_BOOST_DECAYED_FACTOR,
@@ -21,6 +22,9 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
+from tests.sentry.dynamic_sampling.per_org.test_helpers import (
+    store_per_org_project_sample_rate,
+)
 
 
 @pytest.fixture
@@ -133,6 +137,7 @@ def test_generate_rules_return_uniform_rules_with_rate(
     # it means no enabled user biases
     get_enabled_user_biases.return_value = {}
     get_blended_sample_rate.return_value = 0.1
+    store_per_org_project_sample_rate(default_old_project, 0.1)
     assert generate_rules(default_old_project) == [
         {
             "condition": {"inner": [], "op": "and"},
@@ -153,6 +158,7 @@ def test_generate_rules_return_uniform_rules_and_env_rule(
     get_blended_sample_rate, default_old_project
 ):
     get_blended_sample_rate.return_value = 0.1
+    store_per_org_project_sample_rate(default_old_project, 0.1)
     default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
@@ -250,6 +256,7 @@ def test_generate_rules_with_different_project_platforms(
     default_old_project = _apply_old_date_to_project_and_org(default_project)
 
     get_blended_sample_rate.return_value = 0.1
+    store_per_org_project_sample_rate(default_old_project, 0.1)
     apply_dynamic_factor.return_value = LATEST_RELEASES_BOOST_FACTOR
 
     redis_client = get_redis_client_for_ds()
@@ -306,6 +313,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
     default_old_project = _apply_old_date_to_project_and_org(default_project)
 
     get_blended_sample_rate.return_value = 0.1
+    store_per_org_project_sample_rate(default_old_project, 0.1)
     apply_dynamic_factor.return_value = LATEST_RELEASES_BOOST_FACTOR
 
     redis_client = get_redis_client_for_ds()
@@ -387,6 +395,7 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
     default_old_project = _apply_old_date_to_project_and_org(default_project)
 
     get_blended_sample_rate.return_value = 0.1
+    store_per_org_project_sample_rate(default_old_project, 0.1)
     apply_dynamic_factor.return_value = LATEST_RELEASES_BOOST_FACTOR
 
     redis_client = get_redis_client_for_ds()
@@ -483,6 +492,7 @@ def test_generate_rules_with_zero_base_sample_rate(
     get_blended_sample_rate, default_old_project
 ) -> None:
     get_blended_sample_rate.return_value = 0.0
+    store_per_org_project_sample_rate(default_old_project, 0.0)
 
     assert generate_rules(default_old_project) == [
         {
@@ -510,6 +520,7 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
     t1_rate = 0.7
     implicit_rate = 0.037
     get_blended_sample_rate.return_value = project_sample_rate
+    store_per_org_project_sample_rate(default_old_project, project_sample_rate)
     get_transaction_sample_rates.return_value = (
         {
             "t1": t1_rate,
@@ -585,6 +596,7 @@ def test_low_volume_transactions_rules_not_returned_when_inactive(
     get_transaction_sample_rates, get_blended_sample_rate, default_old_project, default_team
 ):
     get_blended_sample_rate.return_value = 0.1
+    store_per_org_project_sample_rate(default_old_project, 0.1)
     get_transaction_sample_rates.return_value = (
         {
             "t1": 0.7,
@@ -627,7 +639,7 @@ def test_generate_rules_return_uniform_rules_and_recalibrate_orgs_rule(
     default_old_project = _apply_old_date_to_project_and_org(default_project)
 
     get_blended_sample_rate.return_value = 0.1
-    redis_client = get_redis_client_for_ds()
+    store_per_org_project_sample_rate(default_old_project, 0.1)
 
     default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
@@ -642,10 +654,7 @@ def test_generate_rules_return_uniform_rules_and_recalibrate_orgs_rule(
     )
 
     default_factor = 0.5
-    redis_client.set(
-        f"ds::o:{default_old_project.organization.id}:rate_rebalance_factor2",
-        default_factor,
-    )
+    set_adjusted_factor(default_old_project.organization.id, default_factor)
 
     assert generate_rules(default_old_project) == [
         {
@@ -670,6 +679,7 @@ def test_generate_rules_return_boost_replay_id(
     get_blended_sample_rate, default_old_project
 ) -> None:
     get_blended_sample_rate.return_value = 0.5
+    store_per_org_project_sample_rate(default_old_project, 0.5)
     default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
@@ -713,6 +723,7 @@ def test_generate_rules_return_minimum_sample_rate_when_enabled(
     get_blended_sample_rate, default_old_project
 ):
     get_blended_sample_rate.return_value = 0.3
+    store_per_org_project_sample_rate(default_old_project, 0.3)
     default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
@@ -762,6 +773,7 @@ def test_generate_rules_minimum_sample_rate_not_included_when_disabled(
     get_blended_sample_rate, default_old_project
 ):
     get_blended_sample_rate.return_value = 0.3
+    store_per_org_project_sample_rate(default_old_project, 0.3)
     default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
@@ -790,6 +802,7 @@ def test_generate_rules_minimum_sample_rate_not_included_by_default(
     get_blended_sample_rate, default_old_project
 ):
     get_blended_sample_rate.return_value = 0.3
+    store_per_org_project_sample_rate(default_old_project, 0.3)
     default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
@@ -819,6 +832,7 @@ def test_generate_rules_minimum_sample_rate_correct_order(
 ):
     with Feature({"organizations:dynamic-sampling-minimum-sample-rate": True}):
         get_blended_sample_rate.return_value = 0.4
+        store_per_org_project_sample_rate(default_old_project, 0.4)
         default_old_project.update_option(
             "sentry:dynamic_sampling_biases",
             [
@@ -893,6 +907,7 @@ def test_generate_rules_trace_health_checks_feature_enabled(
     get_blended_sample_rate, default_old_project
 ):
     get_blended_sample_rate.return_value = 0.4
+    store_per_org_project_sample_rate(default_old_project, 0.4)
     default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
