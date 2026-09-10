@@ -288,9 +288,16 @@ function makeCellActions({
     addMenuItem(Actions.COPY_LINK, t('Copy link'));
   }
 
+  // Array attributes only support an `includes` filter (`attr:[value]`), but the
+  // cell action builds an `attr:value` (`is`) filter, which isn't a valid
+  // comparison for arrays. Skip the add/exclude filter actions for array columns
+  // rather than emit an unsupported query.
+  const isArrayColumn = column.type === 'array';
+
   if (
-    !['duration', 'number', 'percentage'].includes(column.type) ||
-    (value === null && column.column.kind === 'field')
+    !isArrayColumn &&
+    (!['duration', 'number', 'percentage'].includes(column.type) ||
+      (value === null && column.column.kind === 'field'))
   ) {
     addMenuItem(Actions.ADD, t('Add to filter'));
 
