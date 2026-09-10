@@ -12,7 +12,6 @@ from sentry.api.bases.organization import ControlSiloOrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
-from sentry.apidocs.examples.sentry_app_examples import SentryAppExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.organizations.services.organization.model import (
@@ -83,7 +82,6 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=SentryAppExamples.GET_INSTALLED_COMPONENTS,
     )
     def get(
         self,

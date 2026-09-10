@@ -15,7 +15,6 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.examples.sentry_app_examples import SentryAppExamples
 from sentry.apidocs.parameters import SentryAppParams
 from sentry.apidocs.response_types import (
     DetailResponse,
@@ -78,7 +77,6 @@ class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEnd
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=SentryAppExamples.GET_EXTERNAL_REQUEST_OPTIONS,
     )
     def get(
         self, request: Request, installation: RpcSentryAppInstallation
