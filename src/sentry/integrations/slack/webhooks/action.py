@@ -8,7 +8,6 @@ from typing import Any
 import orjson
 import requests as requests_
 import sentry_sdk
-from django.urls import reverse
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response

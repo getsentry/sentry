@@ -64,9 +64,7 @@ def process_member_approval(
         _send_response(webhook_client, NO_ACCESS_MESSAGE)
         return
 
-    member_of_approver = OrganizationMember.objects.get(
-        user_id=actor.id, organization=organization
-    )
+    member_of_approver = OrganizationMember.objects.get(user_id=actor.id, organization=organization)
     access = from_member(member_of_approver)
     if not access.has_scope("member:admin"):
         _send_response(webhook_client, NO_PERMISSION_MESSAGE)
@@ -82,9 +80,7 @@ def process_member_approval(
     original_status = InviteStatus(member.invite_status)
     try:
         if action == "approve_member":
-            member.approve_member_invitation(
-                actor, referrer=IntegrationProviderSlug.SLACK.value
-            )
+            member.approve_member_invitation(actor, referrer=IntegrationProviderSlug.SLACK.value)
         else:
             member.reject_member_invitation(actor)
     except Exception:
@@ -98,11 +94,7 @@ def process_member_approval(
         _send_response(webhook_client, DEFAULT_ERROR_MESSAGE)
         return
 
-    invite_type = (
-        "Invite"
-        if original_status == InviteStatus.REQUESTED_TO_BE_INVITED
-        else "Join"
-    )
+    invite_type = "Invite" if original_status == InviteStatus.REQUESTED_TO_BE_INVITED else "Join"
     if action == "approve_member":
         event = SlackIntegrationApproveMemberInvitation(
             actor_id=actor.id,
