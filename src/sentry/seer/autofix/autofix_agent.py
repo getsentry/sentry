@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
 from scm.types import GetBranchProtocol, GetRepositoryProtocol
 
-from sentry import analytics, features, quotas
+from sentry import features, quotas
 from sentry.analytics.events.autofix_events import (
     AiAutofixAgentHandoffEvent,
     AiAutofixCodeChangesCompletedEvent,
@@ -29,6 +29,7 @@ from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
 from sentry.integrations.services.integration import integration_service
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import SeerRunState
+from sentry.seer.autofix.analytics import record_funnel_event
 from sentry.seer.autofix.artifact_schemas import (
     RootCauseArtifact,
     SolutionArtifact,
@@ -215,7 +216,7 @@ def _handle_step_started_events(
 ) -> None:
     config = STEP_CONFIGS[step]
     if config.started_event is not None:
-        analytics.record(
+        record_funnel_event(
             config.started_event(
                 organization_id=group.organization.id,
                 project_id=group.project_id,
@@ -893,7 +894,7 @@ def trigger_coding_agent_handoff(
 
     coding_agent_name = _resolve_coding_agent_name(group.organization.id, integration_id, provider)
 
-    analytics.record(
+    record_funnel_event(
         AiAutofixAgentHandoffEvent(
             organization_id=group.organization.id,
             project_id=group.project_id,
@@ -945,7 +946,7 @@ def trigger_push_changes(
     else:
         _validate_run_belongs_to_group(state, group)
 
-    analytics.record(
+    record_funnel_event(
         AiAutofixPrCreatedStartedEvent(
             organization_id=group.organization.id,
             project_id=group.project_id,

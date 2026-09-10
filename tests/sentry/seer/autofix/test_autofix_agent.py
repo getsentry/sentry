@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from rest_framework.exceptions import PermissionDenied
 
+from sentry.analytics.events.autofix_events import AiAutofixSolutionCompletedEvent
 from sentry.constants import DataCategory
 from sentry.models.activity import Activity
 from sentry.seer.agent.client_models import (
@@ -12,6 +13,7 @@ from sentry.seer.agent.client_models import (
     RepoPRState,
     SeerRunState,
 )
+from sentry.seer.autofix.analytics import record_funnel_event
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
     NoSeerQuotaException,
@@ -443,6 +445,7 @@ class TestTriggerAutofixAgent(TestCase):
             metadata={"group_id": group_id if group_id is not None else self.group.id},
         )
 
+    @patch("sentry.seer.autofix.analytics.metrics.incr")
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.SeerAutofixOperator.has_access", return_value=True)
@@ -457,6 +460,7 @@ class TestTriggerAutofixAgent(TestCase):
         mock_has_access,
         mock_check_quota,
         mock_record_run,
+        mock_metrics_incr,
     ):
         """Sends correct started webhook for all autofix steps."""
         mock_client = MagicMock()
@@ -481,6 +485,7 @@ class TestTriggerAutofixAgent(TestCase):
         for step, (expected_action, expected_activity_type) in step_to_action.items():
             mock_broadcast.reset_mock()
             mock_process_autofix_updates.reset_mock()
+            mock_metrics_incr.reset_mock()
 
             def assert_activity_exists(**_kwargs: object) -> None:
                 assert Activity.objects.filter(
@@ -502,6 +507,7 @@ class TestTriggerAutofixAgent(TestCase):
                 mock_process_autofix_updates.call_args.kwargs["kwargs"]["activity_already_recorded"]
                 is True
             )
+            mock_metrics_incr.assert_any_call(f"ai.autofix.{step.value}.started")
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
@@ -1941,3 +1947,20 @@ class TestTriggerPushChanges(TestCase):
         payload = self._push(mock_post)
 
         assert payload["pr_description_suffix"] == self._fixes_line()
+
+
+class TestAutofixFunnelAnalytics:
+    @patch("sentry.seer.autofix.analytics.metrics.incr")
+    @patch("sentry.seer.autofix.analytics.analytics.record")
+    def test_records_solution_completion_in_datadog(self, mock_record, mock_metrics_incr) -> None:
+        event = AiAutofixSolutionCompletedEvent(
+            organization_id=1,
+            project_id=1,
+            group_id=1,
+            referrer="test",
+        )
+
+        record_funnel_event(event)
+
+        mock_record.assert_called_once_with(event)
+        mock_metrics_incr.assert_called_once_with("ai.autofix.solution.completed")

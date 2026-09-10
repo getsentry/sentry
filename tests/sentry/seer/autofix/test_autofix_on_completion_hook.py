@@ -1011,11 +1011,17 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         assert call_kwargs["payload"]["code_changes"]["test-repo"][0]["removed"] == 2
 
     @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
+    @patch("sentry.seer.autofix.analytics.metrics.incr")
     @patch("sentry.seer.autofix.on_completion_hook.process_autofix_updates.apply_async")
     @patch("sentry.seer.autofix.on_completion_hook.SeerAutofixOperator.has_access")
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     def test_send_step_webhook_pr_iteration(
-        self, mock_broadcast, mock_has_access, mock_process_autofix_updates, mock_analytics
+        self,
+        mock_broadcast,
+        mock_has_access,
+        mock_process_autofix_updates,
+        mock_metrics_incr,
+        mock_analytics,
     ):
         mock_has_access.return_value = True
 
@@ -1065,6 +1071,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
             mock_analytics.call_args.args[0].referrer
             == AutofixReferrer.GROUP_AUTOFIX_ENDPOINT.value
         )
+        mock_metrics_incr.assert_called_once_with("ai.autofix.pr_iteration.completed")
 
     @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
