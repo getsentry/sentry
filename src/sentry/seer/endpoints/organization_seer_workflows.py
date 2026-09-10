@@ -25,7 +25,8 @@ from sentry.seer.models.night_shift import (
     SeerNightShiftRunResult,
 )
 from sentry.seer.models.workflow import SeerWorkflowStrategy
-from sentry.seer.monitor_cleanup import FEATURE, create_monitor_cleanup_run
+from sentry.seer.monitor_cleanup import FEATURE
+from sentry.seer.monitor_cleanup.runs import create_monitor_cleanup_run
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.numbers import validate_bigint
 

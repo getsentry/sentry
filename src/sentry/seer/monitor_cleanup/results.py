@@ -1,0 +1,208 @@
+from sentry.auth import access
+from sentry.incidents.grouptype import MetricIssue
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.seer.monitor_cleanup.schemas import (
+    MonitorCleanupArtifact,
+    MonitorCleanupOutput,
+    MonitorCleanupOutputV2,
+    MonitorCleanupReference,
+    MonitorCleanupResource,
+    OrganizationMonitorCleanupArtifact,
+)
+from sentry.users.services.user.service import user_service
+from sentry.utils.numbers import validate_bigint
+from sentry.workflow_engine.models import Detector, DetectorWorkflow
+
+
+def prepare_monitor_cleanup_results(
+    artifact: OrganizationMonitorCleanupArtifact, organization: Organization, user_id: int
+) -> list[MonitorCleanupOutputV2]:
+    project_ids = [project.project_id for project in artifact.projects]
+    if any(
+        not value.isdecimal() or len(value) > 19 or not validate_bigint(int(value))
+        for value in project_ids
+    ) or len(project_ids) != len(set(project_ids)):
+        raise ValueError("The scan returned invalid project IDs.")
+    projects = {
+        str(project.id): project
+        for project in Project.objects.filter(organization=organization, id__in=project_ids)
+    }
+    user = user_service.get_user(user_id=user_id)
+    if user is None:
+        raise ValueError("The triggering user no longer exists.")
+    user_access = access.from_user(user, organization)
+    if projects.keys() != set(project_ids) or not user_access.has_projects_access(
+        projects.values()
+    ):
+        raise ValueError("Some scanned projects are no longer accessible.")
+    outputs: list[MonitorCleanupOutputV2] = []
+    for project_artifact in artifact.projects:
+        project = projects[project_artifact.project_id]
+        output = validate_monitor_findings(project_artifact, organization.id, project.id)
+        output["projectSlug"] = project.slug
+        outputs.append(output)
+    return outputs
+
+
+def validate_monitor_cleanup(
+    artifact: MonitorCleanupArtifact, organization_id: int, project_id: int
+) -> MonitorCleanupOutput:
+    if artifact.findings is not None:
+        return validate_monitor_findings(artifact, organization_id, project_id)
+    ids = [
+        detector_id
+        for group in artifact.groups
+        for detector_id in [group.suggested_keep_id, *group.duplicate_ids]
+    ]
+    if any(
+        not value.isdecimal() or len(value) > 19 or not validate_bigint(int(value)) for value in ids
+    ):
+        raise ValueError("The scan returned an invalid monitor ID.")
+    if len(ids) != len(set(ids)):
+        raise ValueError("The scan returned overlapping monitor groups.")
+    monitors: dict[str, MonitorCleanupReference] = {
+        str(detector.id): {"id": str(detector.id), "name": detector.name}
+        for detector in Detector.objects.filter(
+            id__in=ids,
+            project_id=project_id,
+            project__organization_id=organization_id,
+            type=MetricIssue.slug,
+        )
+    }
+    if set(ids) != monitors.keys():
+        raise ValueError("Some suggested monitors no longer exist or are outside this project.")
+    return {
+        "outputKind": "monitor_cleanup",
+        "schemaVersion": 1,
+        "projectId": str(project_id),
+        "scan": {"status": artifact.scan_status, "monitorsScanned": artifact.monitors_scanned},
+        "summary": artifact.summary,
+        "groups": [
+            {
+                "keep": monitors[group.suggested_keep_id],
+                "duplicates": [monitors[detector_id] for detector_id in group.duplicate_ids],
+                "reason": group.reason,
+                "differences": group.differences,
+                "matchingSettings": [
+                    {"label": setting.label, "value": setting.value}
+                    for setting in group.matching_settings
+                ],
+            }
+            for group in artifact.groups
+        ],
+    }
+
+
+def validate_monitor_findings(
+    artifact: MonitorCleanupArtifact, organization_id: int, project_id: int
+) -> MonitorCleanupOutputV2:
+    findings = artifact.findings or []
+    if artifact.groups or len(findings) > 50:
+        raise ValueError("The scan returned an invalid finding list.")
+    ids = {monitor_id for finding in findings for monitor_id in finding.monitor_ids}
+    alert_ids = {alert_id for finding in findings for alert_id in finding.alert_ids}
+    if any(
+        not value.isdecimal() or len(value) > 19 or not validate_bigint(int(value))
+        for value in ids | alert_ids
+    ):
+        raise ValueError("The scan returned an invalid monitor or alert ID.")
+    monitors: dict[str, MonitorCleanupResource] = {
+        str(detector.id): {
+            "id": str(detector.id),
+            "name": detector.name,
+            "enabled": detector.enabled,
+        }
+        for detector in Detector.objects.filter(
+            id__in=ids,
+            project_id=project_id,
+            project__organization_id=organization_id,
+            type=MetricIssue.slug,
+        )
+    }
+    if ids != monitors.keys():
+        raise ValueError("Some suggested monitors no longer exist or are outside this project.")
+    links = list(
+        DetectorWorkflow.objects.filter(
+            detector_id__in=ids,
+            workflow_id__in=alert_ids,
+            workflow__organization_id=organization_id,
+        ).select_related("workflow")
+    )
+    alerts: dict[str, MonitorCleanupResource] = {
+        str(link.workflow_id): {
+            "id": str(link.workflow_id),
+            "name": link.workflow.name,
+            "enabled": link.workflow.enabled,
+        }
+        for link in links
+    }
+    seen = set()
+    exact_ids: set[str] = set()
+    for finding in findings:
+        members = set(finding.monitor_ids)
+        for row in finding.comparison:
+            row_ids = {value.monitor_id for value in row.values}
+            if len(row_ids) != len(row.values) or row_ids != members:
+                raise ValueError("Comparison rows must contain each finding monitor exactly once.")
+        key = (finding.kind, tuple(sorted(members)))
+        if len(members) != len(finding.monitor_ids) or key in seen:
+            raise ValueError("The scan returned overlapping monitor groups.")
+        seen.add(key)
+        if finding.kind == "exact_duplicate":
+            if finding.suggested_keep_id not in members or members & exact_ids:
+                raise ValueError("Exact duplicates require a distinct suggested keeper.")
+            exact_ids.update(members)
+        elif finding.suggested_keep_id is not None:
+            raise ValueError("Overlapping coverage and notifications must not recommend deletion.")
+        if finding.kind == "duplicate_notifications":
+            selected_alerts = set(finding.alert_ids)
+            selected_links = {
+                (str(link.detector_id), str(link.workflow_id))
+                for link in links
+                if str(link.detector_id) in members and str(link.workflow_id) in selected_alerts
+            }
+            if (
+                not selected_alerts
+                or {monitor_id for monitor_id, _ in selected_links} != members
+                or {alert_id for _, alert_id in selected_links} != selected_alerts
+            ):
+                raise ValueError(
+                    "Notification findings require alerts connected to these monitors."
+                )
+        elif finding.alert_ids:
+            raise ValueError("Alert references belong to notification findings.")
+    return {
+        "outputKind": "monitor_cleanup",
+        "schemaVersion": 2,
+        "projectId": str(project_id),
+        "scan": {"status": artifact.scan_status, "monitorsScanned": artifact.monitors_scanned},
+        "summary": artifact.summary,
+        "findings": [
+            {
+                "kind": finding.kind,
+                "monitors": [monitors[monitor_id] for monitor_id in finding.monitor_ids],
+                "suggestedKeepId": finding.suggested_keep_id,
+                "alerts": [alerts[alert_id] for alert_id in dict.fromkeys(finding.alert_ids)],
+                "reason": finding.reason,
+                "differences": finding.differences,
+                "matchingSettings": [
+                    {"label": setting.label, "value": setting.value}
+                    for setting in finding.matching_settings
+                ],
+                "comparison": [
+                    {
+                        "property": row.property,
+                        "values": [
+                            {"monitorId": value.monitor_id, "value": value.value}
+                            for value in row.values
+                        ],
+                    }
+                    for row in finding.comparison
+                ],
+                "example": finding.example,
+                "nextStep": finding.next_step,
+            }
+            for finding in findings
+        ],
+    }

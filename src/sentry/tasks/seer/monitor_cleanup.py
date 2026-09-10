@@ -13,12 +13,8 @@ from sentry.seer.models.night_shift import (
     SeerNightShiftRunShard,
 )
 from sentry.seer.models.run import SeerRun
-from sentry.seer.monitor_cleanup import (
-    FEATURE,
-    FEATURE_ID,
-    TERMINAL,
-    finish_shard,
-)
+from sentry.seer.monitor_cleanup import FEATURE, FEATURE_ID
+from sentry.seer.monitor_cleanup.runs import TERMINAL, finish_shard
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.users.services.user.service import user_service
