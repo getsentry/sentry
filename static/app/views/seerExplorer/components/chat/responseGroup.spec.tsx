@@ -292,6 +292,17 @@ describe('ResponseGroup', () => {
     expect(screen.getByText('Just an answer')).toBeInTheDocument();
   });
 
+  it('renders a ThinkingBlock placeholder before any trace content arrives', () => {
+    const group = [llmWaitBlock()];
+
+    const {container} = render(
+      <ResponseGroup group={group} blockIndex={0} blocks={group} />,
+      {organization}
+    );
+
+    expect(queryReasoningBox(container)).toBeInTheDocument();
+  });
+
   it('gates thinking prose on the showThinking toggle but keeps tool calls', async () => {
     const group = [
       toolUseBlock('t1', {thinking_content: 'my private reasoning'}),
