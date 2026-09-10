@@ -18,9 +18,9 @@ import type {SimilarItem} from './types';
 
 const SIMILAR_ISSUE_COLUMNS: TableColumnConfig[] = [
   {key: 'merge', width: 'minmax(160px, 1fr)'},
-  {key: 'events', width: '70px', visible: {xs: true}},
-  {key: 'exception', width: '90px'},
-  {key: 'message', width: '90px', visible: {md: true}},
+  {key: 'events', width: 'max-content', visible: {xs: true}},
+  {key: 'exception', width: 'max-content'},
+  {key: 'message', width: 'max-content', visible: {md: true}},
   {key: 'actions', width: '80px', visible: {'2xs': true}},
 ];
 
