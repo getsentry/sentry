@@ -316,8 +316,12 @@ export class Candidates extends Component<Props, State> {
     const {emptyMessage, emptyAction} = this.getEmptyMessage();
 
     return (
-      <Grid>
-        <Flex direction={{zero: 'column', xl: 'row'}} wrap={{xl: 'wrap'}}>
+      <Grid gap="lg">
+        <Flex
+          direction={{zero: 'column', xl: 'row'}}
+          gap={{zero: 'sm', xl: '0'}}
+          wrap={{xl: 'wrap'}}
+        >
           <Text bold variant="muted">
             {({className}) => (
               <Grid
@@ -347,52 +351,52 @@ export class Candidates extends Component<Props, State> {
             )}
           </Text>
           {!!candidates.length && (
-            <Container marginBottom="lg">
-              <SearchBarAction
-                query={searchTerm}
-                onChange={value => this.handleChangeSearchTerm(value)}
-                placeholder={t('Search debug file candidates')}
-                filterOptions={filterOptions}
-                filterSelections={filterSelections}
-                onFilterChange={this.handleChangeFilter}
-              />
-            </Container>
+            <SearchBarAction
+              query={searchTerm}
+              onChange={value => this.handleChangeSearchTerm(value)}
+              placeholder={t('Search debug file candidates')}
+              filterOptions={filterOptions}
+              filterSelections={filterSelections}
+              onFilterChange={this.handleChangeFilter}
+            />
           )}
         </Flex>
-        <StyledSimpleTable
-          hasActions={haveCandidatesAtLeastOneAction}
-          header={
-            <SimpleTable.HeaderRow>
-              <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell>{t('Information')}</SimpleTable.HeaderCell>
-              {haveCandidatesAtLeastOneAction && <SimpleTable.HeaderCell />}
-            </SimpleTable.HeaderRow>
-          }
-        >
-          {isLoading && <SimpleTable.Loading />}
-          {!isLoading && !filteredCandidatesByFilter.length && (
-            <SimpleTable.Empty>
-              <Stack align="center" gap="xl">
-                {emptyMessage}
-                {emptyAction}
-              </Stack>
-            </SimpleTable.Empty>
-          )}
-          {!isLoading &&
-            filteredCandidatesByFilter.map((candidate, index) => (
-              <Candidate
-                key={index}
-                candidate={candidate}
-                organization={organization}
-                baseUrl={baseUrl}
-                projSlug={projSlug}
-                eventDateReceived={eventDateReceived}
-                hasReprocessWarning={hasReprocessWarning}
-                haveCandidatesAtLeastOneAction={haveCandidatesAtLeastOneAction}
-                onDelete={onDelete}
-              />
-            ))}
-        </StyledSimpleTable>
+        <Container overflowX="auto">
+          <StyledSimpleTable
+            hasActions={haveCandidatesAtLeastOneAction}
+            header={
+              <SimpleTable.HeaderRow>
+                <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Information')}</SimpleTable.HeaderCell>
+                {haveCandidatesAtLeastOneAction && <SimpleTable.HeaderCell />}
+              </SimpleTable.HeaderRow>
+            }
+          >
+            {isLoading && <SimpleTable.Loading />}
+            {!isLoading && !filteredCandidatesByFilter.length && (
+              <SimpleTable.Empty>
+                <Stack align="center" gap="xl">
+                  {emptyMessage}
+                  {emptyAction}
+                </Stack>
+              </SimpleTable.Empty>
+            )}
+            {!isLoading &&
+              filteredCandidatesByFilter.map((candidate, index) => (
+                <Candidate
+                  key={index}
+                  candidate={candidate}
+                  organization={organization}
+                  baseUrl={baseUrl}
+                  projSlug={projSlug}
+                  eventDateReceived={eventDateReceived}
+                  hasReprocessWarning={hasReprocessWarning}
+                  haveCandidatesAtLeastOneAction={haveCandidatesAtLeastOneAction}
+                  onDelete={onDelete}
+                />
+              ))}
+          </StyledSimpleTable>
+        </Container>
       </Grid>
     );
   }
@@ -402,11 +406,15 @@ const StyledSimpleTable = styled(SimpleTable, {
   shouldForwardProp: prop => prop !== 'hasActions',
 })<{hasActions: boolean}>`
   grid-template-columns: ${p =>
-    p.hasActions ? 'max-content 1fr max-content' : 'max-content 1fr'};
+    p.hasActions ? 'max-content max-content max-content' : 'max-content max-content'};
 
   height: 100%;
+  min-width: 100%;
+  width: max-content;
 
   @container (min-width: ${props => props.theme.container['5xl']}) {
-    overflow: visible;
+    grid-template-columns: ${p =>
+      p.hasActions ? 'max-content 1fr max-content' : 'max-content 1fr'};
+    width: 100%;
   }
 `;
