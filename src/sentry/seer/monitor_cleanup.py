@@ -146,8 +146,8 @@ def validate_monitor_findings(
     for finding in findings:
         members = set(finding.monitor_ids)
         for row in finding.comparison:
-            row_ids = [value.monitor_id for value in row.values]
-            if len(row_ids) != len(set(row_ids)) or set(row_ids) != members:
+            row_ids = {value.monitor_id for value in row.values}
+            if len(row_ids) != len(row.values) or row_ids != members:
                 raise ValueError("Comparison rows must contain each finding monitor exactly once.")
         key = (finding.kind, tuple(sorted(members)))
         if len(members) != len(finding.monitor_ids) or key in seen:
