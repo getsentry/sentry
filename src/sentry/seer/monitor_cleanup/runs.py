@@ -13,100 +13,89 @@ from rest_framework.request import Request
 
 from sentry import features
 from sentry.models.organization import Organization
+from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.types import FeatureRunStatus
-from sentry.seer.models.night_shift import (
-    SeerNightShiftRun,
-    SeerNightShiftRunResult,
-    SeerNightShiftRunShard,
-)
-from sentry.seer.models.workflow import SeerWorkflowConfig, SeerWorkflowStrategy
-from sentry.seer.monitor_cleanup import FEATURE
+from sentry.seer.models import SeerPermissionError
+from sentry.seer.models.run import SeerAgentRun, SeerRun
+from sentry.seer.monitor_cleanup import FEATURE, FEATURE_ID
 from sentry.seer.monitor_cleanup.results import prepare_monitor_cleanup_results
 from sentry.seer.monitor_cleanup.schemas import (
     RESPONSE_VERSION,
     MonitorCleanupOutput,
     MonitorCleanupResponseV1,
+    MonitorCleanupRunExtras,
 )
 
 logger = logging.getLogger(__name__)
 TERMINAL = {"complete", "partial", "failed"}
+RUN_TIMEOUT = timedelta(minutes=15)
 
 
-def create_monitor_cleanup_run(request: Request, organization: Organization) -> SeerNightShiftRun:
-    # Tasks use finish_shard, so import dispatch after module initialization.
-    from sentry.tasks.seer.monitor_cleanup import dispatch_run
+def create_monitor_cleanup_run(request: Request, organization: Organization) -> SeerRun:
+    # Timeout scheduling calls finish_run if enqueueing fails.
+    from sentry.tasks.seer.monitor_cleanup import schedule_timeout
 
     if not features.has(FEATURE, organization, actor=request.user):
         raise NotFound
     if not request.user.is_authenticated:
         raise PermissionDenied("Sign in to run a monitor scan.")
-    config = SeerWorkflowConfig.get_or_create_for_strategy(
-        organization.id, SeerWorkflowStrategy.DUPLICATE_MONITORS
-    )
-    with transaction.atomic(router.db_for_write(SeerNightShiftRun)):
-        config = SeerWorkflowConfig.objects.select_for_update().get(id=config.id)
-        if SeerNightShiftRun.objects.filter(
-            workflow_config=config, date_completed__isnull=True
-        ).exists():
+    try:
+        client = SeerAgentClient(organization=organization, user=request.user)
+    except SeerPermissionError as error:
+        raise PermissionDenied(str(error)) from error
+    with transaction.atomic(router.db_for_write(SeerRun)):
+        Organization.objects.select_for_update().get(id=organization.id)
+        runs = SeerAgentRun.objects.filter(run__organization=organization, source=FEATURE_ID)
+        if runs.filter(extras__status="running").exists():
             raise ValidationError({"detail": "A monitor scan is already running."})
-        if (
-            SeerNightShiftRun.objects.filter(
-                workflow_config=config, date_added__gte=timezone.now() - timedelta(hours=1)
-            ).count()
-            >= 5
-        ):
+        if runs.filter(run__date_added__gte=timezone.now() - timedelta(hours=1)).count() >= 5:
             raise Throttled(
                 detail="This organization has reached the limit of five scans per hour."
             )
-        run = SeerNightShiftRun.objects.create(
-            organization=organization,
-            workflow_config=config,
-            extras={
-                "options": {"source": "manual"},
-                "triggering_user_id": request.user.id,
-                "status": "running",
-                "response_schema_version": RESPONSE_VERSION,
-            },
+        extras: MonitorCleanupRunExtras = {
+            "status": "running",
+            "date_completed": None,
+            "error": None,
+            "response_schema_version": RESPONSE_VERSION,
+            "project_ids": [],
+            "results": [],
+        }
+        run = client.start_feature_run(
+            feature_id=FEATURE_ID,
+            payload={"response_version": RESPONSE_VERSION},
+            title="Monitor cleanup",
+            flush=False,
+            extras=dict(extras),
+            referrer=FEATURE_ID,
         )
-        SeerNightShiftRunShard.objects.create(run=run, extras={"status": "queued"})
-        transaction.on_commit(
-            lambda: dispatch_run(run.id), using=router.db_for_write(SeerNightShiftRun)
-        )
+        transaction.on_commit(lambda: schedule_timeout(run.id), using=router.db_for_write(SeerRun))
     return run
 
 
-def finish_shard(
-    shard_id: int,
+def finish_run(
+    run_id: int,
     *,
-    outputs: Sequence[MonitorCleanupOutput] | None = None,
+    outputs: Sequence[MonitorCleanupOutput] = (),
     scan_status: Literal["complete", "partial"] = "complete",
     error: str | None = None,
 ) -> None:
-    shard = SeerNightShiftRunShard.objects.filter(id=shard_id).first()
-    if shard is None:
-        return
-    with transaction.atomic(router.db_for_write(SeerNightShiftRun)):
-        run = SeerNightShiftRun.objects.select_for_update().filter(id=shard.run_id).first()
-        if run is None:
-            return
-        shard = (
-            SeerNightShiftRunShard.objects.select_related("seer_run").filter(id=shard_id).first()
+    with transaction.atomic(router.db_for_write(SeerAgentRun)):
+        agent_run = (
+            SeerAgentRun.objects.select_for_update()
+            .filter(run_id=run_id, source=FEATURE_ID)
+            .first()
         )
-        if shard is None or shard.extras.get("status") in TERMINAL:
+        if agent_run is None or agent_run.extras.get("status") in TERMINAL:
             return
-        for output in outputs or []:
-            SeerNightShiftRunResult.objects.get_or_create(
-                run=run,
-                kind=SeerWorkflowStrategy.DUPLICATE_MONITORS,
-                idempotency_key=f"project:{output['projectId']}",
-                defaults={"result_seer_run": shard.seer_run, "extras": output},
-            )
-        status = "failed" if error else scan_status
-        shard.update(extras={**shard.extras, "status": status, "error": error})
-        run.update(
-            extras={**run.extras, "status": status},
-            date_completed=timezone.now(),
-        )
+        extras: MonitorCleanupRunExtras = {
+            "status": "failed" if error else scan_status,
+            "date_completed": timezone.now().isoformat(),
+            "error": error,
+            "response_schema_version": RESPONSE_VERSION,
+            "project_ids": [output["projectId"] for output in outputs],
+            "results": list(outputs),
+        }
+        agent_run.update(extras={**agent_run.extras, **extras})
 
 
 def deliver_monitor_cleanup_result(
@@ -117,39 +106,42 @@ def deliver_monitor_cleanup_result(
     error: str | None,
     prompt_version: str | None = None,
 ) -> None:
-    shard = (
-        SeerNightShiftRunShard.objects.select_related("run__organization", "seer_run")
+    agent_run = (
+        SeerAgentRun.objects.select_related("run__organization")
         .filter(
             run__organization_id=organization_id,
-            run__workflow_config__strategy=SeerWorkflowStrategy.DUPLICATE_MONITORS,
-            seer_run__uuid=run_uuid,
+            source=FEATURE_ID,
+            run__uuid=run_uuid,
         )
         .first()
     )
-    if shard is None or shard.extras.get("status") in TERMINAL:
+    if agent_run is None or agent_run.extras.get("status") in TERMINAL:
+        return
+    if agent_run.run.user_id is None:
+        finish_run(agent_run.run_id, error="The triggering user no longer exists.")
         return
     if status != "completed" or result is None:
-        finish_shard(shard.id, error="Seer could not complete this scan.")
+        finish_run(agent_run.run_id, error="Seer could not complete this scan.")
         return
     # Reject unknown envelopes before interpreting their contents as the current schema.
     if (
         type(result.get("schema_version")) is not int
         or result["schema_version"] != RESPONSE_VERSION
     ):
-        finish_shard(
-            shard.id, error="Seer returned an unsupported monitor cleanup response version."
+        finish_run(
+            agent_run.run_id, error="Seer returned an unsupported monitor cleanup response version."
         )
         return
     try:
         response = MonitorCleanupResponseV1.parse_obj(result)
         outputs = prepare_monitor_cleanup_results(
-            response.data, shard.run.organization, shard.run.extras["triggering_user_id"]
+            response.data, agent_run.run.organization, agent_run.run.user_id
         )
     except ValueError:
-        logger.exception("monitor_cleanup.invalid_output", extra={"shard_id": shard.id})
-        finish_shard(shard.id, error="Seer returned findings that could not be validated.")
+        logger.exception("monitor_cleanup.invalid_output", extra={"agent_run_id": agent_run.id})
+        finish_run(agent_run.run_id, error="Seer returned findings that could not be validated.")
         return
     scan_status = response.data.scan_status
     if any(project.scan_status == "partial" for project in response.data.projects):
         scan_status = "partial"
-    finish_shard(shard.id, outputs=outputs, scan_status=scan_status)
+    finish_run(agent_run.run_id, outputs=outputs, scan_status=scan_status)

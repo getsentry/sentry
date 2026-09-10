@@ -2,14 +2,16 @@ from sentry.auth import access
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.seer.models.run import SeerAgentRun
 from sentry.seer.monitor_cleanup.schemas import (
     MonitorCleanupArtifact,
     MonitorCleanupOutput,
     MonitorCleanupResource,
+    MonitorCleanupRunExtras,
+    MonitorCleanupRunResponse,
     OrganizationMonitorCleanupArtifact,
 )
 from sentry.users.services.user.service import user_service
-from sentry.utils.numbers import validate_bigint
 from sentry.workflow_engine.models import Detector, DetectorWorkflow
 
 
@@ -17,13 +19,10 @@ def prepare_monitor_cleanup_results(
     artifact: OrganizationMonitorCleanupArtifact, organization: Organization, user_id: int
 ) -> list[MonitorCleanupOutput]:
     project_ids = [project.project_id for project in artifact.projects]
-    if any(
-        not value.isdecimal() or len(value) > 19 or not validate_bigint(int(value))
-        for value in project_ids
-    ) or len(project_ids) != len(set(project_ids)):
-        raise ValueError("The scan returned invalid project IDs.")
+    if len(project_ids) != len(set(project_ids)):
+        raise ValueError("The scan returned repeated projects.")
     projects = {
-        str(project.id): project
+        project.id: project
         for project in Project.objects.filter(organization=organization, id__in=project_ids)
     }
     user = user_service.get_user(user_id=user_id)
@@ -49,13 +48,8 @@ def validate_monitor_cleanup(
     findings = artifact.findings
     ids = {monitor_id for finding in findings for monitor_id in finding.monitor_ids}
     alert_ids = {alert_id for finding in findings for alert_id in finding.alert_ids}
-    if any(
-        not value.isdecimal() or len(value) > 19 or not validate_bigint(int(value))
-        for value in ids | alert_ids
-    ):
-        raise ValueError("The scan returned an invalid monitor or alert ID.")
-    monitors: dict[str, MonitorCleanupResource] = {
-        str(detector.id): {
+    monitors: dict[int, MonitorCleanupResource] = {
+        detector.id: {
             "id": str(detector.id),
             "name": detector.name,
             "enabled": detector.enabled,
@@ -76,8 +70,8 @@ def validate_monitor_cleanup(
             workflow__organization_id=organization_id,
         ).select_related("workflow")
     )
-    alerts: dict[str, MonitorCleanupResource] = {
-        str(link.workflow_id): {
+    alerts: dict[int, MonitorCleanupResource] = {
+        link.workflow_id: {
             "id": str(link.workflow_id),
             "name": link.workflow.name,
             "enabled": link.workflow.enabled,
@@ -85,7 +79,7 @@ def validate_monitor_cleanup(
         for link in links
     }
     seen = set()
-    exact_ids: set[str] = set()
+    exact_ids: set[int] = set()
     for finding in findings:
         members = set(finding.monitor_ids)
         for row in finding.comparison:
@@ -105,9 +99,9 @@ def validate_monitor_cleanup(
         if finding.kind == "duplicate_notifications":
             selected_alerts = set(finding.alert_ids)
             selected_links = {
-                (str(link.detector_id), str(link.workflow_id))
+                (link.detector_id, link.workflow_id)
                 for link in links
-                if str(link.detector_id) in members and str(link.workflow_id) in selected_alerts
+                if link.detector_id in members and link.workflow_id in selected_alerts
             }
             if (
                 not selected_alerts
@@ -129,14 +123,16 @@ def validate_monitor_cleanup(
             {
                 "kind": finding.kind,
                 "monitors": [monitors[monitor_id] for monitor_id in finding.monitor_ids],
-                "suggestedKeepId": finding.suggested_keep_id,
+                "suggestedKeepId": str(finding.suggested_keep_id)
+                if finding.suggested_keep_id is not None
+                else None,
                 "alerts": [alerts[alert_id] for alert_id in dict.fromkeys(finding.alert_ids)],
                 "reason": finding.reason,
                 "comparison": [
                     {
                         "property": row.property,
                         "values": [
-                            {"monitorId": value.monitor_id, "value": value.value}
+                            {"monitorId": str(value.monitor_id), "value": value.value}
                             for value in row.values
                         ],
                     }
@@ -144,5 +140,27 @@ def validate_monitor_cleanup(
                 ],
             }
             for finding in findings
+        ],
+    }
+
+
+def serialize_monitor_cleanup_run(agent_run: SeerAgentRun) -> MonitorCleanupRunResponse:
+    extras: MonitorCleanupRunExtras = agent_run.extras
+    run_uuid = str(agent_run.run.uuid)
+    return {
+        "id": run_uuid,
+        "dateAdded": agent_run.run.date_added.isoformat(),
+        "dateCompleted": extras["date_completed"],
+        "strategy": "duplicate_monitors",
+        "extras": {"status": extras["status"]},
+        "errorMessage": extras["error"],
+        "results": [
+            {
+                "id": f"{run_uuid}:{output['projectId']}",
+                "kind": "duplicate_monitors",
+                "seerRunId": run_uuid,
+                "extras": output,
+            }
+            for output in extras["results"]
         ],
     }

@@ -179,6 +179,7 @@ from sentry.preprod.models import (
 from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel
 from sentry.seer.autofix.constants import CodingAgentStatus
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
+from sentry.seer.models.night_shift import SeerNightShiftRun
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.seer.models.run import (
     SeerAgentRun,
@@ -3246,6 +3247,11 @@ class Factories:
             agent_session_id=session_id,
             **kwargs,
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_night_shift_run(organization, **kwargs) -> SeerNightShiftRun:
+        return SeerNightShiftRun.objects.create(organization=organization, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
