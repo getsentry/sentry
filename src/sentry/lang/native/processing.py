@@ -399,9 +399,7 @@ def process_minidump(symbolicator: Symbolicator, data: Any) -> Any:
     response = symbolicator.process_minidump(data.get("platform"), minidump, rewrite_first_module)
 
     if _handle_response_status(data, response):
-        preserve_thread = get_path(data, "exception", "values", 0, "thread_id") is not None or bool(
-            get_path(data, "_meta", "exception", "values", "0", "thread_id", "", "err")
-        )
+        preserve_thread = get_path(data, "exception", "values", 0, "thread_id") is not None
         selected_thread = _select_minidump_thread(data, response) if preserve_thread else None
         _merge_full_response(
             data, response, selected_thread=selected_thread, preserve_thread=preserve_thread

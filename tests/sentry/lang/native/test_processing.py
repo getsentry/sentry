@@ -28,6 +28,7 @@ from sentry.models.eventerror import EventErrorType
 from sentry.services.eventstore.models import Event
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.event import is_handled
 from sentry.utils.safe import get_path
 
 MINIDUMP_PLACEHOLDER = {
@@ -719,12 +720,22 @@ def test_minidump_does_not_reuse_other_thread_registers(
 
 
 @pytest.mark.parametrize(
-    "attributes",
-    [{"current": True, "crashed": False, "main": True}, {"crashed": False}, {"crashed": True}],
+    "attributes,level,handled",
+    [
+        ({"current": True, "crashed": False, "main": True}, "error", True),
+        ({"crashed": False}, "error", True),
+        ({"crashed": True}, "fatal", False),
+    ],
 )
-def test_minidump_preserves_thread_attributes(
-    minidump_event: dict[str, Any], minidump_symbolicator: mock.Mock, attributes: dict[str, bool]
+def test_minidump_preserves_event_attributes(
+    minidump_event: dict[str, Any],
+    minidump_symbolicator: mock.Mock,
+    attributes: dict[str, bool],
+    level: str,
+    handled: bool,
 ) -> None:
+    minidump_event["level"] = level
+    minidump_event["exception"]["values"][0]["mechanism"]["handled"] = handled
     minidump_event["threads"] = {
         "values": [
             {"id": 1, "crashed": True},
@@ -743,24 +754,8 @@ def test_minidump_preserves_thread_attributes(
     exception = minidump_event["exception"]["values"][0]
     assert exception["thread_id"] == 2
     assert exception["stacktrace"]["frames"][-1]["function"] == "hang"
-
-
-def test_minidump_rejected_thread_id(
-    minidump_event: dict[str, Any], minidump_symbolicator: mock.Mock
-) -> None:
-    minidump_event["exception"]["values"][0].pop("thread_id")
-    minidump_event["_meta"] = {
-        "exception": {"values": {"0": {"thread_id": {"": {"err": ["invalid_data"], "val": True}}}}}
-    }
-
-    process_minidump(minidump_symbolicator, minidump_event)
-
-    assert "thread_id" not in minidump_event["exception"]["values"][0]
-    assert not any(
-        thread.get("crashed") or thread.get("current")
-        for thread in minidump_event["threads"]["values"]
-    )
-    assert minidump_event["errors"][0]["name"] == "exception.values.0.thread_id"
+    assert minidump_event["level"] == level
+    assert is_handled(minidump_event) is handled
 
 
 def test_minidump_failure_keeps_event_stack(
