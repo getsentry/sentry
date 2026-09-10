@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Any, Literal
+from typing import Any, Literal, NotRequired, TypedDict
 from uuid import UUID
 
 from django.db import router, transaction
@@ -136,9 +137,80 @@ class MonitorCleanupResponseV1(BaseModel):
     data: OrganizationMonitorCleanupArtifact
 
 
+class MonitorCleanupOutputBase(TypedDict):
+    outputKind: Literal["monitor_cleanup"]
+    projectId: str
+    projectSlug: NotRequired[str]
+    scan: MonitorCleanupScan
+    summary: str
+
+
+class MonitorCleanupOutputV1(MonitorCleanupOutputBase):
+    schemaVersion: Literal[1]
+    groups: list[MonitorCleanupGroup]
+
+
+class MonitorCleanupOutputV2(MonitorCleanupOutputBase):
+    schemaVersion: Literal[2]
+    findings: list[MonitorCleanupFinding]
+
+
+type MonitorCleanupOutput = MonitorCleanupOutputV1 | MonitorCleanupOutputV2
+
+
+class MonitorCleanupScan(TypedDict):
+    status: Literal["complete", "partial"]
+    monitorsScanned: int
+
+
+class MonitorCleanupGroup(TypedDict):
+    keep: MonitorCleanupReference
+    duplicates: list[MonitorCleanupReference]
+    reason: str
+    differences: list[str]
+    matchingSettings: list[MonitorCleanupSetting]
+
+
+class MonitorCleanupFinding(TypedDict):
+    kind: Literal["exact_duplicate", "overlapping_coverage", "duplicate_notifications"]
+    monitors: list[MonitorCleanupResource]
+    suggestedKeepId: str | None
+    alerts: list[MonitorCleanupResource]
+    reason: str
+    differences: list[str]
+    matchingSettings: list[MonitorCleanupSetting]
+    comparison: list[MonitorCleanupComparison]
+    example: str
+    nextStep: str
+
+
+class MonitorCleanupReference(TypedDict):
+    id: str
+    name: str
+
+
+class MonitorCleanupResource(MonitorCleanupReference):
+    enabled: bool
+
+
+class MonitorCleanupSetting(TypedDict):
+    label: str
+    value: str
+
+
+class MonitorCleanupComparison(TypedDict):
+    property: str
+    values: list[MonitorCleanupComparisonValue]
+
+
+class MonitorCleanupComparisonValue(TypedDict):
+    monitorId: str
+    value: str
+
+
 def prepare_monitor_cleanup_results(
     artifact: OrganizationMonitorCleanupArtifact, organization: Organization, user_id: int
-) -> list[dict[str, object]]:
+) -> list[MonitorCleanupOutputV2]:
     project_ids = [project.project_id for project in artifact.projects]
     if any(
         not value.isdecimal() or len(value) > 19 or not validate_bigint(int(value))
@@ -157,10 +229,10 @@ def prepare_monitor_cleanup_results(
         projects.values()
     ):
         raise ValueError("Some scanned projects are no longer accessible.")
-    outputs = []
+    outputs: list[MonitorCleanupOutputV2] = []
     for project_artifact in artifact.projects:
         project = projects[project_artifact.project_id]
-        output = validate_monitor_cleanup(project_artifact, organization.id, project.id)
+        output = validate_monitor_findings(project_artifact, organization.id, project.id)
         output["projectSlug"] = project.slug
         outputs.append(output)
     return outputs
@@ -168,7 +240,7 @@ def prepare_monitor_cleanup_results(
 
 def validate_monitor_cleanup(
     artifact: MonitorCleanupArtifact, organization_id: int, project_id: int
-) -> dict[str, object]:
+) -> MonitorCleanupOutput:
     if artifact.findings is not None:
         return validate_monitor_findings(artifact, organization_id, project_id)
     ids = [
@@ -182,7 +254,7 @@ def validate_monitor_cleanup(
         raise ValueError("The scan returned an invalid monitor ID.")
     if len(ids) != len(set(ids)):
         raise ValueError("The scan returned overlapping monitor groups.")
-    monitors = {
+    monitors: dict[str, MonitorCleanupReference] = {
         str(detector.id): {"id": str(detector.id), "name": detector.name}
         for detector in Detector.objects.filter(
             id__in=ids,
@@ -205,7 +277,10 @@ def validate_monitor_cleanup(
                 "duplicates": [monitors[detector_id] for detector_id in group.duplicate_ids],
                 "reason": group.reason,
                 "differences": group.differences,
-                "matchingSettings": [setting.dict() for setting in group.matching_settings],
+                "matchingSettings": [
+                    {"label": setting.label, "value": setting.value}
+                    for setting in group.matching_settings
+                ],
             }
             for group in artifact.groups
         ],
@@ -214,7 +289,7 @@ def validate_monitor_cleanup(
 
 def validate_monitor_findings(
     artifact: MonitorCleanupArtifact, organization_id: int, project_id: int
-) -> dict[str, object]:
+) -> MonitorCleanupOutputV2:
     findings = artifact.findings or []
     if artifact.groups or len(findings) > 50:
         raise ValueError("The scan returned an invalid finding list.")
@@ -225,7 +300,7 @@ def validate_monitor_findings(
         for value in ids | alert_ids
     ):
         raise ValueError("The scan returned an invalid monitor or alert ID.")
-    monitors = {
+    monitors: dict[str, MonitorCleanupResource] = {
         str(detector.id): {
             "id": str(detector.id),
             "name": detector.name,
@@ -247,7 +322,7 @@ def validate_monitor_findings(
             workflow__organization_id=organization_id,
         ).select_related("workflow")
     )
-    alerts = {
+    alerts: dict[str, MonitorCleanupResource] = {
         str(link.workflow_id): {
             "id": str(link.workflow_id),
             "name": link.workflow.name,
@@ -304,7 +379,10 @@ def validate_monitor_findings(
                 "alerts": [alerts[alert_id] for alert_id in dict.fromkeys(finding.alert_ids)],
                 "reason": finding.reason,
                 "differences": finding.differences,
-                "matchingSettings": [setting.dict() for setting in finding.matching_settings],
+                "matchingSettings": [
+                    {"label": setting.label, "value": setting.value}
+                    for setting in finding.matching_settings
+                ],
                 "comparison": [
                     {
                         "property": row.property,
@@ -326,8 +404,8 @@ def validate_monitor_findings(
 def finish_shard(
     shard_id: int,
     *,
-    outputs: list[dict[str, object]] | None = None,
-    scan_status: str = "complete",
+    outputs: Sequence[MonitorCleanupOutput] | None = None,
+    scan_status: Literal["complete", "partial"] = "complete",
     error: str | None = None,
 ) -> None:
     shard = SeerNightShiftRunShard.objects.filter(id=shard_id).first()

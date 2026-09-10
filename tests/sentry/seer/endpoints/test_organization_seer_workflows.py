@@ -824,7 +824,6 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         )
         assert output["schemaVersion"] == 2
         findings = output["findings"]
-        assert isinstance(findings, list)
         assert findings[0]["suggestedKeepId"] is None
         assert findings[0]["monitors"][0]["name"] == "Keep"
 
@@ -853,8 +852,8 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             kind="duplicate_notifications", alert_ids=[str(workflow.id)]
         ).findings
         output = validate_monitor_cleanup(artifact, self.organization.id, self.project.id)
+        assert output["schemaVersion"] == 2
         findings = output["findings"]
-        assert isinstance(findings, list)
         assert len(findings) == 2
         assert findings[1]["alerts"] == [
             {"id": str(workflow.id), "name": "Shared alert", "enabled": False}
@@ -898,8 +897,8 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             ]
         )
         output = validate_monitor_cleanup(artifact, self.organization.id, self.project.id)
+        assert output["schemaVersion"] == 2
         findings = output["findings"]
-        assert isinstance(findings, list)
         assert findings[0]["comparison"] == [
             {
                 "property": "Trigger",
