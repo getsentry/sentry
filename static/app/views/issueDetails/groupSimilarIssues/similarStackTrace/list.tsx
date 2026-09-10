@@ -16,9 +16,6 @@ import type {Project} from 'sentry/types/project';
 import {SimilarStackTraceItem, SimilarStackTraceItemSkeleton} from './item';
 import type {SimilarItem} from './types';
 
-// The issue column is the only one carrying what identifies a row, so it keeps a
-// floor and the fixed columns drop away around it as the drawer narrows, in
-// ascending order of usefulness.
 const SIMILAR_ISSUE_COLUMNS: TableColumnConfig[] = [
   {key: 'merge', width: 'minmax(160px, 1fr)'},
   {key: 'events', width: '70px', visible: {xs: true}},
