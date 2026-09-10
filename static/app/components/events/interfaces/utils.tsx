@@ -23,12 +23,6 @@ interface ImageForAddressProps {
   event: Event;
 }
 
-interface HiddenFrameIndicesProps {
-  data: StacktraceType;
-  frameCountMap: Record<number, number>;
-  toggleFrameMap: Record<number, boolean>;
-}
-
 export function findImageForAddress({
   event,
   addrMode,
@@ -63,46 +57,6 @@ export function isRepeatedFrame(frame: Frame, nextFrame?: Frame) {
     frame.module === nextFrame.module &&
     frame.function === nextFrame.function
   );
-}
-
-function getRepeatedFrameIndices(data: StacktraceType) {
-  const repeats: number[] = [];
-  (data.frames ?? []).forEach((frame, frameIdx) => {
-    const nextFrame = (data.frames ?? [])[frameIdx + 1];
-    const repeatedFrame = isRepeatedFrame(frame, nextFrame);
-
-    if (repeatedFrame) {
-      repeats.push(frameIdx);
-    }
-  });
-  return repeats;
-}
-
-export function getHiddenFrameIndices({
-  data,
-  toggleFrameMap,
-  frameCountMap,
-}: HiddenFrameIndicesProps) {
-  const repeatedIndeces = getRepeatedFrameIndices(data);
-  let hiddenFrameIndices: number[] = [];
-  Object.keys(toggleFrameMap)
-    // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
-    .filter(frameIndex => toggleFrameMap[frameIndex] === true)
-    .forEach(indexString => {
-      const index = parseInt(indexString, 10);
-      const indicesToBeAdded: number[] = [];
-      let i = 1;
-      let numHidden = frameCountMap[index]!;
-      while (numHidden > 0) {
-        if (!repeatedIndeces.includes(index - i)) {
-          indicesToBeAdded.push(index - i);
-          numHidden -= 1;
-        }
-        i += 1;
-      }
-      hiddenFrameIndices = [...hiddenFrameIndices, ...indicesToBeAdded];
-    });
-  return hiddenFrameIndices;
 }
 
 export function getLastFrameIndex(frames: Frame[]) {

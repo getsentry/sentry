@@ -29,7 +29,7 @@ export function hasContextSource(frame: Frame) {
   return defined(frame.context) && !!frame.context.length;
 }
 
-export function hasContextVars(frame: Frame) {
+function hasContextVars(frame: Frame) {
   return !isEmptyObject(frame.vars || {});
 }
 

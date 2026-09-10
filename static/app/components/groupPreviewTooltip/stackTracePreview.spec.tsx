@@ -1,6 +1,5 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {EventStacktraceFrameFixture} from 'sentry-fixture/eventStacktraceFrame';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -133,28 +132,10 @@ describe('StackTracePreview', () => {
     expect(screen.queryAllByRole('img')).toHaveLength(0);
   });
 
-  it('renders legacy native stack trace previews without the feature flag', () => {
+  it('renders native previews without a feature flag', () => {
     const {event, stacktrace} = makeNativePreview();
-
     render(<StackTracePreviewContent event={event} stacktrace={stacktrace} />);
-
-    expect(screen.getByTestId('stack-trace-frame')).toBeInTheDocument();
-    expect(
-      screen.queryByTestId('native-stack-trace-frame-title')
-    ).not.toBeInTheDocument();
-  });
-
-  it('renders new native stack trace previews with the feature flag', () => {
-    const {event, stacktrace} = makeNativePreview();
-
-    render(<StackTracePreviewContent event={event} stacktrace={stacktrace} />, {
-      organization: OrganizationFixture({
-        features: ['issue-details-new-stack-trace'],
-      }),
-    });
-
     expect(screen.getByTestId('native-stack-trace-frame-title')).toBeInTheDocument();
-    expect(screen.queryByTestId('stack-trace-frame')).not.toBeInTheDocument();
   });
 
   it('shows every system-only native frame in the new preview', () => {
@@ -167,9 +148,7 @@ describe('StackTracePreview', () => {
       })
     );
 
-    render(<StackTracePreviewContent event={event} stacktrace={stacktrace} />, {
-      organization: OrganizationFixture({features: ['issue-details-new-stack-trace']}),
-    });
+    render(<StackTracePreviewContent event={event} stacktrace={stacktrace} />);
 
     expect(screen.getByText('system_start')).toBeInTheDocument();
     expect(screen.getByText('system_wait')).toBeInTheDocument();

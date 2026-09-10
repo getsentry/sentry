@@ -54,6 +54,7 @@ export function ActiveThreadStackTrace() {
   if (exception?.values.length && !showAppleCrashReport) {
     return (
       <IssueExceptionStackTrace
+        thread={activeThread}
         key={activeThread?.id}
         values={exception.values}
         event={event}
@@ -86,6 +87,7 @@ export function ActiveThreadStackTrace() {
         />
       ) : (
         <FrameList
+          thread={activeThread}
           key={activeThread?.id}
           event={event}
           stacktrace={stacktrace}

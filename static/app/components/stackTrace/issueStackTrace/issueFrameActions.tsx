@@ -12,6 +12,7 @@ import {
 import {IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 
+import {AnrFrameAction} from './anrFrameAction';
 import {IssueSourceLinkAction} from './issueSourceLinkAction';
 import {IssueSourceMapsDebuggerAction} from './issueSourceMapsDebuggerAction';
 
@@ -25,6 +26,7 @@ export function IssueFrameActions({isHovering}: IssueFrameActionsProps) {
 
   return (
     <Fragment>
+      <AnrFrameAction />
       <IssueSourceLinkAction isHovering={isHovering} />
       <IssueSourceMapsDebuggerAction />
       {hiddenFrameCount ? <HiddenFramesToggleAction /> : null}

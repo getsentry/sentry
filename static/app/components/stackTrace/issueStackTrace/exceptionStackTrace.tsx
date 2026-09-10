@@ -23,7 +23,7 @@ import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceCon
 import {StackTraceFrameList} from 'sentry/components/stackTrace/stackTraceFrameList';
 import type {StackTraceMeta} from 'sentry/components/stackTrace/types';
 import {t, tn} from 'sentry/locale';
-import type {Event, ExceptionValue} from 'sentry/types/event';
+import type {Event, ExceptionValue, Thread} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils/defined';
@@ -44,8 +44,10 @@ export interface IssueStackTraceFrameListProps {
   stacktrace: StacktraceType | null;
   exceptionIndex?: number;
   groupingCurrentLevel?: Group['metadata']['current_level'];
+  lockAddress?: string;
   meta?: StackTraceMeta;
   minifiedStacktrace?: StacktraceType;
+  thread?: Thread;
 }
 
 interface IssueExceptionStackTraceProps {
@@ -56,6 +58,7 @@ interface IssueExceptionStackTraceProps {
   hasScmSourceContext?: boolean;
   isStandalone?: boolean;
   showBanners?: boolean;
+  thread?: Thread;
 }
 
 export function IssueExceptionStackTrace({
@@ -65,6 +68,7 @@ export function IssueExceptionStackTrace({
   hasScmSourceContext = false,
   isStandalone = false,
   showBanners = true,
+  thread,
   values,
 }: IssueExceptionStackTraceProps) {
   const {isMinified, isNewestFirst, view} = useStackTraceViewState();
@@ -123,6 +127,7 @@ export function IssueExceptionStackTrace({
           </ErrorBoundary>
         )}
         <FrameListComponent
+          thread={thread}
           event={event}
           exceptionIndex={isStandalone ? undefined : exception.exceptionIndex}
           groupingCurrentLevel={groupingCurrentLevel}
@@ -196,6 +201,7 @@ export function IssueExceptionStackTrace({
                   </ErrorBoundary>
                 ) : null}
                 <FrameListComponent
+                  thread={thread}
                   event={event}
                   exceptionIndex={exception.exceptionIndex}
                   groupingCurrentLevel={groupingCurrentLevel}

@@ -351,17 +351,10 @@ describe('groupEventDetails', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it.each([
-    {entryType: EntryType.EXCEPTION, enabled: true},
-    {entryType: EntryType.EXCEPTION, enabled: false},
-    {entryType: EntryType.STACKTRACE, enabled: true},
-    {entryType: EntryType.STACKTRACE, enabled: false},
-  ])(
-    'renders native $entryType with the new renderer only when enabled=$enabled',
-    async ({entryType, enabled}) => {
-      const props = makeDefaultMockData(
-        OrganizationFixture({features: enabled ? ['issue-details-new-stack-trace'] : []})
-      );
+  it.each([EntryType.EXCEPTION, EntryType.STACKTRACE])(
+    'renders native %s without a rollout flag',
+    async entryType => {
+      const props = makeDefaultMockData(OrganizationFixture({features: []}));
       const stacktrace = {
         frames: [
           FrameFixture({
@@ -420,9 +413,7 @@ describe('groupEventDetails', () => {
       });
 
       expect(await screen.findByText('causeCrash')).toBeInTheDocument();
-      expect(screen.queryAllByTestId('native-stack-trace-frame-title')).toHaveLength(
-        enabled ? 1 : 0
-      );
+      expect(screen.queryAllByTestId('native-stack-trace-frame-title')).toHaveLength(1);
     }
   );
 

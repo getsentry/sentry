@@ -1,16 +1,5 @@
 import type {Frame} from './event';
 
-export enum StackView {
-  RAW = 'raw',
-  FULL = 'full',
-  APP = 'app',
-}
-
-export enum StackType {
-  ORIGINAL = 'original',
-  MINIFIED = 'minified',
-}
-
 export interface StacktraceType {
   /**
    * Omitted segment of frames (start, end)
