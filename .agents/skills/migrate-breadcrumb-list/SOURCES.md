@@ -32,3 +32,11 @@ Run 2 also found a regression introduced by run 1's fix — the step 6 "add as s
 - No cold run against Shape C, the hardest shape (`explore/components/breadcrumb.tsx`, four consumers with branch-dependent titles).
 - The overflow collapse cannot be tested in jsdom, so no run has exercised it.
 - Reachability, not file counts, determines whether a call-site inconsistency is user-visible; the inventory records shapes but not reachability.
+- Choosing the title on a Shape B or Shape C page is a judgement the skill can frame but not decide — it supplies a priority order and answer keys, not a rule.
+- `select-projects` has no production consumer, so its guidance is untested by use.
+
+## Maintenance
+
+- Update `SKILL.md` when the item unions gain or lose a type, when a TopBar slot is added or renamed, or when a shape category stops matching what is left in the tree.
+- Delete the `preservePageFilters` section once no legacy importer still passes the prop: `grep -rln "preservePageFilters: true" static/app --include='*.tsx'`.
+- Prune `references/call-site-inventory.md` as rows land. **When it empties and the legacy-importer count reaches 4, delete this skill** — it exists to retire a migration, and outliving that migration is how it rots.
