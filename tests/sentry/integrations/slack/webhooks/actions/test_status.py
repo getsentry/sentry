@@ -1283,6 +1283,35 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         resp = self.client.post("/extensions/slack/action/", data=payload)
         assert resp.status_code == 200
 
+    @patch("sentry.integrations.slack.webhooks.action.process_member_approval.apply_async")
+    def test_member_approval_dispatches_task(self, mock_apply_async: MagicMock) -> None:
+        other_user = self.create_user()
+        member = self.create_member(
+            organization=self.organization,
+            email="hello@sentry.io",
+            role="member",
+            inviter_id=other_user.id,
+            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+        )
+        callback_id = orjson.dumps(
+            {"member_id": member.id, "member_email": "hello@sentry.io"}
+        ).decode()
+
+        resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
+
+        assert resp.status_code == 200, resp.content
+        mock_apply_async.assert_called_once_with(
+            kwargs={
+                "member_id": member.id,
+                "member_email": "hello@sentry.io",
+                "actor_id": self.user.id,
+                "response_url": self.response_url,
+                "action": "approve_member",
+            }
+        )
+        member.refresh_from_db()
+        assert member.invite_status == InviteStatus.REQUESTED_TO_JOIN.value
+
     def test_approve_join_request(self) -> None:
         other_user = self.create_user()
         member = self.create_member(
@@ -1298,10 +1327,14 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             {"member_id": member.id, "member_email": "hello@sentry.io"}
         ).decode()
 
-        resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
+        with self.tasks():
+            resp = self.post_webhook(
+                action_data=[{"value": "approve_member"}], callback_id=callback_id
+            )
 
         assert resp.status_code == 200, resp.content
 
+        member.refresh_from_db()
         self.assert_org_member_mapping(org_member=member)
         assert member.invite_status == InviteStatus.APPROVED.value
 
@@ -1321,7 +1354,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             {"member_id": member.id, "member_email": "hello@sentry.io"}
         ).decode()
 
-        resp = self.post_webhook(action_data=[{"value": "reject_member"}], callback_id=callback_id)
+        with self.tasks():
+            resp = self.post_webhook(
+                action_data=[{"value": "reject_member"}], callback_id=callback_id
+            )
 
         assert resp.status_code == 200, resp.content
         assert not OrganizationMember.objects.filter(id=member.id).exists()
@@ -1341,7 +1377,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             {"member_id": member.id, "member_email": "hello@sentry.io"}
         ).decode()
 
-        resp = self.post_webhook(action_data=[{"value": "reject_member"}], callback_id=callback_id)
+        with self.tasks():
+            resp = self.post_webhook(
+                action_data=[{"value": "reject_member"}], callback_id=callback_id
+            )
 
         assert resp.status_code == 200, resp.content
         assert OrganizationMember.objects.filter(id=member.id).exists()
@@ -1364,7 +1403,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         ).decode()
         member.delete()
 
-        resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
+        with self.tasks():
+            resp = self.post_webhook(
+                action_data=[{"value": "approve_member"}], callback_id=callback_id
+            )
 
         assert resp.status_code == 200, resp.content
         assert resp is not None
@@ -1382,7 +1424,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             {"member_id": member.id, "member_email": "hello@sentry.io"}
         ).decode()
 
-        resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
+        with self.tasks():
+            resp = self.post_webhook(
+                action_data=[{"value": "approve_member"}], callback_id=callback_id
+            )
 
         assert resp.status_code == 200, resp.content
         assert resp is not None
@@ -1402,7 +1447,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             {"member_id": member.id, "member_email": "hello@sentry.io"}
         ).decode()
 
-        resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
+        with self.tasks():
+            resp = self.post_webhook(
+                action_data=[{"value": "approve_member"}], callback_id=callback_id
+            )
 
         assert resp.status_code == 200, resp.content
         assert resp is not None
@@ -1429,7 +1477,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             {"member_id": member.id, "member_email": "hello@sentry.io"}
         ).decode()
 
-        resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
+        with self.tasks():
+            resp = self.post_webhook(
+                action_data=[{"value": "approve_member"}], callback_id=callback_id
+            )
 
         assert resp.status_code == 200, resp.content
         assert resp is not None
@@ -1450,7 +1501,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             {"member_id": member.id, "member_email": "hello@sentry.io"}
         ).decode()
 
-        resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
+        with self.tasks():
+            resp = self.post_webhook(
+                action_data=[{"value": "approve_member"}], callback_id=callback_id
+            )
 
         assert resp.status_code == 200, resp.content
         assert resp is not None
