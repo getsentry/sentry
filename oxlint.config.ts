@@ -223,7 +223,10 @@ const config = defineConfig({
   },
   options: {
     typeAware: enableTypeAwareLinting,
-    reportUnusedDisableDirectives: 'off',
+    // Only report unused directives when the full rule set runs. Without
+    // type-aware linting the type-aware rules never fire, so the suppressions
+    // that silence them look unused and `--fix` would delete live ones.
+    reportUnusedDisableDirectives: enableTypeAwareLinting ? 'error' : 'off',
   },
   env: {
     builtin: true,
@@ -608,9 +611,9 @@ const config = defineConfig({
     'react/function-component-definition': 'error',
     'react/globals': 'error',
     'react/hooks': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
-    'react/immutability': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/immutability': 'error',
     'react/incompatible-library': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
-    'react/invariant': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/invariant': 'error',
     'react/jsx-boolean-value': ['error', 'never'],
     'react/jsx-fragments': ['error', 'element'],
     'react/jsx-key': [
@@ -641,13 +644,13 @@ const config = defineConfig({
     'react/memo-dependencies': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/no-deriving-state-in-effects': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/preserve-manual-memoization': 'error',
-    'react/purity': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/purity': 'error',
     'react/refs': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/require-render-return': 'error',
-    'react/rule-suppression': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/rule-suppression': 'off',
     'react/set-state-in-effect': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/set-state-in-render': 'error',
-    'react/static-components': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/static-components': 'error',
     'react/syntax': 'error',
     'react/todo': 'off',
     'react/unsupported-syntax': 'error',

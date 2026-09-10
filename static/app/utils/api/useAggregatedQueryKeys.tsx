@@ -160,6 +160,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data, ResponseData 
       });
 
       if (allQueuedQueries.length > queuedQueriesBatch.length) {
+        // oxlint-disable-next-line react/immutability
         fetchData();
       }
     } catch (error) {
