@@ -325,9 +325,34 @@ export function getStateFromQuery(
 }
 
 /**
- * Extract the page filter parameters from an object
- * Useful for extracting page filter properties from the current URL
- * when building another URL.
+ * Extract the page filter parameters — project, environment, and the datetime
+ * triple — from a location query, for building a link that should carry the
+ * current selection.
+ *
+ * Linking to a bare pathname does *not* keep the selection. `PageFiltersContainer`
+ * reconciles its store against the URL on navigation, and an absent `project`
+ * reads as an empty selection rather than "unchanged", so the filters clear.
+ * Spread this into the link's `query` to carry them across.
+ *
+ * Spread your own keys after it to override one. Setting a key to `undefined`
+ * clears it, which is how a relative period replaces an absolute range — send
+ * `statsPeriod` and clear `start`/`end`, or both travel and the destination
+ * picks one.
+ *
+ * @example
+ * to: {pathname: base, query: extractSelectionParameters(location.query)}
+ *
+ * @example
+ * // carry project and environment, but force the destination's default period
+ * to: {
+ *   pathname: base,
+ *   query: {
+ *     ...extractSelectionParameters(location.query),
+ *     statsPeriod: '24h',
+ *     start: undefined,
+ *     end: undefined,
+ *   },
+ * }
  */
 export function extractSelectionParameters(query: Location['query']) {
   return pickBy(pick(query, Object.values(URL_PARAM)), identity);

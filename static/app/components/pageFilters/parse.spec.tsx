@@ -1,4 +1,6 @@
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {
+  extractSelectionParameters,
   normalizeDateTimeParams,
   parseStatsPeriod,
 } from 'sentry/components/pageFilters/parse';
@@ -240,5 +242,44 @@ describe('parseStatsPeriod', () => {
         {allowAbsoluteDatetime: false}
       )
     ).toEqual({statsPeriod: '14d'});
+  });
+});
+
+describe('extractSelectionParameters', () => {
+  const selection = {
+    project: ['1', '2'],
+    environment: 'production',
+    statsPeriod: '7d',
+    start: '2026-01-01T00:00:00',
+    end: '2026-01-08T00:00:00',
+    utc: 'true',
+  };
+
+  it('extracts every page filter key and nothing else', () => {
+    expect(
+      extractSelectionParameters({...selection, cursor: '0:0:1', query: 'is:unresolved'})
+    ).toEqual(selection);
+  });
+
+  it('covers exactly the keys in URL_PARAM', () => {
+    // Guards against a seventh page filter being added to URL_PARAM without
+    // callers of this helper learning to forward it.
+    expect(Object.keys(extractSelectionParameters(selection)).sort()).toEqual(
+      Object.values(URL_PARAM).sort()
+    );
+  });
+
+  it('drops empty values so they do not travel as blank params', () => {
+    expect(
+      extractSelectionParameters({
+        project: ['1'],
+        environment: '',
+        statsPeriod: undefined,
+      })
+    ).toEqual({project: ['1']});
+  });
+
+  it('returns an empty query when nothing is selected', () => {
+    expect(extractSelectionParameters({})).toEqual({});
   });
 });
