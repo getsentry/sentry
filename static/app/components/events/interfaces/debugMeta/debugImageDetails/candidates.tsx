@@ -7,7 +7,7 @@ import pick from 'lodash/pick';
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -361,42 +361,40 @@ export class Candidates extends Component<Props, State> {
             />
           )}
         </Flex>
-        <Container overflowX="auto">
-          <StyledSimpleTable
-            hasActions={haveCandidatesAtLeastOneAction}
-            header={
-              <SimpleTable.HeaderRow>
-                <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell>{t('Information')}</SimpleTable.HeaderCell>
-                {haveCandidatesAtLeastOneAction && <SimpleTable.HeaderCell />}
-              </SimpleTable.HeaderRow>
-            }
-          >
-            {isLoading && <SimpleTable.Loading />}
-            {!isLoading && !filteredCandidatesByFilter.length && (
-              <SimpleTable.Empty>
-                <Stack align="center" gap="xl">
-                  {emptyMessage}
-                  {emptyAction}
-                </Stack>
-              </SimpleTable.Empty>
-            )}
-            {!isLoading &&
-              filteredCandidatesByFilter.map((candidate, index) => (
-                <Candidate
-                  key={index}
-                  candidate={candidate}
-                  organization={organization}
-                  baseUrl={baseUrl}
-                  projSlug={projSlug}
-                  eventDateReceived={eventDateReceived}
-                  hasReprocessWarning={hasReprocessWarning}
-                  haveCandidatesAtLeastOneAction={haveCandidatesAtLeastOneAction}
-                  onDelete={onDelete}
-                />
-              ))}
-          </StyledSimpleTable>
-        </Container>
+        <StyledSimpleTable
+          hasActions={haveCandidatesAtLeastOneAction}
+          header={
+            <ResponsiveHeaderRow>
+              <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Information')}</SimpleTable.HeaderCell>
+              {haveCandidatesAtLeastOneAction && <SimpleTable.HeaderCell />}
+            </ResponsiveHeaderRow>
+          }
+        >
+          {isLoading && <SimpleTable.Loading />}
+          {!isLoading && !filteredCandidatesByFilter.length && (
+            <SimpleTable.Empty>
+              <Stack align="center" gap="xl">
+                {emptyMessage}
+                {emptyAction}
+              </Stack>
+            </SimpleTable.Empty>
+          )}
+          {!isLoading &&
+            filteredCandidatesByFilter.map((candidate, index) => (
+              <Candidate
+                key={index}
+                candidate={candidate}
+                organization={organization}
+                baseUrl={baseUrl}
+                projSlug={projSlug}
+                eventDateReceived={eventDateReceived}
+                hasReprocessWarning={hasReprocessWarning}
+                haveCandidatesAtLeastOneAction={haveCandidatesAtLeastOneAction}
+                onDelete={onDelete}
+              />
+            ))}
+        </StyledSimpleTable>
       </Grid>
     );
   }
@@ -405,16 +403,20 @@ export class Candidates extends Component<Props, State> {
 const StyledSimpleTable = styled(SimpleTable, {
   shouldForwardProp: prop => prop !== 'hasActions',
 })<{hasActions: boolean}>`
-  grid-template-columns: ${p =>
-    p.hasActions ? 'max-content max-content max-content' : 'max-content max-content'};
+  grid-template-columns: max-content 1fr;
 
   height: 100%;
-  min-width: 100%;
-  width: max-content;
 
-  @container (min-width: ${props => props.theme.container['5xl']}) {
+  @container (min-width: ${p => p.theme.container.lg}) {
     grid-template-columns: ${p =>
       p.hasActions ? 'max-content 1fr max-content' : 'max-content 1fr'};
-    width: 100%;
+  }
+`;
+
+const ResponsiveHeaderRow = styled(SimpleTable.HeaderRow)`
+  display: none;
+
+  @container (min-width: ${p => p.theme.container.lg}) {
+    display: grid;
   }
 `;

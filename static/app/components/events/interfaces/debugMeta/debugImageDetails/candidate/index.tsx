@@ -1,4 +1,4 @@
-import styled from '@emotion/styled';
+import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {INTERNAL_SOURCE} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/utils';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -33,24 +33,37 @@ export function Candidate({
 }: Props) {
   const {source} = candidate;
   const isInternalSource = source === INTERNAL_SOURCE;
+  const isWide = useResponsivePropValue({zero: false, lg: true});
 
   return (
     <SimpleTable.Row>
-      <Column>
+      <SimpleTable.RowCell align="center">
         <StatusTooltip candidate={candidate} hasReprocessWarning={hasReprocessWarning} />
-      </Column>
+      </SimpleTable.RowCell>
 
-      <InformationColumn>
+      <SimpleTable.RowCell align="start" direction="column">
         <Information
           candidate={candidate}
           isInternalSource={isInternalSource}
           eventDateReceived={eventDateReceived}
           hasReprocessWarning={hasReprocessWarning}
         />
-      </InformationColumn>
+        {!isWide && haveCandidatesAtLeastOneAction && (
+          <Flex justify="end" paddingTop="lg" width="100%">
+            <Actions
+              onDelete={onDelete}
+              baseUrl={baseUrl}
+              projSlug={projSlug}
+              organization={organization}
+              candidate={candidate}
+              isInternalSource={isInternalSource}
+            />
+          </Flex>
+        )}
+      </SimpleTable.RowCell>
 
-      {haveCandidatesAtLeastOneAction && (
-        <ActionsColumn>
+      {isWide && haveCandidatesAtLeastOneAction && (
+        <SimpleTable.RowCell justify="end">
           <Actions
             onDelete={onDelete}
             baseUrl={baseUrl}
@@ -59,22 +72,8 @@ export function Candidate({
             candidate={candidate}
             isInternalSource={isInternalSource}
           />
-        </ActionsColumn>
+        </SimpleTable.RowCell>
       )}
     </SimpleTable.Row>
   );
 }
-
-const Column = styled(SimpleTable.RowCell)`
-  display: flex;
-  align-items: center;
-`;
-
-const InformationColumn = styled(Column)`
-  flex-direction: column;
-  align-items: flex-start;
-`;
-
-const ActionsColumn = styled(Column)`
-  justify-content: flex-end;
-`;

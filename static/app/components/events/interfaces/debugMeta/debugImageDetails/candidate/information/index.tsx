@@ -233,11 +233,15 @@ export function Information({
           </FilenameOrLocation>
         )}
       </div>
-      <Details>
-        {renderExtraDetails()}
-        {renderProcessingInfo()}
-        <Features download={download} />
-      </Details>
+      <Text size="sm" variant="muted">
+        {({className}) => (
+          <Flex className={className} align="center" gap="md" wrap="wrap">
+            {renderExtraDetails()}
+            {renderProcessingInfo()}
+            <Features download={download} />
+          </Flex>
+        )}
+      </Text>
     </Wrapper>
   );
 }
@@ -250,15 +254,6 @@ const Wrapper = styled('div')`
 
 const FilenameOrLocation = styled('span')`
   padding-left: ${p => p.theme.space.md};
-  font-size: ${p => p.theme.font.size.sm};
-`;
-
-const Details = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: max-content;
-  gap: ${p => p.theme.space.md};
-  color: ${p => p.theme.colors.gray500};
   font-size: ${p => p.theme.font.size.sm};
 `;
 
