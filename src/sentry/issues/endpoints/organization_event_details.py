@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
@@ -30,7 +30,7 @@ def add_comparison_to_event(event, average_columns):
     if "spans" not in event.data:
         return
     group_to_span_map = defaultdict(list)
-    end = datetime.now(UTC)
+    end = datetime.now()
     start = end - timedelta(hours=24)
     for span in event.data["spans"]:
         group = span.get("sentry_tags", {}).get("group")
