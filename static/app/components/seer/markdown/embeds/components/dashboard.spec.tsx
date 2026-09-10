@@ -88,9 +88,14 @@ describe('dashboard embed', () => {
       data: {id: '123'},
     });
 
+    // The block's name is the collapse toggle; the link out is a separate target.
     expect(
-      await screen.findByRole('link', {name: 'Application health'}, {timeout: 5_000})
+      await screen.findByRole('button', {name: 'Application health'}, {timeout: 5_000})
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'View Dashboard'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboard/123/'
+    );
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Latency')).toBeInTheDocument();
     expect(screen.getByText('Users')).toBeInTheDocument();
