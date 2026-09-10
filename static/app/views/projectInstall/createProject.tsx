@@ -218,6 +218,7 @@ export function CreateProject() {
   useEffect(() => {
     if (autoFill && createdProject?.name) {
       hasUserModifiedProjectName.current = createdProject.wasNameManuallyModified ?? true;
+      // oxlint-disable-next-line react/set-state-in-effect
       setFormData(prev => ({
         ...prev,
         projectName: createdProject.name ?? prev.projectName,

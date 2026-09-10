@@ -66,6 +66,7 @@ function ResultsHeaderBase({
 
   useEffect(() => {
     if (!isHomepage && eventView.id) {
+      // oxlint-disable-next-line react/set-state-in-effect
       fetchData();
     } else if (eventView.id === undefined) {
       setLoading(false);
@@ -74,6 +75,7 @@ function ResultsHeaderBase({
 
   useEffect(() => {
     if (isHomepage) {
+      // oxlint-disable-next-line react/set-state-in-effect
       fetchHomepageQueryData();
     }
   }, [isHomepage, fetchHomepageQueryData]);

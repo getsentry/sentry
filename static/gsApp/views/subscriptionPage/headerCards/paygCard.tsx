@@ -115,6 +115,7 @@ export function PaygCard({
 
   useEffect(() => {
     if (window.location.hash === '#open-ondemand-modal') {
+      // oxlint-disable-next-line react/set-state-in-effect
       handleEditPayg(true);
 
       // Clear hash to prevent modal reopening or focus state on refresh

@@ -28,6 +28,7 @@ export function StarSavedQueryButton() {
 
   useEffect(() => {
     if (isFetched) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsStarred(data?.starred);
     }
   }, [data, isFetched]);
