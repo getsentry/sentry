@@ -1675,6 +1675,34 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
         assert self.workflow_three.enabled is False
 
     @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_bulk_enable_workflows_by_ids_including_all_projects(self) -> None:
+        all_projects_workflow = self.create_workflow(
+            organization_id=self.organization.id, enabled=False
+        )
+        self.create_detector_workflow(
+            workflow=all_projects_workflow,
+            detector=ensure_default_all_projects_detector(self.organization.id),
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params=[
+                ("id", str(self.workflow.id)),
+                ("id", str(all_projects_workflow.id)),
+            ],
+            raw_data={"enabled": True},
+        )
+
+        self.workflow.refresh_from_db()
+        all_projects_workflow.refresh_from_db()
+        assert self.workflow.enabled is True
+        assert all_projects_workflow.enabled is True
+        assert {workflow["id"] for workflow in response.data} == {
+            str(self.workflow.id),
+            str(all_projects_workflow.id),
+        }
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
     @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
     def test_agent_token_can_update_ordinary_workflow_when_all_projects_workflow_exists(
         self,
