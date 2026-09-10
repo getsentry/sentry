@@ -20,7 +20,10 @@ from sentry.api.serializers.models.seer_night_shift_run import (  # noqa: F401 -
 )
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunShard
+from sentry.seer.models.night_shift import (
+    SeerNightShiftRun,
+    SeerNightShiftRunResult,
+)
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.seer.monitor_cleanup import FEATURE, create_monitor_cleanup_run
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -81,15 +84,15 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
             )
         if cleanup_enabled:
             projects = self.get_projects(request, organization, include_all_accessible=True)
-            inaccessible_runs = (
-                SeerNightShiftRunShard.objects.filter(
+            inaccessible_results = (
+                SeerNightShiftRunResult.objects.filter(
                     run__organization_id=organization.id,
-                    run__workflow_config__strategy=SeerWorkflowStrategy.DUPLICATE_MONITORS,
+                    kind=SeerWorkflowStrategy.DUPLICATE_MONITORS,
                 )
-                .exclude(extras__project_id__in=[p.id for p in projects])
+                .exclude(extras__projectId__in=[str(p.id) for p in projects])
                 .values("run_id")
             )
-            queryset = queryset.exclude(id__in=inaccessible_runs)
+            queryset = queryset.exclude(id__in=inaccessible_results)
         if run_id := request.GET.get("runId"):
             if not run_id.isdecimal() or len(run_id) > 19 or not validate_bigint(int(run_id)):
                 raise ValidationError({"runId": "Enter a valid run ID."})
@@ -113,8 +116,7 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
         strategy = serializer.validated_data["strategy"]
-        projects = self.get_projects(request, organization, include_all_accessible=True)
-        run = MANUAL_WORKFLOW_HANDLERS[strategy](request, organization, projects)
+        run = MANUAL_WORKFLOW_HANDLERS[strategy](request, organization)
         return Response(
             {
                 "runId": str(run.id),

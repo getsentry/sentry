@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
 from datetime import timedelta
 from typing import Literal
 
@@ -11,12 +10,14 @@ from rest_framework.exceptions import NotFound, PermissionDenied, Throttled, Val
 from rest_framework.request import Request
 
 from sentry import features
+from sentry.auth import access
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunShard
 from sentry.seer.models.workflow import SeerWorkflowConfig, SeerWorkflowStrategy
+from sentry.users.services.user.service import user_service
 from sentry.utils.numbers import validate_bigint
 from sentry.workflow_engine.models import Detector, DetectorWorkflow
 
@@ -24,9 +25,7 @@ FEATURE = "organizations:seer-workflows-monitor-cleanup"
 ARTIFACT_KEY = "monitor_cleanup"
 
 
-def create_monitor_cleanup_run(
-    request: Request, organization: Organization, accessible_projects: Sequence[Project]
-) -> SeerNightShiftRun:
+def create_monitor_cleanup_run(request: Request, organization: Organization) -> SeerNightShiftRun:
     # Tasks import the workflow definition, so import dispatch after module initialization.
     from sentry.tasks.seer.monitor_cleanup import dispatch_run
 
@@ -34,21 +33,6 @@ def create_monitor_cleanup_run(
         raise NotFound
     if not request.user.is_authenticated:
         raise PermissionDenied("Sign in to run a monitor scan.")
-    projects = list(
-        Project.objects.filter(
-            organization=organization,
-            id__in=[project.id for project in accessible_projects],
-            detector__type=MetricIssue.slug,
-        )
-        .distinct()
-        .order_by("id")
-    )
-    if not projects:
-        raise ValidationError({"detail": "No accessible projects have metric monitors."})
-    if len(projects) > 20:
-        raise ValidationError(
-            {"detail": "This demo supports up to 20 projects with metric monitors."}
-        )
     config = SeerWorkflowConfig.get_or_create_for_strategy(
         organization.id, SeerWorkflowStrategy.DUPLICATE_MONITORS
     )
@@ -73,19 +57,10 @@ def create_monitor_cleanup_run(
             extras={
                 "options": {"source": "manual"},
                 "triggering_user_id": request.user.id,
-                "target_project_ids": [p.id for p in projects],
                 "status": "running",
             },
         )
-        SeerNightShiftRunShard.objects.bulk_create(
-            [
-                SeerNightShiftRunShard(
-                    run=run,
-                    extras={"project_id": p.id, "project_slug": p.slug, "status": "queued"},
-                )
-                for p in projects
-            ]
-        )
+        SeerNightShiftRunShard.objects.create(run=run, extras={"status": "queued"})
         transaction.on_commit(
             lambda: dispatch_run(run.id), using=router.db_for_write(SeerNightShiftRun)
         )
@@ -134,6 +109,45 @@ class MonitorCleanupArtifact(BaseModel):
     summary: str = Field(..., max_length=2000)
     groups: list[DuplicateMonitorGroup] = Field(default_factory=list, max_items=50)
     findings: list[MonitorFinding] | None = None
+
+
+class ProjectMonitorCleanupArtifact(MonitorCleanupArtifact):
+    project_id: str
+
+
+class OrganizationMonitorCleanupArtifact(BaseModel):
+    scan_status: Literal["complete", "partial"]
+    projects: list[ProjectMonitorCleanupArtifact]
+
+
+def prepare_monitor_cleanup_results(
+    artifact: OrganizationMonitorCleanupArtifact, organization: Organization, user_id: int
+) -> list[dict[str, object]]:
+    project_ids = [project.project_id for project in artifact.projects]
+    if any(
+        not value.isdecimal() or len(value) > 19 or not validate_bigint(int(value))
+        for value in project_ids
+    ) or len(project_ids) != len(set(project_ids)):
+        raise ValueError("The scan returned invalid project IDs.")
+    projects = {
+        str(project.id): project
+        for project in Project.objects.filter(organization=organization, id__in=project_ids)
+    }
+    user = user_service.get_user(user_id=user_id)
+    if user is None:
+        raise ValueError("The triggering user no longer exists.")
+    user_access = access.from_user(user, organization)
+    if projects.keys() != set(project_ids) or not user_access.has_projects_access(
+        projects.values()
+    ):
+        raise ValueError("Some scanned projects are no longer accessible.")
+    outputs = []
+    for project_artifact in artifact.projects:
+        project = projects[project_artifact.project_id]
+        output = validate_monitor_cleanup(project_artifact, organization.id, project.id)
+        output["projectSlug"] = project.slug
+        outputs.append(output)
+    return outputs
 
 
 def validate_monitor_cleanup(
@@ -304,14 +318,19 @@ class MonitorCleanupCompletionHook(AgentOnCompletionHook):
 
 MONITOR_CLEANUP_PROMPT = """Find duplicate monitors, overlapping coverage, and potential duplicate
 notifications among user-created metric monitors in the specified
-Sentry project. Use code mode to list the project's detectors (type metric_issue), paginate
-through all results, and inspect their detection settings and connected automations.
+Sentry organization. Discover the projects accessible to the current user using code mode,
+then list their metric_issue detectors, paginate through all results, and inspect their
+detection settings and connected automations. Perform the whole scan in this agent run.
+Return one entry in projects for each project whose metric monitors you inspected, with
+its project_id, monitors_scanned count, scan_status, and findings. Do not include projects
+with no metric monitors. If there are no accessible metric monitors, return projects=[].
+Set the top-level scan_status to partial if discovery or any project inspection is incomplete.
 Compare dataset, query, aggregation, environment, evaluation window, detection mode,
 trigger/recovery conditions, enabled state, and connected automation IDs. Names alone do
 not establish duplication. Prefer matching effective settings and connected automations.
 Explain meaningful differences. Do not claim
 that deleting a monitor is verified safe. Ignore system-created error/issue-stream monitors,
-Cron and uptime monitors. Only include IDs from the specified project.
+Cron and uptime monitors. Each project entry must only include IDs from that project in this organization.
 
 This is a read-only demo. Do not change, disable, or delete anything or request approval.
 Produce the requested structured artifact and a brief human-readable explanation with

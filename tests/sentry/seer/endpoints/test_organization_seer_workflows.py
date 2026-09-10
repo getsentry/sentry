@@ -14,13 +14,19 @@ from sentry.seer.models.night_shift import (
     SeerNightShiftRunShard,
 )
 from sentry.seer.models.run import SeerRunPullRequest
-from sentry.seer.monitor_cleanup import FEATURE, MonitorCleanupArtifact, validate_monitor_cleanup
+from sentry.seer.monitor_cleanup import (
+    FEATURE,
+    MonitorCleanupArtifact,
+    OrganizationMonitorCleanupArtifact,
+    prepare_monitor_cleanup_results,
+    validate_monitor_cleanup,
+)
 from sentry.tasks.seer.monitor_cleanup import (
     collect_monitor_cleanup_result,
     dispatch_run,
     finish_shard,
     reconcile_run,
-    scan_project,
+    scan_organization,
 )
 from sentry.testutils.cases import APITestCase
 
@@ -382,6 +388,96 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             ],
         )
 
+    def organization_artifact(self):
+        return OrganizationMonitorCleanupArtifact(
+            scan_status="complete",
+            projects=[{"project_id": str(self.project.id), **self.artifact().dict()}],
+        )
+
+    def test_starts_one_agent_for_all_projects(self) -> None:
+        for _ in range(21):
+            project = self.create_project(organization=self.organization)
+            self.create_detector(project=project, type="metric_issue")
+        run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
+        assert run.shards.count() == 1
+        with (
+            self.feature(FEATURE),
+            patch("sentry.tasks.seer.monitor_cleanup.SeerAgentClient") as client,
+        ):
+            scan_organization(run.shards.get().id)
+        client.assert_called_once()
+        assert "project" not in client.call_args.kwargs
+        client.return_value.start_run.assert_called_once()
+        args = client.return_value.start_run.call_args
+        assert args.kwargs["artifact_schema"] is OrganizationMonitorCleanupArtifact
+        assert args.kwargs["metadata"] == {"workflow_run_id": run.id}
+        assert "Discover the projects accessible to the current user" in args.kwargs["prompt"]
+
+    def test_dispatch_queues_one_scan(self) -> None:
+        run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
+        with (
+            patch("sentry.tasks.seer.monitor_cleanup.scan_organization.apply_async") as enqueue,
+            patch("sentry.tasks.seer.monitor_cleanup.reconcile_run.apply_async"),
+        ):
+            dispatch_run(run.id)
+        enqueue.assert_called_once_with(args=[run.shards.get().id])
+
+    def test_one_scan_persists_results_from_multiple_projects(self) -> None:
+        other_project = self.create_project(organization=self.organization)
+        artifact = self.organization_artifact()
+        artifact.projects.append(
+            artifact.projects[0].copy(
+                update={"project_id": str(other_project.id), "groups": [], "monitors_scanned": 1}
+            )
+        )
+        outputs = prepare_monitor_cleanup_results(artifact, self.organization, self.user.id)
+        run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        shard = run.shards.get()
+        shard.update(seer_run=seer_run)
+        finish_shard(shard.id, outputs=outputs)
+        assert run.results.count() == 2
+        assert set(run.results.values_list("result_seer_run_id", flat=True)) == {seer_run.id}
+        assert {result.extras["projectSlug"] for result in run.results.all()} == {
+            self.project.slug,
+            other_project.slug,
+        }
+        run.refresh_from_db()
+        assert run.extras["status"] == "complete"
+
+    def test_empty_scan_completes(self) -> None:
+        artifact = OrganizationMonitorCleanupArtifact(scan_status="complete", projects=[])
+        outputs = prepare_monitor_cleanup_results(artifact, self.organization, self.user.id)
+        run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
+        finish_shard(run.shards.get().id, outputs=outputs)
+        run.refresh_from_db()
+        assert run.extras["status"] == "complete"
+        assert not run.results.exists()
+
+    def test_partial_discovery_stays_partial(self) -> None:
+        run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
+        finish_shard(run.shards.get().id, outputs=[], scan_status="partial")
+        run.refresh_from_db()
+        assert run.extras["status"] == "partial"
+        assert run.date_completed is not None
+
+    def test_rejects_inaccessible_result_projects(self) -> None:
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member")
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        with pytest.raises(ValueError, match="no longer accessible"):
+            prepare_monitor_cleanup_results(
+                self.organization_artifact(), self.organization, member.id
+            )
+
+    def test_rejects_foreign_result_projects(self) -> None:
+        artifact = self.organization_artifact()
+        foreign = self.create_project(organization=self.create_organization())
+        artifact.projects[0].project_id = str(foreign.id)
+        with pytest.raises(ValueError, match="no longer accessible"):
+            prepare_monitor_cleanup_results(artifact, self.organization, self.user.id)
+
     def test_trigger_creates_manual_run_and_shard(self) -> None:
         response = self.trigger()
         run = SeerNightShiftRun.objects.get(id=response.data["runId"])
@@ -390,7 +486,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert run.workflow_config is not None
         assert run.workflow_config.strategy == "duplicate_monitors"
         assert run.workflow_config.enabled is False
-        assert run.shards.get().extras["project_id"] == self.project.id
+        assert run.shards.get().extras == {"status": "queued"}
         assert f"runId={run.id}" in response.data["url"]
 
     def test_rejects_concurrent_scan(self) -> None:
@@ -463,10 +559,12 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         run.delete()
         with (
             patch("sentry.tasks.seer.monitor_cleanup.SeerAgentClient") as client,
-            patch("sentry.tasks.seer.monitor_cleanup.scan_project.apply_async") as enqueue_scan,
+            patch(
+                "sentry.tasks.seer.monitor_cleanup.scan_organization.apply_async"
+            ) as enqueue_scan,
             patch("sentry.tasks.seer.monitor_cleanup.reconcile_run.apply_async") as enqueue_poll,
         ):
-            scan_project(shard_id)
+            scan_organization(shard_id)
             finish_shard(shard_id, error="Late failure")
             reconcile_run(run_id)
             dispatch_run(run_id)
@@ -536,7 +634,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         with self.feature(FEATURE):
             self.get_error_response(other.slug, strategy="duplicate_monitors", status_code=403)
 
-    def test_scans_only_accessible_projects_as_member(self) -> None:
+    def test_creates_org_scan_as_member(self) -> None:
         member = self.create_user()
         self.create_member(organization=self.organization, user=member, role="member")
         team = self.create_team(organization=self.organization, members=[member])
@@ -548,22 +646,19 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         self.login_as(member)
         run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
         assert run.extras["triggering_user_id"] == member.id
-        assert run.extras["target_project_ids"] == [self.project.id]
-        assert run.shards.get().extras["project_id"] == self.project.id
+        assert "target_project_ids" not in run.extras
+        assert run.shards.get().extras == {"status": "queued"}
 
-    def test_rejects_no_accessible_monitors(self) -> None:
+    def test_allows_agent_to_discover_an_empty_organization(self) -> None:
         self.keep.delete()
         self.duplicate.delete()
-        with self.feature(FEATURE):
-            self.get_error_response(
-                self.organization.slug, strategy="duplicate_monitors", status_code=400
-            )
+        self.trigger()
 
     def test_validates_and_persists_result_once(self) -> None:
         run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
         output = validate_monitor_cleanup(self.artifact(), self.organization.id, self.project.id)
         shard = run.shards.get()
-        finish_shard(shard.id, output=output)
+        finish_shard(shard.id, outputs=[output])
         finish_shard(shard.id, error="Late failure must not replace a completed result")
         run.refresh_from_db()
         assert run.results.count() == 1
@@ -587,7 +682,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
                     "artifacts": [
                         {
                             "key": "monitor_cleanup",
-                            "data": self.artifact().dict(),
+                            "data": self.organization_artifact().dict(),
                             "reason": "Scan complete",
                         }
                     ],
@@ -659,6 +754,10 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
 
     def test_history_does_not_expose_inaccessible_projects(self) -> None:
         run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
+        outputs = prepare_monitor_cleanup_results(
+            self.organization_artifact(), self.organization, self.user.id
+        )
+        finish_shard(run.shards.get().id, outputs=outputs)
         member = self.create_user()
         self.create_member(organization=self.organization, user=member, role="member")
         self.organization.flags.allow_joinleave = False
