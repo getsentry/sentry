@@ -3649,12 +3649,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "workflow_engine.tasks.health_check_project.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "workflow_engine.tasks.health_check_organization.enabled",
     type=Bool,
     default=False,

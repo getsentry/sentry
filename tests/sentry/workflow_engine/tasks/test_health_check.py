@@ -1,14 +1,11 @@
 from unittest import mock
 
-from sentry.grouping.grouptype import ErrorGroupType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.tasks.health_check import (
     health_check_organization_detectors,
-    health_check_project_detectors,
 )
-from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
 class TestHealthCheckOrganizationDetectors(TestCase):
@@ -111,64 +108,4 @@ class TestHealthCheckOrganizationDetectors(TestCase):
         assert not Detector.objects.filter(
             project__isnull=True,
             config__organization_id=self.organization.id,
-        ).exists()
-
-
-class TestHealthCheckProjectDetectors(TestCase):
-    @override_options({"workflow_engine.tasks.health_check_project.enabled": True})
-    def test_no_missing_detectors(self) -> None:
-        with self.tasks():
-            health_check_project_detectors()
-
-        assert (
-            Detector.objects.filter(
-                project=self.project,
-                type__in=(ErrorGroupType.slug, IssueStreamGroupType.slug),
-            ).count()
-            == 2
-        )
-
-    @override_options({"workflow_engine.tasks.health_check_project.enabled": True})
-    def test_missing_project_detector(self) -> None:
-        Detector.objects.filter(project=self.project, type=ErrorGroupType.slug).delete()
-
-        with self.tasks():
-            health_check_project_detectors()
-
-        assert Detector.objects.filter(
-            project=self.project,
-            type=ErrorGroupType.slug,
-        ).exists()
-
-    @override_options({"workflow_engine.tasks.health_check_project.enabled": True})
-    def test_buffer_size_limit(self) -> None:
-        second_project = self.create_project(organization=self.organization)
-        third_project = self.create_project(organization=self.organization)
-        Detector.objects.filter(
-            project__in=(self.project, second_project, third_project), type=ErrorGroupType.slug
-        ).delete()
-
-        with (
-            mock.patch("sentry.workflow_engine.tasks.health_check.HEALTH_CHECK_BUFFER_SIZE", 2),
-            self.tasks(),
-        ):
-            health_check_project_detectors()
-
-        assert (
-            Detector.objects.filter(
-                project__in=(self.project, second_project, third_project),
-                type=ErrorGroupType.slug,
-            ).count()
-            == 2
-        )
-
-    def test_health_check_disabled(self) -> None:
-        Detector.objects.filter(project=self.project, type=ErrorGroupType.slug).delete()
-
-        with self.tasks():
-            health_check_project_detectors()
-
-        assert not Detector.objects.filter(
-            project=self.project,
-            type=ErrorGroupType.slug,
         ).exists()
