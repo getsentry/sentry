@@ -48,7 +48,7 @@ class SlackResolvedInPullRequestNotificationTest(
 
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=resolved_in_pull_request_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
+            == f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=resolved_in_pull_request_activity-slack&notification_uuid={notification_uuid}|{self.group.title}>"
         )
         assert (
             blocks[3]["elements"][0]["text"]
