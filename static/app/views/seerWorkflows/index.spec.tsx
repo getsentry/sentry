@@ -30,7 +30,9 @@ describe('SeerWorkflows', () => {
   });
 
   it('starts a scan, expands its running row, and polls for completion', async () => {
-    const scanOrganization = OrganizationFixture({features: ['seer-monitor-cleanup']});
+    const scanOrganization = OrganizationFixture({
+      features: ['seer-workflows-monitor-cleanup'],
+    });
     const url = `/organizations/${scanOrganization.slug}/seer/workflows/`;
     const previousRun = {
       id: '11',

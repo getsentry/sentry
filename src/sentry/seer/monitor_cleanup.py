@@ -9,7 +9,7 @@ from sentry.models.organization import Organization
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.workflow_engine.models import Detector, DetectorWorkflow
 
-FEATURE = "organizations:seer-monitor-cleanup"
+FEATURE = "organizations:seer-workflows-monitor-cleanup"
 ARTIFACT_KEY = "monitor_cleanup"
 
 

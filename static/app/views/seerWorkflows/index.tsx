@@ -288,7 +288,7 @@ function SeerWorkflows() {
             <Text as="p" variant="muted">
               {t('Historical runs of Sentry workflows for this organization.')}
             </Text>
-            {organization.features.includes('seer-monitor-cleanup') && (
+            {organization.features.includes('seer-workflows-monitor-cleanup') && (
               <Button
                 size="sm"
                 busy={isStartingMonitorScan}
