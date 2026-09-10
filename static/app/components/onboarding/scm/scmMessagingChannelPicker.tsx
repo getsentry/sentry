@@ -28,6 +28,8 @@ export interface ScmMessagingChannelPickerProps {
    * can receive Issue Alert actions.
    */
   eligibleIntegrations: OrganizationIntegration[];
+  /** True while the parent is creating the project after a destination is saved. */
+  isContinuing: boolean;
   onConfigured: (setup: ScmMessagingSetup & {mode: 'selected'}) => void;
   providerKey: ScmMessagingProviderKey;
   /** Pre-seeds the channel selector when editing an existing destination. */
@@ -42,6 +44,7 @@ export function ScmMessagingChannelPicker({
   onConfigured,
   existingSetup,
   providerKey,
+  isContinuing,
 }: ScmMessagingChannelPickerProps) {
   const theme = useTheme();
   const {channelSelectedBy} = providerDetails[providerKey];
@@ -143,6 +146,9 @@ export function ScmMessagingChannelPicker({
     });
   };
 
+  const isConfirmDisabled =
+    !channel || !!channelError || isChannelLoading || isContinuing;
+
   return (
     <Container>
       <Stack gap="lg" padding="xl">
@@ -199,14 +205,15 @@ export function ScmMessagingChannelPicker({
         style={{borderRadius: `0 0 ${theme.radius.lg} ${theme.radius.lg}`}}
       >
         {onCancel && (
-          <Button size="sm" variant="link" onClick={onCancel}>
+          <Button size="sm" variant="link" disabled={isContinuing} onClick={onCancel}>
             {t('Cancel')}
           </Button>
         )}
         <Button
           size="sm"
           variant="primary"
-          disabled={!channel || !!channelError || isChannelLoading}
+          busy={isContinuing}
+          disabled={isConfirmDisabled}
           analyticsEventKey="onboarding.scm_messaging_confirm_and_continue_clicked"
           analyticsEventName="Onboarding: SCM Messaging Confirm And Continue Clicked"
           analyticsParams={{provider: providerKey}}

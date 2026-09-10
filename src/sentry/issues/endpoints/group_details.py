@@ -55,7 +55,7 @@ from sentry.issues.constants import (
 )
 from sentry.issues.derived.check import record_status_consistency
 from sentry.issues.derived.gate import derived_should_be_correct, should_serve_action_log_activity
-from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.issues.endpoints.bases.group import GroupEndpoint, GroupPermission
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
@@ -88,10 +88,19 @@ def get_group_global_count(group: Group) -> str:
     return str(group.times_seen_with_pending)
 
 
+class GroupDetailsPermission(GroupPermission):
+    scope_map = {
+        **GroupPermission.scope_map,
+        # Preserve the organization's "Let Members Delete Events" restriction.
+        "DELETE": ["event:admin"],
+    }
+
+
 @extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class GroupDetailsEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
+    permission_classes = (GroupDetailsPermission,)
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,

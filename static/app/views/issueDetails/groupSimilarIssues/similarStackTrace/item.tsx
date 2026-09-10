@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -63,17 +62,17 @@ export function SimilarStackTraceItem({
       variant={busy ? 'faded' : 'default'}
       onClick={handleToggle}
     >
-      <IssueCell columnKey="merge">
+      <SimpleTable.RowCell columnKey="merge" gap="md" cursor="pointer">
         <Checkbox id={issue.id} value={issue.id} checked={checked} onChange={() => {}} />
         <Stack minWidth="0" flex="1">
           <GroupHeaderRow data={issue} source="similar-issues" />
           <GroupMetaRow data={{...issue, lastSeen: ''}} />
         </Stack>
-      </IssueCell>
+      </SimpleTable.RowCell>
 
-      <CenteredCell columnKey="events">
+      <SimpleTable.RowCell columnKey="events" justify="center">
         <Count value={issue.count} />
-      </CenteredCell>
+      </SimpleTable.RowCell>
 
       {similarInterfaces.map(interfaceName => {
         const avgScore = aggregate?.[interfaceName];
@@ -91,7 +90,11 @@ export function SimilarStackTraceItem({
         }
 
         return (
-          <CenteredCell key={interfaceName} columnKey={interfaceName}>
+          <SimpleTable.RowCell
+            columnKey={interfaceName}
+            justify="center"
+            key={interfaceName}
+          >
             {hasSimilarityEmbeddingsFeature ? (
               <ScoreBar vertical score={scoreValue} />
             ) : (
@@ -103,15 +106,15 @@ export function SimilarStackTraceItem({
                 <ScoreBar vertical score={Math.round(scoreValue * 5)} />
               </Hovercard>
             )}
-          </CenteredCell>
+          </SimpleTable.RowCell>
         );
       })}
 
-      <CenteredCell columnKey="actions">
+      <SimpleTable.RowCell columnKey="actions" justify="center">
         <Button onClick={handleShowDiff} size="xs">
           {t('Diff')}
         </Button>
-      </CenteredCell>
+      </SimpleTable.RowCell>
     </SimpleTable.Row>
   );
 }
@@ -126,33 +129,28 @@ export function SimilarStackTraceItemSkeleton({
     : (['exception', 'message'] as const);
   return (
     <SimpleTable.Row>
-      <IssueCell columnKey="merge">
+      <SimpleTable.RowCell columnKey="merge" gap="md">
         <Placeholder height="16px" width="16px" />
         <Stack gap="xs" flex="1" minWidth="0">
           <Placeholder height="16px" width="60%" />
           <Placeholder height="12px" width="40%" />
         </Stack>
-      </IssueCell>
-      <CenteredCell columnKey="events">
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell columnKey="events" justify="center">
         <Placeholder height="16px" width="32px" />
-      </CenteredCell>
+      </SimpleTable.RowCell>
       {scoreColumns.map(interfaceName => (
-        <CenteredCell key={interfaceName} columnKey={interfaceName}>
+        <SimpleTable.RowCell
+          columnKey={interfaceName}
+          justify="center"
+          key={interfaceName}
+        >
           <Placeholder height="24px" width="40px" />
-        </CenteredCell>
+        </SimpleTable.RowCell>
       ))}
-      <CenteredCell columnKey="actions">
+      <SimpleTable.RowCell columnKey="actions" justify="center">
         <Placeholder height="24px" width="44px" />
-      </CenteredCell>
+      </SimpleTable.RowCell>
     </SimpleTable.Row>
   );
 }
-
-const IssueCell = styled(SimpleTable.RowCell)`
-  gap: ${p => p.theme.space.md};
-  cursor: pointer;
-`;
-
-const CenteredCell = styled(SimpleTable.RowCell)`
-  justify-content: center;
-`;

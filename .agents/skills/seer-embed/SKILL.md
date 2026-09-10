@@ -41,7 +41,7 @@ export const SEER_EMBED_SCHEMAS = {
 - **`description`**: Write for the LLM — it uses this to decide when to emit the embed. Be specific about the use case.
 - **`level`**: Use `['inline']` for widgets that flow within text (timestamps, badges). Use `['block']` for widgets that need their own line (cards, charts). Use both if the embed adapts.
 - **`schema`**: Use Zod. Keep it flat and simple — the LLM has to produce valid JSON. Use `.default()` for optional fields with sensible defaults. Use `.enum()` to constrain string values.
-- **`examples`**: An array of `{label, data, level?}` objects. Each `data` must be valid against the schema. These are included in the generated JSON sent to the LLM as few-shot examples. In the stories page, all examples for an embed are composed into a single markdown block and rendered through one `<SeerMarkdown>` — inline examples are wrapped in prose text, block examples are appended at the end. Use multiple examples to show different prop combinations or block vs inline rendering. Set `level` on an example only when it differs from the schema's default (first entry in `level`).
+- **`examples`**: An array of `{label, data, level?}` objects. Each `data` must be valid against the schema. `label` and `data` go into the generated JSON as few-shot examples for the LLM; `level` does not — codegen strips it, so it only ever affects the stories page. Use multiple examples to show different prop combinations, not to show inline vs block: on the stories page each example renders in its own demo, and one demo already shows the tag at **every** level the schema declares (inline wrapped in prose, block on its own line). Set `level` on an example only when it differs from the schema's default (the first entry in `level`) — the shared `<EmbedStory>` fallback treats a `level` as a signal to relabel the example to the embed's name and drop any later example with identical `data`, so a redundant `level` can collapse several examples into same-named ones. Give each example distinct `data`.
 - **`featureFlag`**: Set this to gate the embed behind a feature flag. The backend filters it out of the schema sent to the LLM when the flag is off.
 
 ## Step 2: Create the Component
@@ -89,7 +89,7 @@ components/monitor/
   monitorTypes/        # one file per subtype, when the embed has subtypes
     cron.tsx
     uptime.tsx
-  monitor.spec.tsx     # colocated, not in resourceEmbeds.spec.tsx
+  monitor.spec.tsx     # colocated, not in a spec shared by every embed
 ```
 
 The `<name>.tsx` entry does nothing but pick which level to render, using the
@@ -128,9 +128,10 @@ export const Monitor = defineSeerEmbed({
   than re-deriving them inside each variant — re-derivation inside each subtype
   file is what made the switches in the old monolith hard to keep in sync.
 - Colocate the spec as `<name>.spec.tsx` and use the shared `renderEmbed` /
-  `hrefFor` helpers from `embeds/testUtils.tsx`. `resourceEmbeds.spec.tsx` is for
-  link-level embeds only -- it is shared by every embed, so it conflicts
-  constantly when block embeds add cases to it.
+  `getEmbedLinkHref` helpers from
+  `embeds/components/resourceEmbedTestUtils.tsx`. Do not add cases to a spec
+  shared by every embed -- one shared file conflicts constantly once block
+  embeds start adding cases to it.
 
 ## Step 3: Register the Component
 
@@ -159,7 +160,68 @@ pnpm gen:embed-widgets
 
 This writes to `src/sentry/seer/agent/embed_widgets.generated.json`. **Commit this generated file** — it's checked in, not gitignored.
 
-## Step 5: Verify
+## Step 5: Add the Embed to the Stories Page
+
+Every embed gets a section in
+`static/app/components/seer/markdown/seerMarkdown.mdx`, in the same order as the
+schema:
+
+```mdx
+### myEmbed
+
+<EmbedStory name="myEmbed" />
+```
+
+`<EmbedStory name>` renders the schema's own `examples`. That is enough **only
+for an embed that renders purely from its tag body** — a timestamp, a badge, a
+link built from props.
+
+**An embed that fetches by ID needs its own story instead.** The IDs in
+`examples` are invented for the LLM prompt, so nothing resolves them: the block
+renders its error state and the stories page documents nothing. Write
+`__stories__/<name>EmbedStory.tsx`, query the viewer's own organization for a
+real resource, and feed its ID to `EmbedVariant`:
+
+```tsx
+export function MyEmbedStory() {
+  const {data, isError, isPending} = useQuery(/* a list endpoint, limit 1 */);
+  const resource = data?.[0];
+
+  return (
+    <EmbedStory name="myEmbed">
+      {isPending ? (
+        <LoadingIndicator />
+      ) : isError ? (
+        <Text variant="muted">Unable to load a my-embed example.</Text>
+      ) : resource ? (
+        <EmbedVariant name="myEmbed" label="My embed" data={{id: resource.id}} />
+      ) : (
+        <Text variant="muted">No my-embed is available for this organization.</Text>
+      )}
+    </EmbedStory>
+  );
+}
+```
+
+Then import it in the `.mdx` and use `<MyEmbedStory />` in place of
+`<EmbedStory name="myEmbed" />`. `replayEmbedStory.tsx` and
+`savedQueryEmbedStory.tsx` are the smallest examples; `alertEmbedStory.tsx`
+shows chaining one query into another.
+
+**Rules:**
+
+- One `EmbedVariant` renders **every** level the schema declares — `formatVariant`
+  maps over `schema.level` — so vary variants by prop combination, not by level.
+- Always render all four states (pending, error, empty, loaded). Stories run
+  against whatever organization the viewer is in, and an org with no replays or
+  no saved queries must not render a broken page.
+- Colocate a `<name>EmbedStory.spec.tsx` when the story does non-obvious
+  selection (picking the first resource that satisfies a condition, chaining
+  queries). Stub `SeerMarkdown` to echo its `raw` prop and assert on the data
+  the story chose rather than on the embed's own rendering, which its
+  colocated spec already covers.
+
+## Step 6: Verify
 
 1. **Lint**: Run `pnpm run lint:js` on your new files.
 2. **Types**: Run `pnpm run typecheck` to confirm the schema types flow through.
@@ -171,13 +233,15 @@ This writes to `src/sentry/seer/agent/embed_widgets.generated.json`. **Commit th
 
 ## File Summary
 
-| File                                                               | What to do                                      |
-| ------------------------------------------------------------------ | ----------------------------------------------- |
-| `static/app/components/seer/markdown/embeds/schemas.ts`            | Add Zod schema entry                            |
-| `static/app/components/seer/markdown/embeds/components/<name>.tsx` | Create component with `defineSeerEmbed`         |
-| `static/app/components/seer/markdown/embeds/components/<name>/`    | Use a directory instead once it renders a block |
-| `static/app/components/seer/markdown/embeds/index.ts`              | Import and register                             |
-| `src/sentry/seer/agent/embed_widgets.generated.json`               | Regenerated by `pnpm gen:embed-widgets`         |
+| File                                                                   | What to do                                      |
+| ---------------------------------------------------------------------- | ----------------------------------------------- |
+| `static/app/components/seer/markdown/embeds/schemas.ts`                | Add Zod schema entry                            |
+| `static/app/components/seer/markdown/embeds/components/<name>.tsx`     | Create component with `defineSeerEmbed`         |
+| `static/app/components/seer/markdown/embeds/components/<name>/`        | Use a directory instead once it renders a block |
+| `static/app/components/seer/markdown/embeds/index.ts`                  | Import and register                             |
+| `static/app/components/seer/markdown/seerMarkdown.mdx`                 | Add a section for the embed                     |
+| `static/app/components/seer/markdown/__stories__/<name>EmbedStory.tsx` | Add one if the embed fetches by ID              |
+| `src/sentry/seer/agent/embed_widgets.generated.json`                   | Regenerated by `pnpm gen:embed-widgets`         |
 
 ## Optional: Feature Flag
 
