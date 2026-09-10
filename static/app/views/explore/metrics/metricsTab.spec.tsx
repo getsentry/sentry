@@ -16,11 +16,11 @@ import {
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
-import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
 import {
   defaultMetricQuery,
   encodeMetricQueryParams,
 } from 'sentry/views/explore/metrics/metricQuery';
+import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
   VisualizeEquation,
@@ -258,25 +258,6 @@ describe('MetricsTabContent', () => {
     await waitFor(() => {
       expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
         1,
-        'metrics.explorer.metadata',
-        expect.objectContaining({
-          organization,
-          metric_queries_count: 1,
-          metric_panels_with_filters_count: 0,
-          metric_panels_with_group_bys_count: 0,
-          datetime_selection: '--14d',
-          environment_count: 0,
-          has_exceeded_performance_usage_limit: false,
-          interval: '1h',
-          project_count: 1,
-          title: 'Test Title',
-        })
-      );
-    });
-
-    await waitFor(() => {
-      expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
-        2,
         'metrics.explorer.panel.metadata',
         expect.objectContaining({
           panel_index: 0,
@@ -296,6 +277,25 @@ describe('MetricsTabContent', () => {
           interval: '1h',
           metric_name: 'bar',
           metric_type: 'distribution',
+        })
+      );
+    });
+
+    await waitFor(() => {
+      expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
+        2,
+        'metrics.explorer.metadata',
+        expect.objectContaining({
+          organization,
+          metric_queries_count: 1,
+          metric_panels_with_filters_count: 0,
+          metric_panels_with_group_bys_count: 0,
+          datetime_selection: '--14d',
+          environment_count: 0,
+          has_exceeded_performance_usage_limit: false,
+          interval: '1h',
+          project_count: 1,
+          title: 'Test Title',
         })
       );
     });
@@ -491,6 +491,13 @@ describe('MetricsTabContent', () => {
   });
 
   it('should fire analytics with no metrics available', async () => {
+    // Use a router config with no pre-selected metric so the component starts with an empty selection.
+    const {metric: _metric, ...queryWithoutMetric} = initialLocation.query ?? {};
+    const noMetricRouterConfig = {
+      location: {...initialLocation, query: queryWithoutMetric},
+      route: '/organizations/:orgId/explore/metrics/',
+    };
+
     MockApiClient.clearMockResponses();
     setupPageFilters();
 
@@ -541,7 +548,7 @@ describe('MetricsTabContent', () => {
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
       {
-        initialRouterConfig,
+        initialRouterConfig: noMetricRouterConfig,
         organization,
       }
     );
