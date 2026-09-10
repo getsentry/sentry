@@ -386,8 +386,9 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             "LinkExternalIssueRequest",
             fields={
                 "externalIssue": serializers.CharField(
-                    help_text="The identifier of the existing external issue to link, "
-                    "as understood by the provider (such as a Jira issue key)."
+                    help_text="The identifier or full URL of the existing external issue to link. "
+                    "URLs are supported for GitHub (including pull requests), GitHub Enterprise, "
+                    "Jira, Jira Server, GitLab, Bitbucket, and Azure DevOps."
                 ),
             },
         ),
@@ -449,7 +450,19 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             installation = self._get_installation(integration, organization_id)
 
             try:
-                data = installation.get_issue(external_issue_id, data=request.data)
+                link_data = request.data.copy()
+                if isinstance(external_issue_id, str) and "://" in external_issue_id:
+                    url_data = installation.get_issue_link_data(external_issue_id)
+                    if (
+                        link_data.get("repo")
+                        and url_data.get("repo")
+                        and str(link_data["repo"]).casefold() != url_data["repo"].casefold()
+                    ):
+                        raise IntegrationFormError(
+                            {"repo": "Repository does not match the issue URL"}
+                        )
+                    link_data.update(url_data)
+                data = installation.get_issue(link_data["externalIssue"], data=link_data)
             except IntegrationFormError as exc:
                 lifecycle.record_halt(exc)
                 return Response(dict(exc.field_errors or {}), status=400)
@@ -481,9 +494,9 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             else:
                 external_issue.update(**defaults)
 
-            installation.store_issue_last_defaults(group.project, request.user, request.data)
+            installation.store_issue_last_defaults(group.project, request.user, link_data)
             try:
-                installation.after_link_issue(external_issue, data=request.data)
+                installation.after_link_issue(external_issue, data=link_data)
             except IntegrationFormError as exc:
                 lifecycle.record_halt(exc)
                 return Response(dict(exc.field_errors or {}), status=400)

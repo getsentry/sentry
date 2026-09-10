@@ -3,12 +3,14 @@ from typing import cast
 from unittest.mock import MagicMock, patch
 
 import orjson
+import pytest
 import responses
 from django.test import RequestFactory
 
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegratedApiTestCase, TestCase
@@ -47,6 +49,16 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
         assert request.headers[PROXY_OI_HEADER] == str(self.install.org_integration.id)
         assert request.headers[PROXY_BASE_URL_HEADER] == f"https://{self._IP_ADDRESS}"
         assert PROXY_SIGNATURE_HEADER in request.headers
+
+    def test_issue_url_uses_enterprise_host(self) -> None:
+        self.create_repo(
+            name="getsentry/sentry", project=self.project, integration_id=self.model.id
+        )
+        assert self.install.get_issue_link_data(
+            f"https://{self._IP_ADDRESS}/getsentry/sentry/pull/321"
+        ) == {"repo": "getsentry/sentry", "externalIssue": "321"}
+        with pytest.raises(IntegrationFormError):
+            self.install.get_issue_link_data("https://github.com/getsentry/sentry/pull/321")
 
     @responses.activate
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")

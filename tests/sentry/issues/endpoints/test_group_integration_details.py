@@ -1,11 +1,13 @@
 from typing import Any
 from unittest import mock
 
+import responses
 from django.db.utils import IntegrityError
 
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models import Integration
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -258,6 +260,72 @@ class GroupIntegrationDetailsTest(APITestCase):
             self.assert_correctly_linked(group, "APP-123", integration, org)
 
         mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
+
+    @responses.activate
+    def test_put_issue_url(self) -> None:
+        self.login_as(self.user)
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="bitbucket",
+            external_id="connect:123",
+            name="myaccount",
+            metadata={
+                "domain_name": "bitbucket.org/myaccount",
+                "base_url": "https://api.bitbucket.org",
+                "shared_secret": "shared-secret",
+                "subject": "connect:123",
+            },
+        )
+        responses.add(
+            responses.GET,
+            "https://api.bitbucket.org/2.0/repositories/myaccount/myrepo/issues/3",
+            json={"id": 3, "title": "Existing issue", "content": {"html": "Description"}},
+        )
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{integration.id}/"
+        with self.feature("organizations:integrations-issue-basic"):
+            response = self.client.put(
+                path, data={"externalIssue": "https://bitbucket.org/myaccount/myrepo/issues/3"}
+            )
+        assert response.status_code == 201
+        assert response.data["key"] == "myaccount/myrepo#3"
+        assert GroupLink.objects.filter(
+            group_id=self.group.id,
+            linked_id=response.data["id"],
+            linked_type=GroupLink.LinkedType.issue,
+            relationship=GroupLink.Relationship.references,
+        ).exists()
+        org_integration = integration_service.get_organization_integration(
+            integration_id=integration.id, organization_id=self.organization.id
+        )
+        assert org_integration is not None
+        assert org_integration.config["project_issue_defaults"][str(self.project.id)] == {
+            "repo": "myaccount/myrepo"
+        }
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_put_issue_url_rejects_mismatched_target(self) -> None:
+        self.login_as(self.user)
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="bitbucket",
+            external_id="connect:123",
+            name="myaccount",
+            metadata={"domain_name": "bitbucket.org/myaccount"},
+        )
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{integration.id}/"
+        with self.feature("organizations:integrations-issue-basic"):
+            for data in (
+                {"externalIssue": "https://bitbucket.org/other/myrepo/issues/3"},
+                {
+                    "externalIssue": "https://bitbucket.org/myaccount/myrepo/issues/3",
+                    "repo": "myaccount/other-repo",
+                },
+            ):
+                response = self.client.put(path, data=data)
+                assert response.status_code == 400
+        assert not responses.calls
+        assert not GroupLink.objects.filter(group_id=self.group.id).exists()
 
     @mock.patch.object(ExampleIntegration, "get_issue")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
