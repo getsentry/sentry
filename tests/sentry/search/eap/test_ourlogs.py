@@ -366,13 +366,12 @@ class SearchResolverQueryTest(TestCase):
             config=SearchResolverConfig(),
             definitions=OURLOG_DEFINITIONS,
         )
-        where, _, _ = resolver.resolve_query(f"message:{REGEX_OPERATOR}^error")
+        where, _, _ = resolver.resolve_query(f"message:{REGEX_OPERATOR}^[A-Z]rror")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(name="sentry.body", type=AttributeKey.Type.TYPE_STRING),
                 op=ComparisonFilter.OP_REGEXP,
-                value=AttributeValue(val_str="^error"),
-                ignore_case=True,
+                value=AttributeValue(val_str="(?i)^[A-Z]rror"),
             )
         )
 

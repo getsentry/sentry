@@ -910,13 +910,15 @@ class SearchResolver:
             )
 
         patterns = to_list(term.value.raw_value)
+        # Snuba's `ignore_case` lowercases the pattern along with the value, rewriting `[A-Z]`
+        # and inverting escapes like `\D`. RE2's inline flag leaves the pattern intact.
+        prefix = "(?i)" if self.params.case_insensitive else ""
         matches = [
             TraceItemFilter(
                 comparison_filter=ComparisonFilter(
                     key=resolved_column.proto_definition,
                     op=ComparisonFilter.OP_REGEXP,
-                    value=AttributeValue(val_str=str(pattern)),
-                    ignore_case=self.params.case_insensitive,
+                    value=AttributeValue(val_str=f"{prefix}{pattern}"),
                 )
             )
             for pattern in patterns
