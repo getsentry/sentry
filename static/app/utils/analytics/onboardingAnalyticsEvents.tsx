@@ -2,7 +2,7 @@
  * Where the created project's issue alerts go: the server-created email rule
  * only, or that plus a messaging integration workflow.
  */
-export type ScmMessagingNotification = 'email_only' | 'integration';
+type ScmMessagingNotification = 'email_only' | 'integration';
 
 export type OnboardingEventParameters = {
   'onboarding.ai_prompt_copied': {
