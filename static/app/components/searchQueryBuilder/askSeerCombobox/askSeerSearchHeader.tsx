@@ -22,7 +22,7 @@ export function AskSeerSearchHeader({
       {isError ? (
         <IconExclamation aria-label={t('Error')} variant="danger" />
       ) : (
-        <StyledIconSeer animation={loading ? 'idle' : undefined} />
+        <StyledIconSeer animation={loading ? 'loading' : undefined} />
       )}
       <Text monospace>{title}</Text>
     </Flex>
