@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.organization import Organization
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
+from sentry.utils.numbers import validate_bigint
 from sentry.workflow_engine.models import Detector, DetectorWorkflow
 
 FEATURE = "organizations:seer-workflows-monitor-cleanup"
@@ -67,7 +68,9 @@ def validate_monitor_cleanup(
         for group in artifact.groups
         for detector_id in [group.suggested_keep_id, *group.duplicate_ids]
     ]
-    if any(not value.isdecimal() or len(value) > 19 for value in ids):
+    if any(
+        not value.isdecimal() or len(value) > 19 or not validate_bigint(int(value)) for value in ids
+    ):
         raise ValueError("The scan returned an invalid monitor ID.")
     if len(ids) != len(set(ids)):
         raise ValueError("The scan returned overlapping monitor groups.")
@@ -109,7 +112,10 @@ def validate_monitor_findings(
         raise ValueError("The scan returned an invalid finding list.")
     ids = {monitor_id for finding in findings for monitor_id in finding.monitor_ids}
     alert_ids = {alert_id for finding in findings for alert_id in finding.alert_ids}
-    if any(not value.isdecimal() or len(value) > 19 for value in ids | alert_ids):
+    if any(
+        not value.isdecimal() or len(value) > 19 or not validate_bigint(int(value))
+        for value in ids | alert_ids
+    ):
         raise ValueError("The scan returned an invalid monitor or alert ID.")
     monitors = {
         str(detector.id): {

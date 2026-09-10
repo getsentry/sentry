@@ -1,7 +1,9 @@
 from collections.abc import Sequence
+from datetime import timedelta
 
 from django.db import router, transaction
-from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
+from django.utils import timezone
+from rest_framework.exceptions import NotFound, PermissionDenied, Throttled, ValidationError
 from rest_framework.request import Request
 
 from sentry import features
@@ -40,6 +42,20 @@ def start_monitor_cleanup(
         organization.id, SeerWorkflowStrategy.DUPLICATE_MONITORS
     )
     with transaction.atomic(router.db_for_write(SeerNightShiftRun)):
+        config = SeerWorkflowConfig.objects.select_for_update().get(id=config.id)
+        if SeerNightShiftRun.objects.filter(
+            workflow_config=config, date_completed__isnull=True
+        ).exists():
+            raise ValidationError({"detail": "A monitor scan is already running."})
+        if (
+            SeerNightShiftRun.objects.filter(
+                workflow_config=config, date_added__gte=timezone.now() - timedelta(hours=1)
+            ).count()
+            >= 5
+        ):
+            raise Throttled(
+                detail="This organization has reached the limit of five scans per hour."
+            )
         run = SeerNightShiftRun.objects.create(
             organization=organization,
             workflow_config=config,

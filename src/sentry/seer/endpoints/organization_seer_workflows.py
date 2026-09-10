@@ -19,10 +19,13 @@ from sentry.api.serializers.models.seer_night_shift_run import (  # noqa: F401 -
     SeerNightShiftRunSerializer,
 )
 from sentry.models.organization import Organization
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunShard
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.seer.monitor_cleanup import FEATURE
 from sentry.seer.workflows.monitor_cleanup import start_monitor_cleanup
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.numbers import validate_bigint
 
 MANUAL_WORKFLOW_HANDLERS = {
     SeerWorkflowStrategy.DUPLICATE_MONITORS: start_monitor_cleanup,
@@ -53,6 +56,14 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.ML_AI
     permission_classes = (OrganizationSeerWorkflowsPermission,)
+    enforce_rate_limit = True
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.USER: RateLimit(limit=1, window=60),
+            },
+        }
+    )
 
     def get(self, request: Request, organization: Organization) -> Response:
         triage_enabled = features.has("organizations:seer-night-shift", organization)
@@ -81,7 +92,7 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
             )
             queryset = queryset.exclude(id__in=inaccessible_runs)
         if run_id := request.GET.get("runId"):
-            if not run_id.isdecimal() or len(run_id) > 19:
+            if not run_id.isdecimal() or len(run_id) > 19 or not validate_bigint(int(run_id)):
                 raise ValidationError({"runId": "Enter a valid run ID."})
             queryset = queryset.filter(id=run_id)
 
