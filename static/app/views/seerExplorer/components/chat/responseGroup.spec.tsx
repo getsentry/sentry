@@ -42,13 +42,13 @@ function toolUseBlock(
 }
 
 /**
- * Seer's global LLM-wait placeholder: `loading` with no tool calls, content defaulting to
- * "Thinking..." (see `add_loading_response_block`). Appended before every completion.
+ * Seer's global LLM-wait placeholder: `loading` with no tool calls. The backend sends
+ * `content: 'Thinking...'` but `normalizeBlocks` strips it to `null` at the API boundary.
  */
 function llmWaitBlock(): Block {
   return {
     id: 'loading',
-    message: {role: 'assistant', content: 'Thinking...', tool_calls: null},
+    message: {role: 'assistant', content: null, tool_calls: null},
     timestamp: '2024-01-01T00:02:00Z',
     loading: true,
   };
@@ -248,9 +248,9 @@ describe('ResponseGroup', () => {
     expect(screen.getByText('my private reasoning')).toBeVisible();
   });
 
-  it('spins outside the box while the agent works', () => {
-    // Between tool calls seer appends its LLM-wait placeholder. The tool is done, so the box must
-    // settle and let the placeholder below carry the spinner.
+  it('stays expanded between tool calls while the agent works', () => {
+    // Between tool calls seer appends its LLM-wait placeholder. The response is still in
+    // progress (no answer yet), so the ThinkingBlock stays expanded to avoid flash.
     const group = [toolUseBlock('t1'), llmWaitBlock()];
 
     const {container} = render(
@@ -260,9 +260,8 @@ describe('ResponseGroup', () => {
 
     expect(reasoningBox(container).querySelector('button')).toHaveAttribute(
       'aria-expanded',
-      'false'
+      'true'
     );
-    expect(reasoningBox(container).contains(screen.getByRole('status'))).toBe(false);
   });
 
   it('spins inside the box while a tool works', () => {
