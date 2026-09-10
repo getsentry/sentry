@@ -64,7 +64,12 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
     IntegrationProviderError,
 )
-from sentry.signals import integration_issue_created, integration_issue_linked
+from sentry.signals import (
+    external_issue_created,
+    external_issue_linked,
+    integration_issue_created,
+    integration_issue_linked,
+)
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -363,6 +368,14 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             actor=actor,
         )
 
+        external_issue_created.send_robust(
+            project=group.project,
+            group=group,
+            user=request.user,
+            external_issue=external_issue,
+            sender=self.__class__,
+        )
+
         # TODO(jess): return serialized issue
         url = data.get("url") or installation.get_issue_url(external_issue.key)
         context = {
@@ -519,6 +532,14 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             group_id=group.id,
             project=group.project,
             actor=actor,
+        )
+
+        external_issue_linked.send_robust(
+            project=group.project,
+            group=group,
+            user=request.user,
+            external_issue=external_issue,
+            sender=self.__class__,
         )
 
         # TODO(jess): would be helpful to return serialized external issue

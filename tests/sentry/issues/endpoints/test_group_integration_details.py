@@ -3,6 +3,7 @@ from unittest import mock
 
 from django.db.utils import IntegrityError
 
+from sentry.api.serializers import serialize
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models import Integration
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -11,6 +12,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.shared_integrations.exceptions import (
     IntegrationConfigurationError,
     IntegrationError,
@@ -613,3 +615,63 @@ class GroupIntegrationDetailsTest(APITestCase):
         with self.feature("organizations:integrations-issue-basic"):
             assert_default_project(create_path, "create", project_field)
             assert_default_project(link_path, "link", project_field)
+
+    def setup_subscribed_sentry_app(
+        self, event: str
+    ) -> tuple[Group, Integration, SentryAppInstallation]:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="example",
+            name="Example",
+            external_id="example:1",
+        )
+        sentry_app = self.create_sentry_app(organization=self.organization, events=[event])
+        install = self.create_sentry_app_installation(
+            organization=self.organization, slug=sentry_app.slug
+        )
+        return group, integration, install
+
+    def assert_notified(
+        self,
+        delay: mock.MagicMock,
+        install: SentryAppInstallation,
+        group: Group,
+        integration: Integration,
+        event: str,
+    ) -> None:
+        external_issue = ExternalIssue.objects.get(
+            key="APP-123", integration_id=integration.id, organization_id=self.organization.id
+        )
+        delay.assert_called_once_with(
+            installation_id=install.id,
+            issue_id=group.id,
+            type=event,
+            user_id=self.user.id,
+            external_issue=serialize(external_issue),
+            external_issue_kind="integration",
+            triggered_by=None,
+        )
+
+    @mock.patch("sentry.sentry_apps.tasks.sentry_apps.build_external_issue_webhook.delay")
+    def test_post_notifies_subscribed_sentry_apps(self, delay: mock.MagicMock) -> None:
+        event = "issue.external_issue_created"
+        group, integration, install = self.setup_subscribed_sentry_app(event)
+
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/integrations/{integration.id}/"
+        with self.feature("organizations:integrations-issue-basic"):
+            assert self.client.post(path, data={"assignee": "foo@sentry.io"}).status_code == 201
+
+        self.assert_notified(delay, install, group, integration, event)
+
+    @mock.patch("sentry.sentry_apps.tasks.sentry_apps.build_external_issue_webhook.delay")
+    def test_put_notifies_subscribed_sentry_apps(self, delay: mock.MagicMock) -> None:
+        event = "issue.external_issue_linked"
+        group, integration, install = self.setup_subscribed_sentry_app(event)
+
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/integrations/{integration.id}/"
+        with self.feature("organizations:integrations-issue-basic"):
+            assert self.client.put(path, data={"externalIssue": "APP-123"}).status_code == 201
+
+        self.assert_notified(delay, install, group, integration, event)
