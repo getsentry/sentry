@@ -80,7 +80,7 @@ def test_deobfuscate_and_save_deeply_nested_hierarchy() -> None:
     store_attachments.assert_called_once()
     stored = store_attachments.call_args.args[2]
     assert len(stored) == 1
-    loaded = orjson.loads(stored[0].data)
+    loaded = orjson.loads(stored[0].load_data())
     depth, last_type = _walk_depth(loaded["windows"])
     assert depth == 299
     assert last_type == "mapped_299"
