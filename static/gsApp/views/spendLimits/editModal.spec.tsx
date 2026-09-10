@@ -62,4 +62,57 @@ describe('SpendLimitsEditModal', () => {
     );
     expect(closeModal).toHaveBeenCalled();
   });
+
+  it('submits per-product limits after changing the budget mode', async () => {
+    const organization = OrganizationFixture({features: ['ondemand-budgets']});
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am2_team',
+      onDemandMaxSpend: 0,
+    });
+    const closeModal = jest.fn();
+    const request = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/ondemand-budgets/`,
+      method: 'POST',
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      method: 'GET',
+    });
+
+    render(
+      <SpendLimitsEditModal
+        Header={() => <div />}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(closeModal)}
+        closeModal={closeModal}
+        organization={organization}
+        subscription={subscription}
+      />
+    );
+
+    await userEvent.click(
+      screen.getByRole('radio', {name: 'Per-category spending limit mode'})
+    );
+    const errorsInput = screen.getByRole('textbox', {
+      name: 'Custom errors spending limit (in dollars)',
+    });
+    await userEvent.clear(errorsInput);
+    await userEvent.type(errorsInput, '5');
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    await waitFor(() =>
+      expect(request).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/ondemand-budgets/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            budgetMode: 'per_category',
+            budgets: expect.objectContaining({errors: 500}),
+          },
+        })
+      )
+    );
+  });
 });

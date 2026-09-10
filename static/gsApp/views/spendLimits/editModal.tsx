@@ -19,11 +19,21 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import type {OnDemandBudgets, Plan, Subscription} from 'getsentry/types';
+import {
+  OnDemandBudgetMode,
+  type OnDemandBudgets,
+  type Plan,
+  type Subscription,
+} from 'getsentry/types';
 import {displayBudgetName} from 'getsentry/utils/billing';
-import {SpendLimitSettings} from 'getsentry/views/spendLimits/spendLimitSettings';
+import {
+  BudgetModeSettings,
+  SpendLimitInput,
+  SpendLimitSettings,
+} from 'getsentry/views/spendLimits/spendLimitSettings';
 
 import {
+  convertOnDemandBudget,
   exceedsInvoicedBudgetLimit,
   getTotalBudget,
   normalizeOnDemandBudget,
@@ -53,42 +63,62 @@ type Props = {
   subscription: Subscription;
 } & ModalRenderProps;
 
-const onDemandBudgetsSchema = z.custom<OnDemandBudgets>(value => {
-  if (!value || typeof value !== 'object' || !('budgetMode' in value)) {
-    return false;
-  }
+type SpendLimitFormValues = {
+  budgetMode: OnDemandBudgetMode;
+  budgets: Partial<Record<DataCategory, number>>;
+  sharedMaxBudget: number;
+};
 
-  if (value.budgetMode === 'shared') {
-    return (
-      'sharedMaxBudget' in value &&
-      typeof value.sharedMaxBudget === 'number' &&
-      Number.isFinite(value.sharedMaxBudget) &&
-      value.sharedMaxBudget >= 0
-    );
-  }
+const nonNegativeBudgetSchema = z
+  .number()
+  .finite()
+  .nonnegative(t('Enter a valid spending limit.'));
 
-  return (
-    value.budgetMode === 'per_category' &&
-    'budgets' in value &&
-    !!value.budgets &&
-    typeof value.budgets === 'object' &&
-    Object.values(value.budgets).every(
-      budget => typeof budget === 'number' && Number.isFinite(budget) && budget >= 0
-    )
+function getFormValues(onDemandBudgets: OnDemandBudgets): SpendLimitFormValues {
+  const perCategoryBudget = convertOnDemandBudget(
+    onDemandBudgets,
+    OnDemandBudgetMode.PER_CATEGORY
   );
-}, t('Enter a valid spending limit.'));
+  return {
+    budgetMode: onDemandBudgets.budgetMode,
+    sharedMaxBudget: getTotalBudget(onDemandBudgets),
+    budgets:
+      perCategoryBudget.budgetMode === OnDemandBudgetMode.PER_CATEGORY
+        ? perCategoryBudget.budgets
+        : {},
+  };
+}
+
+function getOnDemandBudgets(values: SpendLimitFormValues): OnDemandBudgets {
+  return values.budgetMode === OnDemandBudgetMode.PER_CATEGORY
+    ? {budgetMode: values.budgetMode, budgets: values.budgets}
+    : {budgetMode: values.budgetMode, sharedMaxBudget: values.sharedMaxBudget};
+}
 
 function getFormSchema(subscription: Subscription) {
-  return z.object({
-    onDemandBudgets: onDemandBudgetsSchema.superRefine((onDemandBudgets, context) => {
+  return z
+    .object({
+      budgetMode: z.enum(OnDemandBudgetMode),
+      budgets: z.custom<Partial<Record<DataCategory, number>>>(
+        budgets =>
+          !!budgets &&
+          typeof budgets === 'object' &&
+          Object.values(budgets).every(
+            budget => nonNegativeBudgetSchema.safeParse(budget).success
+          )
+      ),
+      sharedMaxBudget: nonNegativeBudgetSchema,
+    })
+    .superRefine((values, context) => {
+      const onDemandBudgets = getOnDemandBudgets(values);
       if (exceedsInvoicedBudgetLimit(subscription, onDemandBudgets)) {
         context.addIssue({
           code: 'custom',
           message: getBudgetExceededInvoicedLimitError(subscription.planDetails),
+          path: ['sharedMaxBudget'],
         });
       }
-    }),
-  });
+    });
 }
 
 function renderRequestError(error: Error | null, plan: Plan) {
@@ -118,16 +148,6 @@ function renderRequestError(error: Error | null, plan: Plan) {
   );
 }
 
-function getValidationErrorMessage(error: unknown) {
-  if (typeof error === 'string') {
-    return error;
-  }
-  if (error && typeof error === 'object' && 'message' in error) {
-    return String(error.message);
-  }
-  return null;
-}
-
 function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: Props) {
   const [currentOnDemandBudget] = useState(() =>
     parseOnDemandBudgetsFromSubscription(subscription)
@@ -149,10 +169,10 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {onDemandBudgets: currentOnDemandBudget},
+    defaultValues: getFormValues(currentOnDemandBudget),
     validators: {onDynamic: getFormSchema(subscription)},
     onSubmit: async ({value}) => {
-      const newOnDemandBudget = normalizeOnDemandBudget(value.onDemandBudgets);
+      const newOnDemandBudget = normalizeOnDemandBudget(getOnDemandBudgets(value));
       try {
         await mutation.mutateAsync(newOnDemandBudget);
       } catch {
@@ -183,43 +203,125 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
       .map(([category, categoryInfo]) => [category, categoryInfo.reserved ?? 0])
   );
 
+  const handleBudgetUpdate = (onDemandBudgets: OnDemandBudgets) => {
+    const values = getFormValues(onDemandBudgets);
+    form.setFieldValue('budgetMode', values.budgetMode);
+    form.setFieldValue('sharedMaxBudget', values.sharedMaxBudget);
+    form.setFieldValue('budgets', values.budgets);
+  };
+
   return (
     <form.AppForm form={form}>
       <Fragment>
         <OffsetBody>
           {renderRequestError(mutation.error, subscription.planDetails)}
           <Container padding="2xl">
-            <form.AppField name="onDemandBudgets">
-              {field => {
-                const validationError = getValidationErrorMessage(
-                  field.state.meta.errors[0]
-                );
+            <form.AppField name="budgetMode">
+              {modeField => {
+                const onDemandBudgets = getOnDemandBudgets({
+                  budgetMode: modeField.state.value,
+                  sharedMaxBudget: form.getFieldValue('sharedMaxBudget'),
+                  budgets: form.getFieldValue('budgets'),
+                });
                 return (
-                  <Stack gap="lg">
-                    {validationError && (
-                      <Alert system variant="danger">
-                        {validationError}
-                      </Alert>
+                  <SpendLimitSettings
+                    organization={organization}
+                    subscription={subscription}
+                    header={
+                      <Heading as="h2" size="xl">
+                        {tct('Set your [budgetTerm] limit', {
+                          budgetTerm: displayBudgetName(subscription.planDetails),
+                        })}
+                      </Heading>
+                    }
+                    activePlan={subscription.planDetails}
+                    onDemandBudgets={onDemandBudgets}
+                    currentReserved={currentReserved}
+                    addOns={subscription.addOns ?? {}}
+                    onUpdate={({onDemandBudgets: nextBudget}) =>
+                      handleBudgetUpdate(nextBudget)
+                    }
+                    usesFormFieldLayout
+                    renderBudgetModeSettings={() => (
+                      <modeField.Layout.Stack label={t('Spending limit type')}>
+                        <modeField.Base<HTMLDivElement>>
+                          {(baseProps, {indicator}) => (
+                            <Grid columns="1fr auto" gap="sm" align="center">
+                              <Container {...baseProps} role="radiogroup" width="100%">
+                                <BudgetModeSettings
+                                  activePlan={subscription.planDetails}
+                                  onDemandBudgets={onDemandBudgets}
+                                  onUpdate={({onDemandBudgets: nextBudget}) => {
+                                    modeField.handleChange(nextBudget.budgetMode);
+                                    handleBudgetUpdate(nextBudget);
+                                  }}
+                                />
+                              </Container>
+                              {indicator}
+                            </Grid>
+                          )}
+                        </modeField.Base>
+                      </modeField.Layout.Stack>
                     )}
-                    <SpendLimitSettings
-                      organization={organization}
-                      subscription={subscription}
-                      header={
-                        <Heading as="h2" size="xl">
-                          {tct('Set your [budgetTerm] limit', {
-                            budgetTerm: displayBudgetName(subscription.planDetails),
-                          })}
-                        </Heading>
+                    renderSpendLimitInput={props => {
+                      if (props.category === null) {
+                        return (
+                          <form.AppField name="sharedMaxBudget">
+                            {field => (
+                              <Stack gap="lg" paddingTop="xl">
+                                <Heading as="h2" size="lg">
+                                  {t('Monthly spending limit')}
+                                </Heading>
+                                <Container width="100%">
+                                  <field.Base<HTMLInputElement>>
+                                    {(baseProps, {indicator}) => (
+                                      <SpendLimitInput
+                                        {...props}
+                                        currentSpendingLimit={field.state.value}
+                                        fieldProps={baseProps}
+                                        indicator={indicator}
+                                        onUpdate={({newData}) =>
+                                          field.handleChange(newData.sharedMaxBudget ?? 0)
+                                        }
+                                      />
+                                    )}
+                                  </field.Base>
+                                </Container>
+                                <field.Meta.HintText>
+                                  {t(
+                                    'Charges are applied at the end of your usage cycle, and your limit can be adjusted at anytime.'
+                                  )}
+                                </field.Meta.HintText>
+                              </Stack>
+                            )}
+                          </form.AppField>
+                        );
                       }
-                      activePlan={subscription.planDetails}
-                      onDemandBudgets={field.state.value}
-                      currentReserved={currentReserved}
-                      addOns={subscription.addOns ?? {}}
-                      onUpdate={({onDemandBudgets}) =>
-                        field.handleChange(onDemandBudgets)
-                      }
-                    />
-                  </Stack>
+
+                      const category = props.category;
+                      return (
+                        <form.AppField name={`budgets.${category}`}>
+                          {field => (
+                            <Container width="100%">
+                              <field.Base<HTMLInputElement>>
+                                {(baseProps, {indicator}) => (
+                                  <SpendLimitInput
+                                    {...props}
+                                    currentSpendingLimit={field.state.value ?? 0}
+                                    fieldProps={baseProps}
+                                    indicator={indicator}
+                                    onUpdate={({newData}) =>
+                                      field.handleChange(newData[category] ?? 0)
+                                    }
+                                  />
+                                )}
+                              </field.Base>
+                            </Container>
+                          )}
+                        </form.AppField>
+                      );
+                    }}
+                  />
                 );
               }}
             </form.AppField>
