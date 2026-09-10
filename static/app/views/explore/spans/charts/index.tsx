@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -6,7 +6,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconClock, IconContract, IconExpand, IconGraph} from 'sentry/icons';
+import {IconClock, IconContract, IconExpand, IconGraph, IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
@@ -25,10 +25,7 @@ import {
   ChartVisualization,
   useChartVisualizationPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
-import {
-  DroppedDataList,
-  DroppedDataOverlay,
-} from 'sentry/views/explore/components/chart/droppedDataStrip';
+import {DroppedDataOverlay} from 'sentry/views/explore/components/chart/droppedDataStrip';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {ChartContextMenu} from 'sentry/views/explore/components/chartContextMenu';
@@ -179,7 +176,16 @@ function Chart({
     'explore-data-fidelity-annotations'
   );
   const annotations = timeseriesResult.meta?.annotations ?? [];
-  const showAnnotations = hasAnnotations && annotations.length > 0 && visualize.visible;
+
+  // Whether dropped-data annotations are available for this chart at all.
+  const annotationsAvailable =
+    hasAnnotations && annotations.length > 0 && visualize.visible;
+
+  // Annotations render as an optional "layer" the user can toggle from the
+  // Layers control, rather than living in the chart legend. Defaults to on so
+  // the data is visible, but the user can hide it.
+  const [layersVisible, setLayersVisible] = useState(true);
+  const showAnnotations = annotationsAvailable && layersVisible;
   const {
     dismiss: dismissChartSelectionAlert,
     isDismissed: isChartSelectionAlertDismissed,
@@ -308,6 +314,30 @@ function Chart({
           options={intervalOptions}
         />
       </Tooltip>
+      {annotationsAvailable && (
+        <Tooltip title={t('Overlays shown on top of this chart')}>
+          <CompactSelect
+            multiple
+            value={layersVisible ? ['dropped-data'] : []}
+            onChange={selected =>
+              setLayersVisible(selected.some(option => option.value === 'dropped-data'))
+            }
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                icon={<IconStack />}
+                variant="transparent"
+                showChevron={false}
+                size="xs"
+              >
+                {t('Layers')}
+              </OverlayTrigger.Button>
+            )}
+            menuTitle={t('Layers')}
+            options={[{value: 'dropped-data', label: t('Dropped Data')}]}
+          />
+        </Tooltip>
+      )}
       <ChartContextMenu
         key="context"
         visualizeYAxes={[visualize]}
@@ -336,9 +366,6 @@ function Chart({
 
   return (
     <ChartWrapper ref={chartWrapperRef}>
-      {showAnnotations && (
-        <DroppedDataOverlay annotations={annotations} chartRef={chartRef} />
-      )}
       <Widget
         Title={Title}
         TitleBadges={TitleBadges}
@@ -406,9 +433,15 @@ function Chart({
         height={chartHeight}
         revealActions="always"
       />
-      {hasAnnotations && annotations.length > 0 && visualize.visible && (
-        <DroppedDataList annotations={annotations} />
-      )}
+      {showAnnotations &&
+        defined(timeseriesResult.meta?.start) &&
+        defined(timeseriesResult.meta?.end) && (
+          <DroppedDataOverlay
+            annotations={annotations}
+            start={timeseriesResult.meta.start}
+            end={timeseriesResult.meta.end}
+          />
+        )}
     </ChartWrapper>
   );
 }
