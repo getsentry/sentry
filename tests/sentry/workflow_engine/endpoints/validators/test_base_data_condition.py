@@ -3,7 +3,9 @@ from unittest import mock
 
 from rest_framework.serializers import ValidationError
 
+from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
+from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.endpoints.validators.base import (
     AbstractDataConditionValidator,
     BaseDataConditionValidator,
@@ -54,6 +56,42 @@ class TestBaseDataConditionValidator(TestCase):
         valid_data = {**self.valid_data, "comparison": 1}
         validator = BaseDataConditionValidator(data=valid_data)
         assert validator.is_valid() is True
+
+
+class TestRegisteredComparisonSchemas(TestCase):
+    def _validator(self, condition: Condition, comparison: Any) -> BaseDataConditionValidator:
+        return BaseDataConditionValidator(
+            data={
+                "type": condition.value,
+                "comparison": comparison,
+                "conditionResult": True,
+            }
+        )
+
+    def test_event_seen_count(self) -> None:
+        assert self._validator(Condition.EVENT_SEEN_COUNT, 1).is_valid() is True
+        assert self._validator(Condition.EVENT_SEEN_COUNT, 0).is_valid() is False
+
+    def test_event_created_by_detector(self) -> None:
+        assert self._validator(Condition.EVENT_CREATED_BY_DETECTOR, 1).is_valid() is True
+        assert self._validator(Condition.EVENT_CREATED_BY_DETECTOR, 0).is_valid() is False
+
+    def test_issue_resolution_change(self) -> None:
+        assert (
+            self._validator(Condition.ISSUE_RESOLUTION_CHANGE, GroupStatus.RESOLVED).is_valid()
+            is True
+        )
+        assert (
+            self._validator(Condition.ISSUE_RESOLUTION_CHANGE, GroupStatus.UNRESOLVED).is_valid()
+            is False
+        )
+
+    def test_issue_priority_deescalating(self) -> None:
+        assert (
+            self._validator(Condition.ISSUE_PRIORITY_DEESCALATING, PriorityLevel.HIGH).is_valid()
+            is True
+        )
+        assert self._validator(Condition.ISSUE_PRIORITY_DEESCALATING, 100).is_valid() is False
 
 
 class MockComplexDataConditionHandler(DataConditionHandler[dict[str, Any]]):

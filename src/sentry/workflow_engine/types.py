@@ -235,7 +235,7 @@ class DataConditionHandler(Generic[T]):
 
     group: ClassVar[Group]
     subgroup: ClassVar[Subgroup]
-    comparison_json_schema: ClassVar[dict[str, Any]] = {}
+    comparison_json_schema: ClassVar[dict[str, Any]]
     condition_result_schema: ClassVar[dict[str, Any]] = {}
     label_template = ""
 
