@@ -398,7 +398,7 @@ class MarkFailedTestCase(TestCase):
         mock_metrics.incr.assert_any_call(
             "monitors.incidents.threshold_history_underrun",
             tags={
-                "org_slug": self.organization.slug,
+                "organization_id": str(self.organization.id),
                 "checkin_count_at_incident": "1",
                 "failure_issue_threshold": str(failure_issue_threshold),
             },

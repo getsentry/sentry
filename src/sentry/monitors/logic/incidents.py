@@ -10,7 +10,6 @@ from sentry import analytics
 from sentry.analytics.events.cron_monitor_broken_status_recovery import (
     CronMonitorBrokenStatusRecovery,
 )
-from sentry.models.organization import Organization
 from sentry.monitors.logic.incident_occurrence import (
     dispatch_incident_occurrence,
     resolve_incident_group,
@@ -20,13 +19,6 @@ from sentry.monitors.tasks.detect_broken_monitor_envs import NUM_DAYS_BROKEN_PER
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
-
-
-def _get_org_slug(organization_id: int) -> str:
-    try:
-        return Organization.objects.get_from_cache(id=organization_id).slug
-    except Organization.DoesNotExist:
-        return "unknown"
 
 
 @dataclass
@@ -107,7 +99,7 @@ def try_incident_threshold(
                 metrics.incr(
                     "monitors.incidents.threshold_history_underrun",
                     tags={
-                        "org_slug": _get_org_slug(monitor_env.monitor.organization_id),
+                        "organization_id": str(monitor_env.monitor.organization_id),
                         "checkin_count_at_incident": str(checkin_count_at_incident),
                         "failure_issue_threshold": str(failure_issue_threshold),
                     },
