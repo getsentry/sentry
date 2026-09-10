@@ -1,4 +1,3 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
@@ -36,7 +35,6 @@ describe('useVisualizeFields', () => {
   it('returns numeric fields', () => {
     const {result} = renderHookWithProviders(() => useWrapper('avg(score.ttfb)'), {
       organization,
-      initialRouterConfig: {location: LocationFixture()},
     });
 
     expect(result.current.map(field => field.value)).toEqual([
@@ -57,7 +55,6 @@ describe('useVisualizeFields', () => {
   it('returns numeric fields for count', () => {
     const {result} = renderHookWithProviders(() => useWrapper('count(span.duration)'), {
       organization,
-      initialRouterConfig: {location: LocationFixture()},
     });
 
     expect(result.current.map(field => field.value)).toEqual(['span.duration']);
@@ -66,7 +63,6 @@ describe('useVisualizeFields', () => {
   it('returns string fields for count_unique', () => {
     const {result} = renderHookWithProviders(() => useWrapper('count_unique(foobar)'), {
       organization,
-      initialRouterConfig: {location: LocationFixture()},
     });
 
     expect(result.current.map(field => field.value)).toEqual(
