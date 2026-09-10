@@ -1,12 +1,16 @@
+from __future__ import annotations
+
 import logging
 import random
 from datetime import datetime, timezone
+from typing import Protocol
 
 from django.db import connections, router
 from django.db.models import Max, Min
 
 from sentry.issues.derived.check import CheckFailure, CheckId, CheckInvalidated, CheckResult
 from sentry.issues.models.groupderiveddata import GroupDerivedData
+from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -16,6 +20,32 @@ _MAX_CHECK_GROUPS = 10_000
 # Safety valve on the number of group IDs one ``group_id_ranges_for_hash`` call may
 # walk, however large the requested chunking is.
 _MAX_SCANNED_GROUP_IDS = 2_000_000
+
+
+class _TaskState(Protocol):
+    id: str
+
+
+class SpawnState:
+    """Ergonomic wrapper around self-chain ``already_spawned`` / ``mark_spawned``.
+
+    Construct once from ``current_task()`` and the task's self-chain key. Methods are no-ops when
+    there is no activation (eager/sync calls).
+    """
+
+    def __init__(self, task_state: _TaskState | None, task_key: str) -> None:
+        self.task_key = task_key
+        self.activation_id: str | None = task_state.id if task_state is not None else None
+
+    def already_spawned(self) -> bool:
+        if self.activation_id is None:
+            return False
+        return already_spawned(self.task_key, self.activation_id)
+
+    def mark_spawned(self) -> None:
+        if self.activation_id is None:
+            return
+        mark_spawned(self.task_key, self.activation_id)
 
 
 def _record_check_result(result: CheckResult) -> None:

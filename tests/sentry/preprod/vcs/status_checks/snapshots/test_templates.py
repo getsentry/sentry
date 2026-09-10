@@ -969,9 +969,11 @@ class SnapshotMissingBaseFormattingTest(SnapshotStatusCheckTestBase):
         assert "24" in summary
         assert "✅ Uploaded" in summary
         assert (
-            f"No base snapshot found for [`{base_sha}`]({base_repo_url}/commit/{base_sha})"
+            f"Base commit [`{base_sha}`]({base_repo_url}/commit/{base_sha}) did not produce snapshots"
             in summary
         )
+        assert "Did its snapshot job fail?" in summary
+        assert "Try rebasing this branch on a commit with a successful snapshot job." in summary
 
     def test_missing_base_multiple_artifacts(self) -> None:
         artifacts = []
@@ -995,7 +997,7 @@ class SnapshotMissingBaseFormattingTest(SnapshotStatusCheckTestBase):
         assert subtitle == f"No base snapshot found for {base_sha}"
         for i in range(3):
             assert f"com.example.app{i}" in summary
-        assert f"No base snapshot found for `{base_sha}`" in summary
+        assert f"Base commit `{base_sha}` did not produce snapshots" in summary
 
     def test_missing_base_empty_artifacts_raises(self) -> None:
         with pytest.raises(ValueError, match="Cannot format messages for empty artifact list"):
@@ -1027,8 +1029,9 @@ class SnapshotMissingBaseFormattingTest(SnapshotStatusCheckTestBase):
             "| Name | Snapshots | Status |\n"
             "| :--- | :---: | :---: |\n"
             f"| [My App]({artifact_url})<br>`com.example.app` | 15 | ✅ Uploaded |"
-            f"\n\nNo base snapshot found for [`{base_sha}`]({base_repo_url}/commit/{base_sha}). "
-            "Make sure snapshots are uploaded from your main branch."
+            f"\n\nBase commit [`{base_sha}`]({base_repo_url}/commit/{base_sha}) did not produce "
+            "snapshots to compare against. Did its snapshot job fail? "
+            "Try rebasing this branch on a commit with a successful snapshot job."
             f"\n\n{configure_link}"
         )
         assert summary == expected

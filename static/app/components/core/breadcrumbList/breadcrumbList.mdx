@@ -101,9 +101,13 @@ leading graphics, trailing actions, or an editable control.
 
 ### `'link'` — parent page
 
-A clickable, muted-weight crumb that navigates to a parent page. Set
-`preservePageFilters` to carry project, environment, and date filters across the
-navigation.
+A clickable, muted-weight crumb that navigates to a parent page. It takes a
+string `label`, a `to` destination, and an optional `leadingGraphic`.
+
+Page filters are not carried automatically. To keep the project, environment, and
+date selection across the navigation, build the query into `to` yourself with
+`extractSelectionParameters` from `sentry/components/pageFilters/parse`,
+overriding any parameter the destination needs different.
 
 <Storybook.Demo>
   <BreadcrumbListDemo
@@ -117,7 +121,6 @@ navigation.
         type: 'link',
         label: 'Issues',
         to: '/organizations/org-slug/issues/',
-        preservePageFilters: true,
       },
     ]}
   />
@@ -127,7 +130,11 @@ navigation.
   <BreadcrumbList
     items={[
       {type: 'link', label: 'Projects', to: '/organizations/org-slug/projects/'},
-      {type: 'link', label: 'Issues', to: '/issues/', preservePageFilters: true},
+      {
+        type: 'link',
+        label: 'Issues',
+        to: {pathname: '/issues/', query: extractSelectionParameters(location.query)},
+      },
     ]}
   />
 </TopBar.Slot>

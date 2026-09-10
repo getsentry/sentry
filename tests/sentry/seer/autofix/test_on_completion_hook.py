@@ -14,9 +14,9 @@ from sentry.seer.agent.client_models import (
     ToolLink,
     ToolResult,
 )
-from sentry.seer.autofix.autofix_agent import AutofixStep
 from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import CodingAgentProviderType
 from sentry.seer.models.seer_api_models import SeerAutomationHandoffConfiguration
 from sentry.testutils.cases import TestCase

@@ -131,6 +131,7 @@ export type EvidenceButtonProps =
   | EvidenceButtonPlainProps;
 
 interface GetEvidencePropsPayload {
+  isEmployee: boolean;
   organization: Organization;
   projects: Project[];
   toolCall: ToolCall;
@@ -413,7 +414,12 @@ function getReadFileEvidenceProps({
 
 function getBashEvidenceProps({
   toolCall,
+  isEmployee,
 }: GetEvidencePropsPayload): EvidenceButtonProps | null {
+  if (!isEmployee) {
+    return null;
+  }
+
   // The bash tool emits no navigable resource — its tool link only carries a
   // description — so evidence is the command itself, rendered as a plain chip
   // with the full command in the tooltip.

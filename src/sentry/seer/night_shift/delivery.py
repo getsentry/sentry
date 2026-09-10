@@ -15,9 +15,10 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.agent.types import FeatureRunStatus
-from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_agent
+from sentry.seer.autofix.autofix_agent import trigger_autofix_agent
 from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.seer.autofix.issue_summary import referrer_map
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     bulk_read_preferences_from_sentry_db,

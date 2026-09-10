@@ -156,6 +156,13 @@ const storyFilesPolicy = {
         },
       },
     },
+    {
+      to: {
+        file: {
+          categories: 'test-fixtures',
+        },
+      },
+    },
   ],
 };
 
@@ -216,7 +223,10 @@ const config = defineConfig({
   },
   options: {
     typeAware: enableTypeAwareLinting,
-    reportUnusedDisableDirectives: 'off',
+    // Only report unused directives when the full rule set runs. Without
+    // type-aware linting the type-aware rules never fire, so the suppressions
+    // that silence them look unused and `--fix` would delete live ones.
+    reportUnusedDisableDirectives: enableTypeAwareLinting ? 'error' : 'off',
   },
   env: {
     builtin: true,
@@ -333,6 +343,13 @@ const config = defineConfig({
           'static/gsApp/__fixtures__/**/*',
           'static/**/*{t,T}estUtils*.{js,jsx,mjs,ts,tsx}',
         ],
+      },
+      // Fixtures are a second, narrower classification on top of test-support.
+      // Stories need realistic data objects, so they are granted this subset
+      // without opening up mocks, render helpers, or the rest of test-support.
+      {
+        category: 'test-fixtures',
+        pattern: ['tests/js/fixtures/**/*', 'static/gsApp/__fixtures__/**/*'],
       },
       {
         category: 'sentry-locale',
@@ -588,6 +605,17 @@ const config = defineConfig({
     '@tanstack/query/infinite-query-property-order': 'error',
     '@tanstack/query/no-void-query-fn': 'error',
     '@tanstack/query/mutation-property-order': 'error',
+    'react/capitalized-calls': 'error',
+    'react/error-boundaries': 'error',
+    'react/exhaustive-effect-dependencies': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/function-component-definition': 'error',
+    'react/globals': 'error',
+    'react/hooks': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/immutability': 'error',
+    'react/incompatible-library': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/invariant': 'error',
+    'react/jsx-boolean-value': ['error', 'never'],
+    'react/jsx-fragments': ['error', 'element'],
     'react/jsx-key': [
       'error',
       {
@@ -613,10 +641,20 @@ const config = defineConfig({
         ignore: ['css'],
       },
     ],
+    'react/memo-dependencies': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/no-deriving-state-in-effects': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/preserve-manual-memoization': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/purity': 'error',
+    'react/refs': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/require-render-return': 'error',
-    'react/function-component-definition': 'error',
-    'react/jsx-boolean-value': ['error', 'never'],
-    'react/jsx-fragments': ['error', 'element'],
+    'react/rule-suppression': 'off',
+    'react/set-state-in-effect': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/set-state-in-render': 'error',
+    'react/static-components': 'error',
+    'react/syntax': 'error',
+    'react/todo': 'off',
+    'react/unsupported-syntax': 'error',
+    'react/use-memo': 'error',
     'react/no-did-mount-set-state': 'error',
     'react/no-did-update-set-state': 'error',
     'react/no-redundant-should-component-update': 'error',

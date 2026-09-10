@@ -35,13 +35,19 @@ from collections.abc import Iterable
 from typing import Any
 
 from django.utils import timezone
+from scm import actions as scm_actions
+from scm.types import CreatePullRequestCommentProtocol
 
+from sentry import analytics
+from sentry.analytics.events.pr_iteration_events import (
+    AiAutofixPrIterationMissingPermissionsEvent,
+)
 from sentry.locks import locks
 from sentry.models.organization import Organization
+from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.github_perms import (
     MissingGithubPermissions,
-    get_github_missing_permissions,
     get_missing_permissions_by_repo,
 )
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
@@ -102,9 +108,29 @@ def repos_missing_permissions(
     return get_missing_permissions_by_repo(organization, repo_names)
 
 
+def _comment_failed(
+    reason: str,
+    scopes_tag: str,
+    log_ctx: PrIterationLogContext,
+    log_fields: dict[str, Any],
+    *,
+    exc_info: bool = True,
+) -> bool:
+    metrics.incr(
+        "autofix.pr_iteration.missing_permissions.comment_failed",
+        tags={"missing_scopes": scopes_tag, "reason": reason},
+    )
+    log_ctx.error(
+        "autofix.pr_iteration.missing_permissions.comment_failed",
+        exc_info=exc_info,
+        reason=reason,
+        **log_fields,
+    )
+    return False
+
+
 def _post_comment(
     organization: Organization,
-    repo_name: str,
     pr_number: int,
     info: MissingGithubPermissions,
     log_ctx: PrIterationLogContext,
@@ -123,16 +149,21 @@ def _post_comment(
             **log_fields,
         )
         return False
+
     try:
-        client = info.integration.get_installation(organization_id=organization.id).get_client()
-        client.create_comment(repo_name, str(pr_number), {"body": _comment_body(url)})
+        scm = make_scm(organization.id, info.repository_id, referrer="seer")
     except Exception:
-        metrics.incr(
-            "autofix.pr_iteration.missing_permissions.comment_failed",
-            tags={"missing_scopes": scopes_tag},
+        return _comment_failed("scm_init_failed", scopes_tag, log_ctx, log_fields)
+
+    if not isinstance(scm, CreatePullRequestCommentProtocol):
+        return _comment_failed(
+            "unsupported_provider", scopes_tag, log_ctx, log_fields, exc_info=False
         )
-        log_ctx.error("autofix.pr_iteration.missing_permissions.comment_failed", **log_fields)
-        return False
+
+    try:
+        scm_actions.create_pull_request_comment(scm, str(pr_number), _comment_body(url))
+    except Exception:
+        return _comment_failed("post_failed", scopes_tag, log_ctx, log_fields)
     return True
 
 
@@ -163,11 +194,28 @@ def get_blocking_permissions(
     )
     log_ctx.info(
         "autofix.pr_iteration.missing_permissions.blocked",
-        repo_ids=sorted(
-            info.repository_id for info in missing_by_repo.values() if info.repository_id
-        ),
+        repo_ids=sorted(info.repository_id for info in missing_by_repo.values()),
     )
     return missing_by_repo
+
+
+def _record_comment_posted(
+    organization_id: int,
+    integration_id: int,
+    repository_id: int,
+    log_ctx: PrIterationLogContext,
+) -> None:
+    try:
+        analytics.record(
+            AiAutofixPrIterationMissingPermissionsEvent(
+                action="comment_posted",
+                organization_id=organization_id,
+                integration_id=integration_id,
+                repository_id=repository_id,
+            )
+        )
+    except Exception:
+        log_ctx.error("autofix.pr_iteration.missing_permissions.analytics_failed")
 
 
 def _skip(log_ctx: PrIterationLogContext, reason: str, **log_fields: Any) -> None:
@@ -234,6 +282,7 @@ def _queue_missing_permissions_comments(
             pr_number=pr_state.pr_number,
             pr_id=pr_state.pr_id,
             integration_id=info.integration.id,
+            repository_id=info.repository_id,
         )
 
 
@@ -245,6 +294,7 @@ def post_missing_permissions_comment(
     pr_number: int,
     pr_id: int | None,
     integration_id: int,
+    queued_repository_id: int | None = None,
     log_ctx: PrIterationLogContext,
 ) -> None:
     """Post the single "accept these permissions" comment for a run+repo.
@@ -256,6 +306,12 @@ def post_missing_permissions_comment(
     Exhausting those retries is the only way a user never hears about the
     missing permissions, and taskworker already reports it: this taskname with
     ``status:failure`` on ``taskworker.worker.execute_task``.
+
+    Permissions are re-resolved here rather than trusted from the gate's args,
+    so what we comment and record reflects the repo now. ``integration_id`` and
+    ``queued_repository_id`` are what the gate saw; the latter is only compared
+    against the fresh lookup to log a repo that was re-pointed in between, and
+    is None for activations queued before it was threaded through.
     """
     log_fields: dict[str, Any] = {
         "integration_id": integration_id,
@@ -271,11 +327,21 @@ def post_missing_permissions_comment(
         _skip(log_ctx, "already_commented", **log_fields)
         return
 
-    info = get_github_missing_permissions(integration_id)
-    if info is None or not info.missing_scopes:
-        # Accepted between the gate and this task: nothing left to ask for.
-        _skip(log_ctx, "permissions_resolved", **log_fields)
+    info = get_missing_permissions_by_repo(organization, [repo_name]).get(repo_name)
+    if info is None:
+        # Nothing left to ask for: the permissions were accepted, or the repo or
+        # its integration stopped resolving, between the gate and this task.
+        _skip(log_ctx, "no_missing_permissions", **log_fields)
         return
+
+    if queued_repository_id is not None and queued_repository_id != info.repository_id:
+        log_ctx.error(
+            "autofix.pr_iteration.missing_permissions.repository_changed",
+            exc_info=False,
+            queued_repository_id=queued_repository_id,
+            repository_id=info.repository_id,
+            **log_fields,
+        )
 
     lock = locks.get(
         f"autofix:pr_iteration:missing_permissions:{seer_run.id}:{repo_name}",
@@ -295,7 +361,7 @@ def post_missing_permissions_comment(
             _skip(log_ctx, "raced", **log_fields)
             return
 
-        if not _post_comment(organization, repo_name, pr_number, info, log_ctx, log_fields):
+        if not _post_comment(organization, pr_number, info, log_ctx, log_fields):
             return
 
         record_missing_permissions_marker(
@@ -304,6 +370,8 @@ def post_missing_permissions_comment(
             missing_scopes=info.missing_scopes,
             pr_id=pr_id,
         )
+
+    _record_comment_posted(organization.id, info.integration.id, info.repository_id, log_ctx)
 
     metrics.incr(
         "autofix.pr_iteration.missing_permissions.commented",
