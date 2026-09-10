@@ -118,3 +118,23 @@ class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
 
         assert len(identity) == 1
         assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_keeps_identity_of_other_provider(self) -> None:
+        # Identity external ids are only unique per provider.
+        teams_user_id = "my-teams-user-id"
+        self.create_identity(user=self.user1, identity_provider=self.idp, external_id=teams_user_id)
+        slack_idp = self.create_identity_provider(type="slack", external_id="TXXXXXXXX")
+        slack_identity = self.create_identity(
+            user=self.user1, identity_provider=slack_idp, external_id=teams_user_id
+        )
+
+        unlink_url = build_unlinking_url(
+            self.conversation_id, "https://smba.trafficmanager.net/amer", teams_user_id
+        )
+        resp = self.client.post(unlink_url)
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/integrations/msteams/unlinked.html")
+        assert not Identity.objects.filter(idp=self.idp, external_id=teams_user_id).exists()
+        assert Identity.objects.filter(id=slack_identity.id).exists()

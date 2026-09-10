@@ -557,6 +557,51 @@ class MsTeamsWebhookTest(APITestCase):
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch("sentry.utils.jwt.decode")
+    @mock.patch("time.time")
+    def test_link_command_identity_under_other_provider(
+        self, mock_time: MagicMock, mock_decode: MagicMock, mock_record: MagicMock
+    ) -> None:
+        """Identity external ids are only unique per provider: a Slack identity with the
+        same id is not an existing MS Teams link."""
+        other_command = deepcopy(EXAMPLE_UNLINK_COMMAND)
+        other_command["text"] = "link"
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            idp = self.create_identity_provider(type="slack", external_id="TXXXXXXXX")
+            self.create_identity(
+                user=self.user, identity_provider=idp, external_id=other_command["from"]["id"]
+            )
+        access_json = {"expires_in": 86399, "access_token": "my_token"}
+        responses.add(
+            responses.POST,
+            "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+            json=access_json,
+        )
+        responses.add(
+            responses.POST,
+            "https://smba.trafficmanager.net/amer/v3/conversations/%s/activities"
+            % other_command["conversation"]["id"],
+            json={},
+        )
+        mock_time.return_value = 1594839999 + 60
+        mock_decode.return_value = DECODED_TOKEN
+        resp = self.client.post(
+            path=webhook_url,
+            data=other_command,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
+        )
+
+        assert resp.status_code == 204
+        assert (
+            "Your Microsoft Teams identity will be linked to your Sentry account"
+            in responses.calls[3].request.body.decode("utf-8")
+        )
+
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
+    @responses.activate
     @mock.patch("sentry.utils.jwt.decode")
     @mock.patch("time.time")
     def test_other_command(self, mock_time: MagicMock, mock_decode: MagicMock) -> None:
