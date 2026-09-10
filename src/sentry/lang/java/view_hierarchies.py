@@ -78,6 +78,7 @@ class ViewHierarchies:
                     data=_serialize_view_hierarchy(view_hierarchy),
                     chunks=None,
                     stored_id=attachment.stored_id,
+                    retention_days=attachment.retention_days,
                 )
             )
 
