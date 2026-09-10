@@ -281,36 +281,7 @@ describe('SnapshotMainContent', () => {
     }
   });
 
-  it('hides the overlay from the toolbar eye button without opening the picker', async () => {
-    const onOverlayOpacityChange = jest.fn();
-    const changedItem = {
-      key: 'changed-buttons',
-      name: 'Buttons',
-      displayName: 'Buttons',
-      pairs: [changedPair],
-      type: 'changed' as const,
-    };
-
-    renderSnapshotMainContent({
-      comparisonType: 'diff',
-      diffMode: 'split',
-      isSoloView: false,
-      listItems: [changedItem],
-      selectedItem: changedItem,
-      onOverlayOpacityChange,
-      overlayOpacity: 50,
-      viewMode: 'single',
-    });
-
-    await userEvent.click(screen.getByRole('button', {name: 'Hide overlay'}));
-
-    expect(onOverlayOpacityChange).toHaveBeenCalledWith(0);
-    expect(
-      screen.queryByRole('button', {name: 'Overlay opacity 50%'})
-    ).not.toBeInTheDocument();
-  });
-
-  it('restores the previous opacity when showing the overlay again', async () => {
+  it('toggles the overlay off and restores the previous opacity', async () => {
     const onOverlayOpacityChange = jest.fn();
     const changedItem = {
       key: 'changed-buttons',
