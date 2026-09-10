@@ -298,7 +298,8 @@ class SeerAgentClient:
             category_key: Optional category key for filtering/grouping runs (e.g., "bug-fixer", "trace-analyzer"). Must be provided together with category_value. Makes it easy to retrieve runs for your feature later.
             category_value: Optional category value for filtering/grouping runs (e.g., issue ID, trace ID). Must be provided together with category_key. Makes it easy to retrieve a specific run for your feature later.
             custom_tools: Optional list of `AgentTool` classes to make available as tools to the agent. Each tool must inherit from AgentTool, define a params_model (Pydantic BaseModel), and implement execute(). Tools are automatically given access to the organization context. Tool classes must be module-level (not nested classes).
-            on_completion_hook: Optional `AgentOnCompletionHook` class to call when the agent completes. The hook's execute() method receives the organization and run ID. This is called whether or not the agent was successful. Hook classes must be module-level (not nested classes).
+            on_completion_hook: Optional module-level `AgentOnCompletionHook` class to call when the agent succeeds. Its execute() method receives the organization and run ID.
+            code_mode_read_only: For start_run(), restrict code mode to read-only API operations.
             intelligence_level: Optionally set the intelligence level of the agent. Higher intelligence gives better result quality at the cost of significantly higher latency and cost.
             is_interactive: Enable full interactive, human-like features of the agent. Only enable if you support *all* available interactions in Seer. An example use of this is the explorer chat in Sentry UI.
             enable_coding: Include code editing tools. When False, the agent cannot make code changes. Default is False. If enable_coding is True and the organization does not have the enable_seer_coding option, a SeerPermissionError will be raised.
@@ -328,6 +329,7 @@ class SeerAgentClient:
         max_iterations: int | None = None,
         enable_embeds: bool = True,
         enable_streaming: bool | None = None,
+        code_mode_read_only: bool = False,
     ):
         self.organization = organization
         self.user = user
@@ -348,6 +350,7 @@ class SeerAgentClient:
         self.max_iterations = max_iterations
         self.enable_embeds = enable_embeds
         self.enable_streaming = enable_streaming
+        self.code_mode_read_only = code_mode_read_only
 
         if enable_coding and not organization.get_option("sentry:enable_seer_coding", True):
             raise SeerPermissionError("Seer coding is not enabled for this organization")
@@ -492,6 +495,8 @@ class SeerAgentClient:
                 force_ce=force_ce,
             )
         )
+        if self.code_mode_read_only:
+            agent_run_options["code_mode_read_only"] = True
 
         user_id = (
             self.user.id
