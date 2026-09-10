@@ -1,4 +1,7 @@
-from typing import cast
+import functools
+import importlib
+import logging
+from typing import Any, cast
 
 import sentry_sdk
 from django.db.models import Q
@@ -13,6 +16,37 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository as RepositoryModel
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import metrics
+
+logger = logging.getLogger(__name__)
+
+
+@functools.cache
+def _cursor_origin_provider_cls() -> Any:
+    """The Cursor Origin provider class, when the installed scm build has one.
+
+    WIP. sentry-scm 1.5.0 predates the provider, so a plain import would take
+    down every SCM code path rather than just Origin. Resolved dynamically so
+    this module type-checks identically whether or not the newer build is
+    installed -- a guarded `import` flips between "unresolvable" and "unused
+    ignore" depending on which is present, which makes CI depend on install
+    order.
+
+    Remove this once the sentry-scm pin includes the provider.
+    """
+    try:
+        module = importlib.import_module("scm.providers.cursor_origin.provider")
+    except ImportError:
+        # Without this the caller returns None, fetch_service_provider returns None,
+        # and scm.helpers.initialize_provider raises ProviderNotFound -- which reads
+        # as "this provider is not supported" when the truth is "the installed
+        # sentry-scm predates it". Say which, so the version mismatch is not
+        # mistaken for a problem with the repository.
+        logger.warning(
+            "cursor_origin.scm_provider_unavailable",
+            extra={"scm_module": "scm.providers.cursor_origin.provider"},
+        )
+        return None
+    return module.CursorOriginProvider
 
 
 def fetch_service_provider(organization_id: int, repository: Repository) -> Provider | None:
@@ -32,6 +66,9 @@ def fetch_service_provider(organization_id: int, repository: Repository) -> Prov
         return GitHubProvider(client, organization_id, repository)
     elif integration.provider == "gitlab":
         return GitLabProvider(client, organization_id, repository)
+    elif integration.provider == "cursor_origin":
+        provider_cls = _cursor_origin_provider_cls()
+        return provider_cls(client, organization_id, repository) if provider_cls else None
     else:
         return None
 
