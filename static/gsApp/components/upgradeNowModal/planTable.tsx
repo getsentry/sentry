@@ -34,6 +34,7 @@ export function PlanTable({
 
   const {billedAmount, creditApplied, effectiveAt} = previewData;
 
+  // oxlint-disable-next-line react/purity
   const effectiveNow = new Date(effectiveAt).getTime() <= Date.now() + 3600;
 
   return (
