@@ -8,6 +8,7 @@ import pytest
 
 from sentry.attachments import CachedAttachment
 from sentry.lang.java.view_hierarchies import ViewHierarchies, _serialize_view_hierarchy
+from sentry.utils import json as sentry_json
 
 
 def _deep_windows(depth: int) -> list[dict[str, Any]]:
@@ -58,7 +59,7 @@ def test_deobfuscate_and_save_deeply_nested_hierarchy() -> None:
         type="event.view_hierarchy",
         name="view_hierarchy.json",
         content_type="application/json",
-        data=orjson.dumps(hierarchy),
+        data=sentry_json.dumps(hierarchy).encode("utf-8"),
     )
 
     get_attachments = mock.Mock(return_value=[attachment])
