@@ -148,6 +148,12 @@ describe('SnapshotMainContent', () => {
     jest.restoreAllMocks();
   });
 
+  it('renders the keyboard shortcuts button in the toolbar', () => {
+    renderSnapshotMainContent();
+
+    expect(screen.getByRole('button', {name: 'Keyboard shortcuts'})).toBeInTheDocument();
+  });
+
   it('keeps the diff/head toggle visible when viewing the head-only comparison', async () => {
     const onToggleSoloView = jest.fn();
 
