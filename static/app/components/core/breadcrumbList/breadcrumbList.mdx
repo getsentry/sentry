@@ -325,6 +325,61 @@ the meaning.
 />
 ```
 
+### Label tooltip
+
+**Available on** `'page-title'` only.
+
+`labelTooltip` explains a label that cannot explain itself — an opaque
+identifier, or a value the label shows in shortened form. It is always on, not
+overflow-only: the title already ellipsizes without it, so reach for it when
+there is _more_ to say, not to reveal text that was truncated.
+
+Setting it changes the title's appearance and behaviour. The label picks up a
+dotted underline and becomes keyboard focusable, so the tooltip is reachable
+without a pointer. A title with no `labelTooltip` renders as plain text with
+neither.
+
+<Storybook.Demo>
+  <BreadcrumbListDemo
+    items={[{type: 'link', label: 'Issues', to: '/organizations/org-slug/issues/'}]}
+    title={
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: 'JAVASCRIPT-2X9',
+          labelTooltip:
+            'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.',
+        }}
+      />
+    }
+  />
+</Storybook.Demo>
+```tsx
+<BreadcrumbList.Title
+  item={{
+    type: 'page-title',
+    label: group.shortId,
+    labelTooltip: t(
+      'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
+    ),
+  }}
+/>
+```
+
+When the label is a shortened form of a longer value, pass the full value —
+and pass `undefined` when the label is already complete, so the underline and
+tab stop only appear where there is something to read:
+
+```tsx
+<BreadcrumbList.Title
+  item={{
+    type: 'page-title',
+    label: getDisplayId(conversationId),
+    labelTooltip: isUUID(conversationId) ? conversationId : undefined,
+  }}
+/>
+```
+
 ### Pagination
 
 **Available on** `'page-title'` only.
