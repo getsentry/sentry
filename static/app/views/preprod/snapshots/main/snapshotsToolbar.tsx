@@ -14,7 +14,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ProgressBar} from 'sentry/components/progressBar';
 import {
-  IconChevron,
   IconExpand,
   IconHide,
   IconInput,
@@ -172,8 +171,6 @@ export function SortDropdown({
 const OPACITY_PRESETS = [0, 50, 100];
 const DEFAULT_VISIBLE_OPACITY = 50;
 
-export type OverlayToggleStyle = 'eye' | 'circle';
-
 function useOverlayToggle(opacity: number, onOpacityChange: (opacity: number) => void) {
   const lastVisibleOpacity = useRef(opacity || DEFAULT_VISIBLE_OPACITY);
 
@@ -191,13 +188,11 @@ export function ColorPickerButton({
   onChange,
   opacity,
   onOpacityChange,
-  toggleStyle = 'eye',
 }: {
   color: string;
   onChange: (color: string) => void;
   onOpacityChange: (opacity: number) => void;
   opacity: number;
-  toggleStyle?: OverlayToggleStyle;
 }) {
   const theme = useTheme();
   const [isOpen, setIsOpen] = useState(false);
@@ -224,50 +219,24 @@ export function ColorPickerButton({
 
   return (
     <ColorPickerWrapper ref={pickerRef}>
-      {toggleStyle === 'eye' ? (
-        <Fragment>
-          <Tooltip title={toggleLabel} skipWrapper>
-            <Button
-              size="xs"
-              variant="transparent"
-              icon={isHidden ? <IconShow /> : <IconHide />}
-              aria-label={toggleLabel}
-              aria-pressed={!isHidden}
-              onClick={toggleOverlay}
-            />
-          </Tooltip>
-          <Tooltip title={t('Overlay color')} skipWrapper>
-            <ColorTrigger
-              $color={color}
-              $slash={showSlash}
-              aria-label={t('Pick overlay color')}
-              onClick={() => setIsOpen(v => !v)}
-            />
-          </Tooltip>
-        </Fragment>
-      ) : (
-        <Fragment>
-          <Tooltip title={toggleLabel} skipWrapper>
-            <ColorTrigger
-              $color={color}
-              $slash={showSlash}
-              aria-label={t('Toggle overlay')}
-              aria-pressed={!isHidden}
-              onClick={toggleOverlay}
-            />
-          </Tooltip>
-          <Tooltip title={t('Overlay options')} skipWrapper>
-            <Button
-              size="zero"
-              variant="transparent"
-              icon={<IconChevron direction="down" size="xs" />}
-              aria-label={t('Overlay options')}
-              aria-expanded={isOpen}
-              onClick={() => setIsOpen(v => !v)}
-            />
-          </Tooltip>
-        </Fragment>
-      )}
+      <Tooltip title={toggleLabel} skipWrapper>
+        <Button
+          size="xs"
+          variant="transparent"
+          icon={isHidden ? <IconShow /> : <IconHide />}
+          aria-label={toggleLabel}
+          aria-pressed={!isHidden}
+          onClick={toggleOverlay}
+        />
+      </Tooltip>
+      <Tooltip title={t('Overlay color')} skipWrapper>
+        <ColorTrigger
+          $color={color}
+          $slash={showSlash}
+          aria-label={t('Pick overlay color')}
+          onClick={() => setIsOpen(v => !v)}
+        />
+      </Tooltip>
       {isOpen && (
         <ColorPickerDropdown>
           <Flex gap="xs" align="center">

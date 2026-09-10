@@ -344,37 +344,6 @@ describe('SnapshotMainContent', () => {
     expect(onOverlayOpacityChange).toHaveBeenLastCalledWith(100);
   });
 
-  it('toggles the overlay by clicking the color circle and opens options from the chevron', async () => {
-    const onOverlayOpacityChange = jest.fn();
-    const changedItem = {
-      key: 'changed-buttons',
-      name: 'Buttons',
-      displayName: 'Buttons',
-      pairs: [changedPair],
-      type: 'changed' as const,
-    };
-
-    renderSnapshotMainContent({
-      comparisonType: 'diff',
-      diffMode: 'split',
-      isSoloView: false,
-      listItems: [changedItem],
-      selectedItem: changedItem,
-      onOverlayOpacityChange,
-      overlayOpacity: 50,
-      viewMode: 'single',
-    });
-
-    await userEvent.click(screen.getByRole('button', {name: 'Toggle overlay'}));
-    expect(onOverlayOpacityChange).toHaveBeenCalledWith(0);
-    expect(
-      screen.queryByRole('button', {name: 'Overlay opacity 50%'})
-    ).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Overlay options'}));
-    expect(screen.getByRole('button', {name: 'Overlay opacity 50%'})).toBeInTheDocument();
-  });
-
   it('hides the color picker and opacity presets outside of split mode', () => {
     const changedItem = {
       key: 'changed-buttons',
