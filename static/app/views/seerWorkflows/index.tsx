@@ -86,7 +86,7 @@ function SeerWorkflows() {
   const {mutate: startMonitorScan, isPending: isStartingMonitorScan} = useMutation({
     mutationFn: () =>
       fetchMutation<{runId: string; url: string}>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/seer/workflow-runs/', {
+        url: getApiUrl('/organizations/$organizationIdOrSlug/seer/workflows/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
         method: 'POST',
@@ -109,7 +109,7 @@ function SeerWorkflows() {
 
   const {data, isPending, isError, refetch} = useQuery({
     ...apiOptions.as<SeerNightShiftRun[]>()(
-      '/organizations/$organizationIdOrSlug/seer/workflow-runs/',
+      '/organizations/$organizationIdOrSlug/seer/workflows/',
       {
         path: {organizationIdOrSlug: organization.slug},
         query: {runId: decodeScalar(location.query.runId)},

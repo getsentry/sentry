@@ -16,8 +16,8 @@ from sentry.tasks.seer.monitor_cleanup import collect_monitor_cleanup_result, fi
 from sentry.testutils.cases import APITestCase
 
 
-class OrganizationSeerWorkflowRunsTest(APITestCase):
-    endpoint = "sentry-api-0-organization-seer-workflow-runs"
+class OrganizationSeerWorkflowsTest(APITestCase):
+    endpoint = "sentry-api-0-organization-seer-workflows"
 
     def setUp(self) -> None:
         super().setUp()
@@ -336,7 +336,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
 
 
 class OrganizationSeerMonitorCleanupTest(APITestCase):
-    endpoint = "sentry-api-0-organization-seer-workflow-runs"
+    endpoint = "sentry-api-0-organization-seer-workflows"
     method = "post"
 
     def setUp(self) -> None:
@@ -523,7 +523,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         self.login_as(member)
         with self.feature(FEATURE):
             response = self.client.get(
-                f"/api/0/organizations/{self.organization.slug}/seer/workflow-runs/",
+                f"/api/0/organizations/{self.organization.slug}/seer/workflows/",
                 {"runId": run.id},
             )
         assert response.status_code == 200

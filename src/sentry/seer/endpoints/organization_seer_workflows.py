@@ -38,7 +38,7 @@ class WorkflowRunCreateResponse(TypedDict):
     url: str
 
 
-class OrganizationSeerWorkflowRunsPermission(OrganizationPermission):
+class OrganizationSeerWorkflowsPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read"],
         "POST": ["org:read"],
@@ -46,13 +46,13 @@ class OrganizationSeerWorkflowRunsPermission(OrganizationPermission):
 
 
 @cell_silo_endpoint
-class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
+class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
-    permission_classes = (OrganizationSeerWorkflowRunsPermission,)
+    permission_classes = (OrganizationSeerWorkflowsPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
         triage_enabled = features.has("organizations:seer-night-shift", organization)
