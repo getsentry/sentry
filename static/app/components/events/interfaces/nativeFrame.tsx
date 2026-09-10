@@ -289,7 +289,6 @@ export function NativeFrame({
           gap={{zero: 'xs sm', xl: '0 sm'}}
           isInAppFrame={frame.inApp}
           isSubFrame={!!isSubFrame}
-          minHeight={{xl: '32px'}}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
           padding={{zero: 'md', xl: 'sm lg'}}
@@ -301,7 +300,6 @@ export function NativeFrame({
         >
           {expandable ? <InteractionStateLayer /> : null}
           <Container
-            column="1"
             row={{
               zero: hiddenFrameCount ? '1 / 5' : '1 / 4',
               xl: '1',
@@ -334,7 +332,7 @@ export function NativeFrame({
               </Tooltip>
             ) : null}
           </Container>
-          <Container column="2" minWidth="0" row="1">
+          <Container minWidth="0">
             {!fullStackTrace && !expanded && leadsToApp && (
               <PackageNote>
                 {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
@@ -457,7 +455,6 @@ export function NativeFrame({
             }}
             gap="sm"
             justify="end"
-            row="1"
           >
             {showStacktraceLink && (
               <ErrorBoundary>
@@ -480,7 +477,7 @@ export function NativeFrame({
             )}
             {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
           </Flex>
-          <Container column={{zero: '4', xl: '7', '2xl': '8'}} justifySelf="end" row="1">
+          <Container column={{zero: '4', xl: '7', '2xl': '8'}} justifySelf="end">
             {expandable && (
               <ToggleButton
                 type="button"
