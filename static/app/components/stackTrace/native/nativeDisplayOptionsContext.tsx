@@ -1,11 +1,12 @@
 import {createContext, useCallback, useContext, useMemo, useState} from 'react';
 
 import {
-  StackTraceViewStateProvider,
+  StackTraceViewStateContext,
   useStackTraceViewState,
 } from 'sentry/components/stackTrace/stackTraceContext';
 import type {
   StackTraceView,
+  StackTraceViewState,
   StackTraceViewStateProviderProps,
 } from 'sentry/components/stackTrace/types';
 
@@ -106,7 +107,8 @@ function NativeStackTraceViewStateRoot({
   hasMinifiedStacktrace = false,
   persistedOptions,
   setPersistedOptions,
-  ...viewStateProps
+  defaultIsNewestFirst = true,
+  platform,
 }: Omit<NativeStackTraceViewStateProviderProps, 'storageKey'> & {
   persistedOptions: PersistedOptions;
   setPersistedOptions: SetPersistedOptions;
@@ -114,43 +116,64 @@ function NativeStackTraceViewStateRoot({
   const defaults = getNativeDisplayOptionDefaults({
     defaultIsMinified,
     defaultView,
-    hasMinifiedStacktrace,
     persistedOptions,
   });
 
+  // Keep user choices across threads, but show all frames when app filtering
+  // would hide a system-only trace and use raw data only where it is available.
+  const [selectedView, setView] = useState<StackTraceView>(() =>
+    defaults.defaultView === 'raw' ? 'raw' : 'app'
+  );
+  const [prefersMinified, setIsMinified] = useState(defaults.defaultIsMinified);
+  const [isNewestFirst, setIsNewestFirst] = useState(defaultIsNewestFirst);
+  const view = selectedView === 'app' && defaultView === 'full' ? 'full' : selectedView;
+  const isMinified = hasMinifiedStacktrace && prefersMinified;
+  const value = useMemo<StackTraceViewState>(
+    () => ({
+      view,
+      setView,
+      isMinified,
+      setIsMinified,
+      isNewestFirst,
+      setIsNewestFirst,
+      hasMinifiedStacktrace,
+      platform,
+    }),
+    [view, isMinified, isNewestFirst, hasMinifiedStacktrace, platform]
+  );
+
   return (
-    <StackTraceViewStateProvider
-      {...viewStateProps}
-      defaultIsMinified={defaults.defaultIsMinified}
-      defaultView={defaults.defaultView}
-      hasMinifiedStacktrace={hasMinifiedStacktrace}
-    >
+    <StackTraceViewStateContext value={value}>
       <NativeDisplayOptionsProvider
+        prefersMinified={prefersMinified}
         persistedOptions={persistedOptions}
         setPersistedOptions={setPersistedOptions}
       >
         {children}
       </NativeDisplayOptionsProvider>
-    </StackTraceViewStateProvider>
+    </StackTraceViewStateContext>
   );
 }
 
 function NativeDisplayOptionsProvider({
   children,
+  prefersMinified,
   persistedOptions,
   setPersistedOptions,
 }: {
   children: React.ReactNode;
   persistedOptions: PersistedOptions;
+  prefersMinified: boolean;
   setPersistedOptions: SetPersistedOptions;
 }) {
-  const {hasMinifiedStacktrace, isMinified, setIsMinified, setIsNewestFirst, setView} =
-    useStackTraceViewState();
+  const {setIsMinified, setIsNewestFirst, setView, view} = useStackTraceViewState();
   const updateDisplayOptions = useCallback(
     (options: NativeDisplayOptionsState) => {
-      setView(options.view);
+      if (options.view !== view) {
+        setView(options.view);
+      }
       setIsNewestFirst(options.isNewestFirst);
-      setIsMinified(hasMinifiedStacktrace && options.prefersMinified);
+      setIsMinified(options.prefersMinified);
       setPersistedOptions(
         getNativeDisplayOptions({
           absoluteAddresses: options.absoluteAddresses,
@@ -161,7 +184,7 @@ function NativeDisplayOptionsProvider({
         })
       );
     },
-    [hasMinifiedStacktrace, setIsMinified, setIsNewestFirst, setPersistedOptions, setView]
+    [setIsMinified, setIsNewestFirst, setPersistedOptions, setView, view]
   );
   const value = useMemo<NativeDisplayOptionsContextValue>(
     () => ({
@@ -171,14 +194,13 @@ function NativeDisplayOptionsProvider({
       absoluteFilePaths: persistedOptions.includes(
         NATIVE_DISPLAY_OPTION.ABSOLUTE_FILE_PATHS
       ),
-      prefersMinified:
-        isMinified || persistedOptions.includes(NATIVE_DISPLAY_OPTION.MINIFIED),
+      prefersMinified,
       updateDisplayOptions,
       verboseFunctionNames: persistedOptions.includes(
         NATIVE_DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES
       ),
     }),
-    [isMinified, persistedOptions, updateDisplayOptions]
+    [prefersMinified, persistedOptions, updateDisplayOptions]
   );
 
   return (

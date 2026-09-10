@@ -41,7 +41,11 @@ export function ActiveThreadStackTrace() {
   const {view} = useStackTraceViewState();
   const isNativeStackTrace = isNativePlatform(activeThreadModel.platform);
   const shouldRenderExceptionStackTraces =
-    !!exception?.values?.length && (view !== 'raw' || !stacktrace);
+    !!exception?.values?.length &&
+    (view !== 'raw' ||
+      !stacktrace ||
+      !isNativeStackTrace ||
+      !supportsAppleCrashReport(event.platform));
 
   if (shouldRenderExceptionStackTraces) {
     return (

@@ -21,7 +21,10 @@ export function NativeStackTracePreview({
   stacktrace,
 }: NativeStackTracePreviewProps) {
   return (
-    <NativeStackTraceViewStateProvider platform={platform}>
+    <NativeStackTraceViewStateProvider
+      platform={platform}
+      defaultView={stacktrace.frames?.some(frame => frame.inApp) ? 'app' : 'full'}
+    >
       <NativeStackTraceProvider
         collapseAll
         event={event}

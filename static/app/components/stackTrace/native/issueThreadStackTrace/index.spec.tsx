@@ -647,4 +647,128 @@ EOF`,
       'https://github.com/getsentry/sentry/blob/main/raven/base.py#L303'
     );
   });
+
+  it('keeps chained exceptions in raw view when Apple crash reports are unavailable', async () => {
+    localStorageWrapper.setItem(storageKey, JSON.stringify(['raw-stack-trace']));
+    const event = makeEvent([makeThread({crashed: true, id: 7})], 'c');
+    const entry = event.entries.find(value => value.type === EntryType.EXCEPTION)!;
+    const exception = entry.data.values![0]!;
+    entry.data.values = [
+      {...exception, type: 'OuterError', stacktrace: makeStacktrace('Outer.frame')},
+      {...exception, type: 'InnerError', stacktrace: makeStacktrace('Inner.frame')},
+    ];
+
+    renderThreadStackTrace(event);
+
+    expect(
+      await screen.findByText(
+        /OuterError[\s\S]*Outer.frame[\s\S]*InnerError[\s\S]*Inner.frame/
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Download'})).not.toBeInTheDocument();
+  });
+
+  it.each([false, true])(
+    'uses inner exception display capabilities when the outer stack is missing: %s',
+    async missingOuterStack => {
+      const event = makeEvent([makeThread({crashed: true, id: 7, stacktrace: null})]);
+      const entry = event.entries.find(value => value.type === EntryType.EXCEPTION)!;
+      const exception = entry.data.values![0]!;
+      const outer = makeStacktrace('Outer.frame');
+      outer.frames = outer.frames!.map(frame => ({
+        ...frame,
+        rawFunction: null,
+        instructionAddr: null,
+        filename: null,
+        absPath: null,
+      }));
+      const inner = makeStacktrace('Inner.frame');
+      inner.frames![1]!.filename = 'inner.m';
+      inner.frames![1]!.absPath = '/src/inner.m';
+      entry.data.values = [
+        {...exception, type: 'OuterError', stacktrace: missingOuterStack ? null : outer},
+        {...exception, type: 'InnerError', stacktrace: inner},
+      ];
+
+      renderThreadStackTrace(event);
+
+      await screen.findByText('Inner.frame');
+      await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+      for (const name of [
+        'Absolute Addresses',
+        'Absolute File Paths',
+        'Verbose Function Names',
+      ]) {
+        expect(screen.getByRole('option', {name})).not.toHaveAttribute(
+          'aria-disabled',
+          'true'
+        );
+      }
+      await userEvent.click(screen.getByRole('option', {name: 'Verbose Function Names'}));
+      expect(await screen.findByText('Inner.frame(Any) -> ()')).toBeInTheDocument();
+    }
+  );
+
+  it('applies the unsymbolicated preference only to threads that have raw frames', async () => {
+    localStorageWrapper.setItem(storageKey, JSON.stringify(['minified']));
+    const event = makeEvent([
+      makeThread({crashed: true, id: 7}),
+      makeThread({
+        id: 8,
+        name: 'worker',
+        stacktrace: makeStacktrace('Worker.run'),
+        rawStacktrace: makeStacktrace('Worker.raw'),
+      }),
+    ]);
+
+    renderThreadStackTrace(event);
+
+    expect(await screen.findByText('ViewController.causeCrash')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Next Thread'}));
+    expect(await screen.findByText('Worker.raw')).toBeInTheDocument();
+    expect(screen.queryByText('Worker.run')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Previous Thread'}));
+    expect(await screen.findByText('ViewController.causeCrash')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Next Thread'}));
+    expect(await screen.findByText('Worker.raw')).toBeInTheDocument();
+  });
+
+  it('shows system-only threads in full without losing the requested view or order', async () => {
+    const worker = makeStacktrace('Worker.run');
+    worker.hasSystemFrames = false;
+    worker.frames = worker.frames!.map(frame => ({...frame, inApp: false}));
+    const event = makeEvent([
+      makeThread({crashed: true, id: 7}),
+      makeThread({id: 8, name: 'worker', stacktrace: worker}),
+    ]);
+
+    renderThreadStackTrace(event);
+
+    await screen.findByText('ViewController.causeCrash');
+    await userEvent.click(screen.getByRole('button', {name: 'Next Thread'}));
+    expect(await screen.findByText('Worker.run')).toBeInTheDocument();
+    expect(screen.getByText('system_start')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Oldest First'}));
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(screen.getByRole('button', {name: 'Previous Thread'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    expect(screen.getByRole('option', {name: 'Most Relevant'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('option', {name: 'Oldest First'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Full Stack Trace'}));
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(screen.getByRole('button', {name: 'Next Thread'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Previous Thread'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    expect(screen.getByRole('option', {name: 'Full Stack Trace'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+  });
 });

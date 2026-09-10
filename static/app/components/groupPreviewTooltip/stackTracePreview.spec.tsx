@@ -156,4 +156,23 @@ describe('StackTracePreview', () => {
     expect(screen.getByTestId('native-stack-trace-frame-title')).toBeInTheDocument();
     expect(screen.queryByTestId('stack-trace-frame')).not.toBeInTheDocument();
   });
+
+  it('shows every system-only native frame in the new preview', () => {
+    const {event, stacktrace} = makeNativePreview();
+    stacktrace.frames = ['system_start', 'system_wait', 'system_end'].map(functionName =>
+      EventStacktraceFrameFixture({
+        function: functionName,
+        inApp: false,
+        platform: 'cocoa',
+      })
+    );
+
+    render(<StackTracePreviewContent event={event} stacktrace={stacktrace} />, {
+      organization: OrganizationFixture({features: ['issue-details-new-stack-trace']}),
+    });
+
+    expect(screen.getByText('system_start')).toBeInTheDocument();
+    expect(screen.getByText('system_wait')).toBeInTheDocument();
+    expect(screen.getByText('system_end')).toBeInTheDocument();
+  });
 });

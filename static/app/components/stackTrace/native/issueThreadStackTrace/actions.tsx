@@ -4,7 +4,7 @@ import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {displayRawContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {DisplayOptions} from 'sentry/components/stackTrace/displayOptions';
 import {getOrderedExceptions} from 'sentry/components/stackTrace/issueStackTrace/utils';
-import {NativeDisplayOptions} from 'sentry/components/stackTrace/native/nativeDisplayOptions';
+import {NativeDisplayOptionsMenu} from 'sentry/components/stackTrace/native/nativeDisplayOptions';
 import {RawDownloadAction} from 'sentry/components/stackTrace/native/rawDownloadAction';
 import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
 import {isNativePlatform} from 'sentry/utils/platform';
@@ -25,9 +25,26 @@ export function IssueThreadStackTraceActions() {
   } = activeThreadModel;
   const {isMinified, isNewestFirst, view} = useStackTraceViewState();
   const isNativeStackTrace = isNativePlatform(platform);
-  const displayOptions = stacktrace ? (
+  const displayedStacktraces = exception?.values.length
+    ? exception.values.map(value =>
+        isMinified ? (value.rawStacktrace ?? value.stacktrace) : value.stacktrace
+      )
+    : [isMinified ? (minifiedStacktrace ?? stacktrace) : stacktrace];
+  const frames = displayedStacktraces.flatMap(trace => trace?.frames ?? []);
+  const displayOptions = displayedStacktraces.some(Boolean) ? (
     isNativeStackTrace ? (
-      <NativeDisplayOptions />
+      <NativeDisplayOptionsMenu
+        hasAbsoluteAddresses={frames.some(frame => !!frame.instructionAddr)}
+        hasAbsoluteFilePaths={frames.some(
+          frame => !!frame.filename && !!frame.absPath && frame.filename !== frame.absPath
+        )}
+        hasVerboseFunctionNames={frames.some(
+          frame =>
+            !!frame.function &&
+            !!frame.rawFunction &&
+            frame.function !== frame.rawFunction
+        )}
+      />
     ) : (
       <DisplayOptions />
     )

@@ -14,7 +14,7 @@ import type {
   StackTraceViewStateProviderProps,
 } from './types';
 
-const StackTraceViewStateContext = createContext<StackTraceViewState | null>(null);
+export const StackTraceViewStateContext = createContext<StackTraceViewState | null>(null);
 
 export function StackTraceViewStateProvider({
   children,

@@ -25,6 +25,19 @@ const SORT_OPTION_VALUES = ['newest', 'oldest'] as const;
  * benefit from them.
  */
 export function NativeDisplayOptions() {
+  const capabilities = useNativeStackTraceContext();
+  return <NativeDisplayOptionsMenu {...capabilities} />;
+}
+
+export function NativeDisplayOptionsMenu({
+  hasAbsoluteAddresses,
+  hasAbsoluteFilePaths,
+  hasVerboseFunctionNames,
+}: {
+  hasAbsoluteAddresses: boolean;
+  hasAbsoluteFilePaths: boolean;
+  hasVerboseFunctionNames: boolean;
+}) {
   const {view, hasMinifiedStacktrace, isMinified, isNewestFirst, platform} =
     useStackTraceViewState();
   const {
@@ -34,8 +47,6 @@ export function NativeDisplayOptions() {
     updateDisplayOptions,
     verboseFunctionNames,
   } = useNativeDisplayOptionsContext();
-  const {hasAbsoluteAddresses, hasAbsoluteFilePaths, hasVerboseFunctionNames} =
-    useNativeStackTraceContext();
 
   const isJavaScriptPlatform =
     platform?.startsWith('javascript') || platform?.startsWith('node');

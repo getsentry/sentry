@@ -19,10 +19,8 @@ export function useNativeDisplayOptionsStorage(storageKey: string) {
 export function getNativeDisplayOptionDefaults({
   defaultIsMinified = false,
   defaultView = 'app',
-  hasMinifiedStacktrace,
   persistedOptions,
 }: {
-  hasMinifiedStacktrace: boolean;
   persistedOptions: NativePersistedDisplayOption[];
   defaultIsMinified?: boolean;
   defaultView?: StackTraceView;
@@ -35,8 +33,7 @@ export function getNativeDisplayOptionDefaults({
       NATIVE_DISPLAY_OPTION.ABSOLUTE_FILE_PATHS
     ),
     defaultIsMinified:
-      hasMinifiedStacktrace &&
-      (defaultIsMinified || persistedOptions.includes(NATIVE_DISPLAY_OPTION.MINIFIED)),
+      defaultIsMinified || persistedOptions.includes(NATIVE_DISPLAY_OPTION.MINIFIED),
     defaultVerboseFunctionNames: persistedOptions.includes(
       NATIVE_DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES
     ),
