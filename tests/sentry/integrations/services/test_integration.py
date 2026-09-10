@@ -19,6 +19,7 @@ from sentry.integrations.services.integration.serial import (
 )
 from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_count_of_metric, assert_failure_metric
 from sentry.testutils.cases import TestCase
@@ -211,6 +212,29 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
             integration_has_feature = self.integration2.has_feature(feature)
             api_integration_has_feature = api_integration2.has_feature(feature=feature)
             assert integration_has_feature == api_integration_has_feature
+
+    @patch("sentry.integrations.services.integration.impl.record_lifecycle_termination_level")
+    @patch("sentry.integrations.services.integration.impl.MsTeamsClient")
+    @patch("sentry.integrations.services.integration.impl.Integration.objects.get")
+    def test_msteams_incident_configuration_error_records_termination_level(
+        self,
+        mock_get_integration: MagicMock,
+        mock_client: MagicMock,
+        mock_record_termination: MagicMock,
+    ) -> None:
+        error = IntegrationConfigurationError("Invalid Teams configuration")
+        mock_get_integration.return_value = self.integration1
+        mock_client.return_value.send_card.side_effect = error
+
+        result = integration_service.send_msteams_incident_alert_notification(
+            integration_id=self.integration1.id,
+            channel="channel-id",
+            attachment={},
+        )
+
+        assert result is False
+        assert mock_record_termination.call_count == 1
+        assert mock_record_termination.call_args.args[1] is error
 
 
 @all_silo_test
