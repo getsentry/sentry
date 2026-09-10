@@ -19,9 +19,7 @@ function preciseTimestampFromMillis(timestamp: number) {
   return String(BigInt(timestamp) * 1_000_000n);
 }
 
-const {organization, project, setupPageFilters} = initializeLogsTest({
-  liveRefresh: true,
-});
+const {organization, project, setupPageFilters} = initializeLogsTest();
 
 function Wrapper({children}: {children?: React.ReactNode}) {
   return (
