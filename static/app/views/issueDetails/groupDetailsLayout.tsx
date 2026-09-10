@@ -51,18 +51,15 @@ function GroupLayoutBody({children}: {children: React.ReactNode}) {
 function EventDetailsSection({children}: {children: React.ReactNode}) {
   const {isSidebarOpen} = useIssueDetails();
 
-  // This split pane can be narrower than #main, so descendants query this column.
   return (
-    <Container containerType="inline-size">
-      <Stack
-        as="section"
-        background="secondary"
-        borderRight={isSidebarOpen ? {zero: 'none', '4xl': 'primary'} : 'none'}
-        borderBottom={{zero: 'primary', '4xl': 'none'}}
-      >
-        {children}
-      </Stack>
-    </Container>
+    <Stack
+      as="section"
+      background="secondary"
+      borderRight={isSidebarOpen ? {zero: 'none', '4xl': 'primary'} : 'none'}
+      borderBottom={{zero: 'primary', '4xl': 'none'}}
+    >
+      {children}
+    </Stack>
   );
 }
 
