@@ -445,6 +445,21 @@ class SearchResolverQueryTest(TestCase):
             self.resolver.resolve_query(f"release:{REGEX_OPERATOR}^1\\.2")
         assert str(err.value) == "Cannot use regular expressions with release"
 
+    def test_regex_query_raises_when_the_key_is_backed_by_a_virtual_column(self) -> None:
+        with pytest.raises(InvalidSearchQuery) as err:
+            self.resolver.resolve_query(f"project:{REGEX_OPERATOR}^sen")
+        assert str(err.value) == "Cannot use regular expressions with project"
+
+    def test_regex_query_raises_on_a_virtual_column_in_a_timeseries_request(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(granularity_secs=60),
+            config=SearchResolverConfig(),
+            definitions=OURLOG_DEFINITIONS,
+        )
+        with pytest.raises(InvalidSearchQuery) as err:
+            resolver.resolve_query(f"project:{REGEX_OPERATOR}^sen")
+        assert str(err.value) == "Cannot use regular expressions with project"
+
     def test_regex_query_raises_when_the_attribute_is_not_a_string(self) -> None:
         with pytest.raises(InvalidSearchQuery) as err:
             self.resolver.resolve_query(f"tags[foo,boolean]:{REGEX_OPERATOR}tru.")
