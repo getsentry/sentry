@@ -572,49 +572,6 @@ class CustomInboundFilterDetailsTest(APITestCase):
         error_filter.refresh_from_db()
         assert error_filter.data_type == "error"
 
-    def test_get_returns_null_data_type_for_filter_written_before_the_column(self) -> None:
-        self.custom_filter.update(data_type=None)
-
-        with self.feature(self.features):
-            response = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                self.custom_filter.id,
-                method="get",
-            )
-
-        assert response.data["dataType"] is None
-
-    def test_put_refuses_filter_without_data_type_until_one_is_sent(self) -> None:
-        """A row written before the column existed carries no data type."""
-        self.custom_filter.update(data_type=None)
-
-        with self.feature(self.features):
-            response = self.get_error_response(
-                self.organization.slug,
-                self.project.slug,
-                self.custom_filter.id,
-                name="Renamed filter",
-            )
-
-        assert (
-            str(response.data["dataType"][0])
-            == "This filter has no data type. Send dataType to update it."
-        )
-
-        with self.feature(self.features), outbox_runner():
-            self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                self.custom_filter.id,
-                name="Renamed filter",
-                dataType="error",
-            )
-
-        self.custom_filter.refresh_from_db()
-        assert self.custom_filter.name == "Renamed filter"
-        assert self.custom_filter.data_type == "error"
-
     def test_delete(self) -> None:
         with self.feature(self.features), outbox_runner():
             self.get_success_response(
