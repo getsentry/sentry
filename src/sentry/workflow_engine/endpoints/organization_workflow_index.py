@@ -247,20 +247,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         all_projects_detector = get_all_projects_detector(organization.id)
         if all_projects_detector:
             all_projects_workflows_q = Q(detectorworkflow__detector_id=all_projects_detector.id)
-            has_explicit_workflow_selector = bool(raw_idlist or raw_detectorlist or raw_query)
-            should_enforce_all_projects_access = request.method != "GET" and (
-                has_explicit_workflow_selector
-                and queryset.filter(all_projects_workflows_q).exists()
-            )
-            if should_enforce_all_projects_access:
-                include_all_projects_workflows = (
-                    should_include_all_projects_detector_workflows_or_raise(request, organization)
-                )
-            else:
-                include_all_projects_workflows = should_include_all_projects_detector_workflows(
-                    request, organization
-                )
-            if include_all_projects_workflows:
+            if should_include_all_projects_detector_workflows(request, organization):
                 accessible_workflows |= all_projects_workflows_q
             else:
                 queryset = queryset.exclude(all_projects_workflows_q)
@@ -275,13 +262,25 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         queryset = self.filter_workflows(request, organization)
         workflows = list(queryset)
 
-        if not workflows:
-            return queryset, workflows
-
         if raw_idlist := request.GET.getlist("id"):
             requested_ids = set(to_valid_int_id_list("id", raw_idlist))
-            if requested_ids != {workflow.id for workflow in workflows}:
+            missing_workflow_ids = requested_ids - {workflow.id for workflow in workflows}
+            if missing_workflow_ids:
+                all_projects_detector = get_all_projects_detector(organization.id)
+                if (
+                    all_projects_detector
+                    and DetectorWorkflow.objects.filter(
+                        detector_id=all_projects_detector.id,
+                        workflow_id__in=missing_workflow_ids,
+                    ).exists()
+                ):
+                    should_include_all_projects_detector_workflows_or_raise(request, organization)
+                if not workflows:
+                    return queryset, workflows
                 raise PermissionDenied
+
+        if not workflows:
+            return queryset, workflows
 
         if not can_edit_workflows(workflows, request):
             raise PermissionDenied
