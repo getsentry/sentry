@@ -904,6 +904,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.slack.tasks.find_channel_id_for_alert_rule",
     "sentry.integrations.slack.tasks.find_channel_id_for_rule",
     "sentry.integrations.slack.tasks.link_slack_user_identities",
+    "sentry.integrations.slack.tasks.member_approval",
     "sentry.integrations.slack.tasks.post_message",
     "sentry.integrations.slack.tasks.send_notifications_on_activity",
     "sentry.integrations.source_code_management.tasks",
