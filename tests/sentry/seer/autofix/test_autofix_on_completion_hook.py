@@ -12,7 +12,6 @@ from sentry.seer.agent.client_models import (
     RepoPRState,
     SeerRunState,
 )
-from sentry.seer.autofix.autofix_agent import AutofixStep
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.on_completion_hook import (
@@ -20,10 +19,10 @@ from sentry.seer.autofix.on_completion_hook import (
     STOPPING_POINT_TO_STEP,
     AutofixOnCompletionHook,
     _group_and_referrer_from_run,
-    _PrIterationPushOutcome,
     _stopping_point_from_run,
 )
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
+from sentry.seer.autofix.pr_iteration.emit import PrIterationOutcome
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
@@ -37,6 +36,7 @@ from sentry.seer.autofix.pr_iteration.pause import (
     get_pause_reason,
     is_pr_iteration_paused,
 )
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import AutofixHandoffPoint, SeerAutomationHandoffConfiguration
 from sentry.seer.models.run import SeerRunMilestone, SeerRunMilestoneType
@@ -789,7 +789,7 @@ class TestPrIterationCompletionHook(TestCase):
             state,
         )
 
-        assert outcome == _PrIterationPushOutcome.NO_CODE_CHANGES
+        assert outcome == PrIterationOutcome.NO_CODE_CHANGES
         mock_push.assert_not_called()
 
     @patch(f"{HOOK_PATH}.trigger_push_changes")
@@ -952,26 +952,26 @@ class TestPrIterationCompletionHook(TestCase):
         assert task_kwargs["trigger_source"] == ConsumeTriggerSource.FEEDBACK
 
     @patch(f"{HOOK_PATH}.complete_pr_iteration_details")
-    def test_no_pull_request_reaches_completion_details_as_not_pushed(self, mock_complete):
+    def test_no_pull_request_reaches_completion_details_as_that_outcome(self, mock_complete):
         state = run_state(
             blocks=[pr_iteration_memory_block()], metadata={"group_id": self.group.id}
         )
 
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
 
-        assert mock_complete.call_args.kwargs["pushed_changes"] is False
+        assert mock_complete.call_args.kwargs["outcome"] == PrIterationOutcome.NO_PULL_REQUEST.value
 
     @patch(f"{HOOK_PATH}.complete_pr_iteration_details")
-    def test_already_synced_reaches_completion_details_as_pushed(self, mock_complete):
+    def test_already_synced_reaches_completion_details_as_that_outcome(self, mock_complete):
         AutofixOnCompletionHook._maybe_continue_pipeline(
             self.organization, 123, self._synced(), self.group
         )
 
-        assert mock_complete.call_args.kwargs["pushed_changes"] is True
+        assert mock_complete.call_args.kwargs["outcome"] == PrIterationOutcome.ALREADY_PUSHED.value
 
     @patch(f"{HOOK_PATH}.complete_pr_iteration_details")
     @patch(f"{HOOK_PATH}.trigger_push_changes")
-    def test_a_terminally_errored_repo_reaches_completion_details_as_not_pushed(
+    def test_a_terminally_errored_repo_reaches_completion_details_as_that_outcome(
         self, mock_push, mock_complete
     ):
         state = self._unsynced()
@@ -979,29 +979,35 @@ class TestPrIterationCompletionHook(TestCase):
 
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
 
-        assert mock_complete.call_args.kwargs["pushed_changes"] is False
+        assert (
+            mock_complete.call_args.kwargs["outcome"]
+            == PrIterationOutcome.PR_CREATION_ERRORED.value
+        )
 
     @patch(f"{HOOK_PATH}.complete_pr_iteration_details")
     @patch(f"{HOOK_PATH}.trigger_push_changes", side_effect=ValueError("boom"))
-    def test_a_failed_push_reaches_completion_details_as_not_pushed(self, mock_push, mock_complete):
+    def test_a_failed_push_reaches_completion_details_as_that_outcome(
+        self, mock_push, mock_complete
+    ):
         AutofixOnCompletionHook._maybe_continue_pipeline(
             self.organization, 123, self._unsynced(), self.group
         )
 
-        assert mock_complete.call_args.kwargs["pushed_changes"] is False
+        assert mock_complete.call_args.kwargs["outcome"] == PrIterationOutcome.PUSH_FAILED.value
 
     @patch(f"{HOOK_PATH}.complete_pr_iteration_details")
-    def test_an_errored_run_now_reaches_completion_details(self, mock_complete):
+    def test_an_errored_run_reaches_completion_details_with_its_failure_reason(self, mock_complete):
         self.create_seer_run(
             organization=self.organization, seer_run_state_id=123, user_id=self.user.id
         )
         state = self._unsynced()
         state.status = "error"
+        state.failure_reason = "timeout"
 
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
 
         mock_complete.assert_called_once()
-        assert mock_complete.call_args.kwargs["pushed_changes"] is False
+        assert mock_complete.call_args.kwargs["outcome"] == "timeout"
 
 
 class TestPipelineConstants(TestCase):

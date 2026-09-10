@@ -107,6 +107,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dynamic-sampling-custom", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable dynamic sampling minimum sample rate
     manager.add("organizations:dynamic-sampling-minimum-sample-rate", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable data-fidelity annotations (dropped-data outcomes) on the explore timeseries endpoint
+    manager.add("organizations:explore-data-fidelity-annotations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable explore -> errors ui
     manager.add("organizations:explore-errors", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable returning the migrated discover queries in explore saved queries
@@ -128,6 +130,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:increased-issue-owners-rate-limit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Starfish: extract metrics from the spans
     manager.add("organizations:indexed-spans-extraction", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:measured-ingestion-delay-metadata", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-gcp", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-slack-staging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-vercel-upsert-env-var", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -260,6 +263,10 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-night-shift-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Route autofix RCA through the Seer autofix feature
     manager.add("organizations:autofix-rca-in-seer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Route autofix solution through the Seer autofix feature
+    manager.add("organizations:autofix-solution-in-seer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Route autofix code changes through the Seer autofix feature
+    manager.add("organizations:autofix-code-changes-in-seer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Roll out structured LLM page context on STRUCTURED_CONTEXT_ROUTES to all orgs
     manager.add("organizations:seer-explorer-structured-context-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable context engine experimental contexts
@@ -499,7 +506,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enable using issue action log entries as the activity source in group details
     manager.add("projects:issue-action-log-activity", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable writing issue action log entries to the database
-    manager.add("projects:issue-action-log-write-to-db", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("projects:issue-action-log-write-to-db", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=False)
     manager.add("projects:issue-status-reconciliation", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable similarity embeddings API call
     # This feature is only available on the frontend using project details since the handler gets

@@ -9,6 +9,7 @@ import {MultiHighlight} from 'sentry/components/highlight';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {Panel} from 'sentry/components/panels/panel';
 import {DATA_TABLE_ROW_HEIGHT, DataTable} from 'sentry/components/tables/dataTable';
+import type {ColumnAlign} from 'sentry/components/tables/sortableHeaderCell';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {unreachable} from 'sentry/utils/unreachable';
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
@@ -271,7 +272,7 @@ export function LogFirstCellContent(props: FlexProps) {
   return <Flex align="center" {...props} />;
 }
 
-export const LogBasicRendererContainer = styled('span')<{align?: 'left' | 'right'}>`
+export const LogBasicRendererContainer = styled('span')<{align?: ColumnAlign}>`
   ${NumberContainer} {
     text-align: ${p => p.align || 'left'};
   }
