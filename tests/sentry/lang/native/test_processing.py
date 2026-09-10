@@ -6,20 +6,26 @@ service. Most tests live in tests/symbolicator/
 from __future__ import annotations
 
 import re
+from collections.abc import Generator
+from copy import deepcopy
 from typing import Any
 from unittest import mock
 
 import pytest
 
+from sentry.grouping.api import load_grouping_config
 from sentry.lang.native.processing import (
     ELECTRON_FIRST_MODULE_REWRITE_RULES,
     _merge_image,
     get_frames_for_symbolication,
     get_native_symbolication_functions,
+    process_applecrashreport,
+    process_minidump,
     process_native_stacktraces,
 )
 from sentry.lang.native.symbolicator import SymbolicatorFunction
 from sentry.models.eventerror import EventErrorType
+from sentry.services.eventstore.models import Event
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path
@@ -484,3 +490,378 @@ def test_il2cpp_symbolication(mock_symbolicator, default_project) -> None:
         == "/Users/swatinem/Coding/sentry-unity/samples/unity-of-bugs/Assets/Scripts/BugFarmButtons.cs"
     )
     assert frame["lineno"] == 51
+
+
+@pytest.fixture
+def minidump_event() -> dict[str, Any]:
+    return {
+        "platform": "native",
+        "exception": {"values": [{**deepcopy(MINIDUMP_PLACEHOLDER), "thread_id": 2}]},
+    }
+
+
+@pytest.fixture
+def minidump_symbolicator() -> Generator[mock.Mock]:
+    symbolicator = mock.Mock()
+    symbolicator.process_minidump.return_value = {
+        "status": "completed",
+        "crashed": True,
+        "crash_reason": "EXCEPTION_BREAKPOINT",
+        "modules": [],
+        "stacktraces": [
+            {
+                "thread_id": 1,
+                "thread_name": "watchdog",
+                "is_requesting": True,
+                "frames": [{"function": "watchdog", "instruction_addr": "0x1000"}],
+                "registers": {"rip": "0x1000"},
+            },
+            {
+                "thread_id": 2,
+                "thread_name": "main",
+                "is_requesting": False,
+                "frames": [
+                    {"function": "hang", "instruction_addr": "0x2000"},
+                    {"function": "main", "instruction_addr": "0x3000"},
+                ],
+                "registers": {"rip": "0x2000"},
+            },
+        ],
+    }
+    with mock.patch(
+        "sentry.lang.native.processing.get_event_attachment", return_value=mock.sentinel.minidump
+    ):
+        yield symbolicator
+
+
+@pytest.mark.parametrize(
+    "preferred,actual",
+    [(2, 2), ("2", 2), ("0002", 2), (0, "0"), ("0", 0), (2, "2"), (2**64 - 1, str(2**64 - 1))],
+)
+def test_minidump_select_thread(
+    minidump_event: dict[str, Any],
+    minidump_symbolicator: mock.Mock,
+    preferred: int | str,
+    actual: int | str,
+) -> None:
+    minidump_event["exception"]["values"][0]["thread_id"] = preferred
+    minidump_symbolicator.process_minidump.return_value["stacktraces"][1]["thread_id"] = actual
+    additional_exception = {"type": "std::runtime_error", "value": "example", "thread_id": 2}
+    minidump_event["exception"]["values"].append(deepcopy(additional_exception))
+    minidump_event["fingerprint"] = ["custom"]
+    original_response = deepcopy(minidump_symbolicator.process_minidump.return_value)
+
+    process_minidump(minidump_symbolicator, minidump_event)
+
+    exception, retained = minidump_event["exception"]["values"]
+    assert exception["thread_id"] == actual
+    assert [frame["function"] for frame in exception["stacktrace"]["frames"]] == ["main", "hang"]
+    assert exception["stacktrace"]["registers"] == {"rip": "0x2000"}
+    assert exception["type"] == "EXCEPTION_BREAKPOINT"
+    assert exception["mechanism"] == MINIDUMP_PLACEHOLDER["mechanism"]
+    watchdog, main = minidump_event["threads"]["values"]
+    assert watchdog["stacktrace"]["frames"][0]["function"] == "watchdog"
+    assert watchdog["stacktrace"]["registers"] == {"rip": "0x1000"}
+    assert "crashed" not in watchdog
+    assert main == {"id": actual, "name": "main", "crashed": True}
+    assert retained == additional_exception
+    assert minidump_event["fingerprint"] == ["custom"]
+    assert minidump_symbolicator.process_minidump.return_value == original_response
+    assert not minidump_event.get("errors")
+
+
+def test_minidump_select_snapshot_thread(
+    minidump_event: dict[str, Any], minidump_symbolicator: mock.Mock
+) -> None:
+    response = minidump_symbolicator.process_minidump.return_value
+    response["crashed"] = False
+    response.pop("crash_reason")
+    response["stacktraces"][0]["is_requesting"] = False
+
+    process_minidump(minidump_symbolicator, minidump_event)
+
+    exception = minidump_event["exception"]["values"][0]
+    assert exception["thread_id"] == 2
+    assert exception["type"] == "Minidump"
+    assert not exception.get("value")
+    assert exception["stacktrace"]["frames"][-1]["function"] == "hang"
+    assert minidump_event["threads"]["values"][1] == {"id": 2, "name": "main", "current": True}
+    assert "crashed" not in minidump_event["threads"]["values"][0]
+    assert minidump_event["level"] == "info"
+
+
+@pytest.mark.parametrize(
+    "preferred", [True, 2.0, -2, "-2", "", "two", "２", "2" * 21, 2**64, {}, [], 999]
+)
+def test_minidump_unmatched_thread(
+    minidump_event: dict[str, Any], minidump_symbolicator: mock.Mock, preferred: Any
+) -> None:
+    minidump_event["exception"]["values"][0]["thread_id"] = preferred
+
+    process_minidump(minidump_symbolicator, minidump_event)
+
+    assert minidump_event["exception"]["values"][0]["thread_id"] == preferred
+    assert not any(
+        thread.get("crashed") or thread.get("current")
+        for thread in minidump_event["threads"]["values"]
+    )
+    assert minidump_event["errors"][0]["type"] == EventErrorType.INVALID_DATA
+    assert minidump_event["errors"][0]["name"] == "exception.values.0.thread_id"
+
+
+def test_minidump_empty_thread(
+    minidump_event: dict[str, Any], minidump_symbolicator: mock.Mock
+) -> None:
+    response = minidump_symbolicator.process_minidump.return_value
+    response["stacktraces"][1]["frames"] = []
+
+    process_minidump(minidump_symbolicator, minidump_event)
+
+    assert minidump_event["exception"]["values"][0]["thread_id"] == 2
+    assert minidump_event["errors"][0]["type"] == EventErrorType.INVALID_DATA
+
+
+def test_minidump_duplicate_thread(
+    minidump_event: dict[str, Any], minidump_symbolicator: mock.Mock
+) -> None:
+    response = minidump_symbolicator.process_minidump.return_value
+    duplicate = deepcopy(response["stacktraces"][1])
+    duplicate["thread_id"] = "2"
+    response["stacktraces"].append(duplicate)
+
+    process_minidump(minidump_symbolicator, minidump_event)
+
+    assert minidump_event["exception"]["values"][0]["thread_id"] == 2
+    assert minidump_event["errors"][0]["type"] == EventErrorType.INVALID_DATA
+
+
+def test_minidump_legacy_selection(
+    minidump_event: dict[str, Any], minidump_symbolicator: mock.Mock
+) -> None:
+    minidump_event["exception"]["values"].append({"type": "Other", "thread_id": 2})
+    legacy = deepcopy(minidump_event)
+    legacy["exception"]["values"][0].pop("thread_id")
+    minidump_event["exception"]["values"][0]["thread_id"] = None
+
+    process_minidump(minidump_symbolicator, legacy)
+    process_minidump(minidump_symbolicator, minidump_event)
+
+    assert minidump_event == legacy
+    assert legacy["exception"]["values"][0]["thread_id"] == 1
+
+
+def test_applecrashreport_ignores_minidump_selection(
+    minidump_event: dict[str, Any], minidump_symbolicator: mock.Mock
+) -> None:
+    minidump_event["exception"]["values"] = [
+        {**deepcopy(APPLECRASHREPORT_PLACEHOLDER), "thread_id": 2}
+    ]
+    minidump_symbolicator.process_applecrashreport.return_value = (
+        minidump_symbolicator.process_minidump.return_value
+    )
+
+    process_applecrashreport(minidump_symbolicator, minidump_event)
+
+    assert minidump_event["exception"]["values"][0]["thread_id"] == 1
+
+
+@pytest.mark.parametrize("requesting,crash_reason", [(True, "EXCEPTION_BREAKPOINT"), (False, "")])
+@pytest.mark.parametrize("preferred", [2, None])
+@django_db_all
+def test_minidump_groups_by_selected_stack(
+    minidump_event: dict[str, Any],
+    minidump_symbolicator: mock.Mock,
+    requesting: bool,
+    crash_reason: str,
+    preferred: int | None,
+) -> None:
+    response = minidump_symbolicator.process_minidump.return_value
+    response["stacktraces"][0]["is_requesting"] = requesting
+    response["crashed"] = requesting
+    response["crash_reason"] = crash_reason
+    minidump_event["threads"] = {"values": [{"id": 2, "crashed": False}]}
+    minidump_event["exception"]["values"][0]["thread_id"] = preferred
+    first = deepcopy(minidump_event)
+    second = deepcopy(minidump_event)
+
+    process_minidump(minidump_symbolicator, first)
+    response["stacktraces"][1]["frames"][0]["function"] = "different_hang"
+    process_minidump(minidump_symbolicator, second)
+
+    config = load_grouping_config()
+    first_event = Event(event_id="a" * 32, project_id=1, data=first)
+    second_event = Event(event_id="b" * 32, project_id=1, data=second)
+    first_hashes = {
+        variant.get_hash() for variant in first_event.get_grouping_variants(config).values()
+    } - {None}
+    second_hashes = {
+        variant.get_hash() for variant in second_event.get_grouping_variants(config).values()
+    } - {None}
+    assert first_hashes
+    assert second_hashes
+    assert first_hashes.isdisjoint(second_hashes) is (preferred is not None)
+
+
+def test_minidump_does_not_reuse_other_thread_registers(
+    minidump_event: dict[str, Any], minidump_symbolicator: mock.Mock
+) -> None:
+    minidump_event["exception"]["values"][0]["stacktrace"] = {
+        "registers": {"rip": "0x1000"},
+        "frames": [],
+    }
+    minidump_symbolicator.process_minidump.return_value["stacktraces"][1].pop("registers")
+
+    process_minidump(minidump_symbolicator, minidump_event)
+
+    exception = minidump_event["exception"]["values"][0]
+    assert exception["thread_id"] == 2
+    assert "registers" not in exception["stacktrace"]
+
+
+@pytest.mark.parametrize(
+    "attributes",
+    [{"current": True, "crashed": False, "main": True}, {"crashed": False}, {"crashed": True}],
+)
+def test_minidump_preserves_thread_attributes(
+    minidump_event: dict[str, Any], minidump_symbolicator: mock.Mock, attributes: dict[str, bool]
+) -> None:
+    minidump_event["threads"] = {
+        "values": [
+            {"id": 1, "crashed": True},
+            {"id": "2", **attributes},
+        ]
+    }
+
+    minidump_symbolicator.process_minidump.return_value["crashed"] = not attributes["crashed"]
+
+    process_minidump(minidump_symbolicator, minidump_event)
+
+    watchdog, main = minidump_event["threads"]["values"]
+    assert not watchdog.get("crashed")
+    assert not watchdog.get("current")
+    assert main == {"id": 2, "name": "main", **attributes}
+    exception = minidump_event["exception"]["values"][0]
+    assert exception["thread_id"] == 2
+    assert exception["stacktrace"]["frames"][-1]["function"] == "hang"
+
+
+def test_minidump_rejected_thread_id(
+    minidump_event: dict[str, Any], minidump_symbolicator: mock.Mock
+) -> None:
+    minidump_event["exception"]["values"][0].pop("thread_id")
+    minidump_event["_meta"] = {
+        "exception": {"values": {"0": {"thread_id": {"": {"err": ["invalid_data"], "val": True}}}}}
+    }
+
+    process_minidump(minidump_symbolicator, minidump_event)
+
+    assert "thread_id" not in minidump_event["exception"]["values"][0]
+    assert not any(
+        thread.get("crashed") or thread.get("current")
+        for thread in minidump_event["threads"]["values"]
+    )
+    assert minidump_event["errors"][0]["name"] == "exception.values.0.thread_id"
+
+
+def test_minidump_failure_keeps_event_stack(
+    minidump_event: dict[str, Any], minidump_symbolicator: mock.Mock
+) -> None:
+    exception = minidump_event["exception"]["values"][0]
+    stack = {"frames": [{"function": "client_hang"}]}
+    exception["stacktrace"] = deepcopy(stack)
+    minidump_symbolicator.process_minidump.return_value = {
+        "status": "failed",
+        "message": "invalid minidump",
+    }
+
+    process_minidump(minidump_symbolicator, minidump_event)
+
+    assert exception["thread_id"] == 2
+    assert exception["stacktrace"] == stack
+
+
+@pytest.mark.parametrize("thread_id", [99, "invalid"])
+@django_db_all
+def test_minidump_unmatched_thread_does_not_group_by_watchdog(
+    minidump_event: dict[str, Any], minidump_symbolicator: mock.Mock, thread_id: int | str
+) -> None:
+    minidump_event["exception"]["values"][0]["thread_id"] = thread_id
+    response = minidump_symbolicator.process_minidump.return_value
+    response["stacktraces"] = response["stacktraces"][:1]
+    first = deepcopy(minidump_event)
+    second = deepcopy(minidump_event)
+
+    process_minidump(minidump_symbolicator, first)
+    response["stacktraces"][0]["frames"][0]["function"] = "different_watchdog"
+    process_minidump(minidump_symbolicator, second)
+
+    config = load_grouping_config()
+    first_event = Event(event_id="a" * 32, project_id=1, data=first)
+    second_event = Event(event_id="b" * 32, project_id=1, data=second)
+    first_hashes = {
+        variant.get_hash() for variant in first_event.get_grouping_variants(config).values()
+    } - {None}
+    second_hashes = {
+        variant.get_hash() for variant in second_event.get_grouping_variants(config).values()
+    } - {None}
+    assert first_hashes
+    assert first_hashes == second_hashes
+
+
+def test_minidump_symbolicates_fallback(
+    minidump_event: dict[str, Any], minidump_symbolicator: mock.Mock
+) -> None:
+    exception = minidump_event["exception"]["values"][0]
+    exception["thread_id"] = 99
+    exception["stacktrace"] = {
+        "frames": [{"instruction_addr": "0x4000"}],
+        "registers": {"rip": "0x4000"},
+    }
+    thread = {"id": 99, "name": "client", "current": True, "crashed": False}
+    minidump_event["threads"] = {"values": [deepcopy(thread)]}
+    minidump_event["debug_meta"] = {
+        "images": [
+            {
+                "type": "elf",
+                "image_addr": "0x4000",
+                "debug_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+            }
+        ]
+    }
+    minidump_symbolicator.process_payload.return_value = {
+        "status": "completed",
+        "modules": deepcopy(minidump_event["debug_meta"]["images"]),
+        "stacktraces": [
+            {
+                "frames": [
+                    {
+                        "original_index": 0,
+                        "status": "symbolicated",
+                        "instruction_addr": "0x4000",
+                        "function": "client_hang",
+                    }
+                ]
+            }
+        ],
+    }
+    functions = get_native_symbolication_functions(
+        minidump_event, list(find_stacktraces_in_data(minidump_event))
+    )
+    assert functions == [SymbolicatorFunction.native, SymbolicatorFunction.minidump]
+
+    process_native_stacktraces(minidump_symbolicator, minidump_event)
+    stack = deepcopy(exception["stacktrace"])
+    images = deepcopy(minidump_event["debug_meta"]["images"])
+    process_minidump(minidump_symbolicator, minidump_event)
+
+    assert exception["stacktrace"]["frames"][0]["function"] == "client_hang"
+    assert (
+        minidump_event["debug_meta"]["images"][0]["debug_id"]
+        == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    )
+    assert exception["thread_id"] == 99
+    assert exception["stacktrace"] == stack
+    assert exception["stacktrace"]["registers"] == {"rip": "0x4000"}
+    assert minidump_event["debug_meta"]["images"] == images
+    assert thread in minidump_event["threads"]["values"]
+    assert not minidump_event["threads"]["values"][0].get("crashed")
