@@ -1,4 +1,3 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
@@ -42,10 +41,7 @@ describe('useSortByFields', () => {
           yAxes: ['avg(span.duration)'],
           mode: Mode.SAMPLES,
         }),
-      {
-        organization,
-        initialRouterConfig: {location: LocationFixture()},
-      }
+      {organization}
     );
 
     expect(result.current.map(field => field.value)).toEqual([
@@ -68,10 +64,7 @@ describe('useSortByFields', () => {
           yAxes: ['avg(span.duration)'],
           mode: Mode.AGGREGATE,
         }),
-      {
-        organization,
-        initialRouterConfig: {location: LocationFixture()},
-      }
+      {organization}
     );
 
     expect(result.current.map(field => field.value)).toEqual([
