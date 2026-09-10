@@ -22,13 +22,12 @@ from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunShard
 from sentry.seer.models.workflow import SeerWorkflowStrategy
-from sentry.seer.monitor_cleanup import FEATURE
-from sentry.seer.workflows.monitor_cleanup import start_monitor_cleanup
+from sentry.seer.monitor_cleanup import FEATURE, create_monitor_cleanup_run
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.numbers import validate_bigint
 
 MANUAL_WORKFLOW_HANDLERS = {
-    SeerWorkflowStrategy.DUPLICATE_MONITORS: start_monitor_cleanup,
+    SeerWorkflowStrategy.DUPLICATE_MONITORS: create_monitor_cleanup_run,
 }
 
 

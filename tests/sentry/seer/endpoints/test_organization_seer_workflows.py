@@ -360,7 +360,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
     def trigger(self):
         with (
             self.feature(FEATURE),
-            patch("sentry.seer.workflows.monitor_cleanup.dispatch_run"),
+            patch("sentry.tasks.seer.monitor_cleanup.dispatch_run"),
             self.tasks(),
         ):
             return self.get_success_response(
