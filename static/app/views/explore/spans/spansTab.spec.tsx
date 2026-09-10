@@ -235,6 +235,7 @@ describe('SpansTabContent', () => {
   it('publishes the aggregate sort to the LLM context in aggregate mode', async () => {
     let getLLMContext: ReturnType<typeof useLLMContext>['getLLMContext'] | undefined;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       ({getLLMContext} = useLLMContext());
       return <SpansTabContent datePageFilterProps={datePageFilterProps} />;
     }
@@ -291,7 +292,9 @@ describe('SpansTabContent', () => {
     let aggregateFields: ReturnType<typeof useQueryParamsAggregateFields> = [];
     let aggregateSortBys: ReturnType<typeof useQueryParamsAggregateSortBys> = [];
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       aggregateFields = useQueryParamsAggregateFields();
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       aggregateSortBys = useQueryParamsAggregateSortBys();
       return <SpansTabContent datePageFilterProps={datePageFilterProps} />;
     }
@@ -338,7 +341,9 @@ describe('SpansTabContent', () => {
     let fields: readonly string[] = [];
     let groupBys: readonly string[] = [];
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       fields = useQueryParamsFields();
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       groupBys = useQueryParamsGroupBys();
       return <SpansTabContent datePageFilterProps={datePageFilterProps} />;
     }

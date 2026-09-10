@@ -27,7 +27,7 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
 
     def request_with_feature_flag(self, payload: dict) -> Response:
         with self.options(
-            {EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: self.callsite_name}
+            {EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: [self.callsite_name]}
         ):
             response = self.do_request({**payload, "dataset": "occurrences"})
         assert response.status_code == 200, response.content
@@ -526,7 +526,7 @@ class OrganizationEventsOccurrencesArrayQueryTest(
             "organizations:trace-item-details-array-fields": True,
         }
         with self.options(
-            {EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: self.callsite_name}
+            {EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: [self.callsite_name]}
         ):
             response = self.do_request({**payload, "dataset": "occurrences"}, features=features)
         assert response.status_code == 200, response.content
@@ -784,7 +784,7 @@ class OrganizationEventsOccurrencesArrayQueryTest(
         expected_http_url = expected[0]["http_url"]
 
         with self.options(
-            {EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: self.callsite_name}
+            {EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: [self.callsite_name]}
         ):
             response = self.do_request(
                 {

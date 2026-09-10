@@ -175,6 +175,7 @@ export function useChartXRangeSelection({
 
     setSelectionState(null);
 
+    // oxlint-disable-next-line react/immutability
     onClearSelection?.({selectionState, setSelectionState, clearSelection});
   }, [chartRef, onClearSelection, selectionState]);
 

@@ -1,4 +1,4 @@
-import type {Location, LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
 import {getDateFromTimestamp} from 'sentry/utils/dates';
@@ -13,8 +13,7 @@ export function makeTransactionProfilingLink(
   options: {
     organization: Organization;
     projectSlug: string;
-  },
-  query: Location['query'] = {}
+  }
 ): LocationDescriptor | null {
   if (!options.projectSlug || !options.organization) {
     return null;
@@ -23,7 +22,6 @@ export function makeTransactionProfilingLink(
     organization: options.organization,
     projectSlug: options.projectSlug,
     profileId,
-    query,
   });
 }
 
@@ -38,8 +36,7 @@ export function makeTraceContinuousProfilingLink(
     projectSlug: string;
     threadId: string | undefined;
     traceId: string;
-  },
-  query: Location['query'] = {}
+  }
 ): LocationDescriptor | null {
   if (!options.projectSlug || !options.organization) {
     return null;
@@ -82,7 +79,6 @@ export function makeTraceContinuousProfilingLink(
   }
 
   const queryWithEventData: Record<string, string> = {
-    ...query,
     eventId: transactionId,
     traceId: options.traceId,
   };

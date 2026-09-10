@@ -2,7 +2,7 @@ import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import type {LineSeriesOption} from 'echarts';
 
-import {lineSeries} from 'sentry/components/charts/series/lineSeries';
+import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
@@ -159,7 +159,7 @@ export function ProjectSessionsAnrRequest({
       const badBehaviourSeries_ =
         yAxis === 'foreground_anr_rate()'
           ? [
-              lineSeries({
+              createLineSeries({
                 name: t('Overall Bad Behaviour Threshold'),
                 data: filteredResponse.intervals
                   .slice(shouldFetchWithPrevious ? dataMiddleIndex : 0)

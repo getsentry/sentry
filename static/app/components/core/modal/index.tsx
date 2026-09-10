@@ -150,6 +150,7 @@ export function GlobalModal() {
   const focusTrap = useRef<FocusTrap | null>(null);
   // SentryApp might be missing on tests
   if (window.SentryApp) {
+    // oxlint-disable-next-line react/immutability
     window.SentryApp.modalFocusTrap = focusTrap;
   }
 

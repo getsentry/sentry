@@ -697,9 +697,13 @@ describe('Dashboards > Detail', () => {
       ).toBeInTheDocument();
       expect(within(breadcrumbs).queryByText('Custom Errors')).not.toBeInTheDocument();
 
+      // Starring trails the actions menu as its own button, rather than hiding
+      // a click deep inside it.
+      expect(screen.getByRole('button', {name: 'Star'})).toBeVisible();
+
       await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
       expect(await screen.findByRole('menuitemradio', {name: 'Edit'})).toBeVisible();
-      expect(screen.getByRole('menuitemradio', {name: 'Star'})).toBeVisible();
+      expect(screen.queryByRole('menuitemradio', {name: 'Star'})).not.toBeInTheDocument();
       expect(
         screen.getByRole('menuitemradio', {name: 'Show version history'})
       ).toBeVisible();
@@ -738,12 +742,13 @@ describe('Dashboards > Detail', () => {
         }
       );
 
+      expect(await screen.findByRole('button', {name: 'Star'})).toBeVisible();
+
       await userEvent.click(
         await screen.findByRole('button', {name: 'Dashboard actions'})
       );
 
-      expect(await screen.findByRole('menuitemradio', {name: 'Star'})).toBeVisible();
-      expect(screen.getByRole('menuitemradio', {name: 'Duplicate'})).toBeVisible();
+      expect(await screen.findByRole('menuitemradio', {name: 'Duplicate'})).toBeVisible();
       expect(screen.queryByRole('menuitemradio', {name: 'Edit'})).not.toBeInTheDocument();
       expect(
         screen.queryByRole('menuitemradio', {name: 'Show version history'})
@@ -2151,10 +2156,7 @@ describe('Dashboards > Detail', () => {
         },
       });
 
-      await userEvent.click(
-        await screen.findByRole('button', {name: 'Dashboard actions'})
-      );
-      expect(await screen.findByRole('menuitemradio', {name: 'Star'})).toBeVisible();
+      expect(await screen.findByRole('button', {name: 'Star'})).toBeVisible();
     });
 
     it('renders favorite button in favorited state', async () => {
@@ -2177,10 +2179,7 @@ describe('Dashboards > Detail', () => {
         },
       });
 
-      await userEvent.click(
-        await screen.findByRole('button', {name: 'Dashboard actions'})
-      );
-      expect(await screen.findByRole('menuitemradio', {name: 'Unstar'})).toBeVisible();
+      expect(await screen.findByRole('button', {name: 'Unstar'})).toBeVisible();
     });
 
     it('toggles favorite button', async () => {
@@ -2208,13 +2207,46 @@ describe('Dashboards > Detail', () => {
         },
       });
 
-      await userEvent.click(
-        await screen.findByRole('button', {name: 'Dashboard actions'})
-      );
-      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Unstar'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Unstar'}));
 
-      await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
-      expect(await screen.findByRole('menuitemradio', {name: 'Star'})).toBeVisible();
+      expect(await screen.findByRole('button', {name: 'Star'})).toBeVisible();
+    });
+
+    it('keeps the starred state after entering and leaving edit mode', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: DashboardFixture([], {
+          id: '1',
+          title: 'Custom Errors',
+          isFavorited: false,
+        }),
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/favorite/',
+        method: 'PUT',
+        body: {isFavorited: true},
+      });
+      render(<ViewEditDashboard />, {
+        ...makeDashboardRouterConfig({
+          pathname: '/organizations/org-slug/dashboard/1/',
+          route: DASHBOARD_ROUTE,
+          query: {},
+        }),
+        organization: {
+          features: initialData.organization.features,
+        },
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Star'}));
+      expect(await screen.findByRole('button', {name: 'Unstar'})).toBeVisible();
+
+      // Editing swaps the page title for an editable field, so the star is
+      // unmounted and back again. Starring never refetches the dashboard, so
+      // the state has to survive that or the star silently reverts.
+      await activateDashboardEditMode();
+      await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+
+      expect(await screen.findByRole('button', {name: 'Unstar'})).toBeVisible();
     });
 
     it('does not render save or edit features on prebuilt insights dashboards', async () => {
