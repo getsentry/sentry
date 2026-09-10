@@ -340,7 +340,7 @@ class EventComparisonTest(APITestCase, SpanTestCase, SnubaTestCase):
         with self.feature({"organizations:insight-modules": False}):
             response = self.client.get(self.url, {"averageColumn": "span.self_time"})
         assert response.status_code == 200, response.content
-        entries = response.data["entries"]  # type: ignore[attr-defined]
+        entries = response.data["entries"]
         for entry in entries:
             if entry["type"] == "spans":
                 for span in entry["data"]:
@@ -350,7 +350,7 @@ class EventComparisonTest(APITestCase, SpanTestCase, SnubaTestCase):
         with self.feature("organizations:insight-modules"):
             response = self.client.get(self.url, {"averageColumn": "span.self_time"})
         assert response.status_code == 200, response.content
-        entries = response.data["entries"]  # type: ignore[attr-defined]
+        entries = response.data["entries"]
         for entry in entries:
             if entry["type"] == "spans":
                 for span in entry["data"]:
@@ -365,7 +365,7 @@ class EventComparisonTest(APITestCase, SpanTestCase, SnubaTestCase):
                 self.url, {"averageColumn": ["span.self_time", "span.duration"]}
             )
         assert response.status_code == 200, response.content
-        entries = response.data["entries"]  # type: ignore[attr-defined]
+        entries = response.data["entries"]
         for entry in entries:
             if entry["type"] == "spans":
                 for span in entry["data"]:
@@ -393,7 +393,7 @@ class EventComparisonTest(APITestCase, SpanTestCase, SnubaTestCase):
                 self.url, {"averageColumn": ["span.self_time", "span.duration"]}
             )
         assert response.status_code == 200, response.content
-        entries = response.data["entries"]  # type: ignore[attr-defined]
+        entries = response.data["entries"]
         for entry in entries:
             if entry["type"] == "spans":
                 for span in entry["data"]:
@@ -411,7 +411,7 @@ class EventComparisonTest(APITestCase, SpanTestCase, SnubaTestCase):
             self.url, {"averageColumn": ["span.self_time", "span.everything"]}
         )
         assert response.status_code == 200, response.content
-        entries = response.data["entries"]  # type: ignore[attr-defined]
+        entries = response.data["entries"]
         for entry in entries:
             if entry["type"] == "spans":
                 for span in entry["data"]:
