@@ -13,10 +13,16 @@ from time import time
 
 from django.conf import settings
 from redis.exceptions import RedisError
+from rediscluster.exceptions import (
+    ClusterDownException,
+    RedisClusterConfigError,
+    RedisClusterError,
+    RedisClusterException,
+)
 
 from sentry import options
 from sentry.hybridcloud.mailbox import MailboxName
-from sentry.utils import redis
+from sentry.utils import metrics, redis
 
 logger = logging.getLogger(__name__)
 
@@ -44,16 +50,54 @@ STRICT_BUCKET_COUNT = 10
 which would leave one issue's backlog draining concurrently with its next
 payloads."""
 
+REDIS_ERRORS = (
+    RedisError,
+    RedisClusterException,
+    RedisClusterError,
+    RedisClusterConfigError,
+    ClusterDownException,
+)
+"""Every root `rediscluster` raises from, not just the one it shares with `redis`.
+
+The client hangs its exceptions off two unrelated bases: the reply errors subclass
+`redis.RedisError`, while `RedisClusterException` and the three beside it subclass
+`Exception` directly. Naming only the shared base is what let the client's own "mget
+is blocked in cluster mode" through a guard written to catch exactly that failure.
+"""
+
 
 def mailbox_bucket_count(mailbox: MailboxName) -> int:
     """How many sub-mailboxes to spread `mailbox`'s bucket keys over.
 
     Counts this payload against the window, so call it once per payload queued. A
     strictly ordered provider is not counted: nothing would read the result.
+
+    Every caller reaches this while building the argument that queues a webhook, so
+    anything raised here is raised before the `WebhookPayload` row is written and costs
+    us the payload rather than the split. No width this returns is worth that, so the
+    sizing runs under a guard rather than propagating -- see `_fallback_bucket_count`.
     """
     if not _tolerates_reordering(mailbox.provider):
         return STRICT_BUCKET_COUNT
-    return _count_for_payloads(_record_and_read_window(_rate_counter_key(mailbox)))
+
+    try:
+        return _count_for_payloads(_record_and_read_window(_rate_counter_key(mailbox)))
+    except Exception:
+        return _fallback_bucket_count(mailbox)
+
+
+def _fallback_bucket_count(mailbox: MailboxName) -> int:
+    """The width for a `mailbox` whose sizing raised: the cap, the same answer an
+    unreadable window gets, for the same reason.
+
+    Reached only by a bug or by a failure outside the narrower guard -- Redis not
+    answering is handled where it happens, and sizes to the cap without coming here.
+    """
+    metrics.incr(
+        "hybridcloud.webhook_mailbox_sizing.failed",
+        tags={"provider": mailbox.provider},
+    )
+    return _max_buckets()
 
 
 def _payloads_per_mailbox() -> int:
@@ -143,7 +187,7 @@ def _record_and_read_window(counter_key: str) -> int | None:
         pipe.mget(older_keys)
         current, _, older = pipe.execute()
         return int(current) + sum(int(count) for count in older if count is not None)
-    except (RedisError, TypeError, ValueError, IndexError):
+    except (*REDIS_ERRORS, TypeError, ValueError, IndexError):
         logger.exception(
             "hybridcloud.webhook_mailbox_sizing.unavailable",
             extra={"counter_key": counter_key},
