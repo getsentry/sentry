@@ -31,9 +31,10 @@ type SeerNightShiftRunOptions = {
   source?: string;
 };
 
-type SeerNightShiftRunExtras = {
-  agent_run_id?: number | string;
+export type SeerNightShiftRunExtras = {
+  coverage?: {complete: number; failed: number; partial: number; total: number};
   options?: SeerNightShiftRunOptions;
+  status?: 'running' | 'complete' | 'partial' | 'failed';
   target_project_ids?: number[];
   triggering_user_id?: number;
 };
@@ -56,9 +57,18 @@ export type SeerNightShiftRun = {
   issues: SeerNightShiftRunIssue[];
   seerRuns: SeerNightShiftSeerRun[];
   triageStrategy: string;
+  results?: SeerWorkflowResult[];
+  strategy?: string;
 };
 
-export type WorkflowKind = 'agentic_triage';
+export type WorkflowKind = 'agentic_triage' | 'duplicate_monitors';
+
+export type SeerWorkflowResult = {
+  extras: unknown;
+  id: string;
+  kind: string;
+  seerRunId: string | null;
+};
 
 export type StrategyVisibility = 'configurable' | 'internal';
 export type StrategyCategory = 'issues' | 'reliability' | 'user_experience';
@@ -85,6 +95,10 @@ export type WorkflowRow = {
   runId: string;
   status: RunStatus;
   errorMessage?: string | null;
+  monitorCleanup?: {
+    results: SeerWorkflowResult[];
+    coverage?: SeerNightShiftRunExtras['coverage'];
+  };
   options?: SeerNightShiftRunOptions;
   resultText?: string;
   source?: string;
@@ -92,7 +106,6 @@ export type WorkflowRow = {
   triage?: {
     issues: SeerNightShiftRunIssue[];
     seerRuns: SeerNightShiftSeerRun[];
-    agentRunId?: number | string;
     dryRun?: boolean;
     maxCandidates?: number;
   };
