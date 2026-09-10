@@ -63,8 +63,10 @@ export function useCrossEventQueries(
       }
     }
 
-    if (spanQuery.length || logQuery.length || metricQuery.length) {
-      return {spanQuery, logQuery, metricQuery};
+    if (!spanQuery.length && !logQuery.length && !metricQuery.length) {
+      return;
     }
+
+    return {spanQuery, logQuery, metricQuery};
   }, [availability, crossEvents]);
 }
