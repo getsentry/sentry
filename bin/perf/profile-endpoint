@@ -1,0 +1,97 @@
+#!/usr/bin/env python
+"""Run a local synthetic endpoint workload and capture its PostgreSQL work."""
+
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
+import click
+from perf_harness.query_profile import format_profile_summary, read_profile_report
+
+from sentry.utils import json
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+
+
+def parse_parameters(values: tuple[str, ...]) -> dict[str, Any]:
+    parameters = {}
+    for value in values:
+        key, separator, raw = value.partition("=")
+        if not separator or not key or key in parameters:
+            raise click.BadParameter("Use unique NAME=JSON pairs", param_hint="--param")
+        try:
+            parameters[key] = json.loads(raw)
+        except ValueError as error:
+            raise click.BadParameter(f"Invalid JSON for {key}", param_hint="--param") from error
+    return parameters
+
+
+@click.command()
+@click.argument("workload")
+@click.option("--output", required=True, type=click.Path(dir_okay=False, path_type=Path))
+@click.option("--label", default="baseline", show_default=True)
+@click.option(
+    "--param", "parameters", multiple=True, help="Workload parameter: NAME=JSON. Repeatable."
+)
+@click.option("--warmups", default=1, show_default=True, type=click.IntRange(0))
+@click.option("--iterations", default=5, show_default=True, type=click.IntRange(1))
+@click.option("--statement-timeout-ms", default=60_000, show_default=True, type=click.IntRange(1))
+@click.option(
+    "--compare-variants", is_flag=True, help="Run workload experiments and verify responses."
+)
+@click.option(
+    "--include-sql", is_flag=True, help="Include SQL text (may contain sensitive literals)."
+)
+@click.option("--recreate-db/--reuse-db", default=True, show_default=True)
+def main(
+    workload: str,
+    output: Path,
+    label: str,
+    parameters: tuple[str, ...],
+    warmups: int,
+    iterations: int,
+    statement_timeout_ms: int,
+    compare_variants: bool,
+    include_sql: bool,
+    recreate_db: bool,
+) -> None:
+    """Profile WORKLOAD: a bundled name or trusted local module:factory.
+
+    Runs through the in-process API test client in isolated pytest databases;
+    does not send HTTP traffic to a running server.
+    """
+    output = output.resolve()
+    config = {
+        "workload_name": workload,
+        "parameters": parse_parameters(parameters),
+        "output": str(output),
+        "label": label,
+        "warmups": warmups,
+        "iterations": iterations,
+        "statement_timeout_ms": statement_timeout_ms,
+        "compare_variants": compare_variants,
+        "include_sql": include_sql,
+    }
+    environment = {**os.environ, "SENTRY_PERF_CONFIG": json.dumps(config)}
+    command = [
+        sys.executable,
+        "-m",
+        "pytest",
+        "-n0",
+        "-q",
+        "-s",
+        "--create-db" if recreate_db else "--reuse-db",
+        "tests/performance/test_endpoint_workload.py::TestEndpointWorkload::test_profile",
+    ]
+    completed = subprocess.run(command, cwd=REPOSITORY_ROOT, env=environment, check=False)
+    if completed.returncode:
+        raise click.ClickException(f"Workload failed with exit code {completed.returncode}")
+    click.echo(format_profile_summary(read_profile_report(output)))
+
+
+if __name__ == "__main__":
+    main()

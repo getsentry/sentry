@@ -1,0 +1,28 @@
+#!/usr/bin/env python
+"""Compare two database profile reports produced by an endpoint workload."""
+
+from pathlib import Path
+
+import click
+from perf_harness.query_profile import format_profile_comparison, read_profile_report
+
+
+@click.command()
+@click.argument("before", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.argument("after", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+def main(before: Path, after: Path) -> None:
+    """Compare BEFORE and AFTER JSON database profiles."""
+    before_report = read_profile_report(before)
+    after_report = read_profile_report(after)
+    if before_report.get("response_fingerprint") and after_report.get("response_fingerprint"):
+        matches = before_report["response_fingerprint"] == after_report["response_fingerprint"]
+        click.echo(
+            "Response snapshot: matches"
+            if matches
+            else "Response snapshot: differs; check fixture data and normalization"
+        )
+    click.echo(format_profile_comparison(before_report, after_report))
+
+
+if __name__ == "__main__":
+    main()
