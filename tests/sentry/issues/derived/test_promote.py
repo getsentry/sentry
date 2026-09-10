@@ -4,6 +4,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
+from django.db.models import Model
 from django.db.models.query import QuerySet
 from django.utils import timezone as django_timezone
 
@@ -300,7 +301,7 @@ class PromoteToLiveTest(TestCase):
         real_update = QuerySet.update
         blinded = 0
 
-        def blind_first_update(self: QuerySet, **kwargs: object) -> int:
+        def blind_first_update(self: QuerySet[Model], **kwargs: object) -> int:
             nonlocal blinded
             if self.model is GroupDerivedData and blinded == 0:
                 blinded += 1
