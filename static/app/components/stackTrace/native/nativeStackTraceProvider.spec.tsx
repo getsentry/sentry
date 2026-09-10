@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {NativeDisplayOptions} from 'sentry/components/stackTrace/native/nativeDisplayOptions';
+import {NativeDisplayOptionsMenu} from 'sentry/components/stackTrace/native/nativeDisplayOptions';
 import {NativeStackTraceViewStateProvider} from 'sentry/components/stackTrace/native/nativeDisplayOptionsContext';
 import {NativeStackTraceProvider} from 'sentry/components/stackTrace/native/nativeStackTraceProvider';
 import {RawDownloadAction} from 'sentry/components/stackTrace/native/rawDownloadAction';
@@ -12,6 +12,7 @@ import type {StacktraceType} from 'sentry/types/stacktrace';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 describe('NativeStackTraceProvider', () => {
+  const event = EventFixture({platform: 'cocoa'});
   const organization = OrganizationFixture({slug: 'org-slug'});
   const storageKey = 'issue-details-stracktrace-display-org-slug-project-slug';
   const stacktrace: StacktraceType = {
@@ -53,10 +54,7 @@ describe('NativeStackTraceProvider', () => {
         platform="cocoa"
         storageKey={storageKey}
       >
-        <NativeStackTraceProvider
-          event={EventFixture({platform: 'cocoa'})}
-          stacktrace={stacktraceProp}
-        >
+        <NativeStackTraceProvider event={event} stacktrace={stacktraceProp}>
           {children}
         </NativeStackTraceProvider>
       </NativeStackTraceViewStateProvider>
@@ -91,7 +89,11 @@ describe('NativeStackTraceProvider', () => {
   it('persists native display options to storage', async () => {
     render(
       <PersistedNativeStackTrace stacktrace={stacktraceWithAddress}>
-        <NativeDisplayOptions />
+        <NativeDisplayOptionsMenu
+          hasAbsoluteAddresses
+          hasAbsoluteFilePaths={false}
+          hasVerboseFunctionNames={false}
+        />
       </PersistedNativeStackTrace>
     );
 
@@ -112,7 +114,11 @@ describe('NativeStackTraceProvider', () => {
 
     render(
       <PersistedNativeStackTrace stacktrace={stacktraceWithAddress}>
-        <NativeDisplayOptions />
+        <NativeDisplayOptionsMenu
+          hasAbsoluteAddresses
+          hasAbsoluteFilePaths={false}
+          hasVerboseFunctionNames={false}
+        />
       </PersistedNativeStackTrace>
     );
 
