@@ -2,13 +2,7 @@ import {TransactionEventFixture} from 'sentry-fixture/event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {
-  render,
-  screen,
-  userEvent,
-  within,
-  type RouterConfig,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
@@ -74,6 +68,15 @@ let organization: Organization;
 
 const projectsMock = jest.mocked(Projects);
 
+function TestHeader(props: TraceMetadataHeaderProps) {
+  return (
+    <TopBar.Slot.Provider>
+      <TopBar />
+      <TraceMetaDataHeader {...props} organization={organization} />
+    </TopBar.Slot.Provider>
+  );
+}
+
 describe('TraceMetaDataHeader', () => {
   beforeEach(() => {
     jest.resetAllMocks();
@@ -88,27 +91,16 @@ describe('TraceMetaDataHeader', () => {
   });
 
   describe('breadcrumbs', () => {
-    function renderHeader(
-      props: TraceMetadataHeaderProps,
-      location: RouterConfig['location'] = {
-        pathname: '/organizations/org-slug/traces/trace/trace-slug',
-      }
-    ) {
-      return render(
-        <TopBar.Slot.Provider>
-          <TopBar />
-          <TraceMetaDataHeader {...props} organization={organization} />
-        </TopBar.Slot.Provider>,
-        {initialRouterConfig: {location}}
-      );
-    }
-
     it('should render module breadcrumbs', () => {
       const props = {...baseProps} as TraceMetadataHeaderProps;
-      renderHeader(props, {
-        pathname: '/organizations/org-slug/insights/backend/trace/trace-slug',
-        query: {
-          source: TraceViewSources.REQUESTS_MODULE,
+      render(<TestHeader {...props} />, {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/insights/backend/trace/trace-slug',
+            query: {
+              source: TraceViewSources.REQUESTS_MODULE,
+            },
+          },
         },
       });
 
@@ -124,11 +116,15 @@ describe('TraceMetaDataHeader', () => {
 
     it('should show insights from transaction summary with perf removal feature', () => {
       const props = {...baseProps} as TraceMetadataHeaderProps;
-      renderHeader(props, {
-        pathname: '/organizations/org-slug/traces/trace/123',
-        query: {
-          source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
-          transaction: 'transaction-name',
+      render(<TestHeader {...props} />, {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/traces/trace/123',
+            query: {
+              source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+              transaction: 'transaction-name',
+            },
+          },
         },
       });
 
@@ -147,11 +143,15 @@ describe('TraceMetaDataHeader', () => {
 
     it('should show insights from transaction summary', () => {
       const props = {...baseProps} as TraceMetadataHeaderProps;
-      renderHeader(props, {
-        pathname: '/organizations/org-slug/traces/trace/123',
-        query: {
-          source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
-          transaction: 'transaction-name',
+      render(<TestHeader {...props} />, {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/traces/trace/123',
+            query: {
+              source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+              transaction: 'transaction-name',
+            },
+          },
         },
       });
 
