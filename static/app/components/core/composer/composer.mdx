@@ -180,7 +180,8 @@ const commandPlugin = {
       label: 'Commands',
       trigger: '/',
       restrictToStart: true,
-      getSuggestions: query => COMMANDS.filter(command => command.title.startsWith(query)),
+      getSuggestions: query =>
+        COMMANDS.filter(command => command.title.startsWith(query)),
       getId: command => command.id,
       renderSuggestion: command => `/${command.title}`,
       onSelect: (command, actions) => {

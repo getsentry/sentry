@@ -57,11 +57,17 @@ interface RunComposerSelection<TSuggestion> {
   onSelect(suggestion: TSuggestion, actions: ComposerActions): void;
 }
 
-export type ComposerSource<TSuggestion> =
-  | (LocalComposerSourceBase<TSuggestion> & InsertComposerSelection<TSuggestion>)
-  | (LocalComposerSourceBase<TSuggestion> & RunComposerSelection<TSuggestion>)
+export type AsyncComposerSource<TSuggestion> =
   | (AsyncComposerSourceBase<TSuggestion> & InsertComposerSelection<TSuggestion>)
   | (AsyncComposerSourceBase<TSuggestion> & RunComposerSelection<TSuggestion>);
+
+type LocalComposerSource<TSuggestion> =
+  | (LocalComposerSourceBase<TSuggestion> & InsertComposerSelection<TSuggestion>)
+  | (LocalComposerSourceBase<TSuggestion> & RunComposerSelection<TSuggestion>);
+
+export type ComposerSource<TSuggestion> =
+  | LocalComposerSource<TSuggestion>
+  | AsyncComposerSource<TSuggestion>;
 
 export interface ComposerPlugin {
   /** Returns the suggestion sources this plugin contributes. */

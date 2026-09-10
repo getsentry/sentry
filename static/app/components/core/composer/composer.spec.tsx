@@ -79,7 +79,7 @@ const COMMAND_SOURCE: ComposerSource<CommandSuggestion> = {
 };
 
 function makePlugins(
-  sources: readonly ComposerSource<unknown>[]
+  sources: ReadonlyArray<ComposerSource<unknown>>
 ): readonly ComposerPlugin[] {
   return [{id: 'test', getSources: () => sources}];
 }
@@ -93,7 +93,7 @@ function ControlledComposer({
   initialMentions?: readonly Mention[];
   initialValue?: string;
   onOpenChange?: (isOpen: boolean) => void;
-  sources?: readonly ComposerSource<unknown>[];
+  sources?: ReadonlyArray<ComposerSource<unknown>>;
 }) {
   const [value, setValue] = useState<ComposerValue>({
     text: initialValue,

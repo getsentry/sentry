@@ -160,10 +160,13 @@ export function Composer({
     [plugins]
   );
 
-  // Sources sharing the active trigger contribute to the same popup.
-  const activeSources = activeTrigger
-    ? sources.filter(source => source.trigger === activeTrigger.trigger)
-    : [];
+  const activeSources = useMemo(
+    () =>
+      activeTrigger
+        ? sources.filter(source => source.trigger === activeTrigger.trigger)
+        : [],
+    [sources, activeTrigger]
+  );
   const isOpen = activeSources.length > 0;
 
   useLayoutEffect(() => {

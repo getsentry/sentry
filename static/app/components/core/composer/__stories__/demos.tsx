@@ -109,25 +109,26 @@ const COMMANDS: readonly CommandSuggestion[] = [
 
 const COMMAND_PLUGIN: ComposerPlugin = {
   id: 'commands',
-  getSources: () => [
-    {
-      id: 'commands',
-      label: 'Commands',
-      trigger: '/',
-      restrictToStart: true,
-      getSuggestions: (query: string) =>
-        COMMANDS.filter(command => command.title.startsWith(query)),
-      getId: (suggestion: CommandSuggestion) => suggestion.id,
-      renderSuggestion: (suggestion: CommandSuggestion) => `/${suggestion.title}`,
-      onSelect: (suggestion: CommandSuggestion, actions: ComposerActions) => {
-        if (suggestion.id === 'clear') {
-          actions.clear();
-        } else {
-          actions.insertText("Thanks for reaching out — I'll take a look shortly.");
-        }
+  getSources: () =>
+    [
+      {
+        id: 'commands',
+        label: 'Commands',
+        trigger: '/',
+        restrictToStart: true,
+        getSuggestions: (query: string) =>
+          COMMANDS.filter(command => command.title.startsWith(query)),
+        getId: (suggestion: CommandSuggestion) => suggestion.id,
+        renderSuggestion: (suggestion: CommandSuggestion) => `/${suggestion.title}`,
+        onSelect: (suggestion: CommandSuggestion, actions: ComposerActions) => {
+          if (suggestion.id === 'clear') {
+            actions.clear();
+          } else {
+            actions.insertText("Thanks for reaching out — I'll take a look shortly.");
+          }
+        },
       },
-    },
-  ] satisfies ReadonlyArray<ComposerSource<CommandSuggestion>>,
+    ] satisfies ReadonlyArray<ComposerSource<CommandSuggestion>>,
 };
 
 function waitForDelay(delay: number) {
