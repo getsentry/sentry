@@ -30,8 +30,6 @@ GCP_CONNECTION_STATUSES: tuple[str, ...] = (
     "error",
 )
 
-GCP_STATUS_UNVERIFIED = "unverified"
-
 MAX_CUSTOMER_SA_EMAIL_LENGTH = 255
 
 
