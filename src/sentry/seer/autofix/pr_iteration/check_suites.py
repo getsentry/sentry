@@ -815,30 +815,9 @@ class CheckRunsSweep:
 @dataclass
 class _SweepCost:
     requests: int = 0
-    min_rate_limit_delta: int | None = None
-    last_rate_limit_remaining: int | None = None
-
-    def observe(self, page: PaginatedActionResult[list[CheckRun]]) -> None:
-        remaining = _header_int(page["raw"]["headers"] or {}, "x-ratelimit-remaining")
-        if remaining is None:
-            return
-
-        previous, self.last_rate_limit_remaining = self.last_rate_limit_remaining, remaining
-        if previous is None:
-            return
-
-        delta = previous - remaining
-        if delta < 0:
-            return
-
-        if self.min_rate_limit_delta is None or delta < self.min_rate_limit_delta:
-            self.min_rate_limit_delta = delta
 
     def log_extra(self) -> dict[str, object]:
-        return {
-            "sweep_requests": self.requests,
-            "min_rate_limit_delta": self.min_rate_limit_delta,
-        }
+        return {"sweep_requests": self.requests}
 
     def record(self, *, outcome: str) -> None:
         metrics.distribution(
@@ -846,25 +825,6 @@ class _SweepCost:
             self.requests,
             tags={"outcome": outcome},
         )
-        if self.min_rate_limit_delta is not None:
-            metrics.distribution(
-                "autofix.pr_iteration.check_runs_sweep.rate_limit_per_request",
-                self.min_rate_limit_delta,
-                tags={"outcome": outcome},
-            )
-
-
-def _header_int(headers: Mapping[str, str], name: str) -> int | None:
-    # GitHub sends ``X-RateLimit-Remaining``, but ``raw.headers`` is a plain dict
-    # (including after RPC serialization), so match case-insensitively.
-    lowered = name.lower()
-    raw = next((value for key, value in headers.items() if key.lower() == lowered), None)
-    if raw is None:
-        return None
-    try:
-        return int(raw)
-    except (TypeError, ValueError):
-        return None
 
 
 def sweep_check_runs(
@@ -885,9 +845,7 @@ def sweep_check_runs(
 
     def fetch(pagination: PaginationParams) -> PaginatedActionResult[list[CheckRun]]:
         cost.requests += 1
-        page = scm_actions.list_check_runs_for_ref(scm, head_sha, pagination=pagination)
-        cost.observe(page)
-        return page
+        return scm_actions.list_check_runs_for_ref(scm, head_sha, pagination=pagination)
 
     total = incomplete = failed = 0
     try:

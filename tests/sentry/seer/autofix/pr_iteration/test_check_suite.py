@@ -1627,20 +1627,11 @@ class CheckSuiteFlagGateTest(TestCase):
 class SweepCheckRunsCostTest(TestCase):
     """The sweep's GitHub cost is the thing we budget for, so pin it down."""
 
-    def _page(
-        self,
-        runs: list[dict],
-        *,
-        remaining: str = "5399",
-        remaining_header: str = "x-ratelimit-remaining",
-    ) -> dict:
+    def _page(self, runs: list[dict]) -> dict:
         return {
             "data": runs,
             "type": "github",
-            "raw": {
-                "data": {},
-                "headers": {remaining_header: remaining, "x-ratelimit-limit": "5400"},
-            },
+            "raw": {"headers": None, "data": {}},
             "meta": {"next_cursor": "2"},
         }
 
@@ -1705,78 +1696,23 @@ class SweepCheckRunsCostTest(TestCase):
     @patch(f"{CHECK_SUITES_PATH}.metrics")
     @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
     @patch(f"{CHECK_SUITES_PATH}.scm_actions")
-    def test_emits_the_smallest_rate_limit_drop(
+    def test_records_the_request_count_as_the_cost(
         self, mock_actions: MagicMock, mock_metrics: MagicMock
     ) -> None:
-        """Concurrent traffic inflates any single drop, so the floor is the estimate."""
+        """The cost is the number of requests the sweep made, trailing empty page included."""
         mock_actions.list_check_runs_for_ref.side_effect = [
-            self._page([self._run()], remaining="100"),
-            self._page([self._run()], remaining="98"),
-            self._page([], remaining="97"),
+            self._page([self._run()]),
+            self._page([self._run()]),
+            self._page([]),
         ]
 
         sweep_check_runs(MagicMock(), "abc", log_extra={})
 
-        mock_metrics.distribution.assert_any_call(
-            "autofix.pr_iteration.check_runs_sweep.rate_limit_per_request",
-            1,
+        mock_metrics.distribution.assert_called_once_with(
+            "autofix.pr_iteration.check_runs_sweep.cost",
+            3,
             tags={"outcome": "swept"},
         )
-
-    @patch(f"{CHECK_SUITES_PATH}.metrics")
-    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
-    @patch(f"{CHECK_SUITES_PATH}.scm_actions")
-    def test_reads_github_header_casing(
-        self, mock_actions: MagicMock, mock_metrics: MagicMock
-    ) -> None:
-        """GitHub sends ``X-RateLimit-Remaining``; the plain-dict lookup must ignore case."""
-        mock_actions.list_check_runs_for_ref.side_effect = [
-            self._page([self._run()], remaining="100", remaining_header="X-RateLimit-Remaining"),
-            self._page([self._run()], remaining="98", remaining_header="X-RateLimit-Remaining"),
-            self._page([], remaining="97", remaining_header="X-RateLimit-Remaining"),
-        ]
-
-        sweep_check_runs(MagicMock(), "abc", log_extra={})
-
-        mock_metrics.distribution.assert_any_call(
-            "autofix.pr_iteration.check_runs_sweep.rate_limit_per_request",
-            1,
-            tags={"outcome": "swept"},
-        )
-
-    @patch(f"{CHECK_SUITES_PATH}.metrics")
-    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
-    @patch(f"{CHECK_SUITES_PATH}.scm_actions")
-    def test_ignores_a_rate_limit_window_reset(
-        self, mock_actions: MagicMock, mock_metrics: MagicMock
-    ) -> None:
-        mock_actions.list_check_runs_for_ref.side_effect = [
-            self._page([self._run()], remaining="100"),
-            self._page([self._run()], remaining="96"),
-            self._page([self._run()], remaining="5000"),
-            self._page([], remaining="4999"),
-        ]
-
-        sweep_check_runs(MagicMock(), "abc", log_extra={})
-
-        mock_metrics.distribution.assert_any_call(
-            "autofix.pr_iteration.check_runs_sweep.rate_limit_per_request",
-            1,
-            tags={"outcome": "swept"},
-        )
-
-    @patch(f"{CHECK_SUITES_PATH}.metrics")
-    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
-    @patch(f"{CHECK_SUITES_PATH}.scm_actions")
-    def test_single_request_has_no_rate_limit_estimate(
-        self, mock_actions: MagicMock, mock_metrics: MagicMock
-    ) -> None:
-        mock_actions.list_check_runs_for_ref.side_effect = [self._page([], remaining="100")]
-
-        sweep_check_runs(MagicMock(), "abc", log_extra={})
-
-        emitted = [call.args[0] for call in mock_metrics.distribution.call_args_list]
-        assert emitted == ["autofix.pr_iteration.check_runs_sweep.cost"]
 
 
 def _live_pr_result(head_sha: str = "abc") -> dict:
