@@ -130,6 +130,10 @@ function MultiValueContainer({values}: {values: string[]}): React.JSX.Element {
 }
 
 const Tablevalue = styled('div')`
+  > pre {
+    margin: 0;
+    padding: 0;
+  }
   pre {
     && {
       word-break: break-all;
