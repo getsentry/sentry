@@ -7,7 +7,12 @@ source: '@sentry/scraps/composer'
 
 import * as Storybook from 'sentry/stories';
 
-import {AsyncComposerDemo, ComposerDemo, RestoredComposerDemo} from './__stories__/demos';
+import {
+  AsyncComposerDemo,
+  CommandComposerDemo,
+  ComposerDemo,
+  RestoredComposerDemo,
+} from './__stories__/demos';
 
 export const documentation = import('!!type-loader!@sentry/scraps/composer/composer');
 
@@ -153,6 +158,47 @@ const remotePlugin = {
 <Composer
   aria-label="Remote member search"
   plugins={[remotePlugin]}
+  value={value}
+  onChange={setValue}
+/>;
+```
+
+## Commands instead of references
+
+Sources providing `onSelect` run a custom action on selection instead of inserting text at the trigger position — for command-style triggers that clear the editor, insert a snippet, or toggle a mode. Pair it with `restrictToStart` so the trigger only matches at the very start of the editor's text, like a slash command.
+
+<Storybook.Demo overflow="visible">
+  <CommandComposerDemo />
+</Storybook.Demo>
+
+```jsx
+const commandPlugin = {
+  id: 'commands',
+  getSources: () => [
+    {
+      id: 'commands',
+      label: 'Commands',
+      trigger: '/',
+      restrictToStart: true,
+      getSuggestions: query =>
+        COMMANDS.filter(command => command.title.startsWith(query)),
+      getId: command => command.id,
+      renderSuggestion: command => `/${command.title}`,
+      onSelect: (command, actions) => {
+        if (command.id === 'clear') {
+          actions.clear();
+        } else {
+          actions.insertText("Thanks for reaching out — I'll take a look shortly.");
+        }
+      },
+    },
+  ],
+};
+
+<Composer
+  aria-label="Command input"
+  placeholder="Type / for commands"
+  plugins={[commandPlugin]}
   value={value}
   onChange={setValue}
 />;
