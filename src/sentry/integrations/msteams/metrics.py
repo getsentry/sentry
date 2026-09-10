@@ -19,6 +19,12 @@ MSTEAMS_HALT_ERROR_CODES = {
 }
 
 
+class MsTeamsInvalidRequestError(ApiInvalidRequestError, IntegrationConfigurationError):
+    def __init__(self, text: str, url: str | None = None) -> None:
+        super().__init__(text, url=url)
+        self.error_code = self.code
+
+
 def record_lifecycle_termination_level(
     lifecycle: EventLifecycle, error: ApiError | IntegrationError
 ) -> None:
@@ -43,7 +49,7 @@ def translate_msteams_api_error(error: ApiError) -> None:
     elif error.json:
         error_code = error.json.get("error", {}).get("code")
         if error_code in MSTEAMS_INVALID_REQUEST_ERROR_CODES:
-            raise ApiInvalidRequestError(error.text, url=error.url) from error
+            raise MsTeamsInvalidRequestError(error.text, url=error.url) from error
         elif error_code in MSTEAMS_HALT_ERROR_CODES:
             raise IntegrationConfigurationError(error.text) from error
         else:

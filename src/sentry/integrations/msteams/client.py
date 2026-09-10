@@ -96,6 +96,8 @@ class MsTeamsClient(MsTeamsClientABC, IntegrationProxyClient):
         try:
             return super().request(*args, **kwargs)
         except ApiError as error:
+            if kwargs.get("raw_response"):
+                raise
             translate_msteams_api_error(error)
 
     def __init__(self, integration: Integration | RpcIntegration):

@@ -11,7 +11,12 @@ from requests import Request
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.msteams.client import MsTeamsClient, OAuthMsTeamsClient
 from sentry.integrations.msteams.metrics import record_lifecycle_termination_level
-from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiHostError,
+    ApiInvalidRequestError,
+    IntegrationError,
+)
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_PATH,
@@ -207,6 +212,17 @@ class MsTeamsClientTest(TestCase):
 
         with pytest.raises(IntegrationError):
             self.msteams_client.get_channel_list("foobar")
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.client.IntegrationProxyClient.request")
+    def test_raw_response_preserves_transport_error(self, mock_request: mock.MagicMock) -> None:
+        error = ApiHostError("Unable to reach host")
+        mock_request.side_effect = error
+
+        with pytest.raises(ApiHostError) as exc_info:
+            self.msteams_client.request("GET", "/", raw_response=True)
+
+        assert exc_info.value is error
 
     @responses.activate
     def test_api_client_from_integration_installation(self) -> None:

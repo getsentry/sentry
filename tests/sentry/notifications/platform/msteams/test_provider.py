@@ -7,11 +7,13 @@ from sentry.integrations.msteams.card_builder.block import (
     TextSize,
     TextWeight,
 )
+from sentry.integrations.msteams.metrics import MsTeamsInvalidRequestError
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.platform.msteams.provider import (
     MSTeamsNotificationProvider,
     MSTeamsRenderable,
 )
+from sentry.notifications.platform.provider import SendFailureStatus
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationCategory,
@@ -318,3 +320,16 @@ class MSTeamsNotificationProviderSendTest(TestCase):
         mock_client_instance.send_card.assert_called_once_with(
             conversation_id="29:test-user-id", card=renderable
         )
+
+    @patch("sentry.integrations.msteams.integration.MsTeamsClient")
+    def test_invalid_request_is_halt(self, mock_msteams_client: Mock) -> None:
+        error = MsTeamsInvalidRequestError("Invalid conversation")
+        mock_msteams_client.return_value.send_card.side_effect = error
+
+        result = MSTeamsNotificationProvider.send(
+            target=self._create_target(), renderable=self._create_renderable()
+        )
+
+        assert result.status == SendFailureStatus.HALT
+        assert result.exception is error
+        assert result.error_code == 400
