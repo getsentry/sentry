@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
-from typing import Literal
+from typing import Any, Literal
+from uuid import UUID
 
 from django.db import router, transaction
 from django.utils import timezone
@@ -14,15 +16,22 @@ from sentry.auth import access
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
-from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunShard
+from sentry.seer.agent.types import FeatureRunStatus
+from sentry.seer.models.night_shift import (
+    SeerNightShiftRun,
+    SeerNightShiftRunResult,
+    SeerNightShiftRunShard,
+)
 from sentry.seer.models.workflow import SeerWorkflowConfig, SeerWorkflowStrategy
 from sentry.users.services.user.service import user_service
 from sentry.utils.numbers import validate_bigint
 from sentry.workflow_engine.models import Detector, DetectorWorkflow
 
 FEATURE = "organizations:seer-workflows-monitor-cleanup"
-ARTIFACT_KEY = "monitor_cleanup"
+FEATURE_ID = "monitor_cleanup"
+RESPONSE_VERSION = 1
+logger = logging.getLogger(__name__)
+TERMINAL = {"complete", "partial", "failed"}
 
 
 def create_monitor_cleanup_run(request: Request, organization: Organization) -> SeerNightShiftRun:
@@ -58,6 +67,7 @@ def create_monitor_cleanup_run(request: Request, organization: Organization) -> 
                 "options": {"source": "manual"},
                 "triggering_user_id": request.user.id,
                 "status": "running",
+                "response_schema_version": RESPONSE_VERSION,
             },
         )
         SeerNightShiftRunShard.objects.create(run=run, extras={"status": "queued"})
@@ -113,11 +123,17 @@ class MonitorCleanupArtifact(BaseModel):
 
 class ProjectMonitorCleanupArtifact(MonitorCleanupArtifact):
     project_id: str
+    findings: list[MonitorFinding] = Field(...)
 
 
 class OrganizationMonitorCleanupArtifact(BaseModel):
     scan_status: Literal["complete", "partial"]
     projects: list[ProjectMonitorCleanupArtifact]
+
+
+class MonitorCleanupResponseV1(BaseModel):
+    schema_version: Literal[1]
+    data: OrganizationMonitorCleanupArtifact
 
 
 def prepare_monitor_cleanup_results(
@@ -307,76 +323,81 @@ def validate_monitor_findings(
     }
 
 
-class MonitorCleanupCompletionHook(AgentOnCompletionHook):
-    @classmethod
-    def execute(cls, organization: Organization, run_id: int) -> None:
-        # Tasks import the hook to attach it to the agent request.
-        from sentry.tasks.seer.monitor_cleanup import collect_monitor_cleanup_result
+def finish_shard(
+    shard_id: int,
+    *,
+    outputs: list[dict[str, object]] | None = None,
+    scan_status: str = "complete",
+    error: str | None = None,
+) -> None:
+    shard = SeerNightShiftRunShard.objects.filter(id=shard_id).first()
+    if shard is None:
+        return
+    with transaction.atomic(router.db_for_write(SeerNightShiftRun)):
+        run = SeerNightShiftRun.objects.select_for_update().filter(id=shard.run_id).first()
+        if run is None:
+            return
+        shard = (
+            SeerNightShiftRunShard.objects.select_related("seer_run").filter(id=shard_id).first()
+        )
+        if shard is None or shard.extras.get("status") in TERMINAL:
+            return
+        for output in outputs or []:
+            SeerNightShiftRunResult.objects.get_or_create(
+                run=run,
+                kind=SeerWorkflowStrategy.DUPLICATE_MONITORS,
+                idempotency_key=f"project:{output['projectId']}",
+                defaults={"result_seer_run": shard.seer_run, "extras": output},
+            )
+        status = "failed" if error else scan_status
+        shard.update(extras={**shard.extras, "status": status, "error": error})
+        run.update(
+            extras={**run.extras, "status": status},
+            date_completed=timezone.now(),
+        )
 
-        collect_monitor_cleanup_result(organization.id, run_id)
 
-
-MONITOR_CLEANUP_PROMPT = """Find duplicate monitors, overlapping coverage, and potential duplicate
-notifications among user-created metric monitors in the specified
-Sentry organization. Discover the projects accessible to the current user using code mode,
-then list their metric_issue detectors, paginate through all results, and inspect their
-detection settings and connected automations. Perform the whole scan in this agent run.
-Return one entry in projects for each project whose metric monitors you inspected, with
-its project_id, monitors_scanned count, scan_status, and findings. Do not include projects
-with no metric monitors. If there are no accessible metric monitors, return projects=[].
-Set the top-level scan_status to partial if discovery or any project inspection is incomplete.
-Compare dataset, query, aggregation, environment, evaluation window, detection mode,
-trigger/recovery conditions, enabled state, and connected automation IDs. Names alone do
-not establish duplication. Prefer matching effective settings and connected automations.
-Explain meaningful differences. Do not claim
-that deleting a monitor is verified safe. Ignore system-created error/issue-stream monitors,
-Cron and uptime monitors. Each project entry must only include IDs from that project in this organization.
-
-This is a read-only demo. Do not change, disable, or delete anything or request approval.
-Produce the requested structured artifact and a brief human-readable explanation with
-links to the candidate monitors. If pagination or inspection cannot be completed, set
-scan_status to partial and explain the limitation; do not claim there are no duplicates.
-Return findings (an empty list if none), and leave the legacy groups field empty.
-Count only inspected metric_issue monitors in monitors_scanned, excluding system detectors.
-
-Classify each finding using exactly one kind:
-- exact_duplicate: identical effective detection settings AND equivalent connected alert
-  behavior. Include a suggested_keep_id from monitor_ids. Each monitor belongs to at most
-  one exact group. Name similarity or a shared destination alone is insufficient.
-- overlapping_coverage: related query scopes or thresholds that can fire for the same
-  underlying condition but have meaningful differences. Set suggested_keep_id to null.
-  Explain the intersection AND coverage unique to either monitor. Broader coverage does
-  not make narrower coverage redundant; different thresholds may represent escalation.
-- duplicate_notifications: overlapping or identical monitor conditions connected to the
-  same alert (workflow), or separate alerts with equivalent notification actions. Inspect
-  linked workflows, their trigger/action filters, environment, frequency, enabled state,
-  action types, integrations, and destinations. Include verified workflow IDs in alert_ids.
-  Explain when both notification paths could apply and any delivery/deduplication uncertainty.
-  Sentry deduplicates matching actions within an event's action processing; a shared alert
-  does not establish duplicate delivery across separate monitor incidents.
-  Sharing a destination without overlapping triggers is insufficient. These are potential
-  repeated notifications inferred from configuration, never observed duplicate deliveries.
-  Set suggested_keep_id to null. Disabled monitors/alerts can be reported as configuration
-  overlap, but explicitly say they cannot currently send these notifications.
-
-The same pair may have a coverage finding AND a notification finding, but never repeat
-the same kind for that pair. Use monitor_ids for the distinct members of every finding.
-Leave alert_ids empty for coverage/exact findings.
-
-The UI is a compact property comparison table, not a report. For each finding:
-- reason: one plain sentence, at most 140 characters, stating the key relationship.
-  Do not repeat monitor IDs or names. Example: "Checkout timeouts are a subset of all
-  checkout errors, but trigger at a lower threshold."
-- comparison: up to 8 relevant property rows with a short label and one value per monitor,
-  using monitor_id. Include both matching and differing properties. Start with the
-  important differences (query, trigger), then shared properties (window, aggregation,
-  environment). For notification findings include alert, destination, and frequency.
-  Use consistent wording/units for equal values so the UI can mark differing values.
-  Use compact values such as ">100 errors", "5 min", or "All environments"; no sentences.
-  Only include properties you inspected; never infer missing values.
-- Leave differences, matching_settings, example, and next_step empty. All supporting
-  evidence belongs in the comparison table. Do not write hypothetical scenarios or
-  multi-paragraph recommendations.
-Keep the overall summary to one short sentence. Do not recommend deleting an overlap
-solely because it shares a destination or owner.
-"""
+def deliver_monitor_cleanup_result(
+    organization_id: int,
+    run_uuid: UUID,
+    status: FeatureRunStatus,
+    result: dict[str, Any] | None,
+    error: str | None,
+    prompt_version: str | None = None,
+) -> None:
+    shard = (
+        SeerNightShiftRunShard.objects.select_related("run__organization", "seer_run")
+        .filter(
+            run__organization_id=organization_id,
+            run__workflow_config__strategy=SeerWorkflowStrategy.DUPLICATE_MONITORS,
+            seer_run__uuid=run_uuid,
+        )
+        .first()
+    )
+    if shard is None or shard.extras.get("status") in TERMINAL:
+        return
+    if status != "completed" or result is None:
+        finish_shard(shard.id, error="Seer could not complete this scan.")
+        return
+    # Reject unknown envelopes before interpreting their contents as the current schema.
+    if (
+        type(result.get("schema_version")) is not int
+        or result["schema_version"] != RESPONSE_VERSION
+    ):
+        finish_shard(
+            shard.id, error="Seer returned an unsupported monitor cleanup response version."
+        )
+        return
+    try:
+        response = MonitorCleanupResponseV1.parse_obj(result)
+        outputs = prepare_monitor_cleanup_results(
+            response.data, shard.run.organization, shard.run.extras["triggering_user_id"]
+        )
+    except ValueError:
+        logger.exception("monitor_cleanup.invalid_output", extra={"shard_id": shard.id})
+        finish_shard(shard.id, error="Seer returned findings that could not be validated.")
+        return
+    scan_status = response.data.scan_status
+    if any(project.scan_status == "partial" for project in response.data.projects):
+        scan_status = "partial"
+    finish_shard(shard.id, outputs=outputs, scan_status=scan_status)
