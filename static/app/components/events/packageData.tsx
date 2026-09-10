@@ -1,13 +1,11 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {
-  splitIntoColumns,
-  useIssueDetailsColumnCount,
-} from 'sentry/components/events/eventTags/util';
+import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {KeyValueTableDataRow} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
+import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';

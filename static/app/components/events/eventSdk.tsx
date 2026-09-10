@@ -20,6 +20,7 @@ export function EventSdk({sdk, meta}: Props) {
   return (
     <FoldSection title={t('SDK')} sectionKey={SectionKey.SDK} initialCollapse>
       <KeyValueTableDataList
+        margin
         data={[
           {
             key: 'name',

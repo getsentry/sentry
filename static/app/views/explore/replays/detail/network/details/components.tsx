@@ -59,7 +59,7 @@ export type KeyValueTuple = {
 
 export function keyValueTableOrNotFound(data: KeyValueTuple[], notFoundText: string) {
   return data.length ? (
-    <StyledKeyValueTable noMargin>
+    <StyledKeyValueTable>
       {data.map(({key, value, type}) => (
         <KeyValueTableRow
           key={key}

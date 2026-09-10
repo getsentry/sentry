@@ -564,6 +564,7 @@ function SlowDBQueryEvidence({
 
   return (
     <KeyValueTableDataList
+      margin
       shouldSort={false}
       data={[
         makeTransactionNameRow(event, organization, location, projectSlug),
@@ -655,7 +656,7 @@ function DefaultSpanEvidence({
 }
 
 function PresortedKeyValueList({data}: {data: KeyValueListData}) {
-  return <KeyValueTableDataList shouldSort={false} data={data} />;
+  return <KeyValueTableDataList margin shouldSort={false} data={data} />;
 }
 
 const makeTransactionNameRow = (

@@ -106,5 +106,5 @@ export function FrameVariables({data, meta, platform}: Props) {
       }));
   }, [data, meta, platform]);
 
-  return <KeyValueTableDataList data={transformedData} />;
+  return <KeyValueTableDataList margin data={transformedData} />;
 }

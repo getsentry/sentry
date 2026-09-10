@@ -162,15 +162,6 @@ const ISSUE_DETAILS_COLUMN_BREAKPOINTS = [
   {minWidth: 0, columnCount: 1},
 ];
 
-export function splitIntoColumns<T>(items: T[], columnCount: number): T[][] {
-  const columnSize = Math.ceil(items.length / columnCount);
-  const columns: T[][] = [];
-  for (let i = 0; i < items.length; i += columnSize) {
-    columns.push(items.slice(i, i + columnSize));
-  }
-  return columns;
-}
-
 /**
  * Determine the column count using available space.
  * Note: This is pretty inefficient since it recalculates on resize, but since Tags/Context is

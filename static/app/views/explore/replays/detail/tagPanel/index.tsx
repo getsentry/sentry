@@ -77,7 +77,7 @@ export function TagPanel() {
       <TabItemContainer>
         <Container as="section" flex="1 1 auto" overflow="auto">
           {filteredTags.length ? (
-            <KeyValueTable noMargin>
+            <KeyValueTable>
               {filteredTags.map(([key, values]) => (
                 <ReplayTagsTableRow
                   key={key}

@@ -52,6 +52,7 @@ export function EventEvidence({
       disableCollapsePersistence={disableCollapsePersistence}
     >
       <KeyValueTableDataList
+        margin
         data={evidenceDisplay.map(item => ({
           subject: item.name,
           key: item.name,

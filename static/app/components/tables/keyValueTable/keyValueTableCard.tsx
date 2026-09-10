@@ -1,14 +1,13 @@
 import {Children, useRef, useState, type ReactNode} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container as LayoutContainer} from '@sentry/scraps/layout';
 
-import {
-  splitIntoColumns,
-  useIssueDetailsColumnCount,
-} from 'sentry/components/events/eventTags/util';
+import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
+import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 
 import {
   KeyValueTableDataRow,
@@ -97,12 +96,20 @@ export function KeyValueTableCardGrid({children}: {children: React.ReactNode}) {
   );
 }
 
-export const KeyValueTableCardPanel = styled(Panel)`
+export const KeyValueTableCardPanel = styled(Panel)<{block?: boolean}>`
   padding: ${p => p.theme.space.sm};
-  display: grid;
+  display: ${p => (p.block ? 'block' : 'grid')};
   column-gap: ${p => p.theme.space.lg};
   grid-template-columns: fit-content(50%) 1fr;
   font-size: ${p => p.theme.font.size.sm};
+
+  ${p =>
+    p.block &&
+    css`
+      pre {
+        margin: 0;
+      }
+    `}
 `;
 
 export const KeyValueTableCardTitle = styled('div')`

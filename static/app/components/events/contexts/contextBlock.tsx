@@ -14,7 +14,7 @@ export function ContextBlock({data, raw = false}: Props) {
 
   return (
     <ErrorBoundary mini>
-      <KeyValueTableDataList data={data} raw={raw} isContextData />
+      <KeyValueTableDataList margin data={data} raw={raw} isContextData />
     </ErrorBoundary>
   );
 }

@@ -1,5 +1,4 @@
 import {Fragment, useCallback} from 'react';
-import styled from '@emotion/styled';
 
 import {CodeBlock} from '@sentry/scraps/code';
 import {DrawerBody, DrawerHeader, useDrawer} from '@sentry/scraps/drawer';
@@ -32,7 +31,7 @@ function BodySection({title, body}: {body: string; title: string}) {
   const {parsed, raw, maybeTruncated} = decodeWebhookBody(body);
 
   return (
-    <BodyCardPanel>
+    <KeyValueTableCardPanel block>
       <KeyValueTableCardTitle>
         {title}
         {maybeTruncated && (
@@ -44,7 +43,7 @@ function BodySection({title, body}: {body: string; title: string}) {
       ) : (
         <JsonEventData data={parsed} showCopyButton />
       )}
-    </BodyCardPanel>
+    </KeyValueTableCardPanel>
   );
 }
 
@@ -218,11 +217,3 @@ export function useRequestLogDetailsDrawer({
     [isInternal, openDrawer, organization]
   );
 }
-
-const BodyCardPanel = styled(KeyValueTableCardPanel)`
-  display: block;
-
-  pre {
-    margin: 0;
-  }
-`;

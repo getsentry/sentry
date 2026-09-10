@@ -63,6 +63,7 @@ function SpanEvidencePreviewBody({
     return (
       <Container padding="lg lg 0 lg" width="700px" data-test-id="evidence-preview-body">
         <KeyValueTableDataList
+          margin
           data={evidenceDisplay.map(item => ({
             key: item.name,
             subject: item.name,

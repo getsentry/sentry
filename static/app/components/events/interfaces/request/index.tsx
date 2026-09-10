@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {CodeBlock} from '@sentry/scraps/code';
 import {Flex} from '@sentry/scraps/layout';
@@ -80,6 +79,7 @@ function getBodyContent({
 
       return (
         <KeyValueTableDataList
+          margin
           data-test-id="rich-http-content-body-key-value-list"
           data={transformedData}
           isContextData
@@ -103,10 +103,10 @@ function RequestBodySection({data, event, meta}: RequestBodyProps) {
 
   if (data.apiTarget === 'graphql' && typeof data.data.query === 'string') {
     return (
-      <RequestCardPanel>
+      <KeyValueTableCardPanel block>
         <KeyValueTableCardTitle>{t('Body')}</KeyValueTableCardTitle>
         <GraphQlRequestBody data={data.data} {...{event, meta}} />
-      </RequestCardPanel>
+      </KeyValueTableCardPanel>
     );
   }
 
@@ -116,10 +116,10 @@ function RequestBodySection({data, event, meta}: RequestBodyProps) {
     inferredContentType: data.inferredContentType,
   });
   return (
-    <RequestCardPanel>
+    <KeyValueTableCardPanel block>
       <KeyValueTableCardTitle>{t('Body')}</KeyValueTableCardTitle>
       {contentBody}
-    </RequestCardPanel>
+    </KeyValueTableCardPanel>
   );
 }
 
@@ -308,10 +308,3 @@ function TruncatedPathLink(props: TruncatedPathLinkProps) {
     </Flex>
   );
 }
-
-const RequestCardPanel = styled(KeyValueTableCardPanel)`
-  display: block;
-  pre {
-    margin: 0;
-  }
-`;

@@ -463,6 +463,7 @@ function TriggeredConditionDetails({
         }
       >
         <KeyValueTableDataList
+          margin
           shouldSort={false}
           data={[
             {

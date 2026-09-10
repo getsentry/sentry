@@ -45,7 +45,7 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
     <SidebarSection.Wrap>
       <SidebarSection.Title>{t('Project Release Details')}</SidebarSection.Title>
       <SidebarSection.Content>
-        <KeyValueTable>
+        <KeyValueTable margin>
           <KeyValueTableRow
             keyName={t('Created')}
             value={<DateTime date={dateCreated} />}

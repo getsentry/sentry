@@ -34,6 +34,7 @@ export function ProguardSection({data, projectSlug}: ProguardSectionProps) {
       initialCollapse
     >
       <KeyValueTableDataList
+        margin
         data={[
           {
             key: 'uuid',

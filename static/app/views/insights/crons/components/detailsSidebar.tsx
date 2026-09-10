@@ -102,7 +102,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
         />
       </Legend>
       <SectionHeading>{t('Cron Details')}</SectionHeading>
-      <KeyValueTable>
+      <KeyValueTable margin>
         <KeyValueTableRow keyName={t('Monitor Slug')} value={slug} />
         <KeyValueTableRow
           keyName={t('Failure tolerance')}

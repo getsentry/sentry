@@ -32,7 +32,7 @@ export function EventRegressionSummary({event, group}: EventRegressionSummaryPro
       sectionKey={SectionKey.REGRESSION_SUMMARY}
       title={t('Regression Summary')}
     >
-      <KeyValueTableDataList data={data} shouldSort={false} noMargin />
+      <KeyValueTableDataList data={data} shouldSort={false} />
     </FoldSection>
   );
 }

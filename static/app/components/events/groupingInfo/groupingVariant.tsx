@@ -181,6 +181,7 @@ export function GroupingVariant({
       <Header>{renderTitle()}</Header>
 
       <KeyValueTableDataList
+        margin
         data={data.map(d => ({
           key: d[0],
           subject: d[0],

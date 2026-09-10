@@ -19,6 +19,7 @@ function getView(view: View, data: Record<any, any>, meta: Record<any, any>) {
     case 'report':
       return (
         <KeyValueTableDataList
+          margin
           data={Object.entries(data).map(([key, value]) => {
             return {
               key,

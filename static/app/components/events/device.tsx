@@ -25,6 +25,7 @@ export function EventDevice({event}: Props) {
   return (
     <FoldSection sectionKey={SectionKey.DEVICE} title={t('Device')}>
       <KeyValueTableDataList
+        margin
         shouldSort={false}
         data={[
           {

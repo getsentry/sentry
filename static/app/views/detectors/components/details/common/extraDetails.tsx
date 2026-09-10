@@ -20,7 +20,7 @@ type Props = {
 export function DetectorExtraDetails({children}: Props) {
   return (
     <DetailSection title={t('Details')}>
-      <StyledKeyValueTable noMargin>{children}</StyledKeyValueTable>
+      <StyledKeyValueTable>{children}</StyledKeyValueTable>
     </DetailSection>
   );
 }

@@ -21,7 +21,7 @@ function DetailsPanel({data, getTitle}: DetailsPanelProps) {
   return (
     <Container>
       {defined(getTitle) && <Title>{getTitle(data)}</Title>}
-      <KeyValueTableDataList data={keyValueData} />
+      <KeyValueTableDataList margin data={keyValueData} />
     </Container>
   );
 }

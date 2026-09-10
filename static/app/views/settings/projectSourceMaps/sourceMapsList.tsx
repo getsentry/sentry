@@ -433,7 +433,7 @@ function SourceMapUploadDetails({
     ];
   }, [sourceMapUpload, showAll, projectId]);
 
-  return <KeyValueTableDataList data={detailsData} shouldSort={false} noMargin />;
+  return <KeyValueTableDataList data={detailsData} shouldSort={false} />;
 }
 
 interface SourceMapUploadDeleteButtonProps {

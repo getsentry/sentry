@@ -127,6 +127,7 @@ export function GraphQlRequestBody({data, event}: GraphQlBodyProps) {
       </pre>
       <ErrorsAlert errors={errors} />
       <KeyValueTableDataList
+        margin
         data={Object.entries(omit(data, 'query')).map(([key, value]) => ({
           key,
           subject: key,

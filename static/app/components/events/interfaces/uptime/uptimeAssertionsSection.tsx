@@ -19,6 +19,7 @@ export function UptimeAssertionsSection({event}: {event: Event}) {
       disableCollapsePersistence
     >
       <KeyValueTableDataList
+        margin
         data={[
           {
             subject: t('Failure'),

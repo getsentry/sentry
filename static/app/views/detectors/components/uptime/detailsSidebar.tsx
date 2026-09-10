@@ -77,7 +77,7 @@ export function UptimeDetailsSidebar({
         </div>
       </Grid>
       <SectionHeading>{t('Configuration')}</SectionHeading>
-      <KeyValueTable>
+      <KeyValueTable margin>
         <KeyValueTableRow
           keyName={t('Check Interval')}
           value={t('Every %s', getDuration(uptimeSub.intervalSeconds))}

@@ -186,7 +186,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
             </DetailSection>
             <DetailSection title={t('Details')}>
               <ErrorBoundary mini>
-                <KeyValueTable>
+                <KeyValueTable margin>
                   <KeyValueTableRow
                     keyName={t('Date created')}
                     value={<DateTime date={automation.dateCreated} dateOnly year />}

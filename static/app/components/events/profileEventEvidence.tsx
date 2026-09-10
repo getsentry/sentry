@@ -80,7 +80,7 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
 
   return (
     <FoldSection title={t('Function Evidence')} sectionKey={SectionKey.EVIDENCE}>
-      <KeyValueTableDataList data={keyValueListData} shouldSort={false} />
+      <KeyValueTableDataList margin data={keyValueListData} shouldSort={false} />
     </FoldSection>
   );
 }

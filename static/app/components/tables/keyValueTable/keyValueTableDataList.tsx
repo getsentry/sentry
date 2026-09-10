@@ -13,7 +13,7 @@ interface KeyValueTableDataListProps {
   className?: string;
   data?: KeyValueListData;
   isContextData?: boolean;
-  noMargin?: boolean;
+  margin?: boolean;
   raw?: boolean;
   shouldSort?: boolean;
 }
@@ -23,7 +23,7 @@ export function KeyValueTableDataList({
   isContextData = false,
   shouldSort = true,
   raw = false,
-  noMargin = false,
+  margin = false,
   className,
   ...props
 }: KeyValueTableDataListProps) {
@@ -35,7 +35,7 @@ export function KeyValueTableDataList({
 
   return (
     <Table
-      noMargin={noMargin}
+      margin={margin}
       className={classNames('table key-value', className)}
       {...props}
     >
@@ -110,9 +110,9 @@ function Row({
   );
 }
 
-const Table = styled('table')<{noMargin: boolean}>`
+const Table = styled('table')<{margin: boolean}>`
   && {
-    margin-bottom: ${p => (p.noMargin ? 0 : undefined)};
+    margin-bottom: ${p => (p.margin ? undefined : 0)};
   }
   > * pre > pre {
     margin: 0 !important;

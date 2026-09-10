@@ -74,7 +74,7 @@ function ProjectSecurityHeaders() {
               }
             )}
           </TextBlock>
-          <KeyValueTable>
+          <KeyValueTable margin>
             <KeyValueTableRow
               keyName="sentry_environment"
               value={t('The environment name (e.g. production).')}

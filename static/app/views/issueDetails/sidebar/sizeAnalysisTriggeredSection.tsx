@@ -135,6 +135,7 @@ export function SizeAnalysisTriggeredSection({event}: SizeAnalysisTriggeredSecti
       }
     >
       <KeyValueTableDataList
+        margin
         shouldSort={false}
         data={[
           {
