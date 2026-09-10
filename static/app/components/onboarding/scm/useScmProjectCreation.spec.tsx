@@ -8,6 +8,7 @@ import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import * as analytics from 'sentry/utils/analytics';
 
 import {useScmProjectCreation} from './useScmProjectCreation';
 
@@ -48,7 +49,10 @@ describe('useScmProjectCreation', () => {
     });
   }
 
+  let trackAnalyticsSpy: jest.SpyInstance;
+
   beforeEach(() => {
+    trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
     TeamStore.loadInitialData([adminTeam]);
     ProjectsStore.loadInitialData([]);
     MockApiClient.addMockResponse({
@@ -67,6 +71,7 @@ describe('useScmProjectCreation', () => {
   });
 
   afterEach(() => {
+    trackAnalyticsSpy.mockRestore();
     TeamStore.reset();
     ProjectsStore.reset();
     MockApiClient.clearMockResponses();
@@ -106,6 +111,14 @@ describe('useScmProjectCreation', () => {
     expect(onCreatedProjectChange.mock.invocationCallOrder[0]).toBeLessThan(
       onSuccess.mock.invocationCallOrder[0]!
     );
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'onboarding.scm_project_created',
+      expect.objectContaining({
+        platform: 'python',
+        project_id: createdProject.id,
+        notification: 'email_only',
+      })
+    );
   });
 
   it('reuses the created project when the platform is unchanged', async () => {
@@ -126,6 +139,10 @@ describe('useScmProjectCreation', () => {
     expect(createRequest).not.toHaveBeenCalled();
     expect(onSuccess).toHaveBeenCalledWith(
       expect.objectContaining({project: createdProject, reused: true})
+    );
+    expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+      'onboarding.scm_project_created',
+      expect.anything()
     );
   });
 
@@ -225,6 +242,10 @@ describe('useScmProjectCreation', () => {
     expect(outcome).toBeUndefined();
     expect(onCreatedProjectChange).not.toHaveBeenCalled();
     expect(onSuccess).not.toHaveBeenCalled();
+    expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+      'onboarding.scm_project_created',
+      expect.anything()
+    );
   });
 
   describe('messaging destination on reuse', () => {

@@ -1,3 +1,9 @@
+/**
+ * Where the created project's issue alerts go: the server-created email rule
+ * only, or that plus a messaging integration workflow.
+ */
+export type ScmMessagingNotification = 'email_only' | 'integration';
+
 export type OnboardingEventParameters = {
   'onboarding.ai_prompt_copied': {
     platform: string;
@@ -79,6 +85,10 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
+  'onboarding.scm_messaging_completed': {
+    notification: ScmMessagingNotification;
+  };
+  'onboarding.scm_messaging_step_viewed': Record<string, unknown>;
   'onboarding.scm_next_step_clicked': {
     newOrg: boolean;
     platform: string;
@@ -96,6 +106,11 @@ export type OnboardingEventParameters = {
   'onboarding.scm_platform_selected': {
     platform: string;
     source: 'detected' | 'manual';
+  };
+  'onboarding.scm_project_created': {
+    notification: ScmMessagingNotification;
+    platform: string;
+    project_id: string;
   };
   'onboarding.scm_select_framework_modal_rendered': {
     platform: string;
@@ -203,6 +218,8 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.scm_dsn_copied': 'Onboarding: SCM DSN Copied',
   'onboarding.scm_js_loader_npm_docs_shown':
     'Onboarding: SCM JS Loader Switch to npm Instructions',
+  'onboarding.scm_messaging_completed': 'Onboarding: SCM Messaging Completed',
+  'onboarding.scm_messaging_step_viewed': 'Onboarding: SCM Messaging Step Viewed',
   'onboarding.scm_next_step_clicked': 'Onboarding: SCM Next Step Clicked',
   'onboarding.scm_select_framework_modal_rendered':
     'Onboarding: SCM Framework Modal Rendered',
@@ -219,6 +236,7 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.scm_platform_features_step_viewed':
     'Onboarding: SCM Platform Features Step Viewed',
   'onboarding.scm_platform_selected': 'Onboarding: SCM Platform Selected',
+  'onboarding.scm_project_created': 'Onboarding: SCM Project Created',
   'onboarding.scm_skip_detection_clicked': 'Onboarding: SCM Skip Detection Clicked',
   'onboarding.scm_setup_platform_later_clicked':
     'Onboarding: SCM Setup Platform Later Clicked',

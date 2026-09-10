@@ -27,6 +27,8 @@ import {IconMail} from 'sentry/icons/iconMail';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 import {
   buildIntegrationAction,
@@ -70,6 +72,7 @@ export function ScmMessaging({
   selectedPlatform,
   selectedRepository,
 }: ScmMessagingProps) {
+  const organization = useOrganization();
   const {createOrReuseProject, isCreating, isDataPending} = useScmProjectCreation({
     createdProject,
     onCreatedProjectChange,
@@ -95,6 +98,10 @@ export function ScmMessaging({
   } = useScmMessagingProviders();
 
   const [activeRow, setActiveRow] = useState<ScmMessagingActiveRow>(null);
+
+  useEffect(() => {
+    trackAnalytics('onboarding.scm_messaging_step_viewed', {organization});
+  }, [organization]);
 
   const validatedActiveRow = validateActiveRow(activeRow, providers, messagingSetup);
   const visibleProviders = listedProviders(providers, validatedActiveRow, messagingSetup);
@@ -153,11 +160,19 @@ export function ScmMessaging({
         : {defaultRules: true},
       getIntegrationAction: includeMessagingRule ? getIntegrationAction : undefined,
       stagedSelection,
-      onSuccess: () => {
+      onSuccess: ({reused}) => {
         // Record the skip only on success: a failed creation keeps the staged
         // destination (and the Continue button) intact on the step.
         if (!includeMessagingRule) {
           onMessagingSetupChange({mode: 'skipped'});
+        }
+        // An unchanged Back-navigation reuse completes the step again but
+        // creates nothing, so it is not a second completion.
+        if (!reused) {
+          trackAnalytics('onboarding.scm_messaging_completed', {
+            organization,
+            notification: includeMessagingRule ? 'integration' : 'email_only',
+          });
         }
         onComplete(selectedPlatform, {
           product: selectedFeatures ?? DEFAULT_SCM_FEATURES,
