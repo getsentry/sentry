@@ -19,7 +19,6 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.eap import constants
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
@@ -314,7 +313,7 @@ class SearchResolverQueryTest(TestCase):
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(name="sentry.body", type=AttributeKey.Type.TYPE_STRING),
-                op=constants.OP_REGEXP,
+                op=ComparisonFilter.OP_REGEXP,
                 value=AttributeValue(val_str="^ERROR"),
             )
         )
@@ -330,7 +329,7 @@ class SearchResolverQueryTest(TestCase):
                             key=AttributeKey(
                                 name="sentry.body", type=AttributeKey.Type.TYPE_STRING
                             ),
-                            op=constants.OP_REGEXP,
+                            op=ComparisonFilter.OP_REGEXP,
                             value=AttributeValue(val_str="^ERROR"),
                         )
                     )
@@ -344,7 +343,7 @@ class SearchResolverQueryTest(TestCase):
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(name="foo", type=AttributeKey.Type.TYPE_STRING),
-                op=constants.OP_REGEXP,
+                op=ComparisonFilter.OP_REGEXP,
                 value=AttributeValue(val_str="ba[rz]"),
             )
         )
@@ -356,7 +355,7 @@ class SearchResolverQueryTest(TestCase):
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(name="sentry.body", type=AttributeKey.Type.TYPE_STRING),
-                op=constants.OP_REGEXP,
+                op=ComparisonFilter.OP_REGEXP,
                 value=AttributeValue(val_str="a*b%c_d\\*e"),
             )
         )
@@ -371,7 +370,7 @@ class SearchResolverQueryTest(TestCase):
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(name="sentry.body", type=AttributeKey.Type.TYPE_STRING),
-                op=constants.OP_REGEXP,
+                op=ComparisonFilter.OP_REGEXP,
                 value=AttributeValue(val_str="^error"),
                 ignore_case=True,
             )
@@ -387,7 +386,7 @@ class SearchResolverQueryTest(TestCase):
                             key=AttributeKey(
                                 name="sentry.body", type=AttributeKey.Type.TYPE_STRING
                             ),
-                            op=constants.OP_REGEXP,
+                            op=ComparisonFilter.OP_REGEXP,
                             value=AttributeValue(val_str="^ERROR"),
                         )
                     ),
@@ -396,7 +395,7 @@ class SearchResolverQueryTest(TestCase):
                             key=AttributeKey(
                                 name="sentry.body", type=AttributeKey.Type.TYPE_STRING
                             ),
-                            op=constants.OP_REGEXP,
+                            op=ComparisonFilter.OP_REGEXP,
                             value=AttributeValue(val_str="^WARN"),
                         )
                     ),
@@ -419,7 +418,7 @@ class SearchResolverQueryTest(TestCase):
                                             name="sentry.body",
                                             type=AttributeKey.Type.TYPE_STRING,
                                         ),
-                                        op=constants.OP_REGEXP,
+                                        op=ComparisonFilter.OP_REGEXP,
                                         value=AttributeValue(val_str="^ERROR"),
                                     )
                                 ),
@@ -429,7 +428,7 @@ class SearchResolverQueryTest(TestCase):
                                             name="sentry.body",
                                             type=AttributeKey.Type.TYPE_STRING,
                                         ),
-                                        op=constants.OP_REGEXP,
+                                        op=ComparisonFilter.OP_REGEXP,
                                         value=AttributeValue(val_str="^WARN"),
                                     )
                                 ),

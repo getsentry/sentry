@@ -913,7 +913,7 @@ class SearchResolver:
             TraceItemFilter(
                 comparison_filter=ComparisonFilter(
                     key=resolved_column.proto_definition,
-                    op=constants.OP_REGEXP,
+                    op=ComparisonFilter.OP_REGEXP,
                     value=AttributeValue(val_str=str(pattern)),
                     ignore_case=self.params.case_insensitive,
                 )
