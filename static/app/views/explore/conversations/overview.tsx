@@ -16,7 +16,9 @@ import {
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -40,8 +42,48 @@ import {
   TableUrlParams,
 } from 'sentry/views/insights/pages/agents/utils/urlParams';
 
+const CONVERSATION_FIELD_TYPES = {
+  conversationId: FieldValueType.STRING,
+  duration: FieldValueType.DURATION,
+  generationDuration: FieldValueType.DURATION,
+  errors: FieldValueType.INTEGER,
+  llmCalls: FieldValueType.INTEGER,
+  toolCalls: FieldValueType.INTEGER,
+  totalTokens: FieldValueType.INTEGER,
+  inputTokens: FieldValueType.INTEGER,
+  outputTokens: FieldValueType.INTEGER,
+  totalCost: FieldValueType.CURRENCY,
+  toolErrors: FieldValueType.INTEGER,
+};
+
+const CONVERSATION_FIELD_DEFINITIONS: Record<string, FieldDefinition> =
+  Object.fromEntries(
+    Object.entries(CONVERSATION_FIELD_TYPES).map(([key, valueType]) => [
+      `conversation.${key}`,
+      {
+        kind: FieldKind.FIELD,
+        valueType,
+        allowWildcard: valueType === FieldValueType.STRING ? false : undefined,
+      },
+    ])
+  );
+
+const CONVERSATION_FILTER_KEYS: TagCollection = Object.fromEntries(
+  Object.entries(CONVERSATION_FIELD_DEFINITIONS).map(([key, {valueType}]) => [
+    key,
+    {
+      key,
+      name: key,
+      kind: valueType === FieldValueType.STRING ? FieldKind.TAG : FieldKind.MEASUREMENT,
+    },
+  ])
+);
+
 function ConversationsOverviewPage() {
   const organization = useOrganization();
+  const queryingEnhancementsEnabled = organization.features.includes(
+    'gen-ai-conversations-querying-enhancements'
+  );
   const datePageFilterProps = useDatePageFilterProps({
     maxPickableDays: MAX_PICKABLE_DAYS,
     maxUpgradableDays: MAX_PICKABLE_DAYS,
@@ -130,11 +172,26 @@ function ConversationsOverviewPage() {
       );
     };
 
+    if (!queryingEnhancementsEnabled) {
+      return {
+        ...spanSearchQueryBuilderProviderProps,
+        getTagValues: getTagValuesWithoutCounts,
+      };
+    }
+
+    const fieldDefinitionGetter =
+      spanSearchQueryBuilderProviderProps.fieldDefinitionGetter;
     return {
       ...spanSearchQueryBuilderProviderProps,
+      filterKeys: {
+        ...spanSearchQueryBuilderProviderProps.filterKeys,
+        ...CONVERSATION_FILTER_KEYS,
+      },
+      fieldDefinitionGetter: (key: string, options?: {kind?: FieldKind}) =>
+        CONVERSATION_FIELD_DEFINITIONS[key] ?? fieldDefinitionGetter(key, options),
       getTagValues: getTagValuesWithoutCounts,
     };
-  }, [spanSearchQueryBuilderProviderProps]);
+  }, [queryingEnhancementsEnabled, spanSearchQueryBuilderProviderProps]);
 
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
