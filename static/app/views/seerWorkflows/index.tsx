@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
-import {useMutation, useQuery} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -12,7 +12,6 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Prose, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
 import {getPullRequestStatusLabel} from 'sentry/components/group/externalIssuesList/pullRequestStatusBadge';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -37,11 +36,8 @@ import {
 import {t, tn} from 'sentry/locale';
 import type {PullRequestStatus} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {TagVariant} from 'sentry/utils/theme';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -49,10 +45,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {getRelativeExplorerUrl} from 'sentry/views/seerExplorer/utils';
-import {
-  getMonitorFindingSummary,
-  MonitorCleanupResults,
-} from 'sentry/views/seerWorkflows/monitorCleanup';
 import {
   CATEGORY_LABELS,
   CATEGORY_ORDER,
@@ -83,46 +75,16 @@ function SeerWorkflows() {
   const navigate = useNavigate();
   const isSentryEmployee = useIsSentryEmployee();
   const [expanded, setExpanded] = useState(new Set<string>());
-  const {mutate: startMonitorScan, isPending: isStartingMonitorScan} = useMutation({
-    mutationFn: () =>
-      fetchMutation<{runId: string; url: string}>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/seer/workflows/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        method: 'POST',
-        data: {strategy: 'duplicate_monitors'},
-      }),
-    onSuccess: result => {
-      setExpanded(previous =>
-        new Set(previous).add(`${result.runId}:duplicate_monitors`)
-      );
-      navigate(result.url);
-    },
-    onError: error => {
-      addErrorMessage(
-        error instanceof RequestError && typeof error.responseJSON?.detail === 'string'
-          ? error.responseJSON.detail
-          : t('Could not start the monitor scan. Try again.')
-      );
-    },
-  });
 
-  const {data, isPending, isError, refetch} = useQuery({
-    ...apiOptions.as<SeerNightShiftRun[]>()(
+  const {data, isPending, isError, refetch} = useQuery(
+    apiOptions.as<SeerNightShiftRun[]>()(
       '/organizations/$organizationIdOrSlug/seer/workflows/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: {runId: decodeScalar(location.query.runId)},
         staleTime: 0,
       }
-    ),
-    refetchInterval: query =>
-      query.state.data?.json.some(
-        run => run.strategy === 'duplicate_monitors' && run.extras.status === 'running'
-      )
-        ? 5000
-        : false,
-  });
+    )
+  );
 
   const rows = useMemo<WorkflowRow[]>(() => {
     const apiRows = (data ?? []).map(toWorkflowRow);
@@ -284,20 +246,9 @@ function SeerWorkflows() {
       <Stack gap="lg" padding="xl">
         <Stack gap="2xs">
           <TopBar.Slot name="title">{t('Sentry Workflows')}</TopBar.Slot>
-          <Flex justify="between" align="center" gap="md" wrap="wrap">
-            <Text as="p" variant="muted">
-              {t('Historical runs of Sentry workflows for this organization.')}
-            </Text>
-            {organization.features.includes('seer-workflows-monitor-cleanup') && (
-              <Button
-                size="sm"
-                busy={isStartingMonitorScan}
-                onClick={() => startMonitorScan()}
-              >
-                {t('Run monitor scan')}
-              </Button>
-            )}
-          </Flex>
+          <Text as="p" variant="muted">
+            {t('Historical runs of Sentry workflows for this organization.')}
+          </Text>
         </Stack>
 
         {isError ? (
@@ -324,9 +275,7 @@ function SeerWorkflows() {
                     options={strategySections}
                     disabled={strategySections.length === 0}
                     onChange={selected =>
-                      updateQuery({
-                        strategy: selected.map(o => String(o.value)),
-                      })
+                      updateQuery({strategy: selected.map(o => String(o.value))})
                     }
                     trigger={triggerProps => (
                       <OverlayTrigger.Button
@@ -341,9 +290,7 @@ function SeerWorkflows() {
                     value={statusFilter}
                     options={STATUS_FILTER_OPTIONS}
                     onChange={selected =>
-                      updateQuery({
-                        status: selected.map(o => String(o.value)),
-                      })
+                      updateQuery({status: selected.map(o => String(o.value))})
                     }
                     trigger={triggerProps => (
                       <OverlayTrigger.Button
@@ -359,9 +306,7 @@ function SeerWorkflows() {
                     options={sourceOptions}
                     disabled={sourceOptions.length === 0}
                     onChange={selected =>
-                      updateQuery({
-                        source: selected.map(o => String(o.value)),
-                      })
+                      updateQuery({source: selected.map(o => String(o.value))})
                     }
                     trigger={triggerProps => (
                       <OverlayTrigger.Button
@@ -626,23 +571,21 @@ function RunDetail({
   return (
     <Stack gap="lg">
       <UserSection row={row} organizationSlug={organizationSlug} />
-      {isSentryEmployee || row.monitorCleanup ? (
+      {isSentryEmployee ? (
         <Disclosure>
           <Disclosure.Title>
             <Flex gap="sm" align="center">
               <Text bold>{t('Debug')}</Text>
-              {isSentryEmployee && (
-                <Container
-                  display="inline-block"
-                  border="warning"
-                  radius="sm"
-                  padding="2xs xs"
-                >
-                  <Text size="xs" variant="warning" uppercase bold>
-                    {t('Employee only')}
-                  </Text>
-                </Container>
-              )}
+              <Container
+                display="inline-block"
+                border="warning"
+                radius="sm"
+                padding="2xs xs"
+              >
+                <Text size="xs" variant="warning" uppercase bold>
+                  {t('Employee only')}
+                </Text>
+              </Container>
             </Flex>
           </Disclosure.Title>
           <Disclosure.Content>
@@ -661,18 +604,6 @@ function UserSection({
   organizationSlug: string;
   row: WorkflowRow;
 }) {
-  if (row.monitorCleanup) {
-    return (
-      <Stack gap="md">
-        {row.monitorCleanup.results.length === 0 && <Text>{row.resultText}</Text>}
-        <MonitorCleanupResults
-          coverage={row.monitorCleanup.coverage}
-          results={row.monitorCleanup.results}
-          organizationSlug={organizationSlug}
-        />
-      </Stack>
-    );
-  }
   return (
     <Stack gap="lg">
       {row.summary ? (
@@ -716,22 +647,6 @@ function TriageDispatchesPanel({row}: {row: WorkflowRow}) {
 }
 
 function DebugSection({row}: {row: WorkflowRow}) {
-  if (row.monitorCleanup) {
-    return (
-      <Stack gap="sm">
-        <Text size="xs" variant="muted">
-          {t('Run %s', row.runId)}
-        </Text>
-        {row.monitorCleanup.results
-          .filter(result => result.seerRunId)
-          .map(result => (
-            <Link key={result.id} to={getRelativeExplorerUrl(result.seerRunId!)}>
-              {t('View prompt and agent run %s', result.seerRunId)}
-            </Link>
-          ))}
-      </Stack>
-    );
-  }
   const {
     reasoning_effort,
     intelligence_level,
@@ -1003,36 +918,8 @@ function TriageIssuesDebugAddendum({row}: {row: WorkflowRow}) {
 }
 
 function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
-  if (run.strategy === 'duplicate_monitors') {
-    const coverage = run.extras.coverage;
-    const status = run.extras.status;
-    const results = (run.results ?? []).filter(
-      result => result.kind === 'duplicate_monitors'
-    );
-    const findings = getMonitorFindingSummary(results);
-    return {
-      id: `${run.id}:duplicate_monitors`,
-      runId: run.id,
-      dateAdded: run.dateAdded,
-      kind: 'duplicate_monitors',
-      status:
-        status === 'running' ? 'running' : status === 'failed' ? 'failed' : 'succeeded',
-      source: 'manual',
-      resultText:
-        status === 'running'
-          ? t('Scanning monitors…')
-          : status === 'failed'
-            ? t('Monitor scan failed')
-            : status === 'partial'
-              ? t('Incomplete scan — %s', findings)
-              : findings,
-      monitorCleanup: {
-        results,
-        coverage,
-      },
-    };
-  }
   const errorPresentation = getErrorPresentation(run.errorType ?? null);
+  const agentRunId = run.extras.agent_run_id;
   return {
     id: `${run.id}:agentic_triage`,
     runId: run.id,
@@ -1048,6 +935,10 @@ function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
       dryRun: run.extras.options?.dry_run,
       issues: run.issues,
       seerRuns: run.seerRuns ?? [],
+      agentRunId:
+        typeof agentRunId === 'number' || typeof agentRunId === 'string'
+          ? agentRunId
+          : undefined,
     },
   };
 }
@@ -1063,26 +954,29 @@ function getErrorPresentation(
     case 'no_seer_access':
       return {status: 'skipped', resultText: t('Seer is not enabled')};
     case 'eligible_projects_failed':
-      return {
-        status: 'failed',
-        resultText: t('Could not check eligible projects'),
-      };
+      return {status: 'failed', resultText: t('Could not check eligible projects')};
     case 'invalid_shard_plan':
       return {status: 'failed', resultText: t('Could not prepare triage')};
     case 'shard_dispatch_failed':
-      return {
-        status: 'failed',
-        resultText: t('Could not start all triage batches'),
-      };
+      return {status: 'failed', resultText: t('Could not start all triage batches')};
     default:
       return {status: 'failed', resultText: t('Run failed')};
   }
 }
 
-function getExplorerRunIds(row: WorkflowRow): string[] {
-  return (row.triage?.seerRuns ?? [])
+function getExplorerRunIds(row: WorkflowRow): Array<number | string> {
+  const seerRunIds = (row.triage?.seerRuns ?? [])
     .map(seerRun => seerRun.seerRunId)
     .filter((id): id is string => id !== null);
+  if (seerRunIds.length > 0) {
+    return seerRunIds;
+  }
+  // Fallback for pre-shard runs, which recorded a single id on the run extras.
+  const agentRunId = row.triage?.agentRunId;
+  if (typeof agentRunId === 'number' || typeof agentRunId === 'string') {
+    return [agentRunId];
+  }
+  return [];
 }
 
 export default SeerWorkflows;
