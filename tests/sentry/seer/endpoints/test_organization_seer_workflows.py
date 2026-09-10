@@ -374,18 +374,10 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             )
 
     def artifact(self, duplicate_id: str | None = None):
-        return MonitorCleanupArtifact(
-            scan_status="complete",
-            monitors_scanned=2,
-            summary="One duplicate group",
-            groups=[
-                {
-                    "suggested_keep_id": str(self.keep.id),
-                    "duplicate_ids": [duplicate_id or str(self.duplicate.id)],
-                    "reason": "Matching configuration",
-                    "matching_settings": [{"label": "Trigger", "value": "More than 100 errors"}],
-                }
-            ],
+        return self.finding_artifact(
+            kind="exact_duplicate",
+            suggested_keep_id=str(self.keep.id),
+            monitor_ids=[str(self.keep.id), duplicate_id or str(self.duplicate.id)],
         )
 
     def organization_artifact(self):
@@ -665,7 +657,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert run.results.count() == 1
         assert run.extras["status"] == "complete"
         assert run.date_completed is not None
-        assert run.results.get().extras["groups"][0]["keep"]["name"] == "Keep"
+        assert run.results.get().extras["findings"][0]["monitors"][0]["name"] == "Keep"
 
     def deliver(self, result, status="completed", organization_id=None):
         run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
@@ -688,7 +680,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         )
         output = run.results.get()
         assert output.result_seer_run_id == seer_run.id
-        assert output.extras["schemaVersion"] == 2
+        assert output.extras["schemaVersion"] == 1
         assert output.extras["projectSlug"] == self.project.slug
         assert output.extras["findings"][0]["monitors"][1]["id"] == str(self.duplicate.id)
         run.refresh_from_db()
@@ -760,12 +752,6 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
                 self.artifact(str(self.keep.id)), self.organization.id, self.project.id
             )
 
-    def test_rejects_legacy_monitor_id_above_bigint_range(self) -> None:
-        with pytest.raises(ValueError, match="invalid monitor ID"):
-            validate_monitor_cleanup(
-                self.artifact("9223372036854775808"), self.organization.id, self.project.id
-            )
-
     def test_rejects_monitor_id_above_bigint_range(self) -> None:
         with pytest.raises(ValueError, match="invalid monitor or alert ID"):
             validate_monitor_cleanup(
@@ -808,8 +794,6 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             "kind": "overlapping_coverage",
             "monitor_ids": [str(self.keep.id), str(self.duplicate.id)],
             "reason": "Queries overlap but thresholds differ.",
-            "example": "A burst of timeout errors can trigger both monitors.",
-            "next_step": "Review whether the separate thresholds are intentional.",
             **overrides,
         }
         return MonitorCleanupArtifact(
@@ -823,7 +807,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         output = validate_monitor_cleanup(
             self.finding_artifact(), self.organization.id, self.project.id
         )
-        assert output["schemaVersion"] == 2
+        assert output["schemaVersion"] == 1
         findings = output["findings"]
         assert findings[0]["suggestedKeepId"] is None
         assert findings[0]["monitors"][0]["name"] == "Keep"
@@ -853,7 +837,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             kind="duplicate_notifications", alert_ids=[str(workflow.id)]
         ).findings
         output = validate_monitor_cleanup(artifact, self.organization.id, self.project.id)
-        assert output["schemaVersion"] == 2
+        assert output["schemaVersion"] == 1
         findings = output["findings"]
         assert len(findings) == 2
         assert findings[1]["alerts"] == [
@@ -898,7 +882,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             ]
         )
         output = validate_monitor_cleanup(artifact, self.organization.id, self.project.id)
-        assert output["schemaVersion"] == 2
+        assert output["schemaVersion"] == 1
         findings = output["findings"]
         assert findings[0]["comparison"] == [
             {
