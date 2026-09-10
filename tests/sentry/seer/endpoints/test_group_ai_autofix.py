@@ -4,6 +4,7 @@ from unittest.mock import ANY, Mock, patch
 
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import ExternalProviders
+from sentry.integrations.utils.github_permission_tiers import PR_ITERATION_TIER
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.issues.action_log.types import GroupActionActor, TriggerAutofixAction
 from sentry.models.activity import Activity
@@ -321,7 +322,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
                     status=0,
                 ),
                 repository_id=1,
-                missing_scopes=["contents"],
+                missing_tiers=[PR_ITERATION_TIER],
             )
         }
 

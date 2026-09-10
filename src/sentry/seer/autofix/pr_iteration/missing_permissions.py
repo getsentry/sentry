@@ -42,6 +42,7 @@ from sentry import analytics
 from sentry.analytics.events.pr_iteration_events import (
     AiAutofixPrIterationMissingPermissionsEvent,
 )
+from sentry.integrations.utils.github_permission_tiers import PR_ITERATION_TIER, PermissionTier
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.scm.factory import new as make_scm
@@ -63,7 +64,7 @@ def get_missing_permissions_marker(seer_run: SeerRun, repo_name: str) -> dict[st
 
 
 def record_missing_permissions_marker(
-    seer_run: SeerRun, repo_name: str, *, missing_scopes: list[str], pr_id: int | None
+    seer_run: SeerRun, repo_name: str, *, missing_tiers: list[str], pr_id: int | None
 ) -> None:
     record_run_marker(
         seer_run,
@@ -71,29 +72,52 @@ def record_missing_permissions_marker(
         repo_name,
         {
             "commented_at": timezone.now().isoformat(),
-            "missing_scopes": missing_scopes,
+            "missing_tiers": missing_tiers,
             "pr_id": pr_id,
         },
     )
 
 
-def _scopes_tag(missing_scopes: Iterable[str]) -> str:
-    """Stable metrics-tag rendering of a set of missing scopes.
+def _tiers_tag(tiers: Iterable[PermissionTier]) -> str:
+    """Stable metrics-tag rendering of a set of missing feature tiers.
 
-    Sorted and deduped so the same set is always one time series, and joined on
-    "-" rather than "," because dogstatsd separates tags with commas on the wire.
+    Sorted and deduped by tier key so the same set is always one time series,
+    and joined on "-" rather than "," because dogstatsd separates tags with
+    commas on the wire.
     """
-    return "-".join(sorted(set(missing_scopes))) or "none"
+    return "-".join(sorted({tier.key for tier in tiers})) or "none"
 
 
 def _comment_body(url: str) -> str:
     return (
-        "⚠️ **Seer needs additional GitHub permissions**\n\n"
-        "Seer wants to keep iterating on this pull request to get CI passing, but the "
-        "Sentry GitHub App installation is missing permissions it needs to read the failing "
-        "checks and push a fix.\n\n"
+        "⚠️ Sentry needs additional GitHub App permissions\n\n"
+        "The Sentry GitHub App installation for this repository is missing permissions it "
+        "needs to keep iterating on this pull request to get CI passing.\n\n"
         f"Review and accept the updated permissions to let Seer continue: {url}"
     )
+
+
+def _warn_if_unexpected_missing_tiers(
+    info: MissingGithubPermissions,
+    log_ctx: PrIterationLogContext,
+    log_fields: dict[str, Any],
+) -> None:
+    """Log when the install is missing more than the PR iteration tier.
+
+    PR iteration is the newest tier, so an install we block here should be short
+    of *only* it: anyone who accepted the Autofix-pull-requests permissions
+    already holds everything below. Missing any other tier too means the install
+    is in a shape we did not expect it to reach this path in, so surface it.
+    Logged at error level because this module routes every unexpected state
+    through ``log_ctx.error`` (see ``PrIterationLogContext``).
+    """
+    if any(tier is not PR_ITERATION_TIER for tier in info.missing_tiers):
+        log_ctx.error(
+            "autofix.pr_iteration.missing_permissions.unexpected_missing_tiers",
+            exc_info=False,
+            missing_tiers=[tier.key for tier in info.missing_tiers],
+            **log_fields,
+        )
 
 
 def repos_missing_permissions(
@@ -110,7 +134,7 @@ def repos_missing_permissions(
 
 def _comment_failed(
     reason: str,
-    scopes_tag: str,
+    tiers_tag: str,
     log_ctx: PrIterationLogContext,
     log_fields: dict[str, Any],
     *,
@@ -118,7 +142,7 @@ def _comment_failed(
 ) -> bool:
     metrics.incr(
         "autofix.pr_iteration.missing_permissions.comment_failed",
-        tags={"missing_scopes": scopes_tag, "reason": reason},
+        tags={"missing_tiers": tiers_tag, "reason": reason},
     )
     log_ctx.error(
         "autofix.pr_iteration.missing_permissions.comment_failed",
@@ -136,7 +160,7 @@ def _post_comment(
     log_ctx: PrIterationLogContext,
     log_fields: dict[str, Any],
 ) -> bool:
-    scopes_tag = _scopes_tag(info.missing_scopes)
+    tiers_tag = _tiers_tag(info.missing_tiers)
     url = info.installation_url
     if url is None:
         # Org-owned installs need the account login to build the path; without
@@ -153,17 +177,18 @@ def _post_comment(
     try:
         scm = make_scm(organization.id, info.repository_id, referrer="seer")
     except Exception:
-        return _comment_failed("scm_init_failed", scopes_tag, log_ctx, log_fields)
+        return _comment_failed("scm_init_failed", tiers_tag, log_ctx, log_fields)
 
     if not isinstance(scm, CreatePullRequestCommentProtocol):
         return _comment_failed(
-            "unsupported_provider", scopes_tag, log_ctx, log_fields, exc_info=False
+            "unsupported_provider", tiers_tag, log_ctx, log_fields, exc_info=False
         )
 
+    _warn_if_unexpected_missing_tiers(info, log_ctx, log_fields)
     try:
         scm_actions.create_pull_request_comment(scm, str(pr_number), _comment_body(url))
     except Exception:
-        return _comment_failed("post_failed", scopes_tag, log_ctx, log_fields)
+        return _comment_failed("post_failed", tiers_tag, log_ctx, log_fields)
     return True
 
 
@@ -187,8 +212,8 @@ def get_blocking_permissions(
     metrics.incr(
         "autofix.pr_iteration.missing_permissions.blocked",
         tags={
-            "missing_scopes": _scopes_tag(
-                scope for info in missing_by_repo.values() for scope in info.missing_scopes
+            "missing_tiers": _tiers_tag(
+                tier for info in missing_by_repo.values() for tier in info.missing_tiers
             )
         },
     )
@@ -367,7 +392,7 @@ def post_missing_permissions_comment(
         record_missing_permissions_marker(
             seer_run,
             repo_name,
-            missing_scopes=info.missing_scopes,
+            missing_tiers=[tier.key for tier in info.missing_tiers],
             pr_id=pr_id,
         )
 
@@ -375,10 +400,10 @@ def post_missing_permissions_comment(
 
     metrics.incr(
         "autofix.pr_iteration.missing_permissions.commented",
-        tags={"missing_scopes": _scopes_tag(info.missing_scopes)},
+        tags={"missing_tiers": _tiers_tag(info.missing_tiers)},
     )
     log_ctx.info(
         "autofix.pr_iteration.missing_permissions.commented",
-        missing_scopes=info.missing_scopes,
+        missing_tiers=[tier.key for tier in info.missing_tiers],
         **log_fields,
     )
