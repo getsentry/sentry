@@ -2514,34 +2514,13 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "dynamic-sampling.per_org.project-balancing-debug-project-ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "dynamic-sampling.per_org.transaction-volume-debug-project-ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
+# Nothing reads this option any more. It stays registered until the options automator
+# has unset it, since the automator can only unset a registered option.
 register(
     "dynamic-sampling.per_org.sample-rates-summary-log-rollout-rate",
     type=Float,
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Organizations for which the per-org pipeline logs the EAP-vs-outcomes sliding-window
-# sample rate comparison. Empty disables the comparison entirely.
-register(
-    "dynamic-sampling.per_org.sliding-window-comparison-org-ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Per-project sample rate overrides for custom dynamic sampling. Maps a stringified
@@ -2574,16 +2553,6 @@ register(
 )
 register(
     "hybrid_cloud.disable_tombstone_cleanup",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "hybrid_cloud.write_deletion_watermark_to_postgres",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "hybrid_cloud.read_deletion_watermark_from_postgres",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

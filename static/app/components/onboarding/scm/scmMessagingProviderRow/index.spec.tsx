@@ -236,6 +236,10 @@ describe('ScmMessagingProviderRow', () => {
         eligibleIntegrations: [],
         permissionLimitedIntegration: undefined,
       };
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/',
+        body: [],
+      });
       renderGlobalModal({organization});
       renderRow(installableMsteams);
 

@@ -431,7 +431,6 @@ function makeQueryResult(
   >(queryClient, {queryKey, enabled: false}).getCurrentResult();
 
   return {
-    // eslint-disable-next-line @tanstack/query/no-rest-destructuring
     ...base,
     data,
     error: null,
