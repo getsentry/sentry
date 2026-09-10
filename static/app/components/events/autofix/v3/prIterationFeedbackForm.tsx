@@ -7,7 +7,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
   isPrIterationPaused,
   type useExplorerAutofix,
@@ -63,8 +62,8 @@ export function PrIterationFeedbackForm({
     try {
       await startStep('pr_iteration', {runId, userContext: feedback});
     } catch {
+      // startStep already reports why the request failed.
       setIsSubmitting(false);
-      addErrorMessage(t('Failed to submit feedback. Please try again.'));
       return;
     }
     trackAnalytics('autofix.pr_iteration.feedback', {

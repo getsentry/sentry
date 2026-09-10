@@ -1171,7 +1171,7 @@ describe('useExplorerAutofix - startStep errors', () => {
       url: AUTOFIX_URL,
       method: 'POST',
       statusCode: 400,
-      body: {user_context: ['Ensure this field has no more than 1000 characters.']},
+      body: {userContext: ['Ensure this field has no more than 1000 characters.']},
     });
 
     const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
