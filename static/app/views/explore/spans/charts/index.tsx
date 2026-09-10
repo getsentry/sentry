@@ -13,6 +13,7 @@ import {defined} from 'sentry/utils/defined';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -24,6 +25,10 @@ import {
   ChartVisualization,
   useChartVisualizationPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
+import {
+  DroppedDataList,
+  DroppedDataOverlay,
+} from 'sentry/views/explore/components/chart/droppedDataStrip';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {ChartContextMenu} from 'sentry/views/explore/components/chartContextMenu';
@@ -166,8 +171,15 @@ function Chart({
   samplingMode,
   topEvents,
 }: ChartProps) {
+  const organization = useOrganization();
   const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
+
+  const hasAnnotations = organization.features.includes(
+    'explore-data-fidelity-annotations'
+  );
+  const annotations = timeseriesResult.meta?.annotations ?? [];
+  const showAnnotations = hasAnnotations && annotations.length > 0 && visualize.visible;
   const {
     dismiss: dismissChartSelectionAlert,
     isDismissed: isChartSelectionAlertDismissed,
@@ -324,6 +336,9 @@ function Chart({
 
   return (
     <ChartWrapper ref={chartWrapperRef}>
+      {showAnnotations && (
+        <DroppedDataOverlay annotations={annotations} chartRef={chartRef} />
+      )}
       <Widget
         Title={Title}
         TitleBadges={TitleBadges}
@@ -391,6 +406,9 @@ function Chart({
         height={chartHeight}
         revealActions="always"
       />
+      {hasAnnotations && annotations.length > 0 && visualize.visible && (
+        <DroppedDataList annotations={annotations} />
+      )}
     </ChartWrapper>
   );
 }

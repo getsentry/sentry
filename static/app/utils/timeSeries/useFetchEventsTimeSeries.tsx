@@ -168,6 +168,14 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
           logQuery: logQueryParams,
           metricQuery: metricQueryParams,
           spanQuery: spanQueryParams,
+          // Data-fidelity annotations (dropped-data outcomes) are opt-in and
+          // flag-gated. Presence of the param turns them on; the backend also
+          // requires the feature flag.
+          includeAnnotations: organization.features.includes(
+            'explore-data-fidelity-annotations'
+          )
+            ? 1
+            : undefined,
         },
         staleTime: Infinity,
       }
@@ -180,11 +188,22 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
   });
 }
 
+export interface DataFidelityAnnotation {
+  category: string;
+  droppedCount: number;
+  end: number;
+  label: string;
+  reason: string;
+  start: number;
+  type: 'system';
+}
+
 export type EventsTimeSeriesResponse = {
   timeSeries: TimeSeries[];
   meta?: {
     dataset: DiscoverDatasets;
     end: number;
     start: number;
+    annotations?: DataFidelityAnnotation[];
   };
 };
