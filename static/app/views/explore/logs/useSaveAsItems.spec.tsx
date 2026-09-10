@@ -1,5 +1,4 @@
 import {QueryClientProvider} from '@tanstack/react-query';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -8,13 +7,10 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import * as discoverUtils from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -23,14 +19,8 @@ import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useNavigate');
-jest.mock('sentry/components/pageFilters/usePageFilters');
 jest.mock('sentry/actionCreators/modal');
 
-const mockedUseLocation = jest.mocked(useLocation);
-const mockUseNavigate = jest.mocked(useNavigate);
-const mockUsePageFilters = jest.mocked(usePageFilters);
 const mockOpenSaveQueryModal = jest.mocked(modal.openSaveQueryModal);
 
 describe('useSaveAsItems', () => {
@@ -39,22 +29,31 @@ describe('useSaveAsItems', () => {
   });
   const project = ProjectFixture({id: '1'});
   const queryClient = makeTestQueryClient();
+  const initialLocation = {
+    pathname: '/mock-pathname/',
+    query: {
+      logsFields: ['timestamp', 'message', 'user.email'],
+      logsQuery: 'message:"test error"',
+      logsSortBys: ['-timestamp'],
+      aggregateField: [{groupBy: 'message.template'}, {yAxes: ['count(message)']}].map(
+        aggregateField => JSON.stringify(aggregateField)
+      ),
+      mode: 'aggregate',
+    },
+  };
   let saveQueryMock: jest.Mock;
-  ProjectsStore.loadInitialData([project]);
 
-  function createWrapper(org = organization) {
+  function createWrapper() {
     return function ({children}: {children?: React.ReactNode}) {
       return (
-        <OrganizationContext.Provider value={org}>
-          <QueryClientProvider client={queryClient}>
-            <LogsQueryParamsProvider
-              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-              source="location"
-            >
-              {children}
-            </LogsQueryParamsProvider>
-          </QueryClientProvider>
-        </OrganizationContext.Provider>
+        <QueryClientProvider client={queryClient}>
+          <LogsQueryParamsProvider
+            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+            source="location"
+          >
+            {children}
+          </LogsQueryParamsProvider>
+        </QueryClientProvider>
       );
     };
   }
@@ -63,30 +62,10 @@ describe('useSaveAsItems', () => {
     jest.resetAllMocks();
     MockApiClient.clearMockResponses();
     queryClient.clear();
-
-    mockedUseLocation.mockReturnValue(
-      LocationFixture({
-        query: {
-          logsFields: ['timestamp', 'message', 'user.email'],
-          logsQuery: 'message:"test error"',
-          logsSortBys: ['-timestamp'],
-          aggregateField: [
-            {groupBy: 'message.template'},
-            {
-              yAxes: ['count(message)'],
-            },
-          ].map(aggregateField => JSON.stringify(aggregateField)),
-          mode: 'aggregate',
-        },
-      })
-    );
-    mockUseNavigate.mockReturnValue(jest.fn());
-    mockUsePageFilters.mockReturnValue({
-      isReady: true,
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      adjustments: {},
-      selection: PageFiltersFixture({
+    ProjectsStore.loadInitialData([project]);
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({
         projects: [1],
         environments: ['production'],
         datetime: {
@@ -95,8 +74,8 @@ describe('useSaveAsItems', () => {
           period: '1h',
           utc: false,
         },
-      }),
-    });
+      })
+    );
 
     saveQueryMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/explore/saved/`,
@@ -105,9 +84,16 @@ describe('useSaveAsItems', () => {
     });
   });
 
+  afterEach(() => {
+    PageFiltersStore.reset();
+    ProjectsStore.reset();
+  });
+
   it('should open save query modal when save as new query is clicked', () => {
     const {result} = renderHookWithProviders(useSaveAsItems, {
       additionalWrapper: createWrapper(),
+      organization,
+      initialRouterConfig: {location: initialLocation},
       initialProps: {
         visualizes: [new VisualizeFunction('count()')],
         groupBys: ['message.template'],
@@ -152,19 +138,20 @@ describe('useSaveAsItems', () => {
       },
     });
 
-    mockedUseLocation.mockReturnValue(
-      LocationFixture({
-        query: {
-          id: 'test-query-id',
-          logsFields: ['timestamp', 'message'],
-          logsQuery: 'message:"test"',
-          mode: 'aggregate',
-        },
-      })
-    );
-
     const {result} = renderHookWithProviders(useSaveAsItems, {
       additionalWrapper: createWrapper(),
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/mock-pathname/',
+          query: {
+            id: 'test-query-id',
+            logsFields: ['timestamp', 'message'],
+            logsQuery: 'message:"test"',
+            mode: 'aggregate',
+          },
+        },
+      },
       initialProps: {
         visualizes: [new VisualizeFunction('count()')],
         groupBys: ['message.template'],
@@ -184,18 +171,19 @@ describe('useSaveAsItems', () => {
   });
 
   it('should show only new query option when no saved query exists', () => {
-    mockedUseLocation.mockReturnValue(
-      LocationFixture({
-        query: {
-          logsFields: ['timestamp', 'message'],
-          logsQuery: 'message:"test"',
-          mode: 'aggregate',
-        },
-      })
-    );
-
     const {result} = renderHookWithProviders(useSaveAsItems, {
       additionalWrapper: createWrapper(),
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/mock-pathname/',
+          query: {
+            logsFields: ['timestamp', 'message'],
+            logsQuery: 'message:"test"',
+            mode: 'aggregate',
+          },
+        },
+      },
       initialProps: {
         visualizes: [new VisualizeFunction('count()')],
         groupBys: ['message.template'],
@@ -215,6 +203,8 @@ describe('useSaveAsItems', () => {
   it('enables the alert option when there are aggregates', () => {
     const {result} = renderHookWithProviders(useSaveAsItems, {
       additionalWrapper: createWrapper(),
+      organization,
+      initialRouterConfig: {location: initialLocation},
       initialProps: {
         visualizes: [new VisualizeFunction('count()')],
         groupBys: ['message.template'],
@@ -238,8 +228,10 @@ describe('useSaveAsItems', () => {
       .spyOn(discoverUtils, 'handleAddQueryToDashboard')
       .mockImplementation(() => {});
 
-    const {result} = renderHookWithProviders(useSaveAsItems, {
+    const {result, router} = renderHookWithProviders(useSaveAsItems, {
       additionalWrapper: createWrapper(),
+      organization,
+      initialRouterConfig: {location: initialLocation},
       initialProps: {
         visualizes: [
           new VisualizeFunction('count(message)', {chartType: ChartType.LINE}),
@@ -258,6 +250,14 @@ describe('useSaveAsItems', () => {
 
     saveAsDashboard.children[0]!.onAction();
 
+    expect(router.location.pathname).toBe(initialLocation.pathname);
+    expect(router.location.query).toEqual(
+      expect.objectContaining({
+        logsFields: initialLocation.query.logsFields,
+        logsQuery: initialLocation.query.logsQuery,
+        logsSortBys: '-timestamp',
+      })
+    );
     expect(handleAddQueryToDashboard).toHaveBeenCalledWith(
       expect.objectContaining({
         eventView: expect.objectContaining({display: DisplayType.LINE}),
@@ -268,6 +268,8 @@ describe('useSaveAsItems', () => {
   it('should call saveQuery with correct parameters when modal saves', async () => {
     const {result} = renderHookWithProviders(useSaveAsItems, {
       additionalWrapper: createWrapper(),
+      organization,
+      initialRouterConfig: {location: initialLocation},
       initialProps: {
         visualizes: [new VisualizeFunction('count()')],
         groupBys: ['message.template'],
