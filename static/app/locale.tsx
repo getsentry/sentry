@@ -403,7 +403,7 @@ function gettextComponentTemplate(
 
 /**
  * Translates a string without formatting support. Used for translating
- * pre-extracted strings like attribute descriptions from @sentry/conventions.
+ * pre-extracted strings like attribute descriptions from @sentry/conventions/attributes/search.
  * This function is intentionally not included in the gettext extraction script.
  */
 function gettextDescription(string: string): string {

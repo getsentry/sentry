@@ -48,16 +48,19 @@ function GroupLayoutBody({children}: {children: React.ReactNode}) {
   );
 }
 
-function EventDetailsSection({children}: {children: React.ReactNode}) {
+function IssueDetailsColumn({children}: {children: React.ReactNode}) {
   const {isSidebarOpen} = useIssueDetails();
 
   return (
-    <Stack
-      as="section"
-      background="secondary"
-      borderRight={isSidebarOpen ? {zero: 'none', '4xl': 'primary'} : 'none'}
-      borderBottom={{zero: 'primary', '4xl': 'none'}}
-    >
+    <Container borderRight={isSidebarOpen ? {zero: 'none', '4xl': 'primary'} : 'none'}>
+      {children}
+    </Container>
+  );
+}
+
+function EventDetailsSection({children}: {children: React.ReactNode}) {
+  return (
+    <Stack as="section" background="secondary">
       {children}
     </Stack>
   );
@@ -94,7 +97,7 @@ export function GroupDetailsLayout({
       >
         <GroupHeader group={group} event={event ?? null} project={project} />
         <GroupLayoutBody>
-          <div>
+          <IssueDetailsColumn>
             <SharedTourElement<IssueDetailsTour>
               id={IssueDetailsTour.AGGREGATES}
               demoTourId={DemoTourStep.ISSUES_AGGREGATES}
@@ -137,7 +140,7 @@ export function GroupDetailsLayout({
                 </div>
               )}
             </SharedTourElement>
-          </div>
+          </IssueDetailsColumn>
           <IssueDetailsSidebar group={group} event={event} project={project} />
         </GroupLayoutBody>
       </Container>

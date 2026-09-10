@@ -6,6 +6,7 @@ will produce new outboxes incrementally to replicate those models.
 
 from __future__ import annotations
 
+import functools
 import logging
 from dataclasses import dataclass
 
@@ -17,12 +18,20 @@ from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import options
 from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.hybridcloud.models.outboxbackfillwatermark import (
+    BaseOutboxBackfillWatermark,
+    CellOutboxBackfillWatermark,
+    ControlOutboxBackfillWatermark,
+)
 from sentry.hybridcloud.outbox.base import CellOutboxProducingModel, ControlOutboxProducingModel
 from sentry.silo.base import SiloMode
 from sentry.users.models.user import User
 from sentry.utils import json, metrics, redis
 
 logger = logging.getLogger(__name__)
+
+WRITE_WATERMARK_TO_POSTGRES_OPTION = "hybrid_cloud.write_outbox_backfill_watermark_to_postgres"
+WATERMARK_DUAL_WRITE_ERROR_METRIC = "backfill_outboxes.watermark_dual_write_error"
 
 
 def _get_redis_client() -> RedisCluster[str] | StrictRedis[str]:
@@ -65,6 +74,52 @@ def read_processing_state(table_name: str) -> tuple[int, int] | None:
     return lower, version
 
 
+@functools.lru_cache(maxsize=1)
+def _control_backfill_tables() -> frozenset[str]:
+    control_only = frozenset({SiloMode.CONTROL})
+    tables = set()
+    for model in _backfill_models(SiloMode.MONOLITH):
+        silo_limit = getattr(model._meta, "silo_limit", None)
+        if silo_limit is not None and silo_limit.modes == control_only:
+            tables.add(model._meta.db_table)
+    return frozenset(tables)
+
+
+def _watermark_model(table_name: str) -> type[BaseOutboxBackfillWatermark]:
+    current_mode = SiloMode.get_current_mode()
+    if current_mode == SiloMode.CONTROL:
+        return ControlOutboxBackfillWatermark
+    if current_mode == SiloMode.CELL:
+        return CellOutboxBackfillWatermark
+
+    # for monolith deployments, pick the table that would be written to in prod w/ split deployments
+    if table_name in _control_backfill_tables():
+        return ControlOutboxBackfillWatermark
+    return CellOutboxBackfillWatermark
+
+
+def _write_postgres_watermark(table_name: str, value: int, version: int) -> None:
+    if not options.get(WRITE_WATERMARK_TO_POSTGRES_OPTION):
+        return
+
+    try:
+        _watermark_model(table_name).objects.update_or_create(
+            table_name=table_name,
+            defaults={"low_bound": value, "version": version},
+        )
+    except Exception:
+        # Mask failures since Redis is the source of truth
+        #
+        # TODO: update this so that when Postgres becomes promoted to the read-path,
+        # we don't swallow exceptions here. It will be conditional on the read-from-postgres flag.
+        metrics.incr(
+            WATERMARK_DUAL_WRITE_ERROR_METRIC,
+            tags=dict(table_name=table_name),
+            skip_internal=True,
+            sample_rate=1.0,
+        )
+
+
 def get_processing_state(table_name: str) -> tuple[int, int]:
     result: tuple[int, int]
     client = _get_redis_client()
@@ -89,6 +144,7 @@ def set_processing_state(table_name: str, value: int, version: int) -> None:
         value,
         tags=dict(table_name=table_name, version=version),
     )
+    _write_postgres_watermark(table_name, value, version)
 
 
 def find_replication_version(
@@ -186,11 +242,11 @@ def process_outbox_backfill_batch(
                     outbox.save()
 
     if not processing_state.has_more:
-        set_processing_state(model._meta.db_table, 0, model.replication_version + 1)
+        low_bound, version = 0, model.replication_version + 1
     else:
-        set_processing_state(
-            model._meta.db_table, processing_state.up + 1, processing_state.version
-        )
+        low_bound, version = processing_state.up + 1, processing_state.version
+
+    set_processing_state(model._meta.db_table, low_bound, version)
 
     return processing_state
 
@@ -274,26 +330,31 @@ def report_backfill_watermarks(silo_mode: SiloMode, force_synchronous: bool = Fa
     """
     try:
         for model in _backfill_models(silo_mode):
+            table_name = model._meta.db_table
             try:
                 state = _report_watermark_for_model(model, force_synchronous=force_synchronous)
             except Exception:
                 # One bad table must not stop the rest of the walk.
                 metrics.incr(
                     WATERMARK_REPORT_ERROR_METRIC,
-                    tags=dict(table_name=model._meta.db_table),
+                    tags=dict(table_name=table_name),
                     skip_internal=True,
                     sample_rate=1.0,
                 )
                 logger.exception(
                     "backfill_outboxes.watermark_report_failed",
-                    extra={"table_name": model._meta.db_table},
+                    extra={"table_name": table_name},
                 )
                 continue
 
             if state is None:
                 continue
 
-            # TODO: we'll dual-write to Postgres here
+            # This write site is used only to guarantee full, consistent sync between
+            # Redis and PG during the migration period because it runs every cycle guaranteed
+            # TODO: Once everything is cut over to PG, we'll remove this
+            lower, version = state
+            _write_postgres_watermark(table_name, lower, version)
     except Exception:
         metrics.incr(WATERMARK_REPORT_ERROR_METRIC, skip_internal=True, sample_rate=1.0)
         logger.exception("backfill_outboxes.watermark_report_failed")

@@ -154,6 +154,7 @@ function ControlledRow({
       onMessagingSetupChange={onMessagingSetupChange}
       renderChannelPicker={renderChannelPicker}
       isRefetchingIntegrations={isRefetchingIntegrations}
+      isContinuing={false}
     />
   );
 }
@@ -236,6 +237,10 @@ describe('ScmMessagingProviderRow', () => {
         eligibleIntegrations: [],
         permissionLimitedIntegration: undefined,
       };
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/',
+        body: [],
+      });
       renderGlobalModal({organization});
       renderRow(installableMsteams);
 
@@ -274,7 +279,7 @@ describe('ScmMessagingProviderRow', () => {
         organization: noAccessOrg,
       });
 
-      expect(screen.getByText('Connected')).toBeInTheDocument();
+      expect(screen.getByText('Authorized')).toBeInTheDocument();
       expect(
         screen.getByRole('button', {name: /Choose destination/})
       ).toBeInTheDocument();
@@ -373,6 +378,7 @@ describe('ScmMessagingProviderRow', () => {
           onContinue={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
+          isContinuing={false}
         />,
         {organization}
       );
@@ -395,6 +401,7 @@ describe('ScmMessagingProviderRow', () => {
           onContinue={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
+          isContinuing={false}
         />
       );
 
@@ -430,6 +437,7 @@ describe('ScmMessagingProviderRow', () => {
           onContinue={jest.fn()}
           onInstallComplete={onInstallComplete}
           onMessagingSetupChange={jest.fn()}
+          isContinuing={false}
         />
       );
 
@@ -448,6 +456,7 @@ describe('ScmMessagingProviderRow', () => {
           onContinue={jest.fn()}
           onInstallComplete={onInstallComplete}
           onMessagingSetupChange={jest.fn()}
+          isContinuing={false}
           isRefetchingIntegrations
         />
       );
@@ -477,6 +486,7 @@ describe('ScmMessagingProviderRow', () => {
           onContinue={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
+          isContinuing={false}
         />,
         {organization}
       );
@@ -494,6 +504,7 @@ describe('ScmMessagingProviderRow', () => {
           onContinue={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
+          isContinuing={false}
           isRefetchingIntegrations
         />
       );
@@ -510,6 +521,7 @@ describe('ScmMessagingProviderRow', () => {
           onContinue={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
+          isContinuing={false}
         />
       );
 
@@ -530,12 +542,12 @@ describe('ScmMessagingProviderRow', () => {
   });
 
   describe('choose-destination state (connected, not yet configured)', () => {
-    it('shows the Connected tag without opening the picker', () => {
+    it('shows the Authorized tag without opening the picker', () => {
       const renderChannelPicker = jest.fn(() => <div>channel-picker</div>);
       renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {renderChannelPicker});
 
-      expect(screen.getByText('Connected')).toBeInTheDocument();
-      expect(screen.queryByText('Destination added')).not.toBeInTheDocument();
+      expect(screen.getByText('Authorized')).toBeInTheDocument();
+      expect(screen.queryByText('Connected')).not.toBeInTheDocument();
       expect(screen.queryByText('channel-picker')).not.toBeInTheDocument();
     });
 
@@ -659,8 +671,9 @@ describe('ScmMessagingProviderRow', () => {
       ).toBeInTheDocument();
     });
 
-    it('saves the setup and transitions to configured when onConfigured is called', async () => {
+    it('saves the setup and calls onContinue without closing the picker', async () => {
       const onMessagingSetupChange = jest.fn();
+      const onContinue = jest.fn();
       let capturedOnConfigured:
         | ((setup: ScmMessagingSetup & {mode: 'selected'}) => void)
         | undefined;
@@ -672,8 +685,9 @@ describe('ScmMessagingProviderRow', () => {
         }
       );
 
-      const {rerender} = renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
+      renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
         onMessagingSetupChange,
+        onContinue,
         renderChannelPicker,
       });
 
@@ -681,33 +695,18 @@ describe('ScmMessagingProviderRow', () => {
 
       act(() => capturedOnConfigured?.(selectedSlackSetup));
       expect(onMessagingSetupChange).toHaveBeenCalledWith(selectedSlackSetup);
-
-      // Simulate the parent updating the messagingSetup prop after the save.
-      rerender(
-        <ScmMessagingProviderRow
-          resolvedProvider={connectedSlack}
-          messagingSetup={selectedSlackSetup}
-          activeRow={null}
-          onActiveRowChange={jest.fn()}
-          onContinue={jest.fn()}
-          onInstallComplete={jest.fn()}
-          onMessagingSetupChange={onMessagingSetupChange}
-          renderChannelPicker={renderChannelPicker}
-        />
-      );
-
-      await waitFor(() =>
-        expect(screen.queryByText('channel-picker')).not.toBeInTheDocument()
-      );
+      expect(onContinue).toHaveBeenCalledTimes(1);
+      // Picker stays open — activeRow is not cleared so the step can unmount cleanly.
+      expect(screen.getByText('channel-picker')).toBeInTheDocument();
     });
   });
 
   describe('configured state', () => {
-    it('shows the Destination added tag', () => {
+    it('shows the Connected tag', () => {
       renderRow(connectedSlack, selectedSlackSetup);
 
-      expect(screen.getByText('Destination added')).toBeInTheDocument();
-      expect(screen.queryByText('Connected')).not.toBeInTheDocument();
+      expect(screen.getByText('Connected')).toBeInTheDocument();
+      expect(screen.queryByText('Authorized')).not.toBeInTheDocument();
     });
 
     it('enters configuring state when Edit is clicked and passes onCancel to the picker', async () => {
@@ -733,11 +732,7 @@ describe('ScmMessagingProviderRow', () => {
       await userEvent.click(screen.getByRole('button', {name: /Cancel/}));
 
       expect(screen.getByRole('button', {name: /Edit/})).toBeInTheDocument();
-      expect(
-        screen.queryByText(
-          'This removes the destination from project setup. The integration stays connected to your organization.'
-        )
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText('You can reconnect at any time')).not.toBeInTheDocument();
     });
 
     it('calls onMessagingSetupChange with unconfigured when confirmed', async () => {

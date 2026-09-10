@@ -71,7 +71,7 @@ const getDynamicParts = (params: Params): string[] => {
   if (params.isPerformanceSelected) {
     dynamicParts.push(`
       // Tracing
-      tracesSampleRate: 1.0, //  Capture 100% of the transactions
+      tracesSampleRate: 1.0, // Capture 100% of traces. Adjust this value in production.
       // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
       tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/]`);
   }
@@ -114,7 +114,7 @@ platformBrowserDynamic()
   .bootstrapModule(AppModule)
   .catch((err) => console.error(err));`
     : `
-bootstrapApplication(appConfig, AppComponent)
+bootstrapApplication(AppComponent, appConfig)
   .catch((err) => console.error(err));`;
 
   const config = buildSdkConfig({

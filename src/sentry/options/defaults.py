@@ -2468,28 +2468,27 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deterministic % rollout of the per-org dynamic sampling pipeline, keyed on
-# organization id. A value of 0.0 disables the pipeline for every org; 1.0
-# enables it for every org. Intermediate values select a stable hash-based
-# subset so toggling the rate up and down does not reshuffle which orgs run.
+# Share of organizations the per-org dynamic sampling pipeline runs for, keyed on
+# organization id. 1.0 runs it for every org and is the default, so that the pipeline
+# works without any option set; 0.0 stops it for every org. Intermediate values select a
+# stable hash-based subset, so lowering and raising the rate does not reshuffle which
+# orgs run.
 register(
     "dynamic-sampling.per_org.rollout-rate",
     type=Float,
-    default=0.0,
+    default=1.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deterministic % rollout of serving the per-org pipeline's results, keyed on organization
-# id. Above 0.0, rule generation reads the project, transaction and recalibration sample
-# rates of the selected orgs from the per-org caches instead of the legacy ones. An org
-# only has per-org cache entries once dynamic-sampling.per_org.rollout-rate selects it too.
-# An org switches over as a whole:
-# until a pass has stored its project sample rates, rule generation serves all of its
-# values from the legacy caches, and from then on all of them from the per-org ones.
+# Share of organizations whose rules read the project, transaction and recalibration
+# sample rates from the per-org pipeline's caches, keyed on organization id. 1.0 serves
+# every org from them and is the default; 0.0 serves every org from the legacy caches. An
+# org only has per-org cache entries once dynamic-sampling.per_org.rollout-rate selects it
+# too, and a project without a stored per-org rate is sampled in full.
 register(
     "dynamic-sampling.per_org.serving-rollout-rate",
     type=Float,
-    default=0.0,
+    default=1.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2514,34 +2513,13 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "dynamic-sampling.per_org.project-balancing-debug-project-ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "dynamic-sampling.per_org.transaction-volume-debug-project-ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
+# Nothing reads this option any more. It stays registered until the options automator
+# has unset it, since the automator can only unset a registered option.
 register(
     "dynamic-sampling.per_org.sample-rates-summary-log-rollout-rate",
     type=Float,
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Organizations for which the per-org pipeline logs the EAP-vs-outcomes sliding-window
-# sample rate comparison. Empty disables the comparison entirely.
-register(
-    "dynamic-sampling.per_org.sliding-window-comparison-org-ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Per-project sample rate overrides for custom dynamic sampling. Maps a stringified
@@ -2574,16 +2552,6 @@ register(
 )
 register(
     "hybrid_cloud.disable_tombstone_cleanup",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "hybrid_cloud.write_deletion_watermark_to_postgres",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "hybrid_cloud.read_deletion_watermark_from_postgres",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2623,19 +2591,31 @@ register(
 )
 
 # Webhook processing controls
+# Most threads a skip-on-failure claim delivers on, bounded by the records it
+# claimed.
 register(
     "hybridcloud.webhookpayload.worker_threads",
+    default=16,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# How many payloads over the rate window one delivery thread should be worth. Times
+# `worker_threads`, this is the depth a mailbox reaches before its split widens, so
+# lowering it splits sooner and wider. Tunable because the right value is not known:
+# the `buckets` tag on `hybridcloud.webhookpayload.mailbox_routing` is what would
+# settle it.
+register(
+    "hybridcloud.webhookpayload.payloads_per_thread",
     default=4,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Remove the rows a claim-bounded drain finishes with — delivered, attempts
-# exhausted, or stale — in batches instead of one DELETE per row. Such a drain
-# stays inside a claim reserved for its whole run, so deferring deletes cannot
-# hand rows to a concurrent drain; a crashed worker reprocesses at most one
-# unflushed batch, which redelivers the delivered rows and re-discards the rest.
+# Most mailboxes one integration's split may occupy; past it they simply grow deeper.
+# A safety valve on how many scheduler rows and dispatch slots one sender can take.
+# Rounded down to a power of two when read: the split climbs a ladder of doublings,
+# and a cap off that ladder makes a resize into it re-map nearly every key instead of
+# half.
 register(
-    "hybridcloud.webhookpayload.drain_batch_deletes",
-    default=False,
+    "hybridcloud.webhookpayload.max_mailbox_buckets",
+    default=128,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Providers whose mailbox drains skip a failed message and keep going instead of
@@ -2663,14 +2643,6 @@ register(
 register(
     "hybridcloud.webhookpayload.max_chain_depth",
     default=1,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Dispatch skip-on-failure providers' mailboxes from their oldest due record
-# instead of gating on the absolute head, so one record in retry backoff cannot
-# hide every due record behind it. Strict-ordering providers keep the gate.
-register(
-    "hybridcloud.webhookpayload.dispatch_from_due_head",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Break glass for inbound webhook floods. Matching webhooks are dropped with a
@@ -4236,6 +4208,15 @@ register(
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics
 register(
     "integrations.slo.integration-id-tag-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Serializes inbound assignee sync per external issue with a row lock. Off degrades to the
+# watermark's conditional update, which orders sequential deliveries but not concurrent ones.
+register(
+    "integrations.assignee-sync.lock-external-issue",
     default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,

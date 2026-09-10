@@ -21,7 +21,11 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
+from sentry.testutils.outbox import (
+    assert_no_webhook_payloads,
+    assert_webhook_payloads_for_mailbox,
+    override_mailbox_bucket_count,
+)
 from sentry.testutils.silo import control_silo_test
 from sentry.types.cell import Cell
 
@@ -33,6 +37,12 @@ cell_config = (cell,)
 class GithubRequestParserTest(TestCase):
     factory = RequestFactory()
     path = reverse("sentry-integration-github-webhook")
+
+    def setUp(self) -> None:
+        super().setUp()
+        # One request never sends fast enough to earn a split. Pin the width so these
+        # assertions stay about which bucket a key lands in; repository 123 lands in 59.
+        self.enterContext(override_mailbox_bucket_count(64))
 
     def get_response(self, req: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
@@ -309,6 +319,12 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
     factory = RequestFactory()
     path = reverse("sentry-integration-github-webhook")
 
+    def setUp(self) -> None:
+        super().setUp()
+        # One request never sends fast enough to earn a split. Pin the width so these
+        # assertions stay about which bucket a key lands in.
+        self.enterContext(override_mailbox_bucket_count(64))
+
     def get_response(self, req: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
 
@@ -368,10 +384,10 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
 
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_202_ACCEPTED
-        # 35129377 % 100 = 77, event type appended for per-event-type isolation
+        # 35129377 % 64 = 33, event type appended for per-event-type isolation
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}:77:push",
+            mailbox_name=f"github:{integration.id}:33:push",
             cell_names=[cell.name],
         )
 
@@ -421,7 +437,7 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
         # No event type header — identifier is repo-bucket only
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}:77",
+            mailbox_name=f"github:{integration.id}:33",
             cell_names=[cell.name],
         )
 
@@ -456,6 +472,12 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
 
     factory = RequestFactory()
     path = reverse("sentry-integration-github-webhook")
+
+    def setUp(self) -> None:
+        super().setUp()
+        # One request never sends fast enough to earn a split. Pin the width so these
+        # assertions stay about which bucket a key lands in.
+        self.enterContext(override_mailbox_bucket_count(64))
 
     def get_response(self, req: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
@@ -510,7 +532,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}:23:push",
+            mailbox_name=f"github:{integration.id}:59:push",
             cell_names=[cell.name],
         )
 
@@ -533,7 +555,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}:23",
+            mailbox_name=f"github:{integration.id}:59",
             cell_names=[cell.name],
         )
 
@@ -593,7 +615,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}:23:check_run",
+            mailbox_name=f"github:{integration.id}:59:check_run",
             cell_names=[cell.name],
         )
 
@@ -610,7 +632,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}:23:check_run",
+            mailbox_name=f"github:{integration.id}:59:check_run",
             cell_names=[cell.name],
         )
 
@@ -627,7 +649,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}:23:check_run",
+            mailbox_name=f"github:{integration.id}:59:check_run",
             cell_names=[cell.name],
         )
 
@@ -775,7 +797,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}:23:check_suite",
+            mailbox_name=f"github:{integration.id}:59:check_suite",
             cell_names=[cell.name],
         )
 
