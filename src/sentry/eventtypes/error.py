@@ -55,12 +55,12 @@ class ErrorEvent(BaseEvent):
         if not exception:
             return {}
         rv = {"value": trim(get_path(exception, "value", default=""), 1024)}
-        rv["type"] = trim(get_path(exception, "type", default="Error"), 128)
 
         # A synthetic exception's type is a platform label (`SIGSEGV`, `AppHang`), not the identity
         # of what went wrong. Keep it as a last-resort title, flagged so readers can tell it apart.
-        # Always written: group metadata never deletes keys, so an omitted flag would outlive
-        # the type it describes.
+        # (We record a value for `synthetic` even for non-synthetic errors so even a missing flag
+        # updates the data.)
+        rv["type"] = trim(get_path(exception, "type", default="Error"), 128)
         rv["synthetic"] = bool(get_path(exception, "mechanism", "synthetic"))
 
         # Attach crash location if available
@@ -81,8 +81,9 @@ class ErrorEvent(BaseEvent):
             if value:
                 title += f": {truncatechars(value.splitlines()[0], 256)}"
 
-        # The crash location identifies a synthetic exception better than its type, and the type
-        # still beats `<unknown>` when nothing symbolicated.
+        # Synthetic exceptions (dummy exceptions created by the SDK to carry a stacktrace)
+        # have types which are platform-specific and not reflective of what actually went
+        # wrong, so prefer function name if we have it
         if metadata.get("synthetic"):
             return metadata.get("function") or title or "<unknown>"
 

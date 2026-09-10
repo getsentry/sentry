@@ -896,8 +896,8 @@ class GetGroupDisplayTest(TestCase):
             "message": "bad",
         }
 
-    def test_synthetic_prefers_the_crash_location(self) -> None:
-        # The type is a platform label, so the crash location is the better title.
+    def test_synthetic_prefers_function_to_type(self) -> None:
+        # The type is a platform label, so the function name is the better title.
         assert self._display(
             {
                 "type": "SIGSEGV",
@@ -907,13 +907,13 @@ class GetGroupDisplayTest(TestCase):
             }
         ) == {"title": "top_func", "message": "Signal 11, Code 1"}
 
-    def test_synthetic_falls_back_to_the_type(self) -> None:
+    def test_synthetic_falls_back_to_type_if_function_missing(self) -> None:
         # Nothing symbolicated, so the type is all that is left — still better than `<unknown>`.
         assert self._display(
             {"type": "SIGSEGV", "value": "Signal 11, Code 1", "synthetic": True}
         ) == {"title": "SIGSEGV", "message": "Signal 11, Code 1"}
 
-    def test_custom_title_still_wins(self) -> None:
+    def test_custom_title_takes_precedence(self) -> None:
         assert self._display(
             {
                 "title": "Custom",

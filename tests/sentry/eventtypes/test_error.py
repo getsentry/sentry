@@ -83,8 +83,8 @@ class GetMetadataTest(TestCase):
         }
 
     def test_non_synthetic_flag_is_written_as_false(self) -> None:
-        # Group metadata never deletes keys, so an omitted flag would outlive the type it
-        # describes.
+        # Group metadata never deletes keys, so we need to proactively overwrite the metadata's
+        # `synthetic` flag in cases where the event doesn't have it, in case a previous event did
         inst = ErrorEvent()
         data = {
             "exception": {
@@ -175,8 +175,7 @@ class GetTitleTest(TestCase):
         result = inst.get_title({"type": "Error", "value": ""})
         assert result == "Error"
 
-    def test_synthetic_prefers_the_crash_location(self) -> None:
-        # Hand-built: the ordering only shows once both a type and a function are recorded.
+    def test_synthetic_prefers_function_over_type(self) -> None:
         inst = ErrorEvent()
         metadata = {
             "type": "SIGSEGV",
@@ -186,8 +185,7 @@ class GetTitleTest(TestCase):
         }
         assert inst.get_title(metadata) == "U3CCrashCaptureU3Ed__11_MoveNext"
 
-    def test_synthetic_falls_back_to_the_type(self) -> None:
-        # Built from event data: the fallback only holds if the type is actually recorded.
+    def test_synthetic_falls_back_to_type_if_function_missing(self) -> None:
         inst = ErrorEvent()
         data = {
             "platform": "native",
@@ -208,14 +206,12 @@ class GetTitleTest(TestCase):
         inst = ErrorEvent()
         assert inst.get_title({"value": "", "synthetic": True}) == "<unknown>"
 
-    def test_non_synthetic_still_prefers_the_type(self) -> None:
-        # Only synthetic exceptions reorder; everything else is untouched.
+    def test_non_synthetic_prefers_type_to_function(self) -> None:
         inst = ErrorEvent()
         metadata = {"type": "ValueError", "value": "bad", "function": "do_thing"}
         assert inst.get_title(metadata) == "ValueError: bad"
 
-    def test_metadata_without_the_flag_is_untouched(self) -> None:
-        # Stored group metadata predating the flag must keep resolving to the same title.
+    def test_metadata_without_synthetic_flag(self) -> None:
         inst = ErrorEvent()
         assert inst.get_title({"value": "Signal 11, Code 1"}) == "<unknown>"
         assert inst.get_title({"value": "Signal 11, Code 1", "function": "top_func"}) == "top_func"

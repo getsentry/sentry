@@ -550,7 +550,6 @@ def _should_use_seer_match_for_grouping(
         raise SimilarHashMissingGroupError(
             f"Seer-matched grouphash {parent_grouphash.hash} unexpectedly has no group"
         )
-    # Same for a synthetic parent's stored type.
     parent_exception_type = (
         None
         if get_path(parent_group.data, "metadata", "synthetic")

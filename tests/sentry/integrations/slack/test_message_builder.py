@@ -241,8 +241,8 @@ class BuildAttachmentTitleTest(TestCase):
         )
         assert build_attachment_title(group) == "ValueError"
 
-    def test_synthetic_prefers_the_crash_location(self) -> None:
-        # The type is a platform label, so the crash-location title is better.
+    def test_synthetic_prefers_function_to_type(self) -> None:
+        # The type is a platform label, so the function-based title is better.
         group = self.create_group(
             data={
                 "type": "error",
@@ -256,7 +256,7 @@ class BuildAttachmentTitleTest(TestCase):
         )
         assert build_attachment_title(group) == "top_func"
 
-    def test_synthetic_falls_back_to_the_type(self) -> None:
+    def test_synthetic_falls_back_to_type_if_function_missing(self) -> None:
         # Nothing symbolicated, so the type is all that is left — still better than `<unknown>`.
         group = self.create_group(
             data={
