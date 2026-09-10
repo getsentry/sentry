@@ -237,21 +237,16 @@ export function WidgetBuilderQueryFilterBuilder({
                         )
                       : [e.target.value],
                   },
-                  {updateUrl: false}
+                  {debounceUrl: true}
                 );
               }}
               onBlur={e => {
-                dispatch(
-                  {
-                    type: BuilderStateAction.SET_LEGEND_ALIAS,
-                    payload: state.legendAlias?.length
-                      ? state.legendAlias?.map((q, i) =>
-                          i === index ? e.target.value : q
-                        )
-                      : [e.target.value],
-                  },
-                  {updateUrl: true}
-                );
+                dispatch({
+                  type: BuilderStateAction.SET_LEGEND_ALIAS,
+                  payload: state.legendAlias?.length
+                    ? state.legendAlias?.map((q, i) => (i === index ? e.target.value : q))
+                    : [e.target.value],
+                });
                 trackAnalytics('dashboards_views.widget_builder.change', {
                   builder_version: WidgetBuilderVersion.SLIDEOUT,
                   field: 'filter.alias',

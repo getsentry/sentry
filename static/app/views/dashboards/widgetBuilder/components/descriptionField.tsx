@@ -40,16 +40,16 @@ export function WidgetBuilderDescriptionField({
       rows={rows}
       value={textValue}
       onChange={e => {
-        dispatch({type: builderStateAction, payload: e.target.value}, {updateUrl: false});
+        dispatch(
+          {type: builderStateAction, payload: e.target.value},
+          {debounceUrl: true}
+        );
       }}
       onBlur={e => {
-        dispatch(
-          {
-            type: builderStateAction,
-            payload: e.target.value,
-          },
-          {updateUrl: true}
-        );
+        dispatch({
+          type: builderStateAction,
+          payload: e.target.value,
+        });
         trackAnalytics('dashboards_views.widget_builder.change', {
           from: source,
           widget_type: state.dataset ?? '',
