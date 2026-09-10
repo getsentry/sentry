@@ -369,12 +369,14 @@ export function LogsInfiniteTable({
 
   useEffect(() => {
     if (
-      pseudoRowIndex !== -1 &&
-      tableBodyRef?.current &&
-      !additionalData?.scrollToDisabled
+      pseudoRowIndex === -1 ||
+      !tableBodyRef?.current ||
+      additionalData?.scrollToDisabled
     ) {
-      setTimeout(() => scrollToPseudoRow(), 100);
+      return;
     }
+    const timeoutId = setTimeout(() => scrollToPseudoRow(), 100);
+    return () => clearTimeout(timeoutId);
   }, [pseudoRowIndex, virtualizer, tableBodyRef, additionalData?.scrollToDisabled]);
 
   const hasReplay = !!embeddedOptions?.replay;
