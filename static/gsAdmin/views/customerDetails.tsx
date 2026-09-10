@@ -12,6 +12,7 @@ import {
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
@@ -414,6 +415,7 @@ export function CustomerDetails() {
 
   return (
     <ErrorBoundary>
+      <SentryDocumentTitle noSuffix title={`Sentry | ${subscription.name}`} />
       <DetailsPage
         rootName="Customers"
         name={subscription.name}

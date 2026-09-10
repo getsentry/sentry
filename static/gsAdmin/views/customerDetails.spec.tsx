@@ -26,6 +26,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/documentTitleManager';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -690,6 +691,25 @@ describe('Customer Details', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+  });
+
+  it('sets the document title to the customer name', async () => {
+    setUpMocks(organization, {name: 'Acme Corp'});
+
+    render(
+      <DocumentTitleManager>
+        <CustomerDetails />
+      </DocumentTitleManager>,
+      {
+        initialRouterConfig: {
+          location: {pathname: `/_admin/customers/${organization.slug}/`},
+          route: '/_admin/customers/:orgId/',
+        },
+        organization,
+      }
+    );
+
+    await waitFor(() => expect(document.title).toBe('Sentry | Acme Corp'));
   });
 
   it('populates chart data', () => {
