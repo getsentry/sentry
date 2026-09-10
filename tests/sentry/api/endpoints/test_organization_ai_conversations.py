@@ -7,6 +7,7 @@ from uuid import uuid4
 import pytest
 from django.urls import reverse
 
+from sentry.ai_monitoring.constants import AI_CONVERSATIONS_FIELDS
 from sentry.ai_monitoring.conversation_query import compile_conversation_query
 from sentry.ai_monitoring.endpoints.organization_ai_conversations import (
     OrganizationAIConversationsEndpoint,
@@ -137,13 +138,18 @@ class TestConversationSortSerializer:
     @pytest.mark.parametrize(
         "sort",
         [
-            "age",
-            "-age",
-            "-max(timestamp)",
-            "totalCost",
-            "-total_cost",
-            "sum_if_gen_ai_cost_total_tokens_gen_ai_operation_type_equals_ai_client",
-            "-conversationId",
+            "conversation.age",
+            "conversation.duration",
+            "conversation.generationDuration",
+            "conversation.errors",
+            "conversation.llmCalls",
+            "conversation.toolCalls",
+            "conversation.totalTokens",
+            "conversation.inputTokens",
+            "conversation.outputTokens",
+            "conversation.totalCost",
+            "conversation.toolErrors",
+            "-conversation.conversationId",
         ],
     )
     def test_known_alias(self, sort: str) -> None:
@@ -157,7 +163,7 @@ class TestConversationSortSerializer:
         "sorts",
         [
             [],
-            ["-age", "totalCost"],
+            ["-conversation.age", "conversation.totalCost"],
             ["timestamp"],
             ["-timestamp"],
             ["sum(span.duration)"],
@@ -182,7 +188,7 @@ class TestConversationSortSerializer:
             data={}, context={"sorting_enabled": True}
         )
         assert serializer.is_valid(), serializer.errors
-        assert serializer.validated_data["sort"] == ["-age"]
+        assert serializer.validated_data["sort"] == ["-conversation.age"]
 
 
 @patch("sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query")
@@ -193,7 +199,11 @@ def test_candidate_query_accepts_multiple_sorts(run_table_query: MagicMock) -> N
         offset=0,
         limit=10,
         sampling_mode="HIGHEST_ACCURACY",
-        sorts=["-totalCost", "age", "-conversationId"],
+        sorts=[
+            "-conversation.totalCost",
+            "conversation.age",
+            "-conversation.conversationId",
+        ],
     )
 
     query = run_table_query.call_args.kwargs
@@ -279,7 +289,7 @@ def test_group_filter_preserves_source_predicate(predicate: str) -> None:
         "min(span.duration):>2s",
         "failure_count():0",
         "!sum(span.duration):>2s",
-        "totalCost:>10 OR (sum(span.duration):>2s)",
+        "conversation.totalCost:>10 OR (sum(span.duration):>2s)",
         "count_if(`gen_ai.tool.name:search`,span.duration):>0",
     ],
 )
@@ -293,12 +303,34 @@ def test_group_filter_preserves_explicit_aggregates(query: str) -> None:
 @pytest.mark.parametrize("operator", ["=", "!=", ">", ">=", "<", "<="])
 def test_alias_filter_preserves_eap_null_semantics(operator: str) -> None:
     resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
-    compiled = compile_conversation_query(f"totalCost:{operator}0", resolver)
+    compiled = compile_conversation_query(f"conversation.totalCost:{operator}0", resolver)
     _, having, _ = resolver.resolve_query(compiled)
     _, expected, _ = resolver.resolve_query(
         f"sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client):{operator}0"
     )
     assert having == expected
+
+
+@pytest.mark.parametrize(
+    "alias",
+    [
+        "conversation.duration",
+        "conversation.generationDuration",
+        "conversation.errors",
+        "conversation.llmCalls",
+        "conversation.toolCalls",
+        "conversation.totalTokens",
+        "conversation.inputTokens",
+        "conversation.outputTokens",
+        "conversation.totalCost",
+        "conversation.toolErrors",
+    ],
+)
+def test_alias_filter(alias: str) -> None:
+    resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
+    compiled = compile_conversation_query(f"{alias}:>0", resolver)
+    _, having, _ = resolver.resolve_query(compiled)
+    assert having is not None
 
 
 def test_group_filter_accepts_long_text() -> None:
@@ -308,9 +340,10 @@ def test_group_filter_accepts_long_text() -> None:
     assert having is not None
 
 
-def test_group_filter_compiles_exact_id() -> None:
+@pytest.mark.parametrize("key", ["gen_ai.conversation.id", "conversation.conversationId"])
+def test_group_filter_compiles_exact_id(key: str) -> None:
     resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
-    assert compile_conversation_query('gen_ai.conversation.id:"session:123"', resolver) == (
+    assert compile_conversation_query(f'{key}:"session:123"', resolver) == (
         "has:gen_ai.conversation.id has:gen_ai.operation.type AND "
         '(count_if(`gen_ai.conversation.id:"session:123"`,span.duration):>0)'
     )
@@ -420,7 +453,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
                 {
                     "project": [self.project.id],
                     "query": "gen_ai.tool.name:search",
-                    "sort": "-totalCost",
+                    "sort": "-conversation.totalCost",
                 }
             )
 
@@ -443,7 +476,9 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
     )
     def test_sorting_conversation_id_candidate_query(self, run_table_query: MagicMock) -> None:
         with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
-            response = self.do_request({"project": [self.project.id], "sort": "-conversationId"})
+            response = self.do_request(
+                {"project": [self.project.id], "sort": "-conversation.conversationId"}
+            )
 
         assert response.status_code == 200, response.data
         query = run_table_query.call_args.kwargs
@@ -457,7 +492,10 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
     def test_sorting_disabled_preserves_legacy_query(self, run_table_query: MagicMock) -> None:
         with self.feature({"organizations:gen-ai-conversations-querying-enhancements": False}):
             response = self.do_request(
-                {"project": [self.project.id], "sort": ["-totalCost", "age"]}
+                {
+                    "project": [self.project.id],
+                    "sort": ["-conversation.totalCost", "conversation.age"],
+                }
             )
 
         assert response.status_code == 200, response.data
@@ -469,7 +507,10 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
     def test_sorting_rejects_multiple_fields(self) -> None:
         with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
             response = self.do_request(
-                {"project": [self.project.id], "sort": ["-totalCost", "age"]}
+                {
+                    "project": [self.project.id],
+                    "sort": ["-conversation.totalCost", "conversation.age"],
+                }
             )
 
         assert response.status_code == 400, response.data
@@ -484,22 +525,9 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
                 cost=1,
                 tokens=10,
             )
-        for sort in [
-            "age",
-            "-max(timestamp)",
-            "duration",
-            "generationDuration",
-            "errors",
-            "llmCalls",
-            "toolCalls",
-            "totalTokens",
-            "inputTokens",
-            "outputTokens",
-            "total_cost",
-            "toolErrors",
-            "-conversationId",
-            "sum_if_gen_ai_cost_total_tokens_gen_ai_operation_type_equals_ai_client",
-        ]:
+        for sort in AI_CONVERSATIONS_FIELDS:
+            if not sort.startswith("conversation."):
+                continue
             with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
                 response = self.do_request(
                     {
@@ -537,7 +565,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             "project": [self.project.id],
             "start": (now - timedelta(hours=1)).isoformat(),
             "end": (now + timedelta(hours=1)).isoformat(),
-            "sort": "-totalCost",
+            "sort": "-conversation.totalCost",
             "per_page": "2",
         }
         with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
@@ -581,7 +609,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
                     "start": (now - timedelta(hours=1)).isoformat(),
                     "end": (now + timedelta(hours=1)).isoformat(),
                     "query": "gen_ai.tool.name:search",
-                    "sort": "totalCost",
+                    "sort": "conversation.totalCost",
                 }
             )
 
@@ -603,39 +631,35 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             ("!gen_ai.tool.name:[search,calculator]", ["c"]),
             ("has:gen_ai.tool.name", ["a", "b"]),
             ("!has:gen_ai.tool.name", ["c"]),
-            ("totalCost:>10", ["a"]),
+            ("conversation.totalCost:>10", ["a"]),
             ("sum(gen_ai.cost.total_tokens):>10", ["a"]),
             ("count_if(`gen_ai.tool.name:search`,span.duration):>0", ["a", "b"]),
-            ('"totalCost":>10', ["a"]),
-            ("total_cost:>10 gen_ai.tool.name:search", ["a"]),
-            (
-                "sum_if_gen_ai_cost_total_tokens_gen_ai_operation_type_equals_ai_client:>10",
-                ["a"],
-            ),
-            ("totalCost:0", []),
-            ("totalCost:<=0", []),
-            ("totalCost:>=0", ["a", "b"]),
-            ("!totalCost:>10", ["b"]),
-            ("toolCalls:>1", ["a"]),
-            ("errors:0", ["b", "c"]),
-            ("duration:>5s", ["a"]),
-            ("duration:>=0", ["a", "b", "c"]),
-            ("generationDuration:0", []),
+            ('"conversation.totalCost":>10', ["a"]),
+            ("conversation.totalCost:0", []),
+            ("conversation.totalCost:<=0", []),
+            ("conversation.totalCost:>=0", ["a", "b"]),
+            ("!conversation.totalCost:>10", ["b"]),
+            ("conversation.toolCalls:>1", ["a"]),
+            ("conversation.errors:0", ["b", "c"]),
+            ("conversation.duration:>5s", ["a"]),
+            ("conversation.duration:>=0", ["a", "b", "c"]),
+            ("conversation.generationDuration:0", []),
             ("span.duration:>2s", ["a"]),
             ("span.duration:<=2s", ["a", "b", "c"]),
             ("!span.duration:>2s", ["b", "c"]),
             ("gen_ai.usage.total_tokens:>15", ["a"]),
-            ("gen_ai.conversation.id:b OR totalCost:>10", ["a", "b"]),
-            ("!gen_ai.tool.name:search OR totalCost:>10", ["a", "c"]),
+            ("gen_ai.conversation.id:b OR conversation.totalCost:>10", ["a", "b"]),
+            ("!gen_ai.tool.name:search OR conversation.totalCost:>10", ["a", "c"]),
             (
-                "gen_ai.agent.name:researcher AND (gen_ai.tool.name:search OR toolCalls:0)",
+                "gen_ai.agent.name:researcher AND "
+                "(gen_ai.tool.name:search OR conversation.toolCalls:0)",
                 ["a", "c"],
             ),
             ('span.description:"hello world"', ["a"]),
             ('"hello world"', ["a"]),
             ("span.description:hello*", ["a"]),
             ("span.description:non-ai-only", []),
-            ("conversationId:a", ["a"]),
+            ("conversation.conversationId:a", ["a"]),
         ]
         now = before_now(days=1).replace(microsecond=0)
         self.store_ai_span(
@@ -715,7 +739,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
                         "start": (now - timedelta(hours=1)).isoformat(),
                         "end": (now + timedelta(hours=1)).isoformat(),
                         "query": search,
-                        "sort": "conversationId",
+                        "sort": "conversation.conversationId",
                     }
                 )
             assert response.status_code == 200, (search, response.data)
@@ -726,18 +750,17 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_invalid_group_filter(self) -> None:
         for search in [
-            "toolCalls:banana",
-            "totalCost:NaN",
-            "duration:>oops",
-            "totalCost:>10 OR",
-            "AND toolCalls:1",
-            "toolCalls:1 OR OR errors:0",
+            "conversation.toolCalls:banana",
+            "conversation.totalCost:NaN",
+            "conversation.duration:>oops",
+            "conversation.totalCost:>10 OR",
+            "AND conversation.toolCalls:1",
+            "conversation.toolCalls:1 OR OR conversation.errors:0",
             "(gen_ai.tool.name:search",
             "collect_unique(trace):>0",
             'span.description:"literal ` backtick"',
-            "has:totalCost",
-            'has:"total_cost"',
-            "!has:totalCost",
+            "has:conversation.totalCost",
+            "!has:conversation.totalCost",
             "count_if(`(broken`,span.duration):>0",
             "(" * 21 + "gen_ai.tool.name:search" + ")" * 21,
         ]:
