@@ -42,3 +42,5 @@ class AnomalyDetectionUpdate:
 
 
 DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION = "snuba_query_subscription"
+
+GROUP_TYPE_METRIC_ISSUE = "metric_issue"

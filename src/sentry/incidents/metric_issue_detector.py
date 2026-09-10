@@ -13,8 +13,9 @@ from sentry.incidents.logic import (
     enable_disable_subscriptions,
     get_alert_resolution,
 )
-from sentry.incidents.models.alert_rule import AlertRuleDetectionType
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
+from sentry.incidents.utils.types import GROUP_TYPE_METRIC_ISSUE
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
 from sentry.seer.anomaly_detection.delete_rule import delete_data_in_seer_for_detector
@@ -43,7 +44,11 @@ from sentry.workflow_engine.endpoints.validators.base.data_condition import (
 )
 from sentry.workflow_engine.models import DataCondition, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.registry import detector_validator_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel, SnubaQueryDataSourceType
+
+COMPARISON_DELTA_CHOICES: list[None | int] = [choice.value for choice in ComparisonDeltaChoices]
+COMPARISON_DELTA_CHOICES.append(None)
 
 
 def fetch_snuba_query(detector: Detector) -> SnubaQuery | None:
@@ -193,7 +198,24 @@ def format_extrapolation_mode(
     return ExtrapolationMode.from_str(extrapolation_mode)
 
 
+@detector_validator_registry.register(GROUP_TYPE_METRIC_ISSUE)
 class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
+    config_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "A representation of a metric detector config dict",
+        "type": "object",
+        "required": ["detection_type"],
+        "properties": {
+            "comparison_delta": {
+                "type": ["integer", "null"],
+                "enum": COMPARISON_DELTA_CHOICES,
+            },
+            "detection_type": {
+                "type": "string",
+                "enum": [detection_type.value for detection_type in AlertRuleDetectionType],
+            },
+        },
+    }
     data_sources = serializers.ListField(
         child=SnubaQueryValidator(timeWindowSeconds=True), required=False
     )
