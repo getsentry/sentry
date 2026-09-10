@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import classNames from 'classnames';
 import sortBy from 'lodash/sortBy';
 
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
@@ -35,7 +34,7 @@ export function KeyValueList({
 
   return (
     <Grid
-      className={classNames('table key-value', className)}
+      className={className}
       columns={{zero: 'minmax(0, 1fr)', sm: '175px minmax(0, 500px)'}}
       gap="md"
       role="table"
