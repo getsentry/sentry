@@ -231,8 +231,121 @@ demo below mirrors that heading and flex layout.
 </TopBar.Slot>
 ```
 
-#### Pagination
+### `'editable-title'` — rename in place
 
+The `editable-title` item renders the current page as a click-to-edit field for
+pages that let users rename in place. Pass the editable field props directly on
+the `editable-title` item passed to `BreadcrumbList.Title`. Unlike
+`page-title`, it has no `trailingActions` slot; `EditableText` provides its own
+edit affordance.
+
+<Storybook.Demo>
+  <BreadcrumbListDemo
+    items={[
+      {
+        type: 'link',
+        label: 'Dashboards',
+        to: '/organizations/org-slug/dashboards/',
+      },
+    ]}
+    title={
+      <BreadcrumbList.Title
+        item={{
+          type: 'editable-title',
+          value: 'Frontend Overview',
+          onChange: () => null,
+          'aria-label': 'Edit dashboard name',
+        }}
+      />
+    }
+  />
+</Storybook.Demo>
+```tsx
+<TopBar.Slot name="breadcrumbs">
+  <BreadcrumbList
+    items={[
+      {type: 'link', label: 'Dashboards', to: '/organizations/org-slug/dashboards/'},
+    ]}
+  />
+</TopBar.Slot>
+<TopBar.Slot name="title">
+  <BreadcrumbList.Title
+    item={{
+      type: 'editable-title',
+      value: dashboard.title,
+      onChange: handleRename,
+      'aria-label': 'Edit dashboard name',
+    }}
+  />
+</TopBar.Slot>
+```
+
+## Props
+
+Beyond `label`, the optional props are not shared evenly across the item types.
+
+| Prop              | `'link'` | `'page-title'` | `'editable-title'` |
+| ----------------- | :------: | :------------: | :----------------: |
+| `leadingGraphic`  |    ✓     |       ✓        |         ✓          |
+| `labelTooltip`    |          |       ✓        |                    |
+| `pagination`      |          |       ✓        |                    |
+| `trailingActions` |          |       ✓        |                    |
+
+### Leading graphics
+
+**Available on** `'link'`, `'page-title'`, and `'editable-title'`.
+An optional `React.ReactNode` — a `ProjectsBadge`, an avatar, or a Sentry icon.
+It is rendered as decorative content in a fixed 16×16 slot, so the label carries
+the meaning.
+
+<Storybook.Demo>
+  <BreadcrumbListDemo
+    items={[
+      {
+        type: 'link',
+        label: 'My Projects',
+        to: '/settings/org-slug/projects/',
+        leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
+      },
+    ]}
+    title={
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: 'Client Keys (DSN)',
+          leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
+        }}
+      />
+    }
+  />
+</Storybook.Demo>
+```tsx
+<TopBar.Slot name="breadcrumbs">
+  <BreadcrumbList
+    items={[
+      {
+        type: 'link',
+        label: 'My Projects',
+        to: '/settings/org-slug/projects/',
+        leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
+      },
+    ]}
+  />
+</TopBar.Slot>
+<TopBar.Slot name="title">
+  <BreadcrumbList.Title
+    item={{
+      type: 'page-title',
+      label: 'Client Keys (DSN)',
+      leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
+    }}
+  />
+</TopBar.Slot>
+```
+
+### Pagination
+
+**Available on** `'page-title'` only.
 The `page-title` item accepts an optional `pagination` prop for pages where the
 user can step through a list of items, such as issues, replays, or traces. Each
 direction has an `ariaLabel`, an optional `to` URL, an optional `disabled` flag,
@@ -343,8 +456,9 @@ a chevron below and move onto the tooltip to reach the link.
 />
 ```
 
-#### Trailing actions
+### Trailing actions
 
+**Available on** `'page-title'` only.
 The `page-title` item accepts a `trailingActions` slot rendered after the label,
 for example a copy action or page-level menu. The slot is bounded to
 typed `copy`, `menu`, or `button` objects. Falsy entries are dropped so
@@ -410,107 +524,6 @@ a row of icons competing for the same space.
             : null,
         ].filter(item => item !== null),
       },
-    }}
-  />
-</TopBar.Slot>
-```
-
-### `'editable-title'` — rename in place
-
-The `editable-title` item renders the current page as a click-to-edit field for
-pages that let users rename in place. Pass the editable field props directly on
-the `editable-title` item passed to `BreadcrumbList.Title`. Unlike
-`page-title`, it has no `trailingActions` slot; `EditableText` provides its own
-edit affordance.
-
-<Storybook.Demo>
-  <BreadcrumbListDemo
-    items={[
-      {
-        type: 'link',
-        label: 'Dashboards',
-        to: '/organizations/org-slug/dashboards/',
-      },
-    ]}
-    title={
-      <BreadcrumbList.Title
-        item={{
-          type: 'editable-title',
-          value: 'Frontend Overview',
-          onChange: () => null,
-          'aria-label': 'Edit dashboard name',
-        }}
-      />
-    }
-  />
-</Storybook.Demo>
-```tsx
-<TopBar.Slot name="breadcrumbs">
-  <BreadcrumbList
-    items={[
-      {type: 'link', label: 'Dashboards', to: '/organizations/org-slug/dashboards/'},
-    ]}
-  />
-</TopBar.Slot>
-<TopBar.Slot name="title">
-  <BreadcrumbList.Title
-    item={{
-      type: 'editable-title',
-      value: dashboard.title,
-      onChange: handleRename,
-      'aria-label': 'Edit dashboard name',
-    }}
-  />
-</TopBar.Slot>
-```
-
-## Leading graphics
-
-All parent and title items that display text accept an optional `leadingGraphic`
-typed as `React.ReactNode` — for example, a `ProjectsBadge`, avatar, or
-Sentry icon. It is rendered as decorative content in a fixed 16×16 slot, so the
-label carries the meaning.
-
-<Storybook.Demo>
-  <BreadcrumbListDemo
-    items={[
-      {
-        type: 'link',
-        label: 'My Projects',
-        to: '/settings/org-slug/projects/',
-        leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
-      },
-    ]}
-    title={
-      <BreadcrumbList.Title
-        item={{
-          type: 'page-title',
-          label: 'Client Keys (DSN)',
-          leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
-        }}
-      />
-    }
-  />
-</Storybook.Demo>
-```tsx
-<TopBar.Slot name="breadcrumbs">
-  <BreadcrumbList
-    items={[
-      {
-        type: 'link',
-        label: 'My Projects',
-        to: '/settings/org-slug/projects/',
-        leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
-      },
-    ]}
-  />
-</TopBar.Slot>
-<TopBar.Slot name="title">
-  <BreadcrumbList.Title
-    item={{
-      type: 'page-title',
-      label: 'Client Keys (DSN)',
-      leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
     }}
   />
 </TopBar.Slot>
