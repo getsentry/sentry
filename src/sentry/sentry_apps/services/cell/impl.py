@@ -41,7 +41,11 @@ from sentry.sentry_apps.services.cell.serial import (
     serialize_service_hook_project,
 )
 from sentry.sentry_apps.services.cell.service import SentryAppCellService
-from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
+from sentry.sentry_apps.utils.errors import (
+    SentryAppError,
+    SentryAppIntegratorError,
+    SentryAppSentryError,
+)
 from sentry.tsdb.base import TSDBModel
 from sentry.users.services.user import RpcUser
 
@@ -118,6 +122,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
         fields: dict[str, Any],
         uri: str,
         user: RpcUser,
+        expected_external_issue_url: str | None = None,
     ) -> RpcPlatformExternalIssueResult:
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_external_issue_actions.py @ POST
@@ -161,15 +166,17 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
         actor = GroupActionActor.user(user.id)
         try:
             with action_context_scope(source=ActionSource.API, actor=actor):
-                external_issue = IssueLinkCreator(
+                creator = IssueLinkCreator(
                     install=installation,
                     group=group,
                     action=action,
                     fields=fields,
                     uri=uri,
                     user=user,
-                ).run()
-        except (SentryAppIntegratorError, SentryAppSentryError) as e:
+                    expected_external_issue_url=expected_external_issue_url,
+                )
+                external_issue = creator.run()
+        except (SentryAppError, SentryAppIntegratorError, SentryAppSentryError) as e:
             return RpcPlatformExternalIssueResult(error=RpcSentryAppError.from_exc(e))
 
         action_cls = (
@@ -177,20 +184,22 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             if action == "create"
             else LinkPlatformExternalIssueAction
         )
-        publish_action(
-            action_cls(
-                service_type=external_issue.service_type,
-                display_name=external_issue.display_name,
-                web_url=external_issue.web_url,
-            ),
-            source=ActionSource.API,
-            group_id=group.id,
-            project=group.project,
-            actor=actor,
-        )
+        if creator.changed:
+            publish_action(
+                action_cls(
+                    service_type=external_issue.service_type,
+                    display_name=external_issue.display_name,
+                    web_url=external_issue.web_url,
+                ),
+                source=ActionSource.API,
+                group_id=group.id,
+                project=group.project,
+                actor=actor,
+            )
 
         return RpcPlatformExternalIssueResult(
-            external_issue=serialize_platform_external_issue(external_issue)
+            external_issue=serialize_platform_external_issue(external_issue),
+            changed=creator.changed if expected_external_issue_url is not None else None,
         )
 
     def create_external_issue(

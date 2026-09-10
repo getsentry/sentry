@@ -22,12 +22,18 @@ class ExternalIssueCreator:
     project: str
     identifier: str
     user_id: int | None = None
+    replace: bool = True
 
     def run(self) -> tuple[PlatformExternalIssue, bool]:
         try:
             with transaction.atomic(using=router.db_for_write(PlatformExternalIssue)):
                 display_name = f"{escape(self.project)}#{escape(self.identifier)}"
-                external_issue, created = PlatformExternalIssue.objects.update_or_create(
+                create = (
+                    PlatformExternalIssue.objects.update_or_create
+                    if self.replace
+                    else PlatformExternalIssue.objects.get_or_create
+                )
+                external_issue, created = create(
                     defaults={
                         "project_id": self.group.project_id,
                         "display_name": display_name,

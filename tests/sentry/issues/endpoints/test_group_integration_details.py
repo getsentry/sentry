@@ -1,12 +1,11 @@
 from typing import Any
 from unittest import mock
 
-from django.db.utils import IntegrityError
-
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models import Integration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
@@ -23,6 +22,7 @@ from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.users.services.user_option import get_option_from_list, user_option_service
 from sentry.utils.http import absolute_uri
+from sentry.utils.locking.lock import Lock
 
 pytestmark = [requires_snuba]
 
@@ -295,8 +295,11 @@ class GroupIntegrationDetailsTest(APITestCase):
             assert isinstance(call_arg, IntegrationError)
             assert call_arg.args == ("The whole operation was invalid",)
 
-    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
-    def test_put_group_link_already_exists(self, mock_record_halt: mock.MagicMock) -> None:
+    @mock.patch.object(ExampleIntegration, "after_link_issue")
+    @mock.patch("sentry.issues.endpoints.group_integration_details.publish_action")
+    def test_put_group_link_already_exists(
+        self, mock_publish_action: mock.MagicMock, mock_after_link: mock.MagicMock
+    ) -> None:
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
@@ -309,15 +312,79 @@ class GroupIntegrationDetailsTest(APITestCase):
             response = self.client.put(path, data={"externalIssue": "APP-123"})
 
             assert response.status_code == 201
+            assert response.data["changed"] is True
+            first_link = response.data
             self.assert_correctly_linked(group, "APP-123", integration, org)
 
             response = self.client.put(path, data={"externalIssue": "APP-123"})
-            assert response.status_code == 400
-            assert response.data == {"non_field_errors": ["That issue is already linked"]}
+            assert response.status_code == 200
+            assert response.data == {**first_link, "changed": False}
 
-        mock_record_halt.assert_called_with(mock.ANY)
-        call_arg = mock_record_halt.call_args_list[0][0][0]
-        assert isinstance(call_arg, IntegrityError)
+        mock_after_link.assert_called_once()
+        mock_publish_action.assert_called_once()
+        assert (
+            Activity.objects.filter(group=group, type=ActivityType.CREATE_ISSUE.value).count() == 1
+        )
+
+    @mock.patch.object(ExampleIntegration, "after_link_issue")
+    def test_put_link_in_progress(self, mock_after_link: mock.MagicMock) -> None:
+        self.login_as(user=self.user)
+        integration = self.create_integration(
+            organization=self.organization, provider="example", external_id="example:1"
+        )
+        external_issue = self.create_integration_external_issue(
+            group=self.create_group(), integration=integration, key="APP-123"
+        )
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{integration.id}/"
+        with (
+            self.feature("organizations:integrations-issue-basic"),
+            locks.get(
+                f"external-issue-link:{self.organization.id}:{integration.id}:{external_issue.key}",
+                duration=300,
+            ).acquire(),
+        ):
+            response = self.client.put(path, data={"externalIssue": "APP-123"})
+
+        assert response.status_code == 409
+        mock_after_link.assert_not_called()
+        assert not GroupLink.objects.get_group_issues(self.group).exists()
+
+    def test_put_refetches_external_issue_after_concurrent_unlink(self) -> None:
+        self.login_as(self.user)
+        integration = self.create_integration(
+            organization=self.organization, provider="example", external_id="example:1"
+        )
+        external_issue = self.create_integration_external_issue(
+            group=self.group, integration=integration, key="APP-123"
+        )
+        previous_id = external_issue.id
+        lock = locks.get(
+            f"external-issue-link:{self.organization.id}:{integration.id}:{external_issue.key}",
+            duration=300,
+        )
+
+        def unlink_before_lock(*args: Any, **kwargs: Any) -> Lock:
+            GroupLink.objects.get_group_issues(self.group).delete()
+            external_issue.delete()
+            return lock
+
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{integration.id}/"
+        with (
+            self.feature("organizations:integrations-issue-basic"),
+            mock.patch(
+                "sentry.issues.endpoints.group_integration_details.locks.get",
+                side_effect=unlink_before_lock,
+            ),
+        ):
+            response = self.client.put(path, data={"externalIssue": "APP-123"})
+
+        assert response.status_code == 201, response.content
+        linked = GroupLink.objects.get_group_issues(self.group).get()
+        assert linked.linked_id == response.data["id"]
+        assert linked.linked_id != previous_id
+        assert ExternalIssue.objects.filter(
+            organization=self.organization, integration_id=integration.id, id=linked.linked_id
+        ).exists()
 
     @mock.patch.object(ExampleIntegration, "after_link_issue")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
@@ -525,8 +592,10 @@ class GroupIntegrationDetailsTest(APITestCase):
 
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.delete(path, HTTP_AUTHORIZATION=f"Bearer {token.token}")
+            repeated = self.client.delete(path, HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
         assert response.status_code == 204, response.content
+        assert repeated.status_code == 204, repeated.content
         assert not ExternalIssue.objects.filter(id=external_issue.id).exists()
         assert not GroupLink.objects.get_group_issues(group, external_issue.id).exists()
         assert Group.objects.get(id=group.id).status == group.status
@@ -562,6 +631,20 @@ class GroupIntegrationDetailsTest(APITestCase):
             response = self.client.delete(path)
         assert response.status_code == 400
         assert response.data["detail"] == "Your organization does not have access to this feature."
+
+    def test_delete_absent_link_checks_integration_organization(self) -> None:
+        self.login_as(self.user)
+        integration = self.create_integration(
+            organization=self.create_organization(owner=self.user),
+            provider="example",
+            external_id="example:other",
+        )
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{integration.id}/?externalIssue=99999"
+
+        with self.feature("organizations:integrations-issue-basic"):
+            response = self.client.delete(path)
+
+        assert response.status_code == 404
 
     def test_default_project(self) -> None:
         def assert_default_project(
