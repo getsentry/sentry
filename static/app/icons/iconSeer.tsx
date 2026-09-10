@@ -28,7 +28,7 @@ const IDLE_SWEEP_RIGHT = 'M16 2C20.432 6.98 28.005 17.16 30.54 25.3';
 // two sweep paths morph via CSS `d` to draw the rotating crease line.
 // Transform chain per eye: translate to pivot, rotate, scaleX, translate
 // back to origin. Values extracted from the SMIL reference animation.
-const idleStyles = `
+const loadingStyles = `
 @keyframes seerR {
   0%      { visibility: visible; transform: translate(16px,18px) rotate(0deg) scale(1,1) translate(-16px,-18px); }
   8%      { visibility: visible; transform: translate(16.06px,18px) rotate(-0.1deg) scale(0.995,1) translate(-16px,-18px); }
@@ -99,7 +99,7 @@ export function IconSeer({animation, ...props}: IconSeerProps) {
   const iconProps = useIconDefaults(props);
   const prefersReducedMotion = useReducedMotion();
 
-  if (!prefersReducedMotion && animation === 'loading') {
+  if (!prefersReducedMotion && animation === 'idle') {
     return (
       <SvgIcon {...props}>
         <Fragment>
@@ -112,14 +112,14 @@ export function IconSeer({animation, ...props}: IconSeerProps) {
               58% { transform: translateX(-1.8px) scaleX(1); }
               100% { transform: translateX(-1.8px) scaleX(1); }
             }
-            .eye-loading {
+            .eye-idle {
               transform-box: fill-box;
               transform-origin: center;
               animation: seerRoll 4s linear infinite;
             }
           `}</style>
           <path d={bodyPath} />
-          <g className="eye-loading">
+          <g className="eye-idle">
             <path d={eyePath} />
             <circle cx="8.01857" cy="9" r="2" />
           </g>
@@ -128,7 +128,7 @@ export function IconSeer({animation, ...props}: IconSeerProps) {
     );
   }
 
-  if (!prefersReducedMotion && animation === 'idle') {
+  if (!prefersReducedMotion && animation === 'loading') {
     const size = iconProps.legacySize ?? ICON_SIZES[iconProps.size ?? 'md'];
     const fill =
       iconProps.variant === 'warning'
@@ -151,7 +151,7 @@ export function IconSeer({animation, ...props}: IconSeerProps) {
         strokeLinejoin="round"
         strokeLinecap="round"
       >
-        <style>{idleStyles}</style>
+        <style>{loadingStyles}</style>
         <defs>
           <clipPath id={clipId}>
             <path d={IDLE_BODY} />
