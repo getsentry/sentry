@@ -634,7 +634,7 @@ function UnsupportedPlatformOnboarding({
       <Prose>
         <Text as="p">
           {tct(
-            "Auto instrumentation isn't available for [platform] yet, but you can still get conversations working.",
+            "Auto instrumentation isn't available for [platform], but you can still get conversations working.",
             {
               platform: platformName,
             }

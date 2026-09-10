@@ -81,7 +81,7 @@ describe('ConversationOnboarding deployment target', () => {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          /Auto instrumentation isn't available for Browser JavaScript yet/
+          /Auto instrumentation isn't available for Browser JavaScript,/
         )
       )
     ).toBeInTheDocument();
