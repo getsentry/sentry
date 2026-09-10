@@ -10,12 +10,12 @@ from requests import PreparedRequest
 from sentry import options
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models import Integration
-from sentry.integrations.msteams.metrics import MSTEAMS_INVALID_REQUEST_ERROR_CODES
+from sentry.integrations.msteams.metrics import translate_msteams_api_error
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
-from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import SiloMode, control_silo_function
 
 # five minutes which is industry standard clock skew tolerance
@@ -96,10 +96,7 @@ class MsTeamsClient(MsTeamsClientABC, IntegrationProxyClient):
         try:
             return super().request(*args, **kwargs)
         except ApiError as error:
-            error_code = (error.json or {}).get("error", {}).get("code")
-            if error_code in MSTEAMS_INVALID_REQUEST_ERROR_CODES:
-                raise ApiInvalidRequestError(error.text, url=error.url) from error
-            raise
+            translate_msteams_api_error(error)
 
     def __init__(self, integration: Integration | RpcIntegration):
         self.integration = integration

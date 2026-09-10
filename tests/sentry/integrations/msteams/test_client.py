@@ -146,13 +146,13 @@ class MsTeamsClientTest(TestCase):
         assert self.metrics.incr.mock_calls == calls
 
     @responses.activate
-    def test_invalid_request_records_failure(self) -> None:
+    def test_invalid_request_records_halt(self) -> None:
         lifecycle = mock.MagicMock()
 
         record_lifecycle_termination_level(lifecycle, ApiInvalidRequestError("Invalid request"))
 
-        lifecycle.record_failure.assert_called_once()
-        lifecycle.record_halt.assert_not_called()
+        lifecycle.record_halt.assert_called_once()
+        lifecycle.record_failure.assert_not_called()
 
     @responses.activate
     def test_bad_syntax_records_halt(self) -> None:
@@ -167,13 +167,10 @@ class MsTeamsClientTest(TestCase):
         lifecycle.record_failure.assert_not_called()
 
     @responses.activate
-    def test_invalid_request_without_halt_code_records_failure(self) -> None:
+    def test_integration_error_records_failure(self) -> None:
         lifecycle = mock.MagicMock()
 
-        record_lifecycle_termination_level(
-            lifecycle,
-            ApiInvalidRequestError('{"error":{"code":"SomeOtherInvalidRequest","message":"nope"}}'),
-        )
+        record_lifecycle_termination_level(lifecycle, IntegrationError("nope"))
 
         lifecycle.record_failure.assert_called_once()
         lifecycle.record_halt.assert_not_called()
@@ -198,6 +195,17 @@ class MsTeamsClientTest(TestCase):
         )
 
         with pytest.raises(ApiInvalidRequestError):
+            self.msteams_client.get_channel_list("foobar")
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.client.IntegrationProxyClient.request")
+    def test_unknown_api_error_is_integration_error(self, mock_request: mock.MagicMock) -> None:
+        mock_request.side_effect = ApiError(
+            '{"error":{"code":"SomeOtherError","message":"nope"}}',
+            code=500,
+        )
+
+        with pytest.raises(IntegrationError):
             self.msteams_client.get_channel_list("foobar")
 
     @responses.activate
