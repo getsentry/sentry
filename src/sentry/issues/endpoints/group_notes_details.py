@@ -92,7 +92,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         if serve_from_log:
             # The log is authoritative for existence whether or not the entry is
             # there: a missing one means the comment is already gone.
-            record_activity_read(endpoint, ActivityReadResult.GALE)
+            record_activity_read(endpoint, ActivityReadResult.GAL)
         if original_comment_log_action is None and serve_from_log:
             raise ResourceDoesNotExist
 
@@ -180,7 +180,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
                 group.project, request.user, endpoint=endpoint
             )
             if serve_from_log:
-                record_activity_read(endpoint, ActivityReadResult.GALE)
+                record_activity_read(endpoint, ActivityReadResult.GAL)
             if original_comment_log_action is None and serve_from_log:
                 raise ResourceDoesNotExist
 

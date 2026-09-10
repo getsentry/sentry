@@ -2,7 +2,7 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry import features
 from sentry.issues.action_log.read_metrics import (
-    ActivityReadReason,
+    ActivityReadFallbackReason,
     ActivityReadResult,
     record_activity_read,
 )
@@ -50,7 +50,7 @@ def should_serve_action_log_activity(
 
     if not derived_should_be_correct(project):
         record_activity_read(
-            endpoint, ActivityReadResult.FELL_BACK, ActivityReadReason.NOT_BACKFILLED
+            endpoint, ActivityReadResult.FELL_BACK, ActivityReadFallbackReason.NOT_BACKFILLED
         )
         return False
 

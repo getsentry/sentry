@@ -9,7 +9,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.activity import _ActivitySentryAppEmbed
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
 from sentry.issues.action_log.read_metrics import (
-    ActivityReadReason,
+    ActivityReadFallbackReason,
     ActivityReadResult,
     record_activity_read,
 )
@@ -98,7 +98,7 @@ def get_serialized_activity_items(
     *,
     endpoint: str,
     limit: int = 99,
-) -> list[Any] | None:
+) -> list[dict[str, Any]] | None:
     """
     Activity-shaped items for a group, read from the action log.
 
@@ -111,14 +111,16 @@ def get_serialized_activity_items(
 
     action_log = GroupActionLogEntry.objects.get_actions_for_group(group, limit)
     if not action_log:
-        record_activity_read(endpoint, ActivityReadResult.FELL_BACK, ActivityReadReason.EMPTY_LOG)
+        record_activity_read(
+            endpoint, ActivityReadResult.FELL_BACK, ActivityReadFallbackReason.EMPTY_LOG
+        )
         logger.info(
             "issues.action_log.activity_read.not_found",
             extra={"endpoint": endpoint, "group_id": group.id},
         )
         return None
 
-    record_activity_read(endpoint, ActivityReadResult.GALE)
+    record_activity_read(endpoint, ActivityReadResult.GAL)
     return [*serialize(action_log, user), serialize_first_seen_entry(group)]
 
 

@@ -19,7 +19,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.action_log import action_context_scope, resolve_action_source
 from sentry.issues.action_log.read_metrics import (
-    ActivityReadReason,
+    ActivityReadFallbackReason,
     ActivityReadResult,
     activity_read_endpoint,
     record_activity_read,
@@ -68,7 +68,7 @@ class GroupNotesEndpoint(GroupEndpoint):
         if should_serve_action_log_activity(group.project, request.user, endpoint=endpoint):
             # No empty-log fallback on this path: once the gate is open the log is
             # authoritative for comments, including when the group has none.
-            record_activity_read(endpoint, ActivityReadResult.GALE)
+            record_activity_read(endpoint, ActivityReadResult.GAL)
             edit_entries = GroupActionLogEntry.objects.filter(
                 group_id=group.id, type=GroupActionType.COMMENT_EDIT.value
             ).order_by("-date_added", "-id")
@@ -204,12 +204,12 @@ class GroupNotesEndpoint(GroupEndpoint):
                 idempotency_key=activity_action_idempotency_key(activity),
             ).first()
             if entry:
-                record_activity_read(endpoint, ActivityReadResult.GALE)
+                record_activity_read(endpoint, ActivityReadResult.GAL)
                 return Response(serialize(entry, request.user), status=201)
             record_activity_read(
                 endpoint,
                 ActivityReadResult.FELL_BACK,
-                ActivityReadReason.EMPTY_LOG,
+                ActivityReadFallbackReason.EMPTY_LOG,
             )
             logger.info("group_notes.groupactionlogentry.not_found", extra={"group_id": group.id})
 

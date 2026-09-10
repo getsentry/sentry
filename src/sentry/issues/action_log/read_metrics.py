@@ -9,14 +9,14 @@ ACTIVITY_READ_METRIC = "issues.action_log.activity_read"
 
 class ActivityReadResult(StrEnum):
     #: The log backed the response.
-    GALE = "gale"
+    GAL = "group_action_log"
     #: The gate was open, or the flag was on, but we served Activity anyway.
     FELL_BACK = "fell_back"
     #: The read flag is off for this project, so the log was never consulted.
     FLAG_OFF = "flag_off"
 
 
-class ActivityReadReason(StrEnum):
+class ActivityReadFallbackReason(StrEnum):
     #: The project is enrolled but its backfill hasn't finished.
     NOT_BACKFILLED = "not_backfilled"
     #: The gate was open and the log came back empty.
@@ -33,7 +33,7 @@ def activity_read_endpoint(request: Request) -> str:
 def record_activity_read(
     endpoint: str,
     result: ActivityReadResult,
-    reason: ActivityReadReason | None = None,
+    reason: ActivityReadFallbackReason | None = None,
 ) -> None:
     """
     Record the outcome of one attempt to serve activity from the action log.
