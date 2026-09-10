@@ -132,22 +132,33 @@ their own alerts to be notified of new issues.
 class TeamProjectPermission(TeamPermission):
     scope_map = {
         "GET": ["project:read", "project:write", "project:admin"],
-        "POST": ["project:write", "project:admin"],
+        "POST": ["project:create", "project:write", "project:admin"],
         "PUT": ["project:write", "project:admin"],
         "DELETE": ["project:admin"],
     }
 
-    def has_object_permission(self, request: Request, view: APIView, team: Any) -> bool:
-        if super().has_object_permission(request, view, team):
-            return True
+    # Creating a project on any accessible team, rather than only on teams the
+    # caller belongs to, takes one of these.
+    elevated_create_scopes = ("project:write", "project:admin")
 
-        # Members hold project:read. A member of this team may create a project
-        # on it, matching OrganizationProjectsEndpoint. The handler enforces
-        # disable_member_project_creation so the response carries its message.
-        return (
-            request.method == "POST"
-            and request.access.has_scope("project:read")
-            and request.access.has_team_membership(team)
+    def has_object_permission(self, request: Request, view: APIView, team: Any) -> bool:
+        # Call super() first: it determines request.access, which the POST
+        # narrowing below reads.
+        allowed = super().has_object_permission(request, view, team)
+
+        if request.method != "POST" or any(
+            request.access.has_scope(scope) for scope in self.elevated_create_scopes
+        ):
+            return allowed
+
+        # Every org role holds project:create, so a member may create a project
+        # on a team they belong to, matching OrganizationProjectsEndpoint. On
+        # its own it does not reach other teams: TeamPermission tests
+        # has_team_access, which open membership widens to the whole
+        # organization. The handler enforces disable_member_project_creation so
+        # the response carries its message.
+        return request.access.has_scope("project:create") and request.access.has_team_membership(
+            team
         )
 
 

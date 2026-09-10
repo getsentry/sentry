@@ -115,9 +115,11 @@ def fetch_slugifed_email_username(email: str) -> str:
 class OrganizationProjectsPermission(StaffPermissionMixin, OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
-        # Intentionally lowered: org members can create projects when
-        # allowMemberProjectCreation is enabled on the org.
-        "POST": ["project:read", "project:write", "project:admin"],
+        # project:create is held by every org role, so members can still create
+        # projects when allowMemberProjectCreation is enabled. project:write and
+        # project:admin stay listed so tokens minted before project:create
+        # existed keep working; both imply it via SENTRY_SCOPE_HIERARCHY_MAPPING.
+        "POST": ["project:create", "project:write", "project:admin"],
     }
 
 
