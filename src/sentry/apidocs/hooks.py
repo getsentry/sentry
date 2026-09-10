@@ -5,12 +5,27 @@ from collections import OrderedDict
 from collections.abc import Mapping
 from typing import Any, Literal, TypedDict
 
+from drf_spectacular.drainage import get_override
 from drf_spectacular.generators import EndpointEnumerator, SchemaGenerator
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.apidocs.api_ownership_allowlist_dont_modify import API_OWNERSHIP_ALLOWLIST_DONT_MODIFY
 from sentry.apidocs.build import OPENAPI_TAGS
+from sentry.apidocs.omission_apply import (
+    DEPRECATE,
+    OmissionError,
+    apply_path,
+    apply_to_operations,
+    parents_by_component,
+    resolved_declarations,
+)
+from sentry.apidocs.omission_paths import VALUE
+from sentry.apidocs.omissions import (
+    DECLARING_SERIALIZERS,
+    DEPRECATION_REASONS_OVERRIDE,
+    OMISSION_REASONS_OVERRIDE,
+)
 from sentry.apidocs.utils import SentryApiBuildError
 
 HTTP_METHOD_NAME = Literal[
@@ -224,6 +239,77 @@ def _validate_request_body(
         )
 
 
+def _component_names(generator: Any) -> dict[type, str]:
+    """The component each declaring serializer produced, where it produced one."""
+    registry = getattr(generator, "registry", None)
+    names: dict[type, str] = {}
+    for component in (getattr(registry, "_components", {}) or {}).values():
+        if getattr(component, "type", None) != "schemas" or component.object is None:
+            continue
+        obj = component.object
+        names[obj if isinstance(obj, type) else type(obj)] = component.name
+    return names
+
+
+def _apply_omission_paths(result: Any, generator: Any) -> None:
+    """Withhold or mark the declared paths drf-spectacular cannot express.
+
+    One segment is handled natively; this covers the deeper paths.
+    """
+    schemas = result.get("components", {}).get("schemas")
+    if schemas is None:
+        return
+    component_names = _component_names(generator)
+    parents = parents_by_component(schemas)
+
+    # Which components declared each path, so a path into a shared shape can
+    # tell unanimity from one parent acting alone.
+    declarations: dict[str, set[str]] = {}
+    work: list[tuple[type, str, str, bool]] = []
+    seen: set[tuple[int, str]] = set()
+    for klass in DECLARING_SERIALIZERS:
+        for key in (OMISSION_REASONS_OVERRIDE, DEPRECATION_REASONS_OVERRIDE):
+            declared = get_override(klass, key, {}) or {}
+            try:
+                resolved = resolved_declarations(klass(), declared)
+            except OmissionError as exc:
+                raise SentryApiBuildError(f"{klass.__name__}: {exc}")
+            for path, resolution in resolved.items():
+                kind = resolution.kind
+                if key == DEPRECATION_REASONS_OVERRIDE:
+                    if kind == VALUE:
+                        raise SentryApiBuildError(
+                            f"{klass.__name__}: {path!r} names a choice value, which can be "
+                            f"withheld but not marked deprecated -- the generated enum is a "
+                            f"plain list with nowhere to carry the marker. Move it to "
+                            f"omit_from_public_schema, or deprecate the whole field."
+                        )
+                    kind = DEPRECATE
+                work.append((klass, path, kind, resolution.withholds_default))
+                name = component_names.get(klass)
+                if name is not None:
+                    declarations.setdefault(path, set()).add(name)
+
+    for klass, path, kind, withholds_default in work:
+        try:
+            # exclude_fields already removed the shallow omissions, so they are
+            # not in the generated operation and cannot identify it.
+            fields = set(klass().fields) - set(get_override(klass, "exclude_fields", []) or [])
+            if apply_to_operations(
+                result.get("paths", {}), fields, path, kind, withholds_default, seen
+            ):
+                continue
+            name = component_names.get(klass)
+            # A partial schema need not contain every declaring serializer, and
+            # the path already resolved against the code.
+            if name is not None and name in schemas:
+                apply_path(
+                    schemas, name, path, kind, declarations, parents, withholds_default, seen
+                )
+        except OmissionError as exc:
+            raise SentryApiBuildError(str(exc))
+
+
 def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:
     # Add servers override from endpoint class definitions
     for path, servers in _ENDPOINT_SERVERS.items():
@@ -233,6 +319,7 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
 
     _fix_issue_paths(result)
     _fix_nullable_enums(result)
+    _apply_omission_paths(result, generator)
 
     # Fetch schema component references
     schema_components = result["components"]["schemas"]
