@@ -16,6 +16,7 @@ import {IconExpand, IconInput, IconList, IconPause, IconStack} from 'sentry/icon
 import {t} from 'sentry/locale';
 
 import type {DiffMode} from './imageDisplay/diffImageDisplay';
+import {KeyboardShortcutsButton} from './keyboardShortcutsButton';
 
 const TRANSPARENT_COLOR = 'transparent';
 
@@ -72,6 +73,7 @@ export function ToolbarContainer({
             </Flex>
           )}
           <Flex display={{zero: 'none', xl: 'flex'}}>{soloDiffToggle}</Flex>
+          <KeyboardShortcutsButton />
         </Flex>
       </Flex>
       <Separator orientation="horizontal" />
