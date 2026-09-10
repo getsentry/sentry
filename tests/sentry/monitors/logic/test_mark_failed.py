@@ -349,6 +349,117 @@ class MarkFailedTestCase(TestCase):
         assert mock_dispatch_incident_occurrence.call_count == 0
         assert monitor_environment.active_incident is not None
 
+    @mock.patch("sentry.monitors.logic.incidents.metrics")
+    @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
+    def test_mark_failed_issue_threshold_history_underrun(
+        self,
+        mock_dispatch_incident_occurrence: mock.MagicMock,
+        mock_metrics: mock.MagicMock,
+    ) -> None:
+        """
+        A brand new monitor environment has fewer historical check-ins than
+        the configured failure_issue_threshold, so an incident can fire on
+        the very first failed check-in. This degenerate case should be
+        tracked via the monitors.incidents.threshold_history_underrun metric.
+        """
+        failure_issue_threshold = 3
+        monitor = Monitor.objects.create(
+            name="test monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "failure_issue_threshold": failure_issue_threshold,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
+        )
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.OK,
+        )
+
+        # The very first check-in ever recorded for this monitor environment
+        # is a failure - there's no prior history to evaluate against the
+        # configured threshold.
+        checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.ERROR,
+        )
+        mark_failed(checkin, failed_at=checkin.date_added)
+
+        monitor_environment.refresh_from_db()
+        assert monitor_environment.status == MonitorStatus.ERROR
+
+        mock_metrics.incr.assert_any_call(
+            "monitors.incidents.threshold_history_underrun",
+            tags={
+                "org_slug": self.organization.slug,
+                "checkin_count_at_incident": "1",
+                "failure_issue_threshold": str(failure_issue_threshold),
+            },
+        )
+
+    @mock.patch("sentry.monitors.logic.incidents.metrics")
+    @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
+    def test_mark_failed_issue_threshold_no_history_underrun(
+        self,
+        mock_dispatch_incident_occurrence: mock.MagicMock,
+        mock_metrics: mock.MagicMock,
+    ) -> None:
+        """
+        When enough check-in history already exists to fill the threshold
+        window, no underrun metric should be emitted.
+        """
+        failure_issue_threshold = 2
+        monitor = Monitor.objects.create(
+            name="test monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "failure_issue_threshold": failure_issue_threshold,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
+        )
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.OK,
+        )
+
+        MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.OK,
+        )
+
+        for _ in range(0, failure_issue_threshold):
+            checkin = MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                status=CheckInStatus.ERROR,
+            )
+            mark_failed(checkin, failed_at=checkin.date_added)
+
+        monitor_environment.refresh_from_db()
+        assert monitor_environment.status == MonitorStatus.ERROR
+
+        underrun_calls = [
+            call
+            for call in mock_metrics.incr.call_args_list
+            if call.args and call.args[0] == "monitors.incidents.threshold_history_underrun"
+        ]
+        assert underrun_calls == []
+
     def test_mark_failed_issue_assignment(self) -> None:
         monitor = Monitor.objects.create(
             name="test monitor",
