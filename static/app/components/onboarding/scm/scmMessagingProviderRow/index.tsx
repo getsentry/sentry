@@ -124,6 +124,11 @@ function getInstallErrorMessage(
 
 export interface ScmMessagingProviderRowProps {
   activeRow: ScmMessagingActiveRow;
+  /**
+   * True while Confirm and continue is waiting on revalidation or project
+   * create. Required alongside `onContinue` so Confirm cannot stay idle.
+   */
+  isContinuing: boolean;
   messagingSetup: ScmMessagingSetup;
   onActiveRowChange: (row: ScmMessagingActiveRow) => void;
   onContinue: () => void;
@@ -162,6 +167,7 @@ export function ScmMessagingProviderRow({
   onActiveRowChange,
   renderChannelPicker,
   isRefetchingIntegrations = false,
+  isContinuing,
   onContinue,
 }: ScmMessagingProviderRowProps) {
   const organization = useOrganization();
@@ -330,6 +336,7 @@ export function ScmMessagingProviderRow({
                   onCancel={handleCancelConfiguring}
                   onConfigured={handleConfigured}
                   existingSetup={isConfigured ? messagingSetup : undefined}
+                  isContinuing={isContinuing}
                 />
               )}
             </Container>

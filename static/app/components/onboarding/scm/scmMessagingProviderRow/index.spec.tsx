@@ -154,6 +154,7 @@ function ControlledRow({
       onMessagingSetupChange={onMessagingSetupChange}
       renderChannelPicker={renderChannelPicker}
       isRefetchingIntegrations={isRefetchingIntegrations}
+      isContinuing={false}
     />
   );
 }
@@ -377,6 +378,7 @@ describe('ScmMessagingProviderRow', () => {
           onContinue={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
+          isContinuing={false}
         />,
         {organization}
       );
@@ -399,6 +401,7 @@ describe('ScmMessagingProviderRow', () => {
           onContinue={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
+          isContinuing={false}
         />
       );
 
@@ -434,6 +437,7 @@ describe('ScmMessagingProviderRow', () => {
           onContinue={jest.fn()}
           onInstallComplete={onInstallComplete}
           onMessagingSetupChange={jest.fn()}
+          isContinuing={false}
         />
       );
 
@@ -452,6 +456,7 @@ describe('ScmMessagingProviderRow', () => {
           onContinue={jest.fn()}
           onInstallComplete={onInstallComplete}
           onMessagingSetupChange={jest.fn()}
+          isContinuing={false}
           isRefetchingIntegrations
         />
       );
@@ -481,6 +486,7 @@ describe('ScmMessagingProviderRow', () => {
           onContinue={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
+          isContinuing={false}
         />,
         {organization}
       );
@@ -498,6 +504,7 @@ describe('ScmMessagingProviderRow', () => {
           onContinue={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
+          isContinuing={false}
           isRefetchingIntegrations
         />
       );
@@ -514,6 +521,7 @@ describe('ScmMessagingProviderRow', () => {
           onContinue={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
+          isContinuing={false}
         />
       );
 

@@ -83,10 +83,12 @@ function mockChannelValidate(valid: boolean, integrationId: string) {
 function renderPicker({
   eligibleIntegrations = [slackIntegration],
   existingSetup,
+  isContinuing,
   providerKey = 'slack',
 }: {
   eligibleIntegrations?: OrganizationIntegration[];
   existingSetup?: ScmMessagingSetup;
+  isContinuing?: boolean;
   providerKey?: ScmMessagingProviderKey;
 } = {}) {
   const onConfigured = jest.fn();
@@ -97,6 +99,7 @@ function renderPicker({
       providerKey={providerKey}
       onConfigured={onConfigured}
       existingSetup={existingSetup}
+      isContinuing={isContinuing}
     />,
     {organization}
   );
@@ -175,6 +178,16 @@ describe('ScmMessagingChannelPicker', () => {
       renderPicker({eligibleIntegrations: [slackIntegration]});
 
       expect(screen.getByRole('button', {name: 'Confirm and continue'})).toBeDisabled();
+    });
+
+    it('busies Confirm and continue while isContinuing', () => {
+      mockChannels('10', [slackChannel]);
+      renderPicker({eligibleIntegrations: [slackIntegration], isContinuing: true});
+
+      expect(screen.getByRole('button', {name: 'Confirm and continue'})).toHaveAttribute(
+        'aria-busy',
+        'true'
+      );
     });
   });
 
