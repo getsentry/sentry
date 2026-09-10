@@ -18,7 +18,6 @@ from sentry.ai_monitoring.utils import (
 from sentry.ai_monitoring.utils import (
     get_last_output as _get_last_output,
 )
-from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.spans_rpc import Spans
@@ -278,21 +277,21 @@ def test_group_filter_preserves_source_predicate(predicate: str) -> None:
         "count():>0",
         "avg(span.duration):>2s",
         "min(span.duration):>2s",
-        "max(timestamp):>2023-06-01",
         "failure_count():0",
         "!sum(span.duration):>2s",
         "totalCost:>10 OR (sum(span.duration):>2s)",
         "count_if(`gen_ai.tool.name:search`,span.duration):>0",
     ],
 )
-def test_group_filter_rejects_explicit_aggregates(query: str) -> None:
+def test_group_filter_preserves_explicit_aggregates(query: str) -> None:
     resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
-    with pytest.raises(InvalidSearchQuery, match="Explicit aggregates are not supported"):
-        compile_conversation_query(query, resolver)
+    compiled = compile_conversation_query(query, resolver)
+    _, having, _ = resolver.resolve_query(compiled)
+    assert having is not None
 
 
 @pytest.mark.parametrize("operator", ["=", "!=", ">", ">=", "<", "<="])
-def test_summary_filter_preserves_eap_null_semantics(operator: str) -> None:
+def test_alias_filter_preserves_eap_null_semantics(operator: str) -> None:
     resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
     compiled = compile_conversation_query(f"totalCost:{operator}0", resolver)
     _, having, _ = resolver.resolve_query(compiled)
@@ -309,11 +308,11 @@ def test_group_filter_accepts_long_text() -> None:
     assert having is not None
 
 
-def test_group_filter_pushes_down_exact_id() -> None:
+def test_group_filter_compiles_exact_id() -> None:
     resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
-    assert (
-        compile_conversation_query('gen_ai.conversation.id:"session:123"', resolver)
-        == 'gen_ai.conversation.id:"session:123"'
+    assert compile_conversation_query('gen_ai.conversation.id:"session:123"', resolver) == (
+        "has:gen_ai.conversation.id has:gen_ai.operation.type AND "
+        '(count_if(`gen_ai.conversation.id:"session:123"`,span.duration):>0)'
     )
 
 
@@ -605,6 +604,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             ("has:gen_ai.tool.name", ["a", "b"]),
             ("!has:gen_ai.tool.name", ["c"]),
             ("totalCost:>10", ["a"]),
+            ("sum(gen_ai.cost.total_tokens):>10", ["a"]),
+            ("count_if(`gen_ai.tool.name:search`,span.duration):>0", ["a", "b"]),
             ('"totalCost":>10', ["a"]),
             ("total_cost:>10 gen_ai.tool.name:search", ["a"]),
             (
@@ -733,17 +734,13 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             "toolCalls:1 OR OR errors:0",
             "(gen_ai.tool.name:search",
             "collect_unique(trace):>0",
-            "sum(gen_ai.cost.total_tokens):>10",
-            "count_if(`gen_ai.tool.name:search`,span.duration):>0",
             'span.description:"literal ` backtick"',
             "has:totalCost",
             'has:"total_cost"',
             "!has:totalCost",
-            "count_if(`gen_ai.tool.name:search sum(span.duration):>0`,span.duration):>0",
             "count_if(`(broken`,span.duration):>0",
             "gen_ai.tool.name:search " * 51,
             "(" * 21 + "gen_ai.tool.name:search" + ")" * 21,
-            "count_if(`" + "(" * 21 + "gen_ai.tool.name:search" + ")" * 21 + "`,span.duration):>0",
         ]:
             with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
                 response = self.do_request({"project": [self.project.id], "query": search})
