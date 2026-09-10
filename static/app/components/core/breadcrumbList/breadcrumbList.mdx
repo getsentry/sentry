@@ -109,89 +109,7 @@ Because `BreadcrumbList.Title` carries no heading, this composition still
 produces exactly one `<h1>` even when the title includes pagination, a leading
 graphic, trailing actions, or an editable control.
 
-## Item types
-
-### `'link'` — parent page
-
-A clickable, muted-weight crumb that navigates to a parent page. It takes a
-string `label`, a `to` destination, and an optional `leadingGraphic`.
-
-Page filters are not carried automatically — see [Page filters](#page-filters).
-
-<Storybook.Demo>
-  <BreadcrumbListDemo
-    items={[
-      {
-        type: 'link',
-        label: 'A very long project name that will be truncated',
-        to: '/organizations/org-slug/projects/',
-      },
-      {
-        type: 'link',
-        label: 'Issues',
-        to: '/organizations/org-slug/issues/',
-      },
-    ]}
-  />
-</Storybook.Demo>
-```tsx
-<TopBar.Slot name="breadcrumbs">
-  <BreadcrumbList
-    items={[
-      {type: 'link', label: 'Projects', to: '/organizations/org-slug/projects/'},
-      {
-        type: 'link',
-        label: 'Issues',
-        to: {pathname: '/issues/', query: extractSelectionParameters(location.query)},
-      },
-    ]}
-  />
-</TopBar.Slot>
-```
-
-### `'select-projects'` — project picker
-
-A `CompactSelect` trigger used in settings pages where the user can switch
-between projects inline. It accepts standard `options`, `value`, and `onChange`
-props.
-
-<Storybook.Demo>
-  <BreadcrumbListDemo
-    items={[
-      {type: 'link', label: 'Settings', to: '/settings/'},
-      {
-        type: 'select-projects',
-        value: 'javascript',
-        options: [
-          {value: 'javascript', label: 'javascript'},
-          {value: 'python', label: 'python'},
-          {value: 'ruby', label: 'ruby'},
-        ],
-        onChange: () => {},
-      },
-    ]}
-  />
-</Storybook.Demo>
-```tsx
-<TopBar.Slot name="breadcrumbs">
-  <BreadcrumbList
-    items={[
-      {type: 'link', label: 'Settings', to: '/settings/'},
-      {
-        type: 'select-projects',
-        value: 'javascript',
-        options: [
-          {value: 'javascript', label: 'javascript'},
-          {value: 'python', label: 'python'},
-        ],
-        onChange: option => navigate(`/settings/${org.slug}/projects/${option.value}/`),
-      },
-    ]}
-  />
-</TopBar.Slot>
-```
-
-## Page filters
+### Page filters
 
 A crumb that links to a bare pathname does not leave the page-filter selection
 alone — it **clears** it. `PageFiltersContainer` reconciles its store against the
@@ -237,7 +155,47 @@ const query = {
 > configuration destination has no use for a stale `statsPeriod`. Decide per
 > crumb based on whether the destination is filtered.
 
-## Page titles
+## Item types
+
+### `'link'` — parent page
+
+A clickable, muted-weight crumb that navigates to a parent page. It takes a
+string `label`, a `to` destination, and an optional `leadingGraphic`.
+
+Page filters are not carried automatically — see [Page filters](#page-filters).
+
+<Storybook.Demo>
+  <BreadcrumbListDemo
+    items={[
+      {
+        type: 'link',
+        label: 'A very long project name that will be truncated',
+        to: '/organizations/org-slug/projects/',
+      },
+      {
+        type: 'link',
+        label: 'Issues',
+        to: '/organizations/org-slug/issues/',
+      },
+    ]}
+  />
+</Storybook.Demo>
+```tsx
+<TopBar.Slot name="breadcrumbs">
+  <BreadcrumbList
+    items={[
+      {type: 'link', label: 'Projects', to: '/organizations/org-slug/projects/'},
+      {
+        type: 'link',
+        label: 'Issues',
+        to: {pathname: '/issues/', query: extractSelectionParameters(location.query)},
+      },
+    ]}
+  />
+</TopBar.Slot>
+```
+
+### `'page-title'` — the current page
 
 The `page-title` item is rendered with `BreadcrumbList.Title`, not in the
 `BreadcrumbList.items` array. It is bold, non-interactive, and renders as inline
@@ -273,108 +231,7 @@ demo below mirrors that heading and flex layout.
 </TopBar.Slot>
 ```
 
-## Leading graphics
-
-All parent and title items that display text accept an optional `leadingGraphic`
-typed as `React.ReactNode` — for example, a `ProjectsBadge`, avatar, or
-Sentry icon. It is rendered as decorative content in a fixed 16×16 slot, so the
-label carries the meaning.
-
-<Storybook.Demo>
-  <BreadcrumbListDemo
-    items={[
-      {
-        type: 'link',
-        label: 'My Projects',
-        to: '/settings/org-slug/projects/',
-        leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
-      },
-    ]}
-    title={
-      <BreadcrumbList.Title
-        item={{
-          type: 'page-title',
-          label: 'Client Keys (DSN)',
-          leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
-        }}
-      />
-    }
-  />
-</Storybook.Demo>
-```tsx
-<TopBar.Slot name="breadcrumbs">
-  <BreadcrumbList
-    items={[
-      {
-        type: 'link',
-        label: 'My Projects',
-        to: '/settings/org-slug/projects/',
-        leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
-      },
-    ]}
-  />
-</TopBar.Slot>
-<TopBar.Slot name="title">
-  <BreadcrumbList.Title
-    item={{
-      type: 'page-title',
-      label: 'Client Keys (DSN)',
-      leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
-    }}
-  />
-</TopBar.Slot>
-```
-
-## Editable titles
-
-The `editable-title` item renders the current page as a click-to-edit field for
-pages that let users rename in place. Pass the editable field props directly on
-the `editable-title` item passed to `BreadcrumbList.Title`. Unlike
-`page-title`, it has no `trailingActions` slot; `EditableText` provides its own
-edit affordance.
-
-<Storybook.Demo>
-  <BreadcrumbListDemo
-    items={[
-      {
-        type: 'link',
-        label: 'Dashboards',
-        to: '/organizations/org-slug/dashboards/',
-      },
-    ]}
-    title={
-      <BreadcrumbList.Title
-        item={{
-          type: 'editable-title',
-          value: 'Frontend Overview',
-          onChange: () => null,
-          'aria-label': 'Edit dashboard name',
-        }}
-      />
-    }
-  />
-</Storybook.Demo>
-```tsx
-<TopBar.Slot name="breadcrumbs">
-  <BreadcrumbList
-    items={[
-      {type: 'link', label: 'Dashboards', to: '/organizations/org-slug/dashboards/'},
-    ]}
-  />
-</TopBar.Slot>
-<TopBar.Slot name="title">
-  <BreadcrumbList.Title
-    item={{
-      type: 'editable-title',
-      value: dashboard.title,
-      onChange: handleRename,
-      'aria-label': 'Edit dashboard name',
-    }}
-  />
-</TopBar.Slot>
-```
-
-## Pagination
+#### Pagination
 
 The `page-title` item accepts an optional `pagination` prop for pages where the
 user can step through a list of items, such as issues, replays, or traces. Each
@@ -486,7 +343,7 @@ a chevron below and move onto the tooltip to reach the link.
 />
 ```
 
-## Trailing actions
+#### Trailing actions
 
 The `page-title` item accepts a `trailingActions` slot rendered after the label,
 for example a copy action or page-level menu. The slot is bounded to
@@ -558,15 +415,116 @@ a row of icons competing for the same space.
 </TopBar.Slot>
 ```
 
+### `'editable-title'` — rename in place
+
+The `editable-title` item renders the current page as a click-to-edit field for
+pages that let users rename in place. Pass the editable field props directly on
+the `editable-title` item passed to `BreadcrumbList.Title`. Unlike
+`page-title`, it has no `trailingActions` slot; `EditableText` provides its own
+edit affordance.
+
+<Storybook.Demo>
+  <BreadcrumbListDemo
+    items={[
+      {
+        type: 'link',
+        label: 'Dashboards',
+        to: '/organizations/org-slug/dashboards/',
+      },
+    ]}
+    title={
+      <BreadcrumbList.Title
+        item={{
+          type: 'editable-title',
+          value: 'Frontend Overview',
+          onChange: () => null,
+          'aria-label': 'Edit dashboard name',
+        }}
+      />
+    }
+  />
+</Storybook.Demo>
+```tsx
+<TopBar.Slot name="breadcrumbs">
+  <BreadcrumbList
+    items={[
+      {type: 'link', label: 'Dashboards', to: '/organizations/org-slug/dashboards/'},
+    ]}
+  />
+</TopBar.Slot>
+<TopBar.Slot name="title">
+  <BreadcrumbList.Title
+    item={{
+      type: 'editable-title',
+      value: dashboard.title,
+      onChange: handleRename,
+      'aria-label': 'Edit dashboard name',
+    }}
+  />
+</TopBar.Slot>
+```
+
+## Leading graphics
+
+All parent and title items that display text accept an optional `leadingGraphic`
+typed as `React.ReactNode` — for example, a `ProjectsBadge`, avatar, or
+Sentry icon. It is rendered as decorative content in a fixed 16×16 slot, so the
+label carries the meaning.
+
+<Storybook.Demo>
+  <BreadcrumbListDemo
+    items={[
+      {
+        type: 'link',
+        label: 'My Projects',
+        to: '/settings/org-slug/projects/',
+        leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
+      },
+    ]}
+    title={
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: 'Client Keys (DSN)',
+          leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
+        }}
+      />
+    }
+  />
+</Storybook.Demo>
+```tsx
+<TopBar.Slot name="breadcrumbs">
+  <BreadcrumbList
+    items={[
+      {
+        type: 'link',
+        label: 'My Projects',
+        to: '/settings/org-slug/projects/',
+        leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
+      },
+    ]}
+  />
+</TopBar.Slot>
+<TopBar.Slot name="title">
+  <BreadcrumbList.Title
+    item={{
+      type: 'page-title',
+      label: 'Client Keys (DSN)',
+      leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
+    }}
+  />
+</TopBar.Slot>
+```
+
 ## Overflow (container query)
 
 `BreadcrumbList` uses the nearest inline-size query container. Standalone lists
 establish their own container; lists rendered in the TopBar `breadcrumbs` slot
 reuse the TopBar's flexible content region so the slot remains content-sized.
-Below 512px, parent items hide and link parents collapse into a single `…`
-overflow button. Other parent types, such as `select-projects`, simply collapse
-out of view. The page title is rendered separately in the title slot and remains
-visible there.
+Below 512px, parent items hide and `'link'` parents collapse into a single `…`
+overflow button. Any other parent type simply collapses out of view — only links
+survive in the overflow menu. The page title is rendered separately in the title
+slot and remains visible there.
 
 Drag the resize handle to see the transition:
 
