@@ -405,9 +405,9 @@ export function NativeFrame({
           {hiddenFrameCount ? (
             <Flex
               column={{
-                zero: '2 / 5',
-                xl: expandable ? '5 / 7' : '5 / 8',
-                '2xl': expandable ? '6 / 8' : '6 / 9',
+                zero: '2 / 4',
+                xl: '5 / 7',
+                '2xl': '6 / 8',
               }}
               justify="end"
               minWidth="0"
@@ -463,7 +463,11 @@ export function NativeFrame({
             )}
             {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
           </Flex>
-          <Container column={{zero: '4', xl: '7', '2xl': '8'}} justifySelf="end">
+          <Container
+            column={{zero: '4', xl: '7', '2xl': '8'}}
+            justifySelf="end"
+            row={{zero: hiddenFrameCount ? '4' : '1', xl: '1'}}
+          >
             {expandable && (
               <ToggleButton
                 type="button"
