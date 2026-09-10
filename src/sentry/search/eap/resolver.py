@@ -566,6 +566,9 @@ class SearchResolver:
         resolved_column, context_definition = self.resolve_column(term.key.name)
         self._raise_if_hidden_api_attribute(term.key.name, resolved_column)
 
+        if context_definition is not None and term.value.is_wildcard():
+            raise InvalidSearchQuery(f"Cannot use wildcards with {term.key.name}")
+
         value = term.value.value
         if self.params.is_timeseries_request and context_definition is not None:
             resolved_column, value = self.map_search_term_context_to_original_column(
@@ -576,11 +579,6 @@ class SearchResolver:
 
         if not isinstance(resolved_column.proto_definition, AttributeKey):
             raise ValueError(f"{term.key.name} is not valid search term")
-
-        if context_definition:
-            if term.value.is_wildcard():
-                # Avoiding this for now, but we could theoretically do a wildcard search on the resolved contexts
-                raise InvalidSearchQuery(f"Cannot use wildcards with {term.key.name}")
 
         if term.value.is_wildcard():
             is_list = False
