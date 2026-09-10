@@ -35,7 +35,7 @@ from sentry.utils.prompts import seer_monitoring_provider_dont_ask_feature
 class TestSeerAgentClient(TestCase):
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
-    def test_read_only_workflow_uses_chat_with_failure_hook(self, mock_post, mock_access):
+    def test_read_only_workflow_uses_chat(self, mock_post, mock_access):
         mock_post.return_value = self._mock_run_response()
         client = SeerAgentClient(
             self.organization,
@@ -43,14 +43,13 @@ class TestSeerAgentClient(TestCase):
             enable_code_mode_tools="only",
             code_mode_read_only=True,
             on_completion_hook=MonitorCleanupCompletionHook,
-            call_on_failure=True,
         )
         client.start_run("Find duplicate monitors")
         body = mock_post.call_args[0][0]
         assert body["agent_run_options"]["enable_code_mode_tools"] == "only"
         assert body["agent_run_options"]["code_mode_read_only"] is True
         assert body["agent_run_options"]["enable_coding"] is False
-        assert body["on_completion_hook"]["call_on_failure"] is True
+        assert body["on_completion_hook"]["call_on_failure"] is False
 
     def setUp(self) -> None:
         super().setUp()

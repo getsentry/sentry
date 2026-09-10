@@ -128,7 +128,6 @@ def scan_project(shard_id: int) -> None:
                 code_mode_read_only=True,
                 max_iterations=50,
                 on_completion_hook=MonitorCleanupCompletionHook,
-                call_on_failure=True,
             )
             client.start_run(
                 prompt=(
