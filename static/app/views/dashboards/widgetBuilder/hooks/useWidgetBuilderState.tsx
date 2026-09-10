@@ -1,6 +1,14 @@
-import {useCallback, useEffect, useMemo, useRef, type RefObject} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState, type RefObject} from 'react';
 import partition from 'lodash/partition';
-import {createMultiParser, createParser, parseAsNativeArrayOf, parseAsString} from 'nuqs';
+import {
+  createMultiParser,
+  createParser,
+  debounce,
+  parseAsNativeArrayOf,
+  parseAsString,
+  useQueryState,
+  useQueryStates,
+} from 'nuqs';
 
 import {defined} from 'sentry/utils/defined';
 import {
@@ -31,7 +39,6 @@ import {
 } from 'sentry/views/dashboards/utils';
 import {getAxisRange, type AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
-import {useSeededQueryState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSeededQueryState';
 import {
   DISABLED_SORT,
   TAG_SORT_DENY_LIST,
@@ -316,49 +323,42 @@ export function useWidgetBuilderState(): {
   dispatch: (action: WidgetAction, options?: WidgetBuilderStateActionOptions) => void;
   state: WidgetBuilderState;
 } {
-  const [title, setTitle] = useSeededQueryState('title', parseAsString);
-  const [description, setDescription] = useSeededQueryState('description', parseAsString);
-  const [displayType, setDisplayType] = useSeededQueryState(
-    'displayType',
-    parseAsDisplayType
-  );
-  const [dataset, setDataset] = useSeededQueryState('dataset', parseAsDataset);
+  const [
+    {
+      title,
+      description,
+      displayType,
+      dataset,
+      fields,
+      yAxis,
+      query,
+      sort,
+      limit,
+      legendAlias,
+      legendType,
+      selectedAggregate,
+      thresholds,
+      linkedDashboards,
+      axisRange,
+    },
+    setField,
+  ] = useBuilderQueryState();
 
-  // The sort encoding depends on the dataset, but nuqs captures a key's parser
-  // once, so a parser rebuilt from `dataset` on every render would be read back
-  // stale. The parser reads the dataset through a ref instead, which is only
-  // ever consulted from nuqs' event handlers, after this effect has run.
-  const datasetRef = useRef(dataset);
-  useEffect(() => {
-    datasetRef.current = dataset;
-  }, [dataset]);
-
-  const [fields, setFields] = useSeededQueryState('field', parseAsColumns);
-  const [yAxis, setYAxis] = useSeededQueryState('yAxis', parseAsColumns);
-  const [query, setQuery] = useSeededQueryState('query', parseAsQueries);
-  const [sort, setSort] = useSeededQueryState('sort', parseAsWidgetSorts(datasetRef));
-  const [limit, setLimit] = useSeededQueryState('limit', parseAsLimit);
-  const [legendAlias, setLegendAlias] = useSeededQueryState(
-    'legendAlias',
-    parseAsStringList
-  );
-  const [legendType, setLegendType] = useSeededQueryState(
-    'legendType',
-    parseAsLegendType
-  );
-  const [selectedAggregate, setSelectedAggregate] = useSeededQueryState(
-    'selectedAggregate',
-    parseAsSelectedAggregate
-  );
-  const [thresholds, setThresholds] = useSeededQueryState(
-    'thresholds',
-    parseAsThresholds
-  );
-  const [linkedDashboards, setLinkedDashboards] = useSeededQueryState(
-    'linkedDashboards',
-    parseAsLinkedDashboards
-  );
-  const [axisRange, setAxisRange] = useSeededQueryState('axisRange', parseAsAxisRange);
+  const setTitle = useFieldSetter(setField, 'title');
+  const setDescription = useFieldSetter(setField, 'description');
+  const setDisplayType = useFieldSetter(setField, 'displayType');
+  const setDataset = useFieldSetter(setField, 'dataset');
+  const setFields = useFieldSetter(setField, 'fields');
+  const setYAxis = useFieldSetter(setField, 'yAxis');
+  const setQuery = useFieldSetter(setField, 'query');
+  const setSort = useFieldSetter(setField, 'sort');
+  const setLimit = useFieldSetter(setField, 'limit');
+  const setLegendAlias = useFieldSetter(setField, 'legendAlias');
+  const setLegendType = useFieldSetter(setField, 'legendType');
+  const setSelectedAggregate = useFieldSetter(setField, 'selectedAggregate');
+  const setThresholds = useFieldSetter(setField, 'thresholds');
+  const setLinkedDashboards = useFieldSetter(setField, 'linkedDashboards');
+  const setAxisRange = useFieldSetter(setField, 'axisRange');
 
   const [textContent, setTextContent, _removeTextContent] = useSessionStorage<
     string | undefined
@@ -1498,6 +1498,164 @@ const parseAsAxisRange = createParser({
   parse: (value: string) => getAxisRange(value) ?? null,
   serialize: (value: AxisRange) => value,
 });
+
+/**
+ * Matches the debounce the URL writes used to sit behind, so a field being
+ * typed into still reaches the URL at roughly the same cadence as before.
+ */
+const URL_WRITE_DEBOUNCE_MS = 300;
+
+/**
+ * Every URL-backed builder field except `dataset`, which is read on its own
+ * below, and `sort`, whose parser depends on the dataset and so is built per
+ * render.
+ */
+const GROUPED_PARSERS = {
+  title: parseAsString,
+  description: parseAsString,
+  displayType: parseAsDisplayType,
+  fields: parseAsColumns,
+  yAxis: parseAsColumns,
+  query: parseAsQueries,
+  limit: parseAsLimit,
+  legendAlias: parseAsStringList,
+  legendType: parseAsLegendType,
+  selectedAggregate: parseAsSelectedAggregate,
+  thresholds: parseAsThresholds,
+  linkedDashboards: parseAsLinkedDashboards,
+  axisRange: parseAsAxisRange,
+};
+
+/**
+ * `fields` is spelled `field` in the URL; every other key matches.
+ */
+const BUILDER_URL_KEYS = {fields: 'field'};
+
+type BuilderQueryValues = {
+  [K in keyof Omit<WidgetBuilderState, 'textContent'>]: WidgetBuilderState[K];
+};
+
+type SetBuilderField = <K extends keyof BuilderQueryValues>(
+  key: K,
+  value: BuilderQueryValues[K] | null,
+  options?: {debounceUrl?: boolean}
+) => void;
+
+/**
+ * What a parser makes of a param that isn't in the URL at all.
+ */
+function parseAbsent(parser: {parse: (value: any) => unknown; type?: string}): unknown {
+  return parser.type === 'multi' ? parser.parse([]) : parser.parse('');
+}
+
+/**
+ * The builder's URL-backed fields, read and written as one unit.
+ *
+ * A single object holds every value that is not (yet) in the URL, and a key
+ * present in it shadows the URL until that key is set again. It covers two
+ * cases that nuqs alone can't express:
+ *
+ * - the seed. `useLocationQuery` decoded a missing scalar as `''`, and several
+ *   parsers turn that into a real value — a missing `displayType` meant a
+ *   table, a missing `dataset` meant errors. nuqs skips `parse` for an absent
+ *   key. These are held here rather than handed to nuqs as defaults because a
+ *   default is re-applied on every read, and `dataset` and `limit` must stay
+ *   clearable: switching to a text widget empties both.
+ * - an explicit `null`. Callers rely on the difference between a field that was
+ *   never set and one that was cleared, since only the latter should overwrite
+ *   a saved widget.
+ *
+ * `dataset` gets its own query state because `sort`'s parser needs it: issue
+ * widgets encode sorts without a `-` prefix. nuqs captures a key's parser once,
+ * so that parser reads the dataset through a ref, and the ref can only be
+ * seeded before the grouped state is created.
+ */
+function useBuilderQueryState(): [BuilderQueryValues, SetBuilderField] {
+  const [urlDataset, setUrlDataset] = useQueryState('dataset', parseAsDataset);
+
+  const datasetRef = useRef<WidgetType | undefined>(
+    urlDataset ?? (parseAbsent(parseAsDataset) as WidgetType | undefined)
+  );
+
+  const [urlRest, setUrlRest] = useQueryStates(
+    {...GROUPED_PARSERS, sort: parseAsWidgetSorts(datasetRef)},
+    {urlKeys: BUILDER_URL_KEYS}
+  );
+
+  const [local, setLocal] = useState<Partial<BuilderQueryValues>>(() => {
+    const parsers: Record<string, any> = {
+      ...GROUPED_PARSERS,
+      dataset: parseAsDataset,
+    };
+    const fromUrl: Record<string, unknown> = {...urlRest, dataset: urlDataset};
+
+    return Object.fromEntries(
+      Object.keys(parsers)
+        .filter(key => fromUrl[key] === null)
+        .map(key => [key, parseAbsent(parsers[key])])
+        .filter(([, value]) => value !== null && value !== undefined)
+    );
+  });
+
+  const values = useMemo(() => {
+    const fromUrl = Object.fromEntries(
+      Object.entries({...urlRest, dataset: urlDataset}).map(([key, value]) => [
+        key,
+        value ?? undefined,
+      ])
+    ) as BuilderQueryValues;
+
+    return {...fromUrl, ...local};
+  }, [urlRest, urlDataset, local]);
+
+  useEffect(() => {
+    datasetRef.current = values.dataset;
+  }, [values.dataset]);
+
+  const setField = useCallback<SetBuilderField>(
+    (key, value, {debounceUrl = false} = {}) => {
+      setLocal(previous => {
+        const next = {...previous};
+        if (value === null) {
+          // A cleared field is held, not dropped: `null` here means "cleared",
+          // while an absent key means "whatever the URL says".
+          next[key] = null as BuilderQueryValues[typeof key];
+        } else {
+          delete next[key];
+        }
+        return next;
+      });
+
+      const options = debounceUrl
+        ? {limitUrlUpdates: debounce(URL_WRITE_DEBOUNCE_MS)}
+        : {};
+
+      if (key === 'dataset') {
+        setUrlDataset((value ?? null) as WidgetType | null, options);
+        return;
+      }
+      setUrlRest({[key]: value ?? null}, options);
+    },
+    [setUrlDataset, setUrlRest]
+  );
+
+  return [values, setField];
+}
+
+/**
+ * Binds `setField` to one key, so the reducer keeps calling `setTitle(value)`
+ * and its dependency list stays stable.
+ */
+function useFieldSetter<K extends keyof BuilderQueryValues>(
+  setField: SetBuilderField,
+  key: K
+) {
+  return useCallback(
+    (value: BuilderQueryValues[K] | null, options?: {debounceUrl?: boolean}) =>
+      setField(key, value, options),
+    [setField, key]
+  );
+}
 
 function checkTraceMetricSortUsed(
   sort: Sort[],
