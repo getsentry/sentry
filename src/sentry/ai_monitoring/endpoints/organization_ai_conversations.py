@@ -11,6 +11,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.ai_monitoring.constants import AI_CONVERSATIONS_FIELDS
+from sentry.ai_monitoring.conversation_query import compile_conversation_query
 from sentry.ai_monitoring.conversation_titles import fetch_conversation_titles
 from sentry.ai_monitoring.serializers import OrganizationAIConversationsSerializer
 from sentry.ai_monitoring.utils import (
@@ -254,19 +255,29 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             return Response(as_validation_errors(serializer), status=400)
 
         validated_data = serializer.validated_data
+        user_query = validated_data.get("query", "")
+        query_string = _build_conversation_query(
+            "has:gen_ai.conversation.id has:gen_ai.operation.type", user_query
+        )
 
         def data_fn(offset: int, limit: int) -> list[AIConversationResponse]:
             return self._get_conversations(
                 snuba_params=snuba_params,
                 offset=offset,
                 limit=limit,
-                user_query=validated_data.get("query", ""),
-                sampling_mode=validated_data.get("samplingMode", "NORMAL"),
+                query_string=query_string,
+                sampling_mode=validated_data["samplingMode"],
                 sorts=validated_data["sort"] if querying_enhancements_enabled else None,
                 use_single_query=querying_enhancements_enabled,
             )
 
         with handle_query_errors():
+            if querying_enhancements_enabled:
+                resolver = Spans.get_resolver(
+                    snuba_params,
+                    SearchResolverConfig(auto_fields=True, disable_aggregate_extrapolation=True),
+                )
+                query_string = compile_conversation_query(user_query, resolver)
             response = self.paginate(
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
@@ -291,14 +302,11 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         snuba_params: SnubaParams,
         offset: int,
         limit: int,
-        user_query: str,
+        query_string: str,
         sampling_mode: SAMPLING_MODES = "NORMAL",
         sorts: Sequence[str] | None = None,
         use_single_query: bool = False,
     ) -> list[AIConversationResponse]:
-        base_filter = "has:gen_ai.conversation.id has:gen_ai.operation.type"
-        query_string = _build_conversation_query(base_filter, user_query)
-
         conversation_ids_results = self._fetch_conversation_ids(
             snuba_params, query_string, offset, limit, sampling_mode, sorts
         )
@@ -343,7 +351,6 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             if not any(column.removeprefix("-") == "gen_ai.conversation.id" for column in orderby):
                 orderby.append("gen_ai.conversation.id")
 
-        # TODO (vgrozdanic): Sort on whole conversations instead of only matching spans.
         return Spans.run_table_query(
             params=snuba_params,
             query_string=query_string,

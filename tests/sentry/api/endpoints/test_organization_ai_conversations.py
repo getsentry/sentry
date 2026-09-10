@@ -7,6 +7,7 @@ from uuid import uuid4
 import pytest
 from django.urls import reverse
 
+from sentry.ai_monitoring.conversation_query import compile_conversation_query
 from sentry.ai_monitoring.endpoints.organization_ai_conversations import (
     OrganizationAIConversationsEndpoint,
 )
@@ -17,7 +18,9 @@ from sentry.ai_monitoring.utils import (
 from sentry.ai_monitoring.utils import (
     get_last_output as _get_last_output,
 )
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
+from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
 
@@ -240,6 +243,79 @@ def test_single_query_hydration_uses_one_aggregate_query(run_table_query: MagicM
     assert query["limit"] == 1
 
 
+@pytest.mark.parametrize(
+    "predicate",
+    [
+        'span.description:"hello, world"',
+        'span.description:"sum(span.duration):>0"',
+        r'span.description:"say \"hello\""',
+        'gen_ai.tool.name:["search docs",calculator]',
+        'span.description:"literal\\*"',
+        "tags[custom,number]:>1.5",
+        "tags[custom,array][*]:value",
+        "timestamp:2023-06-01",
+    ],
+)
+def test_group_filter_preserves_source_predicate(predicate: str) -> None:
+    resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
+    compiled = compile_conversation_query(predicate, resolver)
+    assert f"count_if(`{predicate}`,span.duration):>0" in compiled
+    where, having, _ = resolver.resolve_query(compiled)
+    assert having is not None
+    assert where is not None
+    assert "gen_ai.conversation.id" in str(where)
+    assert "gen_ai.operation.type" in str(where)
+    assert "custom" not in str(where)
+    assert "raw_description" not in str(where)
+    assert 'name: "sentry.project_id"' in str(having)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "sum(gen_ai.cost.total_tokens):>10",
+        "count():>0",
+        "avg(span.duration):>2s",
+        "min(span.duration):>2s",
+        "failure_count():0",
+        "!sum(span.duration):>2s",
+        "totalCost:>10 OR (sum(span.duration):>2s)",
+        "count_if(`gen_ai.tool.name:search`,span.duration):>0",
+    ],
+)
+def test_group_filter_preserves_explicit_aggregates(query: str) -> None:
+    resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
+    compiled = compile_conversation_query(query, resolver)
+    _, having, _ = resolver.resolve_query(compiled)
+    assert having is not None
+
+
+@pytest.mark.parametrize("operator", ["=", "!=", ">", ">=", "<", "<="])
+def test_alias_filter_preserves_eap_null_semantics(operator: str) -> None:
+    resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
+    compiled = compile_conversation_query(f"totalCost:{operator}0", resolver)
+    _, having, _ = resolver.resolve_query(compiled)
+    _, expected, _ = resolver.resolve_query(
+        f"sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client):{operator}0"
+    )
+    assert having == expected
+
+
+def test_group_filter_accepts_long_text() -> None:
+    resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
+    compiled = compile_conversation_query("x" * 4097, resolver)
+    _, having, _ = resolver.resolve_query(compiled)
+    assert having is not None
+
+
+def test_group_filter_compiles_exact_id() -> None:
+    resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
+    assert compile_conversation_query('gen_ai.conversation.id:"session:123"', resolver) == (
+        "has:gen_ai.conversation.id has:gen_ai.operation.type AND "
+        '(count_if(`gen_ai.conversation.id:"session:123"`,span.duration):>0)'
+    )
+
+
 class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
     view = "sentry-api-0-organization-ai-conversations"
 
@@ -318,6 +394,21 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert query["selected_columns"] == ["gen_ai.conversation.id", "max(timestamp)"]
         assert query["orderby"] == ["-max(timestamp)", "gen_ai.conversation.id"]
         assert query["config"].disable_aggregate_extrapolation is True
+        assert query["sampling_mode"] == "HIGHEST_ACCURACY"
+
+    @patch(
+        "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query",
+        return_value={"data": []},
+    )
+    def test_querying_preserves_requested_sampling_mode(self, run_table_query: MagicMock) -> None:
+        for sampling_mode in ["NORMAL", "HIGHEST_ACCURACY", "HIGHEST_ACCURACY_FLEX_TIME"]:
+            with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
+                response = self.do_request(
+                    {"project": [self.project.id], "samplingMode": sampling_mode}
+                )
+
+            assert response.status_code == 200, response.data
+            assert run_table_query.call_args.kwargs["sampling_mode"] == sampling_mode
 
     @patch(
         "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query",
@@ -342,7 +433,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         ]
         assert query["orderby"] == ["-total_cost", "gen_ai.conversation.id"]
         assert query["query_string"] == (
-            "has:gen_ai.conversation.id has:gen_ai.operation.type gen_ai.tool.name:search"
+            "has:gen_ai.conversation.id has:gen_ai.operation.type "
+            "AND (count_if(`gen_ai.tool.name:search`,span.duration):>0)"
         )
 
     @patch(
@@ -468,7 +560,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert response.status_code == 200, response.data
         assert [row["conversationId"] for row in response.data] == ["conversation-b"]
 
-    def test_sorting_uses_matching_spans_but_hydrates_whole_conversation(self) -> None:
+    def test_sorting_uses_whole_conversations_after_filtering(self) -> None:
         now = before_now(days=10).replace(microsecond=0)
         for conversation_id, tool_name, cost in [
             ("conversation-a", "search", 1),
@@ -494,12 +586,164 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             )
 
         assert response.status_code == 200, response.data
-        # Temporary behavior: ascending matching-span cost is 1, 5, not hydrated cost 11, 5.
         assert [row["conversationId"] for row in response.data] == [
-            "conversation-a",
             "conversation-b",
+            "conversation-a",
         ]
-        assert [row["totalCost"] for row in response.data] == [11, 5]
+        assert [row["totalCost"] for row in response.data] == [5, 11]
+
+    def test_conversation_group_filters(self) -> None:
+        cases = [
+            ("gen_ai.agent.name:researcher gen_ai.tool.name:search", ["a"]),
+            ("gen_ai.tool.name:search span.status:internal_error", ["a"]),
+            ("gen_ai.tool.name:search gen_ai.tool.name:calculator", ["a"]),
+            ("gen_ai.tool.name:[search,calculator]", ["a", "b"]),
+            ("!gen_ai.tool.name:search", ["c"]),
+            ("gen_ai.tool.name:!=search", ["c"]),
+            ("!gen_ai.tool.name:[search,calculator]", ["c"]),
+            ("has:gen_ai.tool.name", ["a", "b"]),
+            ("!has:gen_ai.tool.name", ["c"]),
+            ("totalCost:>10", ["a"]),
+            ("sum(gen_ai.cost.total_tokens):>10", ["a"]),
+            ("count_if(`gen_ai.tool.name:search`,span.duration):>0", ["a", "b"]),
+            ('"totalCost":>10', ["a"]),
+            ("total_cost:>10 gen_ai.tool.name:search", ["a"]),
+            (
+                "sum_if_gen_ai_cost_total_tokens_gen_ai_operation_type_equals_ai_client:>10",
+                ["a"],
+            ),
+            ("totalCost:0", []),
+            ("totalCost:<=0", []),
+            ("totalCost:>=0", ["a", "b"]),
+            ("!totalCost:>10", ["b"]),
+            ("toolCalls:>1", ["a"]),
+            ("errors:0", ["b", "c"]),
+            ("duration:>5s", ["a"]),
+            ("duration:>=0", ["a", "b", "c"]),
+            ("generationDuration:0", []),
+            ("span.duration:>2s", ["a"]),
+            ("span.duration:<=2s", ["a", "b", "c"]),
+            ("!span.duration:>2s", ["b", "c"]),
+            ("gen_ai.usage.total_tokens:>15", ["a"]),
+            ("gen_ai.conversation.id:b OR totalCost:>10", ["a", "b"]),
+            ("!gen_ai.tool.name:search OR totalCost:>10", ["a", "c"]),
+            (
+                "gen_ai.agent.name:researcher AND (gen_ai.tool.name:search OR toolCalls:0)",
+                ["a", "c"],
+            ),
+            ('span.description:"hello world"', ["a"]),
+            ('"hello world"', ["a"]),
+            ("span.description:hello*", ["a"]),
+            ("span.description:non-ai-only", []),
+            ("conversationId:a", ["a"]),
+        ]
+        now = before_now(days=1).replace(microsecond=0)
+        self.store_ai_span(
+            conversation_id="a",
+            timestamp=now,
+            operation_type="ai_client",
+            agent_name="researcher",
+            cost=6,
+            tokens=10,
+            description="hello world",
+        )
+        self.store_ai_span(
+            conversation_id="a",
+            timestamp=now,
+            operation_type="ai_client",
+            cost=6,
+            tokens=20,
+        )
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "ai_conversation_id": "a",
+                        "data": {"gen_ai.operation.type": "tool", "gen_ai.tool.name": "search"},
+                    },
+                    start_ts=now,
+                    duration=3000,
+                )
+            ]
+        )
+        self.store_ai_span(
+            conversation_id="a",
+            timestamp=now,
+            operation_type="tool",
+            tool_name="calculator",
+            status="internal_error",
+        )
+        self.store_ai_span(
+            conversation_id="b",
+            timestamp=now,
+            operation_type="ai_client",
+            cost=2,
+        )
+        self.store_ai_span(
+            conversation_id="b",
+            timestamp=now,
+            operation_type="tool",
+            tool_name="search",
+        )
+        self.store_ai_span(
+            conversation_id="c",
+            timestamp=now,
+            operation_type="agent",
+            agent_name="researcher",
+        )
+        # Ignore spans without an AI operation even when they belong to an AI conversation.
+        self.store_ai_span(
+            conversation_id="c",
+            timestamp=now,
+            description="non-ai-only",
+            tool_name="search",
+            status="internal_error",
+        )
+        # Neither an out-of-window span nor a group without AI operations can match.
+        self.store_ai_span(
+            conversation_id="a",
+            timestamp=now - timedelta(days=2),
+            operation_type="ai_client",
+            cost=100,
+        )
+        self.store_ai_span(conversation_id="not-ai", timestamp=now, tool_name="search", cost=100)
+        for search, expected_ids in cases:
+            with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
+                response = self.do_request(
+                    {
+                        "project": [self.project.id],
+                        "start": (now - timedelta(hours=1)).isoformat(),
+                        "end": (now + timedelta(hours=1)).isoformat(),
+                        "query": search,
+                        "sort": "conversationId",
+                    }
+                )
+            assert response.status_code == 200, (search, response.data)
+            assert [row["conversationId"] for row in response.data] == expected_ids, search
+            assert [row["totalCost"] for row in response.data] == [
+                {"a": 12, "b": 2, "c": 0}[conv_id] for conv_id in expected_ids
+            ], search
+
+    def test_invalid_group_filter(self) -> None:
+        for search in [
+            "toolCalls:banana",
+            "totalCost:NaN",
+            "duration:>oops",
+            "totalCost:>10 OR",
+            "AND toolCalls:1",
+            "toolCalls:1 OR OR errors:0",
+            "(gen_ai.tool.name:search",
+            "collect_unique(trace):>0",
+            'span.description:"literal ` backtick"',
+            "has:totalCost",
+            'has:"total_cost"',
+            "!has:totalCost",
+            "count_if(`(broken`,span.duration):>0",
+            "(" * 21 + "gen_ai.tool.name:search" + ")" * 21,
+        ]:
+            with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
+                response = self.do_request({"project": [self.project.id], "query": search})
+            assert response.status_code == 400, (search, response.data)
 
     def test_single_conversation_single_trace(self) -> None:
         """Test a conversation with all spans in a single trace"""
