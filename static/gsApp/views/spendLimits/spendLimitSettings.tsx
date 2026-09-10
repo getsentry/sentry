@@ -1,10 +1,8 @@
 import type React from 'react';
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import upperFirst from 'lodash/upperFirst';
 
 import {InfoTip} from '@sentry/scraps/info';
-import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -12,13 +10,11 @@ import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {
-  AddOnCategory,
   OnDemandBudgetMode,
+  type AddOnCategory,
   type OnDemandBudgets,
   type Plan,
   type Subscription,
@@ -33,21 +29,25 @@ import {
   getPlanCategoryName,
   getSingularCategoryName,
 } from 'getsentry/utils/dataCategory';
-import {CheckoutOption} from 'getsentry/views/amCheckout/components/checkoutOption';
 import {renderPerformanceHovercard} from 'getsentry/views/amCheckout/components/volumeSliders';
 import {getProductCheckoutDescription} from 'getsentry/views/amCheckout/steps/productSelect';
+import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import {
-  displayPrice,
-  displayPriceWithCents,
-  getBucket,
-} from 'getsentry/views/amCheckout/utils';
-import {convertOnDemandBudget} from 'getsentry/views/spendLimits/utils';
+  BudgetModeSettings,
+  type BudgetModeSettingsProps,
+} from 'getsentry/views/spendLimits/budgetModeSettings';
+import {
+  formatPaygPricePerUnit,
+  getPaygPpe,
+} from 'getsentry/views/spendLimits/pricingUtils';
+import {SharedSpendLimitPriceTable} from 'getsentry/views/spendLimits/sharedSpendLimitPriceTable';
+import {
+  SpendLimitInput,
+  type PartialSpendLimitUpdate,
+  type SpendLimitInputProps,
+} from 'getsentry/views/spendLimits/spendLimitInput';
 
 const LARGE_INPUT_WIDTH = '300px';
-
-type PartialSpendLimitUpdate = Partial<Record<DataCategory, number>> & {
-  sharedMaxBudget?: number;
-};
 
 export interface SpendLimitSettingsProps {
   activePlan: Plan;
@@ -64,311 +64,10 @@ export interface SpendLimitSettingsProps {
   usesFormFieldLayout?: boolean;
 }
 
-export interface BudgetModeSettingsProps {
-  activePlan: Plan;
-  onDemandBudgets: OnDemandBudgets;
-  onUpdate: ({onDemandBudgets}: {onDemandBudgets: OnDemandBudgets}) => void;
-}
-
 interface InnerSpendLimitSettingsProps extends Omit<
   SpendLimitSettingsProps,
   'header' | 'subscription'
 > {}
-
-interface SharedSpendLimitPriceTableProps extends Pick<
-  SpendLimitSettingsProps,
-  'activePlan' | 'currentReserved' | 'organization'
-> {
-  includedAddOns: AddOnCategory[];
-}
-export interface SpendLimitInputProps extends Pick<
-  SpendLimitSettingsProps,
-  'activePlan'
-> {
-  budgetMode: OnDemandBudgetMode;
-  category: DataCategory | null;
-  currentSpendingLimit: number;
-  onUpdate: ({newData}: {newData: PartialSpendLimitUpdate}) => void;
-  reserved: number | null;
-  fieldProps?: Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'>;
-  indicator?: React.ReactNode;
-}
-
-function formatPaygPricePerUnit({paygPpe}: {paygPpe: number}) {
-  const formattedPrice = displayPriceWithCents({
-    cents: paygPpe,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 8,
-  });
-  return formattedPrice;
-}
-
-function getPaygPpe({
-  activePlan,
-  category,
-  reserved,
-}: {
-  activePlan: Plan;
-  category: DataCategory;
-  reserved: number;
-}) {
-  const bucket = getBucket({
-    buckets: activePlan.planCategories[category],
-    events: reserved === RESERVED_BUDGET_QUOTA ? reserved : reserved + 1, // +1 to get the next bucket, if any
-  });
-  return bucket.onDemandPrice ?? 0;
-}
-
-export function SpendLimitInput({
-  activePlan,
-  budgetMode,
-  onUpdate,
-  currentSpendingLimit,
-  category,
-  reserved,
-  fieldProps,
-  indicator,
-}: SpendLimitInputProps) {
-  // category and reserved should never be null for per category but this makes TS happy
-  const isPerCategory =
-    budgetMode === OnDemandBudgetMode.PER_CATEGORY &&
-    category !== null &&
-    reserved !== null;
-  const inputName = isPerCategory ? category : 'sharedMaxBudget';
-  const displayName = isPerCategory
-    ? getPlanCategoryName({
-        plan: activePlan,
-        category,
-        capitalize: false,
-      })
-    : 'shared';
-
-  const coerceValue = (value: number): string => {
-    return (value / 100).toString();
-  };
-
-  const parseInputValue = (e: React.ChangeEvent<HTMLInputElement>): number => {
-    let value = parseInt(e.target.value, 10) || 0;
-    value = Math.max(value, 0);
-    const cents = value * 100;
-    return cents;
-  };
-
-  return (
-    <Container width="100%">
-      <Currency>
-        <Flex align="center">
-          <StyledInput
-            {...fieldProps}
-            aria-label={t('Custom %s spending limit (in dollars)', displayName)}
-            name={fieldProps?.name ?? `spending-limit-${inputName}`}
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            placeholder="300"
-            value={coerceValue(currentSpendingLimit)}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              const parsedBudget = parseInputValue(e);
-              onUpdate({
-                newData: {[inputName]: parsedBudget},
-              });
-            }}
-          />
-          {indicator}
-        </Flex>
-      </Currency>
-    </Container>
-  );
-}
-
-export function SharedSpendLimitPriceTable({
-  activePlan,
-  currentReserved,
-  organization,
-  includedAddOns,
-}: SharedSpendLimitPriceTableProps) {
-  const addOnDataCategories = Object.values(activePlan.addOnCategories).flatMap(
-    addOnInfo => addOnInfo.dataCategories
-  );
-  const baseCategories = activePlan.onDemandCategories.filter(
-    category => !addOnDataCategories.includes(category)
-  );
-
-  return (
-    <Stack borderTop="primary">
-      <Grid
-        columns={{zero: 'minmax(0, 1fr)', md: 'minmax(0, 3fr) minmax(0, 2fr)'}}
-        gap={{zero: 'xs', md: 'lg'}}
-        align="center"
-        padding="md xl"
-        background="secondary"
-      >
-        <Text bold>{t('Product')}</Text>
-        <Container display={{zero: 'none', md: 'block'}} justifySelf="end">
-          <Text bold>{t('Price')}</Text>
-        </Container>
-      </Grid>
-      {baseCategories.map(category => {
-        // pre-AM3 specific behavior; only plans that bill transactions alongside
-        // continuous profiling show transactions as performance units
-        const showPerformanceUnits =
-          activePlan.categories.includes(DataCategory.TRANSACTIONS) &&
-          activePlan.categories.includes(DataCategory.PROFILE_DURATION) &&
-          organization?.features?.includes('profiling-billing') &&
-          category === DataCategory.TRANSACTIONS;
-
-        const categoryInfo = getCategoryInfoFromPlural(category);
-        const reserved = currentReserved[category] ?? 0;
-        const paygPpe = getPaygPpe({
-          activePlan,
-          category,
-          reserved,
-        });
-        const hasConstantPpe = activePlan.planCategories[category]?.length === 1;
-        const pluralName = getPlanCategoryName({
-          plan: activePlan,
-          category,
-        });
-        const singularName =
-          categoryInfo?.shortenedUnitName ??
-          getSingularCategoryName({
-            plan: activePlan,
-            category,
-            capitalize: false,
-          });
-        return (
-          <Grid
-            key={category}
-            columns={{zero: 'minmax(0, 1fr)', md: 'minmax(0, 3fr) minmax(0, 2fr)'}}
-            gap={{zero: 'xs', md: 'lg'}}
-            align="center"
-            borderTop="primary"
-            padding="md xl"
-          >
-            <Flex
-              gap="xs"
-              align="center"
-              minWidth="0"
-              paddingRight="xs"
-              wrap={{zero: 'wrap', sm: 'nowrap'}}
-            >
-              <Text>{pluralName}</Text>
-              {reserved > 0 && (
-                <Text variant="accent">
-                  {tct('([formattedReserved] included)', {
-                    formattedReserved: formatReservedWithUnits(reserved, category, {
-                      isAbbreviated: true,
-                    }),
-                  })}
-                </Text>
-              )}
-              {showPerformanceUnits
-                ? renderPerformanceHovercard()
-                : categoryInfo?.checkoutTooltip && (
-                    <InfoTip
-                      title={categoryInfo.checkoutTooltip}
-                      position="top"
-                      size="xs"
-                    />
-                  )}
-            </Flex>
-            <Container justifySelf={{zero: 'start', md: 'end'}}>
-              <Text>
-                {hasConstantPpe ? '' : '*'}
-                {formatPaygPricePerUnit({
-                  paygPpe,
-                })}
-              </Text>
-              <Text variant="muted">/{singularName}</Text>
-            </Container>
-          </Grid>
-        );
-      })}
-      {includedAddOns.map(apiName => {
-        const addOnInfo = activePlan.addOnCategories[apiName];
-        if (!addOnInfo) {
-          return null;
-        }
-
-        const canUsePayg = addOnInfo.dataCategories.some(category =>
-          activePlan.onDemandCategories.includes(category)
-        );
-
-        if (!canUsePayg) {
-          return null;
-        }
-
-        const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(apiName);
-        const includedBudget = reservedBudgetCategory
-          ? (activePlan.availableReservedBudgetTypes[reservedBudgetCategory]
-              ?.defaultBudget ?? 0)
-          : 0;
-        const tooltipText = getProductCheckoutDescription({
-          product: apiName,
-          withPunctuation: true,
-        });
-
-        const dataCategories = addOnInfo.dataCategories;
-
-        return (
-          <Grid
-            key={apiName}
-            columns={{zero: 'minmax(0, 1fr)', md: 'minmax(0, 3fr) minmax(0, 2fr)'}}
-            gap={{zero: 'xs', md: 'lg'}}
-            align="center"
-            borderTop="primary"
-            padding="md xl"
-          >
-            <Flex gap="xs" align="center" minWidth="0" paddingRight="xs" wrap="wrap">
-              <Text>{capitalize(addOnInfo.productName)}</Text>
-              {includedBudget && (
-                <Text variant="accent">
-                  {tct(' ([formattedIncludedBudget] included)', {
-                    formattedIncludedBudget: displayPrice({cents: includedBudget}),
-                  })}
-                </Text>
-              )}
-              {tooltipText && <InfoTip title={tooltipText} position="top" size="xs" />}
-            </Flex>
-            <Container justifySelf={{zero: 'start', md: 'end'}}>
-              {dataCategories.map((category, index) => {
-                const paygPpe = getPaygPpe({
-                  activePlan,
-                  category,
-                  reserved: reservedBudgetCategory ? RESERVED_BUDGET_QUOTA : 0,
-                });
-                const categoryInfo = getCategoryInfoFromPlural(category);
-                const singularName =
-                  categoryInfo?.shortenedUnitName ??
-                  getSingularCategoryName({
-                    plan: activePlan,
-                    category,
-                    capitalize: false,
-                  });
-                return (
-                  <Fragment key={category}>
-                    <Text>
-                      {formatPaygPricePerUnit({
-                        paygPpe,
-                      })}
-                    </Text>
-                    <Text variant="muted">/{singularName}</Text>
-                    {index < dataCategories.length - 1 && <Text>, </Text>}
-                  </Fragment>
-                );
-              })}
-            </Container>
-          </Grid>
-        );
-      })}
-      <Flex width="100%" justify="end" borderTop="primary" padding="md xl">
-        <Text variant="muted" size="sm">
-          {t('* starting rate')}
-        </Text>
-      </Flex>
-    </Stack>
-  );
-}
 
 function InnerSpendLimitSettings({
   activePlan,
@@ -383,10 +82,8 @@ function InnerSpendLimitSettings({
   const includedAddOns = Object.entries(addOns)
     .filter(([apiName, addOn]) => {
       const addOnInfo = activePlan.addOnCategories[apiName as AddOnCategory];
-      if (!addOnInfo) {
-        return false;
-      }
       return (
+        addOnInfo &&
         addOn.enabled &&
         addOnInfo.dataCategories.some(category =>
           activePlan.onDemandCategories.includes(category)
@@ -394,33 +91,22 @@ function InnerSpendLimitSettings({
       );
     })
     .map(([apiName]) => apiName) as AddOnCategory[];
-  const handleUpdate = ({newData}: {newData: PartialSpendLimitUpdate}) => {
+
+  function handleUpdate({newData}: {newData: PartialSpendLimitUpdate}) {
     if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
       onUpdate({
         onDemandBudgets: {
           ...onDemandBudgets,
-          budgets: {
-            ...onDemandBudgets.budgets,
-            ...newData,
-          },
+          budgets: {...onDemandBudgets.budgets, ...newData},
         },
       });
-    } else {
-      onUpdate({
-        onDemandBudgets: {
-          ...onDemandBudgets,
-          ...newData,
-        },
-      });
+      return;
     }
-  };
+    onUpdate({onDemandBudgets: {...onDemandBudgets, ...newData}});
+  }
 
-  const formattedBudgetMode = onDemandBudgets.budgetMode.replace('_', '-');
-  const renderInput = renderSpendLimitInput ?? (props => <SpendLimitInput {...props} />);
-
-  const getPerCategoryWarning = (productName: string) => {
+  function renderPerCategoryWarning(productName: string) {
     return (
-      // hardcoded height to match the input height so that all rows have the same height
       <Flex gap="xs" height="36px" align="center">
         <Container flexShrink={0}>
           <IconWarning size="sm" />
@@ -433,9 +119,11 @@ function InnerSpendLimitSettings({
         </Text>
       </Flex>
     );
-  };
+  }
 
-  let inputs: React.ReactNode = null;
+  const renderInput = renderSpendLimitInput ?? (props => <SpendLimitInput {...props} />);
+  let inputs: React.ReactNode;
+
   if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
     const addOnCategories = Object.values(activePlan.addOnCategories).flatMap(
       addOnInfo => addOnInfo.dataCategories
@@ -443,18 +131,14 @@ function InnerSpendLimitSettings({
     const baseCategories = activePlan.onDemandCategories.filter(
       category => !addOnCategories.includes(category)
     );
+
     inputs = (
       <Stack gap="xl" padding="0 xl xl">
         <Container>
           {baseCategories.map((category, index) => {
             const reserved = currentReserved[category] ?? 0;
-            const paygPpe = getPaygPpe({
-              activePlan,
-              category,
-              reserved,
-            });
+            const paygPpe = getPaygPpe({activePlan, category, reserved});
             const categoryInfo = getCategoryInfoFromPlural(category);
-
             const pluralName = getPlanCategoryName({
               plan: activePlan,
               category,
@@ -476,7 +160,7 @@ function InnerSpendLimitSettings({
             const showPerformanceUnits =
               activePlan.categories.includes(DataCategory.TRANSACTIONS) &&
               activePlan.categories.includes(DataCategory.PROFILE_DURATION) &&
-              organization?.features?.includes('profiling-billing') &&
+              organization.features?.includes('profiling-billing') &&
               category === DataCategory.TRANSACTIONS;
 
             return (
@@ -518,9 +202,7 @@ function InnerSpendLimitSettings({
                     {hasPerCategory && (
                       <Fragment>
                         ・
-                        {`${hasConstantPpe ? '' : '*'}${formatPaygPricePerUnit({
-                          paygPpe,
-                        })}`}
+                        {`${hasConstantPpe ? '' : '*'}${formatPaygPricePerUnit({paygPpe})}`}
                         /{singularName}
                       </Fragment>
                     )}
@@ -535,7 +217,7 @@ function InnerSpendLimitSettings({
                       onUpdate: handleUpdate,
                       reserved,
                     })
-                  : getPerCategoryWarning(productName)}
+                  : renderPerCategoryWarning(productName)}
               </Grid>
             );
           })}
@@ -546,7 +228,6 @@ function InnerSpendLimitSettings({
               ? (activePlan.availableReservedBudgetTypes[reservedBudgetCategory]
                   ?.defaultBudget ?? 0)
               : 0;
-            const isLastInList = index === Object.keys(includedAddOns).length - 1;
             const tooltipText = getProductCheckoutDescription({
               product: apiName,
               withPunctuation: true,
@@ -562,7 +243,7 @@ function InnerSpendLimitSettings({
                 align={{zero: 'start', lg: 'center'}}
                 gap={{zero: 'xs', lg: 'lg'}}
                 padding={index === 0 && baseCategories.length === 0 ? '0 0 xl' : 'xl 0'}
-                borderBottom={isLastInList ? undefined : 'primary'}
+                borderBottom={index === includedAddOns.length - 1 ? undefined : 'primary'}
               >
                 <Stack gap="xs" align="start" flexGrow={1}>
                   <Flex align="center" gap="xs">
@@ -581,7 +262,7 @@ function InnerSpendLimitSettings({
                       : t('None included')}
                   </Text>
                 </Stack>
-                {getPerCategoryWarning(addOnInfo.productName)}
+                {renderPerCategoryWarning(addOnInfo.productName)}
               </Grid>
             );
           })}
@@ -632,7 +313,7 @@ function InnerSpendLimitSettings({
         <Container padding="xl xl 0">
           <Heading as="h2" size="lg">
             {tct('Monthly spending [limitTerm]', {
-              budgetMode: formattedBudgetMode,
+              budgetMode: onDemandBudgets.budgetMode.replace('_', '-'),
               limitTerm:
                 onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY
                   ? 'limits'
@@ -643,49 +324,6 @@ function InnerSpendLimitSettings({
       )}
       {inputs}
     </Stack>
-  );
-}
-
-export function BudgetModeSettings({
-  activePlan,
-  onDemandBudgets,
-  onUpdate,
-}: BudgetModeSettingsProps) {
-  const hasBudgetModes = activePlan.hasOnDemandModes;
-
-  if (!hasBudgetModes) {
-    return null;
-  }
-
-  return (
-    <Grid columns={{zero: '1fr', lg: 'repeat(2, minmax(0, 1fr))'}} gap="lg">
-      {Object.values(OnDemandBudgetMode).map(budgetMode => {
-        const budgetModeName = capitalize(budgetMode.replace('_', '-'));
-        const isSelected = onDemandBudgets.budgetMode === budgetMode;
-        const nextOnDemandBudget = convertOnDemandBudget(onDemandBudgets, budgetMode);
-        return (
-          <CheckoutOption
-            key={budgetMode}
-            ariaLabel={`${budgetModeName} spending limit mode`}
-            ariaRole="radio"
-            dataTestId={`budget-mode-${budgetMode}`}
-            isSelected={isSelected}
-            onClick={() => {
-              onUpdate({
-                onDemandBudgets: nextOnDemandBudget,
-              });
-            }}
-            optionHeader={
-              <Heading as="h3" variant={isSelected ? 'accent' : 'primary'}>
-                {budgetMode === OnDemandBudgetMode.PER_CATEGORY
-                  ? t('Set a spending limit for each product')
-                  : t('Set a spending limit shared across all products')}
-              </Heading>
-            }
-          />
-        );
-      })}
-    </Grid>
   );
 }
 
@@ -729,7 +367,7 @@ export function SpendLimitSettings({
         ) : (
           <BudgetModeSettings {...budgetModeSettingsProps} />
         )}
-        <InnerContainer direction="column" gap="xl" border="primary" radius="md">
+        <Stack gap="xl" border="primary" radius="md" overflow="hidden">
           <InnerSpendLimitSettings
             activePlan={activePlan}
             onDemandBudgets={onDemandBudgets}
@@ -741,27 +379,8 @@ export function SpendLimitSettings({
             usesFormFieldLayout={usesFormFieldLayout}
           />
           {footer}
-        </InnerContainer>
+        </Stack>
       </Grid>
     </Stack>
   );
 }
-
-const InnerContainer = styled(Flex)`
-  border-bottom: 3px solid ${p => p.theme.tokens.border.primary};
-  overflow: hidden;
-`;
-
-const StyledInput = styled(Input)`
-  padding-left: ${p => p.theme.space['3xl']};
-`;
-
-const Currency = styled('div')`
-  &::before {
-    position: absolute;
-    padding: 9px ${p => p.theme.space.lg};
-    content: '$';
-    color: ${p => p.theme.tokens.content.secondary};
-    font-size: ${p => p.theme.font.size.md};
-  }
-`;
