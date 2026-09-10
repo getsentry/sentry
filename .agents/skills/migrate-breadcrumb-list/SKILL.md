@@ -74,8 +74,6 @@ A bare pass-through is the default and is exactly what `preservePageFilters` did
 
 Six call sites still pass it: `grep -rln "preservePageFilters: true" static/app --include='*.tsx'`.
 
-The component's own docs still demo it (`grep -n preservePageFilters static/app/components/core/breadcrumbList/breadcrumbList.mdx`). If that grep returns nothing the docs have been fixed; trust the type, not the doc, either way.
-
 ## Which API takes what
 
 |                                      | Accepts                                                                                                                     | Shape             |

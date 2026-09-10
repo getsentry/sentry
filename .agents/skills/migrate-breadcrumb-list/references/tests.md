@@ -129,5 +129,3 @@ If a title action fetches, mock its endpoint. To pin a loading state deliberatel
 Below 512px the trail collapses into an overflow `…` menu, driven by a container query. **jsdom never evaluates container queries**, so the collapse cannot be exercised in a page spec.
 
 The component's own spec asserts on emitted emotion rules to cover this. Do not copy that into a page spec — it couples the test to generated CSS and breaks on unrelated style edits. The collapse is covered once, in `static/app/components/core/breadcrumbList/breadcrumbList.spec.tsx`; page specs should assert the items they pass in, and leave responsive behavior to that spec and a manual resize check.
-
-That component spec also tolerates exactly one React warning: the core `Container` primitive leaks a `containertype` DOM attribute. If a page spec fails all `console.error`s, expect to allow that one until the primitive is fixed.

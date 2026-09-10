@@ -21,7 +21,7 @@ Out of scope: event breadcrumbs (`sentry/types/breadcrumbs` and `components/even
 ## Sources
 
 - `components/core/breadcrumbList/` — authoritative for the item unions and every prop. The types win over the story.
-- `components/core/breadcrumbList/breadcrumbList.mdx` — authoritative for composition and editorial rules (copy-vs-menu, always-present pagination). **Stale on `preservePageFilters`**, which it demos but the type does not accept.
+- `components/core/breadcrumbList/breadcrumbList.mdx` — authoritative for composition and editorial rules (copy-vs-menu, always-present pagination).
 - `views/navigation/topBar.tsx` — slot names, and the `<Heading as="h1">` that makes the title outlet the page heading.
 - Reference migrations: getsentry/sentry#120729 (conversations), #120794 (trace view), #123128 (transaction summary), #121282 (dashboards actions), #123569 (replay actions). #122697 removed the migration flag; the earlier PRs' flag forks are dead patterns.
 - Ten already-migrated call sites in `static/app/views/`, enumerated in `SKILL.md`.
@@ -36,6 +36,6 @@ Out of scope: event breadcrumbs (`sentry/types/breadcrumbs` and `components/even
 ## Maintenance
 
 - Update `SKILL.md` when the item unions gain or lose a type, when a TopBar slot is added or renamed, or when a shape category stops matching what is left in the tree.
-- Delete the `preservePageFilters` section once `grep -n preservePageFilters static/app/components/core/breadcrumbList/breadcrumbList.mdx` returns nothing **and** no legacy importer still passes the prop.
+- Delete the `preservePageFilters` section once no legacy importer still passes the prop: `grep -rln "preservePageFilters: true" static/app --include='*.tsx'`. Six remain.
 - Prune `references/call-site-inventory.md` as rows land. When it empties and the count reaches 4, delete this skill.
 - Update `SPEC.md` when intent, scope, the non-negotiable constraints, or the sources change.
