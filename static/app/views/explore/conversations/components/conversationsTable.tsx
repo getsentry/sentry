@@ -36,6 +36,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
 import {
+  CONVERSATION_FIELDS,
   useConversations,
   type Conversation,
   type ConversationSortField,
@@ -94,11 +95,11 @@ const COLUMN_DEFAULTS: Record<ColumnKey, {name: string; width: number}> = {
 const RIGHT_ALIGNED_COLUMNS = new Set<ColumnKey>(['age']);
 
 const SORT_FIELD_BY_COLUMN: Partial<Record<ColumnKey, ConversationSortField>> = {
-  duration: 'generationDuration',
-  messages: 'llmCalls',
-  errors: 'errors',
-  cost: 'totalCost',
-  age: 'age',
+  duration: CONVERSATION_FIELDS.generationDuration.key,
+  messages: CONVERSATION_FIELDS.messages.key,
+  errors: CONVERSATION_FIELDS.errors.key,
+  cost: CONVERSATION_FIELDS.totalCost.key,
+  age: CONVERSATION_FIELDS.age.key,
 };
 
 // Persisted per-column widths. Only the widths are stored, keyed by column:

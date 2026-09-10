@@ -141,6 +141,29 @@ describe('ConversationsChart', () => {
     });
   });
 
+  it('disables the chart for conversation alias filters', () => {
+    render(<ConversationsChart />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {
+            chartCollapsed: 'true',
+            query: 'conversation.totalCost:>10 conversation.errors:>0',
+          },
+        },
+      },
+    });
+
+    expect(
+      screen.getByText(
+        'Remove these conversation-level filters to view chart data: conversation.totalCost, conversation.errors'
+      )
+    ).toBeInTheDocument();
+    expect(timeseriesRequest).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', {name: 'Chart actions'})).not.toBeInTheDocument();
+  });
+
   it('shows an empty state when there is no data', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
