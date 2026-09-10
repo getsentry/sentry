@@ -36,7 +36,7 @@ export function KeyValueList({
     <Container containerType="inline-size">
       <Grid
         className={className}
-        columns={{zero: 'minmax(0, 1fr)', sm: '175px minmax(0, 500px)'}}
+        columns={{zero: 'minmax(0, 1fr)', sm: '175px minmax(0, 1fr)'}}
         gap="md"
         role="table"
         width="100%"
