@@ -95,6 +95,7 @@ export function useReplaysFromTransaction({
   }, [location.query.sort, response.replayIds]);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     fetchReplayIds();
   }, [fetchReplayIds]);
 

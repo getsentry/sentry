@@ -796,6 +796,7 @@ export function SearchQueryBuilderValueCombobox({
       }
       const newIndex = nearestOccurrence(liftedValue, oldIndex);
       if (newIndex === -1) {
+        // oxlint-disable-next-line react/set-state-in-effect
         setEditingChip(null);
         setInputValue('');
       } else {

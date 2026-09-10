@@ -57,6 +57,7 @@ export function usePendingUserInput({
   // Reset file approval state when pendingInput changes
   useEffect(() => {
     if (pendingInputType === 'file_change_approval') {
+      // oxlint-disable-next-line react/set-state-in-effect
       setFileApprovalIndex(0);
       setFileApprovalDecisions([]);
     }
@@ -145,6 +146,7 @@ export function usePendingUserInput({
   // Reset question state when pendingInput changes
   useEffect(() => {
     if (pendingInputType === 'ask_user_question') {
+      // oxlint-disable-next-line react/set-state-in-effect
       setQuestionIndex(0);
       setQuestionAnswers([]);
       setSelectedOption(0);
