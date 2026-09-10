@@ -28,13 +28,12 @@ from sentry.workflow_engine.handlers.detector.stateful import (
 )
 from sentry.workflow_engine.models import DataPacket, DetectorState
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
-from sentry.workflow_engine.types import (
-    DetectorGroupKey,
-    DetectorPriorityLevel,
-    DetectorSettings,
-)
+from sentry.workflow_engine.registry import detector_handler_registry
+from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
+
+GROUP_TYPE_SOURCEMAP_CONFIGURATION = "sourcemap_configuration"
 
 
 class ProcessingErrorCheckStatus(enum.IntEnum):
@@ -242,6 +241,7 @@ class ProcessingErrorDetectorHandler(
         )
 
 
+@detector_handler_registry.register(GROUP_TYPE_SOURCEMAP_CONFIGURATION)
 class SourcemapDetectorHandler(ProcessingErrorDetectorHandler):
     error_types = JS_SOURCEMAP_ERROR_TYPES
     fingerprint_key = "sourcemap"
@@ -252,7 +252,7 @@ class SourcemapDetectorHandler(ProcessingErrorDetectorHandler):
 @dataclass(frozen=True)
 class SourcemapConfigurationType(GroupType):
     type_id = 13001
-    slug = "sourcemap_configuration"
+    slug = GROUP_TYPE_SOURCEMAP_CONFIGURATION
     description = "Source Map Configuration Issue"
     category = GroupCategory.CONFIGURATION.value
     released = False
@@ -261,11 +261,6 @@ class SourcemapConfigurationType(GroupType):
     enable_escalation_detection = False
     creation_quota = Quota(3600, 60, 100)
     notification_config = NotificationConfig(context=[])
-    detector_settings = DetectorSettings(
-        handler=SourcemapDetectorHandler,
-        validator=None,
-        config_schema={},
-    )
     enable_user_status_and_priority_changes = False
     # For the moment, we only want to show these issue types in the ui
     enable_status_change_workflow_notifications = False
