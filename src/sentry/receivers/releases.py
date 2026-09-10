@@ -17,7 +17,7 @@ from sentry.issues.action_log import (
     action_context_scope,
     get_action_context,
 )
-from sentry.issues.action_log.types import GroupActorType
+from sentry.issues.action_log.types import GroupActorType, PullRequestOrigin
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -39,6 +39,7 @@ from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.notifications.types import GroupSubscriptionReason
+from sentry.seer.models.run import SeerRunPullRequest
 from sentry.signals import buffer_incr_complete
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.types.activity import ActivityType
@@ -365,6 +366,14 @@ def _create_pull_request_activities(
         if not groups:
             return
 
+        pull_request_origin: PullRequestOrigin | None = None
+        if activity_type == ActivityType.PULL_REQUEST_CLOSED:
+            pull_request_origin = (
+                PullRequestOrigin.AUTOMATED_FIX
+                if SeerRunPullRequest.objects.filter(pull_request_id=pull_request_id).exists()
+                else PullRequestOrigin.OTHER
+            )
+
         has_other_open_prs_by_group: set[int] | None = None
         if activity_type != ActivityType.PULL_REQUEST_REOPENED:
             has_other_open_prs_by_group = _groups_with_other_open_prs(
@@ -372,7 +381,9 @@ def _create_pull_request_activities(
             )
 
         for group in groups:
-            data: dict[str, int | bool] = {"pull_request": pull_request_id}
+            data: dict[str, object] = {"pull_request": pull_request_id}
+            if pull_request_origin is not None:
+                data["pull_request_origin"] = pull_request_origin.value
             if has_other_open_prs_by_group is not None:
                 data["has_other_open_prs"] = group.id in has_other_open_prs_by_group
 
