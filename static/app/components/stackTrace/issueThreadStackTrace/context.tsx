@@ -30,6 +30,7 @@ interface IssueThreadStackTraceContextValue {
   group: Group | undefined;
   groupingCurrentLevel: Group['metadata']['current_level'];
   hasScmSourceContext: boolean;
+  isShared: boolean;
   projectSlug: Project['slug'];
   setActiveThread: (thread: Thread | undefined) => void;
   threads: Thread[];
@@ -40,6 +41,7 @@ interface IssueThreadStackTraceProvidersProps {
   event: Event;
   group: Group | undefined;
   groupingCurrentLevel: Group['metadata']['current_level'];
+  isShared: boolean;
   projectSlug: Project['slug'];
   threads: Thread[];
 }
@@ -63,6 +65,7 @@ export function useActiveThread() {
 
 export function IssueThreadStackTraceProviders({
   children,
+  isShared,
   event,
   group,
   groupingCurrentLevel,
@@ -73,9 +76,9 @@ export function IssueThreadStackTraceProviders({
   const storageKey = `issue-details-stracktrace-display-${organization.slug}-${projectSlug}`;
   const {data: detailedProject} = useDetailedProject(
     {orgSlug: organization.slug, projectSlug},
-    {enabled: defined(projectSlug)}
+    {enabled: !isShared && defined(projectSlug)}
   );
-  const hasScmSourceContext = !!detailedProject?.scmSourceContextEnabled;
+  const hasScmSourceContext = !isShared && !!detailedProject?.scmSourceContextEnabled;
   const [selectedThreadId, setSelectedThreadId] = useState(
     () => findBestThread(threads)?.id
   );
@@ -121,12 +124,15 @@ export function IssueThreadStackTraceProviders({
   );
 
   useEffect(() => {
-    setCopyIssueDetailsActiveThreadId(activeThreadModel.activeThread?.id);
-  }, [activeThreadModel.activeThread?.id]);
+    if (!isShared) {
+      setCopyIssueDetailsActiveThreadId(activeThreadModel.activeThread?.id);
+    }
+  }, [activeThreadModel.activeThread?.id, isShared]);
 
   const contextValue = useMemo<IssueThreadStackTraceContextValue>(
     () => ({
       activeThreadModel,
+      isShared,
       changeThread,
       event,
       group,
@@ -138,6 +144,7 @@ export function IssueThreadStackTraceProviders({
     }),
     [
       activeThreadModel,
+      isShared,
       changeThread,
       event,
       group,
@@ -156,7 +163,7 @@ export function IssueThreadStackTraceProviders({
         hasMinifiedStacktrace={activeThreadModel.hasMinifiedStacktrace}
         defaultView={activeThreadModel.defaultView}
         defaultIsNewestFirst={activeThreadModel.defaultIsNewestFirst}
-        storageKey={storageKey}
+        storageKey={isShared ? undefined : storageKey}
       >
         {children}
       </NativeStackTraceViewStateProvider>

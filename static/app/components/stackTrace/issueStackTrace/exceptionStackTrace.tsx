@@ -55,6 +55,7 @@ interface IssueExceptionStackTraceProps {
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hasScmSourceContext?: boolean;
   isStandalone?: boolean;
+  showBanners?: boolean;
 }
 
 export function IssueExceptionStackTrace({
@@ -63,6 +64,7 @@ export function IssueExceptionStackTrace({
   groupingCurrentLevel,
   hasScmSourceContext = false,
   isStandalone = false,
+  showBanners = true,
   values,
 }: IssueExceptionStackTraceProps) {
   const {isMinified, isNewestFirst, view} = useStackTraceViewState();
@@ -115,7 +117,7 @@ export function IssueExceptionStackTrace({
             />
           </Stack>
         ) : null}
-        {exception.stacktrace && (
+        {showBanners && exception.stacktrace && (
           <ErrorBoundary customComponent={null}>
             <StacktraceBanners event={event} stacktrace={exception.stacktrace} />
           </ErrorBoundary>
@@ -186,7 +188,9 @@ export function IssueExceptionStackTrace({
                   newestFirst={isNewestFirst}
                   onExceptionClick={expandException}
                 />
-                {exception.stacktrace && index === firstVisibleExceptionIndex ? (
+                {showBanners &&
+                exception.stacktrace &&
+                index === firstVisibleExceptionIndex ? (
                   <ErrorBoundary customComponent={null}>
                     <StacktraceBanners event={event} stacktrace={exception.stacktrace} />
                   </ErrorBoundary>

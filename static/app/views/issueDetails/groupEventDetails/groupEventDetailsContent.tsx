@@ -50,7 +50,7 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
-import {IssueThreadStackTrace} from 'sentry/components/stackTrace/native/issueThreadStackTrace';
+import {IssueThreadStackTrace} from 'sentry/components/stackTrace/issueThreadStackTrace';
 import {t} from 'sentry/locale';
 import type {Entry, EntryMap, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
