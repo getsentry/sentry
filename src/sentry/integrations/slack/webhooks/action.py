@@ -830,7 +830,7 @@ class SlackActionEndpoint(Endpoint):
     def handle_member_approval(self, slack_request: SlackActionRequest, action: str) -> Response:
         identity_user = slack_request.get_identity_user()
 
-        response_url = slack_request.data["response_url"]
+        response_url = slack_request.response_url
         webhook_client = WebhookClient(response_url)
 
         if not identity_user:
