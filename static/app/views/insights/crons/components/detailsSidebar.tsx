@@ -11,7 +11,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import {KeyValueTable, KeyValueTableRow} from 'sentry/components/tables/keyValueTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopyId, IconJson} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -102,7 +102,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
         />
       </Legend>
       <SectionHeading>{t('Cron Details')}</SectionHeading>
-      <KeyValueTable>
+      <KeyValueTable margin>
         <KeyValueTableRow keyName={t('Monitor Slug')} value={slug} />
         <KeyValueTableRow
           keyName={t('Failure tolerance')}
