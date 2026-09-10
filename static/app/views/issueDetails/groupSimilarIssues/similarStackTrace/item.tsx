@@ -63,7 +63,7 @@ export function SimilarStackTraceItem({
       variant={busy ? 'faded' : 'default'}
       onClick={handleToggle}
     >
-      <IssueCell>
+      <IssueCell columnKey="merge">
         <Checkbox id={issue.id} value={issue.id} checked={checked} onChange={() => {}} />
         <Stack minWidth="0" flex="1">
           <GroupHeaderRow data={issue} source="similar-issues" />
@@ -71,7 +71,7 @@ export function SimilarStackTraceItem({
         </Stack>
       </IssueCell>
 
-      <CenteredCell>
+      <CenteredCell columnKey="events">
         <Count value={issue.count} />
       </CenteredCell>
 
@@ -91,7 +91,7 @@ export function SimilarStackTraceItem({
         }
 
         return (
-          <CenteredCell key={interfaceName}>
+          <CenteredCell key={interfaceName} columnKey={interfaceName}>
             {hasSimilarityEmbeddingsFeature ? (
               <ScoreBar vertical score={scoreValue} />
             ) : (
@@ -107,7 +107,7 @@ export function SimilarStackTraceItem({
         );
       })}
 
-      <CenteredCell>
+      <CenteredCell columnKey="actions">
         <Button onClick={handleShowDiff} size="xs">
           {t('Diff')}
         </Button>
@@ -121,25 +121,27 @@ export function SimilarStackTraceItemSkeleton({
 }: {
   hasSimilarityEmbeddingsFeature: boolean;
 }) {
-  const scoreColumns = hasSimilarityEmbeddingsFeature ? 1 : 2;
+  const scoreColumns = hasSimilarityEmbeddingsFeature
+    ? (['exception'] as const)
+    : (['exception', 'message'] as const);
   return (
     <SimpleTable.Row>
-      <IssueCell>
+      <IssueCell columnKey="merge">
         <Placeholder height="16px" width="16px" />
         <Stack gap="xs" flex="1" minWidth="0">
           <Placeholder height="16px" width="60%" />
           <Placeholder height="12px" width="40%" />
         </Stack>
       </IssueCell>
-      <CenteredCell>
+      <CenteredCell columnKey="events">
         <Placeholder height="16px" width="32px" />
       </CenteredCell>
-      {Array.from({length: scoreColumns}).map((_, i) => (
-        <CenteredCell key={i}>
+      {scoreColumns.map(interfaceName => (
+        <CenteredCell key={interfaceName} columnKey={interfaceName}>
           <Placeholder height="24px" width="40px" />
         </CenteredCell>
       ))}
-      <CenteredCell>
+      <CenteredCell columnKey="actions">
         <Placeholder height="24px" width="44px" />
       </CenteredCell>
     </SimpleTable.Row>
