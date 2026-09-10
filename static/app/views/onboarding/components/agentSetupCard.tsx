@@ -1,14 +1,13 @@
-import {ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {CodeBlock} from '@sentry/scraps/code';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconBot} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import {AgentInfo} from 'sentry/views/onboarding/components/agentInfo';
 import {SETUP_CARD_ICON_PX, SETUP_CARD_ICON_SIZE} from 'sentry/views/onboarding/consts';
 
@@ -74,16 +73,17 @@ export function AgentSetupCard({
 
       <Flex gap="xl">
         <Flex width={SETUP_CARD_ICON_PX} flexShrink={0} justify="center" paddingTop="md">
-          <Container borderLeft="muted" />
+          <Separator orientation="vertical" border="muted" />
         </Flex>
         <Container flexGrow={1} minWidth="0px" paddingTop="lg" paddingBottom="2xl">
-          <DarkCodeBlock
+          <CodeBlock
+            dark
             alwaysShowCopyButton
             onCopy={() => onCopyCommand('install_command')}
             wrapMode="wrap"
           >
             {INSTALL_PLUGIN_COMMAND}
-          </DarkCodeBlock>
+          </CodeBlock>
         </Container>
       </Flex>
 
@@ -98,40 +98,20 @@ export function AgentSetupCard({
               {t('Point it to your project folder and paste this.')}
             </Text>
           </Stack>
-          <DarkCodeBlock
+          <CodeBlock
+            dark
             alwaysShowCopyButton={!hasSetupFailed}
             hideCopyButton={hasSetupFailed}
             onCopy={() => onCopyCommand('prompt')}
             wrapMode="wrap"
           >
             {prompt}
-          </DarkCodeBlock>
+          </CodeBlock>
         </Stack>
       </Flex>
     </Stack>
   );
 }
-
-function DarkCodeBlock(props: React.ComponentProps<typeof CodeBlock>) {
-  const theme = useTheme();
-  const invertedTheme = useInvertedTheme();
-  const isInverted = theme.type === 'light';
-  return (
-    <ThemeProvider theme={isInverted ? invertedTheme : theme}>
-      <DarkCodeSurface isInverted={isInverted}>
-        <CodeBlock {...props} />
-      </DarkCodeSurface>
-    </ThemeProvider>
-  );
-}
-
-const DarkCodeSurface = styled('div')<{isInverted: boolean}>`
-  --prism-base: ${p => p.theme.tokens.syntax.base};
-  --prism-block-background: ${p =>
-    p.isInverted
-      ? p.theme.tokens.background.secondary
-      : p.theme.tokens.background.tertiary};
-`;
 
 const StepNumber = styled('span')`
   display: inline-flex;
