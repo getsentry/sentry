@@ -20,12 +20,7 @@ import type {
 const monitor = z.object({
   id: z.string().regex(/^\d+$/),
   name: z.string(),
-  enabled: z.boolean().optional(),
-});
-const evidence = z.object({
-  reason: z.string(),
-  differences: z.array(z.string()),
-  matchingSettings: z.array(z.object({label: z.string(), value: z.string()})).default([]),
+  enabled: z.boolean(),
 });
 const comparison = z.array(
   z.object({
@@ -33,16 +28,17 @@ const comparison = z.array(
     values: z.array(z.object({monitorId: z.string(), value: z.string()})),
   })
 );
-const finding = evidence.extend({
+const finding = z.object({
+  reason: z.string(),
   comparison: comparison.default([]),
   kind: z.enum(['exact_duplicate', 'overlapping_coverage', 'duplicate_notifications']),
   monitors: z.array(monitor).min(2),
   suggestedKeepId: z.string().nullable(),
   alerts: z.array(monitor),
-  example: z.string(),
-  nextStep: z.string(),
 });
-const baseOutput = z.object({
+const outputSchema = z.object({
+  schemaVersion: z.literal(1),
+  findings: z.array(finding),
   outputKind: z.literal('monitor_cleanup'),
   projectId: z.string(),
   projectSlug: z.string(),
@@ -52,30 +48,6 @@ const baseOutput = z.object({
   }),
   summary: z.string(),
 });
-const outputSchema = z.union([
-  baseOutput.extend({
-    schemaVersion: z.literal(2),
-    findings: z.array(finding),
-  }),
-  baseOutput
-    .extend({
-      schemaVersion: z.literal(1),
-      groups: z.array(evidence.extend({keep: monitor, duplicates: z.array(monitor)})),
-    })
-    .transform(output => ({
-      ...output,
-      findings: output.groups.map(group => ({
-        ...group,
-        kind: 'legacy_duplicate' as const,
-        comparison: [],
-        monitors: [group.keep, ...group.duplicates],
-        suggestedKeepId: group.keep.id,
-        alerts: [],
-        example: '',
-        nextStep: '',
-      })),
-    })),
-]);
 type Finding = z.infer<typeof outputSchema>['findings'][number];
 
 export function getMonitorFindingSummary(results: SeerWorkflowResult[]) {
@@ -83,7 +55,6 @@ export function getMonitorFindingSummary(results: SeerWorkflowResult[]) {
     exact_duplicate: 0,
     overlapping_coverage: 0,
     duplicate_notifications: 0,
-    legacy_duplicate: 0,
   };
   let supported = 0;
   for (const result of results) {
@@ -116,13 +87,6 @@ export function getMonitorFindingSummary(results: SeerWorkflowResult[]) {
           counts.duplicate_notifications
         )
       : null,
-    counts.legacy_duplicate
-      ? tn(
-          '%s possible duplicate group',
-          '%s possible duplicate groups',
-          counts.legacy_duplicate
-        )
-      : null,
   ].filter(Boolean);
   return labels.length ? labels.join(' · ') : t('No findings');
 }
@@ -135,24 +99,13 @@ function findingLabel(kind: Finding['kind']) {
       return t('Overlapping coverage');
     case 'duplicate_notifications':
       return t('Potential duplicate notifications');
-    case 'legacy_duplicate':
-      return t('Possible duplicates');
     default:
       return kind satisfies never;
   }
 }
 
 function PropertyComparison({item}: {item: Finding}) {
-  const rows =
-    item.comparison.length > 0
-      ? item.comparison
-      : item.matchingSettings.map(setting => ({
-          property: setting.label,
-          values: item.monitors.map(member => ({
-            monitorId: member.id,
-            value: setting.value,
-          })),
-        }));
+  const rows = item.comparison;
   if (rows.length === 0) {
     return (
       <Text size="sm" variant="muted">
@@ -210,13 +163,6 @@ function PropertyComparison({item}: {item: Finding}) {
           })}
         </Table.Body>
       </Table>
-      {item.comparison.length === 0 && item.differences.length > 0 && (
-        <Text size="xs" variant="muted">
-          {t(
-            'Only matching properties were saved in this older scan. Run a new scan for a full comparison.'
-          )}
-        </Text>
-      )}
     </Container>
   );
 }
@@ -228,8 +174,7 @@ function FindingCard({
   item: Finding;
   organizationSlug: string;
 }) {
-  const canSuggestKeep =
-    item.kind === 'exact_duplicate' || item.kind === 'legacy_duplicate';
+  const canSuggestKeep = item.kind === 'exact_duplicate';
   return (
     <Stack
       border="primary"

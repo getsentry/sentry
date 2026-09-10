@@ -85,7 +85,7 @@ describe('SeerWorkflows', () => {
           kind: 'duplicate_monitors',
           extras: {
             outputKind: 'monitor_cleanup',
-            schemaVersion: 2,
+            schemaVersion: 1,
             projectId: '1',
             projectSlug: 'checkout',
             scan: {status: 'complete', monitorsScanned: 2},
@@ -129,12 +129,17 @@ describe('SeerWorkflows', () => {
                 projectSlug: 'checkout',
                 scan: {status: 'complete', monitorsScanned: 2},
                 summary: 'One matching pair',
-                groups: [
+                findings: [
                   {
-                    keep: {id: '10', name: 'Checkout errors'},
-                    duplicates: [{id: '11', name: 'Checkout errors copy'}],
+                    kind: 'exact_duplicate',
+                    monitors: [
+                      {id: '10', name: 'Checkout errors', enabled: true},
+                      {id: '11', name: 'Checkout errors copy', enabled: true},
+                    ],
+                    suggestedKeepId: '10',
+                    alerts: [],
+                    comparison: [],
                     reason: 'Matching thresholds',
-                    differences: [],
                   },
                 ],
               },
@@ -145,7 +150,7 @@ describe('SeerWorkflows', () => {
     });
     render(<SeerWorkflows />, {organization});
     expect(await screen.findByText('Duplicate monitors')).toBeInTheDocument();
-    expect(screen.getByText('1 possible duplicate group')).toBeInTheDocument();
+    expect(screen.getByText('1 exact duplicate group')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Expand run'}));
     expect(screen.getByRole('link', {name: 'Checkout errors'})).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'View comparison'}));

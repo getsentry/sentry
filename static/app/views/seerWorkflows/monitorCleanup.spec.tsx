@@ -34,12 +34,17 @@ describe('MonitorCleanupResults', () => {
     projectSlug: 'project-slug',
     scan: {status: 'complete', monitorsScanned: 2},
     summary: 'Matching configurations',
-    groups: [
+    findings: [
       {
-        keep: {id: '10', name: 'Checkout errors'},
-        duplicates: [{id: '11', name: 'Checkout errors copy'}],
+        kind: 'exact_duplicate',
+        monitors: [
+          {id: '10', name: 'Checkout errors', enabled: true},
+          {id: '11', name: 'Checkout errors copy', enabled: true},
+        ],
+        suggestedKeepId: '10',
+        alerts: [],
+        comparison: [],
         reason: 'Same thresholds and automations',
-        differences: [],
       },
     ],
   };
@@ -82,14 +87,25 @@ describe('MonitorCleanupResults', () => {
             seerRunId: '42',
             extras: {
               ...output,
-              groups: [
+              findings: [
                 {
-                  ...output.groups[0],
-                  matchingSettings: [
-                    {label: 'Trigger', value: 'More than 100 errors'},
-                    {label: 'Window', value: '5 minutes'},
+                  ...output.findings[0],
+                  comparison: [
+                    {
+                      property: 'Trigger',
+                      values: [
+                        {monitorId: '10', value: 'More than 100 errors'},
+                        {monitorId: '11', value: 'More than 100 errors'},
+                      ],
+                    },
+                    {
+                      property: 'Window',
+                      values: [
+                        {monitorId: '10', value: '5 minutes'},
+                        {monitorId: '11', value: '5 minutes'},
+                      ],
+                    },
                   ],
-                  differences: ['Only the monitor names differ.'],
                 },
               ],
             },
@@ -97,36 +113,15 @@ describe('MonitorCleanupResults', () => {
         ]}
       />
     );
-    expect(
-      screen.getByRole('heading', {name: 'Possible duplicates'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Exact duplicates'})).toBeInTheDocument();
     expect(screen.getAllByText('More than 100 errors')[0]).not.toBeVisible();
-    expect(screen.queryByText('Only the monitor names differ.')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'View comparison'}));
     expect(screen.getAllByText('More than 100 errors')[0]).toBeInTheDocument();
     expect(screen.getAllByText('5 minutes')[0]).toBeInTheDocument();
     expect(screen.getAllByText('Same thresholds and automations')[0]).toBeInTheDocument();
-    expect(screen.queryByText('Only the monitor names differ.')).not.toBeInTheDocument();
     expect(screen.queryByText('Matching configurations')).not.toBeInTheDocument();
     expect(screen.getByText('2 monitors inspected across 1 project')).toBeInTheDocument();
     expect(screen.queryByText('0 possible duplicates')).not.toBeInTheDocument();
-  });
-
-  it('keeps older findings readable without extracting settings from prose', () => {
-    render(
-      <MonitorCleanupResults
-        organizationSlug="org-slug"
-        results={[
-          {
-            id: '1',
-            kind: 'duplicate_monitors',
-            seerRunId: null,
-            extras: output,
-          },
-        ]}
-      />
-    );
-    expect(screen.getAllByText('Same thresholds and automations')[0]).toBeVisible();
   });
 
   it('handles unknown output versions', () => {
@@ -160,7 +155,7 @@ describe('MonitorCleanupResults', () => {
             seerRunId: null,
             extras: {
               ...output,
-              groups: [],
+              findings: [],
               scan: {status: 'partial', monitorsScanned: 0},
             },
           },
@@ -174,14 +169,10 @@ describe('MonitorCleanupResults', () => {
   it('distinguishes overlaps and notification risks without suggesting deletion', () => {
     const overlap = {
       kind: 'overlapping_coverage',
-      monitors: [output.groups[0]!.keep, ...output.groups[0]!.duplicates],
+      monitors: output.findings[0]!.monitors,
       suggestedKeepId: null,
       alerts: [],
       reason: 'The timeout query is a subset of checkout errors.',
-      matchingSettings: [{label: 'Window', value: '5 minutes'}],
-      differences: ['Timeouts trigger above 90; checkout errors above 100.'],
-      example: '91 timeouts and 5 other errors trigger only the timeout monitor.',
-      nextStep: 'Confirm whether the earlier timeout warning is intentional.',
     };
     render(
       <MonitorCleanupResults
@@ -193,7 +184,7 @@ describe('MonitorCleanupResults', () => {
             seerRunId: null,
             extras: {
               ...output,
-              schemaVersion: 2,
+              schemaVersion: 1,
               findings: [
                 overlap,
                 {
@@ -219,7 +210,7 @@ describe('MonitorCleanupResults', () => {
               ...output,
               projectId: '2',
               projectSlug: 'other-project',
-              groups: [],
+              findings: [],
               scan: {status: 'complete', monitorsScanned: 3},
             },
           },
@@ -258,18 +249,14 @@ describe('MonitorCleanupResults', () => {
             seerRunId: null,
             extras: {
               ...output,
-              schemaVersion: 2,
+              schemaVersion: 1,
               findings: [
                 {
                   kind: 'exact_duplicate',
-                  monitors: [output.groups[0]!.keep, ...output.groups[0]!.duplicates],
+                  monitors: output.findings[0]!.monitors,
                   suggestedKeepId: '10',
                   alerts: [],
                   reason: 'Identical effective settings.',
-                  matchingSettings: [],
-                  differences: [],
-                  example: '101 errors trigger both.',
-                  nextStep: 'Review before removing the copy.',
                 },
               ],
             },
@@ -296,18 +283,14 @@ describe('MonitorCleanupResults', () => {
             seerRunId: null,
             extras: {
               ...output,
-              schemaVersion: 2,
+              schemaVersion: 1,
               findings: [
                 {
                   kind: 'overlapping_coverage',
-                  monitors: [output.groups[0]!.keep, ...output.groups[0]!.duplicates],
+                  monitors: output.findings[0]!.monitors,
                   suggestedKeepId: null,
                   alerts: [],
                   reason: 'Same error stream, different thresholds.',
-                  differences: ['Long narrative difference'],
-                  matchingSettings: [],
-                  example: 'Long hypothetical example',
-                  nextStep: 'Long recommendation',
                   comparison: [
                     {
                       property: 'Trigger',
@@ -342,8 +325,5 @@ describe('MonitorCleanupResults', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('row', {name: 'Window 5 min 5 min'})).toBeInTheDocument();
     expect(screen.queryByText('Differs')).not.toBeInTheDocument();
-    expect(screen.queryByText('Long narrative difference')).not.toBeInTheDocument();
-    expect(screen.queryByText('Long hypothetical example')).not.toBeInTheDocument();
-    expect(screen.queryByText('Long recommendation')).not.toBeInTheDocument();
   });
 });
