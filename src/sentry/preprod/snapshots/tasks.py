@@ -940,7 +940,9 @@ def compare_snapshots(
     )
 
     try:
-        head_artifact = PreprodArtifact.objects.select_related("project__organization").get(
+        head_artifact = PreprodArtifact.objects.select_related(
+            "project__organization", "commit_comparison"
+        ).get(
             id=head_artifact_id,
             project__organization_id=org_id,
             project_id=project_id,
