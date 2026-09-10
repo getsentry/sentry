@@ -10,7 +10,9 @@ import {
   InvestigationBlockFixture,
   InvestigationDetailFixture,
   InvestigationListItemFixture,
+  InvestigationOrchestrationFixture,
 } from 'sentry/views/investigations/fixtures';
+import {InvestigationHypotheses} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 
 const organization = OrganizationFixture({
   features: ['investigations'],
@@ -152,5 +154,93 @@ describe('InvestigationFixtureApi', () => {
     });
     expect(firstDuplicate.id).toBe('fixture-id-collisions-copy');
     expect(secondDuplicate.id).toBe('fixture-id-collisions-copy-2');
+  });
+
+  // These mirror the "Live, against a mocked orchestration API" story. The
+  // stories route is where this UI gets reviewed, so a fixture that no longer
+  // satisfies the component leaves a broken page rather than a failing build —
+  // rendering the story's contents here is what catches that.
+  describe('orchestration', () => {
+    function renderStoryHypotheses(
+      run = InvestigationOrchestrationFixture(),
+      investigationId = 'investigation-1'
+    ) {
+      return render(
+        <InvestigationFixtureApi
+          organizationSlug="hypotheses-story"
+          details={[InvestigationDetailFixture({id: investigationId, blocks: []})]}
+          orchestration={{[investigationId]: run}}
+        >
+          <InvestigationHypotheses investigationId={investigationId} />
+        </InvestigationFixtureApi>,
+        {organization}
+      );
+    }
+
+    it('serves the projection to the hypothesis row', async () => {
+      renderStoryHypotheses();
+
+      expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
+      expect(
+        screen.getByRole('heading', {
+          name: 'Database or cache degradation delayed the response',
+        })
+      ).toBeInTheDocument();
+      expect(screen.getByText('Supported · 86% Confidence')).toBeInTheDocument();
+      expect(
+        screen.getByText('The delay begins before the document reaches the browser.')
+      ).toBeInTheDocument();
+    });
+
+    it('applies a disposition command and returns the new projection', async () => {
+      renderStoryHypotheses();
+
+      await userEvent.click(
+        await screen.findByRole('button', {
+          name: 'Actions for An external SSO provider slowed the response',
+        })
+      );
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Accept'}));
+
+      // The command response carries the updated projection, so the card
+      // changes without another read.
+      expect(
+        await screen.findByText('Accepted by you · 91% Confidence')
+      ).toBeInTheDocument();
+    });
+
+    it('clears a disposition back to the agent verdict', async () => {
+      renderStoryHypotheses();
+
+      const trigger = await screen.findByRole('button', {
+        name: 'Actions for An external SSO provider slowed the response',
+      });
+      await userEvent.click(trigger);
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Accept'}));
+      await screen.findByText('Accepted by you · 91% Confidence');
+
+      await userEvent.click(trigger);
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Clear decision'})
+      );
+
+      expect(await screen.findByText('Refuted · 91% Confidence')).toBeInTheDocument();
+    });
+
+    it('puts a retried hypothesis back into investigation', async () => {
+      renderStoryHypotheses();
+
+      await userEvent.click(
+        await screen.findByRole('button', {
+          name: 'Actions for Session validation created a shared bottleneck',
+        })
+      );
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Investigate again'})
+      );
+
+      expect(await screen.findByText('Investigating')).toBeInTheDocument();
+      expect(screen.getAllByText('Queued.').length).toBeGreaterThan(0);
+    });
   });
 });
