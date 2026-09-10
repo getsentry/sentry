@@ -54,7 +54,7 @@ class GroupIntegrationDetailsDocs(APIDocsTestCase):
         self.validate_schema(request, response)
 
     def test_put(self) -> None:
-        data = {"externalIssue": "APP-123", "repo": "example/project"}
+        data = {"externalIssue": "APP-123"}
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.put(self.base_url, data=data)
         request = RequestFactory().put(self.base_url, data=data)

@@ -389,16 +389,6 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                     help_text="The identifier of the existing external issue to link, "
                     "as understood by the provider (such as a Jira issue key)."
                 ),
-                "repo": serializers.CharField(
-                    required=False,
-                    help_text="The repository containing the external issue, in owner/name format. "
-                    "Required by GitHub, GitHub Enterprise, and Bitbucket integrations.",
-                ),
-                "comment": serializers.CharField(
-                    required=False,
-                    help_text="An optional comment to post to the external issue when linking, "
-                    "if supported by the integration.",
-                ),
             },
         ),
         responses={
