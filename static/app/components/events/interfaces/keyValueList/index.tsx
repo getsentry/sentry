@@ -37,6 +37,7 @@ export function KeyValueList({
     <Grid
       className={classNames('table key-value', className)}
       columns={{zero: 'minmax(0, 1fr)', sm: '175px minmax(0, 500px)'}}
+      gap="md"
       role="table"
       width="100%"
       {...props}
@@ -79,8 +80,14 @@ export function KeyValueList({
             );
 
           return (
-            <Grid column="1 / -1" columns="subgrid" key={`${key}-${idx}`} role="row">
-              <Container padding="md lg md 0" role="cell">
+            <Grid
+              column="1 / -1"
+              columns="subgrid"
+              gap="md lg"
+              key={`${key}-${idx}`}
+              role="row"
+            >
+              <Container role="cell">
                 <Text bold density="comfortable" wordBreak="break-word">
                   {subject}
                 </Text>
