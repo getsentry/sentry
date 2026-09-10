@@ -691,7 +691,7 @@ describe('Onboarding', () => {
         await screen.findByText('npx @sentry/agent-plugin install')
       ).toBeInTheDocument();
       expect(screen.getByText('Recommended')).toBeInTheDocument();
-      expect(screen.getByText('Claude Code, Codex, Cursor & Grok')).toBeInTheDocument();
+      expect(screen.getByText('Claude Code, Codex, Cursor, & Grok')).toBeInTheDocument();
       expect(screen.getByText(/org slug: org-slug/)).toBeInTheDocument();
       expect(screen.getByRole('button', {name: /Set up manually/})).toBeInTheDocument();
       expect(screen.queryByTestId('onboarding-welcome-start')).not.toBeInTheDocument();

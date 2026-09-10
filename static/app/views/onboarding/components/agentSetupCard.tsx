@@ -16,11 +16,10 @@ export type AgentSetupCopySource = 'install_command' | 'prompt';
 const INSTALL_PLUGIN_COMMAND = 'npx @sentry/agent-plugin install';
 
 const SUPPORTED_AGENTS = ['Claude Code', 'Codex', 'Cursor', 'Grok'];
-const SUPPORTED_AGENTS_LABEL = t(
-  '%s & %s',
-  SUPPORTED_AGENTS.slice(0, -1).join(', '),
-  SUPPORTED_AGENTS.at(-1)
-);
+const SUPPORTED_AGENTS_LABEL = new Intl.ListFormat(undefined, {
+  style: 'short',
+  type: 'conjunction',
+}).format(SUPPORTED_AGENTS);
 
 interface AgentSetupCardProps {
   onCopyCommand: (source: AgentSetupCopySource) => void;
