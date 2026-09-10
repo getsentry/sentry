@@ -1,13 +1,12 @@
 import type {MouseEvent} from 'react';
 import {Fragment, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -116,7 +115,6 @@ export function NativeFrame({
   const absolute = displayOptions.includes('absolute-addresses');
   const fullFunctionName = displayOptions.includes('verbose-function-names');
   const absoluteFilePaths = displayOptions.includes('absolute-file-paths');
-
   const tooltipDelay = isHoverPreviewed ? SLOW_TOOLTIP_DELAY : undefined;
   const foundByStackScanning = frame.trust === 'scan' || frame.trust === 'cfi-scan';
   const startingAddress = image ? image.image_addr : null;
@@ -278,14 +276,37 @@ export function NativeFrame({
     <StackTraceFrame data-test-id="stack-trace-frame">
       <StrictClick onClick={handleToggleContext}>
         <RowHeader
+          align="center"
+          alignContent="center"
+          as="span"
+          columns={{
+            zero: 'auto minmax(0, 1fr) 56px 24px',
+            lg: 'auto 150px 120px minmax(0, 1fr) auto auto 24px',
+            '2xl': 'auto 150px 120px minmax(120px, 4fr) repeat(3, auto) 24px',
+          }}
           expandable={!!expandable}
+          gap={{zero: 'xs sm', lg: '0 sm'}}
           isInAppFrame={frame.inApp}
           isSubFrame={!!isSubFrame}
+          minHeight={{lg: '32px'}}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
+          padding={{zero: 'md', lg: 'sm lg'}}
+          position="relative"
+          rows={{
+            zero: hiddenFrameCount ? 'auto auto auto auto' : 'auto auto auto',
+            lg: 'auto',
+          }}
         >
           {expandable ? <InteractionStateLayer /> : null}
-          <Container width="14px">
+          <Container
+            column={{zero: '1', lg: '1'}}
+            row={{
+              zero: hiddenFrameCount ? '1 / 5' : '1 / 4',
+              lg: '1',
+            }}
+            width="14px"
+          >
             {status === 'error' ? (
               <Tooltip
                 title={t(
@@ -312,36 +333,39 @@ export function NativeFrame({
               </Tooltip>
             ) : null}
           </Container>
-          <div>
+          <Container
+            column={{zero: '2', lg: '2'}}
+            minWidth="0"
+            row={{zero: '1', lg: '1'}}
+          >
             {!fullStackTrace && !expanded && leadsToApp && (
               <Fragment>
-                <Text as="div" size="xs" variant="muted">
+                <PackageNote>
                   {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
-                </Text>
+                </PackageNote>
               </Fragment>
             )}
-            <Tooltip
+            <InfoText
               title={
                 frame.package ??
                 (isDartAsyncSuspensionFrame
                   ? t('Dart async operation')
                   : t('Go to images loaded'))
               }
-              containerDisplayMode="inline-flex"
               delay={tooltipDelay}
+              ellipsis
               maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
               position="auto-start"
+              variant="inherit"
             >
-              <Package>
-                {frame.package
-                  ? trimPackage(frame.package)
-                  : isDartAsyncSuspensionFrame
-                    ? t('Dart async')
-                    : `<${t('unknown')}>`}
-              </Package>
-            </Tooltip>
-          </div>
-          <Flex>
+              {frame.package
+                ? trimPackage(frame.package)
+                : isDartAsyncSuspensionFrame
+                  ? t('Dart async')
+                  : `<${t('unknown')}>`}
+            </InfoText>
+          </Container>
+          <Flex column={{zero: '2', lg: '3'}} minWidth="0" row={{zero: '2', lg: '1'}}>
             <AddressCell onClick={packageClickable ? handleGoToImagesLoaded : undefined}>
               <Tooltip
                 title={addressTooltip}
@@ -353,42 +377,46 @@ export function NativeFrame({
               </Tooltip>
             </AddressCell>
           </Flex>
-          <Text wordBreak="break-all">
-            {({className: textClassName}) => (
-              <Container className={textClassName} column={{zero: '2 / 6', xl: 'auto'}}>
-                {functionName ? (
-                  <Tooltip
-                    title={frame?.rawFunction ?? frame?.symbol}
-                    delay={tooltipDelay}
-                  >
-                    <AnnotatedText value={functionName.value} meta={functionName.meta} />
-                  </Tooltip>
-                ) : isDartAsyncSuspensionFrame ? (
-                  t('Dart')
-                ) : (
-                  `<${t('unknown')}>`
-                )}{' '}
-                {frame.filename && (
-                  <Tooltip
-                    title={frame.absPath}
-                    disabled={
-                      !(defined(frame.absPath) && frame.absPath !== frame.filename)
-                    }
-                    delay={tooltipDelay}
-                    maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
-                  >
-                    <FileName>
-                      {'('}
-                      {absoluteFilePaths ? frame.absPath : frame.filename}
-                      {frame.lineNo && `:${frame.lineNo}`}
-                      {')'}
-                    </FileName>
-                  </Tooltip>
-                )}
-              </Container>
+          <Container
+            alignSelf="center"
+            column={{
+              zero: '2 / 5',
+              lg: '4',
+            }}
+            minWidth="0"
+            row={{zero: '3', lg: '1'}}
+          >
+            {functionName ? (
+              <InfoText
+                title={frame?.rawFunction ?? frame?.symbol}
+                delay={tooltipDelay}
+                variant="inherit"
+                wordBreak="break-all"
+              >
+                <AnnotatedText value={functionName.value} meta={functionName.meta} />
+              </InfoText>
+            ) : isDartAsyncSuspensionFrame ? (
+              t('Dart')
+            ) : (
+              `<${t('unknown')}>`
+            )}{' '}
+            {frame.filename && (
+              <Tooltip
+                title={frame.absPath}
+                disabled={!(defined(frame.absPath) && frame.absPath !== frame.filename)}
+                delay={tooltipDelay}
+                maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
+              >
+                <FileName>
+                  {'('}
+                  {absoluteFilePaths ? frame.absPath : frame.filename}
+                  {frame.lineNo && `:${frame.lineNo}`}
+                  {')'}
+                </FileName>
+              </Tooltip>
             )}
-          </Text>
-          <Container row={{zero: '2 / 3', xl: 'auto'}}>
+          </Container>
+          <Container column={{'2xl': '5'}} display={{zero: 'none', '2xl': 'block'}}>
             {isUsedForGrouping && (
               <Tooltip title={t('This frame is repeated in every event of this issue')}>
                 <IconRefresh size="sm" variant="primary" />
@@ -396,25 +424,46 @@ export function NativeFrame({
             )}
           </Container>
           {hiddenFrameCount ? (
-            <ShowHideButton
-              analyticsEventName="Stacktrace Frames: toggled"
-              analyticsEventKey="stacktrace_frames.toggled"
-              analyticsParams={{
-                frame_count: hiddenFrameCount,
-                is_frame_expanded: isShowFramesToggleExpanded,
+            <Flex
+              column={{
+                zero: '2 / 5',
+                lg: expandable ? '5 / 7' : '5 / 8',
+                '2xl': expandable ? '6 / 8' : '6 / 9',
               }}
-              size="zero"
-              variant="transparent"
-              onClick={e => {
-                onShowFramesToggle?.(e);
-              }}
+              justify="end"
+              minWidth="0"
+              row={{zero: '4', lg: '1'}}
             >
-              {isShowFramesToggleExpanded
-                ? tn('Hide %s more frame', 'Hide %s more frames', hiddenFrameCount)
-                : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
-            </ShowHideButton>
+              <ShowHideButton
+                analyticsEventName="Stacktrace Frames: toggled"
+                analyticsEventKey="stacktrace_frames.toggled"
+                analyticsParams={{
+                  frame_count: hiddenFrameCount,
+                  is_frame_expanded: isShowFramesToggleExpanded,
+                }}
+                size="zero"
+                variant="transparent"
+                onClick={e => {
+                  onShowFramesToggle?.(e);
+                }}
+              >
+                {isShowFramesToggleExpanded
+                  ? tn('Hide %s more frame', 'Hide %s more frames', hiddenFrameCount)
+                  : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
+              </ShowHideButton>
+            </Flex>
           ) : null}
-          <Flex align="center" gap="sm">
+          <Flex
+            align="center"
+            column={{
+              zero: expandable ? '3' : '3 / 5',
+              lg: expandable ? '6' : '6 / 8',
+              '2xl': expandable ? '7' : '7 / 9',
+            }}
+            gap="sm"
+            justify="end"
+            row={{zero: '1', lg: '1'}}
+          >
             {showStacktraceLink && (
               <ErrorBoundary>
                 <StacktraceLink
@@ -434,16 +483,14 @@ export function NativeFrame({
                 />
               </ErrorBoundary>
             )}
-            <Container
-              column={{zero: '5 / 6', xl: 'auto'}}
-              row={{zero: '1 / 2', xl: 'auto'}}
-            >
+            <Container>
               {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
             </Container>
           </Flex>
           <Container
-            column={{zero: '6 / 7', xl: 'auto'}}
-            row={{zero: '1 / 2', xl: 'auto'}}
+            column={{zero: '4', lg: '7', '2xl': '8'}}
+            justifySelf="end"
+            row={{zero: '1', lg: '1'}}
           >
             {expandable && (
               <ToggleButton
@@ -496,12 +543,9 @@ const Registers = styled(Context)`
   margin: 0;
 `;
 
-const Package = styled('span')`
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 100%;
-  padding-right: 2px; /* Needed to prevent text cropping with italic font */
+const PackageNote = styled('div')`
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.xs};
 `;
 
 const FileName = styled('span')`
@@ -509,26 +553,7 @@ const FileName = styled('span')`
   border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
 `;
 
-function RowHeader(props: React.ComponentProps<typeof StyledRowHeader>) {
-  const theme = useTheme();
-
-  return (
-    <Grid
-      align="center"
-      alignContent="center"
-      columns={`auto 150px 120px 4fr repeat(3, auto) ${theme.space.xl}`}
-      gap="0 md"
-      minHeight={{xl: '32px'}}
-      padding={{zero: 'md', xl: 'xs lg'}}
-      position="relative"
-      rows="1fr"
-    >
-      {({className}) => <StyledRowHeader {...props} className={className} />}
-    </Grid>
-  );
-}
-
-const StyledRowHeader = styled('span')<{
+const RowHeader = styled(Grid)<{
   expandable: boolean;
   isInAppFrame: boolean;
   isSubFrame: boolean;
@@ -545,7 +570,7 @@ const StyledRowHeader = styled('span')<{
 
 const StackTraceFrame = styled('li')`
   :not(:last-child) {
-    ${StyledRowHeader} {
+    ${RowHeader} {
       border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     }
   }
