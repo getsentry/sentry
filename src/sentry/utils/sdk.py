@@ -34,7 +34,7 @@ from sentry_sdk.utils import logger as sdk_error_logger
 from sentry import options
 from sentry.conf.types.sdk_config import SdkConfig
 from sentry.options.rollout import in_random_rollout
-from sentry.utils import json
+from sentry.utils import json, warnings
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
 from sentry.utils.tracing import get_current_span, start_span
@@ -409,6 +409,12 @@ def configure_sdk():
             disabled_integrations=disabled_integrations,
             **sdk_options,
         )
+        return
+
+    warnings.warn(
+        "Sentry SDK not initialized: no DSN available. "
+        "Set `sentry_mirror_dsn` in SENTRY_SDK_CONFIG or ensure an internal project key exists."
+    )
 
 
 def check_tag_for_scope_bleed(
