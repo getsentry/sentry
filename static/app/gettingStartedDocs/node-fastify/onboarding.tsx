@@ -56,7 +56,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'To initialize the SDK before everything else, create an external file called [code:instrument.mjs].',
+            'To initialize the SDK before everything else, create an external file called [code:instrument.js]. These snippets use ESM syntax, so your [code:package.json] needs [code:"type": "module"].',
             {code: <code />}
           ),
         },
@@ -66,7 +66,7 @@ export const onboarding: OnboardingConfig = {
             {
               label: 'JavaScript',
               language: 'javascript',
-              filename: 'instrument.mjs',
+              filename: 'instrument.js',
               code: getSdkInitSnippet(params, 'node', 'esm-only'),
             },
           ],
@@ -74,7 +74,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Start your application with the [code:--import] flag, so that [code:instrument.mjs] loads before any other module. For alternative ways to set up Sentry, read about [docs:installation methods in our docs].',
+            'Start your application with the [code:--import] flag, so that [code:instrument.js] loads before any other module. For alternative ways to set up Sentry, read about [docs:installation methods in our docs].',
             {
               code: <code />,
               docs: (
@@ -86,12 +86,12 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'code',
           language: 'bash',
-          code: 'node --import ./instrument.mjs index.mjs',
+          code: 'node --import ./instrument.js index.js',
         },
         {
           type: 'text',
           text: tct(
-            'This is what your application entry point, usually [code:index.mjs], looks like:',
+            'This is what your application entry point, usually [code:index.js], looks like:',
             {code: <code />}
           ),
         },
@@ -101,7 +101,7 @@ export const onboarding: OnboardingConfig = {
             {
               label: 'JavaScript',
               language: 'javascript',
-              filename: 'index.mjs',
+              filename: 'index.js',
               code: getSdkSetupSnippet(),
             },
           ],

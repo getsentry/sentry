@@ -34,7 +34,7 @@ describe('fastify onboarding docs', () => {
 
     expect(
       screen.getByText(
-        textWithMarkupMatcher(/node --import \.\/instrument\.mjs index\.mjs/)
+        textWithMarkupMatcher(/node --import \.\/instrument\.js index\.js/)
       )
     ).toBeInTheDocument();
   });
