@@ -34,7 +34,10 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
-from sentry.workflow_engine.registry import data_source_type_registry
+from sentry.workflow_engine.registry import (
+    data_source_type_registry,
+    detector_validator_registry,
+)
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
@@ -177,7 +180,7 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
         }
 
     def test_incompatible_group_type(self) -> None:
-        with mock.patch.object(MetricIssue, "detector_settings", None):
+        with mock.patch.dict(detector_validator_registry.registrations, clear=True):
             data = {**self.valid_data, "type": MetricIssue.slug}
             response = self.get_error_response(
                 self.organization.slug,
