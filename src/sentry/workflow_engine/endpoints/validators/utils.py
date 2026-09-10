@@ -378,7 +378,7 @@ def get_unknown_detector_type_error(bad_value: str, organization: Organization) 
     available_types = [
         gt.slug
         for gt in grouptype.registry.get_visible(organization)
-        if gt.detector_settings is not None and gt.detector_settings.validator is not None
+        if gt.detector_settings.validator is not None
     ]
     available_types.sort()
 

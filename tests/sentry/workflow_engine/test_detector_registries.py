@@ -18,12 +18,9 @@ def test_every_registration_resolves_to_a_group_type() -> None:
         )
 
 
-def test_no_group_type_is_half_migrated() -> None:
+def test_no_group_type_assigns_detector_settings_directly() -> None:
     for group_type in grouptype.registry.all():
-        defines_legacy_attribute = "detector_settings" in vars(group_type)
-
-        if defines_legacy_attribute:
-            assert group_type.slug not in registered_slugs(), (
-                f"{group_type.slug} still assigns detector_settings in its class body and also "
-                "has a registry entry. The class attribute shadows the registry; delete it."
-            )
+        assert "detector_settings" not in vars(group_type), (
+            f"{group_type.slug} assigns detector_settings in its class body; "
+            "register a handler and validator instead"
+        )

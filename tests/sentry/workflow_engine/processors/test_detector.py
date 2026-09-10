@@ -466,14 +466,14 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         detector = self.create_detector(type=self.no_handler_type.slug)
         data_packet = self.build_data_packet()
         with mock.patch("sentry.workflow_engine.models.detector.logger") as mock_logger:
-            with pytest.raises(ValueError):
-                results = process_detectors(data_packet, [detector])
-                assert (
-                    mock_logger.error.call_args[0][0]
-                    == "Registered grouptype for detector has no detector_handler"
-                )
+            results = process_detectors(data_packet, [detector])
 
-                assert results == []
+        assert (
+            mock_logger.error.call_args[0][0]
+            == "Registered grouptype for detector has no detector_handler"
+        )
+
+        assert results == []
 
     def test_sending_metric_before_evaluating(self) -> None:
         detector = self.create_detector(type=self.handler_type.slug)
@@ -593,13 +593,12 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         data_packet = self.build_data_packet()
 
         with mock.patch("sentry.utils.metrics.incr") as mock_incr:
-            with pytest.raises(ValueError):
-                process_detectors(data_packet, [detector])
+            process_detectors(data_packet, [detector])
 
-                calls = mock_incr.call_args_list
-                # We can have background threads emitting metrics as tasks are scheduled
-                filtered_calls = list(filter(lambda c: "taskworker" not in c.args[0], calls))
-                assert len(filtered_calls) == 0
+        calls = mock_incr.call_args_list
+        # We can have background threads emitting metrics as tasks are scheduled
+        filtered_calls = list(filter(lambda c: "taskworker" not in c.args[0], calls))
+        assert len(filtered_calls) == 0
 
 
 @django_db_all

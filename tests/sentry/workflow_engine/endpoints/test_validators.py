@@ -12,7 +12,12 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.issues import grouptype
-from sentry.issues.grouptype import GroupCategory, GroupType, GroupTypeRegistry
+from sentry.issues.grouptype import (
+    DetectorSettings,
+    GroupCategory,
+    GroupType,
+    GroupTypeRegistry,
+)
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import (
@@ -314,7 +319,9 @@ class DetectorValidatorTest(BaseValidatorTest):
 
     def test_validate_type_incompatible(self) -> None:
         with mock.patch("sentry.issues.grouptype.registry.get_by_slug") as mock_get:
-            mock_get.return_value = mock.Mock(detector_settings=None)
+            mock_get.return_value = mock.Mock(
+                detector_settings=DetectorSettings("incompatible_type")
+            )
             validator = MockDetectorValidator(data={**self.valid_data, "type": "incompatible_type"})
             assert not validator.is_valid()
             assert validator.errors.get("type") == [
