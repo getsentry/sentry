@@ -100,8 +100,9 @@ Logging (`logger.info/exception`, `LOG005`/`LOG011`), tracing/spans (`sentry.uti
 ### Database Guidelines
 
 1. Migrations must be backwards compatible → use the **`generate-migration`** skill.
-2. Add indexes for queries on 1M+ row tables (`db_index=True` or `db_index_together`).
-3. **Composite indexes**: any query filtering multiple columns (e.g. `foreign_key_id__in=... AND id__gt=...`, or FK + timestamp range, or cursor pagination combining filters) needs an explicit `Index(fields=[...])` in `Meta.indexes`, ordered most-selective-first. A single FK auto-index does NOT cover multi-column filters. See **`django-perf-review`** for validation.
+2. Data migrations using `apps.get_model()` operate on historical model classes: custom `save()` methods are absent, and signals scoped to the live model class do not run. Identify and explicitly perform required side effects such as cache invalidation; see the **`generate-migration`** skill.
+3. Add indexes for queries on 1M+ row tables (`db_index=True` or `db_index_together`).
+4. **Composite indexes**: any query filtering multiple columns (e.g. `foreign_key_id__in=... AND id__gt=...`, or FK + timestamp range, or cursor pagination combining filters) needs an explicit `Index(fields=[...])` in `Meta.indexes`, ordered most-selective-first. A single FK auto-index does NOT cover multi-column filters. See **`django-perf-review`** for validation.
 
 ## Anti-Patterns (NEVER DO)
 
