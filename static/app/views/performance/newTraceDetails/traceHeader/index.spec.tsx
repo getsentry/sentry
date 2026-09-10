@@ -1,9 +1,14 @@
 import {TransactionEventFixture} from 'sentry-fixture/event';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+  type RouterConfig,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
@@ -85,7 +90,9 @@ describe('TraceMetaDataHeader', () => {
   describe('breadcrumbs', () => {
     function renderHeader(
       props: TraceMetadataHeaderProps,
-      location = {pathname: '/organizations/org-slug/traces/trace/trace-slug'}
+      location: RouterConfig['location'] = {
+        pathname: '/organizations/org-slug/traces/trace/trace-slug',
+      }
     ) {
       return render(
         <TopBar.Slot.Provider>
@@ -97,14 +104,13 @@ describe('TraceMetaDataHeader', () => {
     }
 
     it('should render module breadcrumbs', () => {
-      const location = LocationFixture({
+      const props = {...baseProps} as TraceMetadataHeaderProps;
+      renderHeader(props, {
         pathname: '/organizations/org-slug/insights/backend/trace/trace-slug',
         query: {
           source: TraceViewSources.REQUESTS_MODULE,
         },
       });
-      const props = {...baseProps} as TraceMetadataHeaderProps;
-      renderHeader(props, location);
 
       const topBar = screen.getByRole('banner');
       const breadcrumbsLinks = within(topBar).getAllByRole('link');
@@ -117,15 +123,14 @@ describe('TraceMetaDataHeader', () => {
     });
 
     it('should show insights from transaction summary with perf removal feature', () => {
-      const location = LocationFixture({
+      const props = {...baseProps} as TraceMetadataHeaderProps;
+      renderHeader(props, {
         pathname: '/organizations/org-slug/traces/trace/123',
         query: {
           source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
           transaction: 'transaction-name',
         },
       });
-      const props = {...baseProps} as TraceMetadataHeaderProps;
-      renderHeader(props, location);
 
       const topBar = screen.getByRole('banner');
       const breadcrumbsLinks = within(topBar).getAllByRole('link');
@@ -141,15 +146,14 @@ describe('TraceMetaDataHeader', () => {
     });
 
     it('should show insights from transaction summary', () => {
-      const location = LocationFixture({
+      const props = {...baseProps} as TraceMetadataHeaderProps;
+      renderHeader(props, {
         pathname: '/organizations/org-slug/traces/trace/123',
         query: {
           source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
           transaction: 'transaction-name',
         },
       });
-      const props = {...baseProps} as TraceMetadataHeaderProps;
-      renderHeader(props, location);
 
       const topBar = screen.getByRole('banner');
       const breadcrumbsLinks = within(topBar).getAllByRole('link');
@@ -165,15 +169,16 @@ describe('TraceMetaDataHeader', () => {
     });
 
     it('should render domain overview breadcrumbs', () => {
-      const location = LocationFixture({
-        pathname: '/organizations/org-slug/insights/frontend/trace/123',
-        query: {
-          source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
-        },
-      });
       const props = {...baseProps} as TraceMetadataHeaderProps;
       render(<TraceMetaDataHeader {...props} organization={organization} />, {
-        initialRouterConfig: {location},
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/insights/frontend/trace/123',
+            query: {
+              source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+            },
+          },
+        },
       });
 
       const breadcrumbsLinks = screen.getAllByRole('link');
