@@ -240,10 +240,8 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         seer_run_b = self.create_seer_run(organization=self.organization, seer_run_state_id=222)
         SeerNightShiftRunShard.objects.create(run=run, seer_run=seer_run_a)
         SeerNightShiftRunShard.objects.create(run=run, seer_run=seer_run_b)
-        # A linked run has a public UUID even before Seer assigns a state ID.
         pending_run = self.create_seer_run(organization=self.organization, seer_run_state_id=None)
         SeerNightShiftRunShard.objects.create(run=run, seer_run=pending_run)
-        # An unlinked shard has no public run reference.
         SeerNightShiftRunShard.objects.create(run=run)
 
         with self.feature("organizations:seer-night-shift"):
