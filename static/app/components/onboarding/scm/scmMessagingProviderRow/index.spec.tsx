@@ -278,7 +278,7 @@ describe('ScmMessagingProviderRow', () => {
         organization: noAccessOrg,
       });
 
-      expect(screen.getByText('Connected')).toBeInTheDocument();
+      expect(screen.getByText('Authorized')).toBeInTheDocument();
       expect(
         screen.getByRole('button', {name: /Choose destination/})
       ).toBeInTheDocument();
@@ -534,12 +534,12 @@ describe('ScmMessagingProviderRow', () => {
   });
 
   describe('choose-destination state (connected, not yet configured)', () => {
-    it('shows the Connected tag without opening the picker', () => {
+    it('shows the Authorized tag without opening the picker', () => {
       const renderChannelPicker = jest.fn(() => <div>channel-picker</div>);
       renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {renderChannelPicker});
 
-      expect(screen.getByText('Connected')).toBeInTheDocument();
-      expect(screen.queryByText('Destination added')).not.toBeInTheDocument();
+      expect(screen.getByText('Authorized')).toBeInTheDocument();
+      expect(screen.queryByText('Connected')).not.toBeInTheDocument();
       expect(screen.queryByText('channel-picker')).not.toBeInTheDocument();
     });
 
@@ -707,11 +707,11 @@ describe('ScmMessagingProviderRow', () => {
   });
 
   describe('configured state', () => {
-    it('shows the Destination added tag', () => {
+    it('shows the Connected tag', () => {
       renderRow(connectedSlack, selectedSlackSetup);
 
-      expect(screen.getByText('Destination added')).toBeInTheDocument();
-      expect(screen.queryByText('Connected')).not.toBeInTheDocument();
+      expect(screen.getByText('Connected')).toBeInTheDocument();
+      expect(screen.queryByText('Authorized')).not.toBeInTheDocument();
     });
 
     it('enters configuring state when Edit is clicked and passes onCancel to the picker', async () => {
@@ -737,11 +737,7 @@ describe('ScmMessagingProviderRow', () => {
       await userEvent.click(screen.getByRole('button', {name: /Cancel/}));
 
       expect(screen.getByRole('button', {name: /Edit/})).toBeInTheDocument();
-      expect(
-        screen.queryByText(
-          'This removes the destination from project setup. The integration stays connected to your organization.'
-        )
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText('You can reconnect at any time')).not.toBeInTheDocument();
     });
 
     it('calls onMessagingSetupChange with unconfigured when confirmed', async () => {

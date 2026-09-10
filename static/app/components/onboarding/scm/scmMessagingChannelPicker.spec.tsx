@@ -314,13 +314,6 @@ describe('ScmMessagingChannelPicker', () => {
       expect(screen.getByLabelText('workspace')).toBeEnabled();
     });
 
-    it('disables the Workspace select when there is only one eligible integration', () => {
-      mockChannels('10', [slackChannel]);
-      renderPicker({eligibleIntegrations: [slackIntegration]});
-
-      expect(screen.getByLabelText('workspace')).toBeDisabled();
-    });
-
     it('writes the selected workspace integrationId on save', async () => {
       mockChannels('10', [slackChannel]);
       mockChannels('11', [slackChannel]);
@@ -452,33 +445,12 @@ describe('ScmMessagingChannelPicker', () => {
       );
     });
 
-    it('only shows the integrations it receives — eligibility is enforced upstream', () => {
-      // The row (via the resolved provider) is responsible for filtering to eligibleIntegrations
-      // before passing them to the picker. The picker renders whatever it receives.
-      const msteamsTeam = OrganizationIntegrationsFixture({
-        id: '41',
-        name: 'team-workspace',
-        provider: {
-          key: 'msteams',
-          slug: 'msteams',
-          name: 'Microsoft Teams',
-          canAdd: true,
-          canDisable: false,
-          features: [],
-          aspects: {},
-        },
-        configData: {installationType: 'team'},
-      });
+    it('hides the Workspace select and shows the channel control when there is one integration', () => {
+      mockChannels('10', [slackChannel]);
+      renderPicker({eligibleIntegrations: [slackIntegration]});
 
-      mockChannels('41', []);
-      // Only the eligible team integration is passed; the tenant was excluded by the row.
-      renderPicker({
-        eligibleIntegrations: [msteamsTeam],
-        providerKey: 'msteams',
-      });
-
-      expect(screen.getByLabelText('workspace')).toBeDisabled(); // only 1 workspace
-      expect(screen.getByText('team-workspace')).toBeInTheDocument();
+      expect(screen.queryByLabelText('workspace')).not.toBeInTheDocument();
+      expect(screen.getByLabelText('channel')).toBeInTheDocument();
     });
   });
 

@@ -218,7 +218,7 @@ describe('ScmMessaging', () => {
       )
     ).toBeInTheDocument();
     expect(onMessagingSetupChange).toHaveBeenCalledWith({mode: 'unconfigured'});
-    expect(screen.queryByText('Destination added')).not.toBeInTheDocument();
+    expect(screen.queryByText('Connected')).not.toBeInTheDocument();
   });
 
   it('clears an inactive integration with an explanation', async () => {
@@ -233,7 +233,7 @@ describe('ScmMessaging', () => {
       )
     ).toBeInTheDocument();
     expect(onMessagingSetupChange).toHaveBeenCalledWith({mode: 'unconfigured'});
-    expect(screen.queryByText('Destination added')).not.toBeInTheDocument();
+    expect(screen.queryByText('Connected')).not.toBeInTheDocument();
   });
 
   it('clears the stale channel warning once a refetch resolves the channel', async () => {
@@ -391,7 +391,7 @@ describe('ScmMessaging', () => {
       )
     ).toBeInTheDocument();
     expect(onMessagingSetupChange).not.toHaveBeenCalled();
-    expect(screen.queryByText('Destination added')).not.toBeInTheDocument();
+    expect(screen.queryByText('Connected')).not.toBeInTheDocument();
   });
 
   it('uses channel ID as the channel-validate param for Discord', async () => {
@@ -472,7 +472,7 @@ describe('ScmMessaging', () => {
       </QueryClientProvider>
     );
 
-    expect(screen.queryByText('Destination added')).not.toBeInTheDocument();
+    expect(screen.queryByText('Connected')).not.toBeInTheDocument();
     expect(onMessagingSetupChange).not.toHaveBeenCalled();
     expect(
       await screen.findByText(
@@ -1005,7 +1005,7 @@ describe('ScmMessaging', () => {
       )
     ).toBeInTheDocument();
     expect(onMessagingSetupChange).toHaveBeenCalledWith({mode: 'unconfigured'});
-    expect(screen.queryByText('Destination added')).not.toBeInTheDocument();
+    expect(screen.queryByText('Connected')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
   });
 
@@ -1350,9 +1350,9 @@ describe('ScmMessaging', () => {
 
       act(() => releaseRefetch());
 
-      // Refetch settled: picker auto-opened (its "Workspace" label), Connect
+      // Refetch settled: picker auto-opened (its "Channel" label), Connect
       // gone, footer still hidden.
-      expect(await screen.findByText('Workspace')).toBeInTheDocument();
+      expect(await screen.findByText('Channel')).toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: /Connect slack/i})
       ).not.toBeInTheDocument();
