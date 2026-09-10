@@ -42,6 +42,7 @@ from scm.helpers import iter_all_pages
 from scm.manager import SourceCodeManager
 from scm.types import GetCommitsByPathProtocol, GetPullRequestFilesProtocol, PullRequestFile
 
+from sentry.integrations.github.utils import is_github_bot_login
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.ownership.grammar import get_codeowners_path_and_owners
@@ -50,7 +51,6 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.organization import Organization
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.repository import Repository
-from sentry.seer.autofix.pr_iteration.actors import is_bot_login
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker, record_run_marker
 from sentry.seer.models.run import SeerRun
 from sentry.seer.utils import get_github_username_for_user
@@ -160,7 +160,7 @@ def collect_reviewer_candidates(
         )
         for login in logins:
             key = login.lower()
-            if key in seen or key in excluded or is_bot_login(login):
+            if key in seen or key in excluded or is_github_bot_login(login):
                 continue
             seen.add(key)
             candidates.append(ReviewerCandidate(login=login, source=source))

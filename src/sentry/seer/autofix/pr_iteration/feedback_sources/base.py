@@ -8,7 +8,6 @@ from uuid import uuid4
 from pydantic import BaseModel, Field
 
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.autofix.pr_iteration.actors import is_bot_login
 
 
 class ConsumeTask:
@@ -101,8 +100,12 @@ class FeedbackSourceBase(BaseModel):
 
     @property
     def actor_is_bot(self) -> bool:
+        # Imported lazily: sentry.integrations.github pulls in the slack notification
+        # registry, and this module loads before it during app startup.
+        from sentry.integrations.github.utils import is_github_bot_login
+
         login = self.actor_login
-        return self.is_automated or (login is not None and is_bot_login(login))
+        return self.is_automated or is_github_bot_login(login)
 
     @property
     def is_automated(self) -> bool:
