@@ -28,12 +28,12 @@ export interface ScmMessagingChannelPickerProps {
    * can receive Issue Alert actions.
    */
   eligibleIntegrations: OrganizationIntegration[];
+  /** True while the parent is creating the project after a destination is saved. */
+  isContinuing: boolean;
   onConfigured: (setup: ScmMessagingSetup & {mode: 'selected'}) => void;
   providerKey: ScmMessagingProviderKey;
   /** Pre-seeds the channel selector when editing an existing destination. */
   existingSetup?: ScmMessagingSetup;
-  /** True while the parent is creating the project after Confirm and continue. */
-  isContinuing?: boolean;
   /** When provided a Cancel button is shown (e.g. in Edit mode). */
   onCancel?: () => void;
 }
@@ -44,7 +44,7 @@ export function ScmMessagingChannelPicker({
   onConfigured,
   existingSetup,
   providerKey,
-  isContinuing = false,
+  isContinuing,
 }: ScmMessagingChannelPickerProps) {
   const theme = useTheme();
   const {channelSelectedBy} = providerDetails[providerKey];

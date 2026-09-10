@@ -125,8 +125,8 @@ export function ScmMessaging({
   );
 
   const isSubmitting = isCreating || submissionMode !== undefined;
-  // Confirm and continue stays on the picker through revalidation and create,
-  // so it must spin from the click — not only after submissionMode is set.
+  // The picker stays open through revalidation and create, so it must spin
+  // from the click — not only after submissionMode is set.
   const isContinuing = continueRequested || submissionMode === 'continue';
 
   // Continue creates the project and alert rules, so it must wait for a

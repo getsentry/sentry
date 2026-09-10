@@ -125,8 +125,8 @@ function getInstallErrorMessage(
 export interface ScmMessagingProviderRowProps {
   activeRow: ScmMessagingActiveRow;
   /**
-   * True while Confirm and continue is waiting on revalidation or project
-   * create. Required alongside `onContinue` so Confirm cannot stay idle.
+   * True while continue is waiting on revalidation or project create.
+   * Required alongside `onContinue` so the picker cannot stay idle.
    */
   isContinuing: boolean;
   messagingSetup: ScmMessagingSetup;

@@ -83,7 +83,7 @@ function mockChannelValidate(valid: boolean, integrationId: string) {
 function renderPicker({
   eligibleIntegrations = [slackIntegration],
   existingSetup,
-  isContinuing,
+  isContinuing = false,
   providerKey = 'slack',
 }: {
   eligibleIntegrations?: OrganizationIntegration[];
@@ -180,7 +180,7 @@ describe('ScmMessagingChannelPicker', () => {
       expect(screen.getByRole('button', {name: 'Confirm and continue'})).toBeDisabled();
     });
 
-    it('busies Confirm and continue while isContinuing', () => {
+    it('busies the submit button while isContinuing', () => {
       mockChannels('10', [slackChannel]);
       renderPicker({eligibleIntegrations: [slackIntegration], isContinuing: true});
 
@@ -373,6 +373,7 @@ describe('ScmMessagingChannelPicker', () => {
           eligibleIntegrations={[slackIntegration, slackIntegration2]}
           providerKey="slack"
           onConfigured={onConfigured}
+          isContinuing={false}
         />,
         {organization}
       );
@@ -387,6 +388,7 @@ describe('ScmMessagingChannelPicker', () => {
           eligibleIntegrations={[slackIntegration]}
           providerKey="slack"
           onConfigured={onConfigured}
+          isContinuing={false}
         />
       );
 
@@ -419,6 +421,7 @@ describe('ScmMessagingChannelPicker', () => {
           providerKey="slack"
           onConfigured={onConfigured}
           existingSetup={selectedSlackSetup}
+          isContinuing={false}
         />,
         {organization}
       );
@@ -437,6 +440,7 @@ describe('ScmMessagingChannelPicker', () => {
           providerKey="slack"
           onConfigured={onConfigured}
           existingSetup={selectedSlackSetup}
+          isContinuing={false}
         />
       );
 
@@ -479,6 +483,7 @@ describe('ScmMessagingChannelPicker', () => {
             providerKey="slack"
             onConfigured={jest.fn()}
             existingSetup={selectedSlackSetup}
+            isContinuing={false}
           />
         </QueryClientProvider>,
         {organization}
@@ -517,6 +522,7 @@ describe('ScmMessagingChannelPicker', () => {
             eligibleIntegrations={[slackIntegration]}
             providerKey="slack"
             onConfigured={jest.fn()}
+            isContinuing={false}
           />
         </QueryClientProvider>,
         {organization}
