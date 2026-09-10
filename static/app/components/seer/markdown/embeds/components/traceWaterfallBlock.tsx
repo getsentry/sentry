@@ -40,7 +40,11 @@ const TRACE_ADDITIONAL_ATTRIBUTES = [
   'span.status',
 ];
 
-function TraceWaterfallEmbed({traceId, timestamp, spanId}: EmbedOutput<'trace'>) {
+function TraceWaterfallEmbed({
+  traceId,
+  timestamp,
+  spanId,
+}: EmbedOutput<'traceWaterfall'>) {
   const organization = useOrganization();
   const timestampSeconds = getTimeStampFromTableDateField(timestamp);
 
@@ -115,7 +119,7 @@ function TraceWaterfallEmbed({traceId, timestamp, spanId}: EmbedOutput<'trace'>)
   );
 }
 
-export default function TraceBlock(props: EmbedOutput<'trace'>) {
+export default function TraceWaterfallBlock(props: EmbedOutput<'traceWaterfall'>) {
   return (
     <Container
       background="primary"
