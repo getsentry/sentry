@@ -47,6 +47,13 @@ def process_member_approval(
     response_url: str,
     action: str,
 ) -> None:
+    if not response_url:
+        logger.warning(
+            "slack.action.member-approval-no-response-url",
+            extra={"member_id": member_id, "actor_id": actor_id},
+        )
+        return
+
     webhook_client = WebhookClient(response_url)
     actor = user_service.get_user(user_id=actor_id)
     if actor is None:

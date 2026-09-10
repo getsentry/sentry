@@ -831,6 +831,13 @@ class SlackActionEndpoint(Endpoint):
         identity_user = slack_request.get_identity_user()
 
         response_url = slack_request.response_url
+        if not response_url:
+            _logger.info(
+                "slack.action.member-approval-no-response-url",
+                extra={"integration_id": slack_request.integration.id},
+            )
+            return self.respond()
+
         webhook_client = WebhookClient(response_url)
 
         if not identity_user:

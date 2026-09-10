@@ -1284,6 +1284,31 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.status_code == 200
 
     @patch("sentry.integrations.slack.webhooks.action.process_member_approval.apply_async")
+    def test_member_approval_missing_response_url(self, mock_apply_async: MagicMock) -> None:
+        other_user = self.create_user()
+        member = self.create_member(
+            organization=self.organization,
+            email="hello@sentry.io",
+            role="member",
+            inviter_id=other_user.id,
+            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+        )
+        callback_id = orjson.dumps(
+            {"member_id": member.id, "member_email": "hello@sentry.io"}
+        ).decode()
+
+        resp = self.post_webhook(
+            action_data=[{"value": "approve_member"}],
+            callback_id=callback_id,
+            data={"response_url": ""},
+        )
+
+        assert resp.status_code == 200, resp.content
+        mock_apply_async.assert_not_called()
+        member.refresh_from_db()
+        assert member.invite_status == InviteStatus.REQUESTED_TO_JOIN.value
+
+    @patch("sentry.integrations.slack.webhooks.action.process_member_approval.apply_async")
     def test_member_approval_dispatches_task(self, mock_apply_async: MagicMock) -> None:
         other_user = self.create_user()
         member = self.create_member(
