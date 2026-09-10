@@ -30,7 +30,11 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {OnboardingWithoutContext} from 'sentry/views/onboarding/onboarding';
+import * as useExperimentModule from 'sentry/utils/useExperiment';
+import {
+  OnboardingWithoutContext,
+  SCM_MESSAGING_EXPOSURE,
+} from 'sentry/views/onboarding/onboarding';
 
 jest.mock('sentry/utils/analytics');
 
@@ -575,8 +579,14 @@ describe('Onboarding', () => {
 
     let agenticRunRequestMock: ReturnType<typeof MockApiClient.addMockResponse>;
     let resolveAgenticRunRequest: () => void;
+    let useExperimentSpy: jest.SpyInstance;
+    let exposureSwitch: jest.ReplaceProperty<boolean>;
 
     beforeEach(() => {
+      useExperimentSpy = jest.spyOn(useExperimentModule, 'useExperiment');
+      // The switch ships off; these tests exercise the gate behind it.
+      exposureSwitch = jest.replaceProperty(SCM_MESSAGING_EXPOSURE, 'enabled', true);
+
       MockApiClient.addMockResponse({
         url: `/organizations/${scmOrganization.slug}/config/integrations/`,
         body: {providers: [githubProvider]},
@@ -612,6 +622,21 @@ describe('Onboarding', () => {
         }),
       });
     });
+
+    afterEach(() => {
+      exposureSwitch.restore();
+      useExperimentSpy.mockRestore();
+    });
+
+    // Deduplicated in call order, so `[false, true]` reads as "not before the
+    // fork, then reported".
+    function messagingExposureGate() {
+      const values = useExperimentSpy.mock.calls
+        .map(([options]) => options)
+        .filter(options => options.feature === 'onboarding-scm-messaging-experiment')
+        .map(options => options.reportExposure);
+      return [...new Set(values)];
+    }
 
     type RenderOptions = {
       initialContext?: Parameters<typeof OnboardingContextProvider>[0]['initialValue'];
@@ -977,6 +1002,7 @@ describe('Onboarding', () => {
       await waitFor(() => {
         expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
       });
+      expect(messagingExposureGate()).toEqual([false]);
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
       await waitFor(() => {
@@ -987,6 +1013,7 @@ describe('Onboarding', () => {
           `/onboarding/${controlOrganization.slug}/setup-docs/`
         );
       });
+      expect(messagingExposureGate()).toEqual([false, true]);
     });
 
     it('adds the messaging route for treatment without creating a project', async () => {
@@ -1012,6 +1039,7 @@ describe('Onboarding', () => {
         },
       });
 
+      expect(messagingExposureGate()).toEqual([false]);
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
       expect(
@@ -1021,6 +1049,50 @@ describe('Onboarding', () => {
         `/onboarding/${messagingOrganization.slug}/scm-messaging/`
       );
       expect(createRequest).not.toHaveBeenCalled();
+      expect(messagingExposureGate()).toEqual([false, true]);
+    });
+
+    it('does not report exposure for an org outside the new-org window', async () => {
+      const eightDaysAgo = new Date(Date.now() - 1000 * 60 * 60 * 24 * 8);
+      const staleOrganization = OrganizationFixture({
+        features: ['onboarding-scm-experiment', 'onboarding-scm-messaging-experiment'],
+        dateCreated: eightDaysAgo.toISOString(),
+      });
+
+      renderFlow(staleOrganization, 'scm-messaging', {
+        initialContext: {selectedPlatform: nextJsPlatform},
+      });
+
+      expect(
+        await screen.findByText('Get alerts where your team works')
+      ).toBeInTheDocument();
+      expect(messagingExposureGate()).toEqual([false]);
+    });
+
+    it('does not report exposure outside SCM onboarding', async () => {
+      const legacyOrganization = OrganizationFixture();
+
+      const {router} = renderFlow(legacyOrganization, 'scm-messaging');
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          `/onboarding/${legacyOrganization.slug}/welcome/`
+        );
+      });
+      expect(messagingExposureGate()).toEqual([false]);
+    });
+
+    it('keeps exposure off while the switch is off', async () => {
+      exposureSwitch.replaceValue(false);
+
+      renderTreatmentOnboarding('scm-messaging', {
+        initialContext: {selectedPlatform: nextJsPlatform},
+      });
+
+      expect(
+        await screen.findByText('Get alerts where your team works')
+      ).toBeInTheDocument();
+      expect(messagingExposureGate()).toEqual([false]);
     });
 
     it('global Skip exits treatment without creating a project and clears state', async () => {
