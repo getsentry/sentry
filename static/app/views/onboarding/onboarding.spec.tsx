@@ -31,6 +31,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import * as useExperimentModule from 'sentry/utils/useExperiment';
+import type {UseExperimentOptions, UseExperimentResult} from 'sentry/utils/useExperiment';
 import {
   OnboardingWithoutContext,
   SCM_MESSAGING_EXPOSURE,
@@ -579,7 +580,7 @@ describe('Onboarding', () => {
 
     let agenticRunRequestMock: ReturnType<typeof MockApiClient.addMockResponse>;
     let resolveAgenticRunRequest: () => void;
-    let useExperimentSpy: jest.SpyInstance;
+    let useExperimentSpy: jest.SpyInstance<UseExperimentResult, [UseExperimentOptions]>;
     let exposureSwitch: jest.ReplaceProperty<boolean>;
 
     beforeEach(() => {
@@ -628,14 +629,13 @@ describe('Onboarding', () => {
       useExperimentSpy.mockRestore();
     });
 
-    // Deduplicated in call order, so `[false, true]` reads as "not before the
-    // fork, then reported".
+    // Consecutive repeats collapsed, so `[false, true]` reads as "not before the
+    // fork, then reported". A later flip back to false still shows up.
     function messagingExposureGate() {
       const values = useExperimentSpy.mock.calls
-        .map(([options]) => options)
-        .filter(options => options.feature === 'onboarding-scm-messaging-experiment')
-        .map(options => options.reportExposure);
-      return [...new Set(values)];
+        .filter(([options]) => options.feature === 'onboarding-scm-messaging-experiment')
+        .map(([options]) => options.reportExposure);
+      return values.filter((value, index) => value !== values[index - 1]);
     }
 
     type RenderOptions = {
@@ -679,6 +679,7 @@ describe('Onboarding', () => {
           `/onboarding/${scmOrganization.slug}/welcome/`
         );
       });
+      expect(messagingExposureGate()).toEqual([false]);
     });
 
     it('redirects treatment off the messaging step when no platform is staged', async () => {
@@ -692,6 +693,9 @@ describe('Onboarding', () => {
           `/onboarding/${messagingOrganization.slug}/scm-platform-features/`
         );
       });
+      // The redirect runs in an effect, so the gate must already be off on the
+      // first render. Otherwise a bounced user lands in the population.
+      expect(messagingExposureGate()).toEqual([false]);
     });
 
     it('navigates from welcome to scm-connect', async () => {
@@ -1002,7 +1006,6 @@ describe('Onboarding', () => {
       await waitFor(() => {
         expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
       });
-      expect(messagingExposureGate()).toEqual([false]);
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
       await waitFor(() => {
@@ -1039,7 +1042,6 @@ describe('Onboarding', () => {
         },
       });
 
-      expect(messagingExposureGate()).toEqual([false]);
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
       expect(
@@ -1072,11 +1074,26 @@ describe('Onboarding', () => {
     it('does not report exposure outside SCM onboarding', async () => {
       const legacyOrganization = OrganizationFixture();
 
-      const {router} = renderFlow(legacyOrganization, 'scm-messaging');
+      // Stage a platform so every other term of the gate passes and only the
+      // SCM onboarding flag holds exposure off.
+      const {router} = renderFlow(legacyOrganization, 'scm-messaging', {
+        initialContext: {selectedPlatform: nextJsPlatform},
+      });
 
       await waitFor(() => {
         expect(router.location.pathname).toBe(
           `/onboarding/${legacyOrganization.slug}/welcome/`
+        );
+      });
+      expect(messagingExposureGate()).toEqual([false]);
+    });
+
+    it('does not report exposure on setup-docs without a staged project', async () => {
+      const {router} = renderOnboarding('setup-docs');
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          `/onboarding/${scmOrganization.slug}/welcome/`
         );
       });
       expect(messagingExposureGate()).toEqual([false]);
