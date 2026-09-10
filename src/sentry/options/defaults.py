@@ -1062,6 +1062,14 @@ register("store.allow-s4s-ddm-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MO
 # Sample rate for transaction/span data sent to S4S upstream (1.0 = keep all, 0.05 = keep 5%)
 register("store.s4s-transaction-sample-rate", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Client-side trace sample rates for the internal SDK, keyed by transaction name:
+# a task name (`sentry.tasks.store.process_event`) or a parameterized route
+# (`/api/0/organizations/{organization_id_or_slug}/events/`), as shown in the
+# `transaction` field of the spans dataset. Entries override `SAMPLED_TASKS` in
+# `sentry.utils.sdk`; unlisted transactions keep their settings-based rate.
+# Example: {"sentry.tasks.post_process.post_process_group": 0.000003}
+register("sdk.transaction-sample-rates", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 
 # Killswitch to stop storing any reprocessing payloads.
 register("store.reprocessing-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)

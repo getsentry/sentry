@@ -34,9 +34,11 @@ from sentry_sdk.utils import logger as sdk_error_logger
 
 from sentry import options
 from sentry.conf.types.sdk_config import SdkConfig
+from sentry.constants import HEALTH_CHECK_GLOBS
 from sentry.options.rollout import in_random_rollout
 from sentry.utils import json, metrics
 from sentry.utils.db import DjangoAtomicIntegration
+from sentry.utils.glob import glob_match
 from sentry.utils.rust import RustInfoIntegration
 from sentry.utils.tracing import get_current_span, start_span
 from sentry.viewer_context import set_viewer_context_organization
@@ -59,6 +61,7 @@ UNSAFE_FILES = (
 
 # Tasks not included here are sampled with `SENTRY_BACKEND_APM_SAMPLING`.
 # If a parent task schedules other tasks, rates propagate to the children.
+# The `sdk.transaction-sample-rates` option overrides entries here at runtime.
 SAMPLED_TASKS = {
     "sentry.tasks.auto_source_code_config.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.send_ping": settings.SAMPLED_DEFAULT_RATE,
@@ -107,6 +110,9 @@ SAMPLED_ROUTES = {
 AI_CONVERSATION_ROUTE = re.compile(
     r"/api/0/organizations/[^/]+/(?:ai-conversations|agents/conversations)(?:/[^/]+)?/"
 )
+
+# Same reduction dynamic sampling applies to health checks (`IGNORE_HEALTH_CHECKS_FACTOR_TRACES`).
+HEALTH_CHECK_SAMPLE_RATE_DIVISOR = 3
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
     SAMPLED_TASKS.update(settings.ADDITIONAL_SAMPLED_TASKS)
@@ -198,6 +204,29 @@ def get_project_key():
     return key
 
 
+def _transaction_name(sampling_context, wsgi_path: str | None) -> str | None:
+    """
+    The name the transaction will carry once it is stored: the task name for
+    tasks, the parameterized route (e.g. `/api/0/organizations/{organization_id_or_slug}/events/`)
+    for requests. This matches the `transaction` field in the spans dataset, so
+    rates measured there can be copied into `sdk.transaction-sample-rates` as-is.
+    """
+    if "taskworker" in sampling_context:
+        return sampling_context["taskworker"].get("task")
+
+    if wsgi_path:
+        try:
+            return LEGACY_RESOLVER.resolve(wsgi_path)
+        except Exception:
+            return None
+
+    return None
+
+
+def _is_health_check(transaction_name: str) -> bool:
+    return any(glob_match(transaction_name, pattern) for pattern in HEALTH_CHECK_GLOBS)
+
+
 def traces_sampler(sampling_context):
     wsgi_path = sampling_context.get("wsgi_environ", {}).get("PATH_INFO")
     if wsgi_path:
@@ -205,6 +234,16 @@ def traces_sampler(sampling_context):
             return SAMPLED_ROUTES[wsgi_path]
         if AI_CONVERSATION_ROUTE.fullmatch(wsgi_path):
             return 1.0
+
+    transaction_name = _transaction_name(sampling_context, wsgi_path)
+
+    # The option table holds the rate for the root of a trace, the same way
+    # dynamic sampling keyed its rules on the root transaction. Children keep
+    # inheriting the parent's decision below.
+    if transaction_name is not None and sampling_context["parent_sampled"] is None:
+        configured_rate = options.get("sdk.transaction-sample-rates").get(transaction_name)
+        if configured_rate is not None:
+            return float(configured_rate)
 
     # Apply sample_rate from custom_sampling_context
     custom_sample_rate = sampling_context.get("sample_rate")
@@ -215,14 +254,14 @@ def traces_sampler(sampling_context):
     if sampling_context["parent_sampled"] is not None:
         return sampling_context["parent_sampled"]
 
-    if "taskworker" in sampling_context:
-        task_name = sampling_context["taskworker"].get("task")
+    if transaction_name in SAMPLED_TASKS:
+        return SAMPLED_TASKS[transaction_name]
 
-        if task_name in SAMPLED_TASKS:
-            return SAMPLED_TASKS[task_name]
+    default_rate = float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
+    if transaction_name is not None and _is_health_check(transaction_name):
+        return default_rate / HEALTH_CHECK_SAMPLE_RATE_DIVISOR
 
-    # Default to the sampling rate in settings
-    return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
+    return default_rate
 
 
 def profiles_sampler(sampling_context):

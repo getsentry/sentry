@@ -13,6 +13,7 @@ from sentry_sdk import Scope
 
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.utils import sdk
 from sentry.utils.sdk import (
     bind_ambiguous_org_context,
@@ -57,6 +58,94 @@ def test_ai_conversation_routes_are_fully_sampled(path: str) -> None:
         )
         == 1.0
     )
+
+
+class TracesSamplerTest(TestCase):
+    def test_task_rate_from_option_overrides_sampled_tasks(self) -> None:
+        task = "sentry.tasks.store.process_event"
+        assert task in sdk.SAMPLED_TASKS
+        with override_options({"sdk.transaction-sample-rates": {task: 0.25}}):
+            assert (
+                sdk.traces_sampler({"taskworker": {"task": task}, "parent_sampled": None}) == 0.25
+            )
+
+    def test_task_falls_back_to_sampled_tasks(self) -> None:
+        task = "sentry.monitors.tasks.clock_pulse"
+        with override_options({"sdk.transaction-sample-rates": {}}):
+            assert (
+                sdk.traces_sampler({"taskworker": {"task": task}, "parent_sampled": None})
+                == sdk.SAMPLED_TASKS[task]
+            )
+
+    def test_route_rate_matches_parameterized_transaction_name(self) -> None:
+        rates = {"/api/0/organizations/{organization_id_or_slug}/events/": 0.125}
+        with override_options({"sdk.transaction-sample-rates": rates}):
+            assert (
+                sdk.traces_sampler(
+                    {
+                        "wsgi_environ": {"PATH_INFO": "/api/0/organizations/org-slug/events/"},
+                        "parent_sampled": None,
+                    }
+                )
+                == 0.125
+            )
+
+    def test_unlisted_route_uses_settings_default(self) -> None:
+        with (
+            override_options({"sdk.transaction-sample-rates": {}}),
+            self.settings(SENTRY_BACKEND_APM_SAMPLING=0.5),
+        ):
+            assert (
+                sdk.traces_sampler(
+                    {
+                        "wsgi_environ": {"PATH_INFO": "/api/0/organizations/org-slug/events/"},
+                        "parent_sampled": None,
+                    }
+                )
+                == 0.5
+            )
+
+    def test_parent_decision_wins_over_configured_rate(self) -> None:
+        rates = {"/api/0/organizations/{organization_id_or_slug}/events/": 0.125}
+        with override_options({"sdk.transaction-sample-rates": rates}):
+            assert (
+                sdk.traces_sampler(
+                    {
+                        "wsgi_environ": {"PATH_INFO": "/api/0/organizations/org-slug/events/"},
+                        "parent_sampled": True,
+                    }
+                )
+                is True
+            )
+
+    def test_configured_rate_wins_over_call_site_rate(self) -> None:
+        task = "sentry.replays.tasks.process_replay_recording"
+        with override_options({"sdk.transaction-sample-rates": {task: 0.000004}}):
+            assert (
+                sdk.traces_sampler(
+                    {"taskworker": {"task": task}, "sample_rate": 0.002, "parent_sampled": None}
+                )
+                == 0.000004
+            )
+
+    def test_call_site_rate_still_applies_without_configured_rate(self) -> None:
+        task = "sentry.replays.tasks.process_replay_recording"
+        with override_options({"sdk.transaction-sample-rates": {}}):
+            assert (
+                sdk.traces_sampler(
+                    {"taskworker": {"task": task}, "sample_rate": 0.002, "parent_sampled": None}
+                )
+                == 0.002
+            )
+
+    def test_health_checks_get_a_third_of_the_default_rate(self) -> None:
+        with (
+            override_options({"sdk.transaction-sample-rates": {}}),
+            self.settings(SENTRY_BACKEND_APM_SAMPLING=0.3),
+        ):
+            assert sdk.traces_sampler(
+                {"taskworker": {"task": "sentry.tasks.heartbeat"}, "parent_sampled": None}
+            ) == pytest.approx(0.1)
 
 
 class SDKUtilsTest(TestCase):
