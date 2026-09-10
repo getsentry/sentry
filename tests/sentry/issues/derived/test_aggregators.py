@@ -17,16 +17,19 @@ from sentry.issues.action_log.types import (
     GroupAction,
     GroupActionType,
     GroupActorType,
+    PullRequestOrigin,
     ReconcileStatusAction,
 )
 from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.features import (
     BLOCKER,
+    FIX_ATTEMPT_SIGNALS,
     LAST_COMPLETED_AUTOFIX_STEP,
     LAST_PROGRESSED_AT,
     PROGRESS,
     STATUS,
     VIEW_COUNT,
+    FixAttemptSignal,
     IssueStatus,
 )
 from sentry.issues.derived.framework import (
@@ -94,11 +97,19 @@ def _reconcile_entry(status: IssueStatus, *, original_group_id: int | None = Non
     )
 
 
-def _pr_closed(has_other: bool | None = None, *, pr_id: int = 101, hour: int = 0) -> FakeEntry:
-    """Build a PULL_REQUEST_CLOSED entry. ``has_other`` omitted -> no key."""
+def _pr_closed(
+    has_other: bool | None = None,
+    *,
+    pr_id: int = 101,
+    hour: int = 0,
+    origin: PullRequestOrigin | None = None,
+) -> FakeEntry:
+    """Build a PULL_REQUEST_CLOSED entry. None-valued fields are omitted."""
     data: dict[str, object] = {"pull_request": pr_id}
     if has_other is not None:
         data["has_other_open_prs"] = has_other
+    if origin is not None:
+        data["pull_request_origin"] = origin.value
     return FakeEntry(type=GroupActionType.PULL_REQUEST_CLOSED, date_added=_ts(hour=hour), data=data)
 
 
@@ -764,6 +775,95 @@ def test_pr_close_with_remaining_keeps_fix_proposed() -> None:
     )
 
 
+def test_closed_automated_fix_is_recorded_without_changing_progress() -> None:
+    p = _pipeline(targets=(PROGRESS, FIX_ATTEMPT_SIGNALS))
+    state = p.run(
+        [
+            FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED),
+            FakeEntry(
+                type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                data=_resolved_pr_data(101),
+            ),
+            _pr_closed(
+                has_other=False,
+                origin=PullRequestOrigin.AUTOMATED_FIX,
+            ),
+        ]
+    )
+
+    assert state[PROGRESS] == IssueProgressState.DIAGNOSED
+    assert state[FIX_ATTEMPT_SIGNALS] == FixAttemptSignal.HAS_FAILED_AUTOMATED_FIX
+
+
+def test_failed_automated_fix_signal_survives_until_last_open_pr_closes() -> None:
+    p = _pipeline(targets=(FIX_ATTEMPT_SIGNALS,))
+    state = p.run(
+        [
+            FakeEntry(
+                type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                data=_resolved_pr_data(101),
+            ),
+            FakeEntry(
+                type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                data=_resolved_pr_data(102),
+            ),
+            _pr_closed(
+                has_other=True,
+                origin=PullRequestOrigin.AUTOMATED_FIX,
+            ),
+        ]
+    )
+    assert state[FIX_ATTEMPT_SIGNALS] == (
+        FixAttemptSignal.HAS_OPEN_PR | FixAttemptSignal.HAS_FAILED_AUTOMATED_FIX
+    )
+
+    state = p.step(
+        state,
+        _pr_closed(
+            has_other=False,
+            pr_id=102,
+            origin=PullRequestOrigin.OTHER,
+        ),
+    )
+    assert state[FIX_ATTEMPT_SIGNALS] == FixAttemptSignal.HAS_FAILED_AUTOMATED_FIX
+
+
+@pytest.mark.parametrize(
+    "root_cause_action",
+    [GroupActionType.ROOT_CAUSE_IDENTIFIED, GroupActionType.SEER_RCA_COMPLETED],
+)
+def test_new_root_cause_clears_failed_automated_fix(root_cause_action: int) -> None:
+    p = _pipeline(targets=(FIX_ATTEMPT_SIGNALS,))
+    state = p.run(
+        [
+            _pr_closed(
+                has_other=False,
+                origin=PullRequestOrigin.AUTOMATED_FIX,
+            ),
+        ]
+    )
+    assert state[FIX_ATTEMPT_SIGNALS] == FixAttemptSignal.HAS_FAILED_AUTOMATED_FIX
+
+    state = p.step(state, FakeEntry(type=root_cause_action))
+    assert state[FIX_ATTEMPT_SIGNALS] == FixAttemptSignal.NONE
+
+
+def test_regression_clears_failed_automated_fix() -> None:
+    p = _pipeline(targets=(FIX_ATTEMPT_SIGNALS,))
+    state = p.run(
+        [
+            _pr_closed(
+                has_other=False,
+                origin=PullRequestOrigin.AUTOMATED_FIX,
+            ),
+        ]
+    )
+    assert state[FIX_ATTEMPT_SIGNALS] == FixAttemptSignal.HAS_FAILED_AUTOMATED_FIX
+
+    state = p.step(state, FakeEntry(type=GroupActionType.SET_REGRESSED))
+    assert state[FIX_ATTEMPT_SIGNALS] == FixAttemptSignal.NONE
+
+
 def test_pr_merged_advances_to_fix_applied() -> None:
     assert (
         _run_for_feature(
@@ -1029,6 +1129,31 @@ def test_unassign_during_open_pr_keeps_fix_proposed_but_lowers_floor() -> None:
     assert state[PROGRESS] == IssueProgressState.FIX_PROPOSED
     state = p.step(state, _pr_closed(has_other=False))
     assert state[PROGRESS] == IssueProgressState.IDENTIFIED
+
+
+def test_failed_automated_fix_does_not_change_unassigned_progress_before_cutover() -> None:
+    p = _pipeline(targets=(PROGRESS, FIX_ATTEMPT_SIGNALS))
+    state = p.run(
+        [
+            FakeEntry(type=GroupActionType.ASSIGN),
+            FakeEntry(
+                type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                data=_resolved_pr_data(101),
+            ),
+            FakeEntry(type=GroupActionType.UNASSIGN),
+        ]
+    )
+    assert state[PROGRESS] == IssueProgressState.FIX_PROPOSED
+
+    state = p.step(
+        state,
+        _pr_closed(
+            has_other=False,
+            origin=PullRequestOrigin.AUTOMATED_FIX,
+        ),
+    )
+    assert state[PROGRESS] == IssueProgressState.IDENTIFIED
+    assert state[FIX_ATTEMPT_SIGNALS] == FixAttemptSignal.HAS_FAILED_AUTOMATED_FIX
 
 
 def test_pr_close_when_closed_is_noop() -> None:
