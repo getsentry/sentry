@@ -12,6 +12,7 @@ from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProj
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.release import GroupEventReleaseSerializer, get_users_for_authors
 from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.types import ExternalProviders
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
@@ -975,6 +976,67 @@ class GetUsersForAuthorsUserMappingsTest(TestCase):
         assert users[str(author.id)].get("id", "not present") == str(user.id)
         assert users[str(author.id)]["email"] == "john@company.com"
         assert users[str(author.id)]["name"] == "John Smith"
+
+    def test_get_users_for_authors_ignores_mapping_of_other_provider(self) -> None:
+        """An @login is only unique per provider: a GitLab mapping must not claim a GitHub author."""
+        gitlab_user = self.create_user(email="gl-octocat@company.com", name="GitLab Octocat")
+        project = self.create_project()
+        self.create_member(user=gitlab_user, organization=project.organization)
+        gitlab = self.create_provider_integration(provider="gitlab")
+        self.create_organization_integration(
+            organization_id=project.organization_id, integration_id=gitlab.id
+        )
+        self.create_external_user(
+            user=gitlab_user,
+            organization=project.organization,
+            integration=gitlab,
+            external_name="@octocat",
+            provider=ExternalProviders.GITLAB.value,
+        )
+        author = self.create_commit_author(
+            organization_id=project.organization_id, email="1+octocat@users.noreply.github.com"
+        )
+        author.update(name="Octocat", external_id="github:octocat")
+
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
+
+        assert users[str(author.id)].get("id", "not present") == "not present"
+        assert users[str(author.id)]["email"] == author.email
+
+    def test_get_users_for_authors_picks_mapping_of_same_provider(self) -> None:
+        github_user = self.create_user(email="gh-hubot@company.com", name="GitHub Hubot")
+        gitlab_user = self.create_user(email="gl-hubot@company.com", name="GitLab Hubot")
+        project = self.create_project()
+        github = self.create_provider_integration(provider="github")
+        gitlab = self.create_provider_integration(provider="gitlab")
+        for user in (github_user, gitlab_user):
+            self.create_member(user=user, organization=project.organization)
+        for integration in (github, gitlab):
+            self.create_organization_integration(
+                organization_id=project.organization_id, integration_id=integration.id
+            )
+        self.create_external_user(
+            user=gitlab_user,
+            organization=project.organization,
+            integration=gitlab,
+            external_name="@hubot",
+            provider=ExternalProviders.GITLAB.value,
+        )
+        self.create_external_user(
+            user=github_user,
+            organization=project.organization,
+            integration=github,
+            external_name="@hubot",
+            provider=ExternalProviders.GITHUB.value,
+        )
+        author = self.create_commit_author(
+            organization_id=project.organization_id, email="2+hubot@users.noreply.github.com"
+        )
+        author.update(name="Hubot", external_id="github:hubot")
+
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
+
+        assert users[str(author.id)].get("id") == str(github_user.id)
 
     def test_get_users_for_authors_by_external_actor_no_user_id(self) -> None:
         """CommitAuthor has an ExternalActor but it's a team mapping"""
