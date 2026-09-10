@@ -1,3 +1,4 @@
+import escapeRegExp from 'lodash/escapeRegExp';
 import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
@@ -143,12 +144,9 @@ describe('Frame - Line', () => {
       );
 
       for (const [key, value] of Object.entries(vars)) {
-        const row = screen.getByText(key).closest('tr');
-        expect(row).toBeTruthy();
-
-        if (!row) {
-          return;
-        }
+        const row = screen.getByRole('row', {
+          name: new RegExp(`^${escapeRegExp(key)}(?:\\s|$)`),
+        });
 
         const utils = within(row);
         expect(utils.getByText(key)).toBeInTheDocument();
