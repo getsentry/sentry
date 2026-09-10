@@ -42,6 +42,28 @@ def _get_all_projects_detector_cache_key(organization_id: int) -> str:
     return f"detector:all_projects:{organization_id}"
 
 
+def query_all_projects_detector(organization_id: int) -> Detector | None:
+    try:
+        return Detector.objects.get_or_none(
+            type=IssueStreamGroupType.slug,
+            project__isnull=True,
+            config__organization_id=organization_id,
+        )
+    except Detector.MultipleObjectsReturned:
+        logger.warning(
+            "get_all_projects_detector.many_exist", extra={"organization_id": organization_id}
+        )
+        return (
+            Detector.objects.filter(
+                type=IssueStreamGroupType.slug,
+                project__isnull=True,
+                config__organization_id=organization_id,
+            )
+            .order_by("-date_added")
+            .first()
+        )
+
+
 def get_all_projects_detector(organization_id: int) -> Detector | None:
     with metrics.timer("workflow_engine.cache.all_projects_detector") as metrics_tags:
         cache_key = _get_all_projects_detector_cache_key(organization_id)
@@ -50,17 +72,7 @@ def get_all_projects_detector(organization_id: int) -> Detector | None:
             metrics_tags["cache_hit"] = "true"
             metrics_tags["detector_found"] = "true" if cached is not None else "false"
             return cached
-        try:
-            result = Detector.objects.get_or_none(
-                project__isnull=True,
-                type=IssueStreamGroupType.slug,
-                config__organization_id=organization_id,
-            )
-        except Detector.MultipleObjectsReturned:
-            logger.exception(
-                "get_all_projects_detector.many_exist", extra={"organization_id": organization_id}
-            )
-            result = None
+        result = query_all_projects_detector(organization_id=organization_id)
         metrics_tags["cache_hit"] = "false"
         metrics_tags["detector_found"] = "true" if result is not None else "false"
         cache.set(cache_key, result, Detector.CACHE_TTL)

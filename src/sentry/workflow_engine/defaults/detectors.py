@@ -37,6 +37,7 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.processors.detector import query_all_projects_detector
 from sentry.workflow_engine.types import (
     ALL_PROJECTS_DETECTOR_NAME,
     ERROR_DETECTOR_NAME,
@@ -285,13 +286,9 @@ def ensure_default_all_projects_detector(organization_id: int) -> Detector:
     Ensure that an org-scoped all-project detector exists for the organization.
     This detector has project=NULL and config={"organization_id": org_id}.
 
-    Raises on Detector.MultipleObjectsReturned, UnableToAcquireLockApiError
+    Raises on UnableToAcquireLockApiError
     """
-    existing = Detector.objects.get_or_none(
-        type=IssueStreamGroupType.slug,
-        project__isnull=True,
-        config__organization_id=organization_id,
-    )
+    existing = query_all_projects_detector(organization_id=organization_id)
     if existing:
         return existing
 
@@ -305,11 +302,7 @@ def ensure_default_all_projects_detector(organization_id: int) -> Detector:
             lock.blocking_acquire(initial_delay=0.1, timeout=3),
             transaction.atomic(router.db_for_write(Detector)),
         ):
-            existing = Detector.objects.get_or_none(
-                type=IssueStreamGroupType.slug,
-                project__isnull=True,
-                config__organization_id=organization_id,
-            )
+            existing = query_all_projects_detector(organization_id=organization_id)
             if existing:
                 return existing
 
@@ -326,7 +319,7 @@ def ensure_default_all_projects_detector(organization_id: int) -> Detector:
 
 def ensure_default_organization_detectors(organization: Organization) -> dict[str, Detector]:
     """
-    Raises on Detector.MultipleObjectsReturned, UnableToAcquireLockApiError
+    Raises on UnableToAcquireLockApiError
     """
     detectors: dict[str, Detector] = {}
     if options.get("workflow_engine.auto_creation.all_projects_detector"):
