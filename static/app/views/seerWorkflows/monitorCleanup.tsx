@@ -305,10 +305,12 @@ export function MonitorCleanupResults({
   results,
   organizationSlug,
   coverage,
+  scanStatus,
 }: {
   organizationSlug: string;
   results: SeerWorkflowResult[];
   coverage?: SeerNightShiftRunExtras['coverage'];
+  scanStatus?: SeerNightShiftRunExtras['status'];
 }) {
   const parsed = results.map(result => outputSchema.safeParse(result.extras));
   const projects = new Map(
@@ -321,11 +323,12 @@ export function MonitorCleanupResults({
     0
   );
   const incomplete =
+    scanStatus === 'partial' ||
     parsed.some(output => !output.success || output.data.scan.status === 'partial') ||
     (coverage && coverage.complete < coverage.total);
   return (
     <Stack gap="xl" containerType="inline-size">
-      {projects.size > 0 && (
+      {(projects.size > 0 || scanStatus === 'complete' || scanStatus === 'partial') && (
         <Stack gap="sm" padding="lg" background="secondary" radius="md">
           <Text size="sm">
             {t(

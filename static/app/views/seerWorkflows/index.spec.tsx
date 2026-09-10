@@ -1105,8 +1105,8 @@ describe('SeerWorkflows', () => {
     expect(screen.getByRole('option', {name: 'Succeeded'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'Failed'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'Skipped'})).toBeInTheDocument();
-    // Running is not derivable from the current API response.
-    expect(screen.queryByRole('option', {name: 'Running'})).not.toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Running'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Incomplete'})).toBeInTheDocument();
   });
 
   it('expandLatest auto-expands the latest run visible under active filters', async () => {

@@ -3,6 +3,30 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {MonitorCleanupResults} from './monitorCleanup';
 
 describe('MonitorCleanupResults', () => {
+  it('shows an empty organization scan', () => {
+    render(
+      <MonitorCleanupResults
+        organizationSlug="org-slug"
+        results={[]}
+        scanStatus="complete"
+      />
+    );
+    expect(
+      screen.getByText('0 monitors inspected across 0 projects')
+    ).toBeInTheDocument();
+  });
+
+  it('marks incomplete project discovery even when returned projects are complete', () => {
+    render(
+      <MonitorCleanupResults
+        organizationSlug="org-slug"
+        scanStatus="partial"
+        results={[{id: '1', kind: 'duplicate_monitors', seerRunId: null, extras: output}]}
+      />
+    );
+    expect(screen.getByText(/Some inspection is incomplete/)).toBeInTheDocument();
+  });
+
   const output = {
     outputKind: 'monitor_cleanup',
     schemaVersion: 1,

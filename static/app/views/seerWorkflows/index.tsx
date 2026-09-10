@@ -543,6 +543,8 @@ const STATUS_FILTER_OPTIONS: Array<{label: string; value: RunStatus}> = [
   {value: 'succeeded', label: 'Succeeded'},
   {value: 'failed', label: 'Failed'},
   {value: 'skipped', label: 'Skipped'},
+  {value: 'running', label: 'Running'},
+  {value: 'partial', label: 'Incomplete'},
 ];
 
 const PERIOD_FILTER_OPTIONS: Array<{label: string; value: string}> = [
@@ -565,6 +567,7 @@ const STATUS_VARIANT = {
   failed: {Icon: IconClose, label: 'Failed', text: 'danger'},
   skipped: {Icon: IconWarning, label: 'Skipped', text: 'muted'},
   running: {Icon: IconRefresh, label: 'Running', text: 'warning'},
+  partial: {Icon: IconWarning, label: 'Incomplete', text: 'warning'},
 } as const satisfies Record<
   RunStatus,
   {
@@ -667,6 +670,7 @@ function UserSection({
         {row.monitorCleanup.results.length === 0 && <Text>{row.resultText}</Text>}
         <MonitorCleanupResults
           coverage={row.monitorCleanup.coverage}
+          scanStatus={row.monitorCleanup.scanStatus}
           results={row.monitorCleanup.results}
           organizationSlug={organizationSlug}
         />
@@ -1008,14 +1012,18 @@ function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
     const results = (run.results ?? []).filter(
       result => result.kind === 'duplicate_monitors'
     );
-    const findings = getMonitorFindingSummary(results);
+    const findings = results.length
+      ? getMonitorFindingSummary(results)
+      : t('No findings');
     return {
       id: `${run.id}:duplicate_monitors`,
       runId: run.id,
       dateAdded: run.dateAdded,
       kind: 'duplicate_monitors',
       status:
-        status === 'running' ? 'running' : status === 'failed' ? 'failed' : 'succeeded',
+        status === 'running' || status === 'failed' || status === 'partial'
+          ? status
+          : 'succeeded',
       source: 'manual',
       resultText:
         status === 'running'
@@ -1028,6 +1036,7 @@ function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
       monitorCleanup: {
         results,
         coverage: run.extras.coverage,
+        scanStatus: status,
       },
     };
   }

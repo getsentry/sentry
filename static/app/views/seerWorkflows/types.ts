@@ -72,7 +72,7 @@ export type SeerWorkflowResult = {
 
 export type StrategyVisibility = 'configurable' | 'internal';
 export type StrategyCategory = 'issues' | 'reliability' | 'user_experience';
-export type RunStatus = 'succeeded' | 'failed' | 'skipped' | 'running';
+export type RunStatus = 'succeeded' | 'failed' | 'skipped' | 'running' | 'partial';
 
 export type Frequency = 'hourly' | 'daily' | 'weekly';
 
@@ -98,6 +98,7 @@ export type WorkflowRow = {
   monitorCleanup?: {
     results: SeerWorkflowResult[];
     coverage?: SeerNightShiftRunExtras['coverage'];
+    scanStatus?: SeerNightShiftRunExtras['status'];
   };
   options?: SeerNightShiftRunOptions;
   resultText?: string;
