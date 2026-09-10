@@ -59,7 +59,7 @@ def query_all_projects_detector(organization_id: int) -> Detector | None:
                 project__isnull=True,
                 config__organization_id=organization_id,
             )
-            .order_by("-date_added")
+            .order_by("date_added")
             .first()
         )
 

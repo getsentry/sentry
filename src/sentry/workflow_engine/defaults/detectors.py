@@ -37,7 +37,6 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.processors.detector import query_all_projects_detector
 from sentry.workflow_engine.types import (
     ALL_PROJECTS_DETECTOR_NAME,
     ERROR_DETECTOR_NAME,
@@ -288,6 +287,8 @@ def ensure_default_all_projects_detector(organization_id: int) -> Detector:
 
     Raises on UnableToAcquireLockApiError
     """
+    from sentry.workflow_engine.processors.detector import query_all_projects_detector
+
     existing = query_all_projects_detector(organization_id=organization_id)
     if existing:
         return existing

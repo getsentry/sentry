@@ -118,13 +118,14 @@ class TestEnsureDefaultAllProjectsDetector(TestCase):
             with pytest.raises(UnableToAcquireLockApiError):
                 ensure_default_all_projects_detector(self.organization.id)
 
-    def test_duplicate_detectors_raises(self) -> None:
+    def test_duplicate_detectors_are_handled(self) -> None:
         org = self.create_organization()
-        self.create_all_projects_detector(org)
-        self.create_all_projects_detector(org)
+        first = self.create_all_projects_detector(org)
+        _second = self.create_all_projects_detector(org)
+        _third = self.create_all_projects_detector(org)
 
-        with pytest.raises(Detector.MultipleObjectsReturned):
-            ensure_default_all_projects_detector(org.id)
+        result = ensure_default_all_projects_detector(org.id)
+        assert result.id == first.id
 
     def test_returns_none_when_option_disabled(self) -> None:
         result = ensure_default_organization_detectors(self.organization)
