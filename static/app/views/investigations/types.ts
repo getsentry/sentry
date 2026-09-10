@@ -170,7 +170,7 @@ export type InvestigationCandidate =
 /** A known set of string values that still accepts one Seer added later. */
 type InvestigationOrchestrationOpenString<T extends string> = T | (string & {});
 
-export type InvestigationOrchestrationPhase = InvestigationOrchestrationOpenString<
+type InvestigationOrchestrationPhase = InvestigationOrchestrationOpenString<
   | 'intake'
   | 'broad_scan'
   | 'planning'
@@ -183,7 +183,7 @@ export type InvestigationOrchestrationPhase = InvestigationOrchestrationOpenStri
   | 'cancelled'
 >;
 
-export type InvestigationOrchestrationStatus = InvestigationOrchestrationOpenString<
+type InvestigationOrchestrationStatus = InvestigationOrchestrationOpenString<
   'pending' | 'processing' | 'awaiting_input' | 'completed' | 'failed' | 'cancelled'
 >;
 
@@ -218,7 +218,7 @@ export type InvestigationHypothesisStatus = InvestigationOrchestrationOpenString
   | 'cancelled'
 >;
 
-export type InvestigationOrchestrationError = {
+type InvestigationOrchestrationError = {
   code: string;
   message: string;
   retryable: boolean;
@@ -227,7 +227,7 @@ export type InvestigationOrchestrationError = {
   source?: string | null;
 };
 
-export type InvestigationToolActivity = {
+type InvestigationToolActivity = {
   id: string;
   kind: InvestigationOrchestrationOpenString<'api' | 'library' | 'step' | 'tool'>;
   status: InvestigationOrchestrationOpenString<
@@ -236,7 +236,7 @@ export type InvestigationToolActivity = {
   title: string;
 };
 
-export type InvestigationOrchestrationEvidence = {
+type InvestigationOrchestrationEvidence = {
   data: Record<string, unknown>;
   id: string;
   kind: InvestigationOrchestrationOpenString<
@@ -271,7 +271,7 @@ export type InvestigationVerificationStep = {
   title: string;
 };
 
-export type InvestigationAgentVerdict = {
+type InvestigationAgentVerdict = {
   confidence: number;
   rationale: string;
   refutingEvidenceIds: string[];
@@ -300,7 +300,7 @@ export type InvestigationHypothesis = {
   toolActivity?: InvestigationToolActivity[];
 };
 
-export type InvestigationOrchestrationReport = {
+type InvestigationOrchestrationReport = {
   currentBlockKey: string | null;
   error: InvestigationOrchestrationError | null;
   includedHypothesisIds: string[];

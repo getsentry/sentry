@@ -26,11 +26,11 @@ const SETTLED_STATUSES = new Set<string>([
 /** Statuses where the agent is still working, so the dot keeps pulsing. */
 const IN_FLIGHT_STATUSES = new Set<string>(['pending', 'investigating']);
 
-export function isHypothesisSettled(status: InvestigationHypothesisStatus): boolean {
+function isHypothesisSettled(status: InvestigationHypothesisStatus): boolean {
   return SETTLED_STATUSES.has(status);
 }
 
-export function isHypothesisInFlight(status: InvestigationHypothesisStatus): boolean {
+function isHypothesisInFlight(status: InvestigationHypothesisStatus): boolean {
   return IN_FLIGHT_STATUSES.has(status);
 }
 
@@ -43,7 +43,7 @@ function humanize(status: string): string {
   return status.replaceAll('_', ' ').replace(/^./, character => character.toUpperCase());
 }
 
-export function getHypothesisStatusLabel(hypothesis: InvestigationHypothesis): string {
+function getHypothesisStatusLabel(hypothesis: InvestigationHypothesis): string {
   // A decision the viewer made themselves reads differently from one the agent
   // reached, even though both land in `effectiveStatus`.
   if (hypothesis.decisionSource === 'user') {
@@ -79,7 +79,7 @@ export function getHypothesisStatusLabel(hypothesis: InvestigationHypothesis): s
   }
 }
 
-export function getHypothesisStatusVariant(
+function getHypothesisStatusVariant(
   status: InvestigationHypothesisStatus
 ): StatusVariant {
   switch (status) {
@@ -165,7 +165,7 @@ export function getVerificationStepStatusLabel(
  * kept in step with `effectiveStatus`, so it wins; the verdict is the fallback
  * for a projection that has only filled the latter in.
  */
-export function getHypothesisConfidencePercent(
+function getHypothesisConfidencePercent(
   hypothesis: InvestigationHypothesis
 ): number | null {
   if (!isHypothesisSettled(hypothesis.effectiveStatus)) {

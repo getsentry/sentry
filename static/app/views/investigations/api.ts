@@ -106,8 +106,8 @@ export function investigationTitleGenerationQueryOptions(
  * so there is nothing to merge — the newest response wins outright.
  *
  * `staleTime: 0` because a running workflow changes constantly. Callers that
- * render a run in progress should add a `refetchInterval`; use
- * `isInvestigationRunSettled` to stop polling once it reaches a terminal state.
+ * render a run in progress should add a `refetchInterval` and drop it once
+ * `status` reaches a terminal value, as `InvestigationHypotheses` does.
  */
 export function investigationOrchestrationQueryOptions(
   organizationSlug: string,
@@ -122,21 +122,6 @@ export function investigationOrchestrationQueryOptions(
       },
       staleTime: 0,
     }
-  );
-}
-
-/**
- * Whether a rejected command lost a race rather than being malformed. The
- * server answers 409 both when the workflow version has moved on and when an
- * idempotency key is reused, and either way the fix is to re-read the
- * projection rather than to show a hard failure.
- */
-export function isInvestigationOrchestrationConflictError(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'status' in error &&
-    (error as {status?: unknown}).status === 409
   );
 }
 

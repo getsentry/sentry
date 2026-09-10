@@ -22,7 +22,7 @@ const POLL_INTERVAL_MS = 2000;
  * deliberately not settled: the run resumes as soon as input arrives, which may
  * happen from another surface, so polling has to continue.
  */
-export function isInvestigationRunSettled(
+function isInvestigationRunSettled(
   projection: InvestigationOrchestration | undefined
 ): boolean {
   if (!projection) {
