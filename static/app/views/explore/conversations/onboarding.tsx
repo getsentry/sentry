@@ -6,10 +6,12 @@ import {PlatformIcon} from 'platformicons';
 import replayOnboardingImg from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
 import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
+import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Prose, Text} from '@sentry/scraps/text';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -42,6 +44,7 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
 import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
+import {IconBot, IconCopy, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -49,12 +52,16 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
+import {
+  CopyLLMPromptButton,
+  getAgentSetupPrompt,
+} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {
   AGENT_INTEGRATION_ICONS,
   AGENT_INTEGRATION_LABELS,
@@ -139,7 +146,6 @@ function ConversationStepRenderer({
   step,
   stepIndex,
   isLastStep,
-  trailingItems,
   onDismiss,
 }: {
   isLastStep: boolean;
@@ -147,14 +153,12 @@ function ConversationStepRenderer({
   project: Project;
   step: OnboardingStep;
   stepIndex: number;
-  trailingItems?: React.ReactNode;
 }) {
   const theme = useTheme();
   return (
     <GuidedSteps.Step
       stepKey={step.type || step.title}
       title={step.title || (step.type && StepTitles[step.type])}
-      trailingItems={trailingItems}
     >
       <StepIndexProvider index={stepIndex}>
         <ContentBlocksRenderer spacing={theme.space.md} contentBlocks={step.content} />
@@ -174,10 +178,20 @@ function ConversationStepRenderer({
 function ConversationOnboardingPanel({
   project,
   children,
+  dsn,
+  onDismiss,
 }: {
   children: React.ReactNode;
+  onDismiss: () => void;
   project: Project;
+  dsn?: string;
 }) {
+  const organization = useOrganization();
+  const {copy} = useCopyToClipboard();
+  const prompt = dsn
+    ? getAgentSetupPrompt({organizationSlug: organization.slug, project, dsn})
+    : undefined;
+
   return (
     <Panel>
       <PanelBody>
@@ -212,7 +226,83 @@ function ConversationOnboardingPanel({
                 <Separator orientation="horizontal" />
               </Container>
               <Grid autoColumns="minmax(0, 1fr)" flow="column" position="relative">
-                <Setup>{children}</Setup>
+                <Setup>
+                  <SetupTitle project={project} />
+                  <Tabs
+                    defaultValue={prompt ? 'agent' : 'human'}
+                    aria-label={t('Setup instructions')}
+                  >
+                    <TabList variant="floating">
+                      <TabList.Item
+                        key="agent"
+                        textValue={t('For your agent')}
+                        disabled={!prompt}
+                        tooltip={
+                          prompt
+                            ? undefined
+                            : {
+                                title: t(
+                                  'A project DSN is required to copy a setup prompt.'
+                                ),
+                              }
+                        }
+                      >
+                        <IconBot />
+                        {t('For your agent')}
+                      </TabList.Item>
+                      <TabList.Item key="human" textValue={t('For you')}>
+                        <IconUser />
+                        {t('For you')}
+                      </TabList.Item>
+                    </TabList>
+                    <TabPanels>
+                      <TabPanels.Item key="agent">
+                        {prompt && (
+                          <Stack gap="xl" paddingTop="md">
+                            <Stack gap="md">
+                              <Text>
+                                {t(
+                                  'Give this prompt to your coding agent to set up agent tracing for this project.'
+                                )}
+                              </Text>
+                              <CodeBlock hideCopyButton wrapMode="wrap">
+                                {prompt}
+                              </CodeBlock>
+                            </Stack>
+                            <Flex>
+                              <Button
+                                variant="primary"
+                                icon={<IconCopy />}
+                                analyticsEventKey="onboarding.ai_prompt_copied"
+                                analyticsEventName="Onboarding: AI Prompt Copied"
+                                analyticsParams={{
+                                  platform: project.platform ?? 'unknown',
+                                  product: 'conversations',
+                                  source: 'prompt',
+                                }}
+                                onClick={() => {
+                                  copy(prompt, {
+                                    successMessage: t('Copied setup prompt to clipboard'),
+                                  });
+                                }}
+                              >
+                                {t('Copy prompt')}
+                              </Button>
+                            </Flex>
+                            <ConversationWaitingIndicator
+                              project={project}
+                              onDismiss={onDismiss}
+                            />
+                            <PulseSpacer />
+                          </Stack>
+                        )}
+                      </TabPanels.Item>
+                      <TabPanels.Item key="human">
+                        <Container paddingTop="md">{children}</Container>
+                      </TabPanels.Item>
+                    </TabPanels>
+                  </Tabs>
+                </Setup>
                 <Container padding="xl" paddingTop="3xl">
                   <Heading as="h4" size="xl">
                     {t('Preview Conversations')}
@@ -486,23 +576,25 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
     return <div>{t('No project found')}</div>;
   }
 
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
   if (!agentMonitoringPlatforms.has(project.platform!)) {
     return (
       <UnsupportedPlatformOnboarding
         project={project}
         platformName={currentPlatform?.name || project.slug}
+        dsn={dsn?.public}
+        onDismiss={onDismiss}
       />
     );
-  }
-
-  if (isLoading) {
-    return <LoadingIndicator />;
   }
 
   const agentMonitoringDocs = docs?.agentMonitoringOnboarding;
 
   if (!agentMonitoringDocs || !dsn || !projectKeyId) {
-    return <NoDocsOnboarding project={project} />;
+    return <NoDocsOnboarding project={project} dsn={dsn?.public} onDismiss={onDismiss} />;
   }
 
   const docParams: DocsParams<any> = {
@@ -561,20 +653,36 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   const introduction = agentMonitoringDocs.introduction?.(docParams);
 
   return (
-    <ConversationOnboardingPanel project={project}>
-      <SetupTitle project={project} />
-      <Stack gap="md">
-        <Flex gap="md" align="center" wrap="wrap">
-          <PlatformOptionDropdown
-            platformOptions={platformOptions}
-            connectors={{deploymentTarget: t('on')}}
-            lockedValues={
-              integrationDeploymentTarget
-                ? {deploymentTarget: integrationDeploymentTarget}
-                : undefined
-            }
+    <ConversationOnboardingPanel project={project} dsn={dsn.public} onDismiss={onDismiss}>
+      <Stack gap="xl">
+        <Flex gap="lg" align="center" justify="between" wrap="wrap">
+          <Flex gap="sm" align="center" wrap="wrap">
+            <Text>{t('Set up')}</Text>
+            <PlatformOptionDropdown
+              platformOptions={platformOptions}
+              connectors={{deploymentTarget: t('on')}}
+              lockedValues={
+                integrationDeploymentTarget
+                  ? {deploymentTarget: integrationDeploymentTarget}
+                  : undefined
+              }
+            />
+          </Flex>
+          <OnboardingCopyMarkdownButton
+            borderless
+            steps={steps}
+            source="conversations_onboarding"
+            onCopy={() => {
+              trackAnalytics('onboarding.ai_prompt_copied', {
+                organization,
+                platform: project.platform ?? 'unknown',
+                product: 'conversations',
+                source: 'prompt',
+              });
+            }}
           />
         </Flex>
+        <Separator orientation="horizontal" />
         {introduction && <Prose>{introduction}</Prose>}
         <GuidedSteps
           key={selectedIntegration}
@@ -597,23 +705,6 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
               stepIndex={index}
               isLastStep={index === steps.length - 1}
               onDismiss={onDismiss}
-              trailingItems={
-                index === 0 ? (
-                  <OnboardingCopyMarkdownButton
-                    borderless
-                    steps={steps}
-                    source="conversations_onboarding"
-                    onCopy={() => {
-                      trackAnalytics('onboarding.ai_prompt_copied', {
-                        organization,
-                        platform: project.platform ?? 'unknown',
-                        product: 'conversations',
-                        source: 'prompt',
-                      });
-                    }}
-                  />
-                ) : undefined
-              }
             />
           ))}
         </GuidedSteps>
@@ -625,12 +716,16 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
 function UnsupportedPlatformOnboarding({
   project,
   platformName,
+  dsn,
+  onDismiss,
 }: {
+  onDismiss: () => void;
   platformName: string;
   project: Project;
+  dsn?: string;
 }) {
   return (
-    <ConversationOnboardingPanel project={project}>
+    <ConversationOnboardingPanel project={project} dsn={dsn} onDismiss={onDismiss}>
       <Prose>
         <Text as="p">
           {tct(
@@ -657,9 +752,17 @@ function UnsupportedPlatformOnboarding({
   );
 }
 
-function NoDocsOnboarding({project}: {project: Project}) {
+function NoDocsOnboarding({
+  project,
+  dsn,
+  onDismiss,
+}: {
+  onDismiss: () => void;
+  project: Project;
+  dsn?: string;
+}) {
   return (
-    <ConversationOnboardingPanel project={project}>
+    <ConversationOnboardingPanel project={project} dsn={dsn} onDismiss={onDismiss}>
       <Prose>
         <Text as="p">
           {tct(
