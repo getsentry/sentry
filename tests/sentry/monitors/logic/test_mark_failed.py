@@ -394,7 +394,7 @@ class MarkFailedTestCase(TestCase):
         )
         assert mark_failed(checkin, failed_at=checkin.date_added)
 
-        monitor_environment.refresh_from_db()
+        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.ERROR
         assert monitor_environment.active_incident is not None
         assert mock_dispatch_incident_occurrence.call_count == failure_issue_threshold
