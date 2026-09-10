@@ -3,6 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import CreateFromSeer from './createFromSeer';
@@ -62,6 +63,15 @@ const MOCKED_PROCESSING_SESSION = {
   session: {
     run_id: SEER_RUN_ID,
     status: 'processing',
+    updated_at: new Date().toISOString(),
+    blocks: [],
+  },
+};
+
+const MOCKED_ERROR_SESSION = {
+  session: {
+    run_id: SEER_RUN_ID,
+    status: 'error',
     updated_at: new Date().toISOString(),
     blocks: [],
   },
@@ -133,6 +143,30 @@ describe('CreateFromSeer', () => {
     expect(
       screen.getByRole('heading', {name: 'Generating Dashboard'})
     ).toBeInTheDocument();
+  });
+
+  it('explains how to recover when dashboard generation fails', async () => {
+    jest.spyOn(indicators, 'addErrorMessage');
+    MockApiClient.addMockResponse({
+      url: SEER_API_URL,
+      body: MOCKED_ERROR_SESSION,
+    });
+
+    render(<CreateFromSeer />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/dashboards/from-seer/',
+          query: {seerRunId: String(SEER_RUN_ID)},
+        },
+      },
+    });
+
+    await waitFor(() => {
+      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+        "We couldn't generate this dashboard. Check that the metrics and fields you requested exist, then try again."
+      );
+    });
   });
 
   it('renders dashboard and chat panel when session is completed', async () => {

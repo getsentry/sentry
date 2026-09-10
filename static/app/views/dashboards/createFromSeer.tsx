@@ -112,7 +112,11 @@ export default function CreateFromSeer() {
 
   useEffect(() => {
     if (sessionStatus === 'error' || isError) {
-      addErrorMessage(t('Failed to generate dashboard'));
+      addErrorMessage(
+        t(
+          "We couldn't generate this dashboard. Check that the metrics and fields you requested exist, then try again."
+        )
+      );
       Sentry.metrics.count('dashboards.seer.generation.session.error', 1, {
         attributes: {
           organization_slug: organization.slug,
