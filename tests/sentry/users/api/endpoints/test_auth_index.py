@@ -274,7 +274,10 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             assert response.data == {
                 "detail": {
                     "code": "sso-required",
-                    "extra": {"loginUrl": f"/auth/login/{self.organization.slug}/"},
+                    "extra": {
+                        "loginUrl": f"/auth/login/{self.organization.slug}/",
+                        "organizationSlug": self.organization.slug,
+                    },
                     "message": "Must login via SSO",
                 }
             }
@@ -331,7 +334,8 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                 "detail": {
                     "code": "sso-required",
                     "extra": {
-                        "loginUrl": f"http://{self.organization.slug}.testserver/auth/login/{self.organization.slug}/?{query_string}"
+                        "loginUrl": f"http://{self.organization.slug}.testserver/auth/login/{self.organization.slug}/?{query_string}",
+                        "organizationSlug": self.organization.slug,
                     },
                     "message": "Must login via SSO",
                 }
