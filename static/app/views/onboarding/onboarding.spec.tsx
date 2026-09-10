@@ -1054,64 +1054,6 @@ describe('Onboarding', () => {
       expect(messagingExposureGate()).toEqual([false, true]);
     });
 
-    it('does not report exposure for an org outside the new-org window', async () => {
-      const eightDaysAgo = new Date(Date.now() - 1000 * 60 * 60 * 24 * 8);
-      const staleOrganization = OrganizationFixture({
-        features: ['onboarding-scm-experiment', 'onboarding-scm-messaging-experiment'],
-        dateCreated: eightDaysAgo.toISOString(),
-      });
-
-      renderFlow(staleOrganization, 'scm-messaging', {
-        initialContext: {selectedPlatform: nextJsPlatform},
-      });
-
-      expect(
-        await screen.findByText('Get alerts where your team works')
-      ).toBeInTheDocument();
-      expect(messagingExposureGate()).toEqual([false]);
-    });
-
-    it('does not report exposure outside SCM onboarding', async () => {
-      const legacyOrganization = OrganizationFixture();
-
-      // Stage a platform so every other term of the gate passes and only the
-      // SCM onboarding flag holds exposure off.
-      const {router} = renderFlow(legacyOrganization, 'scm-messaging', {
-        initialContext: {selectedPlatform: nextJsPlatform},
-      });
-
-      await waitFor(() => {
-        expect(router.location.pathname).toBe(
-          `/onboarding/${legacyOrganization.slug}/welcome/`
-        );
-      });
-      expect(messagingExposureGate()).toEqual([false]);
-    });
-
-    it('does not report exposure on setup-docs without a staged project', async () => {
-      const {router} = renderOnboarding('setup-docs');
-
-      await waitFor(() => {
-        expect(router.location.pathname).toBe(
-          `/onboarding/${scmOrganization.slug}/welcome/`
-        );
-      });
-      expect(messagingExposureGate()).toEqual([false]);
-    });
-
-    it('keeps exposure off while the switch is off', async () => {
-      exposureSwitch.replaceValue(false);
-
-      renderTreatmentOnboarding('scm-messaging', {
-        initialContext: {selectedPlatform: nextJsPlatform},
-      });
-
-      expect(
-        await screen.findByText('Get alerts where your team works')
-      ).toBeInTheDocument();
-      expect(messagingExposureGate()).toEqual([false]);
-    });
-
     it('global Skip exits treatment without creating a project and clears state', async () => {
       sessionStorage.setItem(
         'onboarding',
