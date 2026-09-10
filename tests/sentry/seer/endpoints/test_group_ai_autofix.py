@@ -407,11 +407,21 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 202, response.data
         assert response.data == {"run_id": 777, "sentry_run_id": str(run.uuid)}
 
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
-    def test_post_continue_with_sentry_run_id_resolves_to_numeric_id(self, mock_trigger_explorer):
+    def test_post_continue_with_sentry_run_id_resolves_to_numeric_id(
+        self, mock_trigger_explorer, mock_run_state
+    ):
         group = self.create_group()
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
         mock_trigger_explorer.return_value = run
+        mock_run_state.return_value = SeerRunState(
+            run_id=555,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={},
+        )
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -424,12 +434,22 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data == {"run_id": 555, "sentry_run_id": str(run.uuid)}
         assert mock_trigger_explorer.call_args.kwargs["run_id"] == 555
 
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
-    def test_post_continue_with_numeric_run_id_still_works(self, mock_trigger_explorer):
+    def test_post_continue_with_numeric_run_id_still_works(
+        self, mock_trigger_explorer, mock_run_state
+    ):
         """The legacy numeric run_id field keeps working unchanged."""
         group = self.create_group()
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=321)
         mock_trigger_explorer.return_value = run
+        mock_run_state.return_value = SeerRunState(
+            run_id=321,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={},
+        )
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -441,6 +461,54 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 202, response.data
         assert response.data == {"run_id": 321, "sentry_run_id": str(run.uuid)}
         assert mock_trigger_explorer.call_args.kwargs["run_id"] == 321
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_continue_while_processing_returns_the_run_in_flight(
+        self, mock_trigger_explorer, mock_run_state
+    ):
+        """A step posted while one is still running hands back the live run untouched.
+
+        Even a truncating re-run stays out: it would delete the blocks the live
+        worker is still writing.
+        """
+        group = self.create_group()
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
+        mock_run_state.return_value = SeerRunState(
+            run_id=555,
+            blocks=[],
+            status="processing",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={},
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "root_cause", "sentry_run_id": str(run.uuid), "insert_index": 0},
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        assert response.data == {"run_id": 555, "sentry_run_id": str(run.uuid)}
+        mock_trigger_explorer.assert_not_called()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_kickoff_does_not_look_up_a_run(self, mock_trigger_explorer, mock_run_state):
+        """Without a run id there is nothing to be in flight, so no lookup is made."""
+        group = self.create_group()
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=777)
+        mock_trigger_explorer.return_value = run
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id), data={"step": "root_cause"}, format="json"
+        )
+
+        assert response.status_code == 202, response.data
+        mock_run_state.assert_not_called()
+        mock_trigger_explorer.assert_called_once()
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_continue_with_unknown_sentry_run_id_returns_404(self, mock_trigger_explorer):
@@ -781,12 +849,20 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             "first_seen",
         ]
 
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
-    def test_advancing_existing_run_skips_action(self, mock_trigger):
+    def test_advancing_existing_run_skips_action(self, mock_trigger, mock_run_state):
         # Advancing an existing run (run_id provided) is steering, not a new trigger.
         group = self.create_group()
         mock_trigger.return_value = self.create_seer_run(
             organization=self.organization, seer_run_state_id=42
+        )
+        mock_run_state.return_value = SeerRunState(
+            run_id=42,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={},
         )
 
         self.login_as(user=self.user)
@@ -982,9 +1058,17 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_try_enqueue.assert_called_once()
         mock_consume.assert_called_once()
 
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
-    def test_post_continue_unknown_run_returns_404(self, mock_trigger_explorer):
+    def test_post_continue_unknown_run_returns_404(self, mock_trigger_explorer, mock_run_state):
         mock_trigger_explorer.side_effect = SeerPermissionError("Unknown run id for group")
+        mock_run_state.return_value = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={},
+        )
         group = self.create_group()
 
         self.login_as(user=self.user)

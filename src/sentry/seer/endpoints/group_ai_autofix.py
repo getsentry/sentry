@@ -444,9 +444,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                 run_id, sentry_run_id = resolved_run_id, resolved_sentry_run_id
 
             case _:
-                # A truncating re-run would strand a PR/coding agent (they live
-                # outside the blocks). Refuse it, mirroring the frontend gate.
-                if data.get("insert_index") is not None and resolved_run_id is not None:
+                if resolved_run_id is not None:
                     try:
                         run_state = get_autofix_run_state(group, resolved_run_id)
                     except SeerPermissionError as e:
@@ -454,7 +452,22 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                             return Response(status=status.HTTP_404_NOT_FOUND)
                         raise PermissionDenied(SEER_PERMISSION_DENIED)
 
-                    if run_state.get_created_pull_request_states() or run_state.coding_agents:
+                    # Seer accepts a step while one is still processing, and the two
+                    # workers then write to the same run state; a truncating re-run
+                    # even deletes the blocks the live worker is appending to. Hand
+                    # back the run in flight instead: callers poll it exactly as they
+                    # would a step they had just queued.
+                    if run_state.status == "processing":
+                        return Response(
+                            {"run_id": resolved_run_id, "sentry_run_id": resolved_sentry_run_id},
+                            status=status.HTTP_202_ACCEPTED,
+                        )
+
+                    # A truncating re-run would strand a PR/coding agent (they live
+                    # outside the blocks). Refuse it, mirroring the frontend gate.
+                    if data.get("insert_index") is not None and (
+                        run_state.get_created_pull_request_states() or run_state.coding_agents
+                    ):
                         return Response(
                             {
                                 "detail": "Cannot re-run a step after a pull request or coding agent has started"
