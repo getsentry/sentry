@@ -1,6 +1,7 @@
+import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {render, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {FieldKind} from 'sentry/utils/fields';
@@ -143,6 +144,37 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
 
     expect(result.current.filterKeys['log.message']).toBeDefined();
     expect(result.current.filterKeyAliases?.['log.message_alias']).toBeDefined();
+  });
+
+  it('uses preferred search aliases in deprecation warnings', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: defaultInitialProps,
+      organization,
+    });
+
+    expect(result.current.filterKeyAliases?.['sentry.segment.name']?.alias).toBe(
+      'transaction'
+    );
+
+    render(
+      <Fragment>{result.current.getFilterTokenWarning?.('sentry.segment.name')}</Fragment>
+    );
+
+    expect(document.body).toHaveTextContent(
+      'sentry.segment.name is deprecated. Use transaction instead.'
+    );
+  });
+
+  it('does not warn for product fields that opt out of convention deprecation', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        itemType: TraceItemDataset.REPLAYS,
+      },
+      organization,
+    });
+
+    expect(result.current.getFilterTokenWarning?.('url')).toBeUndefined();
   });
 
   it('merges all secondary alias types into filterKeyAliases', () => {

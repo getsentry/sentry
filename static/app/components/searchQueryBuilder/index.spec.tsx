@@ -6396,6 +6396,7 @@ describe('SearchQueryBuilder', () => {
             disallowUnsupportedFilters
             initialQuery="foo:bar"
             filterKeyAliases={{foo: {key: 'foo', name: 'foo'}}}
+            invalidFilterKeys={['foo']}
           />
         );
 
