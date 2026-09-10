@@ -1,6 +1,7 @@
 import {Tag} from '@sentry/scraps/badge';
 import {CodeBlock} from '@sentry/scraps/code';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {List} from 'sentry/components/list';
@@ -35,7 +36,7 @@ export function AgentSetupCard({
   prompt,
 }: AgentSetupCardProps) {
   return (
-    <Stack border="primary" radius="xl" padding="xl 2xl" gap="0">
+    <Stack border="primary" radius="xl" padding="xl" gap="0">
       <Flex align="center" gap="md">
         <Flex width={SETUP_CARD_MARKER_PX} flexShrink={0} justify="center">
           <IconBot size={SETUP_CARD_ICON_SIZE} variant="secondary" />
@@ -65,7 +66,7 @@ export function AgentSetupCard({
 
       <List symbol="colored-numeric">
         <ListItem>
-          <Stack gap="lg" paddingBottom="2xl">
+          <Stack gap="lg" paddingTop="xs" paddingBottom="2xl">
             <Text size="md">{t('Install the Sentry plugin for your agent')}</Text>
             <CodeBlock
               dark
@@ -76,13 +77,26 @@ export function AgentSetupCard({
               {INSTALL_PLUGIN_COMMAND}
             </CodeBlock>
           </Stack>
+          <Flex
+            position="absolute"
+            top={SETUP_CARD_MARKER_PX}
+            bottom="0"
+            left="0"
+            width={SETUP_CARD_MARKER_PX}
+            paddingTop="xs"
+            justify="center"
+          >
+            <Separator orientation="vertical" border="muted" />
+          </Flex>
         </ListItem>
         <ListItem>
-          <Stack gap="lg">
-            <Text size="md">{t('Ask your agent to set up Sentry')}</Text>
-            <Text variant="muted" size="md">
-              {t('Point it to your project folder and paste this.')}
-            </Text>
+          <Stack gap="lg" paddingTop="xs">
+            <Stack gap="xs">
+              <Text size="md">{t('Ask your agent to set up Sentry')}</Text>
+              <Text variant="muted" size="md">
+                {t('Point it to your project folder and paste this.')}
+              </Text>
+            </Stack>
             <CodeBlock
               dark
               alwaysShowCopyButton={!hasSetupFailed}

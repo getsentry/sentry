@@ -15,7 +15,7 @@ interface ManualSetupCardProps {
 export function ManualSetupCard({onSetupInBrowser}: ManualSetupCardProps) {
   return (
     <CardButton onClick={onSetupInBrowser} data-test-id="onboarding-setup-in-browser">
-      <Stack border="primary" radius="xl" padding="xl 2xl" gap="0" width="100%">
+      <Stack border="primary" radius="xl" padding="xl" gap="0" width="100%">
         <Flex align="center" gap="md">
           <Flex width={SETUP_CARD_MARKER_PX} flexShrink={0} justify="center">
             <IconSliders size={SETUP_CARD_ICON_SIZE} variant="secondary" />
