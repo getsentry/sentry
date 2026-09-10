@@ -9,11 +9,17 @@ The flow spans four entry points
 we include the run_id in every log line to trace through all logs for that run
 
     ctx = PrIterationLogContext(
-        logger, run_state=run_state, organization_id=organization_id, group_id=group_id
+        logger,
+        iteration=LogCtxIteration.TRIGGERED,
+        run_state=run_state,
+        organization_id=organization_id,
+        group_id=group_id,
     )
     ctx.info("autofix.pr_iteration.check_suite.run_resolved", head_sha=head_sha)
 
-Nothing here reads the database, so a context is free on any hot path.
+A context is free on any hot path unless it is built with
+``iteration=LogCtxIteration.UNTRIGGERED``, which costs one indexed query to
+resolve the waiting row's id.
 Per-line data is passed to the emit methods as free-form keywords and is not part of the schema
 Log names are passed full and literal so production names grep directly here.
 """
@@ -21,10 +27,33 @@ Log names are passed full and literal so production names grep directly here.
 from __future__ import annotations
 
 import logging
+from enum import Enum
 from typing import Any, TypedDict
 
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.autofix.pr_iteration.current_iteration import triggered_iteration_id
+from sentry.seer.autofix.pr_iteration.current_iteration import (
+    triggered_iteration_id,
+    untriggered_iteration_id,
+)
+
+
+class LogCtxIteration(Enum):
+    """Which of a run's two iterations a context's lines are about.
+
+    Required at construction and deliberately without a default: which row a
+    line belongs to is a property of the flow doing the logging, and the two are
+    easy to confuse, so every context says which one it means.
+
+    ``TRIGGERED`` is the latest iteration the agent is or was working on, read
+    straight off the run state already in hand. ``UNTRIGGERED`` is the row
+    waiting for the next drain, which is what the queue and trigger of a fresh
+    piece of feedback are about; resolving it costs one indexed query, and the
+    row only exists once the feedback has opened it, so construct with it at a
+    point where that has already happened.
+    """
+
+    TRIGGERED = "triggered"
+    UNTRIGGERED = "untriggered"
 
 
 class PrIterationScmInfo(TypedDict, total=False):
@@ -75,9 +104,10 @@ class PrIterationLogContext:
         self,
         logger: logging.Logger,
         *,
-        run_state: SeerRunState | None = None,
-        organization_id: int | None = None,
-        group_id: int | None = None,
+        iteration: LogCtxIteration,
+        run_state: SeerRunState | None,
+        organization_id: int | None,
+        group_id: int | None,
     ) -> None:
         self._logger = logger
         identity: PrIterationIdentity = {}
@@ -89,7 +119,7 @@ class PrIterationLogContext:
             identity["run_id"] = run_state.run_id
             if scm_infos := _scm_infos(run_state):
                 identity["scm_infos"] = scm_infos
-            if (iteration_id := triggered_iteration_id(run_state)) is not None:
+            if (iteration_id := _iteration_id(iteration, run_state, organization_id)) is not None:
                 identity["iteration_id"] = iteration_id
         self._identity = identity
 
@@ -100,23 +130,26 @@ class PrIterationLogContext:
         run_state: SeerRunState,
         organization_id: int,
         group_id: int | None,
+        *,
+        iteration: LogCtxIteration,
     ) -> PrIterationLogContext:
         """Full identity for a run whose state, org, and group are all in hand."""
-        return cls(logger, run_state=run_state, organization_id=organization_id, group_id=group_id)
+        return cls(
+            logger,
+            run_state=run_state,
+            organization_id=organization_id,
+            group_id=group_id,
+            iteration=iteration,
+        )
+
+    @property
+    def logger(self) -> logging.Logger:
+        """The caller's logger, so a rebuilt context keeps the original name."""
+        return self._logger
 
     @property
     def identity(self) -> PrIterationIdentity:
         return self._identity.copy()
-
-    def with_iteration(self, iteration_id: int) -> PrIterationLogContext:
-        """A copy of this context whose lines also carry the iteration's id.
-
-        The iteration id is usually only resolved partway through a flow, so
-        callers reassign their ``log_ctx`` to the result once they have it.
-        """
-        ctx = PrIterationLogContext(self._logger)
-        ctx._identity = {**self._identity, "iteration_id": iteration_id}
-        return ctx
 
     def info(self, name: str, **fields: Any) -> None:
         """Record that we are doing, or have done, a piece of work."""
@@ -129,6 +162,17 @@ class PrIterationLogContext:
         ``autofix.pr_iteration`` rather than a list of names known in advance.
         """
         self._logger.error(name, extra={**self._identity, **fields}, exc_info=exc_info)
+
+
+def _iteration_id(
+    iteration: LogCtxIteration, run_state: SeerRunState, organization_id: int | None
+) -> int | None:
+    """The id for the iteration the caller said its lines are about."""
+    if iteration is LogCtxIteration.TRIGGERED:
+        return triggered_iteration_id(run_state)
+    if organization_id is None:
+        return None
+    return untriggered_iteration_id(run_id=run_state.run_id, organization_id=organization_id)
 
 
 def _scm_infos(run_state: SeerRunState) -> list[PrIterationScmInfo]:

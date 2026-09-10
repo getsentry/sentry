@@ -9,7 +9,10 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
-from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.logs import (
+    LogCtxIteration,
+    PrIterationLogContext,
+)
 from sentry.seer.autofix.pr_iteration.mention import handle_issue_comment_for_autofix_iteration
 from sentry.seer.autofix.pr_iteration.pause import is_pr_iteration_paused
 from sentry.seer.autofix.pr_iteration.queue import (
@@ -99,6 +102,7 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         return try_enqueue_autofix_feedback(
             log_ctx=PrIterationLogContext(
                 self.log,
+                iteration=LogCtxIteration.TRIGGERED,
                 run_state=state,
                 organization_id=self.organization.id,
                 group_id=1,

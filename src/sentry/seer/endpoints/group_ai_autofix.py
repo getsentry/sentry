@@ -60,7 +60,7 @@ from sentry.seer.autofix.github_perms import (
     get_blocked_pr_iteration_permissions,
 )
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
-from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
@@ -418,7 +418,11 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                 # Shared by both calls, so one arrival of feedback logs its queue
                 # and trigger decisions under one identity.
                 log_ctx = PrIterationLogContext.for_run(
-                    logger, run_state, group.organization.id, group.id
+                    logger,
+                    run_state,
+                    group.organization.id,
+                    group.id,
+                    iteration=LogCtxIteration.TRIGGERED,
                 )
 
                 try_enqueue_autofix_feedback(

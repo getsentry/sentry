@@ -51,7 +51,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
 )
-from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.pause import PauseReason, pause_pr_iteration
 from sentry.seer.autofix.pr_ready_for_review import (
     emit_pr_ready_for_review,
@@ -283,7 +283,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         state: SeerRunState,
     ) -> PrIterationLogContext:
         """The shared PR-iteration identity, from what the caller already holds."""
-        return PrIterationLogContext.for_run(logger, state, organization.id, group.id)
+        return PrIterationLogContext.for_run(
+            logger, state, organization.id, group.id, iteration=LogCtxIteration.TRIGGERED
+        )
 
     @classmethod
     def _record_failed_tool_calls(

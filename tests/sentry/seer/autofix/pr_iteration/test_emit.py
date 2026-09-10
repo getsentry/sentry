@@ -21,7 +21,10 @@ from sentry.seer.autofix.pr_iteration.emit import (
     record_pr_iteration_counts,
     trigger_pr_iteration_details,
 )
-from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.logs import (
+    LogCtxIteration,
+    PrIterationLogContext,
+)
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
@@ -63,6 +66,7 @@ class PrIterationDetailsTest(TestCase):
         )
         self.log_ctx = PrIterationLogContext(
             MagicMock(),
+            iteration=LogCtxIteration.TRIGGERED,
             run_state=_run_state(),
             organization_id=self.organization.id,
             group_id=self.group.id,

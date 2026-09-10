@@ -29,7 +29,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
     MissingCheckSuiteAutofixRun,
 )
-from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.queue import (
     peek_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
@@ -144,7 +144,11 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
 
         run_state = resolved.autofix_run.run_state
         log_ctx = PrIterationLogContext.for_run(
-            logger, run_state, resolved.organization.id, resolved.autofix_run.group_id
+            logger,
+            run_state,
+            resolved.organization.id,
+            resolved.autofix_run.group_id,
+            iteration=LogCtxIteration.TRIGGERED,
         )
         # Peek the queue for parked check-suite feedback on this head, then
         # ``should_defer_pr_iteration`` (GitHub sweep) only if something is
@@ -215,7 +219,11 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
     # One identity for both decisions below, so the queue line and the trigger
     # line of a single check suite are found by the same search.
     log_ctx = PrIterationLogContext.for_run(
-        logger, agent_state, organization_id, autofix_run.group_id
+        logger,
+        agent_state,
+        organization_id,
+        autofix_run.group_id,
+        iteration=LogCtxIteration.TRIGGERED,
     )
 
     # Report failures here rather than only in the SCM event stream so they

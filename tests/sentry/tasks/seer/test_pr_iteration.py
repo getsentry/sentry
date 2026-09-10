@@ -38,7 +38,10 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
-from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.logs import (
+    LogCtxIteration,
+    PrIterationLogContext,
+)
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
@@ -1001,7 +1004,11 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         )
         try_enqueue_autofix_feedback(
             log_ctx=PrIterationLogContext(
-                MagicMock(), run_state=self._state(), organization_id=self.organization.id
+                MagicMock(),
+                iteration=LogCtxIteration.TRIGGERED,
+                run_state=self._state(),
+                organization_id=self.organization.id,
+                group_id=None,
             ),
             run_id=67890,
             organization_id=self.organization.id,
@@ -1595,6 +1602,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         open_pr_iteration_details(
             log_ctx=PrIterationLogContext(
                 MagicMock(),
+                iteration=LogCtxIteration.TRIGGERED,
                 run_state=self._state(),
                 organization_id=self.organization.id,
                 group_id=self.group.id,
@@ -1711,7 +1719,11 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
 
     def _log_ctx(self) -> PrIterationLogContext:
         return PrIterationLogContext(
-            self.log, run_state=self._state(), organization_id=self.organization.id
+            self.log,
+            iteration=LogCtxIteration.TRIGGERED,
+            run_state=self._state(),
+            organization_id=self.organization.id,
+            group_id=None,
         )
 
     def _feedback(self) -> Feedback:
