@@ -60,6 +60,7 @@ def test_deobfuscate_and_save_deeply_nested_hierarchy() -> None:
         name="view_hierarchy.json",
         content_type="application/json",
         data=sentry_json.dumps(hierarchy).encode("utf-8"),
+        retention_days=90,
     )
 
     get_attachments = mock.Mock(return_value=[attachment])
