@@ -7,7 +7,6 @@ import {
   useState,
 } from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
@@ -222,38 +221,44 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
           filterSelections={filterSelections}
         />
         <Container border="primary" radius="md" overflow="hidden" marginTop="sm">
-          <Header
-            columns={{
-              zero: '0.6fr 1.5fr 0.6fr',
-              sm: '0.6fr 2fr 0.6fr',
-              md: '0.6fr 2fr 1fr 0.4fr',
-            }}
-            background="secondary"
-            borderBottom="primary"
-          >
-            <Flex align="center" minWidth="0" padding="md lg">
-              {t('Status')}
-            </Flex>
-            <Flex align="center" minWidth="0" paddingTop="md" paddingBottom="md">
-              {t('Image')}
-            </Flex>
-            <Flex
-              align="center"
-              display={{
-                zero: 'none',
-                md: 'flex',
-              }}
-              minWidth="0"
-              paddingTop="md"
-              paddingBottom="md"
-            >
-              {t('Processing')}
-            </Flex>
-            <div />
-          </Header>
+          <Text bold size="sm" uppercase variant="muted">
+            {({className}) => (
+              <Grid
+                className={className}
+                columns={{
+                  zero: '0.6fr 1.5fr 0.6fr',
+                  sm: '0.6fr 2fr 0.6fr',
+                  lg: '0.6fr 2fr 1fr 0.4fr',
+                }}
+                background="secondary"
+                borderBottom="primary"
+              >
+                <Flex align="center" minWidth="0" padding="md lg">
+                  {t('Status')}
+                </Flex>
+                <Flex align="center" minWidth="0" paddingTop="md" paddingBottom="md">
+                  {t('Image')}
+                </Flex>
+                <Flex
+                  align="center"
+                  display={{
+                    zero: 'none',
+                    lg: 'flex',
+                  }}
+                  minWidth="0"
+                  paddingTop="md"
+                  paddingBottom="md"
+                >
+                  {t('Processing')}
+                </Flex>
+                <div />
+              </Grid>
+            )}
+          </Text>
           {filteredImages.length ? (
-            <ScrollArea
+            <Container
               ref={setScrollContainer}
+              overflowY="auto"
               style={{height: lockHeight ? MAX_HEIGHT : undefined, maxHeight: MAX_HEIGHT}}
             >
               <div style={{height: totalSize, position: 'relative'}}>
@@ -278,7 +283,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
                   </div>
                 ))}
               </div>
-            </ScrollArea>
+            </Container>
           ) : (
             <Stack
               align="center"
@@ -309,14 +314,3 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     </FoldSection>
   );
 }
-
-const Header = styled(Grid)`
-  font-size: ${p => p.theme.font.size.sm};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  color: ${p => p.theme.tokens.content.secondary};
-  text-transform: uppercase;
-`;
-
-const ScrollArea = styled('div')`
-  overflow-y: auto;
-`;

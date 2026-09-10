@@ -7,6 +7,11 @@ import {EventGroupVariantType} from 'sentry/types/event';
 import {GroupingVariant} from './groupingVariant';
 
 describe('Grouping Variant', () => {
+  function getValueCell(label: string) {
+    const row = screen.getByRole('row', {name: new RegExp(label)});
+    return within(row).getAllByRole('cell')[1];
+  }
+
   const event = EventFixture({
     entries: [
       {
@@ -62,21 +67,9 @@ describe('Grouping Variant', () => {
       />
     );
 
-    expect(
-      within(screen.getByText('Parent Span Hashes').closest('tr') as HTMLElement)
-        .getByText('[')
-        .closest('td')
-    ).toHaveTextContent('[]');
-    expect(
-      within(
-        screen.getByText('Source Span Hashes').closest('tr') as HTMLElement
-      ).getByText('hash1')
-    ).toBeInTheDocument();
-    expect(
-      within(
-        screen.getByText('Offender Span Hashes').closest('tr') as HTMLElement
-      ).getByText('hash2')
-    ).toBeInTheDocument();
+    expect(getValueCell('Parent Span Hashes')).toHaveTextContent('[]');
+    expect(getValueCell('Source Span Hashes')).toHaveTextContent('hash1');
+    expect(getValueCell('Offender Span Hashes')).toHaveTextContent('hash2');
   });
 
   it('renders grouping details for occurrence-backed performance issues', () => {
@@ -88,20 +81,8 @@ describe('Grouping Variant', () => {
       />
     );
 
-    expect(
-      within(screen.getByText('Parent Span Hashes').closest('tr') as HTMLElement)
-        .getByText('[')
-        .closest('td')
-    ).toHaveTextContent('[]');
-    expect(
-      within(
-        screen.getByText('Source Span Hashes').closest('tr') as HTMLElement
-      ).getByText('hash1')
-    ).toBeInTheDocument();
-    expect(
-      within(
-        screen.getByText('Offender Span Hashes').closest('tr') as HTMLElement
-      ).getByText('hash2')
-    ).toBeInTheDocument();
+    expect(getValueCell('Parent Span Hashes')).toHaveTextContent('[]');
+    expect(getValueCell('Source Span Hashes')).toHaveTextContent('hash1');
+    expect(getValueCell('Offender Span Hashes')).toHaveTextContent('hash2');
   });
 });

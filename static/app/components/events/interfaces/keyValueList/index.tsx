@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import classNames from 'classnames';
 import sortBy from 'lodash/sortBy';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {ValueLink} from 'sentry/components/keyValueData';
 import type {KeyValueListData} from 'sentry/types/group';
@@ -33,68 +33,83 @@ export function KeyValueList({
   const keyValueData = shouldSort ? sortBy(data, [({key}) => key?.toLowerCase()]) : data;
 
   return (
-    <Table className={classNames('table key-value', className)} {...props}>
-      <tbody>
-        {keyValueData.map(
-          (
-            {
-              key,
-              subject,
-              value = null,
-              meta,
-              subjectIcon,
-              subjectDataTestId,
-              action,
-              actionButton,
-              isContextData: valueIsContextData,
-              isMultiValue,
-            },
-            idx
-          ) => {
-            const valueProps = {
-              isContextData: valueIsContextData || isContextData,
-              meta,
-              subjectIcon,
-              value,
-              raw,
-            };
+    <Grid
+      className={className}
+      columns={{zero: 'minmax(0, 1fr)', sm: '175px minmax(0, 1fr)'}}
+      gap="md"
+      role="table"
+      width="100%"
+      {...props}
+    >
+      {keyValueData.map(
+        (
+          {
+            key,
+            subject,
+            value = null,
+            meta,
+            subjectIcon,
+            subjectDataTestId,
+            action,
+            actionButton,
+            isContextData: valueIsContextData,
+            isMultiValue,
+          },
+          idx
+        ) => {
+          const valueProps = {
+            isContextData: valueIsContextData || isContextData,
+            meta,
+            subjectIcon,
+            value,
+            raw,
+          };
 
-            const valueItem = action?.link ? (
-              <ValueLink to={action.link}>{<Value {...valueProps} />}</ValueLink>
+          const valueItem = action?.link ? (
+            <ValueLink to={action.link}>{<Value {...valueProps} />}</ValueLink>
+          ) : (
+            <Value {...valueProps} />
+          );
+
+          const valueContainer =
+            isMultiValue && Array.isArray(value) ? (
+              <MultiValueContainer values={value} />
             ) : (
-              <Value {...valueProps} />
+              valueItem
             );
-
-            const valueContainer =
-              isMultiValue && Array.isArray(value) ? (
-                <MultiValueContainer values={value} />
-              ) : (
-                valueItem
-              );
-
-            return (
-              <tr key={`${key}-${idx}`}>
-                <td className="key">{subject}</td>
-                <td className="val" data-test-id={subjectDataTestId}>
-                  <Tablevalue>
-                    {actionButton ? (
-                      <ValueWithButtonContainer>
-                        {valueContainer}
-                        <Flex align="start" height="100%">
-                          {actionButton}
-                        </Flex>
-                      </ValueWithButtonContainer>
-                    ) : (
-                      valueContainer
-                    )}
-                  </Tablevalue>
-                </td>
-              </tr>
-            );
-          }
-        )}
-      </tbody>
-    </Table>
+          return (
+            <Grid
+              align="start"
+              column="1 / -1"
+              columns="subgrid"
+              gap="md lg"
+              key={`${key}-${idx}`}
+              role="row"
+            >
+              <Container role="cell">
+                <Text bold density="comfortable" wordBreak="break-word">
+                  {subject}
+                </Text>
+              </Container>
+              <Container data-test-id={subjectDataTestId} minWidth="0" role="cell">
+                <ValueWrapper>
+                  {actionButton ? (
+                    <ValueWithActionButton>
+                      {valueContainer}
+                      <Flex align="start" height="100%">
+                        {actionButton}
+                      </Flex>
+                    </ValueWithActionButton>
+                  ) : (
+                    valueContainer
+                  )}
+                </ValueWrapper>
+              </Container>
+            </Grid>
+          );
+        }
+      )}
+    </Grid>
   );
 }
 
@@ -108,7 +123,11 @@ function MultiValueContainer({values}: {values: string[]}): React.JSX.Element {
   );
 }
 
-const Tablevalue = styled('div')`
+const ValueWrapper = styled('div')`
+  > pre {
+    margin: 0;
+    padding: ${p => p.theme.space.md} 10px;
+  }
   pre {
     && {
       word-break: break-all;
@@ -116,30 +135,34 @@ const Tablevalue = styled('div')`
   }
   pre > pre {
     display: inline-block;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 `;
-const ValueWithButtonContainer = styled('div')`
-  display: grid;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
+function ValueWithActionButton({children}: {children: React.ReactNode}) {
+  return (
+    <Grid
+      align="center"
+      background="secondary"
+      columns="1fr max-content"
+      gap="md"
+      margin="2xs 0"
+      radius="md"
+    >
+      {({className}) => (
+        <ValueWithActionButtonContent className={className}>
+          {children}
+        </ValueWithActionButtonContent>
+      )}
+    </Grid>
+  );
+}
+
+const ValueWithActionButtonContent = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
-  background: ${p => p.theme.tokens.background.secondary};
   padding: ${p => p.theme.space.md} 10px;
-  margin: ${p => p.theme.space['2xs']} 0;
-  border-radius: ${p => p.theme.radius.md};
   pre {
     padding: 0 !important;
     margin: 0 !important;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr max-content;
-  }
-`;
-
-const Table = styled('table')`
-  > * pre > pre {
-    margin: 0 !important;
-    padding: 0 !important;
   }
 `;

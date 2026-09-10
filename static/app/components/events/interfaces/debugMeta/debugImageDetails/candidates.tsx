@@ -7,8 +7,9 @@ import pick from 'lodash/pick';
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {SearchBarAction} from 'sentry/components/events/interfaces/searchBarAction';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -315,25 +316,42 @@ export class Candidates extends Component<Props, State> {
     const {emptyMessage, emptyAction} = this.getEmptyMessage();
 
     return (
-      <Wrapper>
-        <Header>
-          <Title>
-            {t('Debug File Candidates')}
-            <InfoTip
-              title={tct(
-                'These are the Debug Information Files (DIFs) corresponding to this image which have been looked up on [docLink:symbol servers] during the processing of the stacktrace.',
-                {
-                  docLink: (
-                    <ExternalLink href="https://docs.sentry.io/platforms/native/data-management/debug-files/symbol-servers/" />
-                  ),
-                }
-              )}
-              size="xs"
-              position="top"
-            />
-          </Title>
+      <Grid gap="lg">
+        <Flex
+          direction={{zero: 'column', xl: 'row'}}
+          gap={{zero: 'sm', xl: '0'}}
+          wrap={{xl: 'wrap'}}
+        >
+          <Text bold variant="muted">
+            {({className}) => (
+              <Grid
+                className={className}
+                align="center"
+                columns="repeat(2, max-content)"
+                flex={1}
+                gap="xs"
+                height="32px"
+                marginBottom={{zero: '0', xl: 'md'}}
+                paddingRight="3xl"
+              >
+                {t('Debug File Candidates')}
+                <InfoTip
+                  title={tct(
+                    'These are the Debug Information Files (DIFs) corresponding to this image which have been looked up on [docLink:symbol servers] during the processing of the stacktrace.',
+                    {
+                      docLink: (
+                        <ExternalLink href="https://docs.sentry.io/platforms/native/data-management/debug-files/symbol-servers/" />
+                      ),
+                    }
+                  )}
+                  size="xs"
+                  position="top"
+                />
+              </Grid>
+            )}
+          </Text>
           {!!candidates.length && (
-            <StyledSearchBarAction
+            <SearchBarAction
               query={searchTerm}
               onChange={value => this.handleChangeSearchTerm(value)}
               placeholder={t('Search debug file candidates')}
@@ -342,15 +360,15 @@ export class Candidates extends Component<Props, State> {
               onFilterChange={this.handleChangeFilter}
             />
           )}
-        </Header>
+        </Flex>
         <StyledSimpleTable
           hasActions={haveCandidatesAtLeastOneAction}
           header={
-            <SimpleTable.HeaderRow>
+            <ResponsiveHeaderRow>
               <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
               <SimpleTable.HeaderCell>{t('Information')}</SimpleTable.HeaderCell>
               {haveCandidatesAtLeastOneAction && <SimpleTable.HeaderCell />}
-            </SimpleTable.HeaderRow>
+            </ResponsiveHeaderRow>
           }
         >
           {isLoading && <SimpleTable.Loading />}
@@ -377,53 +395,28 @@ export class Candidates extends Component<Props, State> {
               />
             ))}
         </StyledSimpleTable>
-      </Wrapper>
+      </Grid>
     );
   }
 }
 
-const Wrapper = styled('div')`
-  display: grid;
-`;
-
-const Header = styled('div')`
-  display: flex;
-  flex-direction: column;
-  @media (min-width: ${props => props.theme.breakpoints.sm}) {
-    flex-wrap: wrap;
-    flex-direction: row;
-  }
-`;
-
-const Title = styled('div')`
-  padding-right: ${p => p.theme.space['3xl']};
-  display: grid;
-  gap: ${p => p.theme.space.xs};
-  grid-template-columns: repeat(2, max-content);
-  align-items: center;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  color: ${p => p.theme.colors.gray500};
-  height: 32px;
-  flex: 1;
-
-  @media (min-width: ${props => props.theme.breakpoints.sm}) {
-    margin-bottom: ${p => p.theme.space.md};
-  }
-`;
-
 const StyledSimpleTable = styled(SimpleTable, {
   shouldForwardProp: prop => prop !== 'hasActions',
 })<{hasActions: boolean}>`
-  grid-template-columns: ${p =>
-    p.hasActions ? 'max-content 1fr max-content' : 'max-content 1fr'};
+  grid-template-columns: max-content 1fr;
 
   height: 100%;
 
-  @media (min-width: ${props => props.theme.breakpoints['2xl']}) {
-    overflow: visible;
+  @container (min-width: ${p => p.theme.container.lg}) {
+    grid-template-columns: ${p =>
+      p.hasActions ? 'max-content 1fr max-content' : 'max-content 1fr'};
   }
 `;
 
-const StyledSearchBarAction = styled(SearchBarAction)`
-  margin-bottom: ${p => p.theme.space.lg};
+const ResponsiveHeaderRow = styled(SimpleTable.HeaderRow)`
+  display: none;
+
+  @container (min-width: ${p => p.theme.container.lg}) {
+    display: grid;
+  }
 `;
