@@ -24,7 +24,7 @@ export const TableGrid = styled('table')<TableGridProps>`
   ${p =>
     p.hiddenColumnIndexes?.map(
       index => css`
-        tr > *:nth-child(${(p.prependedColumnCount ?? 0) + index + 1}):not(${TableStatusCell}) {
+        tr > *:nth-child(${(p.prependedColumnCount ?? 0) + index + 1} of [role='cell'], [role='columnheader']):not(${TableStatusCell}) {
           display: none;
         }
       `

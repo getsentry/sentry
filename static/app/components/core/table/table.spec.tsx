@@ -299,7 +299,7 @@ describe('Table', () => {
       // jsdom does not resolve descendant rules through getComputedStyle, so the
       // hiding rule is read off the emitted stylesheet rather than the cell.
       expect(getEmotionRules(screen.getByRole('table')).join('')).toContain(
-        'nth-child(2)'
+        "nth-child(2 of [role='cell'], [role='columnheader'])"
       );
     });
 
@@ -313,7 +313,7 @@ describe('Table', () => {
 
       expect(gridTemplate()).toBe('minmax(90px, auto)');
       expect(getEmotionRules(screen.getByRole('table')).join('')).toContain(
-        'nth-child(2)'
+        "nth-child(2 of [role='cell'], [role='columnheader'])"
       );
     });
 
