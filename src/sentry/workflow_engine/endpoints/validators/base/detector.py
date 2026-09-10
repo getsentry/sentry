@@ -1,8 +1,9 @@
 import builtins
 from dataclasses import dataclass
-from typing import Any, NotRequired, TypedDict
+from typing import Any, ClassVar, NotRequired, TypedDict
 
 from django.db import router, transaction
+from django.db.models import Q
 from jsonschema import ValidationError as JSONSchemaValidationError
 from rest_framework import serializers
 
@@ -73,6 +74,16 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
     """
     Set to False in subclasses if data sources are not required for this detector type.
     By default, data sources are required when creating a new detector.
+    """
+
+    config_schema: ClassVar[dict[str, Any]] = {}
+    """
+    JSON schema enforced against a detector's config whenever the detector is saved.
+    """
+
+    detector_filter: ClassVar[Q | None] = None
+    """
+    Extra filter applied when listing detectors of this type, see DetectorQuerySet.with_type_filters.
     """
 
     name = serializers.CharField(

@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.apps import apps
 from django.db.models import Q
+from django.utils.functional import classproperty
 from redis.client import StrictRedis
 from sentry_redis_tools.clients import RedisCluster
 
@@ -18,7 +19,12 @@ from sentry.features.base import OrganizationFeature
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
+from sentry.utils.registry import NoRegistrationExistsError, Registry
 from sentry.utils.tracing import set_span_data, set_span_tag, start_span
+from sentry.workflow_engine.registry import (
+    detector_handler_registry,
+    detector_validator_registry,
+)
 from sentry.workflow_engine.types import DetectorSettings
 
 if TYPE_CHECKING:
@@ -237,6 +243,29 @@ class NotificationConfig:
     )  # TODO(cathy): view monitor button for crons. "text": "", "url": ""
 
 
+def find_registration[T](slug: str, registry: Registry[T]) -> T | None:
+    try:
+        return registry.get(slug)
+    except NoRegistrationExistsError:
+        return None
+
+
+def get_registered_detector_settings(slug: str) -> DetectorSettings | None:
+    handler = find_registration(slug, detector_handler_registry)
+
+    validator = find_registration(slug, detector_validator_registry)
+
+    if handler is None and validator is None:
+        return None
+
+    return DetectorSettings(
+        handler=handler,
+        validator=validator,
+        config_schema=validator.config_schema if validator is not None else {},
+        filter=validator.detector_filter if validator is not None else None,
+    )
+
+
 class GroupType:
     type_id: ClassVar[int]
     slug: ClassVar[str]
@@ -262,7 +291,6 @@ class GroupType:
         3600, 60, 5
     )  # default 5 per hour, sliding window of 60 seconds
     notification_config: ClassVar[NotificationConfig] = NotificationConfig()
-    detector_settings: ClassVar[DetectorSettings | None] = None
     # Controls whether status change (i.e. resolved, regressed) workflow notifications are enabled.
     # Defaults to true to maintain the default workflow notification behavior as it exists for error group types.
     enable_status_change_workflow_notifications: ClassVar[bool] = True
@@ -288,6 +316,14 @@ class GroupType:
                 features.add(fname, OrganizationFeature, True, api_expose=True)
             features.add(cls.build_ingest_feature_name(), OrganizationFeature, True)
             features.add(cls.build_post_process_group_feature_name(), OrganizationFeature, True)
+
+    @classproperty
+    def detector_settings(cls) -> DetectorSettings | None:
+        """
+        Get detector settings through workflow engine registries, keyed by slug
+        Existing classes will shadow this property and have no change to their functionality
+        """
+        return get_registered_detector_settings(cls.slug)
 
     @classmethod
     def allow_ingest(cls, organization: Organization) -> bool:
