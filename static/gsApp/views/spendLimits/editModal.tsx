@@ -1,31 +1,29 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Container, Grid} from '@sentry/scraps/layout';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {withApi} from 'sentry/utils/withApi';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import type {
-  OnDemandBudgetMode,
-  OnDemandBudgets,
-  Plan,
-  Subscription,
-} from 'getsentry/types';
+import type {OnDemandBudgets, Plan, Subscription} from 'getsentry/types';
 import {displayBudgetName} from 'getsentry/utils/billing';
-import {EmbeddedSpendLimitSettings} from 'getsentry/views/spendLimits/embeddedSettings';
+import {SpendLimitSettings} from 'getsentry/views/spendLimits/spendLimitSettings';
 
 import {
-  convertOnDemandBudget,
   exceedsInvoicedBudgetLimit,
   getTotalBudget,
   normalizeOnDemandBudget,
@@ -51,197 +49,191 @@ function getBudgetExceededInvoicedLimitError(plan: Plan) {
 }
 
 type Props = {
-  api: Client;
   organization: Organization;
   subscription: Subscription;
 } & ModalRenderProps;
 
-type State = {
-  currentOnDemandBudget: OnDemandBudgets;
-  onDemandBudget: OnDemandBudgets;
-  updateError: undefined | Error | string | Record<string, string[]>;
-};
-class SpendLimitsEditModal extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-
-    const {subscription} = props;
-    const onDemandBudget = parseOnDemandBudgetsFromSubscription(subscription);
-
-    this.state = {
-      currentOnDemandBudget: {...onDemandBudget},
-      onDemandBudget,
-      updateError: undefined,
-    };
+const onDemandBudgetsSchema = z.custom<OnDemandBudgets>(value => {
+  if (!value || typeof value !== 'object' || !('budgetMode' in value)) {
+    return false;
   }
 
-  renderError(error: State['updateError']) {
-    if (!error) {
-      return null;
-    }
+  if (value.budgetMode === 'shared') {
+    return (
+      'sharedMaxBudget' in value &&
+      typeof value.sharedMaxBudget === 'number' &&
+      Number.isFinite(value.sharedMaxBudget) &&
+      value.sharedMaxBudget >= 0
+    );
+  }
 
-    if (!(error instanceof Error) && typeof error === 'object') {
-      const listOfErrors = Object.entries(error).map(
-        ([field, errors]: [string, string[]]) => {
-          return (
-            <li key={field}>
-              <strong>{field}</strong> {errors.join(' ')}
-            </li>
-          );
-        }
-      );
+  return (
+    value.budgetMode === 'per_category' &&
+    'budgets' in value &&
+    !!value.budgets &&
+    typeof value.budgets === 'object' &&
+    Object.values(value.budgets).every(
+      budget => typeof budget === 'number' && Number.isFinite(budget) && budget >= 0
+    )
+  );
+}, t('Enter a valid spending limit.'));
 
-      if (listOfErrors.length === 0) {
-        return (
-          <Alert system variant="danger">
-            {getBudgetSaveError(this.props.subscription.planDetails)}
-          </Alert>
-        );
+function getFormSchema(subscription: Subscription) {
+  return z.object({
+    onDemandBudgets: onDemandBudgetsSchema.superRefine((onDemandBudgets, context) => {
+      if (exceedsInvoicedBudgetLimit(subscription, onDemandBudgets)) {
+        context.addIssue({
+          code: 'custom',
+          message: getBudgetExceededInvoicedLimitError(subscription.planDetails),
+        });
       }
+    }),
+  });
+}
 
-      return (
-        <Alert system variant="danger">
-          <ul>{listOfErrors}</ul>
-        </Alert>
-      );
-    }
+function renderRequestError(error: Error | null, plan: Plan) {
+  if (!error) {
+    return null;
+  }
+
+  if (error instanceof RequestError && error.responseJSON) {
+    const listOfErrors = Object.entries(error.responseJSON).map(([field, errors]) => (
+      <li key={field}>
+        <strong>{field}</strong>{' '}
+        {Array.isArray(errors) ? errors.join(' ') : String(errors)}
+      </li>
+    ));
 
     return (
       <Alert system variant="danger">
-        {/* TODO(TS): Type says error might be an object */}
-        {error as React.ReactNode}
+        {listOfErrors.length > 0 ? <ul>{listOfErrors}</ul> : getBudgetSaveError(plan)}
       </Alert>
     );
   }
 
-  getTotalBudget = (): number => {
-    const {onDemandBudget} = this.state;
-    return getTotalBudget(onDemandBudget);
-  };
+  return (
+    <Alert system variant="danger">
+      {getBudgetSaveError(plan)}
+    </Alert>
+  );
+}
 
-  setBudgetMode = (nextMode: OnDemandBudgetMode) => {
-    const {currentOnDemandBudget, onDemandBudget} = this.state;
-    if (nextMode === onDemandBudget.budgetMode) {
-      return;
-    }
-    this.setState({
-      onDemandBudget: convertOnDemandBudget(currentOnDemandBudget, nextMode),
-    });
-  };
+function getValidationErrorMessage(error: unknown) {
+  if (typeof error === 'string') {
+    return error;
+  }
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String(error.message);
+  }
+  return null;
+}
 
-  handleSave = () => {
-    const {subscription} = this.props;
-    const newOnDemandBudget = normalizeOnDemandBudget(this.state.onDemandBudget);
+function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: Props) {
+  const [currentOnDemandBudget] = useState(() =>
+    parseOnDemandBudgetsFromSubscription(subscription)
+  );
 
-    if (exceedsInvoicedBudgetLimit(subscription, newOnDemandBudget)) {
-      const message = getBudgetExceededInvoicedLimitError(subscription.planDetails);
-      this.setState({
-        updateError: message,
-      });
-      addErrorMessage(message);
-      return;
-    }
-
-    this.saveOnDemandBudget(newOnDemandBudget).then(saveSuccess => {
-      if (saveSuccess) {
-        const {organization} = this.props;
-        trackOnDemandBudgetAnalytics(
-          organization,
-          this.state.currentOnDemandBudget,
-          newOnDemandBudget
-        );
-
-        if (this.getTotalBudget() > 0) {
-          addSuccessMessage(t('Budget updated'));
-        } else {
-          addSuccessMessage(t('Budget turned off'));
-        }
-
-        this.props.closeModal();
-      }
-    });
-  };
-
-  saveOnDemandBudget = async (ondemandBudget: OnDemandBudgets): Promise<boolean> => {
-    const {subscription} = this.props;
-
-    try {
-      await this.props.api.requestPromise(
-        `/customers/${subscription.slug}/ondemand-budgets/`,
-        {
-          method: 'POST',
-          data: ondemandBudget,
-        }
-      );
-      SubscriptionStore.loadData(subscription.slug);
-      return true;
-    } catch (response: any) {
-      const updateError =
-        response?.responseJSON ?? getBudgetSaveError(subscription.planDetails);
-      this.setState({
-        updateError,
-      });
+  const mutation = useMutation({
+    mutationFn: (onDemandBudgets: OnDemandBudgets) =>
+      fetchMutation({
+        url: getApiUrl('/customers/$organizationIdOrSlug/ondemand-budgets/', {
+          path: {organizationIdOrSlug: subscription.slug},
+        }),
+        method: 'POST',
+        data: onDemandBudgets,
+      }),
+    onError: () => {
       addErrorMessage(getBudgetSaveError(subscription.planDetails));
-      return false;
-    }
-  };
+    },
+  });
 
-  render() {
-    const {Footer, subscription, organization} = this.props;
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {onDemandBudgets: currentOnDemandBudget},
+    validators: {onDynamic: getFormSchema(subscription)},
+    onSubmit: async ({value}) => {
+      const newOnDemandBudget = normalizeOnDemandBudget(value.onDemandBudgets);
+      try {
+        await mutation.mutateAsync(newOnDemandBudget);
+      } catch {
+        return;
+      }
 
-    const addOnDataCategories = Object.values(
-      subscription.planDetails.addOnCategories
-    ).flatMap(addOn => addOn.dataCategories);
-    const currentReserved = Object.fromEntries(
-      Object.entries(subscription.categories)
-        .filter(([category]) => !addOnDataCategories.includes(category as DataCategory))
-        .map(([category, categoryInfo]) => [category, categoryInfo.reserved ?? 0])
-    );
+      SubscriptionStore.loadData(subscription.slug);
+      trackOnDemandBudgetAnalytics(
+        organization,
+        currentOnDemandBudget,
+        newOnDemandBudget
+      );
+      addSuccessMessage(
+        getTotalBudget(newOnDemandBudget) > 0
+          ? t('Budget updated')
+          : t('Budget turned off')
+      );
+      closeModal();
+    },
+  });
 
-    return (
+  const addOnDataCategories = Object.values(
+    subscription.planDetails.addOnCategories
+  ).flatMap(addOn => addOn.dataCategories);
+  const currentReserved = Object.fromEntries(
+    Object.entries(subscription.categories)
+      .filter(([category]) => !addOnDataCategories.includes(category as DataCategory))
+      .map(([category, categoryInfo]) => [category, categoryInfo.reserved ?? 0])
+  );
+
+  return (
+    <form.AppForm form={form}>
       <Fragment>
         <OffsetBody>
-          {this.renderError(this.state.updateError)}
+          {renderRequestError(mutation.error, subscription.planDetails)}
           <Container padding="2xl">
-            <EmbeddedSpendLimitSettings
-              organization={organization}
-              subscription={subscription}
-              header={
-                <Heading as="h2" size="xl">
-                  {tct('Set your [budgetTerm] limit', {
-                    budgetTerm: displayBudgetName(subscription.planDetails),
-                  })}
-                </Heading>
-              }
-              activePlan={subscription.planDetails}
-              initialOnDemandBudgets={parseOnDemandBudgetsFromSubscription(subscription)}
-              currentReserved={currentReserved}
-              addOns={subscription.addOns ?? {}}
-              onUpdate={({onDemandBudgets}) => {
-                this.setState({
-                  onDemandBudget: onDemandBudgets,
-                });
+            <form.AppField name="onDemandBudgets">
+              {field => {
+                const validationError = getValidationErrorMessage(
+                  field.state.meta.errors[0]
+                );
+                return (
+                  <Stack gap="lg">
+                    {validationError && (
+                      <Alert system variant="danger">
+                        {validationError}
+                      </Alert>
+                    )}
+                    <SpendLimitSettings
+                      organization={organization}
+                      subscription={subscription}
+                      header={
+                        <Heading as="h2" size="xl">
+                          {tct('Set your [budgetTerm] limit', {
+                            budgetTerm: displayBudgetName(subscription.planDetails),
+                          })}
+                        </Heading>
+                      }
+                      activePlan={subscription.planDetails}
+                      onDemandBudgets={field.state.value}
+                      currentReserved={currentReserved}
+                      addOns={subscription.addOns ?? {}}
+                      onUpdate={({onDemandBudgets}) =>
+                        field.handleChange(onDemandBudgets)
+                      }
+                    />
+                  </Stack>
+                );
               }}
-            />
+            </form.AppField>
           </Container>
         </OffsetBody>
         <Footer>
           <Grid flow="column" align="center" gap="md">
-            <Button
-              onClick={() => {
-                this.props.closeModal();
-              }}
-            >
-              {t('Cancel')}
-            </Button>
-            <Button variant="primary" onClick={this.handleSave}>
-              {t('Save')}
-            </Button>
+            <Button onClick={closeModal}>{t('Cancel')}</Button>
+            <form.SubmitButton>{t('Save')}</form.SubmitButton>
           </Grid>
         </Footer>
       </Fragment>
-    );
-  }
+    </form.AppForm>
+  );
 }
 
 const OffsetBody = styled('div')`
@@ -252,4 +244,4 @@ const OffsetBody = styled('div')`
   }
 `;
 
-export default withApi(SpendLimitsEditModal);
+export default SpendLimitsEditModal;
