@@ -61,9 +61,13 @@ const query = {
 
 // A legacy `to` is often a bare pathname string. Restructure it into an object —
 // there is nowhere to hang a query otherwise.
-to: {
-  pathname: (makeReleasesPathname({organization, path: '/'}), query);
-}
+const items = [
+  {
+    type: 'link' as const,
+    label: t('Releases'),
+    to: {pathname: makeReleasesPathname({organization, path: '/'}), query},
+  },
+];
 ```
 
 A bare pass-through is the default and is exactly what `preservePageFilters` did — override a param only when the destination genuinely needs something else, as the `statsPeriod` example above does. When the crumb already has a `to` object, merge rather than replace: `{...to, query: {...query, ...to.query}}`.
