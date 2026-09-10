@@ -17,6 +17,10 @@ import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/dateP
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
+import {
+  defaultMetricQuery,
+  encodeMetricQueryParams,
+} from 'sentry/views/explore/metrics/metricQuery';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
   VisualizeEquation,
@@ -53,6 +57,11 @@ const validationBody: EventValidationData = {
   valid: true,
 };
 
+const encodedBarMetric = encodeMetricQueryParams({
+  ...defaultMetricQuery(),
+  metric: {name: 'bar', type: 'distribution'},
+});
+
 describe('MetricsTabContent', () => {
   const {
     organization,
@@ -66,7 +75,7 @@ describe('MetricsTabContent', () => {
     routerQuery: {
       start: '2025-04-10T14%3A37%3A55',
       end: '2025-04-10T20%3A04%3A51',
-      metric: ['bar||distribution'],
+      metric: [encodedBarMetric],
       title: 'Test Title',
     },
   });
@@ -173,7 +182,7 @@ describe('MetricsTabContent', () => {
     });
   });
 
-  it.isKnownFlake('should add a metric when Add Metric button is clicked', async () => {
+  it('should add a metric when Add Metric button is clicked', async () => {
     render(
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
