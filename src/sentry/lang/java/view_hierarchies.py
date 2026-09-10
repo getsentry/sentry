@@ -1,4 +1,3 @@
-import json
 from typing import Any
 
 import orjson
@@ -10,6 +9,7 @@ from sentry.attachments import (
 )
 from sentry.ingest.consumer.processors import CACHE_TIMEOUT
 from sentry.models.project import Project
+from sentry.utils import json as sentry_json
 
 
 def _serialize_view_hierarchy(view_hierarchy: Any) -> bytes:
@@ -23,7 +23,7 @@ def _serialize_view_hierarchy(view_hierarchy: Any) -> bytes:
     try:
         return orjson.dumps(view_hierarchy)
     except (orjson.JSONEncodeError, TypeError):
-        return json.dumps(view_hierarchy).encode("utf-8")
+        return sentry_json.dumps(view_hierarchy).encode("utf-8")
 
 
 class ViewHierarchies:

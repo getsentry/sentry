@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from unittest import mock
+
 import orjson
 import pytest
 
@@ -58,25 +60,20 @@ def test_deobfuscate_and_save_deeply_nested_hierarchy(monkeypatch) -> None:
         data=orjson.dumps(hierarchy),
     )
 
-    stored: list[CachedAttachment] = []
-
-    def fake_get_attachments_for_event(event):
-        return [attachment]
-
-    def fake_store_attachments_for_event(project, event, attachments, timeout=None):
-        stored.extend(attachments)
-
     monkeypatch.setattr(
         "sentry.lang.java.view_hierarchies.get_attachments_for_event",
-        fake_get_attachments_for_event,
+        mock.Mock(return_value=[attachment]),
     )
+    store_attachments = mock.Mock()
     monkeypatch.setattr(
         "sentry.lang.java.view_hierarchies.store_attachments_for_event",
-        fake_store_attachments_for_event,
+        store_attachments,
     )
 
     ViewHierarchies(project=None, data={}).deobfuscate_and_save(class_names)
 
+    store_attachments.assert_called_once()
+    stored = store_attachments.call_args.args[2]
     assert len(stored) == 1
     loaded = orjson.loads(stored[0].data)
     depth, last_type = _walk_depth(loaded["windows"])
