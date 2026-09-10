@@ -101,7 +101,7 @@ def measure_delay_seconds(
     """
     Returns the p99 ingestion time among all items in the last 60 minutes for the given organization and item type.
     """
-    project_ids = (
+    project_ids = list(
         Project.objects.filter(organization_id=organization_id, status=ObjectStatus.ACTIVE)
         .order_by("id")
         .values_list("id", flat=True)
