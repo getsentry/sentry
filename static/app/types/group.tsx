@@ -135,23 +135,42 @@ export const VALID_ISSUE_CATEGORIES = [
  * Numeric values used by issue category workflow conditions.
  * These must match GroupCategory in src/sentry/issues/grouptype.py.
  */
-export const ISSUE_CATEGORY_TO_GROUP_CATEGORY: Record<IssueCategory, number> = {
-  [IssueCategory.ERROR]: 1,
-  [IssueCategory.PERFORMANCE]: 2,
-  [IssueCategory.CRON]: 4,
-  [IssueCategory.REPLAY]: 5,
-  [IssueCategory.FEEDBACK]: 6,
-  [IssueCategory.UPTIME]: 7,
-  [IssueCategory.METRIC_ALERT]: 8,
-  [IssueCategory.OUTAGE]: 10,
-  [IssueCategory.METRIC]: 11,
-  [IssueCategory.DB_QUERY]: 12,
-  [IssueCategory.HTTP_CLIENT]: 13,
-  [IssueCategory.FRONTEND]: 14,
-  [IssueCategory.MOBILE]: 15,
-  [IssueCategory.AI_DETECTED]: 16,
-  [IssueCategory.PREPROD]: 17,
-  [IssueCategory.CONFIGURATION]: 19,
+export enum GroupCategory {
+  ERROR = 1,
+  PERFORMANCE = 2,
+  CRON = 4,
+  REPLAY = 5,
+  FEEDBACK = 6,
+  UPTIME = 7,
+  METRIC_ALERT = 8,
+  OUTAGE = 10,
+  METRIC = 11,
+  DB_QUERY = 12,
+  HTTP_CLIENT = 13,
+  FRONTEND = 14,
+  MOBILE = 15,
+  AI_DETECTED = 16,
+  PREPROD = 17,
+  CONFIGURATION = 19,
+}
+
+export const ISSUE_CATEGORY_TO_GROUP_CATEGORY: Record<IssueCategory, GroupCategory> = {
+  [IssueCategory.ERROR]: GroupCategory.ERROR,
+  [IssueCategory.PERFORMANCE]: GroupCategory.PERFORMANCE,
+  [IssueCategory.CRON]: GroupCategory.CRON,
+  [IssueCategory.REPLAY]: GroupCategory.REPLAY,
+  [IssueCategory.FEEDBACK]: GroupCategory.FEEDBACK,
+  [IssueCategory.UPTIME]: GroupCategory.UPTIME,
+  [IssueCategory.METRIC_ALERT]: GroupCategory.METRIC_ALERT,
+  [IssueCategory.OUTAGE]: GroupCategory.OUTAGE,
+  [IssueCategory.METRIC]: GroupCategory.METRIC,
+  [IssueCategory.DB_QUERY]: GroupCategory.DB_QUERY,
+  [IssueCategory.HTTP_CLIENT]: GroupCategory.HTTP_CLIENT,
+  [IssueCategory.FRONTEND]: GroupCategory.FRONTEND,
+  [IssueCategory.MOBILE]: GroupCategory.MOBILE,
+  [IssueCategory.AI_DETECTED]: GroupCategory.AI_DETECTED,
+  [IssueCategory.PREPROD]: GroupCategory.PREPROD,
+  [IssueCategory.CONFIGURATION]: GroupCategory.CONFIGURATION,
 };
 
 export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {

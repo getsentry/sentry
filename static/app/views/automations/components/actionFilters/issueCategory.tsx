@@ -5,6 +5,7 @@ import {t, tct} from 'sentry/locale';
 import {
   ISSUE_CATEGORY_TO_GROUP_CATEGORY,
   VALID_ISSUE_CATEGORIES,
+  type GroupCategory,
 } from 'sentry/types/group';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
@@ -68,7 +69,7 @@ function CategoryField() {
       aria-label={t('Issue category')}
       value={condition.comparison.value}
       options={GROUP_CATEGORY_CHOICES}
-      onChange={(option: SelectValue<number>) => {
+      onChange={(option: SelectValue<GroupCategory>) => {
         onUpdate({comparison: {...condition.comparison, value: option.value}});
         removeError(condition.id);
       }}
