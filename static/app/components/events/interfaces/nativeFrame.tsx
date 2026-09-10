@@ -1,5 +1,5 @@
 import type {MouseEvent} from 'react';
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -115,6 +115,7 @@ export function NativeFrame({
   const absolute = displayOptions.includes('absolute-addresses');
   const fullFunctionName = displayOptions.includes('verbose-function-names');
   const absoluteFilePaths = displayOptions.includes('absolute-file-paths');
+
   const tooltipDelay = isHoverPreviewed ? SLOW_TOOLTIP_DELAY : undefined;
   const foundByStackScanning = frame.trust === 'scan' || frame.trust === 'cfi-scan';
   const startingAddress = image ? image.image_addr : null;
@@ -300,7 +301,7 @@ export function NativeFrame({
         >
           {expandable ? <InteractionStateLayer /> : null}
           <Container
-            column={{zero: '1', xl: '1'}}
+            column="1"
             row={{
               zero: hiddenFrameCount ? '1 / 5' : '1 / 4',
               xl: '1',
@@ -333,17 +334,11 @@ export function NativeFrame({
               </Tooltip>
             ) : null}
           </Container>
-          <Container
-            column={{zero: '2', xl: '2'}}
-            minWidth="0"
-            row={{zero: '1', xl: '1'}}
-          >
+          <Container column="2" minWidth="0" row="1">
             {!fullStackTrace && !expanded && leadsToApp && (
-              <Fragment>
-                <PackageNote>
-                  {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
-                </PackageNote>
-              </Fragment>
+              <PackageNote>
+                {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
+              </PackageNote>
             )}
             <InfoText
               title={
@@ -462,7 +457,7 @@ export function NativeFrame({
             }}
             gap="sm"
             justify="end"
-            row={{zero: '1', xl: '1'}}
+            row="1"
           >
             {showStacktraceLink && (
               <ErrorBoundary>
@@ -483,15 +478,9 @@ export function NativeFrame({
                 />
               </ErrorBoundary>
             )}
-            <Container>
-              {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
-            </Container>
+            {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
           </Flex>
-          <Container
-            column={{zero: '4', xl: '7', '2xl': '8'}}
-            justifySelf="end"
-            row={{zero: '1', xl: '1'}}
-          >
+          <Container column={{zero: '4', xl: '7', '2xl': '8'}} justifySelf="end" row="1">
             {expandable && (
               <ToggleButton
                 type="button"

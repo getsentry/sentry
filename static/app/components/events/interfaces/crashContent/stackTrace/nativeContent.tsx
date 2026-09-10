@@ -242,7 +242,6 @@ const Wrapper = styled('div')`
 `;
 
 const ContentPanel = styled(Panel)`
-  container-type: inline-size;
   position: relative;
   overflow: hidden;
 `;
