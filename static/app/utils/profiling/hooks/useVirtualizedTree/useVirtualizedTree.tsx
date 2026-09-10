@@ -781,6 +781,7 @@ export function useVirtualizedTree<T extends TreeLike>(
           if (!firstChild) {
             return;
           }
+          // oxlint-disable-next-line react/immutability
           firstChild.style.height = `${newMaxHeight}px`;
           firstChild.style.maxHeight = `${newMaxHeight}px`;
         }

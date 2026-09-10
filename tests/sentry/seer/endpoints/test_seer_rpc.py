@@ -116,13 +116,13 @@ class TestSeerRpc(APITestCase):
 
     def test_dispatch_declares_seer_as_the_client_kind(self) -> None:
         org = self.create_organization()
-        captured: list[ClientKind | None] = []
+        captured: list[ClientKind] = []
 
         def fake_method(**kwargs: Any) -> dict[str, Any]:
             nested = Request(APIRequestFactory().get("/"))
             nested.user = AnonymousUser()
             nested.auth = None
-            captured.append(get_client_kind(nested, org))
+            captured.append(get_client_kind(nested))
             return {"features": []}
 
         path = self._get_path("get_organization_features")
@@ -151,7 +151,7 @@ class TestSeerRpc(APITestCase):
             nested = Request(APIRequestFactory().get("/"))
             nested.user = AnonymousUser()
             nested.auth = None
-            assert get_client_kind(nested, org) == ClientKind.UNKNOWN
+            assert get_client_kind(nested) == ClientKind.UNKNOWN
 
     def test_snuba_rate_limit_returns_429(self) -> None:
         """Test that SnubaRPCRateLimitExceeded returns 429 to Seer for retry."""

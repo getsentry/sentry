@@ -4,7 +4,6 @@ import {InputGroup} from '@sentry/scraps/input';
 import type {InputProps} from '@sentry/scraps/input';
 
 import {IconSearch} from 'sentry/icons';
-// eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 const themes = {light: lightTheme, dark: darkTheme};

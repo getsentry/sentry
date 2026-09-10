@@ -248,9 +248,9 @@ describe('ScmMessagingChannelPicker', () => {
     });
 
     it('preserves stored MS Teams identifiers when the channel list is empty', async () => {
-      // msteams selects by id but validates by name, so overwriting channelName
-      // with the id (the fallback when the list can't resolve the selection)
-      // breaks revalidation. An empty /channels/ must not corrupt the saved name.
+      // The seed carries both identifiers, so an empty /channels/ must not
+      // replace the saved channelId with the name (the fallback when the list
+      // can't resolve the selection).
       mockChannels('30', []);
       const {onConfigured} = renderPicker({
         eligibleIntegrations: [msteamsIntegration],
