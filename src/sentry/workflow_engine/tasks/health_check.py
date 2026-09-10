@@ -58,10 +58,17 @@ def health_check_organization_detectors() -> None:
     silo_mode=SiloMode.CELL,
 )
 def ensure_default_detectors_for_organization(organization_id: int) -> None:
-    from sentry.workflow_engine.defaults.detectors import ensure_default_organization_detectors
+    from sentry.workflow_engine.defaults.detectors import (
+        UnableToAcquireLockApiError,
+        ensure_default_organization_detectors,
+    )
 
     organization = Organization.objects.get_or_none(
         id=organization_id, status=OrganizationStatus.ACTIVE
     )
-    if organization:
+    if not organization:
+        return
+    try:
         ensure_default_organization_detectors(organization)
+    except UnableToAcquireLockApiError:
+        return
