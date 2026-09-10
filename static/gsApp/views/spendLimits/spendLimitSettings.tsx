@@ -376,12 +376,7 @@ export function SharedSpendLimitPriceTable({
           </Grid>
         );
       })}
-      <Flex
-        width="100%"
-        justify={{zero: 'start', md: 'end'}}
-        borderTop="primary"
-        padding="md xl"
-      >
+      <Flex width="100%" justify="end" borderTop="primary" padding="md xl">
         <Text variant="muted" size="sm">
           {t('* starting rate')}
         </Text>
@@ -483,33 +478,31 @@ function InnerSpendLimitSettings({
               category === DataCategory.TRANSACTIONS;
 
             return (
-              <Flex
+              <Grid
                 key={category}
-                direction={{zero: 'column', xl: 'row'}}
-                justify="between"
-                align={{zero: 'start', xl: 'center'}}
-                gap={{zero: 'xs', xl: 'lg'}}
-                padding="lg 0"
+                columns={{
+                  zero: 'minmax(0, 1fr)',
+                  lg: 'minmax(0, 3fr) minmax(0, 2fr)',
+                }}
+                align={{zero: 'start', lg: 'center'}}
+                gap={{zero: 'xs', lg: 'lg'}}
+                padding={index === 0 ? '0 0 lg' : 'lg 0'}
                 borderBottom={isLastInList ? undefined : 'primary'}
-                wrap="wrap"
               >
-                <Flex
-                  gap="xs"
-                  align={{zero: 'start', xl: 'center'}}
-                  flexGrow={1}
-                  direction={{zero: 'column', xl: 'row'}}
-                >
+                <Stack gap="xs" align="start" flexGrow={1}>
                   <Flex align="center" gap="xs">
                     <Text bold>{upperFirst(pluralName)}</Text>
-                    {showPerformanceUnits
-                      ? renderPerformanceHovercard()
-                      : categoryInfo?.checkoutTooltip && (
-                          <InfoTip
-                            title={categoryInfo.checkoutTooltip}
-                            position="top"
-                            size="xs"
-                          />
-                        )}
+                    {showPerformanceUnits ? (
+                      <Container flexShrink={0}>{renderPerformanceHovercard()}</Container>
+                    ) : categoryInfo?.checkoutTooltip ? (
+                      <Container flexShrink={0}>
+                        <InfoTip
+                          title={categoryInfo.checkoutTooltip}
+                          position="top"
+                          size="xs"
+                        />
+                      </Container>
+                    ) : null}
                   </Flex>
                   <Text variant="muted">
                     {reserved === 0
@@ -530,20 +523,20 @@ function InnerSpendLimitSettings({
                       </Fragment>
                     )}
                   </Text>
-                </Flex>
+                </Stack>
                 {hasPerCategory ? (
                   renderInput({
-                       activePlan,
-                       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-                       category,
-                       currentSpendingLimit: currentBudget,
-                       onUpdate: handleUpdate,
-                       reserved,
+                      activePlan,
+                      budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+                      category,
+                      currentSpendingLimit: currentBudget,
+                      onUpdate: handleUpdate,
+                      reserved,
                   })
                 ) : (
                   <PerCategoryWarning productName={productName} />
                 )}
-              </Flex>
+              </Grid>
             );
           })}
           {includedAddOns.map((apiName, index) => {
@@ -560,26 +553,24 @@ function InnerSpendLimitSettings({
             });
 
             return (
-              <Flex
+              <Grid
                 key={apiName}
-                direction={{zero: 'column', xl: 'row'}}
-                justify="between"
-                align={{zero: 'start', xl: 'center'}}
-                gap={{zero: 'xs', xl: 'lg'}}
-                padding="xl 0"
+                columns={{
+                  zero: 'minmax(0, 1fr)',
+                  lg: 'minmax(0, 3fr) minmax(0, 2fr)',
+                }}
+                align={{zero: 'start', lg: 'center'}}
+                gap={{zero: 'xs', lg: 'lg'}}
+                padding={index === 0 && baseCategories.length === 0 ? '0 0 xl' : 'xl 0'}
                 borderBottom={isLastInList ? undefined : 'primary'}
-                wrap="wrap"
               >
-                <Flex
-                  gap="xs"
-                  align={{zero: 'start', xl: 'center'}}
-                  flexGrow={1}
-                  direction={{zero: 'column', xl: 'row'}}
-                >
+                <Stack gap="xs" align="start" flexGrow={1}>
                   <Flex align="center" gap="xs">
                     <Text bold>{upperFirst(addOnInfo.productName)}</Text>
                     {tooltipText && (
-                      <InfoTip title={tooltipText} position="top" size="xs" />
+                      <Container flexShrink={0}>
+                        <InfoTip title={tooltipText} position="top" size="xs" />
+                      </Container>
                     )}
                   </Flex>
                   <Text variant="muted">
@@ -589,17 +580,17 @@ function InnerSpendLimitSettings({
                         })
                       : t('None included')}
                   </Text>
-                </Flex>
+                </Stack>
                 <PerCategoryWarning productName={addOnInfo.productName} />
-              </Flex>
+              </Grid>
             );
           })}
         </Container>
-        <Container>
+        <Flex justify="end">
           <Text variant="muted" size="sm">
             {t('* starting rate')}
           </Text>
-        </Container>
+        </Flex>
       </Stack>
     );
   } else {
@@ -635,7 +626,7 @@ function InnerSpendLimitSettings({
   }
 
   return (
-    <Stack gap="xl">
+    <Stack gap="lg">
       {(!usesFormFieldLayout ||
         onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) && (
         <Container padding="xl xl 0">
@@ -667,7 +658,7 @@ export function BudgetModeSettings({
   }
 
   return (
-    <Grid columns={{zero: '1fr', '4xl': 'repeat(2, 1fr)'}} gap="lg">
+    <Grid columns={{zero: '1fr', lg: 'repeat(2, minmax(0, 1fr))'}} gap="lg">
       {Object.values(OnDemandBudgetMode).map(budgetMode => {
         const budgetModeName = capitalize(budgetMode.replace('_', '-'));
         const isSelected = onDemandBudgets.budgetMode === budgetMode;

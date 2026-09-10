@@ -246,7 +246,13 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
                       <modeField.Layout.Stack label={t('Spending limit type')}>
                         <modeField.Base<HTMLDivElement>>
                           {(baseProps, {indicator}) => (
-                            <Grid columns="1fr auto" gap="sm" align="center">
+                            <Grid
+                              columns="minmax(0, 1fr) auto"
+                              gap="sm"
+                              align="center"
+                              flexGrow={1}
+                              minWidth="0"
+                            >
                               <Container {...baseProps} role="radiogroup" width="100%">
                                 <BudgetModeSettings
                                   activePlan={subscription.planDetails}
