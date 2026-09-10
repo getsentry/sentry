@@ -53,31 +53,19 @@ function useSourceSuggestions(
     ),
   });
 
-  const asyncData = asyncQueries.map((q): readonly unknown[] | undefined =>
-    Array.isArray(q.data) ? q.data : undefined
-  );
   const asyncStatuses = asyncQueries.map(q => q.status);
 
-  const asyncDataBySourceId = useMemo(() => {
-    const map = new Map<string, readonly unknown[]>();
-    asyncSources.forEach((source, i) => {
-      map.set(source.id, asyncData[i] ?? []);
-    });
-    return map;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [asyncSources, ...asyncData]);
-
-  const suggestionsBySource = useMemo(() => {
-    return activeSources.map(source => {
-      if ('getSuggestions' in source) {
-        return {
-          source,
-          suggestions: query === undefined ? [] : source.getSuggestions(query),
-        };
-      }
-      return {source, suggestions: asyncDataBySourceId.get(source.id) ?? []};
-    });
-  }, [activeSources, query, asyncDataBySourceId]);
+  const suggestionsBySource = activeSources.map(source => {
+    if ('getSuggestions' in source) {
+      return {
+        source,
+        suggestions: query === undefined ? [] : source.getSuggestions(query),
+      };
+    }
+    const asyncIndex = asyncSources.indexOf(source as AsyncComposerSource<unknown>);
+    const data = asyncIndex >= 0 ? asyncQueries[asyncIndex]?.data : undefined;
+    return {source, suggestions: Array.isArray(data) ? data : []};
+  });
 
   const queryStatus: 'pending' | 'error' | 'success' = asyncStatuses.includes('pending')
     ? 'pending'
