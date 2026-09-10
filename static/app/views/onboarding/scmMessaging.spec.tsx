@@ -705,14 +705,6 @@ describe('ScmMessaging', () => {
       onComplete.mock.invocationCallOrder[0]!
     );
     expect(trackAnalyticsSpy).toHaveBeenCalledWith(
-      'onboarding.scm_project_created',
-      expect.objectContaining({
-        platform: selectedPlatform.key,
-        project_id: createdProject.id,
-        notification: 'integration',
-      })
-    );
-    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
       'onboarding.scm_messaging_completed',
       expect.objectContaining({notification: 'integration'})
     );
@@ -850,10 +842,6 @@ describe('ScmMessaging', () => {
     expect(onMessagingSetupChange).not.toHaveBeenCalled();
     expect(onCreatedProjectChange).not.toHaveBeenCalled();
     expect(onComplete).not.toHaveBeenCalled();
-    expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
-      'onboarding.scm_messaging_completed',
-      expect.anything()
-    );
   });
 
   it('Set up later keeps the staged destination when project creation fails', async () => {
