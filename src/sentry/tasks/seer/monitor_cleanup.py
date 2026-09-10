@@ -38,11 +38,17 @@ TERMINAL = {"complete", "partial", "failed"}
 def finish_shard(
     shard_id: int, *, output: dict[str, object] | None = None, error: str | None = None
 ) -> None:
-    shard = SeerNightShiftRunShard.objects.select_related("run", "seer_run").get(id=shard_id)
+    shard = SeerNightShiftRunShard.objects.filter(id=shard_id).first()
+    if shard is None:
+        return
     with transaction.atomic(router.db_for_write(SeerNightShiftRun)):
-        run = SeerNightShiftRun.objects.select_for_update().get(id=shard.run_id)
-        shard.refresh_from_db()
-        if shard.extras.get("status") in TERMINAL:
+        run = SeerNightShiftRun.objects.select_for_update().filter(id=shard.run_id).first()
+        if run is None:
+            return
+        shard = (
+            SeerNightShiftRunShard.objects.select_related("seer_run").filter(id=shard_id).first()
+        )
+        if shard is None or shard.extras.get("status") in TERMINAL:
             return
         if output is not None:
             SeerNightShiftRunResult.objects.get_or_create(
@@ -83,8 +89,12 @@ def finish_shard(
     processing_deadline_duration=120,
 )
 def scan_project(shard_id: int) -> None:
-    shard = SeerNightShiftRunShard.objects.select_related("run__organization").get(id=shard_id)
-    if shard.seer_run_id is not None or shard.extras.get("status") in TERMINAL:
+    shard = (
+        SeerNightShiftRunShard.objects.select_related("run__organization")
+        .filter(id=shard_id)
+        .first()
+    )
+    if shard is None or shard.seer_run_id is not None or shard.extras.get("status") in TERMINAL:
         return
     run = shard.run
     try:
@@ -177,11 +187,16 @@ def collect_monitor_cleanup_result(organization_id: int, seer_run_id: int) -> No
     processing_deadline_duration=120,
 )
 def reconcile_run(run_id: int) -> None:
-    run = SeerNightShiftRun.objects.get(id=run_id)
-    if run.date_completed is not None:
+    run = SeerNightShiftRun.objects.filter(id=run_id).first()
+    if run is None or run.date_completed is not None:
         return
+    # Keep polling even if this task reaches its deadline while fetching Seer results.
+    reconcile_run.apply_async(args=[run.id], countdown=120)
     for shard in run.shards.select_related("seer_run"):
         if shard.extras.get("status") in TERMINAL:
+            continue
+        if timezone.now() - run.date_added > RUN_TIMEOUT:
+            finish_shard(shard.id, error="The scan timed out. Start a new run to try again.")
             continue
         if shard.seer_run and shard.seer_run.mirror_status == SeerRunMirrorStatus.FAILED:
             finish_shard(shard.id, error="The Seer request failed to start.")
@@ -193,15 +208,12 @@ def reconcile_run(run_id: int) -> None:
                 )
             except Exception:
                 logger.exception("monitor_cleanup.collect_failed", extra={"shard_id": shard.id})
-        if timezone.now() - run.date_added > RUN_TIMEOUT:
-            finish_shard(shard.id, error="The scan timed out. Start a new run to try again.")
-    run.refresh_from_db()
-    if run.date_completed is None:
-        reconcile_run.apply_async(args=[run.id], countdown=30)
 
 
 def dispatch_run(run_id: int) -> None:
-    run = SeerNightShiftRun.objects.get(id=run_id)
+    run = SeerNightShiftRun.objects.filter(id=run_id).first()
+    if run is None or run.date_completed is not None:
+        return
     for shard in run.shards.all():
         try:
             scan_project.apply_async(args=[shard.id])

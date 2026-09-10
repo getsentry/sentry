@@ -1,6 +1,9 @@
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
+from django.test import override_settings
+from django.utils import timezone
 
 from sentry.models.pullrequest import PullRequestLifecycleState
 from sentry.seer.agent.client_models import SeerRunState
@@ -12,7 +15,13 @@ from sentry.seer.models.night_shift import (
 )
 from sentry.seer.models.run import SeerRunPullRequest
 from sentry.seer.monitor_cleanup import FEATURE, MonitorCleanupArtifact, validate_monitor_cleanup
-from sentry.tasks.seer.monitor_cleanup import collect_monitor_cleanup_result, finish_shard
+from sentry.tasks.seer.monitor_cleanup import (
+    collect_monitor_cleanup_result,
+    dispatch_run,
+    finish_shard,
+    reconcile_run,
+    scan_project,
+)
 from sentry.testutils.cases import APITestCase
 
 
@@ -378,10 +387,122 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         run = SeerNightShiftRun.objects.get(id=response.data["runId"])
         assert run.schedule_id is None
         assert run.extras["triggering_user_id"] == self.user.id
+        assert run.workflow_config is not None
         assert run.workflow_config.strategy == "duplicate_monitors"
         assert run.workflow_config.enabled is False
         assert run.shards.get().extras["project_id"] == self.project.id
         assert f"runId={run.id}" in response.data["url"]
+
+    def test_rejects_concurrent_scan(self) -> None:
+        self.trigger()
+        with self.feature(FEATURE):
+            response = self.get_error_response(
+                self.organization.slug, strategy="duplicate_monitors", status_code=400
+            )
+        assert response.data["detail"] == "A monitor scan is already running."
+        assert SeerNightShiftRun.objects.filter(organization=self.organization).count() == 1
+
+    def test_allows_scan_after_previous_run_completes(self) -> None:
+        run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
+        finish_shard(run.shards.get().id, error="Scan failed")
+        assert self.trigger().data["runId"] != str(run.id)
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_rate_limits_repeated_triggers(self) -> None:
+        run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
+        finish_shard(run.shards.get().id, error="Scan failed")
+        with self.feature(FEATURE):
+            self.get_error_response(
+                self.organization.slug, strategy="duplicate_monitors", status_code=429
+            )
+            response = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/seer/workflows/"
+            )
+        assert response.status_code == 200
+        assert SeerNightShiftRun.objects.filter(organization=self.organization).count() == 1
+
+    def test_limits_scans_per_organization_per_hour(self) -> None:
+        for _ in range(5):
+            run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
+            finish_shard(run.shards.get().id, error="Scan failed")
+        another_user = self.create_user()
+        self.create_member(organization=self.organization, user=another_user, role="owner")
+        self.login_as(another_user)
+        with self.feature(FEATURE):
+            response = self.get_error_response(
+                self.organization.slug, strategy="duplicate_monitors", status_code=429
+            )
+        assert "five scans per hour" in response.data["detail"]
+        SeerNightShiftRun.objects.filter(organization=self.organization).update(
+            date_added=timezone.now() - timedelta(hours=2)
+        )
+        self.trigger()
+        assert SeerNightShiftRun.objects.filter(organization=self.organization).count() == 6
+
+    def test_rejects_run_id_above_bigint_range(self) -> None:
+        with self.feature(FEATURE):
+            response = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/seer/workflows/",
+                {"runId": "9223372036854775808"},
+            )
+        assert response.status_code == 400
+
+    def test_accepts_run_id_at_bigint_limit(self) -> None:
+        with self.feature(FEATURE):
+            response = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/seer/workflows/",
+                {"runId": "9223372036854775807"},
+            )
+        assert response.status_code == 200
+        assert response.data == []
+
+    def test_tasks_ignore_deleted_run(self) -> None:
+        run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
+        run_id = run.id
+        shard_id = run.shards.get().id
+        run.delete()
+        with (
+            patch("sentry.tasks.seer.monitor_cleanup.SeerAgentClient") as client,
+            patch("sentry.tasks.seer.monitor_cleanup.scan_project.apply_async") as enqueue_scan,
+            patch("sentry.tasks.seer.monitor_cleanup.reconcile_run.apply_async") as enqueue_poll,
+        ):
+            scan_project(shard_id)
+            finish_shard(shard_id, error="Late failure")
+            reconcile_run(run_id)
+            dispatch_run(run_id)
+        client.assert_not_called()
+        enqueue_scan.assert_not_called()
+        enqueue_poll.assert_not_called()
+
+    def test_reconcile_schedules_next_poll_before_fetching_results(self) -> None:
+        run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        run.shards.get().update(seer_run=seer_run)
+        with (
+            patch("sentry.tasks.seer.monitor_cleanup.reconcile_run.apply_async") as enqueue_poll,
+            patch(
+                "sentry.tasks.seer.monitor_cleanup.collect_monitor_cleanup_result",
+                side_effect=KeyboardInterrupt,
+            ),
+            pytest.raises(KeyboardInterrupt),
+        ):
+            reconcile_run(run.id)
+        enqueue_poll.assert_called_once_with(args=[run.id], countdown=120)
+
+    def test_reconcile_times_out_without_fetching_results(self) -> None:
+        run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
+        run.update(date_added=timezone.now() - timedelta(minutes=16))
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        run.shards.get().update(seer_run=seer_run)
+        with (
+            patch("sentry.tasks.seer.monitor_cleanup.reconcile_run.apply_async"),
+            patch("sentry.tasks.seer.monitor_cleanup.collect_monitor_cleanup_result") as collect,
+        ):
+            reconcile_run(run.id)
+        collect.assert_not_called()
+        run.refresh_from_db()
+        assert run.extras["status"] == "failed"
+        assert run.date_completed is not None
 
     def test_requires_feature(self) -> None:
         self.get_error_response(
@@ -512,6 +633,30 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
                 self.artifact(str(self.keep.id)), self.organization.id, self.project.id
             )
 
+    def test_rejects_legacy_monitor_id_above_bigint_range(self) -> None:
+        with pytest.raises(ValueError, match="invalid monitor ID"):
+            validate_monitor_cleanup(
+                self.artifact("9223372036854775808"), self.organization.id, self.project.id
+            )
+
+    def test_rejects_monitor_id_above_bigint_range(self) -> None:
+        with pytest.raises(ValueError, match="invalid monitor or alert ID"):
+            validate_monitor_cleanup(
+                self.finding_artifact(monitor_ids=[str(self.keep.id), "9223372036854775808"]),
+                self.organization.id,
+                self.project.id,
+            )
+
+    def test_rejects_alert_id_above_bigint_range(self) -> None:
+        with pytest.raises(ValueError, match="invalid monitor or alert ID"):
+            validate_monitor_cleanup(
+                self.finding_artifact(
+                    kind="duplicate_notifications", alert_ids=["9223372036854775808"]
+                ),
+                self.organization.id,
+                self.project.id,
+            )
+
     def test_history_does_not_expose_inaccessible_projects(self) -> None:
         run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
         member = self.create_user()
@@ -548,8 +693,10 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             self.finding_artifact(), self.organization.id, self.project.id
         )
         assert output["schemaVersion"] == 2
-        assert output["findings"][0]["suggestedKeepId"] is None
-        assert output["findings"][0]["monitors"][0]["name"] == "Keep"
+        findings = output["findings"]
+        assert isinstance(findings, list)
+        assert findings[0]["suggestedKeepId"] is None
+        assert findings[0]["monitors"][0]["name"] == "Keep"
 
     def test_overlap_cannot_suggest_deletion(self) -> None:
         with pytest.raises(ValueError, match="must not recommend deletion"):
@@ -576,8 +723,10 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             kind="duplicate_notifications", alert_ids=[str(workflow.id)]
         ).findings
         output = validate_monitor_cleanup(artifact, self.organization.id, self.project.id)
-        assert len(output["findings"]) == 2
-        assert output["findings"][1]["alerts"] == [
+        findings = output["findings"]
+        assert isinstance(findings, list)
+        assert len(findings) == 2
+        assert findings[1]["alerts"] == [
             {"id": str(workflow.id), "name": "Shared alert", "enabled": False}
         ]
 
@@ -619,7 +768,9 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             ]
         )
         output = validate_monitor_cleanup(artifact, self.organization.id, self.project.id)
-        assert output["findings"][0]["comparison"] == [
+        findings = output["findings"]
+        assert isinstance(findings, list)
+        assert findings[0]["comparison"] == [
             {
                 "property": "Trigger",
                 "values": [
