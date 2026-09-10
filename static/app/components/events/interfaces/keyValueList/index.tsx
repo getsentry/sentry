@@ -80,6 +80,7 @@ export function KeyValueList({
 
           return (
             <Grid
+              align="start"
               column="1 / -1"
               columns="subgrid"
               gap="md lg"
