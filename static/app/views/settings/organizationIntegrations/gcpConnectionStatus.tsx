@@ -1,11 +1,14 @@
+import {useEffect} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {FieldGroup} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 
+import {GcpVerificationResults} from 'sentry/components/gcpVerificationResults';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -15,9 +18,8 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {
   buildGcpVerifyPayload,
-  getConnectionErrorDetails,
-  getStatusLabel,
-  getStatusVariant,
+  getGcpProjectResults,
+  type GcpStoredProjectResult,
 } from 'sentry/utils/seer/gcpConnection';
 
 interface GcpConnectionStatusProps {
@@ -25,6 +27,8 @@ interface GcpConnectionStatusProps {
   onRetested: () => void | Promise<void>;
   organization: Organization;
   isVerifying?: boolean;
+  onVerificationStarted?: () => void;
+  verificationError?: boolean;
 }
 
 export function GcpConnectionStatus({
@@ -32,20 +36,26 @@ export function GcpConnectionStatus({
   isVerifying = false,
   onRetested,
   organization,
+  verificationError = false,
+  onVerificationStarted,
 }: GcpConnectionStatusProps) {
   const status =
     typeof configData?.connection_status === 'string'
       ? configData.connection_status
       : 'unverified';
   const lastVerifiedAt = configData?.last_verified_at;
-  const isConnected = status === 'connected';
-  const errorDetails = isConnected
-    ? []
-    : getConnectionErrorDetails(configData?.project_statuses);
+  const projects = getGcpProjectResults(
+    (configData?.project_statuses as GcpStoredProjectResult[] | undefined) ?? []
+  );
 
   const payload = buildGcpVerifyPayload(configData);
 
-  const {mutate: retest, isPending: isRetesting} = useMutation({
+  const {
+    mutate: retest,
+    isPending: isRetesting,
+    isError,
+    reset,
+  } = useMutation({
     mutationFn: () =>
       fetchMutation({
         method: 'POST',
@@ -56,36 +66,46 @@ export function GcpConnectionStatus({
         data: payload ?? undefined,
       }),
     onSuccess: () => onRetested(),
+    onMutate: () => onVerificationStarted?.(),
     onError: () => onRetested(),
   });
 
+  useEffect(() => {
+    if (isVerifying) {
+      reset();
+    }
+  }, [isVerifying, reset]);
+
   const isPending = isRetesting || isVerifying;
-  const shownErrorDetails = isPending ? [] : errorDetails;
+  const hasRequestError = !isPending && (isError || verificationError);
 
   return (
     <FieldGroup title={t('Connection Status')}>
       <Stack gap="md" padding="xl">
-        <Flex gap="sm" align="center">
+        {hasRequestError && (
+          <Alert variant="warning" role="alert">
+            {t("The connection check couldn't be completed. Try again.")}
+          </Alert>
+        )}
+        <Stack gap="sm" role="status" aria-live="polite">
           {isPending ? (
-            <StatusIndicator variant="muted" />
+            <Flex gap="sm" align="center">
+              <StatusIndicator variant="muted" />
+              <Text bold>{t('Checking connection...')}</Text>
+            </Flex>
           ) : (
-            <StatusIndicator
-              variant={getStatusVariant(status)}
-              animationIterationCount={1}
-            />
+            <Stack gap="sm">
+              {hasRequestError && typeof lastVerifiedAt === 'string' && (
+                <Text size="sm" variant="muted">
+                  {t('Previous verification result')}
+                </Text>
+              )}
+              <GcpVerificationResults result={{connectionStatus: status, projects}} />
+            </Stack>
           )}
-          <Text bold>
-            {isPending ? t('Checking connection...') : getStatusLabel(status)}
-          </Text>
-        </Flex>
+        </Stack>
 
-        {shownErrorDetails.map(detail => (
-          <Text key={detail} variant="muted" size="sm">
-            {detail}
-          </Text>
-        ))}
-
-        <Flex gap="md" align="center" justify="between">
+        <Flex gap="md" align="center" justify="between" wrap="wrap">
           <Text variant="muted" size="sm">
             {isPending
               ? null

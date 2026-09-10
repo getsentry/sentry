@@ -22,7 +22,7 @@ type GcpConnectionStatus = keyof typeof GCP_STATUS_VARIANTS;
 type GcpStatusVariant = (typeof GCP_STATUS_VARIANTS)[GcpConnectionStatus];
 
 function isKnownStatus(status: string): status is GcpConnectionStatus {
-  return status in GCP_STATUS_VARIANTS;
+  return Object.hasOwn(GCP_STATUS_VARIANTS, status);
 }
 
 /** One MCP server's result, as returned by Seer's verification endpoint. */
@@ -48,7 +48,7 @@ export interface GcpVerifyConnectionResponse {
 
 interface GcpProjectVerification extends Pick<
   GcpProjectResult,
-  'gcpProjectId' | 'connectionStatus'
+  'gcpProjectId' | 'connectionStatus' | 'services'
 > {
   errorDetail: string | null;
 }
@@ -86,7 +86,7 @@ export function getStatusLabel(status: string): string {
   }
 }
 
-function getServiceLabel(service: string): string {
+export function getServiceLabel(service: string): string {
   switch (service) {
     case 'logging':
       return t('Cloud Logging');
@@ -97,16 +97,6 @@ function getServiceLabel(service: string): string {
     default:
       return service;
   }
-}
-
-export function getFailedServices(project: GcpProjectResult): GcpServiceResult[] {
-  return project.services.filter(service => service.status !== 'connected');
-}
-
-export function describeService(service: GcpServiceResult): string {
-  return `${getServiceLabel(service.service)}: ${
-    service.errorDetail ?? getStatusLabel(service.status)
-  }`;
 }
 
 export function buildGcpVerifyPayload(
@@ -128,20 +118,137 @@ export function buildGcpVerifyPayload(
   return {customerSaEmail, gcpProjectIds};
 }
 
-export function getConnectionErrorDetails(projectStatuses: unknown): string[] {
-  if (!Array.isArray(projectStatuses)) {
-    return [];
+export interface GcpStoredProjectResult {
+  connection_status: string;
+  error_detail: string | null;
+  gcp_project_id: string;
+  services: Array<{
+    error_detail: string | null;
+    service: string;
+    status: string;
+  }>;
+}
+
+export function getGcpProjectResults(
+  projects: GcpStoredProjectResult[]
+): GcpProjectResult[] {
+  return projects.map(project => ({
+    gcpProjectId: project.gcp_project_id,
+    connectionStatus: project.connection_status,
+    errorDetail: project.error_detail,
+    services: project.services.map(service => ({
+      service: service.service,
+      status: service.status,
+      errorDetail: service.error_detail,
+    })),
+  }));
+}
+
+export interface GcpErrorGroup {
+  detail: string;
+  key: string;
+  projects: Array<{gcpProjectId: string; services: string[]}>;
+  status: string;
+}
+
+function getErrorGuidance(status: string): string {
+  switch (status) {
+    case 'permission_denied':
+      return t(
+        "The project may not exist, or your service account may not have the required access. Check the project ID and the service account's permissions."
+      );
+    case 'api_disabled':
+      return t('Enable the affected Google Cloud APIs for this project, then re-test.');
+    case 'project_not_found':
+      return t('Check the project ID and make sure your service account can access it.');
+    case 'unverified':
+      return t('Run a connection check to verify access.');
+    default:
+      return t("Sentry couldn't complete verification. Re-test the connection.");
+  }
+}
+
+export function getGcpErrorGroups(result: GcpVerifyConnectionResponse): GcpErrorGroup[] {
+  const groups = new Map<string, GcpErrorGroup>();
+  function add(status: string, detail: string, projectId?: string, service?: string) {
+    const key = JSON.stringify([status, detail]);
+    let group = groups.get(key);
+    if (!group) {
+      group = {key, status, detail, projects: []};
+      groups.set(key, group);
+    }
+    if (projectId === undefined) {
+      return;
+    }
+    let project = group.projects.find(item => item.gcpProjectId === projectId);
+    if (!project) {
+      project = {gcpProjectId: projectId, services: []};
+      group.projects.push(project);
+    }
+    if (service && !project.services.includes(service)) {
+      project.services.push(service);
+    }
   }
 
-  const details = projectStatuses
-    .map(status =>
-      status !== null && typeof status === 'object' && 'error_detail' in status
-        ? status.error_detail
-        : null
-    )
-    .filter(
-      (detail): detail is string => typeof detail === 'string' && detail.length > 0
-    );
+  for (const project of result.projects) {
+    if (['connected', 'unverified'].includes(project.connectionStatus)) {
+      continue;
+    }
+    const failures = project.services.filter(service => service.status !== 'connected');
+    for (const service of failures) {
+      add(
+        service.status,
+        service.errorDetail?.trim() || getErrorGuidance(service.status),
+        project.gcpProjectId,
+        service.service
+      );
+    }
+    const detail = project.errorDetail?.trim();
+    if (detail) {
+      // Authentication failures can repeat the project explanation on every service.
+      if (
+        !failures.some(
+          service =>
+            service.status === project.connectionStatus &&
+            service.errorDetail?.trim() === detail
+        )
+      ) {
+        add(project.connectionStatus, detail, project.gcpProjectId);
+      }
+    } else if (!failures.length) {
+      add(
+        project.connectionStatus,
+        getErrorGuidance(project.connectionStatus),
+        project.gcpProjectId
+      );
+    }
+  }
 
-  return [...new Set(details)];
+  const overallDetail = result.errorDetail?.trim();
+  if (
+    overallDetail &&
+    ![...groups.values()].some(
+      group => group.status === result.connectionStatus && group.detail === overallDetail
+    )
+  ) {
+    add(result.connectionStatus, overallDetail);
+  }
+  if (!groups.size && !['connected', 'unverified'].includes(result.connectionStatus)) {
+    add(result.connectionStatus, getErrorGuidance(result.connectionStatus));
+  }
+
+  const serviceOrder = ['logging', 'monitoring', 'cloudtrace'];
+  for (const group of groups.values()) {
+    for (const project of group.projects) {
+      project.services.sort((a, b) => {
+        const aIndex = serviceOrder.indexOf(a);
+        const bIndex = serviceOrder.indexOf(b);
+        return (
+          (aIndex === -1 ? serviceOrder.length : aIndex) -
+            (bIndex === -1 ? serviceOrder.length : bIndex) || a.localeCompare(b)
+        );
+      });
+    }
+  }
+  return [...groups.values()];
 }
