@@ -49,7 +49,7 @@ export function HypothesisList({
       as="ul"
       className={className}
       columns={`repeat(auto-fit, minmax(${MIN_CARD_WIDTH}, 1fr))`}
-      gap="md"
+      gap="xl"
       align="start"
       padding="0"
       data-test-id="investigation-hypotheses"

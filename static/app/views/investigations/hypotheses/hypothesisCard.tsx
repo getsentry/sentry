@@ -56,8 +56,8 @@ export function HypothesisCard({
     <Card
       as="li"
       className={className}
-      gap="md"
-      padding="lg"
+      gap="lg"
+      padding="xl"
       radius="md"
       background="primary"
       data-border={getHypothesisCardBorder(hypothesis.effectiveStatus)}
@@ -93,7 +93,7 @@ export function HypothesisCard({
           {hypothesis.statement}
         </Heading>
         {hypothesis.rationale ? (
-          <Text size="sm" variant="muted" density="comfortable">
+          <Text size="sm" density="comfortable">
             {hypothesis.rationale}
           </Text>
         ) : null}
@@ -110,7 +110,7 @@ export function HypothesisCard({
           <Text size="sm" bold>
             {t('Evidence checked')}
           </Text>
-          <EvidenceList as="ul" gap="xs" padding="0">
+          <EvidenceList as="ul" gap="sm" padding="0">
             {steps.map(step => (
               <VerificationStepRow key={step.id} step={step} />
             ))}
@@ -133,8 +133,8 @@ function VerificationStepRow({step}: {step: InvestigationVerificationStep}) {
       as="li"
       border={failed ? 'danger' : 'primary'}
       radius="sm"
-      padding="sm md"
-      background="secondary"
+      padding="md lg"
+      background="primary"
     >
       <Stack gap="2xs">
         <Text size="sm">{step.title}</Text>
