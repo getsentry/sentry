@@ -258,4 +258,20 @@ def notify_seer_pr_created(
         group_id=group_id,
     )
 
+    if group_id is None:
+        # Issue-anchored runs already announce their PR through the autofix thread
+        # updates, keyed by group. A run with no issue has no group to key on, so
+        # the chat entrypoints hear about its PR from here instead.
+        from sentry.seer.entrypoints.operator import notify_agent_entrypoints_of_pull_requests
+
+        try:
+            notify_agent_entrypoints_of_pull_requests(
+                organization=organization, run_id=run_id, pull_requests=pull_requests
+            )
+        except Exception:
+            logger.exception(
+                "seer.pr_created_notify.entrypoint_notify_failed",
+                extra={"organization_id": organization_id, "run_id": run_id},
+            )
+
     return NotifySeerPrCreatedSuccessResponse()
