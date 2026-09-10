@@ -120,9 +120,7 @@ class GroupResolution(Model):
         except IndexError:
             return False
 
-        res_release_datetime = release_order_date(
-            res_release_date_added, res_release_date_released
-        )
+        res_release_datetime = release_order_date(res_release_date_added, res_release_date_released)
 
         # if no release is present, we assume we've gone from "no release" to "some release"
         # in application configuration, and thus this must be older
