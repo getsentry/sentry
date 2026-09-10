@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from unittest import mock
 
 import orjson
@@ -9,21 +10,21 @@ from sentry.attachments import CachedAttachment
 from sentry.lang.java.view_hierarchies import ViewHierarchies, _serialize_view_hierarchy
 
 
-def _deep_windows(depth: int) -> list[dict[str, object]]:
+def _deep_windows(depth: int) -> list[dict[str, Any]]:
     """Build a chain of nested windows `depth` levels deep."""
-    windows: list[dict[str, object]] = [{"type": f"class_{depth - 1}"}]
+    windows: list[dict[str, Any]] = [{"type": f"class_{depth - 1}"}]
     for i in range(depth - 2, -1, -1):
         windows = [{"type": f"class_{i}", "children": windows}]
     return windows
 
 
-def _walk_depth(windows: list[dict[str, object]]) -> tuple[int, str]:
+def _walk_depth(windows: list[dict[str, Any]]) -> tuple[int, str]:
     depth = 0
     window = windows[0]
     while "children" in window:
         depth += 1
         window = window["children"][0]
-    return depth, window.get("type", "")
+    return depth, str(window.get("type", ""))
 
 
 def test_serialize_view_hierarchy_falls_back_for_deep_nesting() -> None:
@@ -47,7 +48,7 @@ def test_serialize_view_hierarchy_shallow_matches_orjson() -> None:
     assert orjson.loads(_serialize_view_hierarchy(hierarchy)) == hierarchy
 
 
-def test_deobfuscate_and_save_deeply_nested_hierarchy(monkeypatch) -> None:
+def test_deobfuscate_and_save_deeply_nested_hierarchy() -> None:
     depth = 300
     class_names = {f"class_{i}": f"mapped_{i}" for i in range(depth)}
     hierarchy = {"windows": _deep_windows(depth)}
@@ -60,17 +61,19 @@ def test_deobfuscate_and_save_deeply_nested_hierarchy(monkeypatch) -> None:
         data=orjson.dumps(hierarchy),
     )
 
-    monkeypatch.setattr(
-        "sentry.lang.java.view_hierarchies.get_attachments_for_event",
-        mock.Mock(return_value=[attachment]),
-    )
+    get_attachments = mock.Mock(return_value=[attachment])
     store_attachments = mock.Mock()
-    monkeypatch.setattr(
-        "sentry.lang.java.view_hierarchies.store_attachments_for_event",
-        store_attachments,
-    )
-
-    ViewHierarchies(project=None, data={}).deobfuscate_and_save(class_names)
+    with (
+        mock.patch(
+            "sentry.lang.java.view_hierarchies.get_attachments_for_event",
+            get_attachments,
+        ),
+        mock.patch(
+            "sentry.lang.java.view_hierarchies.store_attachments_for_event",
+            store_attachments,
+        ),
+    ):
+        ViewHierarchies(project=mock.Mock(), data={}).deobfuscate_and_save(class_names)
 
     store_attachments.assert_called_once()
     stored = store_attachments.call_args.args[2]
