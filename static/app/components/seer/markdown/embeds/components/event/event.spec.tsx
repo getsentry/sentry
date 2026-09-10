@@ -2,7 +2,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {
   getEmbedLinkHref,
@@ -124,6 +124,51 @@ describe('Seer event embed', () => {
     expect(await screen.findByTestId('seer-event-tags')).toBeInTheDocument();
     expect(screen.getByTestId('tree-key-server_name')).toHaveTextContent('server_name');
     expect(screen.getByText('web-01')).toBeInTheDocument();
+  });
+
+  it('renders the tags that are worth more than their own text', async () => {
+    mockEvent({
+      contexts: {},
+      projectID: '2',
+      tags: [
+        {key: 'release', value: '1.2.3'},
+        {key: 'transaction', value: '/checkout'},
+      ],
+    });
+
+    renderEventEmbed({view: 'tags'});
+
+    expect(await screen.findByTestId('seer-event-tags')).toBeInTheDocument();
+    // The release links to the release, not to the bare string.
+    expect(screen.getByRole('link', {name: '1.2.3'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: '/checkout'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('transaction=%2Fcheckout')
+    );
+  });
+
+  it('annotates a tag whose value was scrubbed', async () => {
+    mockEvent({
+      contexts: {},
+      tags: [
+        {key: 'level', value: 'error'},
+        {key: 'server_name', value: '[Filtered]'},
+      ],
+      // Served positionally: this annotates `tags[1]`, not a key called '1'.
+      _meta: {
+        tags: {
+          1: {value: {'': {len: 7, rem: [['project:0', 's', 0, 10]]}}},
+        },
+      },
+    });
+
+    renderEventEmbed({view: 'tags'});
+
+    expect(await screen.findByTestId('seer-event-tags')).toBeInTheDocument();
+    await userEvent.hover(screen.getByText('[Filtered]'));
+    expect(
+      await screen.findByText(/Replaced because of a data scrubbing rule/)
+    ).toBeInTheDocument();
   });
 
   it('tells the reader when the event has no tags', async () => {
