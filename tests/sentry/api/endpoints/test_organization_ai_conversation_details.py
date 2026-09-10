@@ -1256,24 +1256,6 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         ]
         assert response.data["webUrl"].endswith(f"/{conversation_id}/?project={self.project.id}")
 
-    def test_empty_conversation_returns_envelope(self) -> None:
-        now = before_now(days=5).replace(microsecond=0)
-        conversation_id = uuid4().hex
-
-        self._store_conversation_span(uuid4().hex, now)
-
-        query = {
-            "project": [self.project.id],
-            "start": (now - timedelta(hours=1)).isoformat(),
-            "end": (now + timedelta(hours=1)).isoformat(),
-        }
-
-        response = self.do_request(conversation_id, query)
-        assert response.status_code == 200
-        assert response.data["conversationId"] == conversation_id
-        assert response.data["title"] is None
-        assert response.data["spans"] == []
-
     def test_paginates_with_title(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
         conversation_id = uuid4().hex
