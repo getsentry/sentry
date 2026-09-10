@@ -13,7 +13,7 @@ from sentry.notifications.platform.msteams.provider import (
     MSTeamsNotificationProvider,
     MSTeamsRenderable,
 )
-from sentry.notifications.platform.provider import SendFailureStatus
+from sentry.notifications.platform.provider import SendFailure, SendFailureStatus
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationCategory,
@@ -330,6 +330,7 @@ class MSTeamsNotificationProviderSendTest(TestCase):
             target=self._create_target(), renderable=self._create_renderable()
         )
 
+        assert isinstance(result, SendFailure)
         assert result.status == SendFailureStatus.HALT
         assert result.exception is error
         assert result.error_code == 400
