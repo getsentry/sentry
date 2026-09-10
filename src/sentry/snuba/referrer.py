@@ -648,6 +648,9 @@ class Referrer(StrEnum):
     DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES = (
         "dynamic_sampling.counters.get_org_transaction_volumes"
     )
+    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT = (
+        "dynamic_sampling.distribution.fetch_projects_with_count_per_root_total_volumes"
+    )
     DYNAMIC_SAMPLING_PER_ORG_GET_EAP_ORG_VOLUME = "dynamic_sampling.per_org.get_eap_org_volume"
     DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES = (
         "dynamic_sampling.per_org.get_eap_project_volumes"
