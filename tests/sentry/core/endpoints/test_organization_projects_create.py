@@ -9,6 +9,7 @@ from sentry.core.endpoints.organization_projects import (
     OrganizationProjectsEndpoint,
     fetch_slugifed_email_username,
 )
+from sentry.models.apitoken import ApiToken
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
@@ -17,6 +18,7 @@ from sentry.models.team import Team
 from sentry.signals import project_created
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.workflow_engine.defaults.workflows import DEFAULT_WORKFLOW_LABEL
 from sentry.workflow_engine.models import Workflow
 
@@ -389,3 +391,56 @@ class OrganizationProjectsCreateTest(APITestCase):
         assert "Console platform 'xbox' is not enabled for this organization" in str(
             response.data["platform"]
         )
+
+
+class OrganizationProjectsCreateScopeTest(APITestCase):
+    endpoint = "sentry-api-0-organization-projects"
+    method = "post"
+
+    def setUp(self) -> None:
+        super().setUp()
+
+    def _authorize(self, *scopes: str, legacy: bool = False) -> None:
+        """Authenticate as a token holding exactly ``scopes``.
+
+        ``legacy`` writes the scope list past the pre_save hierarchy hook, so the
+        token looks like one minted before ``project:create`` existed.
+        """
+        token = self.create_user_auth_token(user=self.user, scope_list=list(scopes))
+        if legacy:
+            with assume_test_silo_mode_of(ApiToken):
+                ApiToken.objects.filter(id=token.id).update(scope_list=list(scopes))
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.plaintext_token}")
+
+    def test_project_read_token_cannot_create_project(self) -> None:
+        self._authorize("project:read")
+
+        self.get_error_response(self.organization.slug, name="read-only", status_code=403)
+        assert not Project.objects.filter(organization=self.organization, name="read-only").exists()
+
+    def test_project_create_token_can_create_project(self) -> None:
+        self._authorize("project:create")
+
+        response = self.get_success_response(self.organization.slug, name="scoped", status_code=201)
+
+        assert Project.objects.get(id=response.data["id"]).name == "scoped"
+
+    def test_legacy_project_write_token_can_still_create_project(self) -> None:
+        # Tokens minted before project:create existed hold project:write alone.
+        # They must keep working, which is why POST still lists the write scopes.
+        self._authorize("project:write", legacy=True)
+
+        response = self.get_success_response(
+            self.organization.slug, name="legacy-write", status_code=201
+        )
+
+        assert Project.objects.get(id=response.data["id"]).name == "legacy-write"
+
+    def test_legacy_project_admin_token_can_still_create_project(self) -> None:
+        self._authorize("project:admin", legacy=True)
+
+        response = self.get_success_response(
+            self.organization.slug, name="legacy-admin", status_code=201
+        )
+
+        assert Project.objects.get(id=response.data["id"]).name == "legacy-admin"

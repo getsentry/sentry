@@ -29,6 +29,10 @@ class ApiScopes(Sequence[str]):
         ("project:distribution"),
     )
 
+    # New scopes go here, not into the groups above. The bitfield decodes
+    # legacy tokens positionally, so existing entries must not be reordered.
+    appended = (("project:create"),)
+
     team = (("team:read"), ("team:write"), ("team:admin"))
 
     event = (("event:read"), ("event:write"), ("event:admin"))
@@ -47,6 +51,7 @@ class ApiScopes(Sequence[str]):
             + self.__class__.org
             + self.__class__.member
             + self.__class__.alerts
+            + self.__class__.appended
         )
 
     @overload
@@ -99,6 +104,7 @@ class HasApiScopes(models.Model):
             "member:invite": bool,
             "project:distribution": bool,
             "org:ci": bool,
+            "project:create": bool,
         },
     )
     assert set(ScopesDict.__annotations__) == set(ApiScopes())

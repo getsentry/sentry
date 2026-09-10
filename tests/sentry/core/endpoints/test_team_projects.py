@@ -6,6 +6,7 @@ from django.test import override_settings
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.core.endpoints.organization_projects import DISABLED_FEATURE_ERROR_STRING
 from sentry.ingest import inbound_filters
+from sentry.models.apitoken import ApiToken
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.rule import Rule
@@ -13,6 +14,7 @@ from sentry.signals import alert_rule_created, project_created
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.workflow_engine.defaults.workflows import DEFAULT_WORKFLOW_LABEL
 from sentry.workflow_engine.models import Workflow
@@ -245,6 +247,40 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             **self.data,
             status_code=403,
         )
+
+    def test_token_with_project_create_can_create_project_on_own_team(self) -> None:
+        organization = self.create_organization(flags=0)
+        team = self.create_team(organization=organization)
+        user = self.create_user(is_superuser=False)
+        self.create_member(user=user, organization=organization, role="member", teams=[team])
+        token = self.create_user_auth_token(user=user, scope_list=["project:create"])
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.plaintext_token}")
+
+        self.get_success_response(organization.slug, team.slug, **self.data, status_code=201)
+
+    def test_token_with_project_create_cannot_create_project_on_other_team(self) -> None:
+        # Open membership grants team access, not team membership.
+        organization = self.create_organization(flags=1)  # allow_joinleave
+        team = self.create_team(organization=organization)
+        user = self.create_user(is_superuser=False)
+        self.create_member(user=user, organization=organization, role="member", teams=[])
+        token = self.create_user_auth_token(user=user, scope_list=["project:create"])
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.plaintext_token}")
+
+        self.get_error_response(organization.slug, team.slug, **self.data, status_code=403)
+
+    def test_legacy_project_write_token_can_still_create_project(self) -> None:
+        # Tokens minted before project:create existed hold project:write alone.
+        organization = self.create_organization(flags=0)
+        team = self.create_team(organization=organization)
+        user = self.create_user(is_superuser=False)
+        self.create_member(user=user, organization=organization, role="manager", teams=[team])
+        token = self.create_user_auth_token(user=user, scope_list=["project:write"])
+        with assume_test_silo_mode_of(ApiToken):
+            ApiToken.objects.filter(id=token.id).update(scope_list=["project:write"])
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.plaintext_token}")
+
+        self.get_success_response(organization.slug, team.slug, **self.data, status_code=201)
 
     @with_feature({"organizations:team-roles": False})
     def test_team_admin_can_create_project_when_member_creation_disabled_without_team_roles(
