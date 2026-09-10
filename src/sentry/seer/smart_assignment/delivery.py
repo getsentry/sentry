@@ -126,7 +126,7 @@ def _validate_resolve_verdict(
 
         if candidate.identifier_kind == "email":
             users = user_service.get_many_by_email(
-                emails=[value], organization_id=organization_id, is_verified=True
+                emails=[value], organization_id=organization_id, is_verified=False
             )
             resolved.append(users[0].id if users else None)
             continue
@@ -217,6 +217,7 @@ def deliver_smart_assignment_result(
     status: FeatureRunStatus,
     result: dict[str, Any] | None,
     error: str | None,
+    prompt_version: str | None = None,
 ) -> None:
     """Resolve a delivered smart_assignment verdict's ranked picks and record them.
 

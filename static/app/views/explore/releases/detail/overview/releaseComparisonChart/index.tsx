@@ -193,18 +193,18 @@ export function ReleaseComparisonChart({
           query: {
             field: ['failure_rate()', 'count()'],
             query: new MutableSearch([
-              'event.type:transaction',
+              'is_transaction:true',
               `release:${release.version}`,
             ]).formatString(),
-            dataset: DiscoverDatasets.METRICS_ENHANCED,
+            dataset: DiscoverDatasets.SPANS,
             ...commonQuery,
           },
         }),
         api.requestPromise(url, {
           query: {
             field: ['failure_rate()', 'count()'],
-            query: new MutableSearch(['event.type:transaction']).formatString(),
-            dataset: DiscoverDatasets.METRICS_ENHANCED,
+            query: new MutableSearch(['is_transaction:true']).formatString(),
+            dataset: DiscoverDatasets.SPANS,
             ...commonQuery,
           },
         }),

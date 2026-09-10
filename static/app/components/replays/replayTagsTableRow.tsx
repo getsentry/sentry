@@ -125,7 +125,6 @@ export function ReplayTagsTableRow({name, values, generateUrl}: Props) {
               title={
                 expandedViewKeys.includes(name) ? renderValueList(values) : renderTagValue
               }
-              isHoverable
               showOnlyOnOverflow
             >
               {renderTagValue}

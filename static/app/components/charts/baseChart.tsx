@@ -69,16 +69,16 @@ import type {
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
 
-import {Grid} from './components/grid';
+import {createGridOptions} from './components/grid';
 import {legend as makeLegend} from './components/legend';
 import {
   CHART_TOOLTIP_VIEWPORT_OFFSET,
   computeChartTooltip,
   type TooltipSubLabel,
 } from './components/tooltip';
-import {XAxis} from './components/xAxis';
-import {YAxis} from './components/yAxis';
-import {lineSeries} from './series/lineSeries';
+import {createXAxisOptions} from './components/xAxis';
+import {createYAxisOptions} from './components/yAxis';
+import {createLineSeries} from './series/lineSeries';
 import {
   computeEchartsAriaLabels,
   getDiffInMinutes,
@@ -502,7 +502,7 @@ export function BaseChart({
 
     const transformedPreviousPeriod =
       previousPeriod?.map((previous, seriesIndex) =>
-        lineSeries({
+        createLineSeries({
           name: previous.seriesName,
           data: previous.data.map(({name, value}) => [name, value]),
           lineStyle: {
@@ -579,16 +579,16 @@ export function BaseChart({
 
     const yAxisOrCustom = yAxes
       ? Array.isArray(yAxes)
-        ? yAxes.map(axis => YAxis({...axis, theme}))
-        : [YAxis(defaultAxesProps), YAxis(defaultAxesProps)]
+        ? yAxes.map(axis => createYAxisOptions({...axis, theme}))
+        : [createYAxisOptions(defaultAxesProps), createYAxisOptions(defaultAxesProps)]
       : yAxis === null
         ? undefined
-        : YAxis({theme, ...yAxis});
+        : createYAxisOptions({theme, ...yAxis});
 
     const xAxisOrCustom = xAxes
       ? Array.isArray(xAxes)
         ? xAxes.map(axis =>
-            XAxis({
+            createXAxisOptions({
               ...axis,
               theme,
               useShortDate,
@@ -601,10 +601,10 @@ export function BaseChart({
               utc,
             })
           )
-        : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)]
+        : [createXAxisOptions(defaultAxesProps), createXAxisOptions(defaultAxesProps)]
       : xAxis === null
         ? undefined
-        : XAxis({
+        : createXAxisOptions({
             ...xAxis,
             theme,
             useShortDate,
@@ -622,7 +622,7 @@ export function BaseChart({
       animation,
       useUTC: utc,
       color: color as string[],
-      grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
+      grid: Array.isArray(grid) ? grid.map(createGridOptions) : createGridOptions(grid),
       tooltip: tooltipOrNone,
       legend: legend ? makeLegend({theme, ...legend}) : undefined,
       yAxis: yAxisOrCustom,

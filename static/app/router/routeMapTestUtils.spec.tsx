@@ -173,12 +173,6 @@ describe('toCustomerDomainForm', () => {
 });
 
 describe('dedupeRoutes', () => {
-  // Inject a simple org-prefix stripper so the dedup logic is tested in
-  // isolation from normalizeUrl.
-  const toCD = (url: string) =>
-    url.startsWith('/organizations/:orgId')
-      ? url.slice('/organizations/:orgId'.length) || '/'
-      : url;
   const slug = (url: string, component: string) => ({
     url,
     params: extractParams(url),
@@ -199,8 +193,7 @@ describe('dedupeRoutes', () => {
         // The customer-domain run re-emits both forms.
         domain('/organizations/:orgId/issues/', 'sentry/views/issues'),
         domain('/issues/', 'sentry/views/issues'),
-      ],
-      toCD
+      ]
     );
 
     expect(routes).toHaveLength(1);
@@ -214,8 +207,7 @@ describe('dedupeRoutes', () => {
   it('keeps the slugless form as url for routes seen only in the domain run', () => {
     const routes = dedupeRoutes(
       [],
-      [domain('/onboarding/:step/', 'sentry/views/onboarding')],
-      toCD
+      [domain('/onboarding/:step/', 'sentry/views/onboarding')]
     );
 
     expect(routes).toHaveLength(1);
@@ -225,14 +217,13 @@ describe('dedupeRoutes', () => {
   it('drops layout shells (null component)', () => {
     const routes = dedupeRoutes(
       [{url: '/settings/', params: [], component: null, customerDomain: false}],
-      [],
-      toCD
+      []
     );
     expect(routes).toHaveLength(0);
   });
 
   it('produces a stable order independent of input order', () => {
-    const forward = dedupeRoutes([slug('/b/', 'b'), slug('/a/', 'a')], [], toCD).map(
+    const forward = dedupeRoutes([slug('/b/', 'b'), slug('/a/', 'a')], []).map(
       r => r.url
     );
     expect(forward).toEqual(['/a/', '/b/']);

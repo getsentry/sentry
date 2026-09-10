@@ -7,6 +7,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {releaseApiOptions} from 'sentry/utils/releaseApiOptions';
 import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -54,16 +55,16 @@ export function DatabaseSpanDescription({
       fields: [
         SpanFields.PROJECT_ID,
         SpanFields.SPAN_DESCRIPTION,
-        SpanFields.DB_SYSTEM,
-        SpanFields.CODE_FILEPATH,
-        SpanFields.CODE_LINENO,
+        SpanFields.DB_SYSTEM_NAME,
+        SpanFields.CODE_FILE_PATH,
+        SpanFields.CODE_LINE_NUMBER,
         SpanFields.CODE_FUNCTION,
         SpanFields.SDK_NAME,
         SpanFields.SDK_VERSION,
         SpanFields.RELEASE,
         SpanFields.PLATFORM,
       ],
-      sorts: [{field: SpanFields.CODE_FILEPATH, kind: 'desc'}],
+      sorts: [{field: SpanFields.CODE_FILE_PATH, kind: 'desc'}],
     },
     'api.insights.span-description'
   );
@@ -108,10 +109,27 @@ export function DatabaseSpanDescription({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
-  const system = indexedSpan?.['db.system'];
-  const codeFilepath = indexedSpan?.['code.filepath'];
-  const codeLineno = indexedSpan?.['code.lineno'];
-  const codeFunction = indexedSpan?.['code.function'];
+  const system = getAttributeValue(
+    indexedSpan ?? {},
+    SpanFields.DB_SYSTEM_NAME,
+    'string'
+  );
+  const codeFilepath = getAttributeValue(
+    indexedSpan ?? {},
+    SpanFields.CODE_FILE_PATH,
+    'string'
+  );
+  const codeLineNumber = getAttributeValue(
+    indexedSpan ?? {},
+    SpanFields.CODE_LINE_NUMBER,
+    'number'
+  );
+  const codeLineno = codeLineNumber === undefined ? undefined : Number(codeLineNumber);
+  const codeFunction = getAttributeValue(
+    indexedSpan ?? {},
+    SpanFields.CODE_FUNCTION,
+    'string'
+  );
 
   const formattedDescription = useMemo(() => {
     const rawDescription = indexedSpan?.['span.description'] || preliminaryDescription;

@@ -7,16 +7,14 @@ from taskbroker_client.retry import Retry
 
 from sentry import quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT
-from sentry.dynamic_sampling.per_org.serving import (
-    get_previous_recalibration_factor,
-    is_recalibration_factor_served_per_org,
-)
+from sentry.dynamic_sampling.per_org.gate import is_org_in_serving_rollout
+from sentry.dynamic_sampling.per_org.serving import get_previous_recalibration_factor
 from sentry.dynamic_sampling.rules.utils import DecisionKeepCount, OrganizationId, ProjectId
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     fetch_projects_with_total_root_transaction_count_and_rates,
 )
 from sentry.dynamic_sampling.tasks.common import GetActiveOrgsVolumes, OrganizationDataVolume
-from sentry.dynamic_sampling.tasks.constants import MAX_REBALANCE_FACTOR, MIN_REBALANCE_FACTOR
+from sentry.dynamic_sampling.tasks.constants import bounded_rebalance_factor
 from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
     compute_adjusted_factor,
     delete_adjusted_factor,
@@ -26,7 +24,10 @@ from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
     set_guarded_adjusted_project_factor,
 )
 from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
+from sentry.dynamic_sampling.tasks.utils import (
+    dynamic_sampling_task,
+    legacy_pipeline_killswitched,
+)
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.models.options.organization_option import OrganizationOption
@@ -47,6 +48,9 @@ from sentry.utils import metrics
 )
 @dynamic_sampling_task
 def recalibrate_orgs() -> None:
+    if legacy_pipeline_killswitched("recalibrate_orgs"):
+        return
+
     for segment_volumes in GetActiveOrgsVolumes(measure=SamplingMeasure.SEGMENTS):
         _process_orgs_volumes(segment_volumes)
 
@@ -98,7 +102,7 @@ def recalibrate_orgs_batch(orgs: Sequence[tuple[OrganizationId, int, int]]) -> N
 
 
 def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
-    if is_recalibration_factor_served_per_org(org_id):
+    if is_org_in_serving_rollout(org_id):
         metrics.incr("dynamic_sampling.tasks.recalibrate_orgs.skipped_served_per_org")
         return
 
@@ -141,14 +145,15 @@ def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
         )
         return
 
-    if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
+    bounded_factor = bounded_rebalance_factor(adjusted_factor)
+    if bounded_factor is None:
         # In case the new factor would result into too much recalibration, we want to remove it from cache,
         # effectively removing the generated rule.
         delete_adjusted_factor(org_id)
         return
 
     # At the end we set the adjusted factor.
-    set_guarded_adjusted_factor(org_id, adjusted_factor)
+    set_guarded_adjusted_factor(org_id, bounded_factor)
 
 
 @instrumented_task(
@@ -199,11 +204,12 @@ def recalibrate_project(
         )
         return
 
-    if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
+    bounded_factor = bounded_rebalance_factor(adjusted_factor)
+    if bounded_factor is None:
         # In case the new factor would result into too much recalibration, we want to remove it from cache,
         # effectively removing the generated rule.
         delete_adjusted_project_factor(project_id)
         return
 
     # At the end we set the adjusted factor.
-    set_guarded_adjusted_project_factor(project_id, adjusted_factor)
+    set_guarded_adjusted_project_factor(project_id, bounded_factor)

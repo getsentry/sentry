@@ -13,14 +13,23 @@ import type {CallRecord} from 'sentry/views/seerExplorer/types';
  */
 
 /**
- * The title seer shipped for a call, or null when it shipped none.
+ * What a row reads as: the agent's own line when it wrote one, seer's title otherwise.
  *
- * A fallback, not a decision: a row whose call matches a rule in `links.tsx` is labeled by that rule
- * instead. Returning null rather than the route or an operation id is deliberate — a raw identifier
- * on screen is worse than one fewer row.
+ * The title is not discarded — `callRecordDetail` keeps what ran, so the line stays checkable.
+ * A row matching a rule in `links.tsx` is labeled by that rule instead.
  */
 export function callRecordLabel(record: CallRecord): string | null {
-  return record.title?.trim() || null;
+  return record.llm_description?.trim() || record.title?.trim() || null;
+}
+
+/**
+ * A readable stand-in for a record nothing could name — generic, because a route or an operation
+ * id reads worse. Reported rather than dropped: a vanishing record is how an endpoint disappears.
+ */
+export function fallbackCallLabel(record: CallRecord): string {
+  // A noun, not a progressive verb: the row may well have settled, and a lib method that reached
+  // here has no title at all — `Working…` would leave it reading as still running forever.
+  return record.kind === 'api' ? t('Sentry API request') : t('Sentry operation');
 }
 
 /**
@@ -71,23 +80,29 @@ export function callRecordDetail(record: CallRecord): {
   body: string | null;
   request: string;
 } | null {
-  // A lib call is a heading for the api calls nested under it, and those carry the detail. Giving
-  // it its own expander would add a control that reveals less than the rows already below it.
-  if (record.kind !== 'api' || !record.method) {
+  // Built before any fallback: the literal URL beats a generated sentence as the account of
+  // what ran, which is what a described row needs to stay checkable.
+  if (record.kind === 'api' && record.method) {
+    const path = record.resolved_path ?? record.path;
+    if (path) {
+      // Seer composes the query string into `resolved_path`, so the request line is the whole URL —
+      // a list of params underneath would restate what the URL already says.
+      return {
+        request: `${record.method} ${path}`,
+        body: withEllipsis(record.body, record.body_truncated),
+      };
+    }
     return null;
   }
 
-  const path = record.resolved_path ?? record.path;
-  if (!path) {
-    return null;
+  // Nothing else ran a request of its own, so a described row falls back to the generated title
+  // — without it the description would be an unfalsifiable claim.
+  const described = record.llm_description?.trim();
+  const title = record.title?.trim();
+  if (described && title && described !== title) {
+    return {request: title, body: null};
   }
-
-  // Seer composes the query string into `resolved_path`, so the request line is the whole URL —
-  // a list of params underneath would restate what the URL already says.
-  return {
-    request: `${record.method} ${path}`,
-    body: withEllipsis(record.body, record.body_truncated),
-  };
+  return null;
 }
 
 // Query params that scope or format a request rather than describe what it looked for. Decomposing
@@ -233,6 +248,9 @@ const PREFER_LIB_OVER_CHILDREN = new Set(['get_span_details']);
  * children. A lib call with no api children is kept — the Explorer-backed helpers (`code_search`,
  * `bash`, `ask_user_question`) never touch the transport, so their own row is the only trace they
  * leave. Helpers in `PREFER_LIB_OVER_CHILDREN` keep their own row and suppress children instead.
+ *
+ * A described parent inverts that premise — the heading now says what none of the requests
+ * underneath can — so it is kept and its children hidden. The description is what earns the row.
  */
 export function visibleCallRecords(records: CallRecord[]): CallRecord[] {
   const hasChildren = new Set(
@@ -241,14 +259,15 @@ export function visibleCallRecords(records: CallRecord[]): CallRecord[] {
     )
   );
 
+  const prefersOwnRow = (record: CallRecord): boolean =>
+    Boolean(record.llm_description?.trim()) ||
+    Boolean(record.name && PREFER_LIB_OVER_CHILDREN.has(record.name));
+
   const hideChildrenOf = new Set(
     records
       .filter(
         record =>
-          record.kind === 'lib' &&
-          record.name &&
-          PREFER_LIB_OVER_CHILDREN.has(record.name) &&
-          hasChildren.has(record.id)
+          record.kind === 'lib' && prefersOwnRow(record) && hasChildren.has(record.id)
       )
       .map(record => record.id)
   );
@@ -264,6 +283,6 @@ export function visibleCallRecords(records: CallRecord[]): CallRecord[] {
     if (record.kind !== 'lib' || !hasChildren.has(record.id)) {
       return true;
     }
-    return Boolean(record.name && PREFER_LIB_OVER_CHILDREN.has(record.name));
+    return prefersOwnRow(record);
   });
 }

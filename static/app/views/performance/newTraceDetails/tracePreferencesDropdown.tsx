@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import type {Placement} from '@popperjs/core';
 
 import {
   CompactSelect,
@@ -12,6 +13,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
@@ -19,7 +21,6 @@ import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnal
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {getCustomInstrumentationLink} from 'sentry/views/performance/newTraceDetails/traceConfigurations';
-import {findSpanAttributeValue} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {TraceShortcutsModal} from 'sentry/views/performance/newTraceDetails/traceShortcutsModal';
 import {TRACE_WATERFALL_TIME_COMPRESSION_FEATURE} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
@@ -31,6 +32,12 @@ interface TracePreferencesDropdownProps {
   onCompressedTimelineChange: () => void;
   onMissingInstrumentationChange: () => void;
   rootEventResults: TraceRootEventQueryResults;
+  /**
+   * Placements Popper may fall back to when the default `bottom-start` would overflow the
+   * menu's clipping container. `useOverlay` sets `flipVariations: false`, so without this the
+   * menu never re-aligns on its own. Pass a stable reference.
+   */
+  fallbackPlacements?: Placement[];
 }
 
 export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
@@ -88,6 +95,12 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
     props.compressedTimeline,
     props.missingInstrumentation,
   ]);
+
+  const fallbackPlacements = props.fallbackPlacements;
+  const flipOptions = useMemo(
+    () => (fallbackPlacements ? {fallbackPlacements} : undefined),
+    [fallbackPlacements]
+  );
 
   const onAutogroupChange = props.onAutogroupChange;
   const onMissingInstrumentationChange = props.onMissingInstrumentationChange;
@@ -156,6 +169,7 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
       }
       onChange={onChange}
       menuWidth={300}
+      flipOptions={flipOptions}
     />
   );
 }
@@ -173,7 +187,7 @@ function getTraceProject(
     const projectId =
       OurLogKnownFieldKey.PROJECT_ID in attributes
         ? attributes[OurLogKnownFieldKey.PROJECT_ID]
-        : findSpanAttributeValue(attributes, 'project_id');
+        : getAttributeValue(attributes, 'project_id')?.toString();
     return projects.find(p => p.id === projectId);
   }
 

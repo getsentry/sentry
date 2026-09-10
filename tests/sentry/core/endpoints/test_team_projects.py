@@ -1,13 +1,17 @@
 from unittest import TestCase, mock
 from unittest.mock import MagicMock, Mock, patch
 
+from django.test import override_settings
+
 from sentry.constants import RESERVED_PROJECT_SLUGS
+from sentry.core.endpoints.organization_projects import DISABLED_FEATURE_ERROR_STRING
 from sentry.ingest import inbound_filters
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.signals import alert_rule_created, project_created
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.workflow_engine.defaults.workflows import DEFAULT_WORKFLOW_LABEL
@@ -157,6 +161,139 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         project = Project.objects.get(id=response.data["id"])
         assert not Rule.objects.filter(project=project).exists()
 
+    @with_feature({"organizations:team-roles": False})
+    def test_member_can_create_project_on_team_without_team_roles(self) -> None:
+        organization = self.create_organization(flags=0)
+        team = self.create_team(organization=organization)
+        user = self.create_user(is_superuser=False)
+        self.create_member(user=user, organization=organization, role="member", teams=[team])
+        self.login_as(user=user)
+
+        self.get_success_response(
+            organization.slug,
+            team.slug,
+            **self.data,
+            status_code=201,
+        )
+
+    @with_feature("organizations:team-roles")
+    def test_member_can_create_project_on_team_with_team_roles(self) -> None:
+        organization = self.create_organization(flags=0)
+        team = self.create_team(organization=organization)
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user,
+            organization=organization,
+            role="member",
+            team_roles=[(team, "contributor")],
+        )
+        self.login_as(user=user)
+
+        self.get_success_response(
+            organization.slug,
+            team.slug,
+            **self.data,
+            status_code=201,
+        )
+
+    def test_member_cannot_create_project_on_other_team(self) -> None:
+        user = self.create_user(is_superuser=False)
+        self.login_as(user=user)
+
+        organization = self.create_organization(flags=0)
+        team = self.create_team(organization=organization)
+        self.create_member(user=user, organization=organization, role="member", teams=[])
+        self.get_error_response(organization.slug, team.slug, **self.data, status_code=403)
+
+        # Open membership grants team access, not team membership.
+        open_organization = self.create_organization(flags=1)  # allow_joinleave
+        open_team = self.create_team(organization=open_organization)
+        self.create_member(user=user, organization=open_organization, role="member", teams=[])
+        self.get_error_response(
+            open_organization.slug, open_team.slug, **self.data, status_code=403
+        )
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @override_options({"superuser.read-write.ga-rollout": True})
+    def test_readonly_superuser_cannot_create_project(self) -> None:
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(superuser, superuser=True)
+
+        self.get_error_response(
+            self.organization.slug,
+            self.team.slug,
+            **self.data,
+            status_code=403,
+        )
+
+    def test_integration_token_with_project_read_cannot_create_project(self) -> None:
+        # Integration access simulates membership of every team. The unchanged POST
+        # scope map rejects a read-only token before that membership is consulted.
+        organization = self.create_organization(flags=0)
+        team = self.create_team(organization=organization)
+        internal_integration = self.create_internal_integration(
+            name="read-only", organization=organization, scopes=("project:read",)
+        )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_integration
+        )
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+        self.get_error_response(
+            organization.slug,
+            team.slug,
+            **self.data,
+            status_code=403,
+        )
+
+    @with_feature({"organizations:team-roles": False})
+    def test_team_admin_can_create_project_when_member_creation_disabled_without_team_roles(
+        self,
+    ) -> None:
+        organization = self.create_organization(flags=256)
+        team = self.create_team(organization=organization)
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user,
+            organization=organization,
+            role="member",
+            team_roles=[(team, "admin")],
+        )
+        self.login_as(user=user)
+
+        self.get_success_response(
+            organization.slug,
+            team.slug,
+            **self.data,
+            status_code=201,
+        )
+
+    @with_feature({"organizations:team-roles": False})
+    def test_token_without_team_admin_scope_cannot_bypass_disabled_member_creation(
+        self,
+    ) -> None:
+        organization = self.create_organization(flags=256)
+        team = self.create_team(organization=organization)
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user,
+            organization=organization,
+            role="member",
+            team_roles=[(team, "admin")],
+        )
+        token = self.create_user_auth_token(user=user, scope_list=["project:read", "project:write"])
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.plaintext_token}")
+
+        response = self.get_error_response(
+            organization.slug,
+            team.slug,
+            **self.data,
+            status_code=403,
+        )
+
+        assert response.data["detail"] == DISABLED_FEATURE_ERROR_STRING
+
+    @with_feature("organizations:team-roles")
     def test_disable_member_project_creation(self) -> None:
         test_org = self.create_organization(flags=256)
         test_team = self.create_team(organization=test_org)

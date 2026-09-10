@@ -151,16 +151,56 @@ describe('SpansTabContent', () => {
   });
 
   it('should fire analytics once per change', async () => {
-    render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
-      organization,
-      additionalWrapper: Wrapper,
-    });
+    const {router} = render(
+      <SpansTabContent datePageFilterProps={datePageFilterProps} />,
+      {
+        organization,
+        additionalWrapper: Wrapper,
+      }
+    );
 
     await screen.findByText(/No spans found/);
     expect(trackAnalytics).toHaveBeenCalledTimes(1);
     expect(trackAnalytics).toHaveBeenCalledWith(
       'trace.explorer.metadata',
       expect.objectContaining({result_mode: 'span samples'})
+    );
+
+    const tableResponse = Promise.withResolvers<void>();
+    const tableRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({query: 'span.op:http'}),
+        (_url, options) => options.query?.field?.includes('id'),
+      ],
+      asyncDelay: tableResponse.promise,
+      body: {
+        data: [{id: 'aaaaaaaaaaaaaaaa', timestamp: '2024-01-01T00:00:00+00:00'}],
+        meta: {dataScanned: 'full', fields: {id: 'string'}},
+      },
+    });
+
+    jest.mocked(trackAnalytics).mockClear();
+    router.navigate(
+      `/organizations/${organization.slug}/explore/traces/?query=span.op%3Ahttp`
+    );
+    await waitFor(() => expect(tableRequest).toHaveBeenCalledTimes(1));
+    const getMetadataCalls = () =>
+      jest
+        .mocked(trackAnalytics)
+        .mock.calls.filter(([eventKey]) => eventKey === 'trace.explorer.metadata');
+    expect(getMetadataCalls()).toHaveLength(0);
+
+    tableResponse.resolve();
+    await waitFor(() => expect(getMetadataCalls()).toHaveLength(1));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'trace.explorer.metadata',
+      expect.objectContaining({
+        dataScanned: 'full',
+        result_length: 1,
+        result_mode: 'span samples',
+      })
     );
 
     jest.mocked(trackAnalytics).mockClear();
@@ -195,6 +235,7 @@ describe('SpansTabContent', () => {
   it('publishes the aggregate sort to the LLM context in aggregate mode', async () => {
     let getLLMContext: ReturnType<typeof useLLMContext>['getLLMContext'] | undefined;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       ({getLLMContext} = useLLMContext());
       return <SpansTabContent datePageFilterProps={datePageFilterProps} />;
     }
@@ -251,7 +292,9 @@ describe('SpansTabContent', () => {
     let aggregateFields: ReturnType<typeof useQueryParamsAggregateFields> = [];
     let aggregateSortBys: ReturnType<typeof useQueryParamsAggregateSortBys> = [];
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       aggregateFields = useQueryParamsAggregateFields();
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       aggregateSortBys = useQueryParamsAggregateSortBys();
       return <SpansTabContent datePageFilterProps={datePageFilterProps} />;
     }
@@ -298,7 +341,9 @@ describe('SpansTabContent', () => {
     let fields: readonly string[] = [];
     let groupBys: readonly string[] = [];
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       fields = useQueryParamsFields();
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       groupBys = useQueryParamsGroupBys();
       return <SpansTabContent datePageFilterProps={datePageFilterProps} />;
     }

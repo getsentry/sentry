@@ -32,19 +32,12 @@ export function formatCommitMessage(message: string | null) {
 
 export interface CommitRowProps {
   commit: Commit;
-  customAvatar?: React.ReactNode;
   onCommitClick?: (commit: Commit) => void;
   onPullRequestClick?: () => void;
   project?: AvatarProject;
 }
 
-function CommitRow({
-  commit,
-  customAvatar,
-  onPullRequestClick,
-  onCommitClick,
-  project,
-}: CommitRowProps) {
+function CommitRow({commit, onPullRequestClick, onCommitClick, project}: CommitRowProps) {
   const user = useUser();
   const organization = useOrganization();
   const handleInviteClick = useCallback(() => {
@@ -87,11 +80,7 @@ function CommitRow({
         <Message>{formatCommitMessage(commit.message)}</Message>
       )}
       <MetaWrapper>
-        {customAvatar ? (
-          customAvatar
-        ) : commit.author ? (
-          <UserAvatar size={16} user={commit.author} />
-        ) : null}
+        {commit.author ? <UserAvatar size={16} user={commit.author} /> : null}
         <Meta>
           <Tooltip
             title={tct(
@@ -115,7 +104,6 @@ function CommitRow({
             disabled={!commit.author || commit.author.id !== undefined}
             overlayStyle={{maxWidth: '350px'}}
             skipWrapper
-            isHoverable
           >
             <AuthorWrapper>
               {isUser ? t('You') : (commit.author?.name ?? t('Unknown author'))}

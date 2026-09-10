@@ -9,6 +9,8 @@ __all__ = (
     "InvestigationCreateValidator",
     "InvestigationCandidatesValidator",
     "InvestigationDeleteValidator",
+    "InvestigationOrchestrationCommandValidator",
+    "InvestigationOrchestrationEventValidator",
     "InvestigationUpdateValidator",
     "ParameterValuesValidator",
     "PermissionsUpdateValidator",
@@ -36,5 +38,9 @@ from .investigation import (
     InvestigationDeleteValidator,
     InvestigationUpdateValidator,
     PermissionsUpdateValidator,
+)
+from .orchestration import (
+    InvestigationOrchestrationCommandValidator,
+    InvestigationOrchestrationEventValidator,
 )
 from .parameter import ParameterValuesValidator

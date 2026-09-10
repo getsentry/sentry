@@ -1,44 +1,18 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useNavigate');
-
-const mockedUseLocation = jest.mocked(useLocation);
-const mockedUseNavigate = jest.mocked(useNavigate);
-
 describe('useWidgetBuilderTraceItemConfig', () => {
-  beforeEach(() => {
-    mockedUseNavigate.mockReturnValue(jest.fn());
-  });
-
   afterEach(() => {
     jest.clearAllMocks();
   });
 
   it('returns undefined query when multiple metrics are selected', () => {
-    mockedUseLocation.mockReturnValue(
-      LocationFixture({
-        query: {
-          dataset: WidgetType.TRACEMETRICS,
-          displayType: 'line',
-          yAxis: [
-            'avg(value,metric_one,gauge,none)',
-            'sum(value,metric_two,counter,none)',
-          ],
-        },
-      })
-    );
-
     const organization = OrganizationFixture({
       features: [
         'visibility-explore-view',
@@ -49,6 +23,19 @@ describe('useWidgetBuilderTraceItemConfig', () => {
     const {result} = renderHookWithProviders(() => useWidgetBuilderTraceItemConfig(), {
       organization,
       additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: '/mock-pathname/',
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: 'line',
+            yAxis: [
+              'avg(value,metric_one,gauge,none)',
+              'sum(value,metric_two,counter,none)',
+            ],
+          },
+        },
+      },
     });
 
     expect(result.current.traceItemType).toBe(TraceItemDataset.TRACEMETRICS);
@@ -57,16 +44,6 @@ describe('useWidgetBuilderTraceItemConfig', () => {
   });
 
   it('returns a query when a single metric is selected', () => {
-    mockedUseLocation.mockReturnValue(
-      LocationFixture({
-        query: {
-          dataset: WidgetType.TRACEMETRICS,
-          displayType: 'line',
-          yAxis: ['avg(value,metric_one,gauge,none)', 'max(value,metric_one,gauge,none)'],
-        },
-      })
-    );
-
     const organization = OrganizationFixture({
       features: [
         'visibility-explore-view',
@@ -77,6 +54,19 @@ describe('useWidgetBuilderTraceItemConfig', () => {
     const {result} = renderHookWithProviders(() => useWidgetBuilderTraceItemConfig(), {
       organization,
       additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: '/mock-pathname/',
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: 'line',
+            yAxis: [
+              'avg(value,metric_one,gauge,none)',
+              'max(value,metric_one,gauge,none)',
+            ],
+          },
+        },
+      },
     });
 
     expect(result.current.traceItemType).toBe(TraceItemDataset.TRACEMETRICS);

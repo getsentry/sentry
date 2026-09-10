@@ -13,20 +13,9 @@ from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import are_equal_with_epsilon, sample_rate_to_float
 from sentry.dynamic_sampling.tasks.constants import (
     DEFAULT_REDIS_CACHE_KEY_TTL,
-    MAX_REBALANCE_FACTOR,
-    MIN_REBALANCE_FACTOR,
     adjusted_factor_ttl_ms,
+    bounded_rebalance_factor,
 )
-from sentry.dynamic_sampling.tasks.helpers import (
-    recalibrate_orgs as legacy_recalibration_cache,
-)
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
-    generate_boost_low_volume_projects_cache_key,
-)
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
-    generate_boost_low_volume_transactions_cache_key,
-)
-from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import metrics
 
@@ -42,8 +31,6 @@ PER_ORG_TRANSACTION_SAMPLE_RATES_CACHE_KEY = (
 # Each pass applies its correction on top of the stored factor, so a second pass within
 # one scheduler cycle compounds it. A factor younger than this is left alone.
 MIN_RECALIBRATION_FACTOR_AGE = timedelta(minutes=9)
-
-CachedTransactionSampleRates = dict[int, tuple[dict[str, float], float] | None]
 
 
 def write_caches(config: BaseDynamicSamplingConfiguration) -> None:
@@ -73,8 +60,9 @@ def write_recalibration_factor(org_id: int, factor: float | None) -> bool:
         metrics.incr("dynamic_sampling.per_org.recalibration.factor_write_skipped")
         return False
 
-    if MIN_REBALANCE_FACTOR <= factor <= MAX_REBALANCE_FACTOR:
-        set_adjusted_factor(org_id, factor)
+    bounded_factor = bounded_rebalance_factor(factor)
+    if bounded_factor is not None:
+        set_adjusted_factor(org_id, bounded_factor)
     else:
         delete_adjusted_factor(org_id)
     return True
@@ -150,54 +138,6 @@ def delete_adjusted_factor(org_id: int) -> None:
     metrics.incr("dynamic_sampling.per_org.recalibration.delete_adjusted_factor")
 
 
-def get_cached_organization_sample_rate(org_id: int) -> float | None:
-    sample_rate, _ = get_org_sample_rate(org_id=org_id, default_sample_rate=None)
-    return sample_rate
-
-
-def get_cached_rebalanced_project_sample_rates(org_id: int) -> dict[int, float | None]:
-    redis_client = get_redis_client_for_ds()
-    cache_key = generate_boost_low_volume_projects_cache_key(org_id=org_id)
-    return {
-        int(project_id): sample_rate_to_float(sample_rate)
-        for project_id, sample_rate in redis_client.hgetall(cache_key).items()
-    }
-
-
-def get_cached_rebalanced_transaction_sample_rates(
-    org_id: int, project_ids: Iterable[int]
-) -> CachedTransactionSampleRates:
-    redis_client = get_redis_client_for_ds()
-    ordered_project_ids = list(project_ids)
-    if not ordered_project_ids:
-        return {}
-
-    with redis_client.pipeline(transaction=False) as pipeline:
-        for project_id in ordered_project_ids:
-            pipeline.get(
-                generate_boost_low_volume_transactions_cache_key(org_id=org_id, proj_id=project_id)
-            )
-        serialized_values = pipeline.execute()
-
-    result: CachedTransactionSampleRates = {}
-    for project_id, serialized in zip(ordered_project_ids, serialized_values):
-        if serialized is None:
-            result[project_id] = None
-            continue
-        try:
-            named_rates, implicit_rate = orjson.loads(serialized)
-        except (TypeError, ValueError) as e:
-            sentry_sdk.capture_exception(e)
-            result[project_id] = None
-            continue
-        result[project_id] = (named_rates, float(implicit_rate))
-    return result
-
-
-def get_cached_recalibration_factor(org_id: int) -> float:
-    return legacy_recalibration_cache.get_adjusted_factor(org_id, source="per_org_comparison")
-
-
 def set_project_sample_rates(org_id: int, rebalanced_projects: Iterable[RebalancedItem]) -> bool:
     """Store the balanced per-project sample rates this pipeline computed.
 
@@ -235,11 +175,6 @@ def set_project_sample_rates(org_id: int, rebalanced_projects: Iterable[Rebalanc
         pipeline.execute()
 
     return bool(changed)
-
-
-def has_project_rates(org_id: int) -> bool:
-    redis_client = get_redis_client_for_ds()
-    return bool(redis_client.exists(generate_project_sample_rates_cache_key(org_id)))
 
 
 def get_project_sample_rate(org_id: int, project_id: int) -> float | None:

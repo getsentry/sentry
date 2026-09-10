@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any, cast
 
 from sentry.preprod.api.models.public.snapshots import SnapshotImageResponseDict
@@ -37,6 +38,15 @@ def build_head_image_dict(
             "diff_threshold": dt if dt is not None else global_diff_threshold,
         },
     )
+
+
+def build_head_image_list(
+    images: Mapping[str, Any], global_diff_threshold: float | None
+) -> list[SnapshotImageResponseDict]:
+    return [
+        build_head_image_dict(image_file_name, image, global_diff_threshold)
+        for image_file_name, image in sorted(images.items())
+    ]
 
 
 def minimal_image_dict(

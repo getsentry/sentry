@@ -189,7 +189,6 @@ export function SizeCompareItemDiffTable({
                     ) : null
                   }
                   disabled={!diffItem.path}
-                  isHoverable
                   maxWidth={420}
                 >
                   <TextOverflow

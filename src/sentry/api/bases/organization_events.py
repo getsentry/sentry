@@ -156,9 +156,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             and not EAPOccurrencesComparator.should_use_experimental_data("api.events.endpoints")
         ):
             raise ParseError(detail=f"{dataset_label} is not supported currently")
-        elif dataset_label == SupportedTraceItemType.REPLAYS.value and not features.has(
-            "organizations:events-use-replays-dataset", organization, actor=request.user
-        ):
+        elif dataset_label == SupportedTraceItemType.REPLAYS.value:
             raise ParseError(detail=f"dataset must be one of: {', '.join(PUBLIC_DATASET_LABELS)}")
         result = get_dataset(dataset_label)
         if result is None:

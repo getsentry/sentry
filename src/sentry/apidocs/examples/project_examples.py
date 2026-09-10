@@ -57,7 +57,6 @@ BASE_PROJECT = {
     "isBookmarked": False,
     "isMember": True,
     "features": [
-        "alert-filters",
         "custom-inbound-filters",
         "discard-groups",
         "minidump",
@@ -270,7 +269,6 @@ PROJECT_SUMMARY = {
     "dateCreated": "2023-03-29T15:25:21.344565Z",
     "environments": ["production"],
     "features": [
-        "alert-filters",
         "custom-inbound-filters",
         "discard-groups",
         "minidump",
