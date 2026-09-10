@@ -999,13 +999,19 @@ class TestProcessResourceChange(TestCase):
             ServiceHookProject.objects.all().delete()
             ServiceHook.objects.all().delete()
 
+        # Sentry app hooks always have a NULL project_id in production; per-project
+        # filtering is expressed with ServiceHookProject rows, not the project_id column.
         self.create_service_hook(
-            project_ids=[self.project.id],  # matches project of issue
+            project_ids=[],
             installation=self.install,
             application=self.sentry_app,
             events=["issue.created"],
             org=self.organization,
             actor=self.install,
+        )
+        self.create_service_hook_project_for_installation(
+            project_id=self.project.id,  # matches project of issue
+            installation_id=self.install.id,
         )
 
         event = self.store_event(data={}, project_id=self.project.id)
@@ -1063,13 +1069,19 @@ class TestProcessResourceChange(TestCase):
             name="Bar2", slug="bar2", teams=[self.team], fire_project_created=False
         )
 
+        # Sentry app hooks always have a NULL project_id in production; per-project
+        # filtering is expressed with ServiceHookProject rows, not the project_id column.
         self.create_service_hook(
-            project_ids=[project_2.id],  # no match
+            project_ids=[],
             installation=self.install,
             application=self.sentry_app,
             events=["issue.created"],
             org=self.organization,
             actor=self.install,
+        )
+        self.create_service_hook_project_for_installation(
+            project_id=project_2.id,  # no match
+            installation_id=self.install.id,
         )
 
         event = self.store_event(data={}, project_id=self.project.id)
