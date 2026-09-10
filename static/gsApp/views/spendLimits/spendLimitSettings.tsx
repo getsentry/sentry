@@ -144,23 +144,25 @@ function SpendLimitInput({
   };
 
   return (
-    <Currency>
-      <StyledInput
-        aria-label={t('Custom %s spending limit (in dollars)', displayName)}
-        name={`spending-limit-${inputName}`}
-        type="text"
-        inputMode="numeric"
-        pattern="[0-9]*"
-        placeholder="300"
-        value={coerceValue(currentSpendingLimit)}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-          const parsedBudget = parseInputValue(e);
-          onUpdate({
-            newData: {[inputName]: parsedBudget},
-          });
-        }}
-      />
-    </Currency>
+    <Container width={{zero: '100px', xl: LARGE_INPUT_WIDTH}}>
+      <Currency>
+        <StyledInput
+          aria-label={t('Custom %s spending limit (in dollars)', displayName)}
+          name={`spending-limit-${inputName}`}
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          placeholder="300"
+          value={coerceValue(currentSpendingLimit)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+            const parsedBudget = parseInputValue(e);
+            onUpdate({
+              newData: {[inputName]: parsedBudget},
+            });
+          }}
+        />
+      </Currency>
+    </Container>
   );
 }
 
@@ -704,11 +706,6 @@ const InnerContainer = styled(Flex)`
 
 const StyledInput = styled(Input)`
   padding-left: ${p => p.theme.space['3xl']};
-  width: 100px;
-
-  @container (min-width: ${p => p.theme.container.xl}) {
-    width: ${LARGE_INPUT_WIDTH};
-  }
 `;
 
 const Currency = styled('div')`
