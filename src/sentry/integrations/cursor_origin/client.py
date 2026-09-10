@@ -173,6 +173,74 @@ class CursorOriginApiMixin(RepositoryClient, RepoTreesClient):
     def get_branches(self, repo_full_name: str) -> list[dict[str, Any]]:
         return self._paginate(f"/repos/{repo_full_name}/branches", "branches")
 
+    # -- commits -------------------------------------------------------------
+
+    def get_commits(
+        self, repo_full_name: str, sha: str | None = None, limit: int = 100
+    ) -> list[dict[str, Any]]:
+        """Commits reachable from ``sha``, newest first.
+
+        The ref parameter is spelled ``sha``, as on GitHub. Note that Origin
+        *silently ignores* unknown query parameters rather than rejecting them,
+        so passing ``ref`` here would return a normal 200 with the unfiltered
+        default-branch history -- a wrong answer that looks right.
+
+        ``since``/``until``/``path`` are likewise accepted and ignored, so they
+        are deliberately not offered.
+        """
+        params: dict[str, Any] = {"pageSize": min(limit, PAGE_SIZE)}
+        if sha:
+            params["sha"] = sha
+
+        commits: list[dict[str, Any]] = []
+        page_token: str | None = None
+        while len(commits) < limit:
+            if page_token:
+                # A page token encodes the filters it was issued for, so `sha`
+                # and `pageSize` are ignored once one is supplied.
+                params = {"pageToken": page_token}
+            response = self.get(f"/repos/{repo_full_name}/commits", params=params)
+            if not isinstance(response, dict):
+                break
+            page = response.get("commits") or []
+            commits.extend(page)
+            page_token = response.get("nextPageToken") or None
+            if not page or not page_token:
+                break
+
+        return commits[:limit]
+
+    def get_commit_files(self, repo_full_name: str, sha: str) -> list[dict[str, Any]]:
+        """Files changed by a single commit, GitHub-shaped.
+
+        Entries carry ``filename``/``status``/``patch``. Zero-valued stats keys
+        are omitted rather than sent as 0.
+        """
+        response = self.get(f"/repos/{repo_full_name}/commits/{sha}/files")
+        if not isinstance(response, dict):
+            return []
+        return response.get("files") or []
+
+    def compare_commits(
+        self, repo_full_name: str, start_sha: str, end_sha: str, limit: int = 100
+    ) -> list[dict[str, Any]]:
+        """Commits between two shas, oldest first, excluding ``start_sha``.
+
+        Origin has a compare endpoint but it returns only counts and boundary
+        commits -- no commit list, and no route anywhere gives the files changed
+        between two arbitrary commits. So the range is rebuilt by walking back
+        from ``end_sha`` until ``start_sha`` is reached.
+
+        If ``start_sha`` is not found within ``limit`` commits the walk is
+        returned as-is: a truncated range beats failing a release entirely.
+        """
+        walked: list[dict[str, Any]] = []
+        for commit in self.get_commits(repo_full_name, sha=end_sha, limit=limit):
+            if commit.get("sha") == start_sha:
+                break
+            walked.append(commit)
+        return list(reversed(walked))
+
     # -- RepositoryClient ----------------------------------------------------
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:

@@ -35,3 +35,6 @@ CURSOR_ORIGIN_SCOPES = (
     "repository:checks:read",
     "repository:checks:write",
 )
+
+# Origin's guidance for rejecting replayed deliveries.
+WEBHOOK_MAX_AGE_SECONDS = 300
