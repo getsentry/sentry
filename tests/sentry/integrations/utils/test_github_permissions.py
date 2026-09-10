@@ -4,6 +4,7 @@ from sentry.integrations.utils.github_permissions import (
     GITHUB_APP_REQUIRED_PERMISSIONS_OPTION,
     get_github_permissions_update_url,
     get_missing_github_app_permissions,
+    is_permissions_snapshot_stale,
 )
 from sentry.testutils.helpers.options import override_options
 
@@ -93,3 +94,27 @@ def test_get_github_permissions_update_url(
     assert (
         get_github_permissions_update_url(installation_id, account_type, account_login) == expected
     )
+
+
+@pytest.mark.parametrize(
+    ("metadata", "expected"),
+    [
+        # Written by the token refresh as a naive UTC isoformat string.
+        ({"last_refresh_at": "2026-08-01T00:00:00"}, False),
+        ({"last_refresh_at": "2026-07-11T00:00:00"}, False),
+        ({"last_refresh_at": "2026-07-10T23:59:59"}, True),
+        ({"last_refresh_at": "2026-07-01T00:00:00"}, True),
+        # An offset-aware value is compared in UTC, not rejected.
+        ({"last_refresh_at": "2026-07-10T21:00:00-04:00"}, False),
+        ({"last_refresh_at": "2026-07-10T18:00:00-04:00"}, True),
+        # No usable timestamp at all: the snapshot predates metadata carrying
+        # one, which is older than any cutoff we would set.
+        (None, True),
+        ({}, True),
+        ({"last_refresh_at": None}, True),
+        ({"last_refresh_at": "not a timestamp"}, True),
+        ({"last_refresh_at": 1752192000}, True),
+    ],
+)
+def test_is_permissions_snapshot_stale(metadata, expected) -> None:
+    assert is_permissions_snapshot_stale(metadata) is expected
