@@ -315,6 +315,17 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             )
             self.handler.invoke_legacy_registry(invocation)
 
+    def test_metric_issue_context_allows_missing_metric_value(self) -> None:
+        evidence_data = MetricIssueEvidenceData(**{**asdict(self.evidence_data), "value": None})
+
+        context = MetricIssueContext.from_group_event(
+            self.group,
+            evidence_data,
+            DetectorPriorityLevel.HIGH,
+        )
+
+        assert context.metric_value is None
+
     def test_get_incident_status(self) -> None:
         # Initial priority is high -> incident is critical
         group, _, group_event = self.create_group_event(
