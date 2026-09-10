@@ -38,7 +38,6 @@ def setup_work(case: TransactionTestCase) -> Callable[[], Any]:
     project = case.create_project()
 
     def work() -> int:
-        # Replace this block with ORM queries, a service call, an endpoint, etc.
         count = Project.objects.filter(id=project.id).count()
         assert count == 1
         return count
@@ -108,13 +107,12 @@ class DatabaseOperationProfile:
 
     @property
     def non_database_time_ms(self) -> float:
-        non_database_samples = tuple(
+        return statistics.median(
             max(wall_time - database_time, 0.0)
             for wall_time, database_time in zip(
                 self.wall_time_samples_ms, self.database_time_samples_ms, strict=True
             )
         )
-        return statistics.median(non_database_samples)
 
     def to_report(self, *, label: str | None = None, include_sql: bool = False) -> dict[str, Any]:
         plans = [query.plan for query in self.queries if query.plan is not None]
@@ -341,11 +339,11 @@ def profile_database_operation(
 
     explained_queries: list[ExplainedQuery] = []
     for query in last_captured:
-        explain = query.is_select and not query.many
-        if should_explain is not None:
-            explain = explain and should_explain(query)
-
-        if not explain:
+        if (
+            not query.is_select
+            or query.many
+            or (should_explain is not None and not should_explain(query))
+        ):
             explained_queries.append(ExplainedQuery(captured=query, plan=None))
             continue
 
@@ -405,6 +403,14 @@ _COMPARISON_METRICS = (
 )
 
 
+def _format_table(rows: Sequence[Sequence[str]]) -> str:
+    widths = [max(len(row[column]) for row in rows) for column in range(len(rows[0]))]
+    return "\n".join(
+        "  ".join(value.ljust(widths[column]) for column, value in enumerate(row)).rstrip()
+        for row in rows
+    )
+
+
 def format_profile_summary(report: Mapping[str, Any]) -> str:
     if report.get("schema_version") != PROFILE_SCHEMA_VERSION:
         raise ValueError("Unsupported profile schema")
@@ -421,11 +427,7 @@ def format_profile_summary(report: Mapping[str, Any]) -> str:
     rows.append(("Measured samples", f"{int(totals['sample_count']):,}"))
     rows.append(("Explained queries", f"{int(totals['explained_query_count']):,}"))
 
-    widths = [max(len(row[column]) for row in rows) for column in range(len(rows[0]))]
-    return "\n".join(
-        "  ".join(value.ljust(widths[column]) for column, value in enumerate(row)).rstrip()
-        for row in rows
-    )
+    return _format_table(rows)
 
 
 def format_profile_comparison(
@@ -463,11 +465,7 @@ def format_profile_comparison(
             )
         )
 
-    widths = [max(len(row[column]) for row in rows) for column in range(len(rows[0]))]
-    return "\n".join(
-        "  ".join(value.ljust(widths[column]) for column, value in enumerate(row)).rstrip()
-        for row in rows
-    )
+    return _format_table(rows)
 
 
 def run_profile(
@@ -488,11 +486,10 @@ def run_profile(
         statement_timeout_ms=statement_timeout_ms,
         should_explain=should_explain,
     )
-    errors = [query.explain_error for query in profile.queries if query.explain_error]
-    if errors:
-        raise RuntimeError(f"EXPLAIN failed for {len(errors)} queries; no successful report saved")
+    error_count = sum(1 for query in profile.queries if query.explain_error)
+    if error_count:
+        raise RuntimeError(f"EXPLAIN failed for {error_count} queries; no successful report saved")
     report = profile.to_report(label=label, include_sql=include_sql)
-    # Return normalized JSON-compatible data from work() to compare results without saving them.
     if result is not None:
         report["response_fingerprint"] = hashlib.sha256(
             json.dumps(result, sort_keys=True).encode()

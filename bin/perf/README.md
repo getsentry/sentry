@@ -1,9 +1,7 @@
 # Local work profiling
 
-`profile_work.py` is a single, development-only script for measuring arbitrary
-Python/Django work. Edit `setup_work()` near the top: arrange synthetic data
-outside the nested `work()` function, then put the code to measure inside it.
-There are no endpoint-specific runners, workload classes, or registration steps.
+Edit `setup_work()` in `profile_work.py`: arrange synthetic data outside the nested
+`work()` function, then put the Python/Django code to measure inside it.
 
 ```python
 def setup_work(case):
@@ -57,8 +55,8 @@ Run from the repository root with the virtualenv and local test services ready:
 .venv/bin/python bin/perf/profile_work.py compare /tmp/before.json /tmp/after.json
 ```
 
-The script uses a small pytest driver to initialize Sentry and isolated test
-databases. Setup is outside measurement. The default recreates pytest databases;
+The pytest driver initializes Sentry and isolated test databases, outside
+measurement. The default recreates pytest databases;
 `--reuse-db` preserves their schema, not fixture data. Neither mode targets the
 devserver database. Do not run alongside tests sharing those databases.
 
@@ -111,5 +109,5 @@ score based only on whether an index is used.
 .venv/bin/pytest -n3 -q --reuse-db tests/performance
 ```
 
-The editable `setup_work()` benchmark is opt-in through the script. Ordinary
-tests cover profiling, report comparison, and both ORM and endpoint callables.
+Ordinary tests skip the editable benchmark and cover profiling, report comparison,
+and ORM and endpoint callables.
