@@ -266,7 +266,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         itemIds: [group.id],
       },
       {
-        complete: () => {
+        success: () => {
           clearIndicators();
 
           addSuccessMessage(t('Issue deleted'));
@@ -294,12 +294,14 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         data,
       },
       {
-        complete: () => {
+        success: () => {
           clearIndicators();
           if (successMessage) {
             addSuccessMessage(successMessage);
           }
           onComplete?.();
+        },
+        complete: () => {
           queryClient.invalidateQueries({
             queryKey: groupQueryKey({
               organizationSlug: organization.slug,

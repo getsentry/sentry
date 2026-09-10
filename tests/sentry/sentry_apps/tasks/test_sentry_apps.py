@@ -1708,6 +1708,60 @@ class TestWorkflowNotification(TestCase):
             mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
         )
 
+    def test_repairs_service_hook_missing_organization_id(self, safe_urlopen: MagicMock) -> None:
+        with assume_test_silo_mode_of(ServiceHook):
+            ServiceHook.objects.filter(installation_id=self.install.id).update(organization_id=None)
+
+        workflow_notification(self.install.id, self.issue.id, "resolved", self.user.id)
+
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        assert kwargs["url"] == self.sentry_app.webhook_url
+
+        with assume_test_silo_mode_of(ServiceHook):
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
+        assert hook.organization_id == self.project.organization.id
+
+    def test_does_not_repair_when_multiple_hooks_missing_organization_id(
+        self, safe_urlopen: MagicMock
+    ) -> None:
+        self.create_service_hook(
+            actor=self.user,
+            org=self.project.organization,
+            project_ids=[],
+            events=["issue.resolved"],
+            installation_id=self.install.id,
+            application_id=self.sentry_app.application_id,
+            url=self.sentry_app.webhook_url,
+        )
+        with assume_test_silo_mode_of(ServiceHook):
+            ServiceHook.objects.filter(installation_id=self.install.id).update(organization_id=None)
+
+        with pytest.raises(SentryAppSentryError):
+            workflow_notification(self.install.id, self.issue.id, "resolved", self.user.id)
+        assert not safe_urlopen.called
+
+        with assume_test_silo_mode_of(ServiceHook):
+            assert not ServiceHook.objects.filter(
+                installation_id=self.install.id, organization_id__isnull=False
+            ).exists()
+
+    def test_does_not_repair_hook_belonging_to_another_organization(
+        self, safe_urlopen: MagicMock
+    ) -> None:
+        other_org = self.create_organization()
+        with assume_test_silo_mode_of(ServiceHook):
+            ServiceHook.objects.filter(installation_id=self.install.id).update(
+                organization_id=other_org.id
+            )
+
+        with pytest.raises(SentryAppSentryError):
+            workflow_notification(self.install.id, self.issue.id, "resolved", self.user.id)
+        assert not safe_urlopen.called
+
+        with assume_test_silo_mode_of(ServiceHook):
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
+        assert hook.organization_id == other_org.id
+
 
 class TestWebhookRequests(TestCase):
     def setUp(self) -> None:
@@ -1917,8 +1971,29 @@ class TestBackfillServiceHooksEvents(TestCase):
             )
 
         with assume_test_silo_mode(SiloMode.CELL):
-            hook.refresh_from_db()
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
             assert set(hook.events) == {"issue.created", "issue.resolved", "error.created"}
+
+    def test_regenerate_missing_service_hook_for_installation(self) -> None:
+        other_install = self.create_sentry_app_installation(
+            organization=self.organization, slug=self.sentry_app.slug
+        )
+        with assume_test_silo_mode(SiloMode.CELL):
+            ServiceHook.objects.get(installation_id=self.install.id).delete()
+            assert ServiceHook.objects.filter(installation_id=other_install.id).exists()
+
+        with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
+            regenerate_service_hooks_for_installation(
+                installation_id=self.install.id,
+                webhook_url=self.sentry_app.webhook_url,
+                events=self.sentry_app.events,
+            )
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
+            assert hook.url == self.sentry_app.webhook_url
+            assert set(hook.events) == {"issue.created", "issue.resolved", "error.created"}
+            assert ServiceHook.objects.filter(installation_id=other_install.id).count() == 1
 
     def test_regenerate_service_hook_for_installation_event_not_in_app_events(self) -> None:
         with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
@@ -1949,7 +2024,7 @@ class TestBackfillServiceHooksEvents(TestCase):
             )
 
         with assume_test_silo_mode(SiloMode.CELL):
-            hook.refresh_from_db()
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
             assert hook.events == []
 
 

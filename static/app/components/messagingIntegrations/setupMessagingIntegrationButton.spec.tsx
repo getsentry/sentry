@@ -24,7 +24,6 @@ describe('SetupAlertIntegrationButton', () => {
 
   const getComponent = () => (
     <SetupMessagingIntegrationButton
-      refetchConfigs={jest.fn()}
       analyticsView={MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION}
     />
   );

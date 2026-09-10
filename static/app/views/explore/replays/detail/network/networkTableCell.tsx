@@ -1,5 +1,4 @@
 import type {ComponentProps, CSSProperties} from 'react';
-import {parseAsInteger, useQueryState} from 'nuqs';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -25,6 +24,7 @@ const EMPTY_CELL = '--';
 interface Props extends ReturnType<typeof useCrumbHandlers> {
   columnIndex: number;
   frame: SpanFrame;
+  isSelected: boolean;
   onClickCell: (props: {dataIndex: number; rowIndex: number}) => void;
   rowIndex: number;
   startTimestampMs: number;
@@ -35,6 +35,7 @@ interface Props extends ReturnType<typeof useCrumbHandlers> {
 export function NetworkTableCell({
   columnIndex,
   frame,
+  isSelected,
   onMouseEnter,
   onMouseLeave,
   onClickCell,
@@ -46,9 +47,6 @@ export function NetworkTableCell({
 }: Props) {
   // Rows include the sortable header, the dataIndex does not
   const dataIndex = rowIndex - 1;
-
-  const [detailRow] = useQueryState('n_detail_row', parseAsInteger);
-  const isSelected = detailRow === dataIndex;
 
   const method = getFrameMethod(frame);
   const statusCode = getFrameStatus(frame);

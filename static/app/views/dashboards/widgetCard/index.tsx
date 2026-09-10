@@ -212,6 +212,7 @@ function WidgetCard(props: Props) {
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
+    // oxlint-disable-next-line react/immutability
     widget.displayType = DisplayType.AREA;
   }
 

@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {Stack} from '@sentry/scraps/layout';
 
 import ReplayClipPreview from 'sentry/components/events/eventReplay/replayClipPreview';
@@ -26,17 +24,14 @@ function ReplaySection({
   eventTimestampMs,
   organization,
   analyticsParams,
-  showTitle = false,
 }: {
   eventTimestampMs: number;
   organization: Organization;
   replayId: string;
   analyticsParams?: Record<string, unknown>;
-  showTitle?: boolean;
 }) {
   return (
     <Stack>
-      {showTitle ? <ReplaySectionTitle>{t('Session Replay')}</ReplaySectionTitle> : null}
       <ReplayClipPreview
         analyticsContext="trace-view"
         replaySlug={replayId}
@@ -87,9 +82,3 @@ export function ReplayPreview({
     </ReplayAccess>
   );
 }
-
-const ReplaySectionTitle = styled('div')`
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${p => p.theme.space.xl};
-`;

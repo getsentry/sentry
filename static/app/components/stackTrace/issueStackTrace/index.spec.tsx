@@ -118,6 +118,36 @@ describe('IssueStackTrace', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it('renders exception details when no structured stacktrace is available', async () => {
+    const event = EventFixture({
+      platform: 'python',
+      projectID: '1',
+      entries: [{type: 'exception' as const, data: {values: []}}],
+    });
+
+    render(
+      <IssueStackTrace
+        event={event}
+        values={[
+          {
+            type: 'ValueError',
+            value: 'bad value',
+            module: null,
+            mechanism: null,
+            stacktrace: null,
+            rawStacktrace: null,
+            threadId: null,
+          },
+        ]}
+      />
+    );
+
+    expect(await screen.findByText('Stack Trace')).toBeInTheDocument();
+    expect(screen.getByText('ValueError')).toBeInTheDocument();
+    expect(screen.getByText('bad value')).toBeInTheDocument();
+    expect(screen.getByText('No stacktrace found.')).toBeInTheDocument();
+  });
+
   it('persists raw and minified display selections per project', async () => {
     const {event, stacktrace} = makeStackTraceData();
     const minifiedStacktrace = {

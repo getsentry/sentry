@@ -80,6 +80,7 @@ function EventErrorDescription({error}: {error: ErrorMessage}) {
     const data = errorData || {};
     if (data.message === 'None') {
       // Python ensures a message string, but "None" doesn't make sense here
+      // oxlint-disable-next-line react/immutability
       delete data.message;
     }
 
@@ -87,11 +88,14 @@ function EventErrorDescription({error}: {error: ErrorMessage}) {
       // Separate the image name for readability
       const separator = /^([a-z]:\\|\\\\)/i.test(data.image_path) ? '\\' : '/';
       const path = data.image_path.split(separator);
+      // oxlint-disable-next-line react/immutability
       data.image_name = path.splice(-1, 1)[0];
+      // oxlint-disable-next-line react/immutability
       data.image_path = path.length ? path.join(separator) + separator : '';
     }
 
     if (typeof data.server_time === 'string' && typeof data.sdk_time === 'string') {
+      // oxlint-disable-next-line react/immutability
       data.message = t(
         'Adjusted timestamps by %s',
         moment

@@ -327,7 +327,7 @@ describe('CustomerOverview', () => {
       },
     });
 
-    const mockOnAction = jest.fn();
+    const mockOnAction = jest.fn().mockResolvedValue(undefined);
 
     render(
       <CustomerOverview
@@ -403,7 +403,7 @@ describe('CustomerOverview', () => {
       sponsoredType: 'XX',
     });
 
-    const mockOnAction = jest.fn();
+    const mockOnAction = jest.fn().mockResolvedValue(undefined);
 
     render(
       <CustomerOverview
@@ -509,6 +509,142 @@ describe('CustomerOverview', () => {
     expect(screen.getByText('Seer:')).toBeInTheDocument();
     expect(screen.queryByText('Performance Units:')).not.toBeInTheDocument();
     expect(screen.queryByText('Transactions:')).not.toBeInTheDocument();
+  });
+
+  it('disables non-Seer product trial start on enterprise plans', async () => {
+    const organization = OrganizationFixture();
+    const enterpriseSubscription = InvoicedSubscriptionFixture({
+      organization,
+      plan: 'am3_business_ent_auf',
+      productTrials: [
+        {
+          category: DataCategory.REPLAYS,
+          isStarted: true,
+          reasonCode: 1001,
+          startDate: moment().utc().subtract(20, 'days').format(),
+          endDate: moment().utc().subtract(10, 'days').format(),
+        },
+      ],
+    });
+
+    render(
+      <CustomerOverview
+        customer={enterpriseSubscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    const productTrialsHeading = screen.getByRole('heading', {
+      name: 'Product Trials',
+    });
+    const productTrialsList = productTrialsHeading.nextElementSibling;
+    expect(productTrialsList).toBeInTheDocument();
+    if (!productTrialsList || !(productTrialsList instanceof HTMLElement)) {
+      throw new Error('Product trials list not found or not an HTMLElement');
+    }
+
+    const getTrialButtons = (label: string) => {
+      const termElement = within(productTrialsList).getByText(label);
+      const definition = termElement.nextElementSibling;
+      expect(definition).toBeInTheDocument();
+      if (!definition || !(definition instanceof HTMLElement)) {
+        throw new Error(`${label} definition not found or not an HTMLElement`);
+      }
+
+      return {
+        allowTrialButton: within(definition).getByRole('button', {name: 'Allow Trial'}),
+        startTrialButton: within(definition).getByRole('button', {name: 'Start Trial'}),
+        stopTrialButton: within(definition).getByRole('button', {name: 'Stop Trial'}),
+        extendTrialButton: within(definition).getByRole('button', {
+          name: 'Extend Trial',
+        }),
+      };
+    };
+
+    const spansButtons = getTrialButtons('Spans:');
+    expect(spansButtons.startTrialButton).toBeDisabled();
+    expect(spansButtons.stopTrialButton).toBeDisabled();
+    expect(spansButtons.extendTrialButton).toBeDisabled();
+
+    await userEvent.hover(spansButtons.startTrialButton);
+    expect(
+      await screen.findByText(
+        'Starting a trial for this product is disabled for enterprise plans. Use gifts as needed to add reserved volume.'
+      )
+    ).toBeInTheDocument();
+
+    // Allow Trial is unaffected by the enterprise non-Seer start block: it stays
+    // enabled once a trial has been used, regardless of plan.
+    const replaysButtons = getTrialButtons('Replays:');
+    expect(replaysButtons.startTrialButton).toBeDisabled();
+    expect(replaysButtons.allowTrialButton).toBeEnabled();
+
+    const seerButtons = getTrialButtons('Seer:');
+    expect(seerButtons.startTrialButton).toBeEnabled();
+    expect(seerButtons.stopTrialButton).toBeDisabled();
+    expect(seerButtons.extendTrialButton).toBeDisabled();
+  });
+
+  it('keeps stop/extend available for an in-flight non-Seer trial on enterprise plans', async () => {
+    const organization = OrganizationFixture();
+    const enterpriseSubscription = InvoicedSubscriptionFixture({
+      organization,
+      plan: 'am3_business_ent_auf',
+    });
+    enterpriseSubscription.productTrials = [
+      {
+        category: DataCategory.SPANS,
+        isStarted: true,
+        reasonCode: 1001,
+        startDate: moment().utc().subtract(2, 'days').format(),
+        endDate: moment().utc().add(12, 'days').format(),
+      },
+    ];
+
+    render(
+      <CustomerOverview
+        customer={enterpriseSubscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    const productTrialsHeading = screen.getByRole('heading', {
+      name: 'Product Trials',
+    });
+    const productTrialsList = productTrialsHeading.nextElementSibling;
+    expect(productTrialsList).toBeInTheDocument();
+    if (!productTrialsList || !(productTrialsList instanceof HTMLElement)) {
+      throw new Error('Product trials list not found or not an HTMLElement');
+    }
+
+    const spansTerm = within(productTrialsList).getByText('Spans:');
+    const spansDefinition = spansTerm.nextElementSibling;
+    expect(spansDefinition).toBeInTheDocument();
+    if (!spansDefinition || !(spansDefinition instanceof HTMLElement)) {
+      throw new Error('Spans definition not found or not an HTMLElement');
+    }
+
+    // The enterprise gate only blocks starting/allowing a trial. An operator must
+    // still be able to wind down or extend a trial that is already running.
+    expect(
+      within(spansDefinition).getByRole('button', {name: 'Stop Trial'})
+    ).toBeEnabled();
+    expect(
+      within(spansDefinition).getByRole('button', {name: 'Extend Trial'})
+    ).toBeEnabled();
+
+    const startTrialButton = within(spansDefinition).getByRole('button', {
+      name: 'Start Trial',
+    });
+    expect(startTrialButton).toBeDisabled();
+    await userEvent.hover(startTrialButton);
+    expect(
+      await screen.findByText(
+        'Starting a trial for this product is disabled for enterprise plans. Use gifts as needed to add reserved volume.'
+      )
+    ).toBeInTheDocument();
   });
 
   it('renders SIZE_ANALYSIS admin-only product trials (GA, no feature flag required)', () => {

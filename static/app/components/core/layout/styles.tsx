@@ -295,11 +295,32 @@ export function getMargin(
  * own.
  */
 export function useResponsivePropValue<T>(prop: Responsive<T>): T {
+  return useResponsivePropResolver()(prop);
+}
+
+/**
+ * The multi-prop form of {@link useResponsivePropValue}: resolves the current
+ * breakpoints once and hands back a resolver, for components that resolve a
+ * variable number of `Responsive<T>` values (e.g. one per table column) and so
+ * cannot call a hook per value.
+ */
+export function useResponsivePropResolver(): <T>(prop: Responsive<T>) => T {
   const viewportBreakpoint = useActiveBreakpoint();
   // No container ancestor → 'zero', the only value CSS applies in that case (the
   // plain base declaration), so JS and the @container rules stay in agreement.
   const containerBreakpoint = useContext(ContainerQueryContext) ?? 'zero';
 
+  return useCallback(
+    prop => resolveResponsiveProp(prop, containerBreakpoint, viewportBreakpoint),
+    [containerBreakpoint, viewportBreakpoint]
+  );
+}
+
+function resolveResponsiveProp<T>(
+  prop: Responsive<T>,
+  containerBreakpoint: ContainerBreakpointSize,
+  viewportBreakpoint: BreakpointSize
+): T {
   // Only resolve the active breakpoint if the prop is responsive, else ignore it.
   if (!isResponsive(prop)) {
     return prop;

@@ -270,9 +270,11 @@ class IssuesEventWebhook(GitlabWebhook):
         Handle issue assignment and unassignment events.
 
         GitLab sends webhooks with the current assignees array, so we sync based on
-        the current state to avoid race conditions.
+        the current state to avoid race conditions, and pass `object_attributes.updated_at`
+        along so stale deliveries can be dropped.
         """
         assignees = event.get("assignees", [])
+        updated_at = event.get("object_attributes", {}).get("updated_at")
 
         # If there are no assignees, deassign
         if not assignees:
@@ -281,6 +283,7 @@ class IssuesEventWebhook(GitlabWebhook):
                 external_user_name="",
                 external_issue_key=external_issue_key,
                 assign=False,
+                provider_event_updated_at=updated_at,
             )
             logger.info(
                 "gitlab.webhook.assignment.synced",
@@ -318,6 +321,7 @@ class IssuesEventWebhook(GitlabWebhook):
             external_issue_key=external_issue_key,
             assign=True,
             external_user_id=assignee_id,
+            provider_event_updated_at=updated_at,
         )
 
         logger.info(

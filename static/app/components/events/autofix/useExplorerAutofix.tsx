@@ -88,7 +88,7 @@ export function isRootCauseArtifact(
   );
 }
 
-interface SolutionStep {
+export interface SolutionStep {
   description: string;
   title: string;
 }

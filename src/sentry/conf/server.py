@@ -201,7 +201,6 @@ SENTRY_UPTIME_DETECTOR_CLUSTER = "default"
 SENTRY_WORKFLOW_ENGINE_REDIS_CLUSTER = "default"
 SENTRY_HYBRIDCLOUD_BACKFILL_OUTBOXES_REDIS_CLUSTER = "default"
 SENTRY_WEEKLY_REPORTS_REDIS_CLUSTER = "default"
-SENTRY_HYBRIDCLOUD_DELETIONS_REDIS_CLUSTER = "default"
 SENTRY_SESSION_STORE_REDIS_CLUSTER = "default"
 SENTRY_AUTH_IDPMIGRATION_REDIS_CLUSTER = "default"
 SENTRY_SNOWFLAKE_REDIS_CLUSTER = "default"
@@ -1144,22 +1143,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "transaction-name-clusterer": {
         "task": "performance:sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
         "schedule": crontab("17", "*", "*", "*", "*"),
-    },
-    "dynamic-sampling-boost-low-volume-projects": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_projects",
-        "schedule": crontab("*/10", "*", "*", "*", "*"),
-    },
-    "dynamic-sampling-boost-low-volume-transactions": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
-        "schedule": crontab("*/10", "*", "*", "*", "*"),
-    },
-    "dynamic-sampling-recalibrate-orgs": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.recalibrate_orgs",
-        "schedule": crontab("*/10", "*", "*", "*", "*"),
-    },
-    "dynamic-sampling-sliding-window-org": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.sliding_window_org",
-        "schedule": crontab("*/10", "*", "*", "*", "*"),
     },
     "dynamic-sampling-schedule-per-org-calculations": {
         "task": "telemetry-experience:sentry.dynamic_sampling.per_org.schedule_per_org_calculations",
