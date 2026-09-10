@@ -663,8 +663,9 @@ describe('ScmMessagingProviderRow', () => {
       ).toBeInTheDocument();
     });
 
-    it('saves the setup and transitions to configured when onConfigured is called', async () => {
+    it('saves the setup and calls onContinue without closing the picker', async () => {
       const onMessagingSetupChange = jest.fn();
+      const onContinue = jest.fn();
       let capturedOnConfigured:
         | ((setup: ScmMessagingSetup & {mode: 'selected'}) => void)
         | undefined;
@@ -676,8 +677,9 @@ describe('ScmMessagingProviderRow', () => {
         }
       );
 
-      const {rerender} = renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
+      renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
         onMessagingSetupChange,
+        onContinue,
         renderChannelPicker,
       });
 
@@ -685,24 +687,9 @@ describe('ScmMessagingProviderRow', () => {
 
       act(() => capturedOnConfigured?.(selectedSlackSetup));
       expect(onMessagingSetupChange).toHaveBeenCalledWith(selectedSlackSetup);
-
-      // Simulate the parent updating the messagingSetup prop after the save.
-      rerender(
-        <ScmMessagingProviderRow
-          resolvedProvider={connectedSlack}
-          messagingSetup={selectedSlackSetup}
-          activeRow={null}
-          onActiveRowChange={jest.fn()}
-          onContinue={jest.fn()}
-          onInstallComplete={jest.fn()}
-          onMessagingSetupChange={onMessagingSetupChange}
-          renderChannelPicker={renderChannelPicker}
-        />
-      );
-
-      await waitFor(() =>
-        expect(screen.queryByText('channel-picker')).not.toBeInTheDocument()
-      );
+      expect(onContinue).toHaveBeenCalledTimes(1);
+      // Picker stays open — activeRow is not cleared so the step can unmount cleanly.
+      expect(screen.getByText('channel-picker')).toBeInTheDocument();
     });
   });
 

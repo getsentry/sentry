@@ -233,10 +233,9 @@ export function ScmMessagingProviderRow({
   const handleConfigured = useCallback(
     (setup: ScmMessagingSetup & {mode: 'selected'}) => {
       onMessagingSetupChange(setup);
-      onActiveRowChange(null);
       onContinue();
     },
-    [onMessagingSetupChange, onActiveRowChange, onContinue]
+    [onMessagingSetupChange, onContinue]
   );
 
   const errorMessage = getInstallErrorMessage(installState);
