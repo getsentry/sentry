@@ -6,6 +6,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {ScmFeatureSelectionPanel} from 'sentry/components/onboarding/scm/scmFeatureSelectionPanel';
+import type {CreatedProject} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import {ScmPlatformFeaturesCore} from 'sentry/components/onboarding/scm/scmPlatformFeaturesCore';
 import {
   DEFAULT_SCM_FEATURES,
@@ -22,12 +23,12 @@ import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 import type {StepProps} from './types';
 
 interface ScmPlatformFeaturesProps {
-  createdProjectSlug: string | undefined;
+  createdProject: CreatedProject | undefined;
   deferProjectCreation: boolean;
   onComplete: StepProps['onComplete'];
+  onCreatedProjectChange: (createdProject: CreatedProject) => void;
   onFeaturesChange: (features: ProductSolution[] | undefined) => void;
   onPlatformChange: (platform: OnboardingSelectedSDK | undefined) => void;
-  onProjectCreated: (slug: string | undefined) => void;
   selectedFeatures: ProductSolution[] | undefined;
   selectedPlatform: OnboardingSelectedSDK | undefined;
   selectedRepository: Repository | undefined;
@@ -35,20 +36,20 @@ interface ScmPlatformFeaturesProps {
 }
 
 export function ScmPlatformFeatures({
-  createdProjectSlug,
+  createdProject,
   deferProjectCreation,
   onComplete,
+  onCreatedProjectChange,
   onFeaturesChange,
   onPlatformChange,
-  onProjectCreated,
   selectedFeatures,
   selectedPlatform,
   selectedRepository,
   genBackButton,
 }: ScmPlatformFeaturesProps) {
   const {createOrReuseProject, isCreating, isDataPending} = useScmProjectCreation({
-    createdProjectSlug,
-    onProjectCreated,
+    createdProject,
+    onCreatedProjectChange,
     selectedRepository,
   });
 

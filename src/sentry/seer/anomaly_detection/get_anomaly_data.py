@@ -1,4 +1,6 @@
 import logging
+from collections.abc import Callable, Mapping
+from typing import Any, Literal
 
 from django.conf import settings
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
@@ -17,6 +19,7 @@ from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSensitivity,
     AnomalyDetectionThresholdType,
     AnomalyThresholdDataPoint,
+    AnomalyType,
     DataSourceType,
     DetectAnomaliesRequest,
     DetectAnomaliesResponse,
@@ -27,10 +30,59 @@ from sentry.seer.anomaly_detection.types import (
 from sentry.seer.anomaly_detection.utils import get_aggregate_type, translate_direction
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.snuba.models import QuerySubscription, SnubaQuery
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
+
+# All outcomes recorded on the ``sentry.seer.anomaly_detection.detect_anomalies``
+# counter. Add new values here (and to the classifier in
+# ``get_anomaly_data_from_seer``) rather than emitting an ad-hoc string.
+_Outcome = Literal[
+    "success",
+    "invalid_input",
+    "timeout",
+    "http_error",
+    "decode_error",
+    "json_error",
+    "seer_reported_failure",
+    "empty_timeseries",
+    "no_data",
+    "missing_anomaly_type",
+]
+
+
+def _log_and_emit(
+    log_fn: Callable[..., None],
+    msg: str,
+    *,
+    outcome: _Outcome,
+    dataset: str,
+    extra: Mapping[str, Any],
+    tags: Mapping[str, str | int] | None = None,
+) -> None:
+    """Log ``msg`` via ``log_fn`` and emit the outcome counter alongside it.
+
+    ``log_fn`` is passed as a first-class argument so the level (warning /
+    error / exception) remains visible at each call site, and so that
+    ``logger.exception`` is still invoked from inside its ``except`` block
+    (required to capture ``sys.exc_info``).
+
+    Tag keys allowed on ``tags``, in addition to ``outcome`` and ``dataset``
+    (which are always set):
+
+    * ``error`` — exception class name (timeout / decode_error / json_error)
+    * ``response_status`` — HTTP status (http_error / decode_error / json_error)
+
+    Do not add free-form values (org/subscription IDs, Seer error messages,
+    etc.) — those belong in the log ``extra`` payload.
+    """
+    log_fn(msg, extra=extra)
+    metrics.incr(
+        "sentry.seer.anomaly_detection.detect_anomalies",
+        sample_rate=1.0,
+        tags={"outcome": outcome, "dataset": dataset, **(tags or {})},
+    )
 
 
 def _adjust_timestamps_for_time_window(
@@ -103,10 +155,15 @@ def get_anomaly_data_from_seer(
     aggregation_value = subscription_update.get("value")
     source_id = subscription.id
     source_type = DataSourceType.SNUBA_QUERY_SUBSCRIPTION
+    dataset = snuba_query.dataset
 
     if aggregation_value is None or str(aggregation_value) == "nan":
-        logger.warning(
-            "Invalid aggregation value", extra={"source_id": source_id, "source_type": source_type}
+        _log_and_emit(
+            logger.warning,
+            "Invalid aggregation value",
+            outcome="invalid_input",
+            dataset=dataset,
+            extra={"source_id": source_id, "source_type": source_type},
         )
         return None
 
@@ -140,36 +197,51 @@ def get_anomaly_data_from_seer(
         config=anomaly_detection_config,
         context=context,
     )
-    extra_data["dataset"] = snuba_query.dataset
+    extra_data["dataset"] = dataset
     try:
         logger.info("Sending subscription update data to Seer", extra=extra_data)
         viewer_context = SeerViewerContext(organization_id=subscription.project.organization_id)
         response = make_detect_anomalies_request(
             detect_anomalies_request, viewer_context=viewer_context
         )
-    except (TimeoutError, MaxRetryError):
-        logger.warning("Timeout error when hitting anomaly detection endpoint", extra=extra_data)
+    except (TimeoutError, MaxRetryError) as e:
+        _log_and_emit(
+            logger.warning,
+            "Timeout error when hitting anomaly detection endpoint",
+            outcome="timeout",
+            dataset=dataset,
+            extra=extra_data,
+            tags={"error": type(e).__name__},
+        )
         return None
 
     if response.status > 400:
-        logger.error(
+        _log_and_emit(
+            logger.error,
             "Error when hitting Seer detect anomalies endpoint",
-            extra={
-                "response_data": response.data,
-                **extra_data,
-            },
+            outcome="http_error",
+            dataset=dataset,
+            extra={"response_data": response.data, **extra_data},
+            tags={"response_status": response.status},
         )
         return None
     try:
         decoded_data = response.data.decode("utf-8")
     except AttributeError:
-        logger.exception(
+        _log_and_emit(
+            logger.exception,
             "Failed to parse Seer anomaly detection response",
+            outcome="decode_error",
+            dataset=dataset,
             extra={
                 "ad_config": anomaly_detection_config,
                 "context": context,
                 "response_data": response.data,
                 "response_code": response.status,
+            },
+            tags={
+                "error": "AttributeError",
+                "response_status": response.status,
             },
         )
         return None
@@ -177,13 +249,20 @@ def get_anomaly_data_from_seer(
     try:
         results: DetectAnomaliesResponse = json.loads(decoded_data)
     except JSONDecodeError:
-        logger.exception(
+        _log_and_emit(
+            logger.exception,
             "Failed to parse Seer anomaly detection response",
+            outcome="json_error",
+            dataset=dataset,
             extra={
                 "ad_config": anomaly_detection_config,
                 "context": context,
                 "response_data": decoded_data,
                 "response_code": response.status,
+            },
+            tags={
+                "error": "JSONDecodeError",
+                "response_status": response.status,
             },
         )
         return None
@@ -195,13 +274,22 @@ def get_anomaly_data_from_seer(
         value = context["cur_window"]["value"]
         extra_data["value"] = value
         extra_data["value_str"] = str(value)  # Explicit string to catch NaN/Inf, just in case
-        logger.warning(msg, extra=extra_data)
+        _log_and_emit(
+            logger.warning,
+            msg,
+            outcome="seer_reported_failure",
+            dataset=dataset,
+            extra=extra_data,
+        )
         return None
 
     ts = results.get("timeseries")
     if not ts:
-        logger.warning(
+        _log_and_emit(
+            logger.warning,
             "Seer anomaly detection response returned no potential anomalies",
+            outcome="empty_timeseries",
+            dataset=dataset,
             extra={
                 "ad_config": anomaly_detection_config,
                 "context": context,
@@ -209,6 +297,22 @@ def get_anomaly_data_from_seer(
             },
         )
         return None
+
+    # Classify successful responses that downstream callers (e.g.
+    # AnomalyDetectionHandler) will still treat as failures. This is purely
+    # observational — the return value is unchanged.
+    anomaly_type = ts[0].get("anomaly", {}).get("anomaly_type")
+    if anomaly_type == AnomalyType.NO_DATA.value:
+        outcome: _Outcome = "no_data"
+    elif anomaly_type is None:
+        outcome = "missing_anomaly_type"
+    else:
+        outcome = "success"
+    metrics.incr(
+        "sentry.seer.anomaly_detection.detect_anomalies",
+        sample_rate=1.0,
+        tags={"outcome": outcome, "dataset": dataset},
+    )
     return ts
 
 

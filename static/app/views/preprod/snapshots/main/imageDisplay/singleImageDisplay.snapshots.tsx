@@ -1,6 +1,5 @@
 import {ThemeProvider} from '@emotion/react';
 
-// eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 import {SingleImageDisplay} from './singleImageDisplay';

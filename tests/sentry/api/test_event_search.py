@@ -349,6 +349,21 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             SearchFilter(key=SearchKey(name="z"), operator="=", value=SearchValue(raw_value="1")),
         ]
 
+    def test_conditional_aggregate_query_argument(self) -> None:
+        for predicate in [
+            "x:1 AND (y:2 OR z:3)",
+            'span.description:"hello world"',
+            'gen_ai.tool.name:["search docs",calculator]',
+            r'span.description:"say \"hello\""',
+        ]:
+            assert parse_search_query(f"count_if(`{predicate}`,span.duration):>0") == [
+                AggregateFilter(
+                    key=AggregateKey(f"count_if(`{predicate}`, span.duration)"),
+                    operator=">",
+                    value=SearchValue(0.0),
+                )
+            ]
+
     def test_paren_expression_of_empty_string(self) -> None:
         assert parse_search_query('("")') == parse_search_query('""') == []
 

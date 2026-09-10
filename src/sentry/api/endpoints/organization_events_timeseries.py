@@ -23,6 +23,7 @@ from sentry.api.endpoints.timeseries import (
     StatsResponse,
     TimeSeries,
 )
+from sentry.api.helpers.data_annotations import get_dropped_data_annotations
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
@@ -219,8 +220,17 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 comparison_delta,
                 additional_queries,
             )
+            include_annotations = request.GET.get("includeAnnotations") is not None
             return Response(
-                self.serialize_stats_data(events_stats, axes, snuba_params, rollup, dataset),
+                self.serialize_stats_data(
+                    events_stats,
+                    axes,
+                    snuba_params,
+                    rollup,
+                    dataset,
+                    organization,
+                    include_annotations,
+                ),
                 status=200,
             )
 
@@ -401,6 +411,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         snuba_params: SnubaParams,
         rollup: int,
         dataset,
+        organization: Organization,
+        include_annotations: bool = False,
     ) -> StatsResponse:
         # We need the current timestamp for the Ingestion Delay incomplete reason
         now = datetime.now().timestamp()
@@ -420,6 +432,18 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                         debug_info[key] = keyed_result.data["meta"]["debug_info"]
             # ignore typing here cause we don't want the openapi docs to include debug_info
             stats_meta["debug_info"] = debug_info  #  type: ignore[typeddict-unknown-key]
+        # Opt-in and flag-gated; enrichment must never break the primary response.
+        should_annotate = include_annotations and features.has(
+            "organizations:explore-data-fidelity-annotations", organization
+        )
+        if should_annotate:
+            try:
+                stats_meta["annotations"] = get_dropped_data_annotations(
+                    dataset, snuba_params, rollup
+                )
+            except Exception:
+                sentry_sdk.capture_exception()
+                stats_meta["annotations"] = []
         response = StatsResponse(
             meta=stats_meta,
             timeSeries=self.serialize_result(result, axes, rollup, now),
