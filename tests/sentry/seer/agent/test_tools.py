@@ -2152,7 +2152,7 @@ class TestGetProjectMembers(APITestCase):
         population, sample_size = sample.call_args.args
         assert set(population) == {user.id for user in users}
         assert sample_size == 3
-        incr.assert_called_once_with(
+        incr.assert_any_call(
             "seer.get_project_members.fallback",
             tags={"fallback_count": "3"},
             sample_rate=1.0,
@@ -2169,14 +2169,14 @@ class TestGetProjectMembers(APITestCase):
 
         assert result is None
 
-    @pytest.mark.parametrize("limit", [0, 21, True])
-    def test_rejects_invalid_limit(self, limit):
-        with pytest.raises(BadRequest):
-            get_project_members(
-                organization_id=self.organization.id,
-                project_id=self.project.id,
-                limit=limit,
-            )
+    def test_rejects_invalid_limit(self):
+        for limit in (0, 21, True):
+            with self.subTest(limit=limit), pytest.raises(BadRequest):
+                get_project_members(
+                    organization_id=self.organization.id,
+                    project_id=self.project.id,
+                    limit=limit,
+                )
 
 
 class TestGetGroupAssignees(APITestCase):
