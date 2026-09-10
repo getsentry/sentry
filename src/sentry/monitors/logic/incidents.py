@@ -16,7 +16,6 @@ from sentry.monitors.logic.incident_occurrence import (
 )
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorIncident, MonitorStatus
 from sentry.monitors.tasks.detect_broken_monitor_envs import NUM_DAYS_BROKEN_PERIOD
-from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -81,28 +80,12 @@ def try_incident_threshold(
             # reverse the list after slicing in order to start with oldest check-in
             previous_checkins = list(reversed(previous_checkins))
 
-            # If we have any successful check-ins within the threshold of
-            # commits we have NOT reached an incident state
-            if any([checkin.status == CheckInStatus.OK for checkin in previous_checkins]):
+            # If we have fewer check-ins than the threshold or any successful
+            # check-ins within it, we have NOT reached an incident state.
+            if len(previous_checkins) < failure_issue_threshold or any(
+                checkin.status == CheckInStatus.OK for checkin in previous_checkins
+            ):
                 return False
-
-            # An incident is about to fire even though fewer check-ins exist
-            # for this monitor environment than the configured
-            # failure_issue_threshold (e.g. a brand new monitor environment).
-            # In this degenerate case the "any OK disqualifies" check above
-            # trivially passes since there aren't enough check-ins yet to
-            # fill the threshold window, which can cause incidents to fire
-            # earlier than the configured threshold intends.
-            # See getsentry/sentry#123661.
-            checkin_count_at_incident = len(previous_checkins)
-            if checkin_count_at_incident < failure_issue_threshold:
-                metrics.incr(
-                    "monitors.incidents.threshold_history_underrun",
-                    tags={
-                        "checkin_count_at_incident": str(checkin_count_at_incident),
-                        "failure_issue_threshold": str(failure_issue_threshold),
-                    },
-                )
 
         # change monitor status + update fingerprint timestamp
         monitor_env.status = MonitorStatus.ERROR
