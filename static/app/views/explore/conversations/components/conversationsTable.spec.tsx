@@ -251,6 +251,26 @@ describe('ConversationsTable', () => {
     });
   });
 
+  it('restores the flexible conversation column after resetting its resize handle', async () => {
+    localStorage.setItem(COLUMN_WIDTHS_STORAGE_KEY, JSON.stringify({conversation: 300}));
+    mockConversations([{...BASE_CONVERSATION, title: 'A conversation'}]);
+
+    renderTable();
+
+    await screen.findByText('A conversation');
+
+    // Double-clicking the resize handle resets the column to
+    // COL_WIDTH_UNDEFINED, which should restore the flexible track rather
+    // than leaving the column stuck at a fixed width.
+    await userEvent.dblClick(screen.getByRole('separator', {name: 'Conversation'}));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-editable').style.gridTemplateColumns).toContain(
+        `minmax(${COL_WIDTH_MINIMUM}px, 1fr)`
+      );
+    });
+  });
+
   it('sorts by supported headers when the feature is enabled', async () => {
     const request = mockConversations(
       [{...BASE_CONVERSATION, title: 'Sortable conversation'}],

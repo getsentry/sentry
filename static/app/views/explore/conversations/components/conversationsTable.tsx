@@ -247,7 +247,8 @@ export function ConversationsTable() {
   );
   const staticColumnWidths = useMemo(
     () =>
-      storedWidths.conversation === undefined
+      storedWidths.conversation === undefined ||
+      storedWidths.conversation === COL_WIDTH_UNDEFINED
         ? {conversation: `minmax(${COL_WIDTH_MINIMUM}px, 1fr)`}
         : undefined,
     [storedWidths.conversation]
