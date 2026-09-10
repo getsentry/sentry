@@ -9,7 +9,7 @@ export enum AuthV2CookieState {
   UNSET = 'unset',
 }
 
-function getAuthV2CookieState() {
+export function getAuthV2CookieState() {
   const value = Cookies.get(REACT_AUTH_COOKIE);
 
   if (value === '1') {

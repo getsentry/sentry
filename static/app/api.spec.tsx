@@ -131,6 +131,34 @@ describe('api', () => {
   });
 
   describe('sso-required', () => {
+    it('delegates organization SSO authentication errors', async () => {
+      const onSsoRequired = jest.fn(() => true);
+      const unregister = initApiClientErrorHandling({onSsoRequired});
+      const client = new Client();
+      const completed = Promise.withResolvers<void>();
+      const loginUrl = '/auth/login/acme/?next=%2Forganizations%2Facme%2Fissues%2F';
+      const organizationSlug = 'acme';
+
+      fetchMock.mockResponseOnce(
+        JSON.stringify({
+          detail: {
+            code: 'sso-required',
+            extra: {loginUrl, organizationSlug},
+            message: 'Must login via SSO',
+          },
+        }),
+        {status: 401}
+      );
+
+      client.request('/organizations/acme/issues/', {
+        complete: () => completed.resolve(),
+      });
+      await completed.promise;
+      expect(onSsoRequired).toHaveBeenCalledWith({organizationSlug});
+
+      unregister();
+    });
+
     it('redirects to the SSO login with the current page as next', async () => {
       setWindowLocation(
         'https://acme.sentry.io/issues/123/?project=1&query=is%3Aunresolved#events'
