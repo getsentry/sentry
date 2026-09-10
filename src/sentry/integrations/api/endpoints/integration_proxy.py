@@ -388,7 +388,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
                 "hybrid_cloud.integration_proxy.api_invalid_request_error", extra=self.log_extra
             )
             self._add_failure_metric(IntegrationProxyFailureMetricType.API_INVALID_REQUEST_ERROR)
-            return self.respond(status=exc.code)
+            return self.respond(exc.json if exc.json is not None else exc.text, status=exc.code)
         elif isinstance(exc, ApiUnauthorized):
             logger.info("hybrid_cloud.integration_proxy.unauthorized_error", extra=self.log_extra)
             self._add_failure_metric(IntegrationProxyFailureMetricType.UNAUTHORIZED_ERROR)

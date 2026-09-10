@@ -624,7 +624,9 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         headers = self.create_request_headers(
             signature_path=signature_path, integration_id=self.org_integration.id
         )
-        error = ApiInvalidRequestError("Invalid request")
+        error = ApiInvalidRequestError(
+            '{"error":{"code":"BadSyntax","message":"Bad format of conversation ID"}}'
+        )
         mock_client.base_url = "https://example.com/api"
         mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
         mock_client.request = MagicMock(side_effect=error)
@@ -633,7 +635,9 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         proxy_response = self.client.get(self.path, **headers)
 
         assert proxy_response.status_code == 400
-        assert proxy_response.data is None
+        assert proxy_response.data == {
+            "error": {"code": "BadSyntax", "message": "Bad format of conversation ID"}
+        }
         self.assert_failure_metric_count(
             failure_type=IntegrationProxyFailureMetricType.API_INVALID_REQUEST_ERROR,
             count=1,
