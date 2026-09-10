@@ -436,13 +436,14 @@ def validate_regex_pattern(key: str, pattern: str) -> None:
     if not pattern:
         raise InvalidSearchQuery(f"{key}: Empty regex pattern")
 
-    unsupported = UNSUPPORTED_REGEX_SYNTAX.search(pattern)
-    if unsupported is not None:
-        raise InvalidSearchQuery(
-            f"{key}: Invalid regex: `{unsupported.group()}` is not supported. "
-            "Patterns are matched with RE2, which has no backreferences, lookaround, "
-            "or other PCRE extensions."
-        )
+    for match in UNSUPPORTED_REGEX_SYNTAX.finditer(pattern):
+        unsupported = match.group("unsupported")
+        if unsupported is not None:
+            raise InvalidSearchQuery(
+                f"{key}: Invalid regex: `{unsupported}` is not supported. "
+                "Patterns are matched with RE2, which has no backreferences, lookaround, "
+                "or other PCRE extensions."
+            )
 
     try:
         re.compile(pattern)

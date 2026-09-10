@@ -333,8 +333,9 @@ REGEX_OPERATOR = f"{WILDCARD_UNICODE}Matches{WILDCARD_UNICODE}"
 
 # RE2, which backs the ClickHouse `match` this compiles to, rejects the PCRE extensions that
 # Python's `re` accepts, and ClickHouse only reports that as a query failure once the pattern
-# has already reached it.
-UNSUPPORTED_REGEX_SYNTAX = re.compile(r"\\[1-9]|\\Z|\(\?(?:[=!>#(]|<[=!]|P=)")
+# has already reached it. The first branch consumes escaped backslashes, so that a pattern
+# like `\\1` reads as a literal backslash followed by a digit.
+UNSUPPORTED_REGEX_SYNTAX = re.compile(r"\\\\|(?P<unsupported>\\[1-9]|\\Z|\(\?(?:[=!>#(]|<[=!]|P=))")
 
 MAX_SEARCH_RELEASES = 1000
 SEMVER_EMPTY_RELEASE = "____SENTRY_EMPTY_RELEASE____"

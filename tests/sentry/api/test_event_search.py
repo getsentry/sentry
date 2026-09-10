@@ -1510,6 +1510,12 @@ def test_handles_starts_with_wildcard_op_translations(query, expected) -> None:
         pytest.param(f"span.op:{REGEX_OPERATOR}a*b", "=", "a*b", id="quantifier"),
         pytest.param(f"span.op:{REGEX_OPERATOR}a\\*b", "=", "a\\*b", id="escaped asterisk"),
         pytest.param(f"span.op:{REGEX_OPERATOR}a\\d+", "=", "a\\d+", id="character class"),
+        pytest.param(
+            f"span.op:{REGEX_OPERATOR}a\\\\1", "=", "a\\\\1", id="escaped backslash before digit"
+        ),
+        pytest.param(
+            f"span.op:{REGEX_OPERATOR}a\\\\Z", "=", "a\\\\Z", id="escaped backslash before Z"
+        ),
         pytest.param(f'span.op:{REGEX_OPERATOR}"a b|c"', "=", "a b|c", id="quoted"),
         pytest.param(f"span.op:{REGEX_OPERATOR}[^foo, bar$]", "IN", ["^foo", "bar$"], id="in list"),
         pytest.param(
