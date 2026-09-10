@@ -621,18 +621,18 @@ def get_supported_condition_types(
 
 
 def _custom_filter_condition(
-    conditions: list[dict[str, Any]], data_type: str | None
+    conditions: list[dict[str, Any]], data_type: str
 ) -> RuleCondition | None:
     """
     Translates a custom inbound filter's conditions into a Relay rule condition.
 
     Conditions are combined with AND. Returns None if the filter cannot be translated
-    (a missing data type, a data type, condition type, or value shape unknown to this
-    revision, or a condition type whose field the filter's data type does not carry):
-    since every condition narrows the match, dropping only the broken condition would
-    filter more data than configured.
+    (a data type, condition type, or value shape unknown to this revision, or a
+    condition type whose field the filter's data type does not carry): since every
+    condition narrows the match, dropping only the broken condition would filter more
+    data than configured.
     """
-    if not conditions or data_type is None:
+    if not conditions:
         return None
 
     try:
