@@ -1,11 +1,16 @@
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.api.bases.organization_integrations import (
@@ -26,20 +31,53 @@ class IntegrationRepository(TypedDict):
     url: str | None
 
 
+class IntegrationRepositoriesResponse(TypedDict):
+    repos: list[IntegrationRepository]
+    searchable: NotRequired[bool]
+
+
+@extend_schema(tags=["Integration"])
 @cell_silo_endpoint
 class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
 
+    @extend_schema(
+        operation_id="listOrganizationIntegrationRepositories",
+        summary="List Repositories Available to an Integration",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.INTEGRATION_ID,
+            OpenApiParameter("search", type=str, description="Repository name to search for."),
+            OpenApiParameter(
+                "installableOnly",
+                type=bool,
+                description="Only return repositories that are not already installed in Sentry.",
+            ),
+            OpenApiParameter(
+                "accessibleOnly",
+                type=bool,
+                description="Only search repositories accessible to the integration installation.",
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "IntegrationRepositoriesResponse", IntegrationRepositoriesResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def get(
         self,
         request: Request,
         organization: Organization,
         integration_id: int,
         **kwds: Any,
-    ) -> Response:
+    ) -> Response[IntegrationRepositoriesResponse] | Response[DetailResponse]:
         """
         Get the list of repositories available in an integration
         ````````````````````````````````````````````````````````

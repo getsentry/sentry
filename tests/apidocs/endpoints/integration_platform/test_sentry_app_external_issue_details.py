@@ -35,3 +35,29 @@ class SentryAppDetailsDocsTest(APIDocsTestCase):
         request = RequestFactory().delete(self.url)
 
         self.validate_schema(request, response)
+
+
+class GroupExternalIssueDocsTest(APIDocsTestCase):
+    def setUp(self) -> None:
+        self.group = self.create_group()
+        self.external_issue = self.create_platform_external_issue(
+            group=self.group,
+            service_type="example-app",
+            display_name="Example#APP-123",
+            web_url="https://example.com/issues/APP-123",
+        )
+        self.url = (
+            f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/external-issues/"
+        )
+        self.login_as(user=self.user)
+
+    def test_get(self) -> None:
+        response = self.client.get(self.url)
+
+        self.validate_schema(RequestFactory().get(self.url), response)
+
+    def test_delete(self) -> None:
+        url = f"{self.url}{self.external_issue.id}/"
+        response = self.client.delete(url)
+
+        self.validate_schema(RequestFactory().delete(url), response)

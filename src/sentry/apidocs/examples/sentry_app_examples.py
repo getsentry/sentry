@@ -2,6 +2,70 @@ from drf_spectacular.utils import OpenApiExample
 
 
 class SentryAppExamples:
+    GET_INSTALLED_COMPONENTS = [
+        OpenApiExample(
+            "Installed issue-link component",
+            value=[
+                {
+                    "uuid": "77cebea3-019e-484d-8673-6c3969698827",
+                    "type": "issue-link",
+                    "schema": {
+                        "type": "issue-link",
+                        "link": {
+                            "uri": "/issues/link",
+                            "required_fields": [
+                                {"type": "text", "name": "issue", "label": "Issue"}
+                            ],
+                        },
+                    },
+                    "error": "",
+                    "sentryApp": {
+                        "uuid": "b8365de2-c996-4e06-a243-9431278eaf87",
+                        "slug": "example-app",
+                        "name": "Example App",
+                        "avatars": [],
+                    },
+                }
+            ],
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
+    GET_EXTERNAL_REQUEST_OPTIONS = [
+        OpenApiExample(
+            "Select field options",
+            value={"choices": [["APP-123", "Example issue"]], "defaultValue": "APP-123"},
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
+    EXECUTE_EXTERNAL_ISSUE_ACTION = [
+        OpenApiExample(
+            "Link an existing issue",
+            value={
+                "groupId": "1234567890",
+                "action": "link",
+                "uri": "/issues/link",
+                "issue": "APP-123",
+            },
+            request_only=True,
+        ),
+        OpenApiExample(
+            "Linked external issue",
+            value={
+                "id": "123456",
+                "issueId": "1234567890",
+                "serviceType": "example-app",
+                "displayName": "Example#APP-123",
+                "webUrl": "https://example.com/issues/APP-123",
+            },
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
     RETRIEVE_SENTRY_APP = [
         OpenApiExample(
             "Retrieve a custom integration",

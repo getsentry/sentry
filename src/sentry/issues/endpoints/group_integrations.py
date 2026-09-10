@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,7 +14,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
-from sentry.api.serializers import serialize
+from sentry.api.serializers import Serializer, serialize
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, IssueParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs
 from sentry.integrations.api.serializers.models.integration import (
@@ -32,11 +35,20 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 
+class LinkedExternalIssueResponse(TypedDict):
+    id: str
+    key: str
+    url: str
+    title: str | None
+    description: str | None
+    displayName: str
+
+
 class IntegrationIssueSerializerResponse(IntegrationSerializerResponse):
-    externalIssues: list[dict[str, Any]]
+    externalIssues: list[LinkedExternalIssueResponse]
 
 
-class IntegrationIssueSerializer(IntegrationSerializer):
+class IntegrationIssueSerializer(Serializer[IntegrationIssueSerializerResponse]):
     def __init__(self, group: Group) -> None:
         self.group = group
 
@@ -88,23 +100,49 @@ class IntegrationIssueSerializer(IntegrationSerializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> IntegrationIssueSerializerResponse:
-        base = super().serialize(obj, attrs, user)
+        base = IntegrationSerializer().serialize(obj, attrs, user)
         return {**base, "externalIssues": attrs.get("external_issues", [])}
 
 
+@extend_schema(tags=["Integration"])
 @cell_silo_endpoint
 class GroupIntegrationsEndpoint(GroupEndpoint):
     owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
 
+    @extend_schema(
+        operation_id="listOrganizationIssueIntegrations",
+        summary="List an Issue's Tracker Integrations and Links",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            IssueParams.ISSUES_OR_GROUPS,
+            IssueParams.ISSUE_ID,
+            CursorQueryParam,
+            OpenApiParameter(
+                "per_page",
+                type=int,
+                description="The maximum number of integrations to return per page (1–100).",
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "IssueIntegrationsResponse", list[IntegrationIssueSerializerResponse]
+            ),
+        },
+    )
     @deprecated(
         CELL_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-group-group-integrations",
         url_names=["sentry-api-0-group-integrations"],
     )
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group) -> Response[list[IntegrationIssueSerializerResponse]]:
+        """
+        List the organization's issue-tracker integrations and the external issues
+        linked to this Sentry issue through each integration. The external issue's
+        `id` is the Sentry link identifier used by the unlink endpoint.
+        """
         has_issue_basic = features.has(
             "organizations:integrations-issue-basic", group.organization, actor=request.user
         )

@@ -1,10 +1,15 @@
+from unittest.mock import patch
+
 from django.test.client import RequestFactory
 
 from fixtures.apidocs_test_case import APIDocsTestCase
+from sentry.constants import ObjectStatus
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.grouplink import GroupLink
+from sentry.silo.base import SiloMode
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class GroupIntegrationDetailsDocs(APIDocsTestCase):
@@ -49,12 +54,22 @@ class GroupIntegrationDetailsDocs(APIDocsTestCase):
         self.validate_schema(request, response)
 
     def test_put(self) -> None:
-        data = {"externalIssue": "APP-123"}
+        data = {"externalIssue": "APP-123", "repo": "example/project"}
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.put(self.base_url, data=data)
         request = RequestFactory().put(self.base_url, data=data)
 
         self.validate_schema(request, response)
+
+    def test_list(self) -> None:
+        self.create_integration_external_issue(
+            group=self.group, integration=self.integration, key="APP-123", title=None
+        )
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/?per_page=1"
+        with self.feature("organizations:integrations-issue-basic"):
+            response = self.client.get(url)
+
+        self.validate_schema(RequestFactory().get(url), response)
 
     def test_delete(self) -> None:
         external_issue = ExternalIssue.objects.create(
@@ -75,3 +90,32 @@ class GroupIntegrationDetailsDocs(APIDocsTestCase):
         request = RequestFactory().delete(url)
 
         self.validate_schema(request, response)
+
+
+class OrganizationIntegrationReposDocs(APIDocsTestCase):
+    def setUp(self) -> None:
+        self.login_as(self.user)
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="github:1",
+        )
+        self.url = f"/api/0/organizations/{self.organization.slug}/integrations/{self.integration.id}/repos/"
+
+    def test_get(self) -> None:
+        with patch(
+            "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+            return_value=[
+                {"name": "example/project", "identifier": "example/project", "external_id": "123"}
+            ],
+        ):
+            response = self.client.get(self.url)
+
+        self.validate_schema(RequestFactory().get(self.url), response)
+
+    def test_disabled(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.update(status=ObjectStatus.DISABLED)
+        response = self.client.get(self.url)
+
+        self.validate_schema(RequestFactory().get(self.url), response)
