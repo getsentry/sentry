@@ -260,27 +260,13 @@ const makeInitialExplorerAutofixData = (): ExplorerAutofixResponse => ({
 
 /**
  * Pulls a readable message out of an API error, falling back to `fallback`.
- * Handles both `{detail: "..."}` and DRF field errors like
- * `{user_context: ["Ensure this field has no more than 1000 characters."]}`.
+ * Only `{detail: "..."}` is surfaced; serializer validation errors are for us,
+ * not for the user, so they fall back too.
  */
 function getApiErrorMessage(e: unknown, fallback = 'An error occurred'): string {
-  const responseJSON = (e as {responseJSON?: unknown} | null | undefined)?.responseJSON;
-  if (responseJSON === null || typeof responseJSON !== 'object') {
-    return fallback;
-  }
-  const {detail} = responseJSON as {detail?: unknown};
-  if (isString(detail)) {
-    return detail;
-  }
-  for (const value of Object.values(responseJSON)) {
-    if (isArrayOf(value, isString)) {
-      const [first] = value;
-      if (isString(first)) {
-        return first;
-      }
-    }
-  }
-  return fallback;
+  const detail = (e as {responseJSON?: {detail?: unknown}} | null | undefined)
+    ?.responseJSON?.detail;
+  return isString(detail) ? detail : fallback;
 }
 
 const makeErrorExplorerAutofixData = (errorMessage: string): ExplorerAutofixResponse => ({

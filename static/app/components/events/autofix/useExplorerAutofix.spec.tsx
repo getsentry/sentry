@@ -1161,7 +1161,7 @@ describe('useExplorerAutofix - startStep errors', () => {
     expect(result.current.runState).toEqual(existingRun);
   });
 
-  it('surfaces the message from a DRF field error', async () => {
+  it('does not surface a serializer validation error', async () => {
     MockApiClient.addMockResponse({
       url: AUTOFIX_URL,
       method: 'GET',
@@ -1187,9 +1187,7 @@ describe('useExplorerAutofix - startStep errors', () => {
       )
     ).rejects.toThrow();
 
-    expect(addErrorMessage).toHaveBeenCalledWith(
-      'Ensure this field has no more than 1000 characters.'
-    );
+    expect(addErrorMessage).toHaveBeenCalledWith('An error occurred');
     expect(result.current.runState).toEqual(existingRun);
   });
 
