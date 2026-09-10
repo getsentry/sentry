@@ -157,6 +157,8 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes: tuple[type[BasePermission], ...] = (SentryAppsAndStaffPermission,)
 
     def _get_organization_slug(self, request: Request):
+        if not isinstance(request.data, dict):
+            raise SentryAppError(message="Request body must be a JSON object.")
         organization_slug = request.data.get("organization")
         if not organization_slug or not isinstance(organization_slug, str):
             error_message = "Please provide a valid value for the 'organization' field."

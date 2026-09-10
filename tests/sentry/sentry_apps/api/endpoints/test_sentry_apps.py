@@ -577,6 +577,18 @@ class PostSentryAppsTest(SentryAppsTest):
             "detail": "Please provide a valid value for the 'organization' field.",
         }
 
+    def test_cannot_create_app_with_non_object_body(self) -> None:
+        for body in ('"project:read"', "123", "[1, 2]", "null"):
+            with self.subTest(body=body):
+                response = self.client.post(
+                    reverse(self.endpoint), data=body, content_type="application/json"
+                )
+
+                assert response.status_code == 400
+                assert orjson.loads(response.content) == {
+                    "detail": "Request body must be a JSON object."
+                }
+
     def test_cannot_create_app_in_alien_organization(self) -> None:
         other_organization = self.create_organization()
         self.create_project(organization=other_organization)
