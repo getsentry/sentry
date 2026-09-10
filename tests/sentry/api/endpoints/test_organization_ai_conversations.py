@@ -854,6 +854,13 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["outputTokens"] == LLM_OUTPUT_TOKENS * 2
         assert conversation["totalCost"] == LLM_COST * 2
         assert conversation["projectId"] == self.project.id
+        assert conversation["projects"] == [
+            {"id": self.project.id, "name": self.project.name, "slug": self.project.slug}
+        ]
+        assert conversation["webUrl"].endswith(
+            f"/organizations/{self.organization.slug}/explore/agents/conversations/"
+            f"{conversation_id}/?project={self.project.id}"
+        )
         assert conversation["generationDuration"] > 0
         assert conversation["traceCount"] == 1
         assert conversation["startTimestamp"] > 0
@@ -2174,6 +2181,12 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert response.status_code == 200, response.data
         assert len(response.data) == 1
         assert response.data[0]["title"] == "Lower project id title"
+        assert response.data[0]["projects"] == [
+            {"id": lower_project.id, "name": lower_project.name, "slug": lower_project.slug}
+        ]
+        assert response.data[0]["webUrl"].endswith(
+            f"/{conversation_id}/?project={lower_project.id}"
+        )
 
     def test_title_earliest_source_timestamp_wins_across_projects(self) -> None:
         """Across projects, earliest title_source_timestamp wins (not lowest project id)."""
