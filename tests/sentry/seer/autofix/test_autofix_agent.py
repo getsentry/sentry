@@ -1950,9 +1950,12 @@ class TestTriggerPushChanges(TestCase):
 
 
 class TestAutofixFunnelAnalytics:
+    @patch("sentry_sdk.metrics.count")
     @patch("sentry.seer.autofix.analytics.metrics.incr")
     @patch("sentry.seer.autofix.analytics.analytics.record")
-    def test_records_solution_completion_in_datadog(self, mock_record, mock_metrics_incr) -> None:
+    def test_records_solution_completion_in_all_destinations(
+        self, mock_record, mock_metrics_incr, mock_sentry_count
+    ) -> None:
         event = AiAutofixSolutionCompletedEvent(
             organization_id=1,
             project_id=1,
@@ -1964,3 +1967,4 @@ class TestAutofixFunnelAnalytics:
 
         mock_record.assert_called_once_with(event)
         mock_metrics_incr.assert_called_once_with("ai.autofix.solution.completed")
+        mock_sentry_count.assert_called_once_with("ai.autofix.solution.completed", 1)
