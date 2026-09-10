@@ -6,7 +6,6 @@ from django.test import override_settings
 from django.utils import timezone
 
 from sentry.models.pullrequest import PullRequestLifecycleState
-from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
     SeerNightShiftRunErrorType,
@@ -18,14 +17,14 @@ from sentry.seer.monitor_cleanup import (
     FEATURE,
     MonitorCleanupArtifact,
     OrganizationMonitorCleanupArtifact,
+    deliver_monitor_cleanup_result,
+    finish_shard,
     prepare_monitor_cleanup_results,
     validate_monitor_cleanup,
 )
 from sentry.tasks.seer.monitor_cleanup import (
-    collect_monitor_cleanup_result,
     dispatch_run,
-    finish_shard,
-    reconcile_run,
+    expire_run,
     scan_organization,
 )
 from sentry.testutils.cases import APITestCase
@@ -391,7 +390,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
     def organization_artifact(self):
         return OrganizationMonitorCleanupArtifact(
             scan_status="complete",
-            projects=[{"project_id": str(self.project.id), **self.artifact().dict()}],
+            projects=[{"project_id": str(self.project.id), **self.finding_artifact().dict()}],
         )
 
     def test_starts_one_agent_for_all_projects(self) -> None:
@@ -407,17 +406,17 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             scan_organization(run.shards.get().id)
         client.assert_called_once()
         assert "project" not in client.call_args.kwargs
-        client.return_value.start_run.assert_called_once()
-        args = client.return_value.start_run.call_args
-        assert args.kwargs["artifact_schema"] is OrganizationMonitorCleanupArtifact
-        assert args.kwargs["metadata"] == {"workflow_run_id": run.id}
-        assert "Discover the projects accessible to the current user" in args.kwargs["prompt"]
+        client.return_value.start_feature_run.assert_called_once()
+        args = client.return_value.start_feature_run.call_args
+        assert args.kwargs["feature_id"] == "monitor_cleanup"
+        assert args.kwargs["payload"] == {"response_version": 1}
+        assert args.kwargs["flush"] is False
 
     def test_dispatch_queues_one_scan(self) -> None:
         run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
         with (
             patch("sentry.tasks.seer.monitor_cleanup.scan_organization.apply_async") as enqueue,
-            patch("sentry.tasks.seer.monitor_cleanup.reconcile_run.apply_async"),
+            patch("sentry.tasks.seer.monitor_cleanup.expire_run.apply_async"),
         ):
             dispatch_run(run.id)
         enqueue.assert_called_once_with(args=[run.shards.get().id])
@@ -427,7 +426,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         artifact = self.organization_artifact()
         artifact.projects.append(
             artifact.projects[0].copy(
-                update={"project_id": str(other_project.id), "groups": [], "monitors_scanned": 1}
+                update={"project_id": str(other_project.id), "findings": [], "monitors_scanned": 1}
             )
         )
         outputs = prepare_monitor_cleanup_results(artifact, self.organization, self.user.id)
@@ -562,45 +561,46 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             patch(
                 "sentry.tasks.seer.monitor_cleanup.scan_organization.apply_async"
             ) as enqueue_scan,
-            patch("sentry.tasks.seer.monitor_cleanup.reconcile_run.apply_async") as enqueue_poll,
+            patch("sentry.tasks.seer.monitor_cleanup.expire_run.apply_async") as enqueue_poll,
         ):
             scan_organization(shard_id)
             finish_shard(shard_id, error="Late failure")
-            reconcile_run(run_id)
+            expire_run(run_id)
             dispatch_run(run_id)
         client.assert_not_called()
         enqueue_scan.assert_not_called()
         enqueue_poll.assert_not_called()
 
-    def test_reconcile_schedules_next_poll_before_fetching_results(self) -> None:
-        run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
-        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
-        run.shards.get().update(seer_run=seer_run)
-        with (
-            patch("sentry.tasks.seer.monitor_cleanup.reconcile_run.apply_async") as enqueue_poll,
-            patch(
-                "sentry.tasks.seer.monitor_cleanup.collect_monitor_cleanup_result",
-                side_effect=KeyboardInterrupt,
-            ),
-            pytest.raises(KeyboardInterrupt),
-        ):
-            reconcile_run(run.id)
-        enqueue_poll.assert_called_once_with(args=[run.id], countdown=120)
-
-    def test_reconcile_times_out_without_fetching_results(self) -> None:
+    def test_timeout_finishes_stranded_run_without_polling(self) -> None:
         run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
         run.update(date_added=timezone.now() - timedelta(minutes=16))
-        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
-        run.shards.get().update(seer_run=seer_run)
-        with (
-            patch("sentry.tasks.seer.monitor_cleanup.reconcile_run.apply_async"),
-            patch("sentry.tasks.seer.monitor_cleanup.collect_monitor_cleanup_result") as collect,
-        ):
-            reconcile_run(run.id)
-        collect.assert_not_called()
+        with patch("sentry.tasks.seer.monitor_cleanup.SeerAgentClient") as client:
+            expire_run(run.id)
+        client.assert_not_called()
         run.refresh_from_db()
         assert run.extras["status"] == "failed"
         assert run.date_completed is not None
+
+    def test_timeout_does_not_overwrite_completed_run(self) -> None:
+        run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
+        finish_shard(run.shards.get().id, outputs=[])
+        run.update(date_added=timezone.now() - timedelta(minutes=16))
+        expire_run(run.id)
+        run.refresh_from_db()
+        assert run.extras["status"] == "complete"
+
+    def test_failed_timeout_enqueue_does_not_start_scan(self) -> None:
+        run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
+        with (
+            patch(
+                "sentry.tasks.seer.monitor_cleanup.expire_run.apply_async", side_effect=RuntimeError
+            ),
+            patch("sentry.tasks.seer.monitor_cleanup.scan_organization.apply_async") as scan,
+        ):
+            dispatch_run(run.id)
+        scan.assert_not_called()
+        run.refresh_from_db()
+        assert run.extras["status"] == "failed"
 
     def test_requires_feature(self) -> None:
         self.get_error_response(
@@ -666,53 +666,84 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert run.date_completed is not None
         assert run.results.get().extras["groups"][0]["keep"]["name"] == "Keep"
 
-    def test_completion_persists_chat_artifact(self) -> None:
+    def deliver(self, result, status="completed", organization_id=None):
         run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
-        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        seer_run = self.create_seer_run(organization=self.organization)
         run.shards.get().update(seer_run=seer_run)
-        state = SeerRunState(
-            run_id=123,
-            status="completed",
-            updated_at="2026-09-09T00:00:00Z",
-            blocks=[
-                {
-                    "id": "output",
-                    "timestamp": "2026-09-09T00:00:00Z",
-                    "message": {"role": "assistant", "content": "Done"},
-                    "artifacts": [
-                        {
-                            "key": "monitor_cleanup",
-                            "data": self.organization_artifact().dict(),
-                            "reason": "Scan complete",
-                        }
-                    ],
-                }
-            ],
+        deliver_monitor_cleanup_result(
+            organization_id or self.organization.id, seer_run.uuid, status, result, None
         )
-        with patch("sentry.tasks.seer.monitor_cleanup.SeerAgentClient") as client:
-            client.return_value.get_run.return_value = state
-            collect_monitor_cleanup_result(self.organization.id, 123)
-        result = run.results.get()
-        assert result.result_seer_run_id == seer_run.id
-        assert result.extras["projectSlug"] == self.project.slug
-        assert result.extras["groups"][0]["matchingSettings"] == [
-            {"label": "Trigger", "value": "More than 100 errors"}
-        ]
-        assert result.extras["groups"][0]["duplicates"][0]["id"] == str(self.duplicate.id)
-
-    def test_completed_chat_without_artifact_fails(self) -> None:
-        run = SeerNightShiftRun.objects.get(id=self.trigger().data["runId"])
-        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
-        run.shards.get().update(seer_run=seer_run)
-        state = SeerRunState(
-            run_id=123, status="completed", updated_at="2026-09-09T00:00:00Z", blocks=[]
-        )
-        with patch("sentry.tasks.seer.monitor_cleanup.SeerAgentClient") as client:
-            client.return_value.get_run.return_value = state
-            collect_monitor_cleanup_result(self.organization.id, 123)
         run.refresh_from_db()
+        return run, seer_run
+
+    def test_delivery_persists_versioned_result_idempotently(self) -> None:
+        result = {"schema_version": 1, "data": self.organization_artifact().dict()}
+        run, seer_run = self.deliver(result)
+        deliver_monitor_cleanup_result(
+            self.organization.id, seer_run.uuid, "completed", result, None
+        )
+        deliver_monitor_cleanup_result(
+            self.organization.id, seer_run.uuid, "error", None, "late error"
+        )
+        output = run.results.get()
+        assert output.result_seer_run_id == seer_run.id
+        assert output.extras["schemaVersion"] == 2
+        assert output.extras["projectSlug"] == self.project.slug
+        assert output.extras["findings"][0]["monitors"][1]["id"] == str(self.duplicate.id)
+        run.refresh_from_db()
+        assert run.extras["status"] == "complete"
+        assert run.extras["response_schema_version"] == 1
+
+    def test_missing_response_version_fails(self) -> None:
+        run, _ = self.deliver({"data": self.organization_artifact().dict()})
+        assert run.extras["status"] == "failed"
+        assert "unsupported" in run.shards.get().extras["error"]
+        assert not run.results.exists()
+
+    def test_unknown_response_version_fails_before_parsing(self) -> None:
+        run, _ = self.deliver({"schema_version": 2, "data": {"new_shape": True}})
+        assert run.extras["status"] == "failed"
+        assert "unsupported" in run.shards.get().extras["error"]
+        assert not run.results.exists()
+
+    def test_invalid_versioned_response_fails(self) -> None:
+        run, _ = self.deliver({"schema_version": 1, "data": {}})
         assert run.extras["status"] == "failed"
         assert not run.results.exists()
+
+    def test_additive_response_fields_are_compatible(self) -> None:
+        result = {
+            "schema_version": 1,
+            "data": self.organization_artifact().dict(),
+            "new_field": True,
+        }
+        result["data"]["new_field"] = True
+        run, _ = self.deliver(result)
+        assert run.extras["status"] == "complete"
+        assert run.results.count() == 1
+
+    def test_delivery_handles_agent_failure(self) -> None:
+        run, _ = self.deliver(None, status="error")
+        assert run.extras["status"] == "failed"
+        assert not run.results.exists()
+
+    def test_delivery_handles_missing_artifact(self) -> None:
+        run, _ = self.deliver(None)
+        assert run.extras["status"] == "failed"
+
+    def test_delivery_is_scoped_to_organization(self) -> None:
+        run, _ = self.deliver(
+            {"schema_version": 1, "data": self.organization_artifact().dict()},
+            organization_id=self.create_organization().id,
+        )
+        assert run.date_completed is None
+        assert not run.results.exists()
+
+    def test_delivery_preserves_partial_status(self) -> None:
+        data = self.organization_artifact().dict()
+        data["scan_status"] = "partial"
+        run, _ = self.deliver({"schema_version": 1, "data": data})
+        assert run.extras["status"] == "partial"
 
     def test_rejects_cross_project_candidates(self) -> None:
         other_project = self.create_project(organization=self.organization)
