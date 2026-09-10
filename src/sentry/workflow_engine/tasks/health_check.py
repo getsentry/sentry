@@ -3,8 +3,7 @@ import logging
 from django.db.models import Exists, Func, JSONField, OuterRef
 
 from sentry import options
-from sentry.constants import ObjectStatus
-from sentry.models.organization import Organization
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import workflow_engine_tasks
@@ -35,7 +34,8 @@ def health_check_organization_detectors() -> None:
         config__organization_id=Func(OuterRef("id"), function="to_jsonb", output_field=JSONField()),
     )
     organization_ids = (
-        Organization.objects.annotate(has_all_projects_detector=Exists(all_projects_detector))
+        Organization.objects.filter(status=OrganizationStatus.ACTIVE)
+        .annotate(has_all_projects_detector=Exists(all_projects_detector))
         .filter(has_all_projects_detector=False)
         .values_list("id", flat=True)[:HEALTH_CHECK_BUFFER_SIZE]
     )
@@ -60,6 +60,8 @@ def health_check_organization_detectors() -> None:
 def ensure_default_detectors_for_organization(organization_id: int) -> None:
     from sentry.workflow_engine.defaults.detectors import ensure_default_organization_detectors
 
-    organization = Organization.objects.get_or_none(id=organization_id, status=ObjectStatus.ACTIVE)
+    organization = Organization.objects.get_or_none(
+        id=organization_id, status=OrganizationStatus.ACTIVE
+    )
     if organization:
         ensure_default_organization_detectors(organization)
