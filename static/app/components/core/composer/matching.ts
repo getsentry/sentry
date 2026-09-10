@@ -1,15 +1,17 @@
-interface MentionMatch {
+interface TriggerMatch {
   end: number;
   query: string;
   start: number;
 }
 
-export interface ActiveMention extends MentionMatch {
-  sourceId: string;
+export interface ActiveTrigger extends TriggerMatch {
+  // The character that activated this trigger. Sources sharing this
+  // character contribute suggestions to the same popup.
+  trigger: string;
 }
 
-export function getRequestKey(activeMention: ActiveMention | null): string | null {
-  return activeMention ? `${activeMention.sourceId}\u0000${activeMention.query}` : null;
+export function getRequestKey(activeTrigger: ActiveTrigger | null): string | null {
+  return activeTrigger ? `${activeTrigger.trigger}\u0000${activeTrigger.query}` : null;
 }
 
 function escapeRegExp(value: string) {
@@ -21,7 +23,7 @@ function findDefaultMatch(
   selectionStart: number,
   selectionEnd: number,
   trigger: string
-): MentionMatch | null {
+): TriggerMatch | null {
   if (selectionStart !== selectionEnd) {
     return null;
   }
@@ -41,13 +43,13 @@ function findDefaultMatch(
   };
 }
 
-export function findActiveMention(
+export function findActiveTrigger(
   text: string,
   selectionStart: number,
   selectionEnd: number,
-  sources: ReadonlyArray<{id: string; trigger: string}>
-): ActiveMention | null {
-  let activeMention: ActiveMention | null = null;
+  sources: ReadonlyArray<{trigger: string}>
+): ActiveTrigger | null {
+  let activeTrigger: ActiveTrigger | null = null;
 
   for (const source of sources) {
     const match = findDefaultMatch(text, selectionStart, selectionEnd, source.trigger);
@@ -55,10 +57,10 @@ export function findActiveMention(
       continue;
     }
 
-    if (!activeMention || match.start > activeMention.start) {
-      activeMention = {...match, sourceId: source.id};
+    if (!activeTrigger || match.start > activeTrigger.start) {
+      activeTrigger = {...match, trigger: source.trigger};
     }
   }
 
-  return activeMention;
+  return activeTrigger;
 }
