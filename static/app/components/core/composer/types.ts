@@ -3,13 +3,13 @@ import type {AnyUseQueryOptions} from '@tanstack/react-query';
 
 import type {FormSize} from 'sentry/utils/theme';
 
-import type {MentionInputValue} from './model';
+import type {ComposerValue} from './model';
 
-interface MentionSourceBase<TSuggestion> {
+interface ComposerSourceBase<TSuggestion> {
   /** Returns a stable identity for a suggestion. */
-  getId: (suggestion: TSuggestion) => string;
+  getId(suggestion: TSuggestion): string;
   /** Returns the exact text inserted into the editor. */
-  getText: (suggestion: TSuggestion) => string;
+  getText(suggestion: TSuggestion): string;
   /** Stable identifier for this source, such as `members` or `teams`. */
   id: string;
   /** Accessible name for this group of suggestions. */
@@ -17,33 +17,42 @@ interface MentionSourceBase<TSuggestion> {
   /** The character that activates this source. */
   trigger: string;
   /** Renders an option. The source text is used when this is omitted. */
-  renderSuggestion?: (suggestion: TSuggestion) => React.ReactNode;
+  renderSuggestion?(suggestion: TSuggestion): React.ReactNode;
 }
 
-interface LocalMentionSource<TSuggestion> extends MentionSourceBase<TSuggestion> {
+interface LocalComposerSource<TSuggestion> extends ComposerSourceBase<TSuggestion> {
   /** Filters local suggestions for the text between the trigger and caret. */
-  getSuggestions: (query: string) => readonly TSuggestion[];
+  getSuggestions(query: string): readonly TSuggestion[];
 }
 
-interface AsyncMentionSource<TSuggestion> extends MentionSourceBase<TSuggestion> {
+export interface AsyncComposerSource<
+  TSuggestion,
+> extends ComposerSourceBase<TSuggestion> {
   /** Returns query options whose selected data is the suggestion list. */
-  queryOptions: (query: string) => AnyUseQueryOptions;
+  queryOptions(query: string): AnyUseQueryOptions;
 }
 
-export type MentionSource<TSuggestion> =
-  | LocalMentionSource<TSuggestion>
-  | AsyncMentionSource<TSuggestion>;
+export type ComposerSource<TSuggestion> =
+  | LocalComposerSource<TSuggestion>
+  | AsyncComposerSource<TSuggestion>;
 
-export interface MentionInputProps<TSuggestion> extends Omit<
+export interface ComposerPlugin {
+  /** Returns the suggestion sources this plugin contributes. */
+  getSources: () => ReadonlyArray<ComposerSource<unknown>>;
+  /** Stable identifier for this plugin, such as `mentions`. */
+  id: string;
+}
+
+export interface ComposerProps extends Omit<
   React.HTMLAttributes<HTMLDivElement>,
   'children' | 'contentEditable' | 'defaultValue' | 'onBeforeInput' | 'onChange'
 > {
   /** Called with plain text and structured mention ranges after an edit. */
-  onChange: (value: MentionInputValue) => void;
-  /** Local and queried suggestion sources. */
-  sources: ReadonlyArray<MentionSource<TSuggestion>>;
+  onChange: (value: ComposerValue) => void;
+  /** Plugins contributing suggestion sources. */
+  plugins: readonly ComposerPlugin[];
   /** Controlled editor text and structured mention ranges. */
-  value: MentionInputValue;
+  value: ComposerValue;
   minHeight?: number;
   placeholder?: string;
   ref?: React.Ref<HTMLDivElement>;
