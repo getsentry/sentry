@@ -114,9 +114,16 @@ export function SeerEmbedBlock({
           <ResourceLink icon={icon} href={href} title={linkLabel} />
         </Flex>
       </HeaderRow>
-      <Stack {...panelProps} ref={panelRef} gap={gap} padding="lg">
-        {children}
-      </Stack>
+      {/* The panel's padding sits on an inner element, not on the element
+          `panelProps` hides. `hidden="until-found"` hides contents through
+          `content-visibility`, which leaves the hidden element's own padding box
+          behind -- padding out here would strand an empty strip under the header
+          of every collapsed card. */}
+      <Container {...panelProps} ref={panelRef}>
+        <Stack gap={gap} padding="lg">
+          {children}
+        </Stack>
+      </Container>
     </Container>
   );
 }
