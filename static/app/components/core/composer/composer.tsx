@@ -184,7 +184,7 @@ export function Composer({
     activeSources,
     inputRef,
   });
-  const hasSuggestions = queryStatus === 'success' && suggestionCount > 0;
+  const hasSuggestions = suggestionCount > 0;
   const popupLabel = [...new Set(activeSources.map(source => source.label))].join(', ');
 
   const updateActiveTrigger = () => {

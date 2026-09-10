@@ -132,7 +132,7 @@ export function useComposerSuggestions({
   const listBoxScrollRef = useRef<HTMLDivElement>(null);
   const focusedKey = listState.selectionManager.focusedKey;
   const activeDescendant =
-    queryStatus === 'success' && items.length > 0 && focusedKey !== null
+    items.length > 0 && focusedKey !== null
       ? getOptionId(listBoxId, focusedKey)
       : undefined;
 
