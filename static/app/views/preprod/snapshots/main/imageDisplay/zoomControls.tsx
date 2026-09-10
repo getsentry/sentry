@@ -15,7 +15,13 @@ interface ZoomControlsProps {
 
 export function ZoomControls({onZoomIn, onZoomOut, onReset}: ZoomControlsProps) {
   return (
-    <Container position="absolute" bottom="8px" right="8px" style={{zIndex: 1}}>
+    <Container
+      position="absolute"
+      bottom="8px"
+      right="8px"
+      style={{zIndex: 1}}
+      onClick={e => e.stopPropagation()}
+    >
       <ButtonBar>
         <Button size="xs" icon={<IconAdd />} aria-label="Zoom in" onClick={onZoomIn} />
         <Button
