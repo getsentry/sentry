@@ -10,6 +10,7 @@ from sentry.integrations.services.integration import RpcIntegration, integration
 from sentry.integrations.utils.github_permissions import (
     get_github_permissions_update_url,
     get_missing_github_app_permissions,
+    is_permissions_snapshot_stale,
 )
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -155,6 +156,10 @@ def get_missing_permissions_by_repo(
             )
             continue
 
+        integration = _with_fresh_permissions(organization, integration, repository_id)
+        if integration is None:
+            continue
+
         missing = get_missing_github_app_permissions(integration.metadata)
         missing_scopes = [permission["expected"]["scope"] for permission in (missing or [])]
         if missing_scopes:
@@ -166,6 +171,57 @@ def get_missing_permissions_by_repo(
         _warn_unresolved(organization, "no_repository_row", scm_repo_full_name=repo_name)
 
     return missing_by_repo
+
+
+def _with_fresh_permissions(
+    organization: Organization, integration: RpcIntegration, repository_id: int
+) -> RpcIntegration | None:
+    """`integration` with a permissions snapshot recent enough to judge, or None.
+
+    A snapshot older than the app's permissions change was read against the old
+    required set, so it cannot say whether this install is missing anything now.
+    Mint a fresh installation token and re-read instead of commenting off it.
+
+    This is self-limiting rather than a per-call cost: the refresh rewrites
+    ``last_refresh_at``, so an integration takes this path once and every later
+    call short-circuits on the first line.
+
+    None when the refresh fails or the snapshot is still stale afterwards. The
+    caller reads that as "nothing missing", which is deliberate -- staying quiet
+    beats telling someone to accept permissions we cannot confirm they lack.
+    """
+    if not is_permissions_snapshot_stale(integration.metadata):
+        return integration
+
+    try:
+        refreshed = integration_service.refresh_github_permissions(
+            integration_id=integration.id, organization_id=organization.id
+        )
+    except Exception:
+        # Minting the token talks to GitHub, so this fails for reasons that have
+        # nothing to do with permissions. Treat it as "cannot tell" rather than
+        # letting a GitHub blip fail the task that called us.
+        refreshed = None
+
+    if refreshed is None or is_permissions_snapshot_stale(refreshed.metadata):
+        _warn_unresolved(
+            organization,
+            "stale_permissions_snapshot",
+            repository_id=repository_id,
+            integration_id=integration.id,
+            refreshed=refreshed is not None,
+        )
+        return None
+
+    logger.info(
+        "autofix.github_perms.permissions_refreshed",
+        extra={
+            "organization_id": organization.id,
+            "integration_id": integration.id,
+            "repository_id": repository_id,
+        },
+    )
+    return refreshed
 
 
 def _warn_unresolved(organization: Organization, reason: str, **fields: object) -> None:

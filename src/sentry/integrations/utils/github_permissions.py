@@ -13,6 +13,7 @@ where the warnings are implemented since this API returns the list of missing sc
 
 import logging
 from collections.abc import Mapping
+from datetime import UTC, datetime
 from typing import Any, TypedDict
 
 from sentry import options
@@ -20,6 +21,39 @@ from sentry import options
 logger = logging.getLogger(__name__)
 
 GITHUB_APP_REQUIRED_PERMISSIONS_OPTION = "github-app.required-permissions"
+
+# Approximately when the Sentry GitHub App's requested permissions last changed. A snapshot
+# recorded before this was read against the old required set, so it says nothing
+# about whether an install is missing anything from the current one, and treating
+# it as authoritative nags people over permissions we never asked them for.
+GITHUB_APP_PERMISSIONS_UPDATED_AT = datetime(2026, 7, 11, tzinfo=UTC)
+
+
+def _parse_last_refresh_at(metadata: Mapping[str, Any] | None) -> datetime | None:
+    """When the permissions in `metadata` were read off a fresh installation token.
+
+    Written by the token refresh as a naive UTC isoformat string, so a value
+    without an offset is read back as UTC rather than rejected.
+    """
+    raw = (metadata or {}).get("last_refresh_at")
+    if not isinstance(raw, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+    return parsed.replace(tzinfo=UTC) if parsed.tzinfo is None else parsed.astimezone(UTC)
+
+
+def is_permissions_snapshot_stale(metadata: Mapping[str, Any] | None) -> bool:
+    """True when metadata["permissions"] is too old to judge an install against.
+
+    An absent or unparseable stamp counts as stale: metadata only started
+    carrying one when the app's permissions were already changing, so a missing
+    one means the snapshot is older than any date we would set here.
+    """
+    last_refresh_at = _parse_last_refresh_at(metadata)
+    return last_refresh_at is None or last_refresh_at < GITHUB_APP_PERMISSIONS_UPDATED_AT
 
 
 class GitHubAppPermission(TypedDict):

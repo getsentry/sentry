@@ -18,7 +18,10 @@ from sentry.integrations.services.integration import (
     integration_service,
 )
 from sentry.integrations.types import IntegrationIssueConfigField
-from sentry.integrations.utils.github_permissions import get_missing_github_app_permissions
+from sentry.integrations.utils.github_permissions import (
+    get_missing_github_app_permissions,
+    is_permissions_snapshot_stale,
+)
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -95,6 +98,18 @@ class IntegrationSerializer(Serializer):
         match provider.key:
             case "github":
                 out_of_date = bool(get_missing_github_app_permissions(obj.metadata))
+                if out_of_date and is_permissions_snapshot_stale(obj.metadata):
+                    # The banner still shows, but this answer is a guess: the
+                    # snapshot predates the app's permissions change, so it was
+                    # read against the old required set and may be naming
+                    # permissions this install was never asked for. Logged
+                    # rather than resolved because serializing a page is the
+                    # wrong place to mint a GitHub token, once per integration
+                    # on the list, to find out.
+                    logger.warning(
+                        "github_permissions.stale_snapshot",
+                        extra={"integration_id": obj.id},
+                    )
             case "slack":
                 out_of_date = SlackScope.APP_MENTIONS_READ not in (obj.metadata.get("scopes") or [])
 
