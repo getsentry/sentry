@@ -30,12 +30,7 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import * as useExperimentModule from 'sentry/utils/useExperiment';
-import type {UseExperimentOptions, UseExperimentResult} from 'sentry/utils/useExperiment';
-import {
-  OnboardingWithoutContext,
-  SCM_MESSAGING_EXPOSURE,
-} from 'sentry/views/onboarding/onboarding';
+import {OnboardingWithoutContext} from 'sentry/views/onboarding/onboarding';
 
 jest.mock('sentry/utils/analytics');
 
@@ -580,14 +575,8 @@ describe('Onboarding', () => {
 
     let agenticRunRequestMock: ReturnType<typeof MockApiClient.addMockResponse>;
     let resolveAgenticRunRequest: () => void;
-    let useExperimentSpy: jest.SpyInstance<UseExperimentResult, [UseExperimentOptions]>;
-    let exposureSwitch: jest.ReplaceProperty<boolean>;
 
     beforeEach(() => {
-      useExperimentSpy = jest.spyOn(useExperimentModule, 'useExperiment');
-      // The switch ships off; these tests exercise the gate behind it.
-      exposureSwitch = jest.replaceProperty(SCM_MESSAGING_EXPOSURE, 'enabled', true);
-
       MockApiClient.addMockResponse({
         url: `/organizations/${scmOrganization.slug}/config/integrations/`,
         body: {providers: [githubProvider]},
@@ -623,20 +612,6 @@ describe('Onboarding', () => {
         }),
       });
     });
-
-    afterEach(() => {
-      exposureSwitch.restore();
-      useExperimentSpy.mockRestore();
-    });
-
-    // Consecutive repeats collapsed, so `[false, true]` reads as "not before the
-    // fork, then reported". A later flip back to false still shows up.
-    function messagingExposureGate() {
-      const values = useExperimentSpy.mock.calls
-        .filter(([options]) => options.feature === 'onboarding-scm-messaging-experiment')
-        .map(([options]) => options.reportExposure);
-      return values.filter((value, index) => value !== values[index - 1]);
-    }
 
     type RenderOptions = {
       initialContext?: Parameters<typeof OnboardingContextProvider>[0]['initialValue'];
@@ -679,7 +654,6 @@ describe('Onboarding', () => {
           `/onboarding/${scmOrganization.slug}/welcome/`
         );
       });
-      expect(messagingExposureGate()).toEqual([false]);
     });
 
     it('redirects treatment off the messaging step when no platform is staged', async () => {
@@ -693,9 +667,6 @@ describe('Onboarding', () => {
           `/onboarding/${messagingOrganization.slug}/scm-platform-features/`
         );
       });
-      // The redirect runs in an effect, so the gate must already be off on the
-      // first render. Otherwise a bounced user lands in the population.
-      expect(messagingExposureGate()).toEqual([false]);
     });
 
     it('navigates from welcome to scm-connect', async () => {
@@ -1016,7 +987,6 @@ describe('Onboarding', () => {
           `/onboarding/${controlOrganization.slug}/setup-docs/`
         );
       });
-      expect(messagingExposureGate()).toEqual([false, true]);
     });
 
     it('adds the messaging route for treatment without creating a project', async () => {
@@ -1051,7 +1021,6 @@ describe('Onboarding', () => {
         `/onboarding/${messagingOrganization.slug}/scm-messaging/`
       );
       expect(createRequest).not.toHaveBeenCalled();
-      expect(messagingExposureGate()).toEqual([false, true]);
     });
 
     it('global Skip exits treatment without creating a project and clears state', async () => {

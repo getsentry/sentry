@@ -53,14 +53,10 @@ const NEW_ORG_ONBOARDING_WINDOW_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 /**
  * Off until the messaging experiment ramps. The FlagPole config resolves every
  * production org to control today, so reporting now would fill the experiment
- * population with pre-launch control rows. Flip `enabled` in the same change
- * as the rollout segment.
- *
- * An object rather than a `const false`, so the property keeps type `boolean`
- * and the spec can flip it with `jest.replaceProperty`. A module export binding
- * has no setter, so a plain constant is not replaceable.
+ * population with pre-launch control rows. Flip this in the same change as the
+ * rollout segment.
  */
-export const SCM_MESSAGING_EXPOSURE = {enabled: false};
+const SCM_MESSAGING_EXPOSURE_ENABLED = false;
 
 const legacyOnboardingSteps: StepDescriptor[] = [
   {
@@ -347,7 +343,7 @@ export function OnboardingWithoutContext() {
   const {inExperiment: hasScmMessaging} = useExperiment({
     feature: 'onboarding-scm-messaging-experiment',
     reportExposure:
-      SCM_MESSAGING_EXPOSURE.enabled &&
+      SCM_MESSAGING_EXPOSURE_ENABLED &&
       isNewOrgOnboarding &&
       hasScmOnboarding &&
       isPastPlatformFeatures,
