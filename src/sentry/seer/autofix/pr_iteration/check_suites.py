@@ -855,7 +855,10 @@ class _SweepCost:
 
 
 def _header_int(headers: Mapping[str, str], name: str) -> int | None:
-    raw = headers.get(name)
+    # GitHub sends ``X-RateLimit-Remaining``, but ``raw.headers`` is a plain dict
+    # (including after RPC serialization), so match case-insensitively.
+    lowered = name.lower()
+    raw = next((value for key, value in headers.items() if key.lower() == lowered), None)
     if raw is None:
         return None
     try:

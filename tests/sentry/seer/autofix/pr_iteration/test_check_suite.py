@@ -1627,13 +1627,19 @@ class CheckSuiteFlagGateTest(TestCase):
 class SweepCheckRunsCostTest(TestCase):
     """The sweep's GitHub cost is the thing we budget for, so pin it down."""
 
-    def _page(self, runs: list[dict], *, remaining: str = "5399") -> dict:
+    def _page(
+        self,
+        runs: list[dict],
+        *,
+        remaining: str = "5399",
+        remaining_header: str = "x-ratelimit-remaining",
+    ) -> dict:
         return {
             "data": runs,
             "type": "github",
             "raw": {
                 "data": {},
-                "headers": {"x-ratelimit-remaining": remaining, "x-ratelimit-limit": "5400"},
+                "headers": {remaining_header: remaining, "x-ratelimit-limit": "5400"},
             },
             "meta": {"next_cursor": "2"},
         }
@@ -1707,6 +1713,27 @@ class SweepCheckRunsCostTest(TestCase):
             self._page([self._run()], remaining="100"),
             self._page([self._run()], remaining="98"),
             self._page([], remaining="97"),
+        ]
+
+        sweep_check_runs(MagicMock(), "abc", log_extra={})
+
+        mock_metrics.distribution.assert_any_call(
+            "autofix.pr_iteration.check_runs_sweep.rate_limit_per_request",
+            1,
+            tags={"outcome": "swept"},
+        )
+
+    @patch(f"{CHECK_SUITES_PATH}.metrics")
+    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.scm_actions")
+    def test_reads_github_header_casing(
+        self, mock_actions: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        """GitHub sends ``X-RateLimit-Remaining``; the plain-dict lookup must ignore case."""
+        mock_actions.list_check_runs_for_ref.side_effect = [
+            self._page([self._run()], remaining="100", remaining_header="X-RateLimit-Remaining"),
+            self._page([self._run()], remaining="98", remaining_header="X-RateLimit-Remaining"),
+            self._page([], remaining="97", remaining_header="X-RateLimit-Remaining"),
         ]
 
         sweep_check_runs(MagicMock(), "abc", log_extra={})
