@@ -96,7 +96,7 @@ const useActiveThreadState = (
   event: Event,
   threads: Thread[]
 ): [Thread | undefined, (newState: Thread | undefined) => void] => {
-  const bestThread = threads.length ? findBestThread(threads) : undefined;
+  const bestThread = threads.length ? findBestThread(threads, event) : undefined;
 
   const [activeThread, setActiveThread] = useState<Thread | undefined>(() => bestThread);
 
