@@ -7,6 +7,7 @@ __all__ = [
     "SlackStagingMetricAlertHandler",
     "SentryAppMetricAlertHandler",
     "EmailMetricAlertHandler",
+    "UnsupportedMetricAlertHandler",
 ]
 
 from .handlers.discord_metric_alert_handler import DiscordMetricAlertHandler
@@ -19,3 +20,4 @@ from .handlers.slack_metric_alert_handler import (
     SlackMetricAlertHandler,
     SlackStagingMetricAlertHandler,
 )
+from .handlers.unsupported_metric_alert_handler import UnsupportedMetricAlertHandler
