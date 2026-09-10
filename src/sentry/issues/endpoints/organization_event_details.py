@@ -1,11 +1,10 @@
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
-from snuba_sdk import Column, Condition, Function, Op
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -16,24 +15,22 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.event import SqlFormatEventSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.constants import ObjectStatus
-from sentry.middleware import is_frontend_request
 from sentry.models.project import Project
-from sentry.search.events.builder.spans_metrics import SpansMetricsQueryBuilder
-from sentry.search.events.types import QueryBuilderConfig
+from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events.types import SnubaParams
 from sentry.services import eventstore
-from sentry.snuba.dataset import Dataset
-from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.spans_rpc import Spans
 from sentry.utils.sdk import set_span_attribute
 
 VALID_AVERAGE_COLUMNS = {"span.self_time", "span.duration"}
 
 
-def add_comparison_to_event(event, average_columns, request: Request):
+def add_comparison_to_event(event, average_columns):
     if "spans" not in event.data:
         return
     group_to_span_map = defaultdict(list)
-    end = datetime.now()
+    end = datetime.now(UTC)
     start = end - timedelta(hours=24)
     for span in event.data["spans"]:
         group = span.get("sentry_tags", {}).get("group")
@@ -46,38 +43,24 @@ def add_comparison_to_event(event, average_columns, request: Request):
         return
 
     with handle_query_errors():
-        builder = SpansMetricsQueryBuilder(
-            dataset=Dataset.PerformanceMetrics,
-            params={
-                "start": start,
-                "end": end,
-                "project_objects": [event.project],
-                "organization_id": event.organization.id,
-            },
+        result = Spans.run_table_query(
+            params=SnubaParams(
+                start=start,
+                end=end,
+                projects=[event.project],
+                organization=event.organization,
+            ),
+            query_string=f"span.group:[{','.join(group_to_span_map.keys())}]",
             selected_columns=[
                 "span.group",
                 *[f"avg({average_column})" for average_column in average_columns],
             ],
-            config=QueryBuilderConfig(transform_alias_to_input_format=True),
-            # orderby shouldn't matter, just picking something so results are consistent
             orderby=["span.group"],
-        )
-        builder.add_conditions(
-            [
-                Condition(
-                    Column(builder.resolve_column_name("span.group")),
-                    Op.IN,
-                    Function("tuple", list(group_to_span_map.keys())),
-                )
-            ]
-        )
-        result = builder.process_results(
-            builder.run_query(
-                referrer=Referrer.API_INSIGHTS_ORG_EVENT_AVERAGE_SPAN.value,
-                query_source=(
-                    QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
-                ),
-            )
+            offset=0,
+            limit=len(group_to_span_map),
+            referrer=Referrer.API_INSIGHTS_ORG_EVENT_AVERAGE_SPAN.value,
+            config=SearchResolverConfig(),
+            sampling_mode="NORMAL",
         )
         set_span_attribute("query.groups_found", len(result["data"]))
         for row in result["data"]:
@@ -155,7 +138,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
             and len(average_columns) > 0
             and features.has("organizations:insight-modules", organization, actor=request.user)
         ):
-            add_comparison_to_event(event=event, average_columns=average_columns, request=request)
+            add_comparison_to_event(event=event, average_columns=average_columns)
 
         # TODO: Remove `for_group` check once performance issues are moved to the issue platform
         if hasattr(event, "for_group") and event.group:
