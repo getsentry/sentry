@@ -104,10 +104,7 @@ leading graphics, trailing actions, or an editable control.
 A clickable, muted-weight crumb that navigates to a parent page. It takes a
 string `label`, a `to` destination, and an optional `leadingGraphic`.
 
-Page filters are not carried automatically. To keep the project, environment, and
-date selection across the navigation, build the query into `to` yourself with
-`extractSelectionParameters` from `sentry/components/pageFilters/parse`,
-overriding any parameter the destination needs different.
+Page filters are not carried automatically — see [Page filters](#page-filters).
 
 <Storybook.Demo>
   <BreadcrumbListDemo
@@ -181,6 +178,52 @@ props.
   />
 </TopBar.Slot>
 ```
+
+## Page filters
+
+A crumb that links to a bare pathname does not leave the page-filter selection
+alone — it **clears** it. `PageFiltersContainer` reconciles its store against the
+URL on navigation, and an absent `project` reads as an empty selection rather
+than "unchanged". So a trail that links back to a filtered list drops the user's
+project, environment, and date range unless the crumb carries them.
+
+To carry the whole selection, build the query with `extractSelectionParameters`
+from `sentry/components/pageFilters/parse`:
+
+```tsx
+<TopBar.Slot name="breadcrumbs">
+  <BreadcrumbList
+    items={[
+      {
+        type: 'link',
+        label: 'Releases',
+        to: {
+          pathname: makeReleasesPathname({organization, path: '/'}),
+          query: extractSelectionParameters(location.query),
+        },
+      },
+    ]}
+  />
+</TopBar.Slot>
+```
+
+To carry part of it, spread and override. Clearing `start` and `end` is required
+whenever you set `statsPeriod` — otherwise an absolute range and a relative
+period both travel, and the destination picks one:
+
+```tsx
+const query = {
+  ...extractSelectionParameters(location.query),
+  statsPeriod: '24h',
+  start: undefined,
+  end: undefined,
+};
+```
+
+> [!NOTE]
+> Leaving the bare pathname is a valid choice, not an oversight — a settings or
+> configuration destination has no use for a stale `statsPeriod`. Decide per
+> crumb based on whether the destination is filtered.
 
 ## Page titles
 
