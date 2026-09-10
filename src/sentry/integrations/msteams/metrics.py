@@ -28,7 +28,7 @@ class MsTeamsInvalidRequestError(ApiInvalidRequestError, IntegrationConfiguratio
 def record_lifecycle_termination_level(
     lifecycle: EventLifecycle, error: ApiError | IntegrationError
 ) -> None:
-    if isinstance(error, (ApiInvalidRequestError, IntegrationConfigurationError)):
+    if isinstance(error, IntegrationConfigurationError):
         lifecycle.record_halt(error)
     elif isinstance(error, IntegrationError):
         lifecycle.record_failure(error)
