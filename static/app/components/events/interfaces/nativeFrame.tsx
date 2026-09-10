@@ -281,29 +281,29 @@ export function NativeFrame({
           as="span"
           columns={{
             zero: 'auto minmax(0, 1fr) 56px 24px',
-            lg: 'auto 150px 120px minmax(0, 1fr) auto auto 24px',
+            xl: 'auto 150px 120px minmax(0, 1fr) auto auto 24px',
             '2xl': 'auto 150px 120px minmax(120px, 4fr) repeat(3, auto) 24px',
           }}
           expandable={!!expandable}
-          gap={{zero: 'xs sm', lg: '0 sm'}}
+          gap={{zero: 'xs sm', xl: '0 sm'}}
           isInAppFrame={frame.inApp}
           isSubFrame={!!isSubFrame}
-          minHeight={{lg: '32px'}}
+          minHeight={{xl: '32px'}}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
-          padding={{zero: 'md', lg: 'sm lg'}}
+          padding={{zero: 'md', xl: 'sm lg'}}
           position="relative"
           rows={{
             zero: hiddenFrameCount ? 'auto auto auto auto' : 'auto auto auto',
-            lg: 'auto',
+            xl: 'auto',
           }}
         >
           {expandable ? <InteractionStateLayer /> : null}
           <Container
-            column={{zero: '1', lg: '1'}}
+            column={{zero: '1', xl: '1'}}
             row={{
               zero: hiddenFrameCount ? '1 / 5' : '1 / 4',
-              lg: '1',
+              xl: '1',
             }}
             width="14px"
           >
@@ -334,9 +334,9 @@ export function NativeFrame({
             ) : null}
           </Container>
           <Container
-            column={{zero: '2', lg: '2'}}
+            column={{zero: '2', xl: '2'}}
             minWidth="0"
-            row={{zero: '1', lg: '1'}}
+            row={{zero: '1', xl: '1'}}
           >
             {!fullStackTrace && !expanded && leadsToApp && (
               <Fragment>
@@ -365,7 +365,7 @@ export function NativeFrame({
                   : `<${t('unknown')}>`}
             </InfoText>
           </Container>
-          <Flex column={{zero: '2', lg: '3'}} minWidth="0" row={{zero: '2', lg: '1'}}>
+          <Flex column={{zero: '2', xl: '3'}} minWidth="0" row={{zero: '2', xl: '1'}}>
             <AddressCell onClick={packageClickable ? handleGoToImagesLoaded : undefined}>
               <Tooltip
                 title={addressTooltip}
@@ -381,10 +381,10 @@ export function NativeFrame({
             alignSelf="center"
             column={{
               zero: '2 / 5',
-              lg: '4',
+              xl: '4',
             }}
             minWidth="0"
-            row={{zero: '3', lg: '1'}}
+            row={{zero: '3', xl: '1'}}
           >
             {functionName ? (
               <InfoText
@@ -427,12 +427,12 @@ export function NativeFrame({
             <Flex
               column={{
                 zero: '2 / 5',
-                lg: expandable ? '5 / 7' : '5 / 8',
+                xl: expandable ? '5 / 7' : '5 / 8',
                 '2xl': expandable ? '6 / 8' : '6 / 9',
               }}
               justify="end"
               minWidth="0"
-              row={{zero: '4', lg: '1'}}
+              row={{zero: '4', xl: '1'}}
             >
               <ShowHideButton
                 analyticsEventName="Stacktrace Frames: toggled"
@@ -456,13 +456,13 @@ export function NativeFrame({
           <Flex
             align="center"
             column={{
-              zero: expandable ? '3' : '3 / 5',
-              lg: expandable ? '6' : '6 / 8',
-              '2xl': expandable ? '7' : '7 / 9',
+              zero: '3',
+              xl: '6',
+              '2xl': '7',
             }}
             gap="sm"
             justify="end"
-            row={{zero: '1', lg: '1'}}
+            row={{zero: '1', xl: '1'}}
           >
             {showStacktraceLink && (
               <ErrorBoundary>
@@ -488,9 +488,9 @@ export function NativeFrame({
             </Container>
           </Flex>
           <Container
-            column={{zero: '4', lg: '7', '2xl': '8'}}
+            column={{zero: '4', xl: '7', '2xl': '8'}}
             justifySelf="end"
-            row={{zero: '1', lg: '1'}}
+            row={{zero: '1', xl: '1'}}
           >
             {expandable && (
               <ToggleButton
