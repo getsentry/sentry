@@ -39,7 +39,11 @@ from sentry.monitors.models import (
     get_cron_monitor,
 )
 from sentry.monitors.schedule import get_next_schedule, get_prev_schedule
-from sentry.monitors.types import CrontabSchedule, slugify_monitor_slug
+from sentry.monitors.types import (
+    GROUP_TYPE_MONITOR_CHECK_IN_FAILURE,
+    CrontabSchedule,
+    slugify_monitor_slug,
+)
 from sentry.monitors.utils import (
     create_issue_alert_rule,
     ensure_cron_detector,
@@ -56,6 +60,7 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDetectorTypeValidator,
 )
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.registry import detector_validator_registry
 
 MONITOR_STATUSES = {
     "active": ObjectStatus.ACTIVE,
@@ -748,6 +753,7 @@ class MonitorDataSourceListField(serializers.ListField):
         return super().to_internal_value(data)
 
 
+@detector_validator_registry.register(GROUP_TYPE_MONITOR_CHECK_IN_FAILURE)
 class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
     """
     Validator for monitor incident detection configuration.
