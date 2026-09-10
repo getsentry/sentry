@@ -605,3 +605,64 @@ class OrganizationEventsTimeseriesAnnotationsTest(APITestCase, OutcomesSnubaTest
         )
         assert response.status_code == 200, response.content
         assert response.data["meta"]["annotations"] == []
+
+
+class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
+    endpoint = "sentry-api-0-organization-events-timeseries"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.end = before_now(days=1).replace(minute=0, second=0, microsecond=0)
+        self.start = self.end - timedelta(hours=2)
+        self.url = reverse(
+            self.endpoint,
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+
+    def _do_request(self, features: dict[str, bool], dataset: str = "spans"):
+        data: dict[str, Any] = {
+            "start": self.start,
+            "end": self.end,
+            "interval": "1h",
+            "project": [self.project.id],
+            "dataset": dataset,
+        }
+        with self.feature(features):
+            return self.client.get(self.url, data=data, format="json")
+
+    @mock.patch("sentry.api.helpers.ingestion_delay.measure_delay_seconds")
+    def test_ingestion_delay_present(self, mock_measure) -> None:
+        mock_measure.return_value = 42.5
+        response = self._do_request(
+            {
+                "organizations:visibility-explore-view": True,
+                "organizations:measured-ingestion-delay-metadata": True,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"]["estimatedIngestionDelaySeconds"] == 42.5
+
+    @mock.patch("sentry.api.helpers.ingestion_delay.measure_delay_seconds")
+    def test_ingestion_delay_absent(self, mock_measure) -> None:
+        mock_measure.return_value = None
+        response = self._do_request(
+            {
+                "organizations:visibility-explore-view": True,
+                "organizations:measured-ingestion-delay-metadata": True,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert "estimatedIngestionDelaySeconds" not in response.data["meta"]
+
+    @mock.patch("sentry.api.helpers.ingestion_delay.measure_delay_seconds")
+    def test_ingestion_delay_query_failure_does_not_break_the_response(self, mock_measure) -> None:
+        mock_measure.side_effect = Exception("snuba is down")
+        response = self._do_request(
+            {
+                "organizations:visibility-explore-view": True,
+                "organizations:measured-ingestion-delay-metadata": True,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert "estimatedIngestionDelaySeconds" not in response.data["meta"]
