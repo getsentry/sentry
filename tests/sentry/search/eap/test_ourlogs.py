@@ -17,10 +17,30 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
+from sentry.snuba.ourlogs import OurLogs
+
+
+class OurLogsRunTableQueryTest(TestCase):
+    def test_no_selected_columns_raises_before_rpc(self) -> None:
+        """An empty column list should be rejected the same way sentry.snuba.errors
+        rejects it, before ever reaching the RPC (which would otherwise return a
+        generic 500)."""
+        with pytest.raises(InvalidSearchQuery, match="No columns selected"):
+            OurLogs.run_table_query(
+                params=SnubaParams(),
+                query_string="",
+                selected_columns=[],
+                orderby=None,
+                offset=0,
+                limit=10,
+                referrer="test",
+                config=SearchResolverConfig(),
+            )
 
 
 class SearchResolverQueryTest(TestCase):
