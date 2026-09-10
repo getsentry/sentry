@@ -128,16 +128,8 @@ function KeyboardShortcutsList({
 }
 
 const modalCss = css`
-  width: calc(100vw - 80px);
+  width: max-content;
   max-width: calc(100vw - 80px);
-  height: calc(100vh - 80px);
-  max-height: calc(100vh - 80px);
-
-  [role='document'] {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-  }
 `;
 
 function openKeyboardShortcutsModal() {
