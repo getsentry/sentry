@@ -263,15 +263,20 @@ const makeInitialExplorerAutofixData = (): ExplorerAutofixResponse => ({
  * Handles both `{detail: "..."}` and DRF field errors like
  * `{user_context: ["Ensure this field has no more than 1000 characters."]}`.
  */
-function getApiErrorMessage(e: any, fallback = 'An error occurred'): string {
-  const responseJSON = e?.responseJSON;
-  if (isString(responseJSON?.detail)) {
-    return responseJSON.detail;
+function getApiErrorMessage(e: unknown, fallback = 'An error occurred'): string {
+  const responseJSON = (e as {responseJSON?: unknown} | null | undefined)?.responseJSON;
+  if (responseJSON === null || typeof responseJSON !== 'object') {
+    return fallback;
   }
-  if (responseJSON && typeof responseJSON === 'object') {
-    for (const value of Object.values(responseJSON)) {
-      if (isArrayOf(value, isString) && value.length > 0) {
-        return value[0]!;
+  const {detail} = responseJSON as {detail?: unknown};
+  if (isString(detail)) {
+    return detail;
+  }
+  for (const value of Object.values(responseJSON)) {
+    if (isArrayOf(value, isString)) {
+      const [first] = value;
+      if (isString(first)) {
+        return first;
       }
     }
   }
