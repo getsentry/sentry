@@ -15,20 +15,20 @@ import {
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
-import {DEFAULT_YAXIS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import {
   defaultAggregateSortBys,
   defaultMetricQuery,
   encodeMetricQueryParams,
   type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
-import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
+import {getDefaultMetricYAxis, getMetricYAxis} from 'sentry/views/explore/metrics/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {callRecordLabel} from 'sentry/views/seerExplorer/callRecords';
 import type {CallRecord, ToolLink} from 'sentry/views/seerExplorer/types';
 
 /**
@@ -677,7 +677,9 @@ export function subjectFromCallRecord(record: CallRecord): LinkSubject {
     pathname: pathname || undefined,
     query: query ? (queryString.parse(query) as Record<string, string>) : undefined,
     status: record.status,
-    title: record.title?.trim() || undefined,
+    // Same precedence as the row's own label, so a rule that names the row from its title
+    // still leads with the agent's line rather than dropping it on every navigable row.
+    title: callRecordLabel(record) ?? undefined,
   };
 }
 
@@ -937,23 +939,6 @@ function getTraceMetricFromParams(params: Record<string, any>): TraceMetric | nu
     traceMetric.unit = rawTraceMetric.unit;
   }
   return traceMetric;
-}
-
-function getMetricYAxis(yAxis: string, traceMetric: TraceMetric): string {
-  const visualize = new VisualizeFunction(yAxis);
-  const aggregate = visualize.parsedFunction?.name;
-  if (!aggregate) {
-    return yAxis;
-  }
-
-  return makeMetricsAggregate({aggregate, traceMetric});
-}
-
-function getDefaultMetricYAxis(traceMetric: TraceMetric): string {
-  return makeMetricsAggregate({
-    aggregate: DEFAULT_YAXIS_BY_TYPE[traceMetric.type] ?? 'sum',
-    traceMetric,
-  });
 }
 
 function parseMetricsSort(

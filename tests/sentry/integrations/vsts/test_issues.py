@@ -513,7 +513,6 @@ class VstsIssueSyncTest(VstsIssueBase):
 
     @responses.activate
     def test_should_resolve_done_status_failure(self) -> None:
-        """TODO(mgaeta): Should this be NOOP instead of UNRESOLVE when we lose connection?"""
         responses.reset()
         responses.add(
             responses.GET,
@@ -524,7 +523,9 @@ class VstsIssueSyncTest(VstsIssueBase):
             },
         )
 
-        assert (
+        # Answering with an empty set would read as "no state is a done state" and unresolve
+        # every transition, so the lookup has to fail rather than guess.
+        with pytest.raises(ApiError):
             self.integration.get_resolve_sync_action(
                 {
                     "project": self.project_id_with_states,
@@ -532,8 +533,6 @@ class VstsIssueSyncTest(VstsIssueBase):
                     "new_state": "Resolved",
                 }
             )
-            == ResolveSyncAction.UNRESOLVE
-        )
 
     @responses.activate
     def test_should_not_unresolve_resolved_to_closed(self) -> None:

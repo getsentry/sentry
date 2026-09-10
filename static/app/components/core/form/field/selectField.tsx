@@ -49,6 +49,10 @@ type BaseSelectFieldProps<TValue, IsMulti extends boolean> = Omit<
   BaseFieldProps<HTMLInputElement> & {
     options: ReadonlyArray<SelectValue<TValue>>;
     /**
+     * Allows entering values that are not in `options`.
+     */
+    creatable?: boolean;
+    /**
      * custom value comparator function
      * defaults to === comparison of the option values
      */
@@ -114,11 +118,17 @@ export function SelectField<TValue>({
   onChange,
   disabled,
   multiple,
+  clearable,
   value,
   ref,
   ...props
 }: BaseFieldProps<HTMLInputElement> & SelectFieldProps<TValue>) {
   const autoSaveContext = useAutoSaveContext();
+  const selectVariantProps = multiple
+    ? {multiple: true as const, clearable, value}
+    : clearable
+      ? {clearable: true as const, value}
+      : {value};
 
   // Track whether the menu is open for multi-select auto-save behavior
   const isMenuOpenRef = useRef(false);
@@ -130,9 +140,8 @@ export function SelectField<TValue>({
           <Select
             {...fieldProps}
             {...props}
+            {...selectVariantProps}
             inputId={id}
-            multiple={multiple}
-            value={value}
             inputRef={applyInputToRef(fieldRef)}
             {...(autoSaveContext && {blurInputOnSelect: false})}
             components={

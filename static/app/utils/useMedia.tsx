@@ -32,6 +32,7 @@ export function useMedia(query: string) {
     };
 
     mql.addEventListener('change', onChange);
+    // oxlint-disable-next-line react/set-state-in-effect
     setState(mql.matches);
 
     return () => {

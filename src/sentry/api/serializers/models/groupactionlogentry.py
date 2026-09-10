@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, TypedDict
@@ -7,13 +8,20 @@ from django.contrib.auth.models import AnonymousUser
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.activity import _ActivitySentryAppEmbed
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
+from sentry.issues.action_log.read_metrics import (
+    ActivityReadFallbackReason,
+    ActivityReadResult,
+    record_activity_read,
+)
 from sentry.issues.action_log.types import (
     ACTION_TYPES_WITH_COMMIT_DATA,
     COMMIT_ACTION_TYPES,
     PULL_REQUEST_ACTION_TYPES,
+    CommentAction,
     GroupActionType,
     GroupActorType,
 )
+from sentry.issues.derived.gate import should_serve_action_log_activity
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.commit import Commit
 from sentry.models.pullrequest import PullRequest
@@ -33,6 +41,8 @@ from sentry.utils.action_log.activity_translator import (
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
+
+logger = logging.getLogger(__name__)
 
 
 class GroupActionLogEntrySerializerResponse(TypedDict):
@@ -64,6 +74,54 @@ def serialize_first_seen_entry(group: "Group") -> GroupActionLogEntrySerializerR
         "data": {"priority": initial_priority},
         "dateCreated": group.first_seen,
     }
+
+
+def _serialized_id(obj: GroupActionLogEntry) -> str:
+    """
+    The id clients address this entry by.
+
+    The notes endpoints resolve ``note_id`` against ``Activity.id``, so a COMMENT
+    serializes its ``comment_id`` (the Activity it mirrors) rather than its own.
+    COMMENT_EDIT and COMMENT_DELETE carry a ``comment_id`` too, but theirs points
+    at the GALE id of the COMMENT they supersede, so they keep their own.
+    """
+    if obj.type == GroupActionType.COMMENT.value:
+        match obj.action:
+            case CommentAction(comment_id=comment_id):
+                return str(comment_id)
+    return str(obj.id)
+
+
+def get_serialized_activity_items(
+    group: "Group",
+    user: User | RpcUser | AnonymousUser | None,
+    *,
+    endpoint: str,
+    limit: int = 99,
+) -> list[dict[str, Any]] | None:
+    """
+    Activity-shaped items for a group, read from the action log.
+
+    Returns None when the log can't back the response — either the gate is closed or it's
+    open and the log is empty — and the caller should fall back to Activity. Reports the
+    read outcome in both cases, so callers don't have to.
+    """
+    if not should_serve_action_log_activity(group.project, user, endpoint=endpoint):
+        return None
+
+    action_log = GroupActionLogEntry.objects.get_actions_for_group(group, limit)
+    if not action_log:
+        record_activity_read(
+            endpoint, ActivityReadResult.FELL_BACK, ActivityReadFallbackReason.EMPTY_LOG
+        )
+        logger.info(
+            "issues.action_log.activity_read.not_found",
+            extra={"endpoint": endpoint, "group_id": group.id},
+        )
+        return None
+
+    record_activity_read(endpoint, ActivityReadResult.GAL)
+    return [*serialize(action_log, user), serialize_first_seen_entry(group)]
 
 
 @register(GroupActionLogEntry)
@@ -215,7 +273,7 @@ class GroupActionLogEntrySerializer(Serializer):
             data.pop("current_release_version", None)
 
         return {
-            "id": str(obj.id),
+            "id": _serialized_id(obj),
             "type": type_display,
             "user": attrs["user"],
             "sentry_app": attrs["sentry_app"],

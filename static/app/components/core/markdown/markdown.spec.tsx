@@ -402,6 +402,91 @@ describe('Markdown', () => {
     });
   });
 
+  describe('tag index', () => {
+    function IndexProbe({name, index}: {name: string; index?: number}) {
+      return <output role="log">{`${name}=${index}`}</output>;
+    }
+
+    const indexes = () => screen.getAllByRole('log').map(el => el.textContent);
+
+    it('numbers tags in document order across blocks', () => {
+      render(
+        <Markdown
+          raw={'{% a /%}\n\n## Heading\n\n{% b /%}\n\n{% c /%}'}
+          components={{Tag: IndexProbe}}
+        />
+      );
+      expect(indexes()).toEqual(['a=0', 'b=1', 'c=2']);
+    });
+
+    it('numbers two inline tags in the same paragraph separately', () => {
+      render(
+        <Markdown
+          raw="See {% a /%} and also {% b /%} here"
+          components={{Tag: IndexProbe}}
+        />
+      );
+      expect(indexes()).toEqual(['a=0', 'b=1']);
+    });
+
+    it('numbers identical tags separately', () => {
+      render(
+        <Markdown
+          raw={'{% a %}{"id":"1"}{% /a %}\n\n{% a %}{"id":"1"}{% /a %}'}
+          components={{Tag: IndexProbe}}
+        />
+      );
+      expect(indexes()).toEqual(['a=0', 'a=1']);
+    });
+
+    it('numbers tags nested in lists', () => {
+      render(
+        <Markdown
+          raw={'- first {% a /%}\n- second {% b /%}'}
+          components={{Tag: IndexProbe}}
+        />
+      );
+      expect(indexes()).toEqual(['a=0', 'b=1']);
+    });
+
+    it('numbers tags in table headers before table rows', () => {
+      render(
+        <Markdown
+          raw={'| {% a /%} |\n| --- |\n| {% b /%} |'}
+          components={{Tag: IndexProbe}}
+        />
+      );
+      expect(indexes()).toEqual(['a=0', 'b=1']);
+    });
+
+    it('keeps existing indexes when content is appended', () => {
+      const {rerender} = render(
+        <Markdown raw="Start {% a /%}" components={{Tag: IndexProbe}} />
+      );
+      expect(indexes()).toEqual(['a=0']);
+
+      rerender(
+        <Markdown raw="Start {% a /%} then {% b /%}" components={{Tag: IndexProbe}} />
+      );
+      expect(indexes()).toEqual(['a=0', 'b=1']);
+    });
+
+    it('does not count a tag whose closing marker has not arrived', () => {
+      const {rerender} = render(
+        <Markdown raw='{% a /%} then {% b %}{"id"' components={{Tag: IndexProbe}} />
+      );
+      expect(indexes()).toEqual(['a=0']);
+
+      rerender(
+        <Markdown
+          raw='{% a /%} then {% b %}{"id":"1"}{% /b %}'
+          components={{Tag: IndexProbe}}
+        />
+      );
+      expect(indexes()).toEqual(['a=0', 'b=1']);
+    });
+  });
+
   describe('token caching', () => {
     it('renders correctly when raw prop changes', () => {
       const {rerender} = render(<Markdown raw="First" />);

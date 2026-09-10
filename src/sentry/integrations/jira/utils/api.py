@@ -7,8 +7,10 @@ from typing import Any
 from rest_framework import status
 from rest_framework.response import Response
 
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.utils.external_issue_key import rekey_external_issues
 from sentry.integrations.utils.status_sync import PROVIDER_EVENT_TIME_KEY
 from sentry.integrations.utils.sync import sync_group_assignee_inbound
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
@@ -30,6 +32,14 @@ def _get_client(integration: RpcIntegration) -> JiraCloudClient:
         integration=integration,
         verify_ssl=True,
     )
+
+
+def changelog_items(data: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    """The changelog entries in a `jira:issue_updated` payload; a changelog without an
+    `items` key is valid and yields an empty list."""
+    changelog = data.get("changelog") or {}
+    items = changelog.get("items")
+    return items if isinstance(items, list) else []
 
 
 def set_badge(integration: RpcIntegration, issue_key: str, group_link_num: int) -> Response:
@@ -60,7 +70,7 @@ def handle_assignee_change(
 
     log_context = {"issue_key": issue_key, "integration_id": integration.id}
     assignee_changed = any(
-        item for item in data["changelog"]["items"] if item["field"] == "assignee"
+        item for item in changelog_items(data) if item.get("field") == "assignee"
     )
     if not assignee_changed:
         logger.info("jira.assignee-not-in-changelog", extra=log_context)
@@ -69,9 +79,13 @@ def handle_assignee_change(
     # If there is no assignee, assume it was unassigned.
     fields = data["issue"]["fields"]
     assignee = fields.get("assignee")
+    # Jira's own timestamp for the change, used to drop out-of-order deliveries.
+    updated = fields.get("updated")
 
     if assignee is None:
-        sync_group_assignee_inbound(integration, None, issue_key, assign=False)
+        sync_group_assignee_inbound(
+            integration, None, issue_key, assign=False, provider_event_updated_at=updated
+        )
         return
 
     email = get_assignee_email(integration, assignee, use_email_scope)
@@ -79,7 +93,53 @@ def handle_assignee_change(
         logger.info("jira.missing-assignee-email", extra=log_context)
         return
 
-    sync_group_assignee_inbound(integration, email, issue_key, assign=True)
+    sync_group_assignee_inbound(
+        integration, email, issue_key, assign=True, provider_event_updated_at=updated
+    )
+
+
+def handle_issue_moved(integration: RpcIntegration | Integration, data: Mapping[str, Any]) -> None:
+    """
+    Follow a Jira-side issue key change over to `ExternalIssue`.
+
+    Jira reassigns an issue's key when the issue moves to another project (and when a
+    project itself is rekeyed), announcing it as a `Key` changelog item. Jira Server
+    sends the same shape, so both flavors share this handler.
+    """
+    changelog_items = (data.get("changelog") or {}).get("items") or []
+    key_change = next(
+        (item for item in changelog_items if (item.get("field") or "").lower() == "key"),
+        None,
+    )
+    # Every other `issue.updated` webhook — the overwhelming majority — is not a move, so
+    # don't open a lifecycle for it.
+    if key_change is None:
+        return
+
+    with ProjectManagementEvent(
+        action_type=ProjectManagementActionType.REKEY_EXTERNAL_ISSUE, integration=integration
+    ).capture() as lifecycle:
+        issue = data.get("issue") or {}
+        old_key = key_change.get("fromString")
+        # Jira fills in `toString`, but `issue.key` is already the new key either way.
+        new_key = key_change.get("toString") or issue.get("key")
+        log_context = {
+            "integration_id": integration.id,
+            "old_key": old_key,
+            "new_key": new_key,
+        }
+        lifecycle.add_extras(log_context)
+
+        if not old_key or not new_key or old_key == new_key:
+            lifecycle.record_halt(
+                ProjectManagementHaltReason.REKEY_UNUSABLE_KEY_CHANGE, extra=log_context
+            )
+            return
+
+        rekeyed = rekey_external_issues(
+            integration, old_key, new_key, provider_issue_id=issue.get("id")
+        )
+        lifecycle.add_extras({"rekeyed_count": rekeyed})
 
 
 # TODO(Gabe): Consolidate this with VSTS's implementation, create DTO for status
@@ -90,7 +150,7 @@ def handle_status_change(integration: RpcIntegration, data: Mapping[str, Any]) -
     ).capture() as lifecycle:
         issue_key = data["issue"]["key"]
         status_changed = any(
-            item for item in data["changelog"]["items"] if item["field"] == "status"
+            item for item in changelog_items(data) if item.get("field") == "status"
         )
         log_context = {"issue_key": issue_key, "integration_id": integration.id}
 
@@ -100,7 +160,7 @@ def handle_status_change(integration: RpcIntegration, data: Mapping[str, Any]) -
 
         try:
             changelog = next(
-                item for item in data["changelog"]["items"] if item["field"] == "status"
+                item for item in changelog_items(data) if item.get("field") == "status"
             )
         except StopIteration:
             lifecycle.record_halt(
@@ -109,7 +169,7 @@ def handle_status_change(integration: RpcIntegration, data: Mapping[str, Any]) -
             logger.info("jira.missing-changelog-status", extra=log_context)
             return
 
-        # For a status transition this is when the transition happened; orders deliveries.
+        # Jira's own timestamp for the transition, used to drop out-of-order deliveries.
         updated = (data["issue"].get("fields") or {}).get("updated")
 
         result = integration_service.organization_contexts(integration_id=integration.id)

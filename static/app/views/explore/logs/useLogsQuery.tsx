@@ -222,6 +222,7 @@ function getPageParam(
   highFidelity?: boolean
 ) {
   const isGetPreviousPage = pageDirection === 'previous';
+  // oxlint-disable-next-line react/function-component-definition -- This callback is not a React component.
   return (
     result: ApiResponse<EventsLogsResult>,
     _: unknown,
@@ -812,6 +813,7 @@ function useAutoFetchWindow({
   }, [queryKey]);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setWindowStartMs(undefined);
     setResumeCount(0);
     timesFetched.current = 0;
@@ -823,6 +825,7 @@ function useAutoFetchWindow({
     }
 
     const currentNowMs = Date.now();
+    // oxlint-disable-next-line react/set-state-in-effect
     setNowMs(currentNowMs);
 
     if (!windowStartMs) {

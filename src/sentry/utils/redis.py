@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import importlib.resources
+import inspect
 import logging
 from copy import deepcopy
 from threading import Lock
-from typing import Any, Literal, TypeGuard, TypeVar, overload
+from typing import Any, Literal, TypeGuard, TypeVar, cast, overload
 
 import rb
 from django.utils.functional import SimpleLazyObject
@@ -15,9 +16,11 @@ from sentry_redis_tools.failover_redis import FailoverRedis
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
 from sentry import options
+from sentry.db.postgres.transactions import in_test_assert_no_transaction
 from sentry.exceptions import InvalidConfiguration
 from sentry.options import OptionsManager
 from sentry.utils import warnings
+from sentry.utils.env import in_test_environment
 from sentry.utils.versioning import Version, check_versions
 from sentry.utils.warnings import DeprecatedSettingWarning
 
@@ -173,27 +176,29 @@ class RedisClusterManager:
             RedisCluster[bytes] | StrictRedis[bytes] | RedisCluster[str] | StrictRedis[str]
         ):
             if is_redis_cluster:
-                return RetryingRedisCluster(
-                    # Intentionally copy hosts here because redis-cluster-py
-                    # mutates the inner dicts and this closure can be run
-                    # concurrently, as SimpleLazyObject is not threadsafe. This
-                    # is likely triggered by RetryingRedisCluster running
-                    # reset() after startup
-                    #
-                    # https://github.com/Grokzen/redis-py-cluster/blob/73f27edf7ceb4a408b3008ef7d82dac570ab9c6a/rediscluster/nodemanager.py#L385
-                    startup_nodes=deepcopy(hosts_list),
-                    decode_responses=decode_responses,
-                    skip_full_coverage_check=True,
-                    max_connections=16,
-                    max_connections_per_node=True,
-                    readonly_mode=readonly_mode,
-                    **client_args,
+                return _add_transaction_checks(
+                    RetryingRedisCluster(
+                        # Intentionally copy hosts here because redis-cluster-py
+                        # mutates the inner dicts and this closure can be run
+                        # concurrently, as SimpleLazyObject is not threadsafe. This
+                        # is likely triggered by RetryingRedisCluster running
+                        # reset() after startup
+                        #
+                        # https://github.com/Grokzen/redis-py-cluster/blob/73f27edf7ceb4a408b3008ef7d82dac570ab9c6a/rediscluster/nodemanager.py#L385
+                        startup_nodes=deepcopy(hosts_list),
+                        decode_responses=decode_responses,
+                        skip_full_coverage_check=True,
+                        max_connections=16,
+                        max_connections_per_node=True,
+                        readonly_mode=readonly_mode,
+                        **client_args,
+                    )
                 )
-            else:
-                assert len(hosts_list) > 0, "Hosts should have at least 1 entry"
-                host = dict(hosts_list[0])
-                host["decode_responses"] = decode_responses
-                return FailoverRedis(**host, **client_args)
+
+            assert len(hosts_list) > 0, "Hosts should have at least 1 entry"
+            host = dict(hosts_list[0])
+            host["decode_responses"] = decode_responses
+            return _add_transaction_checks(FailoverRedis(**host, **client_args))
 
         # losing some type safety: SimpleLazyObject acts like the underlying type
         return SimpleLazyObject(cluster_factory)
@@ -219,6 +224,146 @@ class RedisClusterManager:
         # setup/init of lazy objects.
         ret = self._clusters_bytes[key] = self._factory(**self._cfg(key), decode_responses=False)
         return ret
+
+
+# INC-2410: Existing violations of Redis calls happening during DB transactions at the time the check was added.
+# New entries are not allowed and we should burn this down over time.
+_REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET = frozenset(
+    {
+        (
+            "getsentry.billing.usagebuffer.redis.RedisUsageBuffer.fetch_pop",
+            "getsentry.billing.tasks.usagebuffer.flush_usage_buffer",
+        ),
+        (
+            "getsentry.models.billingseatassignment.BillingSeatAssignment.schedule_redis_key_sync.<locals>._sync_redis_key",
+        ),
+        (
+            "sentry.dynamic_sampling.rules.helpers.latest_releases.ProjectBoostedReleases.has_boosted_releases",
+            "sentry.models.releases.release_project.ReleaseProjectModelManager._on_post",
+        ),
+        ("sentry.event_manager._get_severity_metadata_for_group",),
+        (
+            "sentry.models.counter.increment_project_counter_in_cache",
+            "sentry.models.counter.Counter.increment",
+            "sentry.models.project.Project.next_short_id",
+            "sentry.event_manager._get_next_short_id",
+        ),
+        ("sentry.models.counter.refill_cached_short_ids",),
+        ("sentry.notifications.notifications.activity.base.GroupActivityNotification.__init__",),
+        (
+            "sentry.ratelimits.redis.RedisRateLimiter.reset",
+            "sentry.auth.twofactor.reset_2fa_rate_limits",
+            "sentry.users.web.accounts.recover_confirm",
+        ),
+        ("sentry.rules.actions.integrations.create_ticket.utils.create_issue",),
+        ("sentry.rules.conditions.event_frequency.EventFrequencyCondition.query_hook",),
+        ("sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition.query_hook",),
+        ("sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition.query_hook",),
+        (
+            "sentry.services.eventstore.reprocessing.redis.RedisReprocessingStore.get_pending",
+            "sentry.reprocessing2.get_progress",
+        ),
+        (
+            "sentry.services.eventstore.reprocessing.redis.RedisReprocessingStore.get_pending",
+            "sentry.reprocessing2.is_reprocessing_active",
+        ),
+        ("sentry.tasks.assemble.delete_assemble_status",),
+        (
+            "sentry.uptime.config_producer._send_to_redis",
+            "sentry.uptime.config_producer.produce_config",
+        ),
+        (
+            "sentry.uptime.config_producer._send_to_redis",
+            "sentry.uptime.config_producer.produce_config_removal",
+        ),
+        ("sentry.uptime.subscriptions.subscriptions.disable_uptime_detector",),
+        ("sentry.utils.snowflake.get_sequence_value_from_redis",),
+        (
+            "sentry.utils.sentry_apps.request_buffer.SentryAppWebhookRequestsBuffer.add_request",
+            "sentry.sentry_apps.external_requests.utils.send_and_save_sentry_app_request",
+        ),
+        (
+            "sentry.utils.sentry_apps.request_buffer.SentryAppWebhookRequestsBuffer.add_request",
+            "sentry.utils.sentry_apps.webhooks.send_and_save_webhook_request",
+        ),
+    }
+)
+
+
+def _add_transaction_checks(
+    client: RedisCluster[T] | StrictRedis[T],
+) -> RedisCluster[T] | StrictRedis[T]:
+    """No-ops in production. In testing environments, wraps Redis calls to assert it's not inside a transaction."""
+    if not in_test_environment():
+        return client
+
+    mutable_client = cast(Any, client)
+    execute_command = mutable_client.execute_command
+
+    def execute_command_outside_transaction(*args: Any, **kwargs: Any) -> Any:
+        _assert_redis_transaction_allowed("Redis commands must run outside database transactions")
+        return execute_command(*args, **kwargs)
+
+    pipeline_factory = mutable_client.pipeline
+
+    def pipeline(*args: Any, **kwargs: Any) -> Any:
+        redis_pipeline = pipeline_factory(*args, **kwargs)
+        execute_pipeline = redis_pipeline.execute
+
+        def execute_pipeline_outside_transaction(*args: Any, **kwargs: Any) -> Any:
+            _assert_redis_transaction_allowed(
+                "Redis pipeline commands must run outside database transactions"
+            )
+            return execute_pipeline(*args, **kwargs)
+
+        redis_pipeline.execute = execute_pipeline_outside_transaction
+        return redis_pipeline
+
+    mutable_client.execute_command = execute_command_outside_transaction
+    mutable_client.pipeline = pipeline
+    return client
+
+
+def _assert_redis_transaction_allowed(message: str) -> None:
+    try:
+        in_test_assert_no_transaction(message)
+    except AssertionError:
+        callers = _redis_transaction_callers()
+        caller = callers[0] if callers else None
+        if caller is not None and caller.startswith(
+            ("getsentry.testutils.", "sentry.testutils.", "tests.")
+        ):
+            return
+        if _matches_redis_transaction_ratchet(callers):
+            return
+        raise AssertionError(f"{message} (Redis caller: {caller or 'unknown'})") from None
+
+
+def _matches_redis_transaction_ratchet(callers: tuple[str, ...]) -> bool:
+    for signature in _REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET:
+        remaining_callers = iter(callers)
+        if all(caller in remaining_callers for caller in signature):
+            return True
+    return False
+
+
+def _redis_transaction_callers() -> tuple[str, ...]:
+    callers = []
+    frame = inspect.currentframe()
+    while frame is not None:
+        module = frame.f_globals.get("__name__", "")
+        if module in ("_pytest", "pytest", "unittest.case") or module.startswith(
+            ("_pytest.", "pytest.", "unittest.case.")
+        ):
+            break
+        is_redis_internal = module == __name__ or any(
+            module == prefix or module.startswith(f"{prefix}.")
+            for prefix in ("django.utils.functional", "redis", "rediscluster", "sentry_redis_tools")
+        )
+        if module and not is_redis_internal:
+            callers.append(f"{module}.{frame.f_code.co_qualname}")
+        frame = frame.f_back
+    return tuple(callers)
 
 
 # TODO(epurkhiser): When migration of all rb cluster to true redis clusters has

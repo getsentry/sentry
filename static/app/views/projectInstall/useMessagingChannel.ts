@@ -1,5 +1,4 @@
 import {useEffect, useMemo} from 'react';
-import type {ReactNode} from 'react';
 import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {t} from 'sentry/locale';
@@ -8,12 +7,13 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
+  type ChannelIdentityField,
   getChannelSelectedBy,
   type IntegrationChannel,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {validateChannelQueryOptions} from 'sentry/views/projectInstall/useValidateChannel';
 
-export type Channel = {
+type Channel = {
   display: string;
   id: string;
   name: string;
@@ -23,6 +23,25 @@ export type Channel = {
 type ChannelListResponse = {
   results: Channel[];
 };
+
+/**
+ * A picker entry for a raw channel, carrying both identifiers so a caller can
+ * target whichever field the provider's backend resolves (`channelTargetedBy`).
+ * Id-keyed providers show the id alongside the name, since the name alone
+ * cannot tell two same-named channels apart.
+ */
+function toChannelOption(
+  channel: Channel,
+  channelSelectedBy: ChannelIdentityField
+): IntegrationChannel {
+  const keyedByName = channelSelectedBy === 'channelName';
+  return {
+    label: keyedByName ? channel.display : `${channel.display} (${channel.id})`,
+    value: keyedByName ? channel.display : channel.id,
+    channelId: channel.id,
+    channelName: channel.display,
+  };
+}
 
 type Input = {
   channel: IntegrationChannel | undefined;
@@ -40,7 +59,7 @@ type Input = {
 
 export type UseMessagingChannelResult = {
   channelError: string | undefined;
-  channelOptions: Array<{label: string; value: string}> | undefined;
+  channelOptions: IntegrationChannel[] | undefined;
   channelsData: ChannelListResponse | undefined;
   /**
    * Removes the cached validate-channel query for the current selection.
@@ -49,7 +68,7 @@ export type UseMessagingChannelResult = {
   clearChannelValidation: () => void;
   isChannelLoading: boolean;
   isChannelsError: boolean;
-  onChannelChange: (option: {label: ReactNode; value: string} | null) => void;
+  onChannelChange: (option: IntegrationChannel | null) => void;
   onCreateChannel: (newOption: string) => void;
 };
 
@@ -58,7 +77,7 @@ export type UseMessagingChannelResult = {
  *   - /channels/ query (skipped without provider + integration; staleTime
  *     Infinity unless refetchOnWindowFocus is set)
  *   - /channel-validate/ for manually entered channels
- *   - channelOptions shaping (Slack keyed by display name; Discord and MS Teams
+ *   - channelOptions shaping (Slack and MS Teams keyed by display name; Discord
  *     keyed by id with `display (id)` labels, since the name alone cannot
  *     disambiguate same-named channels)
  *   - Label-upgrade effect: restores raw-id labels to human-readable once the
@@ -118,28 +137,27 @@ export function useMessagingChannel({
   const clearChannelValidation = () =>
     queryClient.removeQueries({queryKey: validateChannelOptions.queryKey});
 
-  const channelOptions = useMemo(() => {
-    // Id-keyed providers show the id alongside the name, since the name alone
-    // cannot tell two same-named channels apart.
-    const keyedByName = getChannelSelectedBy(provider) === 'channelName';
-    return channels?.results.map(ch =>
-      keyedByName
-        ? {label: ch.display, value: ch.display}
-        : {label: `${ch.display} (${ch.id})`, value: ch.id}
-    );
-  }, [channels, provider]);
+  const channelSelectedBy = getChannelSelectedBy(provider);
+  const channelOptions = useMemo(
+    () => channels?.results.map(ch => toChannelOption(ch, channelSelectedBy)),
+    [channels, channelSelectedBy]
+  );
 
   useEffect(() => {
     // A restored channel (e.g. from persisted/default actions) only has a raw
     // id as its label until the channel list loads. Upgrade it to the
-    // human-readable label once we can resolve it. Skips user-created
-    // channels, which intentionally keep their typed-in label.
-    if (!channel || channel.new || !channelOptions) {
+    // human-readable label, and both identifiers, once we can resolve it.
+    // Skips user-created channels, which intentionally keep their typed-in
+    // label.
+    if (!channel || channel.new) {
       return;
     }
-    const match = channelOptions.find(option => option.value === channel.value);
-    if (match && match.label !== channel.label) {
-      setChannel({value: channel.value, label: match.label, new: false});
+    const match = channelOptions?.find(option => option.value === channel.value);
+    if (
+      match &&
+      (match.label !== channel.label || match.channelId !== channel.channelId)
+    ) {
+      setChannel({...match, new: false});
     }
   }, [channel, channelOptions, setChannel]);
 
@@ -154,10 +172,8 @@ export function useMessagingChannel({
     channelsData: channels,
     channelError,
     clearChannelValidation,
-    onChannelChange: (option: {label: ReactNode; value: string} | null) => {
-      setChannel(
-        option ? {value: option.value, label: option.label, new: false} : undefined
-      );
+    onChannelChange: (option: IntegrationChannel | null) => {
+      setChannel(option ? {...option, new: false} : undefined);
       clearChannelValidation();
       if (variant) {
         trackAnalytics('project_creation.notify_channel_changed', {

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Protocol, SupportsInt, cast
 
 import sentry_sdk
@@ -206,8 +206,11 @@ def send_alert_webhook_v2(
         operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
         event_type=SentryAppEventType.EVENT_ALERT_TRIGGERED,
     ).capture() as lifecycle:
-        group = Group.objects.get_from_cache(id=group_id)
-        assert group, "Group must exist to get related attributes"
+        try:
+            group = Group.objects.get_from_cache(id=group_id)
+        except Group.DoesNotExist:
+            lifecycle.record_halt(halt_reason=SentryAppWebhookHaltReason.MISSING_GROUP)
+            return
         project = Project.objects.get_from_cache(id=group.project_id)
         organization = Organization.objects.get_from_cache(id=project.organization_id)
         extra: dict[str, int | str] = {
@@ -396,6 +399,7 @@ def _is_project_allowed(installation: RpcSentryAppInstallation, project_id: int)
             lambda service_hook: (service_hook.organization_id, service_hook.actor_id),
         )
     ],
+    cache_ttl=timedelta(days=7),
     recalculate=False,
 )
 def _load_service_hook(organization_id: int | None, installation_id: int) -> ServiceHook | None:
@@ -403,6 +407,7 @@ def _load_service_hook(organization_id: int | None, installation_id: int) -> Ser
         service_hook = ServiceHook.objects.get(
             organization_id=organization_id,
             actor_id=installation_id,
+            project_id__isnull=True,
         )
         if service_hook.installation_id != service_hook.actor_id:
             logger.info(
@@ -411,11 +416,53 @@ def _load_service_hook(organization_id: int | None, installation_id: int) -> Ser
             )
         return service_hook
     except ServiceHook.DoesNotExist:
+        # Attempt to repair the hook if the organization_id is missing
+        return _repair_hook_missing_organization_id(organization_id, installation_id)
+
+
+def _repair_hook_missing_organization_id(
+    organization_id: int | None, installation_id: int
+) -> ServiceHook | None:
+    """
+    Attempt to repair the hook if the organization_id is missing (there was a gap from
+    between 2025-08-26 and 2026-02-18)
+    TODO: Remove this once the gap is closed
+    """
+    if organization_id is None:
         return None
+
+    try:
+        service_hook = ServiceHook.objects.get(
+            installation_id=installation_id,
+            organization_id__isnull=True,
+        )
+    except ServiceHook.DoesNotExist:
+        return None
+    except ServiceHook.MultipleObjectsReturned:
+        # We can't tell which hook is live, and guessing would send an org's payloads
+        # to the wrong url. Fall through to the missing_servicehook halt instead.
+        logger.warning(
+            "service_hook.duplicate_hooks_missing_organization_id",
+            extra={"installation_id": installation_id},
+        )
+        return None
+
+    service_hook.organization_id = organization_id
+    service_hook.save(update_fields=["organization_id"])
+    logger.info(
+        "service_hook.repaired_missing_organization_id",
+        extra={
+            "service_hook_id": service_hook.id,
+            "installation_id": installation_id,
+            "organization_id": organization_id,
+        },
+    )
+    return service_hook
 
 
 @cache_func_for_models(
     [(ServiceHookProject, lambda hook_project: (hook_project.service_hook_id,))],
+    cache_ttl=timedelta(days=7),
     recalculate=False,
 )
 def _is_project_filtering_enabled(service_hook_id: int) -> bool:
@@ -429,6 +476,7 @@ def _is_project_filtering_enabled(service_hook_id: int) -> bool:
             lambda hook_project: (hook_project.service_hook_id, hook_project.project_id),
         )
     ],
+    cache_ttl=timedelta(days=7),
     recalculate=False,
 )
 def _does_project_filter_allow_project(service_hook_id: int, project_id: int) -> bool:
@@ -912,26 +960,13 @@ def regenerate_service_hooks_for_installation(
         lifecycle.add_extras(
             {"installation_id": installation.id, "sentry_app": installation.sentry_app.id}
         )
-        hooks = hook_service.update_webhook_and_events(
+        hook_service.create_or_update_webhook_and_events_for_installation(
+            installation_id=installation.id,
             organization_id=installation.organization_id,
             application_id=installation.sentry_app.application_id,
             webhook_url=webhook_url,
             events=events,
         )
-        if webhook_url and not hooks:
-            # Note that because the update transaction is disjoint with this transaction, it is still
-            # possible we redundantly create service hooks in the face of two concurrent requests.
-            # If this proves a problem, we would need to add an additional semantic, "only create if does not exist".
-            # But I think, it should be fine.
-            hook_service.create_service_hook(
-                application_id=installation.sentry_app.application_id,
-                actor_id=installation.id,
-                installation_id=installation.id,
-                organization_id=installation.organization_id,
-                project_ids=[],
-                events=events,
-                url=webhook_url,
-            )
 
 
 def _record_metric_alert_sent_analytics(

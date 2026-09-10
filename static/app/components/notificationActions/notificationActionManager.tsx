@@ -35,10 +35,6 @@ type NotificationActionManagerProps = {
    * Optional list of roles to display as recipients of Sentry notifications
    */
   recipientRoles?: string[];
-  /**
-   * Updates the notification alert count for this project
-   */
-  updateAlertCount?: (projectId: number, alertCount: number) => void;
 };
 
 export function NotificationActionManager({
@@ -52,7 +48,7 @@ export function NotificationActionManager({
     useState<Array<Partial<NotificationAction>>>(actions);
 
   useEffect(() => {
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect
     setNotificationActions(actions);
   }, [actions]);
 

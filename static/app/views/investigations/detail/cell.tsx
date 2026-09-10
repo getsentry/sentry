@@ -37,6 +37,7 @@ import {
 } from 'sentry/views/investigations/api';
 import type {
   InvestigationBlock,
+  InvestigationBlockKind,
   InvestigationDetail,
   InvestigationExecutionDetail,
   InvestigationExecutionStatus,
@@ -46,6 +47,7 @@ import type {
 import {visibleCallRecords} from 'sentry/views/seerExplorer/callRecords';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
+import {MessagePlaceholder} from 'sentry/views/seerExplorer/components/chat/shared';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import type {Block} from 'sentry/views/seerExplorer/types';
 
@@ -732,6 +734,7 @@ function RefinementPanel({
       <RefinementDisclosureContent>
         <Stack gap="md">
           <Transcript
+            blockKind={block.kind}
             blocks={execution?.blocks ?? []}
             completedAt={currentExecution?.completedAt ?? null}
             active={active}
@@ -867,17 +870,22 @@ function PendingInvestigationQuestion({
 
 function Transcript({
   active,
+  blockKind,
   blocks,
   completedAt,
 }: {
   active: boolean;
+  blockKind: InvestigationBlockKind;
   blocks: InvestigationTranscriptBlock[];
   completedAt: string | null;
 }) {
   const now = useNow(active);
   const visibleBlocks = useMemo(
-    () => blocks.filter(isRenderableTranscriptBlock),
-    [blocks]
+    () =>
+      blocks.filter((block, index) =>
+        isRenderableTranscriptBlock(block, index, blockKind)
+      ),
+    [blocks, blockKind]
   );
   const explorerBlocks = useMemo(
     () => visibleBlocks.map(adaptTranscriptBlock),
@@ -897,18 +905,33 @@ function Transcript({
       data-test-id="investigation-transcript"
     >
       {explorerBlocks.map((block, index) => {
+        const currentVisibleBlock = visibleBlocks[index];
+        if (!currentVisibleBlock) {
+          return null;
+        }
         const end =
           visibleBlocks[index + 1]?.timestamp ?? completedAt ?? (active ? now : null);
         const duration = getElapsedMilliseconds(block.timestamp, end);
+        // Still streaming in: the raw JSON is unreadable as prose, so this row is rendered as a
+        // plain loading placeholder instead of routing it through `BlockComponent`, which would
+        // otherwise show it as assistant markdown. `isRenderableTranscriptBlock` drops the row
+        // outright once the object is complete, since `QueryResult` above already renders it.
+        const isBuildingChart =
+          currentVisibleBlock.loading &&
+          isStructuredQueryResultBlock(currentVisibleBlock, blockKind);
         return (
           <Grid key={block.id} columns="minmax(0, 1fr) auto" align="start" gap="md">
-            <BlockComponent
-              block={block}
-              blockIndex={index}
-              blocks={explorerBlocks}
-              readOnly
-              showThinking
-            />
+            {isBuildingChart ? (
+              <MessagePlaceholder content={t('Building chart…')} />
+            ) : (
+              <BlockComponent
+                block={block}
+                blockIndex={index}
+                blocks={explorerBlocks}
+                readOnly
+                showThinking
+              />
+            )}
             {duration === null ? null : <ElapsedDuration milliseconds={duration} />}
           </Grid>
         );
@@ -926,8 +949,34 @@ function isInternalPromptBlock(block: InvestigationTranscriptBlock, index: numbe
   );
 }
 
-function isRenderableTranscriptBlock(block: InvestigationTranscriptBlock, index: number) {
+/**
+ * A query block's final answer is always a single raw JSON object (see `QUERY_INSTRUCTIONS` in
+ * `agent.py`), never prose meant to be read as-is — `QueryResult` above already renders its
+ * parsed chart or table. Detected by role and a `{` prefix so a legitimate inline clarification
+ * question (plain markdown, never JSON) still renders normally.
+ */
+function isStructuredQueryResultBlock(
+  block: InvestigationTranscriptBlock,
+  blockKind: InvestigationBlockKind
+): boolean {
+  return (
+    blockKind === 'query' &&
+    block.message.role === 'assistant' &&
+    Boolean(block.message.content?.trim().startsWith('{'))
+  );
+}
+
+function isRenderableTranscriptBlock(
+  block: InvestigationTranscriptBlock,
+  index: number,
+  blockKind: InvestigationBlockKind
+) {
   if (isInternalPromptBlock(block, index)) {
+    return false;
+  }
+  // Once it has finished streaming, this is the redundant raw JSON dump described above — the
+  // rendered chart/table already stands in for it, so the row is dropped rather than shown.
+  if (!block.loading && isStructuredQueryResultBlock(block, blockKind)) {
     return false;
   }
   if (block.loading || block.message.content?.trim()) {

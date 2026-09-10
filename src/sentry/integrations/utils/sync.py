@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
+from contextlib import contextmanager, nullcontext
+from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
+from django.db import router, transaction
 from django.db.models.query import QuerySet
 
-from sentry import features
+from sentry import features, options
 from sentry.integrations.mixins.issues import where_should_sync
 from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.project_management.metrics import (
     ProjectManagementActionType,
@@ -19,6 +23,11 @@ from sentry.integrations.project_management.metrics import (
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.tasks.sync_assignee_outbound import sync_assignee_outbound
 from sentry.integrations.types import EXTERNAL_PROVIDERS_REVERSE, ExternalProviderEnum
+from sentry.integrations.utils.assignee_sync import (
+    get_stale_organization_ids,
+    parse_provider_event_time,
+    record_provider_assignee_updated_at,
+)
 from sentry.issues.action_log import SYSTEM_ACTOR, action_context_scope
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee, GroupAssignmentState
@@ -28,6 +37,7 @@ from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.silo.base import cell_silo_function
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
+from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.integrations.services.integration import RpcIntegration
@@ -69,6 +79,96 @@ def _get_affected_groups(
         orgs_with_sync_enabled,
         external_issue_key,
     )
+
+
+@contextmanager
+def _ordered_assignment(
+    integration: RpcIntegration | Integration,
+    external_issue_key: str | None,
+    groups: list[Group],
+    event_updated_at: datetime | None,
+) -> Iterator[list[Group]]:
+    """
+    Yield the groups this event still wins, then advance the watermark to it.
+
+    Under `integrations.assignee-sync.lock-external-issue` the check and the body are one
+    critical section, holding a row lock on the issue, so a concurrent delivery cannot land
+    its assignment between them. With the option off the watermark still orders sequential
+    deliveries, but two concurrent ones can both pass the check and the older one's
+    assignment can land last.
+
+    The body must be cell-local: a hybrid cloud RPC inside a transaction is a banned
+    pattern, so cross-silo lookups have to be resolved before entering. The watermark is
+    advanced only after the body returns, so a body that raises leaves both the assignment
+    and the watermark untouched and the delivery retryable.
+
+    Without a provider timestamp the guard is inert.
+    """
+    if event_updated_at is None:
+        yield groups
+        return
+
+    lock = options.get("integrations.assignee-sync.lock-external-issue")
+    critical_section = (
+        transaction.atomic(router.db_for_write(ExternalIssue)) if lock else nullcontext()
+    )
+    with critical_section:
+        fresh_groups = _drop_stale_groups(
+            integration, external_issue_key, groups, event_updated_at, lock=lock
+        )
+
+        yield fresh_groups
+
+        # Watermark every fresh group, even ones with no resolvable assignee — the event
+        # has been processed for them and an older event must not undo that.
+        record_provider_assignee_updated_at(
+            integration,
+            external_issue_key,
+            {group.project.organization_id for group in fresh_groups},
+            event_updated_at,
+        )
+
+
+def _drop_stale_groups(
+    integration: RpcIntegration | Integration,
+    external_issue_key: str | None,
+    groups: list[Group],
+    event_updated_at: datetime | None,
+    *,
+    lock: bool,
+) -> list[Group]:
+    """
+    Drop the groups a newer assignment change already covers, locking their issue rows.
+
+    Webhook delivery is not ordered, and payloads carry the full assignee snapshot, so
+    applying a late delivery would quietly restore a stale assignee.
+    """
+    stale_organization_ids = get_stale_organization_ids(
+        integration,
+        external_issue_key,
+        {group.project.organization_id for group in groups},
+        event_updated_at,
+        lock=lock,
+    )
+    if not stale_organization_ids:
+        return groups
+
+    metrics.incr(
+        "integrations.sync_assignee_inbound.stale_event",
+        tags={"provider": integration.provider},
+    )
+    logging.getLogger(f"sentry.integrations.{integration.provider}").info(
+        "sync_group_assignee_inbound.stale_event",
+        extra={
+            "integration_id": integration.id,
+            "issue_key": external_issue_key,
+            "event_updated_at": event_updated_at,
+            "stale_organization_ids": sorted(stale_organization_ids),
+        },
+    )
+    return [
+        group for group in groups if group.project.organization_id not in stale_organization_ids
+    ]
 
 
 def _handle_deassign(
@@ -156,8 +256,10 @@ def sync_group_assignee_inbound_by_external_actor(
     external_issue_key: str | None,
     assign: bool = True,
     external_user_id: str | int | None = None,
+    provider_event_updated_at: str | None = None,
 ) -> QuerySet[Group] | list[Group]:
     logger = logging.getLogger(f"sentry.integrations.{integration.provider}")
+    event_updated_at = parse_provider_event_time(provider_event_updated_at)
 
     with ProjectManagementEvent(
         action_type=ProjectManagementActionType.INBOUND_ASSIGNMENT_SYNC, integration=integration
@@ -180,7 +282,10 @@ def sync_group_assignee_inbound_by_external_actor(
             return []
 
         if not assign:
-            groups_deassigned = _handle_deassign(affected_groups, integration)
+            with _ordered_assignment(
+                integration, external_issue_key, affected_groups, event_updated_at
+            ) as fresh_groups:
+                groups_deassigned = _handle_deassign(fresh_groups, integration)
             log_context["unassigned_group_ids"] = [group.id for group in groups_deassigned]
             lifecycle.add_extras(log_context)
             return groups_deassigned
@@ -208,15 +313,20 @@ def sync_group_assignee_inbound_by_external_actor(
         logger.info("sync_group_assignee_inbound_by_external_actor.user_ids", extra=log_context)
         lifecycle.add_extras(log_context)
 
+        # Resolved before the lock is taken: this is a cross-silo call.
         users = user_service.get_many_by_id(ids=user_ids)
 
-        groups_assigned = _handle_assign(affected_groups, integration, users)
+        with _ordered_assignment(
+            integration, external_issue_key, affected_groups, event_updated_at
+        ) as fresh_groups:
+            groups_assigned = _handle_assign(fresh_groups, integration, users)
+
         log_context["assigned_group_ids"] = [group.id for group in groups_assigned]
         lifecycle.add_extras(log_context)
 
-        if len(groups_assigned) != len(affected_groups):
+        if len(groups_assigned) != len(fresh_groups):
             log_context["groups_assigned_count"] = len(groups_assigned)
-            log_context["affected_groups_count"] = len(affected_groups)
+            log_context["affected_groups_count"] = len(fresh_groups)
             lifecycle.record_halt(
                 ProjectManagementHaltReason.SYNC_INBOUND_ASSIGNEE_NOT_FOUND, extra=log_context
             )
@@ -230,6 +340,7 @@ def sync_group_assignee_inbound(
     email: str | None,
     external_issue_key: str | None,
     assign: bool = True,
+    provider_event_updated_at: str | None = None,
 ) -> QuerySet[Group] | list[Group]:
     """
     Given an integration, user email address and an external issue key,
@@ -238,11 +349,12 @@ def sync_group_assignee_inbound(
     """
 
     logger = logging.getLogger(f"sentry.integrations.{integration.provider}")
+    event_updated_at = parse_provider_event_time(provider_event_updated_at)
 
     with ProjectManagementEvent(
         action_type=ProjectManagementActionType.INBOUND_ASSIGNMENT_SYNC, integration=integration
     ).capture() as lifecycle:
-        affected_groups = _get_affected_groups(integration, external_issue_key)
+        affected_groups = list(_get_affected_groups(integration, external_issue_key))
         log_context = {
             "integration_id": integration.id,
             "email": email,
@@ -255,13 +367,21 @@ def sync_group_assignee_inbound(
             return []
 
         if not assign:
-            return _handle_deassign(affected_groups, integration)
+            with _ordered_assignment(
+                integration, external_issue_key, affected_groups, event_updated_at
+            ) as fresh_groups:
+                groups_deassigned = _handle_deassign(fresh_groups, integration)
+            return groups_deassigned
 
+        # Resolved before the lock is taken: this is a cross-silo call.
         users = user_service.get_many_by_email(emails=[email], is_verified=True)
 
-        groups_assigned = _handle_assign(affected_groups, integration, users)
+        with _ordered_assignment(
+            integration, external_issue_key, affected_groups, event_updated_at
+        ) as fresh_groups:
+            groups_assigned = _handle_assign(fresh_groups, integration, users)
 
-        if len(groups_assigned) != len(affected_groups):
+        if len(groups_assigned) != len(fresh_groups):
             lifecycle.record_halt(
                 ProjectManagementHaltReason.SYNC_INBOUND_ASSIGNEE_NOT_FOUND, extra=log_context
             )

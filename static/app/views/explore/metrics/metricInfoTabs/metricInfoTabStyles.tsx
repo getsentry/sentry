@@ -12,16 +12,13 @@ import {
 } from 'sentry/views/explore/metrics/types';
 import {StyledPanel} from 'sentry/views/explore/tables/tracesTable/styles';
 
-export const TabListWrapper = styled('div')`
-  width: 100%;
-`;
-
 export const StyledTopResultsIndicator = styled(TopResultsIndicator)``;
 
 export const StyledSimpleTable = styled(SimpleTable)`
   position: relative;
   height: 100%;
   min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
 
   > tbody {
     overflow-x: hidden;

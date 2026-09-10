@@ -50,10 +50,6 @@ export interface ProjectPageFilterProps extends Partial<
    */
   onChange?: (selected: number[]) => void;
   /**
-   * Called when the reset button is clicked
-   */
-  onReset?: () => void;
-  /**
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
@@ -66,7 +62,6 @@ export interface ProjectPageFilterProps extends Partial<
 
 export function ProjectPageFilter({
   onChange,
-  onReset,
   disabled,
   menuTitle,
   menuWidth,
@@ -497,7 +492,6 @@ export function ProjectPageFilter({
   const handleReset = () => {
     clearDraftSelectionState();
     commitSelection(memberProjectIds(projects));
-    onReset?.();
 
     trackAnalytics('projectselector.clear', {
       path: routePath,
@@ -528,6 +522,9 @@ export function ProjectPageFilter({
     }, 0);
   };
 
+  // React Compiler could not prove this memoization is preserved; it bails out on
+  // code this callback depends on. Revisit once those bailouts are fixed.
+  // oxlint-disable-next-line react/preserve-manual-memoization
   const defaultMenuWidth = useMemo(() => computeMenuWidth(options), [options]);
 
   const canWrite = organization.access.includes('project:write');

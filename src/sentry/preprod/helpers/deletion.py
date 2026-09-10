@@ -110,7 +110,7 @@ def _collect_snapshot_objectstore_keys(
     preprod_artifacts: list[PreprodArtifact],
 ) -> list[tuple[int, int, str]]:
     # Collects three types of objectstore keys for the given artifacts:
-    # 1. Snapshot manifest keys (per-snapshot JSON manifests from PreprodSnapshotMetrics)
+    # 1. Snapshot manifest and precomputed head-images keys (from PreprodSnapshotMetrics)
     # 2. Comparison manifest keys (diff manifests from PreprodSnapshotComparison)
     # 3. Diff mask image keys (per-image diff masks referenced within comparison manifests)
     # Note: shared content-addressed image keys are NOT collected — they expire via X-day TTL.
@@ -131,13 +131,12 @@ def _collect_snapshot_objectstore_keys(
         project_id = sm.preprod_artifact.project_id
         metrics_ids.append(sm.id)
 
-        manifest_key = (sm.extras or {}).get("manifest_key")
-        if not manifest_key:
-            continue
-
-        # Image keys are content-addressed and shared across snapshots;
-        # only delete the manifest, not images (they expire via X-day TTL).
-        keys.append((org_id, project_id, manifest_key))
+        # Delete the per-snapshot manifest and precomputed head-images blob. Shared
+        # content-addressed image keys are left to expire via idle TTL.
+        extras = sm.extras or {}
+        for key in (extras.get("manifest_key"), extras.get("head_images_key")):
+            if key:
+                keys.append((org_id, project_id, key))
 
     for comp in PreprodSnapshotComparison.objects.filter(
         Q(head_snapshot_metrics_id__in=metrics_ids) | Q(base_snapshot_metrics_id__in=metrics_ids)

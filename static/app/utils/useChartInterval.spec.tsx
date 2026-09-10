@@ -21,6 +21,7 @@ describe('useChartInterval', () => {
     let intervalOptions!: ReturnType<typeof useChartInterval>[2];
 
     function TestPage() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [chartInterval, setChartInterval, intervalOptions] = useChartInterval();
       return null;
     }
@@ -63,6 +64,7 @@ describe('useChartInterval', () => {
     let chartInterval!: ReturnType<typeof useChartInterval>[0];
 
     function TestPage() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [chartInterval] = useChartInterval({
         unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
       });
@@ -81,6 +83,7 @@ describe('useChartInterval', () => {
     let intervalOptions!: ReturnType<typeof useChartInterval>[2];
 
     function TestPage() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [chartInterval, , intervalOptions] = useChartInterval({
         unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_BIGGEST,
       });
@@ -99,6 +102,7 @@ describe('useChartInterval', () => {
     let chartInterval!: ReturnType<typeof useChartInterval>[0];
 
     function TestPage() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [chartInterval] = useChartInterval({
         unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SECOND_BIGGEST,
       });
@@ -117,6 +121,7 @@ describe('useChartInterval', () => {
     let intervalOptions!: ReturnType<typeof useChartInterval>[2];
 
     function TestPage() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [chartInterval, , intervalOptions] = useChartInterval();
       return null;
     }
@@ -144,6 +149,7 @@ describe('useChartInterval', () => {
     let intervalOptions!: ReturnType<typeof useChartInterval>[2];
 
     function TestPage() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [chartInterval, , intervalOptions] = useChartInterval();
       return null;
     }
@@ -174,6 +180,7 @@ describe('useChartInterval', () => {
     let intervalOptions!: ReturnType<typeof useChartInterval>[2];
 
     function TestPage() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [chartInterval, , intervalOptions] = useChartInterval();
       return null;
     }
@@ -192,6 +199,7 @@ describe('useChartInterval', () => {
     let chartInterval!: ReturnType<typeof useChartInterval>[0];
 
     function TestPage() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [chartInterval] = useChartInterval();
       return null;
     }
@@ -211,6 +219,7 @@ describe('useChartInterval', () => {
     let chartInterval!: ReturnType<typeof useChartInterval>[0];
 
     function TestPage() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [chartInterval] = useChartInterval({
         unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SECOND_BIGGEST,
       });

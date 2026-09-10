@@ -181,7 +181,7 @@ export interface VirtualizedTreeRenderedRow<T> {
   item: VirtualizedTreeNode<T>;
   key: number;
   ref: HTMLElement | null;
-  styles: React.CSSProperties;
+  styles: {position: 'absolute'; top: `${number}px`};
 }
 
 export interface VirtualizedTreeRenderedRowHandlers<T> {
@@ -250,7 +250,7 @@ export function findRenderedItems<T extends TreeLike>({
       renderedRows[visibleItemIndex] = {
         key: indexPointer,
         ref: null,
-        styles: {position: 'absolute', top: elementTop},
+        styles: {position: 'absolute', top: `${elementTop}px`},
         item: items[indexPointer]!,
       };
 

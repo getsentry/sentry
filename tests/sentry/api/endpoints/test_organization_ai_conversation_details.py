@@ -297,25 +297,21 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             == f"/api/0/organizations/{self.organization.slug}/agents/conversations/{conversation_id}/"
         )
 
-    def do_request(self, conversation_id, query=None, features=None, **kwargs):
-        if features is None:
-            features = ["organizations:gen-ai-conversations"]
-
+    def do_request(self, conversation_id, query=None, **kwargs):
         query = query or {}
 
-        with self.feature(features):
-            return self.client.get(
-                reverse(
-                    self.view,
-                    kwargs={
-                        "organization_id_or_slug": self.organization.slug,
-                        "conversation_id": conversation_id,
-                    },
-                ),
-                query,
-                format="json",
-                **kwargs,
-            )
+        return self.client.get(
+            reverse(
+                self.view,
+                kwargs={
+                    "organization_id_or_slug": self.organization.slug,
+                    "conversation_id": conversation_id,
+                },
+            ),
+            query,
+            format="json",
+            **kwargs,
+        )
 
     def _store_conversation_span(self, conversation_id, timestamp, project=None) -> None:
         """One minimal span, enough for the conversation to resolve to a project."""
@@ -327,11 +323,6 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             trace_id=uuid4().hex,
             project=project,
         )
-
-    def test_no_feature(self) -> None:
-        conversation_id = uuid4().hex
-        response = self.do_request(conversation_id, features=[])
-        assert response.status_code == 404
 
     def test_no_project(self) -> None:
         conversation_id = uuid4().hex
@@ -359,6 +350,11 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.status_code == 200
         assert response.data["conversationId"] == conversation_id
         assert response.data["title"] is None
+        assert response.data["projects"] == []
+        assert response.data["webUrl"].endswith(
+            f"/organizations/{self.organization.slug}/explore/agents/conversations/"
+            f"{conversation_id}/"
+        )
         assert response.data["spans"] == []
 
     def test_single_trace_conversation(self) -> None:
@@ -1124,8 +1120,17 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         response = self.do_request(conversation_id, query)
 
         assert response.status_code == 200
-        assert set(response.data) == {"conversationId", "title", "spans"}
+        assert set(response.data) == {
+            "conversationId",
+            "title",
+            "projects",
+            "webUrl",
+            "spans",
+        }
         assert response.data["conversationId"] == conversation_id
+        assert response.data["projects"] == [
+            {"id": self.project.id, "name": self.project.name, "slug": self.project.slug}
+        ]
         assert len(response.data["spans"]) == 1
 
     def test_returns_stored_title(self) -> None:
@@ -1246,6 +1251,10 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.status_code == 200
         assert len(response.data["spans"]) == 2
         assert response.data["title"] == "Started here"
+        assert response.data["projects"] == [
+            {"id": self.project.id, "name": self.project.name, "slug": self.project.slug}
+        ]
+        assert response.data["webUrl"].endswith(f"/{conversation_id}/?project={self.project.id}")
 
     def test_empty_conversation_returns_envelope(self) -> None:
         now = before_now(days=5).replace(microsecond=0)

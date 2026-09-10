@@ -115,6 +115,7 @@ export function MobileNavigation() {
   // which sets view to 'collapsed'.
   useEffect(() => {
     if (isOpen && view === 'collapsed') {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsOpen(false);
     }
   }, [isOpen, view]);
