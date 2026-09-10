@@ -27,6 +27,10 @@ class TestTriggerAutofixFeature(TestCase):
                 "sentry.seer.autofix.feature.dispatch.collect_user_org_context",
                 return_value=expected_context,
             ) as mock_collect_context,
+            patch(
+                "sentry.seer.autofix.feature.dispatch.get_proxy_headers",
+                return_value={"X-Viewer-Context": "signed-viewer-context"},
+            ) as mock_get_proxy_headers,
             patch("sentry.seer.autofix.feature.dispatch.quotas") as mock_quotas,
         ):
             mock_quotas.backend.check_seer_quota.return_value = True
@@ -73,7 +77,9 @@ class TestTriggerAutofixFeature(TestCase):
         }
         assert run_kwargs["referrer"] == AutofixReferrer.NIGHT_SHIFT.value
         assert run_kwargs["user_org_context"] == expected_context
+        assert run_kwargs["proxy_headers"] == {"X-Viewer-Context": "signed-viewer-context"}
         mock_collect_context.assert_called_once_with(None, self.group.organization)
+        mock_get_proxy_headers.assert_called_once_with()
 
         # A new run consumes Seer autofix budget.
         mock_quotas.backend.record_seer_run.assert_called_once()
