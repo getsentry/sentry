@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 import orjson
@@ -9,6 +10,20 @@ from sentry.attachments import (
 )
 from sentry.ingest.consumer.processors import CACHE_TIMEOUT
 from sentry.models.project import Project
+
+
+def _serialize_view_hierarchy(view_hierarchy: Any) -> bytes:
+    """Serialize a deobfuscated view hierarchy for storage.
+
+    View hierarchies reported by Android can nest deeper than orjson's fixed
+    serialization recursion limit (255 levels). The stdlib encoder recurses up
+    to Python's (much larger) stack limit, so fall back to it instead of
+    dropping the deobfuscated attachment.
+    """
+    try:
+        return orjson.dumps(view_hierarchy)
+    except (orjson.JSONEncodeError, TypeError):
+        return json.dumps(view_hierarchy).encode("utf-8")
 
 
 class ViewHierarchies:
@@ -60,7 +75,7 @@ class ViewHierarchies:
                     type=attachment.type,
                     name=attachment.name,
                     content_type=attachment.content_type,
-                    data=orjson.dumps(view_hierarchy),
+                    data=_serialize_view_hierarchy(view_hierarchy),
                     chunks=None,
                     stored_id=attachment.stored_id,
                 )
