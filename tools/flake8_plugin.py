@@ -138,6 +138,10 @@ S023_blank_reason_msg = (
 S023_ghost_msg = (
     "S023 {}={!r} names no field on this class; it omits nothing and should be deleted."
 )
+S023_bad_path_msg = (
+    "S023 {}={!r} is not a usable path. Write 'field', 'field.nested' or "
+    "'field.choice', with no leading, trailing or doubled dots."
+)
 
 S024_msg = (
     "S024 This module discovers .py files and parses them with ast, which is a "
@@ -950,31 +954,36 @@ class SentryVisitor(ast.NodeVisitor):
                                     S023_ghost_msg.format("exclude_fields", field),
                                 )
                             )
-                elif kw.arg == "omit_from_public_schema":
-                    if not isinstance(kw.value, ast.Dict):
-                        self.errors.append((dec.lineno, dec.col_offset, S023_not_mapping_msg))
-                        continue
-                    for k, v in zip(kw.value.keys, kw.value.values):
-                        if not isinstance(k, ast.Constant) or not isinstance(k.value, str):
-                            continue
-                        field = k.value
-                        reason = _joined_str(v)
-                        if reason is not None and not reason.strip():
-                            self.errors.append(
-                                (
-                                    dec.lineno,
-                                    dec.col_offset,
-                                    S023_blank_reason_msg.format(field),
-                                )
-                            )
-                        if not open_class and field not in fields:
-                            self.errors.append(
-                                (
-                                    dec.lineno,
-                                    dec.col_offset,
-                                    S023_ghost_msg.format("omit_from_public_schema", field),
-                                )
-                            )
+                elif kw.arg in ("omit_from_public_schema", "deprecate"):
+                    self._check_paths(dec, kw, fields, open_class)
+
+    def _check_paths(
+        self, dec: ast.Call, kw: ast.keyword, fields: set[str], open_class: bool
+    ) -> None:
+        """Reasons and grammar for a {path: reason} mapping.
+
+        Only the first segment is a field here; the schema build resolves the rest."""
+        if not isinstance(kw.value, ast.Dict):
+            self.errors.append((dec.lineno, dec.col_offset, S023_not_mapping_msg))
+            return
+        assert kw.arg is not None
+        for k, v in zip(kw.value.keys, kw.value.values):
+            if not isinstance(k, ast.Constant) or not isinstance(k.value, str):
+                continue
+            path = k.value
+            segments = path.split(".")
+            if any(not segment.strip() for segment in segments):
+                self.errors.append(
+                    (dec.lineno, dec.col_offset, S023_bad_path_msg.format(kw.arg, path))
+                )
+                continue
+            reason = _joined_str(v)
+            if reason is not None and not reason.strip():
+                self.errors.append((dec.lineno, dec.col_offset, S023_blank_reason_msg.format(path)))
+            if not open_class and segments[0] not in fields:
+                self.errors.append(
+                    (dec.lineno, dec.col_offset, S023_ghost_msg.format(kw.arg, segments[0]))
+                )
 
     def _s024_visit_call(self, node: ast.Call) -> None:
         func = node.func

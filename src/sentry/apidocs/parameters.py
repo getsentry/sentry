@@ -6,8 +6,6 @@ from drf_spectacular.utils import OpenApiParameter
 
 from sentry import constants
 from sentry.api.helpers.projects import PROJECT_ID_OR_SLUG_SCHEMA
-from sentry.search.eap.types import SupportedTraceItemType
-from sentry.snuba.dataset import Dataset
 from sentry.snuba.sessions import STATS_PERIODS
 
 # NOTE: Please add new params by path vs query, then in alphabetical order
@@ -1110,27 +1108,6 @@ class ReplayParams:
         required=True,
         type=OpenApiTypes.INT,
         description="""The ID of the replay deletion job you'd like to retrieve.""",
-    )
-
-    DATA_SOURCE = OpenApiParameter(
-        name="data_source",
-        location="query",
-        required=True,
-        type=OpenApiTypes.STR,
-        enum=[
-            Dataset.Events.value,
-            Dataset.IssuePlatform.value,
-            SupportedTraceItemType.SPANS.value,
-        ],
-        description="The data source to query replays from.",
-    )
-
-    RETURN_IDS = OpenApiParameter(
-        name="returnIds",
-        location="query",
-        required=False,
-        type=OpenApiTypes.BOOL,
-        description="If true, return issue IDs rather than counts.",
     )
 
 
