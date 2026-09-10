@@ -1,9 +1,7 @@
-import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
@@ -28,7 +26,6 @@ describe('useSaveAsItems', () => {
     features: ['ourlogs-enabled'],
   });
   const project = ProjectFixture({id: '1'});
-  const queryClient = makeTestQueryClient();
   const initialLocation = {
     pathname: '/mock-pathname/',
     query: {
@@ -43,25 +40,20 @@ describe('useSaveAsItems', () => {
   };
   let saveQueryMock: jest.Mock;
 
-  function createWrapper() {
-    return function ({children}: {children?: React.ReactNode}) {
-      return (
-        <QueryClientProvider client={queryClient}>
-          <LogsQueryParamsProvider
-            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-            source="location"
-          >
-            {children}
-          </LogsQueryParamsProvider>
-        </QueryClientProvider>
-      );
-    };
+  function Wrapper({children}: {children?: React.ReactNode}) {
+    return (
+      <LogsQueryParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        source="location"
+      >
+        {children}
+      </LogsQueryParamsProvider>
+    );
   }
 
   beforeEach(() => {
     jest.resetAllMocks();
     MockApiClient.clearMockResponses();
-    queryClient.clear();
     ProjectsStore.loadInitialData([project]);
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
@@ -91,7 +83,7 @@ describe('useSaveAsItems', () => {
 
   it('should open save query modal when save as new query is clicked', () => {
     const {result} = renderHookWithProviders(useSaveAsItems, {
-      additionalWrapper: createWrapper(),
+      additionalWrapper: Wrapper,
       organization,
       initialRouterConfig: {location: initialLocation},
       initialProps: {
@@ -139,7 +131,7 @@ describe('useSaveAsItems', () => {
     });
 
     const {result} = renderHookWithProviders(useSaveAsItems, {
-      additionalWrapper: createWrapper(),
+      additionalWrapper: Wrapper,
       organization,
       initialRouterConfig: {
         location: {
@@ -172,7 +164,7 @@ describe('useSaveAsItems', () => {
 
   it('should show only new query option when no saved query exists', () => {
     const {result} = renderHookWithProviders(useSaveAsItems, {
-      additionalWrapper: createWrapper(),
+      additionalWrapper: Wrapper,
       organization,
       initialRouterConfig: {
         location: {
@@ -202,7 +194,7 @@ describe('useSaveAsItems', () => {
 
   it('enables the alert option when there are aggregates', () => {
     const {result} = renderHookWithProviders(useSaveAsItems, {
-      additionalWrapper: createWrapper(),
+      additionalWrapper: Wrapper,
       organization,
       initialRouterConfig: {location: initialLocation},
       initialProps: {
@@ -229,7 +221,7 @@ describe('useSaveAsItems', () => {
       .mockImplementation(() => {});
 
     const {result, router} = renderHookWithProviders(useSaveAsItems, {
-      additionalWrapper: createWrapper(),
+      additionalWrapper: Wrapper,
       organization,
       initialRouterConfig: {location: initialLocation},
       initialProps: {
@@ -267,7 +259,7 @@ describe('useSaveAsItems', () => {
 
   it('should call saveQuery with correct parameters when modal saves', async () => {
     const {result} = renderHookWithProviders(useSaveAsItems, {
-      additionalWrapper: createWrapper(),
+      additionalWrapper: Wrapper,
       organization,
       initialRouterConfig: {location: initialLocation},
       initialProps: {
