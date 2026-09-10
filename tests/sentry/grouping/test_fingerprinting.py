@@ -306,6 +306,61 @@ def test_variable_resolution() -> None:
         ], f"Entry {fingerprint_entry} resolved incorrectly"
 
 
+@django_db_all
+def test_variable_resolution_with_stacktrace_in_threads() -> None:
+    event = Event(
+        project_id=908415,
+        event_id="11211231",
+        data={
+            "platform": "cocoa",
+            "exception": {
+                "values": [
+                    {
+                        "type": "MyApp.SampleError",
+                        "value": "Code=0",
+                        "mechanism": {"type": "NSError"},
+                    }
+                ]
+            },
+            "threads": {
+                "values": [
+                    {"id": 0, "crashed": False, "current": False},
+                    {
+                        "id": 1,
+                        "crashed": False,
+                        "current": True,
+                        "stacktrace": {
+                            "frames": [
+                                {"function": "main", "in_app": False, "package": "/usr/lib/dyld"},
+                                {
+                                    "function": "ViewController.captureError",
+                                    "module": "MyApp.ViewController",
+                                    "abs_path": "/Users/me/MyApp/ViewController.swift",
+                                    "filename": "ViewController.swift",
+                                    "package": "/var/containers/MyApp.app/MyApp",
+                                    "in_app": True,
+                                },
+                            ]
+                        },
+                    },
+                ]
+            },
+        },
+    )
+    context = GroupingContext(StrategyConfiguration(), event)
+
+    for fingerprint_entry, expected_resolved_value in [
+        ("{{ stack.function }}", "ViewController.captureError"),
+        ("{{ stack.module }}", "MyApp.ViewController"),
+        ("{{ stack.abs_path }}", "/Users/me/MyApp/ViewController.swift"),
+        ("{{ stack.filename }}", "ViewController.swift"),
+        ("{{ stack.package }}", "MyApp"),
+    ]:
+        assert resolve_fingerprint_values([fingerprint_entry], event, context) == [
+            expected_resolved_value
+        ], f"Entry {fingerprint_entry} resolved incorrectly"
+
+
 # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we can
 # remove this test entirely, as the new behavior is also tested in `test_variable_resolution` above
 @django_db_all
