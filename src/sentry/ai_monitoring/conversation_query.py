@@ -113,9 +113,11 @@ def _compile_condition(condition: Node, resolver: SearchResolver) -> str:
         if any(operator.text == "!=" for operator in _nodes(condition, {"operator"})):
             positive = positive.replace("!=", "", 1)
             excluded = not excluded
-        if keys and keys[0].text.strip('"') == "conversationId":
-            # Replace UI alias with stored span field.
-            positive = positive.replace(keys[0].text, "gen_ai.conversation.id", 1)
+        if keys:
+            field = AI_CONVERSATIONS_FIELDS.get(keys[0].text.strip('"'))
+            if field and field[0] == "gen_ai.conversation.id":
+                # Replace UI alias with stored span field.
+                positive = positive.replace(keys[0].text, field[0], 1)
     return f"count_if(`{positive}`,span.duration):{'=0' if excluded else '>0'}"
 
 

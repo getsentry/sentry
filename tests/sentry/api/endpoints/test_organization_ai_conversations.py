@@ -141,6 +141,8 @@ class TestConversationSortSerializer:
             "-age",
             "-max(timestamp)",
             "totalCost",
+            "conversation.totalCost",
+            "-conversation.totalTokens",
             "-total_cost",
             "sum_if_gen_ai_cost_total_tokens_gen_ai_operation_type_equals_ai_client",
             "-conversationId",
@@ -301,6 +303,28 @@ def test_alias_filter_preserves_eap_null_semantics(operator: str) -> None:
     assert having == expected
 
 
+@pytest.mark.parametrize(
+    "alias",
+    [
+        "duration",
+        "generationDuration",
+        "errors",
+        "llmCalls",
+        "toolCalls",
+        "totalTokens",
+        "inputTokens",
+        "outputTokens",
+        "totalCost",
+        "toolErrors",
+    ],
+)
+def test_prefixed_alias_filter(alias: str) -> None:
+    resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
+    compiled = compile_conversation_query(f"conversation.{alias}:>0", resolver)
+    _, having, _ = resolver.resolve_query(compiled)
+    assert having is not None
+
+
 def test_group_filter_accepts_long_text() -> None:
     resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
     compiled = compile_conversation_query("x" * 4097, resolver)
@@ -308,9 +332,12 @@ def test_group_filter_accepts_long_text() -> None:
     assert having is not None
 
 
-def test_group_filter_compiles_exact_id() -> None:
+@pytest.mark.parametrize(
+    "key", ["gen_ai.conversation.id", "conversationId", "conversation.conversationId"]
+)
+def test_group_filter_compiles_exact_id(key: str) -> None:
     resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
-    assert compile_conversation_query('gen_ai.conversation.id:"session:123"', resolver) == (
+    assert compile_conversation_query(f'{key}:"session:123"', resolver) == (
         "has:gen_ai.conversation.id has:gen_ai.operation.type AND "
         '(count_if(`gen_ai.conversation.id:"session:123"`,span.duration):>0)'
     )
