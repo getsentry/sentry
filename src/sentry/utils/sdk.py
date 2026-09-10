@@ -60,7 +60,7 @@ UNSAFE_FILES = (
 # Tasks not included here are sampled with `SENTRY_BACKEND_APM_SAMPLING`.
 # If a parent task schedules other tasks, rates propagate to the children.
 SAMPLED_TASKS = {
-    "sentry.tasks.auto_source_code_config.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
+    "sentry.tasks.auto_source_code_config": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.send_ping": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.store.process_event": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event_from_reprocessing": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
@@ -81,13 +81,15 @@ SAMPLED_TASKS = {
     "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.ingest.transaction_clusterer.tasks.cluster_projects": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.tasks.process_buffer.process_incr": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
-    "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
+    "sentry.replays.tasks.delete_replay": settings.SAMPLED_DEFAULT_RATE,
     "sentry.replays.tasks.delete_replay_recording_async": settings.SAMPLED_DEFAULT_RATE,
     # Mirror the rate the ingest-replay-recordings consumer used for its
     # per-message transaction, now that the work runs as a task.
     "sentry.replays.tasks.process_replay_recording": settings.SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING,
     "sentry.tasks.summaries.weekly_reports.schedule_organizations": 1.0,
-    "sentry.profiles.task.process_profile": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.profiles.task.process_profile_from_kafka": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.profiles.task.process_profile_from_kafka_raw": 0.1
+    * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.monitors.tasks.clock_pulse": 1.0,
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 1.0,
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 1.0,
