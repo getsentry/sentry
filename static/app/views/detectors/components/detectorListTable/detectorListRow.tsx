@@ -42,16 +42,16 @@ export function DetectorListRow({detector, selected, onSelect}: DetectorListRowP
           <DetectorLink detector={detector} />
         </Flex>
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="type">
+      <SimpleTable.RowCell>
         <DetectorTypeCell type={detector.type} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="last-issue">
+      <SimpleTable.RowCell>
         <IssueCell group={detector.latestGroup} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="assignee">
+      <SimpleTable.RowCell>
         <DetectorAssigneeCell assignee={detector.owner} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="connected-automations">
+      <SimpleTable.RowCell>
         {detector.projectId && (
           <DetectorListConnectedAutomations
             automationIds={detector.workflowIds}
@@ -81,22 +81,22 @@ export function DetectorListRowSkeleton() {
           </Container>
         </Flex>
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="type">
+      <SimpleTable.RowCell>
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="last-issue">
+      <SimpleTable.RowCell>
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="assignee">
+      <SimpleTable.RowCell>
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="connected-automations">
+      <SimpleTable.RowCell>
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
       {additionalColumns.map(col => (
         <Fragment key={col.id}>
           {col.renderPendingCell?.() ?? (
-            <SimpleTable.RowCell columnKey={col.id}>
+            <SimpleTable.RowCell>
               <Placeholder height="20px" />
             </SimpleTable.RowCell>
           )}

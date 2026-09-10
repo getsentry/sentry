@@ -24,18 +24,18 @@ export function OrganizationFeatureFlagsProviderRow({
 
   return (
     <SimpleTable.Row>
-      <SimpleTable.RowCell columnKey="provider">
+      <SimpleTable.RowCell>
         <div>{secret.provider}</div>
         <Text variant="secondary" aria-label={t('Secret preview')}>
           {secret.secret}
         </Text>
       </SimpleTable.RowCell>
 
-      <SimpleTable.RowCell columnKey="created" gap="xs">
+      <SimpleTable.RowCell gap="xs">
         <TimeSince date={secret.createdAt} />
       </SimpleTable.RowCell>
 
-      <SimpleTable.RowCell columnKey="createdBy">
+      <SimpleTable.RowCell>
         {isUserPending ? (
           <LoadingIndicator mini />
         ) : (
@@ -43,7 +43,7 @@ export function OrganizationFeatureFlagsProviderRow({
         )}
       </SimpleTable.RowCell>
 
-      <SimpleTable.RowCell columnKey="actions" justify="end">
+      <SimpleTable.RowCell justify="end">
         <Tooltip
           title={t(
             'You must be an organization owner, manager or admin to remove a secret.'

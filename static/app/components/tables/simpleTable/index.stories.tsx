@@ -213,8 +213,8 @@ export default Storybook.story('SimpleTable', story => {
           <Storybook.JSXProperty name="columns" value="TableColumnConfig[]" /> prop. Both{' '}
           <code>width</code> and <code>visible</code> accept responsive values keyed by
           container breakpoint, which is how a table sheds columns as it narrows. A hidden
-          column loses its track, and cells name their column with{' '}
-          <Storybook.JSXProperty name="column" value="string" />.
+          column loses its track, and the cells sitting in its position are hidden with it
+          — cells are matched to columns by the order they are rendered in.
         </p>
         <p>This table has 4 columns, but will hide some as it gets narrower.</p>
         <Storybook.Demo resizable>
@@ -223,7 +223,7 @@ export default Storybook.story('SimpleTable', story => {
             header={
               <SimpleTable.HeaderRow>
                 {headers.map(header => (
-                  <SimpleTable.HeaderCell key={header.key} columnKey={header.key}>
+                  <SimpleTable.HeaderCell key={header.key}>
                     {header.label}
                   </SimpleTable.HeaderCell>
                 ))}
@@ -234,8 +234,8 @@ export default Storybook.story('SimpleTable', story => {
               <SimpleTable.Row key={row.name}>
                 <SimpleTable.RowCell>{row.name}</SimpleTable.RowCell>
                 <SimpleTable.RowCell>{row.monitors.length} monitors</SimpleTable.RowCell>
-                <SimpleTable.RowCell columnKey="action">{row.action}</SimpleTable.RowCell>
-                <SimpleTable.RowCell columnKey="lastTriggered">
+                <SimpleTable.RowCell>{row.action}</SimpleTable.RowCell>
+                <SimpleTable.RowCell>
                   <TimeAgoCell date={row.lastTriggered} />
                 </SimpleTable.RowCell>
               </SimpleTable.Row>

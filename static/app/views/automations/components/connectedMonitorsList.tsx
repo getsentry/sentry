@@ -55,17 +55,17 @@ function Skeletons({canEdit, numberOfRows}: {canEdit: boolean; numberOfRows: num
               <Placeholder height="16px" width="20%" />
             </div>
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell columnKey="type">
+          <SimpleTable.RowCell>
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell columnKey="last-issue">
+          <SimpleTable.RowCell>
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell columnKey="owner">
+          <SimpleTable.RowCell>
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
           {canEdit && (
-            <SimpleTable.RowCell columnKey="connected">
+            <SimpleTable.RowCell>
               <Placeholder height="20px" />
             </SimpleTable.RowCell>
           )}
@@ -128,7 +128,7 @@ export function ConnectedMonitorsList({
     {key: 'type', visible: {sm: true}, width: '100px'},
     {key: 'last-issue', visible: {'3xl': true}, width: 'minmax(0, 0.8fr)'},
     {key: 'owner', visible: {xl: true}, width: 'auto'},
-    {key: 'connected', visible: canEdit, width: '140px'},
+    ...(canEdit ? [{key: 'connected', width: '140px'} satisfies TableColumnConfig] : []),
   ];
 
   return (
@@ -138,14 +138,10 @@ export function ConnectedMonitorsList({
         header={
           <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell columnKey="type">{t('Type')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell columnKey="last-issue">
-              {t('Last Issue')}
-            </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell columnKey="owner">
-              {t('Assignee')}
-            </SimpleTable.HeaderCell>
-            {canEdit && <SimpleTable.HeaderCell columnKey="connected" />}
+            <SimpleTable.HeaderCell>{t('Type')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Last Issue')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Assignee')}</SimpleTable.HeaderCell>
+            {canEdit && <SimpleTable.HeaderCell />}
           </SimpleTable.HeaderRow>
         }
       >
@@ -170,17 +166,17 @@ export function ConnectedMonitorsList({
               <SimpleTable.RowCell>
                 <DetectorLink detector={detector} openInNewTab={openInNewTab} />
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell columnKey="type">
+              <SimpleTable.RowCell>
                 <DetectorTypeCell type={detector.type} />
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell columnKey="last-issue">
+              <SimpleTable.RowCell>
                 <IssueCell group={detector.latestGroup} />
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell columnKey="owner">
+              <SimpleTable.RowCell>
                 <DetectorAssigneeCell assignee={detector.owner} />
               </SimpleTable.RowCell>
               {canEdit && (
-                <SimpleTable.RowCell columnKey="connected" justify="end">
+                <SimpleTable.RowCell justify="end">
                   <Button onClick={() => toggleConnected?.({detector})} size="sm">
                     {connectedDetectorIds?.has(detector.id)
                       ? t('Disconnect')
