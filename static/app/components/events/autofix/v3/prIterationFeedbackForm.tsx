@@ -7,6 +7,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {AUTOFIX_USER_CONTEXT_MAX_LENGTH} from 'sentry/components/events/autofix/types';
 import {
   isPrIterationPaused,
   type useExplorerAutofix,
@@ -91,6 +92,7 @@ export function PrIterationFeedbackForm({
           <InputGroup.TextArea
             autosize
             rows={2}
+            maxLength={AUTOFIX_USER_CONTEXT_MAX_LENGTH}
             placeholder={t(
               'Give Seer additional context to improve your pull request and make changes to your code. Hit ENTER to submit.'
             )}
