@@ -118,6 +118,12 @@ export function initializeSdk(config: Config) {
       if (typeof op === 'string' && op.startsWith('ui.action')) {
         return context.inheritOrSampleWith(tracesSampleRate / 100);
       }
+      // The server-rendered page carries the backend request's `sentry-trace`
+      // meta tag. That decision is made with the backend's own rate, which is
+      // far below the frontend's, so a pageload must decide for itself.
+      if (op === 'pageload') {
+        return tracesSampleRate;
+      }
       return context.inheritOrSampleWith(tracesSampleRate);
     },
     ignoreSpans: IGNORED_SPAN_NAMES,

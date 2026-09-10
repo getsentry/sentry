@@ -67,6 +67,60 @@ describe('initializeSdk', () => {
       )
     ).toBe(true);
   });
+
+  describe('tracesSampler', () => {
+    function getTracesSampler(apmSampling: number) {
+      initializeSdk({
+        ...window.__initialData,
+        apmSampling,
+        sentryConfig: {
+          allowUrls: [],
+          dsn: '',
+          release: '',
+          tracePropagationTargets: [],
+        },
+      });
+      const tracesSampler = jest.mocked(Sentry.init).mock.lastCall?.[0]?.tracesSampler;
+      if (!tracesSampler) {
+        throw new Error('tracesSampler was not configured');
+      }
+      return tracesSampler;
+    }
+
+    function samplingContext(op: string, parentSampled: boolean | undefined) {
+      return {
+        name: '/issues/',
+        attributes: {[Sentry.SEMANTIC_ATTRIBUTE_SENTRY_OP]: op},
+        parentSampled,
+        parentSampleRate: undefined,
+        inheritOrSampleWith: jest.fn((fallback: number) => parentSampled ?? fallback),
+      };
+    }
+
+    it('lets a pageload decide with its own rate instead of the backend decision', () => {
+      const tracesSampler = getTracesSampler(0.4);
+      const context = samplingContext('pageload', false);
+
+      expect(tracesSampler(context)).toBe(0.4);
+      expect(context.inheritOrSampleWith).not.toHaveBeenCalled();
+    });
+
+    it('inherits the parent decision for navigations', () => {
+      const tracesSampler = getTracesSampler(0.4);
+      const context = samplingContext('navigation', true);
+
+      expect(tracesSampler(context)).toBe(true);
+      expect(context.inheritOrSampleWith).toHaveBeenCalledWith(0.4);
+    });
+
+    it('samples ui.action spans at a hundredth of the rate', () => {
+      const tracesSampler = getTracesSampler(0.4);
+      const context = samplingContext('ui.action.click', undefined);
+
+      expect(tracesSampler(context)).toBeCloseTo(0.004);
+      expect(context.inheritOrSampleWith).toHaveBeenCalledWith(0.004);
+    });
+  });
 });
 
 describe('isFilteredRequestErrorEvent', () => {
