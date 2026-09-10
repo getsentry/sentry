@@ -164,6 +164,56 @@ describe('IssueThreadStackTrace', () => {
     });
   });
 
+  it('restores raw and minified choices made on a JavaScript thread in a native event', async () => {
+    const event = makeEvent([
+      makeThread({crashed: true, id: 7}),
+      makeThread({
+        id: 8,
+        name: 'js-bundle',
+        stacktrace: makeJavascriptStacktrace('Home.onMount'),
+        rawStacktrace: makeJavascriptStacktrace('a'),
+      }),
+    ]);
+    const {unmount} = renderThreadStackTrace(event);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Next Thread'}));
+    expect(await screen.findByText('Home.onMount')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Minified'}));
+    await userEvent.keyboard('{Escape}');
+    expect(await screen.findByText('a')).toBeInTheDocument();
+    expect(screen.queryByText('Home.onMount')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Raw Stack Trace'}));
+    await userEvent.keyboard('{Escape}');
+    expect(
+      screen.getByText('at a (app/screens/Home.tsx:42:18)', {selector: 'pre'})
+    ).toBeInTheDocument();
+
+    unmount();
+    // The native thread initially selected after remount uses its Apple report.
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report`,
+      body: 'Native crash report',
+    });
+    renderThreadStackTrace(event);
+    await userEvent.click(screen.getByRole('button', {name: 'Next Thread'}));
+
+    expect(
+      await screen.findByText('at a (app/screens/Home.tsx:42:18)', {selector: 'pre'})
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Home.onMount/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    expect(screen.getByRole('option', {name: 'Raw Stack Trace'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('option', {name: 'Minified'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+  });
+
   it('renders thread controls and metadata from context', async () => {
     const event = makeEvent([
       makeThread({

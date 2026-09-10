@@ -17,17 +17,17 @@ import {
   ExceptionDescription,
   ExceptionHeader,
 } from 'sentry/components/stackTrace/exceptionHeader';
+import {NativeIssueFrameActions} from 'sentry/components/stackTrace/native/frame/actions/nativeIssueActions';
 import {RawStackTraceText} from 'sentry/components/stackTrace/rawStackTrace';
-import {createStackTraceRowPolicy} from 'sentry/components/stackTrace/rowPolicy';
 import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
-import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
-import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
+import {StackTraceFrameList} from 'sentry/components/stackTrace/stackTraceFrameList';
 import type {StackTraceMeta} from 'sentry/components/stackTrace/types';
 import {t, tn} from 'sentry/locale';
 import type {Event, ExceptionValue} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils/defined';
+import {isNativePlatform} from 'sentry/utils/platform';
 
 import {IssueFrameActions} from './issueFrameActions';
 import {IssueStackTraceFrameContext} from './issueStackTraceFrameContext';
@@ -209,32 +209,16 @@ export function IssueExceptionStackTrace({
   );
 }
 
-export function IssueStackTraceFrameList({
-  event,
-  exceptionIndex,
-  groupingCurrentLevel,
-  hasScmSourceContext,
-  meta,
-  minifiedStacktrace,
-  stacktrace,
-}: IssueStackTraceFrameListProps) {
-  const platform = getStacktracePlatform(event, stacktrace);
-
+export function IssueStackTraceFrameList(props: IssueStackTraceFrameListProps) {
+  const platform = getStacktracePlatform(props.event, props.stacktrace);
   return (
-    <StackTraceProvider
-      event={event}
-      exceptionIndex={exceptionIndex}
-      hasScmSourceContext={hasScmSourceContext}
-      meta={meta}
-      minifiedStacktrace={minifiedStacktrace}
+    <StackTraceFrameList
+      {...props}
       platform={platform}
-      rowPolicy={createStackTraceRowPolicy({groupingCurrentLevel})}
-      stacktrace={stacktrace}
-    >
-      <StackTraceFrames
-        frameActionsComponent={IssueFrameActions}
-        frameContextComponent={IssueStackTraceFrameContext}
-      />
-    </StackTraceProvider>
+      frameActionsComponent={
+        isNativePlatform(platform) ? NativeIssueFrameActions : IssueFrameActions
+      }
+      frameContextComponent={IssueStackTraceFrameContext}
+    />
   );
 }

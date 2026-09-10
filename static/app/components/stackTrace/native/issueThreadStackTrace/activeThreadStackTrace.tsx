@@ -3,7 +3,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
-import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {
   ExceptionDescription,
@@ -12,14 +11,9 @@ import {
 import {
   IssueExceptionStackTrace,
   IssueStackTraceFrameList,
-  type IssueStackTraceFrameListProps,
 } from 'sentry/components/stackTrace/issueStackTrace/exceptionStackTrace';
-import {IssueStackTraceFrameContext} from 'sentry/components/stackTrace/issueStackTrace/issueStackTraceFrameContext';
 import {supportsAppleCrashReport} from 'sentry/components/stackTrace/native/appleCrashReport';
-import {NativeIssueFrameActions} from 'sentry/components/stackTrace/native/frame/actions/nativeIssueActions';
 import {NativeAppleCrashReportContent} from 'sentry/components/stackTrace/native/nativeAppleCrashReportContent';
-import {NativeStackTraceFrames} from 'sentry/components/stackTrace/native/nativeStackTraceFrames';
-import {NativeStackTraceProvider} from 'sentry/components/stackTrace/native/nativeStackTraceProvider';
 import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
 import {t} from 'sentry/locale';
 import type {ExceptionValue} from 'sentry/types/event';
@@ -60,7 +54,7 @@ export function ActiveThreadStackTrace() {
         event={event}
         groupingCurrentLevel={groupingCurrentLevel}
         hasScmSourceContext={hasScmSourceContext}
-        frameListComponent={NativeIssueStackTraceFrameList}
+        frameListComponent={IssueStackTraceFrameList}
       />
     );
   }
@@ -85,7 +79,7 @@ export function ActiveThreadStackTrace() {
           threadId={activeThread?.id}
         />
       ) : (
-        <NativeIssueStackTraceFrameList
+        <IssueStackTraceFrameList
           key={activeThread?.id}
           event={event}
           stacktrace={stacktrace}
@@ -97,41 +91,6 @@ export function ActiveThreadStackTrace() {
       )}
     </Stack>
   );
-}
-
-function NativeIssueStackTraceFrameList(props: IssueStackTraceFrameListProps) {
-  const {
-    event,
-    exceptionIndex,
-    groupingCurrentLevel,
-    hasScmSourceContext,
-    meta,
-    minifiedStacktrace,
-    stacktrace,
-  } = props;
-  const platform = getStacktracePlatform(event, stacktrace);
-
-  if (isNativePlatform(platform)) {
-    return (
-      <NativeStackTraceProvider
-        event={event}
-        stacktrace={stacktrace}
-        minifiedStacktrace={minifiedStacktrace}
-        groupingCurrentLevel={groupingCurrentLevel}
-        hasScmSourceContext={hasScmSourceContext}
-        exceptionIndex={exceptionIndex}
-        meta={meta}
-        platform={platform}
-      >
-        <NativeStackTraceFrames
-          frameActionsComponent={NativeIssueFrameActions}
-          frameContextComponent={IssueStackTraceFrameContext}
-        />
-      </NativeStackTraceProvider>
-    );
-  }
-
-  return <IssueStackTraceFrameList {...props} />;
 }
 
 export function IssueThreadStackTraceSuspectCommits() {

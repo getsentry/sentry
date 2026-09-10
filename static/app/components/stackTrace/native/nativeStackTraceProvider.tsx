@@ -13,6 +13,7 @@ interface NativeStackTraceProviderProps extends Pick<
   StackTraceProviderProps,
   | 'children'
   | 'collapseAll'
+  | 'defaultExpandedFrameIndex'
   | 'event'
   | 'exceptionIndex'
   | 'frameSourceMapDebuggerData'
@@ -31,6 +32,7 @@ interface NativeStackTraceProviderProps extends Pick<
 export function NativeStackTraceProvider({
   children,
   collapseAll,
+  defaultExpandedFrameIndex: expandedFrameIndex,
   event,
   exceptionIndex,
   frameSourceMapDebuggerData,
@@ -81,7 +83,9 @@ export function NativeStackTraceProvider({
   return (
     <StackTraceProvider
       collapseAll={collapseAll}
-      defaultExpandedFrameIndex={defaultExpandedFrameIndex}
+      defaultExpandedFrameIndex={
+        expandedFrameIndex === undefined ? defaultExpandedFrameIndex : expandedFrameIndex
+      }
       emptySourceNotation
       event={event}
       exceptionIndex={exceptionIndex}

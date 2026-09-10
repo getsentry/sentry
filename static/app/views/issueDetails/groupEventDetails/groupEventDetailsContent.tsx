@@ -106,8 +106,8 @@ export function EventDetailsContent({
 }: Required<Pick<EventDetailsContentProps, 'group' | 'event' | 'project'>>) {
   const organization = useOrganization();
   const shouldUseNewStackTrace =
-    // New stack trace is currently only non-native platforms.
-    !isNativePlatform(event.platform);
+    !isNativePlatform(event.platform) ||
+    organization.features.includes('issue-details-new-stack-trace');
   const shouldUseNewNativeThreadStackTrace =
     organization.features.includes('issue-details-new-stack-trace') &&
     isNativePlatform(event.platform);
