@@ -7,7 +7,6 @@ import {t} from 'sentry/locale';
 
 import {useNativeDisplayOptionsContext} from './nativeDisplayOptionsContext';
 import {NATIVE_DISPLAY_OPTION} from './nativeDisplayOptionsPersistence';
-import {useNativeStackTraceContext} from './nativeStackTraceContext';
 
 const VIEW_OPTION_VALUES = [
   'most-relevant',
@@ -24,11 +23,6 @@ const SORT_OPTION_VALUES = ['newest', 'oldest'] as const;
  * Native frame detail options auto-disable when no frame in the stack would
  * benefit from them.
  */
-export function NativeDisplayOptions() {
-  const capabilities = useNativeStackTraceContext();
-  return <NativeDisplayOptionsMenu {...capabilities} />;
-}
-
 export function NativeDisplayOptionsMenu({
   hasAbsoluteAddresses,
   hasAbsoluteFilePaths,

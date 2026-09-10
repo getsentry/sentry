@@ -34,8 +34,9 @@ import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {NativeDefaultActions} from './frame/actions/nativeDefaultActions';
-import {NativeDisplayOptions} from './nativeDisplayOptions';
+import {NativeDisplayOptionsMenu} from './nativeDisplayOptions';
 import {NativeStackTraceViewStateProvider} from './nativeDisplayOptionsContext';
+import {getNativeFrameCapabilities} from './nativeFrameAnalysis';
 import {NativeStackTraceFrames} from './nativeStackTraceFrames';
 import {NativeStackTraceProvider} from './nativeStackTraceProvider';
 import {RawDownloadAction} from './rawDownloadAction';
@@ -628,7 +629,9 @@ function NativeIssueStackTraceStory() {
         eventId={event.eventID}
         threadId={activeThread.id}
       />
-      <NativeDisplayOptions />
+      <NativeDisplayOptionsMenu
+        {...getNativeFrameCapabilities(activeThread.stacktrace?.frames ?? [])}
+      />
       <CopyAsDropdown size="xs" items={copyItems} />
     </Flex>
   );
