@@ -188,14 +188,14 @@ export function SharedSpendLimitPriceTable({
   return (
     <Stack borderTop="primary">
       <Grid
-        columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, 3fr) minmax(0, 2fr)'}}
-        gap={{zero: 'xs', xl: 'lg'}}
+        columns={{zero: 'minmax(0, 1fr)', md: 'minmax(0, 3fr) minmax(0, 2fr)'}}
+        gap={{zero: 'xs', md: 'lg'}}
         align="center"
         padding="md xl"
         background="secondary"
       >
         <Text bold>{t('Product')}</Text>
-        <Container display={{zero: 'none', xl: 'block'}} justifySelf="end">
+        <Container display={{zero: 'none', md: 'block'}} justifySelf="end">
           <Text bold>{t('Price')}</Text>
         </Container>
       </Grid>
@@ -230,8 +230,8 @@ export function SharedSpendLimitPriceTable({
         return (
           <Grid
             key={category}
-            columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, 3fr) minmax(0, 2fr)'}}
-            gap={{zero: 'xs', xl: 'lg'}}
+            columns={{zero: 'minmax(0, 1fr)', md: 'minmax(0, 3fr) minmax(0, 2fr)'}}
+            gap={{zero: 'xs', md: 'lg'}}
             align="center"
             borderTop="primary"
             padding="md xl"
@@ -263,7 +263,7 @@ export function SharedSpendLimitPriceTable({
                     />
                   )}
             </Flex>
-            <Container justifySelf={{zero: 'start', xl: 'end'}}>
+            <Container justifySelf={{zero: 'start', md: 'end'}}>
               <Text>
                 {hasConstantPpe ? '' : '*'}
                 {formatPaygPricePerUnit({
@@ -304,8 +304,8 @@ export function SharedSpendLimitPriceTable({
         return (
           <Grid
             key={apiName}
-            columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, 3fr) minmax(0, 2fr)'}}
-            gap={{zero: 'xs', xl: 'lg'}}
+            columns={{zero: 'minmax(0, 1fr)', md: 'minmax(0, 3fr) minmax(0, 2fr)'}}
+            gap={{zero: 'xs', md: 'lg'}}
             align="center"
             borderTop="primary"
             padding="md xl"
@@ -321,7 +321,7 @@ export function SharedSpendLimitPriceTable({
               )}
               {tooltipText && <InfoTip title={tooltipText} position="top" size="xs" />}
             </Flex>
-            <Container justifySelf={{zero: 'start', xl: 'end'}}>
+            <Container justifySelf={{zero: 'start', md: 'end'}}>
               {dataCategories.map((category, index) => {
                 const paygPpe = getPaygPpe({
                   activePlan,
@@ -354,7 +354,7 @@ export function SharedSpendLimitPriceTable({
       })}
       <Flex
         width="100%"
-        justify={{zero: 'start', xl: 'end'}}
+        justify={{zero: 'start', md: 'end'}}
         borderTop="primary"
         padding="md xl"
       >
