@@ -15,7 +15,8 @@ import {useIssueThreadStackTraceContext} from './context';
 
 export function IssueThreadStackTraceActions() {
   const organization = useOrganization();
-  const {activeThreadModel, event, projectSlug} = useIssueThreadStackTraceContext();
+  const {activeThreadModel, event, projectSlug, isShared} =
+    useIssueThreadStackTraceContext();
   const {
     activeException,
     activeThread,
@@ -97,7 +98,7 @@ export function IssueThreadStackTraceActions() {
 
   return (
     <Flex align="center" gap="sm">
-      {isNativeStackTrace ? (
+      {isNativeStackTrace && !isShared ? (
         <RawDownloadAction
           eventId={event.id}
           organization={organization}

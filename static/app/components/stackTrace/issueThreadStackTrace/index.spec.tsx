@@ -1,13 +1,15 @@
 import {EventStacktraceFrameFixture} from 'sentry-fixture/eventStacktraceFrame';
+import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {IssueThreadStackTrace} from 'sentry/components/stackTrace/native/issueThreadStackTrace';
+import {IssueThreadStackTrace} from 'sentry/components/stackTrace/issueThreadStackTrace';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event, Thread} from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
@@ -127,7 +129,10 @@ function makeEvent(threads: Thread[], platform: PlatformKey = 'cocoa'): Event {
   } as Event;
 }
 
-function renderThreadStackTrace(event: Event) {
+function renderThreadStackTrace(
+  event: Event,
+  options: {group?: Group; isShared?: boolean} = {}
+) {
   const threadsEntry = event.entries.find(entry => entry.type === EntryType.THREADS)!;
 
   return render(
@@ -136,7 +141,8 @@ function renderThreadStackTrace(event: Event) {
       event={event}
       projectSlug={project.slug}
       groupingCurrentLevel={0}
-      group={undefined}
+      group={options.group}
+      isShared={options.isShared}
     />,
     {organization}
   );
@@ -162,6 +168,10 @@ describe('IssueThreadStackTrace', () => {
     Object.assign(navigator, {
       clipboard: {writeText: jest.fn().mockResolvedValue(undefined)},
     });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('restores raw and minified choices made on a JavaScript thread in a native event', async () => {
@@ -212,6 +222,31 @@ describe('IssueThreadStackTrace', () => {
       'aria-selected',
       'true'
     );
+  });
+
+  it('keeps shared exception and thread views free of authenticated requests and downloads', async () => {
+    MockApiClient.clearMockResponses();
+    const request = jest.spyOn(MockApiClient.prototype, 'request');
+    const event = makeEvent([
+      makeThread({crashed: true, id: 7}),
+      makeThread({id: 8, name: 'worker', stacktrace: makeStacktrace('Worker.run')}),
+    ]);
+    renderThreadStackTrace(event, {isShared: true, group: GroupFixture()});
+
+    expect(await screen.findByText('ViewController.causeCrash')).toBeInTheDocument();
+    expect(screen.queryByText('Connect with Git Providers')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Raw Stack Trace'}));
+    await userEvent.keyboard('{Escape}');
+
+    expect(
+      screen.getByText(/ViewController.causeCrash/, {selector: 'pre'})
+    ).toHaveTextContent('EXC_BAD_ACCESS');
+    expect(screen.queryByRole('button', {name: 'Download'})).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Next Thread'}));
+    expect(await screen.findByText(/Worker.run/, {selector: 'pre'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Download'})).not.toBeInTheDocument();
+    expect(request).not.toHaveBeenCalled();
   });
 
   it('renders thread controls and metadata from context', async () => {
