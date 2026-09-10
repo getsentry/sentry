@@ -1,9 +1,11 @@
 from unittest.mock import patch
 
 import pytest
+from django.utils import timezone
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.defaults.detectors import (
@@ -120,9 +122,12 @@ class TestEnsureDefaultAllProjectsDetector(TestCase):
 
     def test_duplicate_detectors_are_handled(self) -> None:
         org = self.create_organization()
-        first = self.create_all_projects_detector(org)
-        _second = self.create_all_projects_detector(org)
-        _third = self.create_all_projects_detector(org)
+        with freeze_time(timezone.now() - timezone.timedelta(hours=2)):
+            first = self.create_all_projects_detector(org)
+        with freeze_time(timezone.now() - timezone.timedelta(hours=1)):
+            _second = self.create_all_projects_detector(org)
+        with freeze_time(timezone.now()):
+            _third = self.create_all_projects_detector(org)
 
         result = ensure_default_all_projects_detector(org.id)
         assert result.id == first.id

@@ -1265,9 +1265,12 @@ class TestQueryAllProjectsDetector(TestCase):
         assert query_all_projects_detector(self.organization.id) == detector
 
     def test_returns_first_when_many_exist(self) -> None:
-        first = self.create_all_projects_detector(self.organization)
-        _second = self.create_all_projects_detector(self.organization)
-        _third = self.create_all_projects_detector(self.organization)
+        with freeze_time(timezone.now() - timezone.timedelta(hours=2)):
+            first = self.create_all_projects_detector(self.organization)
+        with freeze_time(timezone.now() - timezone.timedelta(hours=1)):
+            _second = self.create_all_projects_detector(self.organization)
+        with freeze_time(timezone.now()):
+            _third = self.create_all_projects_detector(self.organization)
         result = query_all_projects_detector(self.organization.id)
         assert result is not None
         assert result.id == first.id
@@ -1316,9 +1319,12 @@ class TestEventDetectorsAllProject(TestCase):
         assert get_all_projects_detector(self.organization.id) is None
 
     def test_many_all_projects_detectors(self) -> None:
-        first = self.create_all_projects_detector(self.organization)
-        _second = self.create_all_projects_detector(self.organization)
-        _third = self.create_all_projects_detector(self.organization)
+        with freeze_time(timezone.now() - timezone.timedelta(hours=2)):
+            first = self.create_all_projects_detector(self.organization)
+        with freeze_time(timezone.now() - timezone.timedelta(hours=1)):
+            _second = self.create_all_projects_detector(self.organization)
+        with freeze_time(timezone.now()):
+            _third = self.create_all_projects_detector(self.organization)
         cache.clear()
         result = get_all_projects_detector(self.organization.id)
         assert result is not None
