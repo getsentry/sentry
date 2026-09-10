@@ -86,6 +86,9 @@ def _control_backfill_tables() -> frozenset[str]:
 
 
 def _read_from_postgres_enabled() -> bool:
+    # Postgres can only be the source of truth while the dual write keeps it current
+    if not options.get(WRITE_WATERMARK_TO_POSTGRES_OPTION):
+        return False
     return bool(options.get(READ_WATERMARK_FROM_POSTGRES_OPTION))
 
 

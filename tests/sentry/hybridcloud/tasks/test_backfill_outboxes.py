@@ -822,6 +822,35 @@ def test_read_option_off_keeps_the_redis_pair() -> None:
 
 @django_db_all
 @no_silo_test
+def test_the_read_option_needs_the_dual_write() -> None:
+    """The read option alone must not promote a pair the dual write is no longer keeping."""
+    reset_processing_state()
+    set_processing_state(AuthProvider._meta.db_table, 5, 1)
+    ControlOutboxBackfillWatermark.objects.create(
+        table_name=AuthProvider._meta.db_table, low_bound=500, version=3
+    )
+
+    with (
+        override_options({READ_WATERMARK_FROM_POSTGRES_OPTION: True}),
+        patch("sentry.hybridcloud.tasks.backfill_outboxes.metrics") as metrics_mock,
+    ):
+        assert get_processing_state(AuthProvider._meta.db_table) == (5, 1)
+        assert read_processing_state(AuthProvider._meta.db_table) == (5, 1)
+
+    # Redis is the plain read path here, not a fallback from Postgres, so nothing is counted.
+    assert _counter_calls(metrics_mock, WATERMARK_READ_REDIS_FALLBACK_METRIC) == 0
+
+    # Turning the dual write off is a full rollback: the stale row stays ignored.
+    with override_options(READ_FROM_POSTGRES_OPTIONS):
+        assert read_processing_state(AuthProvider._meta.db_table) == (500, 3)
+    with override_options(
+        {**READ_FROM_POSTGRES_OPTIONS, WRITE_WATERMARK_TO_POSTGRES_OPTION: False}
+    ):
+        assert read_processing_state(AuthProvider._meta.db_table) == (5, 1)
+
+
+@django_db_all
+@no_silo_test
 def test_a_missing_postgres_row_falls_back_to_redis() -> None:
     """A table the dual write has not reached must not restart from the beginning."""
     reset_processing_state()
