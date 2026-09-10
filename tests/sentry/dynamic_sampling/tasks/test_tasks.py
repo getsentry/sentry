@@ -42,6 +42,13 @@ MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
 
 
 class TasksTestCase(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        # These tests run the legacy pipeline end to end, so rules must read its caches.
+        serve_legacy = override_options({"dynamic-sampling.per_org.serving-rollout-rate": 0.0})
+        serve_legacy.__enter__()
+        self.addCleanup(serve_legacy.__exit__, None, None, None)
+
     @staticmethod
     def old_date():
         return timezone.now() - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
