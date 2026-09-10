@@ -127,7 +127,6 @@ export function BreadcrumbItemPageTitle({
           <Tooltip
             title={pagination.previous.tooltip}
             disabled={!pagination.previous.tooltip}
-            isHoverable
           >
             {pagination.previous.to ? (
               <LinkButton
@@ -149,11 +148,7 @@ export function BreadcrumbItemPageTitle({
               />
             )}
           </Tooltip>
-          <Tooltip
-            title={pagination.next.tooltip}
-            disabled={!pagination.next.tooltip}
-            isHoverable
-          >
+          <Tooltip title={pagination.next.tooltip} disabled={!pagination.next.tooltip}>
             {pagination.next.to ? (
               <LinkButton
                 size="zero"

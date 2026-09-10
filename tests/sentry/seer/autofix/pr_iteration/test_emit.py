@@ -7,7 +7,6 @@ from sentry.analytics.events.pr_iteration_events import (
     AiAutofixPrIterationFeedbackBatchCompletedEvent,
 )
 from sentry.seer.agent.client_models import MemoryBlock, Message, SeerRunState
-from sentry.seer.autofix.autofix_agent import AutofixStep
 from sentry.seer.autofix.pr_iteration.details_store import (
     open_iterations,
     remove_iterations_before,
@@ -21,6 +20,7 @@ from sentry.seer.autofix.pr_iteration.emit import (
     trigger_pr_iteration_details,
 )
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
@@ -74,9 +74,12 @@ class PrIterationDetailsTest(TestCase):
             group_id=self.group.id,
         )
 
-    def _trigger(self) -> int | None:
+    def _trigger(self, *, trigger_source: str | None = "feedback") -> int | None:
         iteration_id = trigger_pr_iteration_details(
-            log_ctx=self.log_ctx, run_id=RUN_ID, organization_id=self.organization.id
+            log_ctx=self.log_ctx,
+            run_id=RUN_ID,
+            organization_id=self.organization.id,
+            trigger_source=trigger_source,
         )
         if iteration_id is not None:
             record_pr_iteration_counts(
@@ -116,6 +119,7 @@ class PrIterationDetailsTest(TestCase):
 
         (row,) = self._open_rows()
         assert row.triggered
+        assert row.data["trigger_source"] == "feedback"
         assert row.data["referrer"] == "github_pr_comment"
         assert row.data["feedback_count"] == 2
         assert row.data["queued_count"] == 3
@@ -141,6 +145,7 @@ class PrIterationDetailsTest(TestCase):
                 run_id=RUN_ID,
                 referrer="github_pr_comment",
                 iteration_index=0,
+                trigger_source="feedback",
                 feedback_count=2,
                 queued_count=3,
                 dropped_count=1,

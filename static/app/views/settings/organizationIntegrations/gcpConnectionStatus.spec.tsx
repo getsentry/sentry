@@ -12,7 +12,7 @@ describe('GcpConnectionStatus', () => {
   const baseConfig = {
     sentry_sa_email: 'sentry-abc@sentry-connectors.iam.gserviceaccount.com',
     customer_sa_email: 'gcp-sentry@my-project.iam.gserviceaccount.com',
-    projects: 'project-prod, project-staging',
+    projects: ['project-prod', 'project-staging'],
   };
 
   function renderStatus({

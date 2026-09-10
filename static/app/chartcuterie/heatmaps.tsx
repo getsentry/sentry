@@ -1,6 +1,6 @@
 import type {Theme} from '@emotion/react';
 
-import {Grid} from 'sentry/components/charts/components/grid';
+import {createGridOptions} from 'sentry/components/charts/components/grid';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {visualMapOptions} from 'sentry/views/dashboards/widgets/heatMapWidget/heatMapWidgetVisualization';
 import {HeatMap} from 'sentry/views/dashboards/widgets/heatMapWidget/plottables/heatMap';
@@ -48,7 +48,7 @@ export function buildHeatmapChartOption({
   });
 
   return {
-    grid: Grid({left: 10, right: 10, bottom: 10, top: 10}),
+    grid: createGridOptions({left: 10, right: 10, bottom: 10, top: 10}),
     backgroundColor: theme.tokens.background.primary,
     xAxis: [
       HIDDEN_CATEGORY_AXIS,

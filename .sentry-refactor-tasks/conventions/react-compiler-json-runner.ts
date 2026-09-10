@@ -50,8 +50,8 @@ if (!repoPath || !category || scanPaths.length === 0) {
 const result = spawnSync(
   'pnpm',
   [
-    'dlx',
-    'oxlint@1.70.0',
+    'exec',
+    'oxlint',
     '-A',
     'all',
     '-D',

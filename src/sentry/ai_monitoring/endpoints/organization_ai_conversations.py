@@ -1,7 +1,7 @@
 import logging
 import re
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any, TypedDict
 
 import sentry_sdk
@@ -10,7 +10,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.ai_monitoring.constants import AI_CONVERSATIONS_ALIASES
+from sentry.ai_monitoring.constants import AI_CONVERSATIONS_FIELDS
+from sentry.ai_monitoring.conversation_query import compile_conversation_query
 from sentry.ai_monitoring.conversation_titles import fetch_conversation_titles
 from sentry.ai_monitoring.serializers import OrganizationAIConversationsSerializer
 from sentry.ai_monitoring.utils import (
@@ -244,35 +245,39 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response(status=404)
 
-        serializer = OrganizationAIConversationsSerializer(data=request.GET)
+        querying_enhancements_enabled = features.has(
+            "organizations:gen-ai-conversations-querying-enhancements", organization
+        )
+        serializer = OrganizationAIConversationsSerializer(
+            data=request.GET, context={"sorting_enabled": querying_enhancements_enabled}
+        )
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=400)
 
         validated_data = serializer.validated_data
         user_query = validated_data.get("query", "")
-        # Filtered requests stay on the legacy path until one EAP query can apply
-        # conversation filters without dropping unrelated summary spans.
-        use_single_query = not user_query.strip() and features.has(
-            "organizations:gen-ai-conversations-single-query", organization
+        query_string = _build_conversation_query(
+            "has:gen_ai.conversation.id has:gen_ai.operation.type", user_query
         )
 
         def data_fn(offset: int, limit: int) -> list[AIConversationResponse]:
-            if use_single_query:
-                return self._get_conversations_single_query(
-                    snuba_params=snuba_params,
-                    offset=offset,
-                    limit=limit,
-                    sorts=validated_data["sort"],
-                )
             return self._get_conversations(
                 snuba_params=snuba_params,
                 offset=offset,
                 limit=limit,
-                user_query=user_query,
-                sampling_mode=validated_data.get("samplingMode", "NORMAL"),
+                query_string=query_string,
+                sampling_mode=validated_data["samplingMode"],
+                sorts=validated_data["sort"] if querying_enhancements_enabled else None,
+                use_single_query=querying_enhancements_enabled,
             )
 
         with handle_query_errors():
+            if querying_enhancements_enabled:
+                resolver = Spans.get_resolver(
+                    snuba_params,
+                    SearchResolverConfig(auto_fields=True, disable_aggregate_extrapolation=True),
+                )
+                query_string = compile_conversation_query(user_query, resolver)
             response = self.paginate(
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
@@ -292,134 +297,18 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         return response
 
     @trace
-    def _get_conversations_single_query(
-        self,
-        snuba_params: SnubaParams,
-        offset: int,
-        limit: int,
-        sorts: list[str],
-    ) -> list[AIConversationResponse]:
-        config = SearchResolverConfig(
-            auto_fields=True,
-            disable_aggregate_extrapolation=True,
-            fields_acl=FieldsACL(functions={"collect_unique_if", "first_if", "last_if"}),
-        )
-        operation_filter = "has:gen_ai.operation.type"
-        ai_client_filter = "gen_ai.operation.type:ai_client"
-        agent_filter = "gen_ai.operation.type:agent"
-        tool_filter = "gen_ai.operation.type:tool"
-        orderby = [
-            ("-" if sort.startswith("-") else "") + AI_CONVERSATIONS_ALIASES[sort.removeprefix("-")]
-            for sort in sorts
-        ]
-        # Add a unique tiebreaker so offset pagination cannot skip or repeat conversations.
-        if not any(column.removeprefix("-") == "gen_ai.conversation.id" for column in orderby):
-            orderby.append("gen_ai.conversation.id")
-
-        results = Spans.run_table_query(
-            params=snuba_params,
-            query_string=(
-                "has:gen_ai.conversation.id count_if(`has:gen_ai.operation.type`, span.duration):>0"
-            ),
-            selected_columns=[
-                "gen_ai.conversation.id",
-                "failure_count() as errors",
-                "count_if(gen_ai.operation.type,equals,ai_client) as llm_calls",
-                "count_if(gen_ai.operation.type,equals,tool) as tool_calls",
-                "sum_if(gen_ai.usage.total_tokens,gen_ai.operation.type,equals,ai_client) as total_tokens",
-                "sum_if(gen_ai.usage.input_tokens,gen_ai.operation.type,equals,ai_client) as input_tokens",
-                "sum_if(gen_ai.usage.output_tokens,gen_ai.operation.type,equals,ai_client) as output_tokens",
-                "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client) as total_cost",
-                f"sum_if(`{operation_filter}`,span.duration) as duration",
-                "sum_if(span.duration,gen_ai.operation.type,equals,ai_client) as generation_duration",
-                "min(precise.start_ts) as start_timestamp",
-                "max(precise.finish_ts) as end_timestamp",
-                "max(timestamp)",
-                f"collect_unique_if(`{operation_filter}`, trace) as trace_ids",
-                f"collect_unique_if(`{operation_filter}`, project.id) as project_ids",
-                f"collect_unique_if(`{agent_filter}`, gen_ai.agent.name) as flow",
-                f"collect_unique_if(`{tool_filter}`, gen_ai.tool.name) as tool_names",
-                "failure_count_if(gen_ai.operation.type,equals,tool) as tool_errors",
-                f"first_if(`{operation_filter}`, user.id, timestamp) as user_id",
-                f"first_if(`{operation_filter}`, user.email, timestamp) as user_email",
-                f"first_if(`{operation_filter}`, user.username, timestamp) as user_username",
-                f"first_if(`{operation_filter}`, user.ip, timestamp) as user_ip",
-                f"first_if(`{ai_client_filter}`, gen_ai.input.messages, timestamp) as input_messages",
-                f"min_if(`{ai_client_filter} has:gen_ai.input.messages`, timestamp) as input_messages_timestamp",
-                f"first_if(`{ai_client_filter}`, gen_ai.request.messages, timestamp) as request_messages",
-                f"min_if(`{ai_client_filter} has:gen_ai.request.messages`, timestamp) as request_messages_timestamp",
-                f"last_if(`{ai_client_filter}`, gen_ai.output.messages, timestamp) as output_messages",
-                f"max_if(`{ai_client_filter} has:gen_ai.output.messages`, timestamp) as output_messages_timestamp",
-                f"last_if(`{ai_client_filter}`, gen_ai.response.text, timestamp) as response_text",
-                f"max_if(`{ai_client_filter} has:gen_ai.response.text`, timestamp) as response_text_timestamp",
-            ],
-            orderby=orderby,
-            offset=offset,
-            limit=limit,
-            referrer=Referrer.API_AI_CONVERSATIONS_COMPLETE.value,
-            config=config,
-            sampling_mode="HIGHEST_ACCURACY",
-        )
-
-        conversations_map: dict[str, AIConversationResponse] = {}
-        project_ids_by_conversation: dict[str, set[int]] = {}
-        for row in results.get("data", []):
-            conversation, project_ids = self._build_conversation_from_row(row)
-            conversations_map[conversation["conversationId"]] = conversation
-            project_ids_by_conversation[conversation["conversationId"]] = project_ids
-
-        self._apply_titles(conversations_map, project_ids_by_conversation)
-        return list(conversations_map.values())
-
-    def _build_conversation_from_row(
-        self, row: QueryRow
-    ) -> tuple[AIConversationResponse, set[int]]:
-        project_ids = {
-            project_id for project_id in row.get("project_ids", []) if isinstance(project_id, int)
-        }
-        trace_ids = sorted(row.get("trace_ids") or [])
-        conversation = _build_conversation_response(
-            conv_id=str(row.get("gen_ai.conversation.id") or ""),
-            start_timestamp=_compute_timestamp_ms(timestamp_to_float(row.get("start_timestamp"))),
-            end_timestamp=_compute_timestamp_ms(timestamp_to_float(row.get("end_timestamp"))),
-            errors=int(row.get("errors") or 0),
-            llm_calls=int(row.get("llm_calls") or 0),
-            tool_calls=int(row.get("tool_calls") or 0),
-            total_tokens=int(row.get("total_tokens") or 0),
-            input_tokens=int(row.get("input_tokens") or 0),
-            output_tokens=int(row.get("output_tokens") or 0),
-            total_cost=float(row.get("total_cost") or 0),
-            generation_duration=float(row.get("generation_duration") or 0),
-            trace_ids=trace_ids,
-            flow=sorted(row.get("flow") or []),
-            first_input=get_aggregated_first_input(row),
-            last_output=get_aggregated_last_output(row),
-            user=_build_user_response(
-                user_id=row.get("user_id"),
-                user_email=row.get("user_email"),
-                user_username=row.get("user_username"),
-                user_ip=row.get("user_ip"),
-            ),
-            tool_names=sorted(row.get("tool_names") or []),
-            tool_errors=int(row.get("tool_errors") or 0),
-            project_id=min(project_ids, default=None),
-        )
-        return conversation, project_ids
-
-    @trace
     def _get_conversations(
         self,
         snuba_params: SnubaParams,
         offset: int,
         limit: int,
-        user_query: str,
+        query_string: str,
         sampling_mode: SAMPLING_MODES = "NORMAL",
+        sorts: Sequence[str] | None = None,
+        use_single_query: bool = False,
     ) -> list[AIConversationResponse]:
-        base_filter = "has:gen_ai.conversation.id has:gen_ai.operation.type"
-        query_string = _build_conversation_query(base_filter, user_query)
-
         conversation_ids_results = self._fetch_conversation_ids(
-            snuba_params, query_string, offset, limit, sampling_mode
+            snuba_params, query_string, offset, limit, sampling_mode, sorts
         )
         conversation_ids = _extract_conversation_ids(conversation_ids_results)
 
@@ -429,6 +318,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         if not conversation_ids:
             return []
 
+        if use_single_query:
+            return self._get_conversations_data_single_query(snuba_params, conversation_ids)
         return self._get_conversations_data(snuba_params, conversation_ids)
 
     @trace
@@ -439,16 +330,36 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         offset: int,
         limit: int,
         sampling_mode: SAMPLING_MODES,
+        sorts: Sequence[str] | None = None,
     ) -> EAPResponse:
+        selected_columns = ["gen_ai.conversation.id", "max(precise.finish_ts)"]
+        orderby = ["-max(precise.finish_ts)"]
+        if sorts is not None:
+            # Keep groups with missing sort attributes: EAP filters for the presence
+            # of at least one selected aggregate attribute. Timestamp is always present.
+            selected_columns = ["gen_ai.conversation.id", "max(timestamp)"]
+            selected_aliases = set(selected_columns)
+            orderby = []
+            for sort in sorts:
+                expression, alias = AI_CONVERSATIONS_FIELDS[sort.removeprefix("-")]
+                orderby.append(("-" if sort.startswith("-") else "") + alias)
+                if alias not in selected_aliases:
+                    selected_columns.append(
+                        expression if expression == alias else f"{expression} as {alias}"
+                    )
+                    selected_aliases.add(alias)
+            if not any(column.removeprefix("-") == "gen_ai.conversation.id" for column in orderby):
+                orderby.append("gen_ai.conversation.id")
+
         return Spans.run_table_query(
             params=snuba_params,
             query_string=query_string,
-            selected_columns=["gen_ai.conversation.id", "max(precise.finish_ts)"],
-            orderby=["-max(precise.finish_ts)"],
+            selected_columns=selected_columns,
+            orderby=orderby,
             offset=offset,
             limit=limit,
             referrer=Referrer.API_AI_CONVERSATIONS.value,
-            config=SearchResolverConfig(auto_fields=True),
+            config=SearchResolverConfig(auto_fields=True, disable_aggregate_extrapolation=True),
             sampling_mode=sampling_mode,
         )
 
@@ -456,7 +367,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     def _get_conversations_data(
         self, snuba_params: SnubaParams, conversation_ids: list[str]
     ) -> list[AIConversationResponse]:
-        config = SearchResolverConfig(auto_fields=True)
+        config = SearchResolverConfig(auto_fields=True, disable_aggregate_extrapolation=True)
         resolver = Spans.get_resolver(snuba_params, config)
 
         # Build queries
@@ -730,6 +641,104 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 conversation["firstInput"] = first_input_by_conv.get(conv_id)
                 last_tuple = last_output_by_conv.get(conv_id)
                 conversation["lastOutput"] = last_tuple[1] if last_tuple else None
+
+    @trace
+    def _get_conversations_data_single_query(
+        self, snuba_params: SnubaParams, conversation_ids: list[str]
+    ) -> list[AIConversationResponse]:
+        operation_filter = "has:gen_ai.operation.type"
+        ai_client_filter = "gen_ai.operation.type:ai_client"
+        results = Spans.run_table_query(
+            params=snuba_params,
+            query_string=build_escaped_term_filter("gen_ai.conversation.id", conversation_ids),
+            selected_columns=[
+                "gen_ai.conversation.id",
+                "failure_count() as errors",
+                "count_if(gen_ai.operation.type,equals,ai_client) as llm_calls",
+                "count_if(gen_ai.operation.type,equals,tool) as tool_calls",
+                "sum_if(gen_ai.usage.total_tokens,gen_ai.operation.type,equals,ai_client) as total_tokens",
+                "sum_if(gen_ai.usage.input_tokens,gen_ai.operation.type,equals,ai_client) as input_tokens",
+                "sum_if(gen_ai.usage.output_tokens,gen_ai.operation.type,equals,ai_client) as output_tokens",
+                "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client) as total_cost",
+                "sum_if(span.duration,gen_ai.operation.type,equals,ai_client) as generation_duration",
+                "min(timestamp) as start_timestamp",
+                "max(timestamp) as end_timestamp",
+                f"collect_unique_if(`{operation_filter}`, trace) as trace_ids",
+                f"collect_unique_if(`{operation_filter}`, project.id) as project_ids",
+                "collect_unique_if(`gen_ai.operation.type:agent`, gen_ai.agent.name) as flow",
+                "collect_unique_if(`gen_ai.operation.type:tool`, gen_ai.tool.name) as tool_names",
+                "failure_count_if(gen_ai.operation.type,equals,tool) as tool_errors",
+                f"first_if(`{operation_filter}`, user.id, timestamp) as user_id",
+                f"first_if(`{operation_filter}`, user.email, timestamp) as user_email",
+                f"first_if(`{operation_filter}`, user.username, timestamp) as user_username",
+                f"first_if(`{operation_filter}`, user.ip, timestamp) as user_ip",
+                f"first_if(`{ai_client_filter}`, gen_ai.input.messages, timestamp) as input_messages",
+                f"min_if(`{ai_client_filter} has:gen_ai.input.messages`, timestamp) as input_messages_timestamp",
+                f"first_if(`{ai_client_filter}`, gen_ai.request.messages, timestamp) as request_messages",
+                f"min_if(`{ai_client_filter} has:gen_ai.request.messages`, timestamp) as request_messages_timestamp",
+                f"last_if(`{ai_client_filter}`, gen_ai.output.messages, timestamp) as output_messages",
+                f"max_if(`{ai_client_filter} has:gen_ai.output.messages`, timestamp) as output_messages_timestamp",
+                f"last_if(`{ai_client_filter}`, gen_ai.response.text, timestamp) as response_text",
+                f"max_if(`{ai_client_filter} has:gen_ai.response.text`, timestamp) as response_text_timestamp",
+            ],
+            orderby=None,
+            offset=0,
+            limit=len(conversation_ids),
+            referrer=Referrer.API_AI_CONVERSATIONS_COMPLETE.value,
+            config=SearchResolverConfig(
+                auto_fields=True,
+                disable_aggregate_extrapolation=True,
+                fields_acl=FieldsACL(functions={"collect_unique_if", "first_if", "last_if"}),
+            ),
+            sampling_mode="HIGHEST_ACCURACY",
+        )
+
+        conversations_map: dict[str, AIConversationResponse] = {}
+        project_ids_by_conversation: dict[str, set[int]] = {}
+        for row in results.get("data", []):
+            conversation_id = str(row.get("gen_ai.conversation.id") or "")
+            project_ids = {
+                project_id
+                for project_id in row.get("project_ids", [])
+                if isinstance(project_id, int)
+            }
+            trace_ids = sorted(row.get("trace_ids") or [])
+            conversations_map[conversation_id] = _build_conversation_response(
+                conv_id=conversation_id,
+                start_timestamp=_compute_timestamp_ms(
+                    timestamp_to_float(row.get("start_timestamp"))
+                ),
+                end_timestamp=_compute_timestamp_ms(timestamp_to_float(row.get("end_timestamp"))),
+                errors=int(row.get("errors") or 0),
+                llm_calls=int(row.get("llm_calls") or 0),
+                tool_calls=int(row.get("tool_calls") or 0),
+                total_tokens=int(row.get("total_tokens") or 0),
+                input_tokens=int(row.get("input_tokens") or 0),
+                output_tokens=int(row.get("output_tokens") or 0),
+                total_cost=float(row.get("total_cost") or 0),
+                generation_duration=float(row.get("generation_duration") or 0),
+                trace_ids=trace_ids,
+                flow=row.get("flow") or [],
+                first_input=get_aggregated_first_input(row),
+                last_output=get_aggregated_last_output(row),
+                user=_build_user_response(
+                    user_id=row.get("user_id"),
+                    user_email=row.get("user_email"),
+                    user_username=row.get("user_username"),
+                    user_ip=row.get("user_ip"),
+                ),
+                tool_names=sorted(row.get("tool_names") or []),
+                tool_errors=int(row.get("tool_errors") or 0),
+                project_id=min(project_ids, default=None),
+            )
+            project_ids_by_conversation[conversation_id] = project_ids
+
+        self._apply_titles(conversations_map, project_ids_by_conversation)
+        return [
+            conversations_map[conversation_id]
+            for conversation_id in conversation_ids
+            if conversation_id in conversations_map
+        ]
 
     @trace
     def _apply_titles(

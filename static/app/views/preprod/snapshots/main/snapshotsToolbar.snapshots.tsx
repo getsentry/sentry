@@ -6,7 +6,6 @@ import {CompactSelect as mockCompactSelect} from 'sentry-test/snapshots/mocks/co
 import {Tag} from '@sentry/scraps/badge';
 
 import {t} from 'sentry/locale';
-// eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 import type {DiffMode} from './imageDisplay/diffImageDisplay';

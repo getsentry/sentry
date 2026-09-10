@@ -20,8 +20,7 @@ from sentry.testutils.silo import cell_silo_test
 _sentinel = object()
 
 
-@cell_silo_test
-class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
+class SnapshotPrCommentTaskTestBase(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
@@ -80,6 +79,9 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
 
         return artifact, metrics
 
+
+@cell_silo_test
+class CreatePreprodSnapshotPrCommentTaskTest(SnapshotPrCommentTaskTestBase):
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.post_snapshot_pr_comment_task.delay")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.evaluate_snapshot_changes_by_artifact_id")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
@@ -309,7 +311,7 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
 
 
 @cell_silo_test
-class CreateSnapshotPrCommentSoloTest(CreatePreprodSnapshotPrCommentTaskTest):
+class CreateSnapshotPrCommentSoloTest(SnapshotPrCommentTaskTestBase):
     def _create_previous_snapshot(self, app_id: str = "com.example.app") -> None:
         prev_cc = CommitComparison.objects.create(
             organization_id=self.organization.id,
