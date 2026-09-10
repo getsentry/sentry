@@ -1,19 +1,22 @@
-import {useEffect, useMemo} from 'react';
-import type {Dispatch, SetStateAction} from 'react';
+import {useMemo} from 'react';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {Panel} from 'sentry/components/panels/panel';
 import {DisplayOptions} from 'sentry/components/stackTrace/displayOptions';
 import {IssueExceptionStackTrace} from 'sentry/components/stackTrace/issueStackTrace/exceptionStackTrace';
+import {supportsAppleCrashReport} from 'sentry/components/stackTrace/native/appleCrashReport';
+import {NativeAppleCrashReportContent} from 'sentry/components/stackTrace/native/nativeAppleCrashReportContent';
+import {NativeDisplayOptionsMenu} from 'sentry/components/stackTrace/native/nativeDisplayOptions';
+import {NativeStackTraceViewStateProvider} from 'sentry/components/stackTrace/native/nativeDisplayOptionsContext';
+import {getNativeFrameCapabilities} from 'sentry/components/stackTrace/native/nativeFrameAnalysis';
+import {RawDownloadAction} from 'sentry/components/stackTrace/native/rawDownloadAction';
 import {RawStackTraceText} from 'sentry/components/stackTrace/rawStackTrace';
-import {
-  StackTraceViewStateProvider,
-  useStackTraceViewState,
-} from 'sentry/components/stackTrace/stackTraceContext';
+import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
 import {t} from 'sentry/locale';
 import type {Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -21,8 +24,8 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils/defined';
+import {isNativePlatform} from 'sentry/utils/platform';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -32,6 +35,7 @@ import {formatExceptionsAsText, getOrderedExceptions} from './utils';
 interface IssueStackTraceBaseProps {
   event: Event;
   group?: Group;
+  groupingCurrentLevel?: Group['metadata']['current_level'];
   projectSlug?: Project['slug'];
 }
 
@@ -49,19 +53,17 @@ interface StandaloneStackTraceProps extends IssueStackTraceBaseProps {
 
 type IssueStackTraceProps = ExceptionStackTraceProps | StandaloneStackTraceProps;
 
-type PersistedDisplayOption = 'raw-stack-trace' | 'minified';
-
-const NO_PERSIST_KEY = '__no_persist_stacktrace_display__';
-
 export function IssueStackTrace(props: IssueStackTraceProps) {
-  const {event, group, projectSlug} = props;
+  const {
+    event,
+    group,
+    projectSlug,
+    groupingCurrentLevel = group?.metadata.current_level,
+  } = props;
   const organization = useOrganization();
   const storageKey = projectSlug
     ? `issue-details-stracktrace-display-${organization.slug}-${projectSlug}`
-    : NO_PERSIST_KEY;
-  const [persistedOptions, setPersistedOptions] = useLocalStorageState<
-    PersistedDisplayOption[]
-  >(storageKey, []);
+    : undefined;
 
   const eventHasThreads = event.entries?.some(entry => entry.type === EntryType.THREADS);
   if (eventHasThreads) {
@@ -93,51 +95,43 @@ export function IssueStackTrace(props: IssueStackTraceProps) {
   const hasMinifiedStacktrace =
     !isStandalone && values.some(v => v.rawStacktrace !== null);
 
+  const platform = getStacktracePlatform(
+    event,
+    values.find(value => value.stacktrace)?.stacktrace
+  );
+  const isNative =
+    isNativePlatform(platform) ||
+    values.some(value =>
+      isNativePlatform(getStacktracePlatform(event, value.stacktrace))
+    );
+  const content = (
+    <IssueStackTraceContent
+      key={event.id}
+      event={event}
+      values={values}
+      group={group}
+      groupingCurrentLevel={groupingCurrentLevel}
+      projectSlug={projectSlug}
+      isStandalone={isStandalone}
+      isNative={isNative}
+    />
+  );
+
   return (
-    <StackTraceViewStateProvider
-      platform={event.platform}
+    <NativeStackTraceViewStateProvider
+      key={event.id}
+      platform={platform}
+      storageKey={storageKey}
       hasMinifiedStacktrace={hasMinifiedStacktrace}
       defaultView={
-        projectSlug && persistedOptions.includes('raw-stack-trace') ? 'raw' : 'app'
+        isNative && !values.some(value => value.stacktrace?.hasSystemFrames)
+          ? 'full'
+          : 'app'
       }
-      defaultIsMinified={!!projectSlug && persistedOptions.includes('minified')}
     >
-      {projectSlug && <PersistDisplayOptions setPersistedOptions={setPersistedOptions} />}
-      <IssueStackTraceContent
-        // Reset internal state when switching events
-        key={event.id}
-        event={event}
-        values={values}
-        group={group}
-        projectSlug={projectSlug}
-        isStandalone={isStandalone}
-      />
-    </StackTraceViewStateProvider>
+      {content}
+    </NativeStackTraceViewStateProvider>
   );
-}
-
-function PersistDisplayOptions({
-  setPersistedOptions,
-}: {
-  setPersistedOptions: Dispatch<SetStateAction<PersistedDisplayOption[]>>;
-}) {
-  const {view, isMinified, hasMinifiedStacktrace} = useStackTraceViewState();
-  useEffect(() => {
-    setPersistedOptions(previousOptions => {
-      const next: PersistedDisplayOption[] = [];
-      if (view === 'raw') {
-        next.push('raw-stack-trace');
-      }
-      if (
-        isMinified ||
-        (!hasMinifiedStacktrace && previousOptions.includes('minified'))
-      ) {
-        next.push('minified');
-      }
-      return next;
-    });
-  }, [view, isMinified, hasMinifiedStacktrace, setPersistedOptions]);
-  return null;
 }
 
 function IssueStackTraceContent({
@@ -146,7 +140,13 @@ function IssueStackTraceContent({
   group,
   projectSlug,
   isStandalone,
-}: IssueStackTraceBaseProps & {isStandalone: boolean; values: ExceptionValue[]}) {
+  isNative,
+  groupingCurrentLevel,
+}: IssueStackTraceBaseProps & {
+  isNative: boolean;
+  isStandalone: boolean;
+  values: ExceptionValue[];
+}) {
   const {isMinified, isNewestFirst, view} = useStackTraceViewState();
   const organization = useOrganization();
   const {data: detailedProject} = useDetailedProject(
@@ -179,7 +179,29 @@ function IssueStackTraceContent({
 
   const sectionActions = (
     <Flex align="center" gap="sm">
-      <DisplayOptions />
+      {isNative && projectSlug ? (
+        <RawDownloadAction
+          eventId={event.id}
+          organization={organization}
+          platform={event.platform}
+          projectSlug={projectSlug}
+        />
+      ) : null}
+      {isNative ? (
+        <NativeDisplayOptionsMenu
+          {...getNativeFrameCapabilities(
+            values.flatMap(
+              value =>
+                (isMinified
+                  ? (value.rawStacktrace ?? value.stacktrace)
+                  : value.stacktrace
+                )?.frames ?? []
+            )
+          )}
+        />
+      ) : (
+        <DisplayOptions />
+      )}
       <CopyAsDropdown size="xs" items={copyItems} />
     </Flex>
   );
@@ -188,16 +210,23 @@ function IssueStackTraceContent({
     return (
       <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
         <Stack gap="lg">
-          <Panel>
-            <RawStackTraceText>
-              {formatExceptionsAsText({
-                exceptions,
-                platform: event.platform,
-                isMinified,
-                isStandalone,
-              })}
-            </RawStackTraceText>
-          </Panel>
+          {isNative &&
+          !isStandalone &&
+          projectSlug &&
+          supportsAppleCrashReport(event.platform) ? (
+            <NativeAppleCrashReportContent eventId={event.id} projectSlug={projectSlug} />
+          ) : (
+            <Panel>
+              <RawStackTraceText>
+                {formatExceptionsAsText({
+                  exceptions,
+                  platform: event.platform,
+                  isMinified,
+                  isStandalone,
+                })}
+              </RawStackTraceText>
+            </Panel>
+          )}
           <IssueStackTraceSuspectCommits
             event={event}
             group={group}
@@ -212,6 +241,7 @@ function IssueStackTraceContent({
     <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
       <Stack gap="lg">
         <IssueExceptionStackTrace
+          groupingCurrentLevel={groupingCurrentLevel}
           event={event}
           hasScmSourceContext={hasScmSourceContext}
           isStandalone={isStandalone}

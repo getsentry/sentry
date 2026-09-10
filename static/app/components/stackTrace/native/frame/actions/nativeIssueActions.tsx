@@ -4,6 +4,7 @@ import {Tag} from '@sentry/scraps/badge';
 
 import {ChevronAction} from 'sentry/components/stackTrace/frame/actions/chevron';
 import {HiddenFramesToggleAction} from 'sentry/components/stackTrace/frame/actions/hiddenFramesToggle';
+import {AnrFrameAction} from 'sentry/components/stackTrace/issueStackTrace/anrFrameAction';
 import {IssueSourceLinkAction} from 'sentry/components/stackTrace/issueStackTrace/issueSourceLinkAction';
 import {IssueSourceMapsDebuggerAction} from 'sentry/components/stackTrace/issueStackTrace/issueSourceMapsDebuggerAction';
 import {
@@ -26,6 +27,7 @@ export function NativeIssueFrameActions({isHovering}: NativeIssueFrameActionsPro
     <Fragment>
       <IssueSourceLinkAction isHovering={isHovering} />
       <IssueSourceMapsDebuggerAction />
+      <AnrFrameAction />
       {hiddenFrameCount ? <HiddenFramesToggleAction /> : null}
       {isUsedForGrouping ? <GroupingFrameMarker /> : null}
       {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}

@@ -7,7 +7,6 @@ import {
   stringifyQueryList,
   userContextToActor,
 } from 'sentry/components/events/interfaces/utils';
-import {MetaProxy, withMeta} from 'sentry/components/events/meta/metaProxy';
 import {FILTER_MASK} from 'sentry/constants';
 import {EntryType} from 'sentry/types/event';
 
@@ -208,41 +207,6 @@ describe('components/interfaces/utils', () => {
           ' --data "{\\"a\\$TEST\\":\\"b\\\\\\"c\\"}" \\\n' +
           ' "http://example.com/foo\\${not_a_variable}"'
       );
-    });
-
-    it('works with a Proxy', () => {
-      const spy = jest.spyOn(MetaProxy.prototype, 'get');
-      const data = {
-        apiTarget: null,
-        fragment: '',
-        cookies: [],
-        inferredContentType: null,
-        env: {
-          SERVER_NAME: 'sentry',
-          SERVER_PORT: '443',
-          REMOTE_ADDR: '127.0.0.1',
-        },
-        headers: [
-          ['Accept-Language', 'en'],
-          ['Referer', 'http://example.com'],
-          [
-            'User-Agent',
-            'Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36',
-          ],
-          ['Content-Type', 'application/json'],
-          ['Referer', 'http://example.com'],
-          ['Accept-Encoding', 'gzip'],
-        ] as Array<[string, string]>,
-        url: 'https://www.sentry.io',
-        query: [],
-        data: null,
-        method: 'GET',
-      };
-      const eventWithProxy = withMeta(data);
-      getCurlCommand(eventWithProxy);
-
-      // This may need to change, but we should aim to keep this low
-      expect(spy.mock.calls.length).toBeLessThan(200);
     });
   });
 

@@ -1,8 +1,6 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Content as StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
-import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
 import {findBestThread} from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import {getThreadStacktrace} from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
 import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
@@ -20,7 +18,6 @@ import {EntryType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils/defined';
 import {isNativePlatform} from 'sentry/utils/platform';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function getStacktrace(event: Event): StacktraceType | null {
   const exceptionsWithStacktrace =
@@ -62,39 +59,18 @@ export function StackTracePreviewContent({
   stacktrace: StacktraceType;
   groupingCurrentLevel?: number;
 }) {
-  const organization = useOrganization();
-  const includeSystemFrames = useMemo(() => {
-    return stacktrace?.frames?.every(frame => !frame.inApp) ?? false;
-  }, [stacktrace]);
-
-  const framePlatform = stacktrace?.frames?.find(frame => !!frame.platform)?.platform;
+  const framePlatform = stacktrace.frames?.find(frame => !!frame.platform)?.platform;
   const platform = framePlatform ?? event.platform ?? 'other';
-  const newestFirst = isStacktraceNewestFirst();
-
-  const commonProps = {
-    data: stacktrace,
-    includeSystemFrames,
-    platform,
-    newestFirst,
-    event,
-    isHoverPreviewed: true,
-  } satisfies
-    | Partial<React.ComponentProps<typeof NativeContent>>
-    | Partial<React.ComponentProps<typeof StackTraceContent>>;
 
   if (isNativePlatform(platform)) {
-    if (organization.features.includes('issue-details-new-stack-trace')) {
-      return (
-        <NativeStackTracePreview
-          event={event}
-          stacktrace={stacktrace}
-          platform={platform}
-          groupingCurrentLevel={groupingCurrentLevel}
-        />
-      );
-    }
-
-    return <NativeContent {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />;
+    return (
+      <NativeStackTracePreview
+        event={event}
+        stacktrace={stacktrace}
+        platform={platform}
+        groupingCurrentLevel={groupingCurrentLevel}
+      />
+    );
   }
 
   return <IssueStackTracePreview event={event} stacktrace={stacktrace} />;
@@ -196,11 +172,6 @@ export {StackTracePreview};
 
 const StackTracePreviewWrapper = styled('div')`
   width: 700px;
-
-  .traceback {
-    margin-bottom: 0;
-    border: 0;
-  }
 `;
 
 const NoStackTraceWrapper = styled('div')`

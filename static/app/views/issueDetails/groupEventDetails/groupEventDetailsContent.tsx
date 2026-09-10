@@ -32,16 +32,13 @@ import {Csp} from 'sentry/components/events/interfaces/csp';
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
 import {DebugMetaSearchProvider} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {ProguardSection} from 'sentry/components/events/interfaces/debugMeta/proguardSection';
-import {Exception} from 'sentry/components/events/interfaces/exception';
 import {Message} from 'sentry/components/events/interfaces/message';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import {EventTraceView} from 'sentry/components/events/interfaces/performance/eventTraceView';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
 import {TRACE_WATERFALL_PREFERENCES_KEY} from 'sentry/components/events/interfaces/performance/utils';
 import {Request} from 'sentry/components/events/interfaces/request';
-import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
 import {Template} from 'sentry/components/events/interfaces/template';
-import {Threads} from 'sentry/components/events/interfaces/threads';
 import {UptimeAssertionsSection} from 'sentry/components/events/interfaces/uptime/uptimeAssertionsSection';
 import {MetricsSection} from 'sentry/components/events/metrics/metricsSection';
 import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
@@ -50,7 +47,7 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
-import {IssueThreadStackTrace} from 'sentry/components/stackTrace/native/issueThreadStackTrace';
+import {IssueThreadStackTrace} from 'sentry/components/stackTrace/issueThreadStackTrace';
 import {t} from 'sentry/locale';
 import type {Entry, EntryMap, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -59,11 +56,7 @@ import {IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {
-  isJavascriptPlatform,
-  isMobilePlatform,
-  isNativePlatform,
-} from 'sentry/utils/platform';
+import {isJavascriptPlatform, isMobilePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {LowValueSpanProblemSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanProblemSection';
@@ -105,12 +98,6 @@ export function EventDetailsContent({
   project,
 }: Required<Pick<EventDetailsContentProps, 'group' | 'event' | 'project'>>) {
   const organization = useOrganization();
-  const shouldUseNewStackTrace =
-    // New stack trace is currently only non-native platforms.
-    !isNativePlatform(event.platform);
-  const shouldUseNewNativeThreadStackTrace =
-    organization.features.includes('issue-details-new-stack-trace') &&
-    isNativePlatform(event.platform);
   const tagsRef = useRef<HTMLDivElement>(null);
   const eventEntries = useMemo(() => {
     const {entries} = event;
@@ -201,63 +188,34 @@ export function EventDetailsContent({
           )}
           {defined(eventEntries[EntryType.EXCEPTION]) && (
             <EntryErrorBoundary type={EntryType.EXCEPTION}>
-              {shouldUseNewStackTrace ? (
-                <IssueStackTrace
-                  event={event}
-                  values={eventEntries[EntryType.EXCEPTION].data.values ?? []}
-                  projectSlug={project.slug}
-                  group={group}
-                />
-              ) : (
-                <Exception
-                  event={event}
-                  data={eventEntries[EntryType.EXCEPTION].data}
-                  projectSlug={project.slug}
-                  group={group}
-                  groupingCurrentLevel={groupingCurrentLevel}
-                />
-              )}
+              <IssueStackTrace
+                event={event}
+                values={eventEntries[EntryType.EXCEPTION].data.values ?? []}
+                projectSlug={projectSlug}
+                group={group}
+              />
             </EntryErrorBoundary>
           )}
           {issueTypeConfig.stacktrace.enabled &&
             defined(eventEntries[EntryType.STACKTRACE]) && (
               <EntryErrorBoundary type={EntryType.STACKTRACE}>
-                {shouldUseNewStackTrace ? (
-                  <IssueStackTrace
-                    event={event}
-                    stacktrace={eventEntries[EntryType.STACKTRACE].data}
-                    projectSlug={projectSlug}
-                    group={group}
-                  />
-                ) : (
-                  <StackTrace
-                    event={event}
-                    data={eventEntries[EntryType.STACKTRACE].data}
-                    projectSlug={projectSlug}
-                    groupingCurrentLevel={groupingCurrentLevel}
-                  />
-                )}
+                <IssueStackTrace
+                  event={event}
+                  stacktrace={eventEntries[EntryType.STACKTRACE].data}
+                  projectSlug={projectSlug}
+                  group={group}
+                />
               </EntryErrorBoundary>
             )}
           {defined(eventEntries[EntryType.THREADS]) && (
             <EntryErrorBoundary type={EntryType.THREADS}>
-              {shouldUseNewNativeThreadStackTrace ? (
-                <IssueThreadStackTrace
-                  event={event}
-                  data={eventEntries[EntryType.THREADS].data}
-                  projectSlug={project.slug}
-                  groupingCurrentLevel={groupingCurrentLevel}
-                  group={group}
-                />
-              ) : (
-                <Threads
-                  event={event}
-                  data={eventEntries[EntryType.THREADS].data}
-                  projectSlug={project.slug}
-                  groupingCurrentLevel={groupingCurrentLevel}
-                  group={group}
-                />
-              )}
+              <IssueThreadStackTrace
+                event={event}
+                data={eventEntries[EntryType.THREADS].data}
+                projectSlug={projectSlug}
+                groupingCurrentLevel={groupingCurrentLevel}
+                group={group}
+              />
             </EntryErrorBoundary>
           )}
         </Fragment>

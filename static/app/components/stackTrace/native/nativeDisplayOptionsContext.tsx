@@ -1,4 +1,11 @@
-import {createContext, useCallback, useContext, useMemo, useState} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 import {StackTraceViewStateContext} from 'sentry/components/stackTrace/stackTraceContext';
 import type {
@@ -101,22 +108,43 @@ function NativeStackTraceViewStateRoot({
   setPersistedOptions: SetPersistedOptions;
 }) {
   // Preferences survive thread changes; effective settings depend on available data.
-  const [selectedView, setView] = useState<StackTraceView>(() =>
+  const [selectedView, setView] = useState<StackTraceView | null>(() =>
     defaultView === 'raw' ||
     persistedOptions.includes(NATIVE_DISPLAY_OPTION.RAW_STACK_TRACE)
       ? 'raw'
-      : 'app'
+      : null
   );
   const [prefersMinified, setIsMinified] = useState(
     () => defaultIsMinified || persistedOptions.includes(NATIVE_DISPLAY_OPTION.MINIFIED)
   );
   const [isNewestFirst, setIsNewestFirst] = useState(defaultIsNewestFirst);
-  const view = selectedView === 'app' && defaultView === 'full' ? 'full' : selectedView;
+  const view = selectedView ?? defaultView;
+
+  useEffect(() => {
+    setPersistedOptions(previous => {
+      const next = getNativeDisplayOptions({
+        absoluteAddresses: previous.includes(NATIVE_DISPLAY_OPTION.ABSOLUTE_ADDRESSES),
+        absoluteFilePaths: previous.includes(NATIVE_DISPLAY_OPTION.ABSOLUTE_FILE_PATHS),
+        verboseFunctionNames: previous.includes(
+          NATIVE_DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES
+        ),
+        isMinified: prefersMinified,
+        view,
+      });
+      return next.length === previous.length &&
+        next.every((option, index) => option === previous[index])
+        ? previous
+        : next;
+    });
+  }, [prefersMinified, setPersistedOptions, view]);
   const isMinified = hasMinifiedStacktrace && prefersMinified;
   const viewState = useMemo<StackTraceViewState>(
     () => ({
       view,
-      setView,
+      setView: update =>
+        setView(previous =>
+          typeof update === 'function' ? update(previous ?? defaultView) : update
+        ),
       isMinified,
       setIsMinified,
       isNewestFirst,
@@ -124,7 +152,7 @@ function NativeStackTraceViewStateRoot({
       hasMinifiedStacktrace,
       platform,
     }),
-    [view, isMinified, isNewestFirst, hasMinifiedStacktrace, platform]
+    [view, isMinified, isNewestFirst, hasMinifiedStacktrace, platform, defaultView]
   );
 
   const updateDisplayOptions = useCallback(

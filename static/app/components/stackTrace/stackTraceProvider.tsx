@@ -28,6 +28,8 @@ function getDefaultPlatform(stacktrace: StacktraceType, event: Event): PlatformK
 
 export function StackTraceProvider({
   children,
+  thread,
+  lockAddress,
   collapseAll = false,
   defaultExpandedFrameIndex,
   emptySourceNotation = false,
@@ -149,6 +151,8 @@ export function StackTraceProvider({
   const value = useMemo<StackTraceContextValue>(
     () => ({
       allRows,
+      thread,
+      lockAddress,
       collapseAll,
       defaultExpandedFrameIndex,
       emptySourceNotation,
@@ -170,6 +174,8 @@ export function StackTraceProvider({
     }),
     [
       allRows,
+      thread,
+      lockAddress,
       collapseAll,
       defaultExpandedFrameIndex,
       emptySourceNotation,

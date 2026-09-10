@@ -4,7 +4,7 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {IssueThreadStackTrace} from 'sentry/components/stackTrace/native/issueThreadStackTrace';
+import {IssueThreadStackTrace} from 'sentry/components/stackTrace/issueThreadStackTrace';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event, Thread} from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';

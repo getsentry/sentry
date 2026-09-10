@@ -1,8 +1,7 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect} from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {withMeta} from 'sentry/components/events/meta/metaProxy';
 import {LoadingError} from 'sentry/components/loadingError';
 import {useSentryAppComponentsData} from 'sentry/stores/useSentryAppComponentsData';
 import type {GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group';
@@ -51,7 +50,6 @@ function GroupEventDetails() {
     refetch: refetchGroup,
   } = useGroup({groupId: params.groupId});
 
-  const eventWithMeta = useMemo(() => withMeta(event), [event]);
   const project = useProjectFromSlug({organization, projectSlug: group?.project?.slug});
   const prevEnvironment = usePrevious(environments);
   const prevEvent = useMemoWithPrevious<typeof event | null>(
@@ -117,9 +115,7 @@ function GroupEventDetails() {
       return <GroupEventDetailsLoading />;
     }
 
-    return (
-      <GroupEventDetailsContent group={group} event={eventWithMeta} project={project} />
-    );
+    return <GroupEventDetailsContent group={group} event={event} project={project} />;
   };
 
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
@@ -128,7 +124,7 @@ function GroupEventDetails() {
     <AnalyticsArea name="issue_details">
       <VisuallyCompleteWithData
         id="IssueDetails-EventBody"
-        hasData={!isLoadingEvent && !isEventError && defined(eventWithMeta)}
+        hasData={!isLoadingEvent && !isEventError && defined(event)}
         isLoading={isLoadingEvent}
       >
         <div data-test-id="group-event-details">

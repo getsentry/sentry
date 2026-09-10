@@ -17,17 +17,17 @@ import {
   ExceptionDescription,
   ExceptionHeader,
 } from 'sentry/components/stackTrace/exceptionHeader';
+import {NativeIssueFrameActions} from 'sentry/components/stackTrace/native/frame/actions/nativeIssueActions';
 import {RawStackTraceText} from 'sentry/components/stackTrace/rawStackTrace';
-import {createStackTraceRowPolicy} from 'sentry/components/stackTrace/rowPolicy';
 import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
-import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
-import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
+import {StackTraceFrameList} from 'sentry/components/stackTrace/stackTraceFrameList';
 import type {StackTraceMeta} from 'sentry/components/stackTrace/types';
 import {t, tn} from 'sentry/locale';
-import type {Event, ExceptionValue} from 'sentry/types/event';
+import type {Event, ExceptionValue, Thread} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils/defined';
+import {isNativePlatform} from 'sentry/utils/platform';
 
 import {IssueFrameActions} from './issueFrameActions';
 import {IssueStackTraceFrameContext} from './issueStackTraceFrameContext';
@@ -44,8 +44,10 @@ export interface IssueStackTraceFrameListProps {
   stacktrace: StacktraceType | null;
   exceptionIndex?: number;
   groupingCurrentLevel?: Group['metadata']['current_level'];
+  lockAddress?: string;
   meta?: StackTraceMeta;
   minifiedStacktrace?: StacktraceType;
+  thread?: Thread;
 }
 
 interface IssueExceptionStackTraceProps {
@@ -55,6 +57,8 @@ interface IssueExceptionStackTraceProps {
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hasScmSourceContext?: boolean;
   isStandalone?: boolean;
+  showBanners?: boolean;
+  thread?: Thread;
 }
 
 export function IssueExceptionStackTrace({
@@ -63,6 +67,8 @@ export function IssueExceptionStackTrace({
   groupingCurrentLevel,
   hasScmSourceContext = false,
   isStandalone = false,
+  showBanners = true,
+  thread,
   values,
 }: IssueExceptionStackTraceProps) {
   const {isMinified, isNewestFirst, view} = useStackTraceViewState();
@@ -115,12 +121,13 @@ export function IssueExceptionStackTrace({
             />
           </Stack>
         ) : null}
-        {exception.stacktrace && (
+        {showBanners && exception.stacktrace && (
           <ErrorBoundary customComponent={null}>
             <StacktraceBanners event={event} stacktrace={exception.stacktrace} />
           </ErrorBoundary>
         )}
         <FrameListComponent
+          thread={thread}
           event={event}
           exceptionIndex={isStandalone ? undefined : exception.exceptionIndex}
           groupingCurrentLevel={groupingCurrentLevel}
@@ -186,12 +193,15 @@ export function IssueExceptionStackTrace({
                   newestFirst={isNewestFirst}
                   onExceptionClick={expandException}
                 />
-                {exception.stacktrace && index === firstVisibleExceptionIndex ? (
+                {showBanners &&
+                exception.stacktrace &&
+                index === firstVisibleExceptionIndex ? (
                   <ErrorBoundary customComponent={null}>
                     <StacktraceBanners event={event} stacktrace={exception.stacktrace} />
                   </ErrorBoundary>
                 ) : null}
                 <FrameListComponent
+                  thread={thread}
                   event={event}
                   exceptionIndex={exception.exceptionIndex}
                   groupingCurrentLevel={groupingCurrentLevel}
@@ -209,32 +219,16 @@ export function IssueExceptionStackTrace({
   );
 }
 
-export function IssueStackTraceFrameList({
-  event,
-  exceptionIndex,
-  groupingCurrentLevel,
-  hasScmSourceContext,
-  meta,
-  minifiedStacktrace,
-  stacktrace,
-}: IssueStackTraceFrameListProps) {
-  const platform = getStacktracePlatform(event, stacktrace);
-
+export function IssueStackTraceFrameList(props: IssueStackTraceFrameListProps) {
+  const platform = getStacktracePlatform(props.event, props.stacktrace);
   return (
-    <StackTraceProvider
-      event={event}
-      exceptionIndex={exceptionIndex}
-      hasScmSourceContext={hasScmSourceContext}
-      meta={meta}
-      minifiedStacktrace={minifiedStacktrace}
+    <StackTraceFrameList
+      {...props}
       platform={platform}
-      rowPolicy={createStackTraceRowPolicy({groupingCurrentLevel})}
-      stacktrace={stacktrace}
-    >
-      <StackTraceFrames
-        frameActionsComponent={IssueFrameActions}
-        frameContextComponent={IssueStackTraceFrameContext}
-      />
-    </StackTraceProvider>
+      frameActionsComponent={
+        isNativePlatform(platform) ? NativeIssueFrameActions : IssueFrameActions
+      }
+      frameContextComponent={IssueStackTraceFrameContext}
+    />
   );
 }

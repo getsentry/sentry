@@ -1,44 +1,22 @@
-import {Fragment, useMemo} from 'react';
-
-import {Disclosure} from '@sentry/scraps/disclosure';
-import {Flex, Stack} from '@sentry/scraps/layout';
-import {Separator} from '@sentry/scraps/separator';
-import {Text} from '@sentry/scraps/text';
+import {Flex} from '@sentry/scraps/layout';
 
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
-import {Panel} from 'sentry/components/panels/panel';
+import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import {DisplayOptions} from 'sentry/components/stackTrace/displayOptions';
-import {
-  RelatedExceptionsTree,
-  ToggleRelatedExceptionsButton,
-  useHiddenExceptions,
-} from 'sentry/components/stackTrace/exceptionGroup';
-import {
-  ExceptionDescription,
-  ExceptionHeader,
-} from 'sentry/components/stackTrace/exceptionHeader';
-import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
-import {RawStackTraceText} from 'sentry/components/stackTrace/rawStackTrace';
-import {
-  StackTraceViewStateProvider,
-  useStackTraceViewState,
-} from 'sentry/components/stackTrace/stackTraceContext';
-import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
-import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
-import {tn} from 'sentry/locale';
+import {IssueExceptionStackTrace} from 'sentry/components/stackTrace/issueStackTrace/exceptionStackTrace';
+import {NativeDisplayOptionsMenu} from 'sentry/components/stackTrace/native/nativeDisplayOptions';
+import {NativeStackTraceViewStateProvider} from 'sentry/components/stackTrace/native/nativeDisplayOptionsContext';
+import {getNativeFrameCapabilities} from 'sentry/components/stackTrace/native/nativeFrameAnalysis';
+import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
+import {StackTraceFrameList} from 'sentry/components/stackTrace/stackTraceFrameList';
 import type {Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils/defined';
+import {isNativePlatform} from 'sentry/utils/platform';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
-import {
-  formatExceptionsAsText,
-  getExceptionEntryMeta,
-  getOrderedExceptions,
-  resolveExceptionFields,
-} from './utils';
+import {formatExceptionsAsText, getOrderedExceptions} from './utils';
 
 interface SharedIssueStackTraceBaseProps {
   event: Event;
@@ -58,22 +36,7 @@ type SharedIssueStackTraceProps =
   | SharedExceptionStackTraceProps
   | SharedStandaloneStackTraceProps;
 
-/**
- * Stack trace component for the shared issue page.
- *
- * Renders the full exception experience (headers, chaining, display options,
- * raw view, copy-as) without making any authenticated API requests.
- *
- * The shared issue page is viewed by unauthenticated users, so this component
- * intentionally avoids the following from {@link IssueStackTrace}:
- * - {@link IssueFrameActions}: calls stacktrace-link and source-map-debug APIs
- * - {@link IssueStackTraceFrameContext}: fetches SCM source context when expanded (authenticated)
- * - {@link StacktraceBanners}: depends on authenticated project context
- * - {@link SuspectCommits}: requires group and project data
- *
- * Uses {@link DefaultFrameActions} and {@link FrameContent} instead, which
- * render entirely from local event data.
- */
+/** Public issue renderer: uses only event data, without authenticated actions or requests. */
 export function SharedIssueStackTrace(props: SharedIssueStackTraceProps) {
   const {event} = props;
   const eventHasThreads = event.entries?.some(entry => entry.type === EntryType.THREADS);
@@ -107,16 +70,22 @@ export function SharedIssueStackTrace(props: SharedIssueStackTraceProps) {
     !isStandalone && values.some(v => v.rawStacktrace !== null);
 
   return (
-    <StackTraceViewStateProvider
-      platform={event.platform}
+    <NativeStackTraceViewStateProvider
+      platform={getStacktracePlatform(
+        event,
+        values.find(value => value.stacktrace)?.stacktrace
+      )}
       hasMinifiedStacktrace={hasMinifiedStacktrace}
+      defaultView={
+        values.some(value => value.stacktrace?.hasSystemFrames) ? 'app' : 'full'
+      }
     >
       <SharedIssueStackTraceContent
         event={event}
         values={values}
         isStandalone={isStandalone}
       />
-    </StackTraceViewStateProvider>
+    </NativeStackTraceViewStateProvider>
   );
 }
 
@@ -129,172 +98,57 @@ function SharedIssueStackTraceContent({
   isStandalone: boolean;
   values: ExceptionValue[];
 }) {
-  const {isMinified, isNewestFirst, view} = useStackTraceViewState();
-  const {hiddenExceptions, toggleRelatedExceptions, expandException} =
-    useHiddenExceptions(values);
-
-  const {rawEntryMeta, exceptionValuesMeta} = getExceptionEntryMeta(event, isStandalone);
-
-  const exceptions = useMemo(
-    () => getOrderedExceptions(values, isNewestFirst, view),
-    [values, isNewestFirst, view]
-  );
-
-  const firstVisibleExceptionIndex = exceptions.findIndex(
-    exc =>
-      exc.mechanism?.parent_id === undefined || !hiddenExceptions[exc.mechanism.parent_id]
-  );
-
-  if (exceptions.length === 0) {
+  const {isMinified, isNewestFirst, view, platform} = useStackTraceViewState();
+  const exceptions = getOrderedExceptions(values, isNewestFirst, view);
+  if (!exceptions.length) {
     return null;
   }
-
-  const copyItems = CopyAsDropdown.makeDefaultCopyAsOptions({
-    text: () =>
-      formatExceptionsAsText({
-        exceptions,
-        platform: event.platform,
-        isMinified,
-        isStandalone,
-      }),
-    json: undefined,
-    markdown: undefined,
-  });
-
-  const sectionKey = isStandalone ? SectionKey.STACKTRACE : SectionKey.EXCEPTION;
-
-  const sectionActions = (
-    <Flex align="center" gap="sm">
-      <DisplayOptions />
-      <CopyAsDropdown size="xs" items={copyItems} />
-    </Flex>
+  const frames = values.flatMap(
+    value =>
+      (isMinified ? (value.rawStacktrace ?? value.stacktrace) : value.stacktrace)
+        ?.frames ?? []
   );
-
-  if (view === 'raw') {
-    return (
-      <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
-        <Panel>
-          <RawStackTraceText>
-            {formatExceptionsAsText({
-              exceptions,
-              platform: event.platform,
-              isMinified,
-              isStandalone,
-            })}
-          </RawStackTraceText>
-        </Panel>
-      </FoldSection>
+  const isNative =
+    isNativePlatform(platform) ||
+    values.some(value =>
+      isNativePlatform(getStacktracePlatform(event, value.stacktrace))
     );
-  }
-
-  if (exceptions.length === 1) {
-    const exc = exceptions[0]!;
-    const {type, module, value} = resolveExceptionFields(exc, isMinified);
-    const hasExceptionInfo = Boolean(type || value);
-    const excMeta = exceptionValuesMeta?.[exc.exceptionIndex];
-
-    return (
-      <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
-        <Stack gap="lg">
-          {hasExceptionInfo && (
-            <Fragment>
-              <div>
-                <ExceptionHeader type={type} module={module} />
-              </div>
-              <ExceptionDescription
-                value={value}
-                mechanism={exc.mechanism}
-                meta={excMeta}
-              />
-            </Fragment>
-          )}
-          <StackTraceProvider
-            exceptionIndex={isStandalone ? undefined : exc.exceptionIndex}
-            event={event}
-            stacktrace={exc.stacktrace}
-            minifiedStacktrace={exc.rawStacktrace ?? undefined}
-            meta={isStandalone ? rawEntryMeta : excMeta?.stacktrace}
-          >
-            <StackTraceFrames frameContextComponent={FrameContent} />
-          </StackTraceProvider>
-        </Stack>
-      </FoldSection>
-    );
-  }
 
   return (
-    <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
-      <Stack gap="lg">
-        <Text variant="muted">
-          {tn(
-            'There is %s chained exception in this event.',
-            'There are %s chained exceptions in this event.',
-            exceptions.length
+    <FoldSection
+      sectionKey={isStandalone ? SectionKey.STACKTRACE : SectionKey.EXCEPTION}
+      title="Stack Trace"
+      actions={
+        <Flex align="center" gap="sm">
+          {isNative ? (
+            <NativeDisplayOptionsMenu {...getNativeFrameCapabilities(frames)} />
+          ) : (
+            <DisplayOptions />
           )}
-        </Text>
-        <Separator orientation="horizontal" border="primary" />
-        {exceptions.map((exc, idx) => {
-          if (
-            exc.mechanism?.parent_id !== undefined &&
-            hiddenExceptions[exc.mechanism.parent_id]
-          ) {
-            return null;
-          }
-
-          const exceptionId = exc.mechanism?.exception_id;
-          const {
-            type: excType,
-            module: excModule,
-            value: excValue,
-          } = resolveExceptionFields(exc, isMinified);
-
-          return (
-            <Disclosure
-              key={exceptionId ?? idx}
-              defaultExpanded={idx === firstVisibleExceptionIndex}
-              id={defined(exceptionId) ? `exception-${exceptionId}` : undefined}
-            >
-              <Disclosure.Title
-                trailingItems={
-                  <ToggleRelatedExceptionsButton
-                    exception={exc}
-                    hiddenExceptions={hiddenExceptions}
-                    toggleRelatedExceptions={toggleRelatedExceptions}
-                    values={values}
-                  />
-                }
-              >
-                <ExceptionHeader type={excType} module={excModule} />
-              </Disclosure.Title>
-              <Disclosure.Content>
-                <Stack gap="sm">
-                  <ExceptionDescription
-                    value={excValue}
-                    mechanism={exc.mechanism}
-                    meta={exceptionValuesMeta?.[exc.exceptionIndex]}
-                    gap="lg"
-                  />
-                  <RelatedExceptionsTree
-                    exception={exc}
-                    allExceptions={values}
-                    newestFirst={isNewestFirst}
-                    onExceptionClick={expandException}
-                  />
-                  <StackTraceProvider
-                    exceptionIndex={exc.exceptionIndex}
-                    event={event}
-                    stacktrace={exc.stacktrace}
-                    minifiedStacktrace={exc.rawStacktrace ?? undefined}
-                    meta={exceptionValuesMeta?.[exc.exceptionIndex]?.stacktrace}
-                  >
-                    <StackTraceFrames frameContextComponent={FrameContent} />
-                  </StackTraceProvider>
-                </Stack>
-              </Disclosure.Content>
-            </Disclosure>
-          );
-        })}
-      </Stack>
+          <CopyAsDropdown
+            size="xs"
+            items={CopyAsDropdown.makeDefaultCopyAsOptions({
+              text: () =>
+                formatExceptionsAsText({
+                  exceptions,
+                  platform: event.platform,
+                  isMinified,
+                  isStandalone,
+                }),
+              json: undefined,
+              markdown: undefined,
+            })}
+          />
+        </Flex>
+      }
+    >
+      <IssueExceptionStackTrace
+        event={event}
+        values={values}
+        isStandalone={isStandalone}
+        showBanners={false}
+        frameListComponent={StackTraceFrameList}
+      />
     </FoldSection>
   );
 }

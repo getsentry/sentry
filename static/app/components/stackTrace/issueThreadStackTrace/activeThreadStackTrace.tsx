@@ -3,7 +3,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
-import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {
   ExceptionDescription,
@@ -12,15 +11,11 @@ import {
 import {
   IssueExceptionStackTrace,
   IssueStackTraceFrameList,
-  type IssueStackTraceFrameListProps,
 } from 'sentry/components/stackTrace/issueStackTrace/exceptionStackTrace';
-import {IssueStackTraceFrameContext} from 'sentry/components/stackTrace/issueStackTrace/issueStackTraceFrameContext';
 import {supportsAppleCrashReport} from 'sentry/components/stackTrace/native/appleCrashReport';
-import {NativeIssueFrameActions} from 'sentry/components/stackTrace/native/frame/actions/nativeIssueActions';
 import {NativeAppleCrashReportContent} from 'sentry/components/stackTrace/native/nativeAppleCrashReportContent';
-import {NativeStackTraceFrames} from 'sentry/components/stackTrace/native/nativeStackTraceFrames';
-import {NativeStackTraceProvider} from 'sentry/components/stackTrace/native/nativeStackTraceProvider';
 import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
+import {StackTraceFrameList} from 'sentry/components/stackTrace/stackTraceFrameList';
 import {t} from 'sentry/locale';
 import type {ExceptionValue} from 'sentry/types/event';
 import {isNativePlatform} from 'sentry/utils/platform';
@@ -30,6 +25,7 @@ import {useIssueThreadStackTraceContext} from './context';
 export function ActiveThreadStackTrace() {
   const {
     activeThreadModel,
+    isShared,
     event,
     groupingCurrentLevel,
     hasScmSourceContext,
@@ -46,21 +42,26 @@ export function ActiveThreadStackTrace() {
   const {view} = useStackTraceViewState();
   const isNativeStackTrace = isNativePlatform(activeThreadModel.platform);
   const showAppleCrashReport =
+    !isShared &&
     view === 'raw' &&
     !!exception &&
     !!stacktrace &&
     isNativeStackTrace &&
     supportsAppleCrashReport(event.platform);
 
+  const FrameList = isShared ? StackTraceFrameList : IssueStackTraceFrameList;
+
   if (exception?.values.length && !showAppleCrashReport) {
     return (
       <IssueExceptionStackTrace
+        thread={activeThread}
         key={activeThread?.id}
         values={exception.values}
         event={event}
         groupingCurrentLevel={groupingCurrentLevel}
         hasScmSourceContext={hasScmSourceContext}
-        frameListComponent={NativeIssueStackTraceFrameList}
+        frameListComponent={FrameList}
+        showBanners={!isShared}
       />
     );
   }
@@ -72,7 +73,7 @@ export function ActiveThreadStackTrace() {
   return (
     <Stack gap="lg">
       <ExceptionDetails exception={activeException} />
-      {activeException?.stacktrace ? (
+      {!isShared && activeException?.stacktrace ? (
         <ErrorBoundary customComponent={null}>
           <StacktraceBanners event={event} stacktrace={activeException.stacktrace} />
         </ErrorBoundary>
@@ -85,7 +86,8 @@ export function ActiveThreadStackTrace() {
           threadId={activeThread?.id}
         />
       ) : (
-        <NativeIssueStackTraceFrameList
+        <FrameList
+          thread={activeThread}
           key={activeThread?.id}
           event={event}
           stacktrace={stacktrace}
@@ -99,45 +101,10 @@ export function ActiveThreadStackTrace() {
   );
 }
 
-function NativeIssueStackTraceFrameList(props: IssueStackTraceFrameListProps) {
-  const {
-    event,
-    exceptionIndex,
-    groupingCurrentLevel,
-    hasScmSourceContext,
-    meta,
-    minifiedStacktrace,
-    stacktrace,
-  } = props;
-  const platform = getStacktracePlatform(event, stacktrace);
-
-  if (isNativePlatform(platform)) {
-    return (
-      <NativeStackTraceProvider
-        event={event}
-        stacktrace={stacktrace}
-        minifiedStacktrace={minifiedStacktrace}
-        groupingCurrentLevel={groupingCurrentLevel}
-        hasScmSourceContext={hasScmSourceContext}
-        exceptionIndex={exceptionIndex}
-        meta={meta}
-        platform={platform}
-      >
-        <NativeStackTraceFrames
-          frameActionsComponent={NativeIssueFrameActions}
-          frameContextComponent={IssueStackTraceFrameContext}
-        />
-      </NativeStackTraceProvider>
-    );
-  }
-
-  return <IssueStackTraceFrameList {...props} />;
-}
-
 export function IssueThreadStackTraceSuspectCommits() {
-  const {event, group, projectSlug} = useIssueThreadStackTraceContext();
+  const {event, group, projectSlug, isShared} = useIssueThreadStackTraceContext();
 
-  if (!group) {
+  if (!group || isShared) {
     return null;
   }
 
