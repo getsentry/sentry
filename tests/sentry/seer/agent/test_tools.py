@@ -2155,6 +2155,7 @@ class TestGetProjectMembers(APITestCase):
         incr.assert_called_once_with(
             "seer.get_project_members.fallback",
             tags={"fallback_count": "3"},
+            sample_rate=1.0,
         )
 
     def test_returns_none_for_project_outside_organization(self):
