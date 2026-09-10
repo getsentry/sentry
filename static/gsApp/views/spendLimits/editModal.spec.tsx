@@ -1,0 +1,65 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
+import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {makeCloseButton, ModalBody, ModalFooter} from '@sentry/scraps/modal';
+
+import SpendLimitsEditModal from 'getsentry/views/spendLimits/editModal';
+
+describe('SpendLimitsEditModal', () => {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('submits the updated spending limit through the form', async () => {
+    const organization = OrganizationFixture({features: ['ondemand-budgets']});
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am2_team',
+      onDemandMaxSpend: 0,
+    });
+    const closeModal = jest.fn();
+    const request = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/ondemand-budgets/`,
+      method: 'POST',
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      method: 'GET',
+    });
+
+    render(
+      <SpendLimitsEditModal
+        Header={() => <div />}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(closeModal)}
+        closeModal={closeModal}
+        organization={organization}
+        subscription={subscription}
+      />
+    );
+
+    const input = screen.getByRole('textbox', {
+      name: 'Custom shared spending limit (in dollars)',
+    });
+    await userEvent.clear(input);
+    await userEvent.type(input, '123');
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    await waitFor(() =>
+      expect(request).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/ondemand-budgets/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            budgetMode: 'shared',
+            sharedMaxBudget: 12_300,
+          },
+        })
+      )
+    );
+    expect(closeModal).toHaveBeenCalled();
+  });
+});

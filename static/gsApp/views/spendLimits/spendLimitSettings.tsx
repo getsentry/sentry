@@ -144,7 +144,13 @@ function SpendLimitInput({
   };
 
   return (
-    <Container width={{zero: '100px', xl: LARGE_INPUT_WIDTH}}>
+    <Container
+      width={
+        budgetMode === OnDemandBudgetMode.SHARED
+          ? '100%'
+          : {zero: '100%', xl: LARGE_INPUT_WIDTH}
+      }
+    >
       <Currency>
         <StyledInput
           aria-label={t('Custom %s spending limit (in dollars)', displayName)}
@@ -181,10 +187,18 @@ export function SharedSpendLimitPriceTable({
 
   return (
     <Stack borderTop="primary">
-      <Flex padding="md xl" background="secondary" justify="between" align="center">
+      <Grid
+        columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, 3fr) minmax(0, 2fr)'}}
+        gap={{zero: 'xs', xl: 'lg'}}
+        align="center"
+        padding="md xl"
+        background="secondary"
+      >
         <Text bold>{t('Product')}</Text>
-        <Text bold>{t('Price')}</Text>
-      </Flex>
+        <Container display={{zero: 'none', xl: 'block'}} justifySelf="end">
+          <Text bold>{t('Price')}</Text>
+        </Container>
+      </Grid>
       {baseCategories.map(category => {
         // pre-AM3 specific behavior; only plans that bill transactions alongside
         // continuous profiling show transactions as performance units
@@ -214,10 +228,18 @@ export function SharedSpendLimitPriceTable({
             capitalize: false,
           });
         return (
-          <Flex justify="between" key={category} borderTop="primary" padding="md xl">
+          <Grid
+            key={category}
+            columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, 3fr) minmax(0, 2fr)'}}
+            gap={{zero: 'xs', xl: 'lg'}}
+            align="center"
+            borderTop="primary"
+            padding="md xl"
+          >
             <Flex
               gap="xs"
               align="center"
+              minWidth="0"
               paddingRight="xs"
               wrap={{zero: 'wrap', sm: 'nowrap'}}
             >
@@ -241,7 +263,7 @@ export function SharedSpendLimitPriceTable({
                     />
                   )}
             </Flex>
-            <Container>
+            <Container justifySelf={{zero: 'start', xl: 'end'}}>
               <Text>
                 {hasConstantPpe ? '' : '*'}
                 {formatPaygPricePerUnit({
@@ -250,7 +272,7 @@ export function SharedSpendLimitPriceTable({
               </Text>
               <Text variant="muted">/{singularName}</Text>
             </Container>
-          </Flex>
+          </Grid>
         );
       })}
       {includedAddOns.map(apiName => {
@@ -280,8 +302,15 @@ export function SharedSpendLimitPriceTable({
         const dataCategories = addOnInfo.dataCategories;
 
         return (
-          <Flex justify="between" key={apiName} borderTop="primary" padding="md xl">
-            <Flex gap="xs" align="center" paddingRight="xs">
+          <Grid
+            key={apiName}
+            columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, 3fr) minmax(0, 2fr)'}}
+            gap={{zero: 'xs', xl: 'lg'}}
+            align="center"
+            borderTop="primary"
+            padding="md xl"
+          >
+            <Flex gap="xs" align="center" minWidth="0" paddingRight="xs" wrap="wrap">
               <Text>{capitalize(addOnInfo.productName)}</Text>
               {includedBudget && (
                 <Text variant="accent">
@@ -292,7 +321,7 @@ export function SharedSpendLimitPriceTable({
               )}
               {tooltipText && <InfoTip title={tooltipText} position="top" size="xs" />}
             </Flex>
-            <Container>
+            <Container justifySelf={{zero: 'start', xl: 'end'}}>
               {dataCategories.map((category, index) => {
                 const paygPpe = getPaygPpe({
                   activePlan,
@@ -320,10 +349,15 @@ export function SharedSpendLimitPriceTable({
                 );
               })}
             </Container>
-          </Flex>
+          </Grid>
         );
       })}
-      <Flex width="100%" justify="end" borderTop="primary" padding="md xl">
+      <Flex
+        width="100%"
+        justify={{zero: 'start', xl: 'end'}}
+        borderTop="primary"
+        padding="md xl"
+      >
         <Text variant="muted" size="sm">
           {t('* starting rate')}
         </Text>
