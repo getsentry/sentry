@@ -40,6 +40,7 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 
+GROUP_TYPE_ERROR = "error"
 ERROR_DETECTOR_NAME = "Error Monitor"
 ISSUE_STREAM_DETECTOR_NAME = "Issue Stream"
 ALL_PROJECTS_DETECTOR_NAME = "Issue Stream: All Projects"
