@@ -580,11 +580,11 @@ describe('ScmMessaging', () => {
     expect(await screen.findByText('slack')).toBeInTheDocument();
     expect(screen.getByText('discord')).toBeInTheDocument();
     expect(screen.getByText('msteams')).toBeInTheDocument();
-    expect(
-      trackAnalyticsSpy.mock.calls.filter(
-        ([key]) => key === 'onboarding.scm_messaging_step_viewed'
-      )
-    ).toEqual([['onboarding.scm_messaging_step_viewed', {organization}]]);
+    const stepViewedCalls = trackAnalyticsSpy.mock.calls.filter(
+      ([event]) => event === 'onboarding.scm_messaging_step_viewed'
+    );
+    expect(stepViewedCalls).toHaveLength(1);
+    expect(stepViewedCalls[0]![1]).toEqual({organization});
   });
 
   it('Continue is not rendered when no destination is configured', () => {

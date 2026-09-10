@@ -160,7 +160,7 @@ export function ScmMessaging({
         : {defaultRules: true},
       getIntegrationAction: includeMessagingRule ? getIntegrationAction : undefined,
       stagedSelection,
-      onSuccess: ({reused}) => {
+      onSuccess: ({reused, notificationRule}) => {
         // Record the skip only on success: a failed creation keeps the staged
         // destination (and the Continue button) intact on the step.
         if (!includeMessagingRule) {
@@ -171,7 +171,11 @@ export function ScmMessaging({
         if (!reused) {
           trackAnalytics('onboarding.scm_messaging_completed', {
             organization,
-            notification: includeMessagingRule ? 'integration' : 'email_only',
+            // Read from the created rule, the same source
+            // scm_project_created reads, so the two events cannot disagree
+            // about one submission. `includeMessagingRule` is the intent, and
+            // an intent that builds no integration action creates no rule.
+            notification: notificationRule ? 'integration' : 'email_only',
           });
         }
         onComplete(selectedPlatform, {
