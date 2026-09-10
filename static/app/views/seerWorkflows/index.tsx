@@ -61,7 +61,7 @@ import {
 } from 'sentry/views/seerWorkflows/strategies';
 import type {
   RunStatus,
-  SeerNightShiftRun,
+  SeerWorkflowRun,
   SeerNightShiftRunErrorType,
   SeerNightShiftRunIssue,
   SeerNightShiftRunPullRequest,
@@ -108,7 +108,7 @@ function SeerWorkflows() {
   });
 
   const {data, isPending, isError, refetch} = useQuery({
-    ...apiOptions.as<SeerNightShiftRun[]>()(
+    ...apiOptions.as<SeerWorkflowRun[]>()(
       '/organizations/$organizationIdOrSlug/seer/workflows/',
       {
         path: {organizationIdOrSlug: organization.slug},
@@ -669,7 +669,6 @@ function UserSection({
       <Stack gap="md">
         {row.monitorCleanup.results.length === 0 && <Text>{row.resultText}</Text>}
         <MonitorCleanupResults
-          coverage={row.monitorCleanup.coverage}
           scanStatus={row.monitorCleanup.scanStatus}
           results={row.monitorCleanup.results}
           organizationSlug={organizationSlug}
@@ -726,13 +725,9 @@ function DebugSection({row}: {row: WorkflowRow}) {
         <Text size="xs" variant="muted">
           {t('Run %s', row.runId)}
         </Text>
-        {row.monitorCleanup.results.map(result =>
-          result.seerRunId ? (
-            <Link key={result.id} to={getRelativeExplorerUrl(result.seerRunId)}>
-              {t('View prompt and agent run %s', result.seerRunId)}
-            </Link>
-          ) : null
-        )}
+        <Link to={getRelativeExplorerUrl(row.runId)}>
+          {t('View prompt and agent run %s', row.runId)}
+        </Link>
       </Stack>
     );
   }
@@ -1006,7 +1001,7 @@ function TriageIssuesDebugAddendum({row}: {row: WorkflowRow}) {
   );
 }
 
-function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
+function toWorkflowRow(run: SeerWorkflowRun): WorkflowRow {
   if (run.strategy === 'duplicate_monitors') {
     const status = run.extras.status;
     const results = (run.results ?? []).filter(
@@ -1025,6 +1020,7 @@ function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
           ? status
           : 'succeeded',
       source: 'manual',
+      errorMessage: run.errorMessage,
       resultText:
         status === 'running'
           ? t('Scanning monitors…')
@@ -1035,7 +1031,6 @@ function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
               : findings,
       monitorCleanup: {
         results,
-        coverage: run.extras.coverage,
         scanStatus: status,
       },
     };

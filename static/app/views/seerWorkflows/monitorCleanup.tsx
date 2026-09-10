@@ -13,7 +13,7 @@ import {t, tn} from 'sentry/locale';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import type {
-  SeerNightShiftRunExtras,
+  MonitorCleanupStatus,
   SeerWorkflowResult,
 } from 'sentry/views/seerWorkflows/types';
 
@@ -249,13 +249,11 @@ function FindingCard({
 export function MonitorCleanupResults({
   results,
   organizationSlug,
-  coverage,
   scanStatus,
 }: {
   organizationSlug: string;
   results: SeerWorkflowResult[];
-  coverage?: SeerNightShiftRunExtras['coverage'];
-  scanStatus?: SeerNightShiftRunExtras['status'];
+  scanStatus?: MonitorCleanupStatus;
 }) {
   const parsed = results.map(result => outputSchema.safeParse(result.extras));
   const projects = new Map(
@@ -269,8 +267,7 @@ export function MonitorCleanupResults({
   );
   const incomplete =
     scanStatus === 'partial' ||
-    parsed.some(output => !output.success || output.data.scan.status === 'partial') ||
-    (coverage && coverage.complete < coverage.total);
+    parsed.some(output => !output.success || output.data.scan.status === 'partial');
   return (
     <Stack gap="xl" containerType="inline-size">
       {(projects.size > 0 || scanStatus === 'complete' || scanStatus === 'partial') && (

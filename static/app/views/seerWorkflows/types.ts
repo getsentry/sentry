@@ -58,8 +58,22 @@ export type SeerNightShiftRun = {
   seerRuns: SeerNightShiftSeerRun[];
   triageStrategy: string;
   results?: SeerWorkflowResult[];
-  strategy?: string;
+  strategy?: 'agentic_triage';
 };
+
+export type MonitorCleanupStatus = 'running' | 'complete' | 'partial' | 'failed';
+
+export type MonitorCleanupRun = {
+  dateAdded: string;
+  dateCompleted: string | null;
+  errorMessage: string | null;
+  extras: {status: MonitorCleanupStatus};
+  id: string;
+  results: SeerWorkflowResult[];
+  strategy: 'duplicate_monitors';
+};
+
+export type SeerWorkflowRun = SeerNightShiftRun | MonitorCleanupRun;
 
 export type WorkflowKind = 'agentic_triage' | 'duplicate_monitors';
 
@@ -97,8 +111,7 @@ export type WorkflowRow = {
   errorMessage?: string | null;
   monitorCleanup?: {
     results: SeerWorkflowResult[];
-    coverage?: SeerNightShiftRunExtras['coverage'];
-    scanStatus?: SeerNightShiftRunExtras['status'];
+    scanStatus?: MonitorCleanupStatus;
   };
   options?: SeerNightShiftRunOptions;
   resultText?: string;

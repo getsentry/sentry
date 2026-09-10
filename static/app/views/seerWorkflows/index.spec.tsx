@@ -35,11 +35,10 @@ describe('SeerWorkflows', () => {
     });
     const url = `/organizations/${scanOrganization.slug}/seer/workflows/`;
     const previousRun = {
-      id: '11',
+      id: '45e94493-c356-4d2b-bb26-ae4e2e508a74',
       strategy: 'duplicate_monitors',
       dateAdded: '2026-09-09T00:00:00Z',
       extras: {status: 'complete'},
-      issues: [],
       results: [],
     };
     MockApiClient.addMockResponse({url, body: [previousRun]});
@@ -48,8 +47,8 @@ describe('SeerWorkflows', () => {
       method: 'POST',
       statusCode: 202,
       body: {
-        runId: '12',
-        url: `/organizations/${scanOrganization.slug}/issues/autofix/workflows/?runId=12&expandLatest=duplicate_monitors`,
+        runId: '09a15703-bf37-4208-bd90-c57013c9694b',
+        url: `/organizations/${scanOrganization.slug}/issues/autofix/workflows/?runId=09a15703-bf37-4208-bd90-c57013c9694b&expandLatest=duplicate_monitors`,
       },
     });
     const {router} = render(<SeerWorkflows />, {
@@ -57,12 +56,19 @@ describe('SeerWorkflows', () => {
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${scanOrganization.slug}/issues/autofix/workflows/`,
-          query: {runId: '11', expandLatest: 'duplicate_monitors'},
+          query: {
+            runId: '45e94493-c356-4d2b-bb26-ae4e2e508a74',
+            expandLatest: 'duplicate_monitors',
+          },
         },
       },
     });
     expect(await screen.findByRole('button', {name: 'Collapse run'})).toBeInTheDocument();
-    const runningRun = {...previousRun, id: '12', extras: {status: 'running'}};
+    const runningRun = {
+      ...previousRun,
+      id: '09a15703-bf37-4208-bd90-c57013c9694b',
+      extras: {status: 'running'},
+    };
     MockApiClient.addMockResponse({url, body: [runningRun]});
     await userEvent.click(screen.getByRole('button', {name: 'Run monitor scan'}));
 
@@ -73,7 +79,7 @@ describe('SeerWorkflows', () => {
       url,
       expect.objectContaining({data: {strategy: 'duplicate_monitors'}})
     );
-    expect(router.location.query.runId).toBe('12');
+    expect(router.location.query.runId).toBe('09a15703-bf37-4208-bd90-c57013c9694b');
     expect(screen.getByRole('button', {name: 'Collapse run'})).toBeInTheDocument();
 
     const completedRun = {
@@ -109,7 +115,7 @@ describe('SeerWorkflows', () => {
       url: `/organizations/${organization.slug}/seer/workflows/`,
       body: [
         {
-          id: '12',
+          id: '09a15703-bf37-4208-bd90-c57013c9694b',
           strategy: 'duplicate_monitors',
           dateAdded: '2026-09-09T00:00:00Z',
           extras: {

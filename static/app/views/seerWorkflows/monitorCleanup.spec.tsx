@@ -241,7 +241,7 @@ describe('MonitorCleanupResults', () => {
     render(
       <MonitorCleanupResults
         organizationSlug="org-slug"
-        coverage={{complete: 1, partial: 0, failed: 1, total: 2}}
+        scanStatus="partial"
         results={[
           {
             id: '1',
