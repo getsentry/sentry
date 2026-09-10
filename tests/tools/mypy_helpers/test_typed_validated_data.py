@@ -1,29 +1,19 @@
 """The serializer stub gives `validated_data` a declared shape.
 
-Exercised through mypy under the repo's own config. If the stub ever stops being
-found, `validated_data` falls back to `Any` and these cases would pass without
-checking anything, so `test_stub_is_in_effect` guards that.
+Exercised through mypy under the repo's own config, because the mechanism is a
+stub with nothing to import and CI resolves it the same way. If the stub ever
+stops being found, `validated_data` falls back to `Any` and these cases would
+pass without checking anything, so `test_stub_is_in_effect` guards that.
 """
 
 from __future__ import annotations
 
-import importlib.util
 import os.path
 import subprocess
 import sys
 import tempfile
 
-import pytest
-
 REPO = os.path.join(os.path.dirname(__file__), "..", "..", "..")
-
-# The mypy config points django_settings_module at `sentry.conf.server_mypy`, so the django
-# plugin cannot be constructed without the project installed and mypy exits before checking
-# anything. `make test-tools` runs under a `uv sync --only-dev` env in CI, which is that case.
-pytestmark = pytest.mark.skipif(
-    importlib.util.find_spec("sentry") is None,
-    reason="mypy's django plugin needs the sentry package for django_settings_module",
-)
 
 PRELUDE = """\
 from typing import Any, NotRequired, TypedDict
