@@ -1,6 +1,6 @@
 import {Tag} from '@sentry/scraps/badge';
 import {CodeBlock} from '@sentry/scraps/code';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -36,79 +36,87 @@ export function AgentSetupCard({
   prompt,
 }: AgentSetupCardProps) {
   return (
-    <Stack border="primary" radius="xl" padding="xl" gap="0">
-      <Flex align="center" gap="md">
-        <Flex width={SETUP_CARD_MARKER_PX} flexShrink={0} justify="center">
-          <IconBot size={SETUP_CARD_ICON_SIZE} variant="secondary" />
-        </Flex>
-        <Flex align="center" gap="md" wrap="wrap">
-          <Heading as="h3" size="lg">
-            {t('Set up with your coding agent')}
-          </Heading>
-          <Tag variant="info">{t('Recommended')}</Tag>
-        </Flex>
+    <Grid
+      columns={`${SETUP_CARD_MARKER_PX} 1fr`}
+      gap="0 md"
+      border="primary"
+      radius="xl"
+      padding="xl"
+      areas={`
+        "icon  title"
+        ".     meta"
+        "steps steps"
+      `}
+    >
+      <Flex area="icon" align="center" justify="center">
+        <IconBot size={SETUP_CARD_ICON_SIZE} variant="secondary" />
+      </Flex>
+      <Flex area="title" align="center" gap="md" wrap="wrap">
+        <Heading as="h3" size="lg">
+          {t('Set up with your coding agent')}
+        </Heading>
+        <Tag variant="info">{t('Recommended')}</Tag>
       </Flex>
 
-      <Flex gap="md" paddingTop="md" paddingBottom="2xl">
-        <Container width={SETUP_CARD_MARKER_PX} flexShrink={0} />
-        <Stack gap="xs">
-          <Flex align="center" gap="xs" wrap="wrap">
-            <Text variant="muted" size="md">
-              {t('Works with')}
-            </Text>
-            <Text size="md">{SUPPORTED_AGENTS_LABEL}</Text>
-          </Flex>
-          <Flex>
-            <AgentInfo onboardingCode={onboardingCode} />
-          </Flex>
-        </Stack>
-      </Flex>
+      <Stack area="meta" gap="xs" paddingTop="md" paddingBottom="2xl">
+        <Flex align="center" gap="xs" wrap="wrap">
+          <Text variant="muted" size="md">
+            {t('Works with')}
+          </Text>
+          <Text size="md">{SUPPORTED_AGENTS_LABEL}</Text>
+        </Flex>
+        <Flex>
+          <AgentInfo onboardingCode={onboardingCode} />
+        </Flex>
+      </Stack>
 
-      <List symbol="colored-numeric">
-        <ListItem>
-          <Stack gap="lg" paddingTop="xs" paddingBottom="2xl">
-            <Text size="md">{t('Install the Sentry plugin for your agent')}</Text>
-            <CodeBlock
-              dark
-              alwaysShowCopyButton
-              onCopy={() => onCopyCommand('install_command')}
-              wrapMode="wrap"
-            >
-              {INSTALL_PLUGIN_COMMAND}
-            </CodeBlock>
-          </Stack>
-          <Flex
-            position="absolute"
-            top={SETUP_CARD_MARKER_PX}
-            bottom="0"
-            left="0"
-            width={SETUP_CARD_MARKER_PX}
-            paddingTop="xs"
-            justify="center"
-          >
-            <Separator orientation="vertical" border="muted" />
-          </Flex>
-        </ListItem>
-        <ListItem>
-          <Stack gap="lg" paddingTop="xs">
-            <Stack gap="xs">
-              <Text size="md">{t('Ask your agent to set up Sentry')}</Text>
-              <Text variant="muted" size="md">
-                {t('Point it to your project folder and paste this.')}
-              </Text>
+      <Container area="steps">
+        <List symbol="colored-numeric">
+          <ListItem>
+            <Stack gap="lg" paddingTop="xs" paddingBottom="2xl">
+              <Text size="md">{t('Install the Sentry plugin for your agent')}</Text>
+              <CodeBlock
+                dark
+                alwaysShowCopyButton
+                onCopy={() => onCopyCommand('install_command')}
+                wrapMode="wrap"
+              >
+                {INSTALL_PLUGIN_COMMAND}
+              </CodeBlock>
             </Stack>
-            <CodeBlock
-              dark
-              alwaysShowCopyButton={!hasSetupFailed}
-              hideCopyButton={hasSetupFailed}
-              onCopy={() => onCopyCommand('prompt')}
-              wrapMode="wrap"
+            <Flex
+              position="absolute"
+              top={SETUP_CARD_MARKER_PX}
+              bottom="0"
+              left="0"
+              width={SETUP_CARD_MARKER_PX}
+              paddingTop="xs"
+              justify="center"
             >
-              {prompt}
-            </CodeBlock>
-          </Stack>
-        </ListItem>
-      </List>
-    </Stack>
+              <Separator orientation="vertical" border="muted" />
+            </Flex>
+          </ListItem>
+          <ListItem>
+            <Stack gap="lg" paddingTop="xs">
+              <Stack gap="xs">
+                <Text size="md">{t('Ask your agent to set up Sentry')}</Text>
+                <Text variant="muted" size="md">
+                  {t('Point it to your project folder and paste this.')}
+                </Text>
+              </Stack>
+              <CodeBlock
+                dark
+                alwaysShowCopyButton={!hasSetupFailed}
+                hideCopyButton={hasSetupFailed}
+                onCopy={() => onCopyCommand('prompt')}
+                wrapMode="wrap"
+              >
+                {prompt}
+              </CodeBlock>
+            </Stack>
+          </ListItem>
+        </List>
+      </Container>
+    </Grid>
   );
 }
