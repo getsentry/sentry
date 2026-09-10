@@ -1,5 +1,6 @@
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {EventFixture} from 'sentry-fixture/event';
+import {FrameFixture} from 'sentry-fixture/frame';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -349,6 +350,70 @@ describe('groupEventDetails', () => {
   afterEach(() => {
     MockApiClient.clearMockResponses();
   });
+
+  it.each([EntryType.EXCEPTION, EntryType.STACKTRACE])(
+    'renders native %s without a rollout flag',
+    async entryType => {
+      const props = makeDefaultMockData(OrganizationFixture({features: []}));
+      const stacktrace = {
+        frames: [
+          FrameFixture({
+            platform: 'cocoa',
+            function: 'causeCrash',
+            rawFunction: null,
+            module: null,
+          }),
+        ],
+        framesOmitted: null,
+        hasSystemFrames: false,
+        registers: null,
+      };
+      props.event = EventFixture({
+        platform: 'cocoa',
+        entries:
+          entryType === EntryType.STACKTRACE
+            ? [{type: EntryType.STACKTRACE, data: stacktrace}]
+            : [
+                {
+                  type: EntryType.EXCEPTION,
+                  data: {
+                    values: [
+                      {
+                        type: 'EXC_BAD_ACCESS',
+                        value: 'invalid address',
+                        module: null,
+                        mechanism: null,
+                        threadId: null,
+                        rawStacktrace: null,
+                        stacktrace,
+                      },
+                    ],
+                  },
+                },
+              ],
+      });
+      mockGroupApis(props.organization, props.project, props.group, props.event);
+      MockApiClient.addMockResponse({
+        url: `/projects/${props.organization.slug}/${props.project.slug}/events/${props.event.id}/committers/`,
+        body: {committers: []},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/prompts-activity/',
+        body: {dismissed_ts: undefined, snoozed_ts: undefined},
+      });
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/stacktrace-link/',
+        body: {config: null, sourceUrl: null, integrations: []},
+      });
+      render(<GroupEventDetails />, {
+        organization: props.organization,
+        initialRouterConfig: props.initialRouterConfig,
+      });
+
+      expect(await screen.findByText('causeCrash')).toBeInTheDocument();
+      expect(screen.queryAllByTestId('native-stack-trace-frame-title')).toHaveLength(1);
+    }
+  );
 
   it('redirects on switching to an invalid environment selection for event', async () => {
     const props = makeDefaultMockData();

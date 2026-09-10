@@ -124,8 +124,10 @@ export function IssueThreadStackTraceProviders({
   );
 
   useEffect(() => {
-    setCopyIssueDetailsActiveThreadId(activeThreadModel.activeThread?.id);
-  }, [activeThreadModel.activeThread?.id]);
+    if (!isShared) {
+      setCopyIssueDetailsActiveThreadId(activeThreadModel.activeThread?.id);
+    }
+  }, [activeThreadModel.activeThread?.id, isShared]);
 
   const contextValue = useMemo<IssueThreadStackTraceContextValue>(
     () => ({

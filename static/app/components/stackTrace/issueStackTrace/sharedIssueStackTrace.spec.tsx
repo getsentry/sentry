@@ -94,8 +94,9 @@ describe('SharedIssueStackTrace', () => {
     expect(
       await screen.findByText(/chained exceptions in this event/)
     ).toBeInTheDocument();
-    expect(screen.getAllByTestId('core-stacktrace-frame-row').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('ValueError').length).toBeGreaterThan(0);
+    expect(screen.getByText('func4')).not.toBeVisible();
+    await userEvent.click(screen.getByRole('button', {name: /ValueError/}));
+    expect(screen.getByText('func4')).toBeVisible();
   });
 
   it('renders a standalone stacktrace', async () => {
