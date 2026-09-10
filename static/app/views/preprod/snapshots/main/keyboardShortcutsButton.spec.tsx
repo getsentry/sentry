@@ -5,6 +5,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -36,6 +37,11 @@ describe('KeyboardShortcutsButton', () => {
     expect(screen.getByRole('heading', {name: 'Keyboard shortcuts'})).toBeInTheDocument();
     expect(dialog).toHaveTextContent('Next image');
     expect(dialog).toHaveTextContent('Zoom in list and split views');
+    expect(
+      within(dialog)
+        .getAllByText(/^(List view|Single image view|Navigation|Zoom)$/)
+        .map(el => el.textContent)
+    ).toEqual(['List view', 'Single image view', 'Navigation', 'Zoom']);
     expect(trackAnalytics).toHaveBeenCalledWith(
       'preprod.snapshots.details.keyboard_shortcuts_opened',
       {organization}

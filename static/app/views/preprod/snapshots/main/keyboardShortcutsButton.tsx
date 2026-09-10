@@ -34,13 +34,6 @@ function Keys({children}: {children: ReactNode}) {
 function getShortcutGroups(): ShortcutGroup[] {
   return [
     {
-      title: t('Navigation'),
-      shortcuts: [
-        {keys: <Hotkey value="left" />, description: t('Switch to list view')},
-        {keys: <Hotkey value="right" />, description: t('Switch to single image view')},
-      ],
-    },
-    {
       title: t('List view'),
       shortcuts: [
         {
@@ -82,6 +75,13 @@ function getShortcutGroups(): ShortcutGroup[] {
           ),
           description: t('First / last image'),
         },
+      ],
+    },
+    {
+      title: t('Navigation'),
+      shortcuts: [
+        {keys: <Hotkey value="left" />, description: t('Switch to list view')},
+        {keys: <Hotkey value="right" />, description: t('Switch to single image view')},
       ],
     },
     {
