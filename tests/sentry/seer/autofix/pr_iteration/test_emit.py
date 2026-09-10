@@ -7,7 +7,6 @@ from sentry.analytics.events.pr_iteration_events import (
     AiAutofixPrIterationFeedbackBatchCompletedEvent,
 )
 from sentry.seer.agent.client_models import MemoryBlock, Message, SeerRunState
-from sentry.seer.autofix.autofix_agent import AutofixStep
 from sentry.seer.autofix.pr_iteration.details_store import (
     open_iterations,
     remove_iterations_before,
@@ -21,6 +20,7 @@ from sentry.seer.autofix.pr_iteration.emit import (
     trigger_pr_iteration_details,
 )
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time

@@ -165,6 +165,14 @@ class SafeRolloutComparatorTestCase(TestCase):
                 TestRolloutComparator.check_and_choose("ctl", "exp", "known_good_callsite") == "exp"
             )
 
+        with override_options(
+            {
+                TEST_CALLSITE_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: ["*"],
+            }
+        ):
+            assert TestRolloutComparator.check_and_choose("ctl", "exp", "test_3") == "exp"
+            assert TestRolloutComparator.check_and_choose("ctl", "exp", "other") == "exp"
+
     def test_comparator_use(self) -> None:
         exact_matcher = lambda control, exp: exp["dogs"] == control["dogs"]
         close_matcher = lambda control, exp: exp["dogs"].issubset(control["dogs"])

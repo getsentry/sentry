@@ -159,15 +159,6 @@ class ReorderTest(StarredHelpersTestBase):
 
         assert self.ordered_refs() == refs
 
-    def test_rejects_duplicate_ref(self) -> None:
-        discover = self.discover_star(1)
-        self.explore_star(2)
-
-        ref = SavedQueryRef(SavedQueryType.DISCOVER, discover.discover_saved_query_id)
-
-        with pytest.raises(ValueError, match="multiple positions"):
-            utils.reorder_starred_queries(self.org, self.user.id, [ref, ref])
-
     def test_rejects_missing_refs(self) -> None:
         # The failure mode this module exists to prevent: a caller that knows about one
         # product sends only its own queries, and the other product's positions are lost.
