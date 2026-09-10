@@ -158,7 +158,10 @@ def get_processing_state(table_name: str) -> tuple[int, int]:
         return redis_state
 
     state = (0, 1)
+    lower, version = state
     _get_redis_client().set(get_backfill_key(table_name), json.dumps(state))
+    if postgres_enabled:
+        _write_postgres_watermark(table_name, lower, version)
     return state
 
 
@@ -354,13 +357,20 @@ def report_backfill_watermarks(silo_mode: SiloMode, force_synchronous: bool = Fa
     """
     Read every backfill watermark once, and report what it holds.
     """
+
+    # Writing to PG during the every-cycle reporting sweep was something we only needed
+    # to do during the dual-write phase to get PG synced up. If we've enabled the cutover
+    # flag, it's a signal that PG is at parity w/ Redis and we don't need to write every
+    # single cycle any longer
+    # TODO: remove this - and related logic - once cutover is done
+    sync_to_postgres = not _read_from_postgres_enabled()
+
     try:
         for model in _backfill_models(silo_mode):
             table_name = model._meta.db_table
             try:
                 state = _report_watermark_for_model(model, force_synchronous=force_synchronous)
-                if state is not None:
-                    # TODO: Once everything is cut over to PG, we'll remove this
+                if state is not None and sync_to_postgres:
                     lower, version = state
                     _write_postgres_watermark(table_name, lower, version)
             except Exception:

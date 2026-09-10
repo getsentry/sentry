@@ -27,6 +27,7 @@ from sentry.hybridcloud.tasks.backfill_outboxes import (
     _backfill_models,
     _get_redis_client,
     _read_postgres_watermark,
+    _read_redis_watermark,
     _report_watermark_for_model,
     _write_postgres_watermark,
     backfill_outboxes_for,
@@ -839,20 +840,29 @@ def test_a_missing_postgres_row_falls_back_to_redis() -> None:
     assert not ControlOutboxBackfillWatermark.objects.filter(table_name=table_name).exists()
     assert _counter_tables(metrics_mock, WATERMARK_READ_REDIS_FALLBACK_METRIC) == [table_name]
 
-    # The reporting pass is the write path that repairs it, on the same cycle.
+    # The reporting sweep does not repair it either. It is a pre-cutover sync site, so the
+    # read option turns it off, and the fallback keeps answering from Redis.
     with override_options(READ_FROM_POSTGRES_OPTIONS):
+        assert not backfill_outboxes_for(SiloMode.CONTROL, scheduled_count=10_000)
+
+    assert not ControlOutboxBackfillWatermark.objects.filter(table_name=table_name).exists()
+
+
+@django_db_all
+@no_silo_test
+def test_the_reporting_sweep_mirrors_only_before_the_cutover() -> None:
+    """The sweep fills the rows the write path never reaches, then stands down."""
+    reset_processing_state()
+    table_name = AuthProvider._meta.db_table
+    set_processing_state(AuthProvider._meta.db_table, 4242, 3)
+    assert not ControlOutboxBackfillWatermark.objects.filter(table_name=table_name).exists()
+
+    # Read option off: a table the write path never touches still reaches Postgres.
+    with override_options({WRITE_WATERMARK_TO_POSTGRES_OPTION: True}):
         assert not backfill_outboxes_for(SiloMode.CONTROL, scheduled_count=10_000)
 
     row = ControlOutboxBackfillWatermark.objects.get(table_name=table_name)
     assert (row.low_bound, row.version) == (4242, 3)
-
-    # With the row in place the fallback stops firing.
-    with (
-        override_options(READ_FROM_POSTGRES_OPTIONS),
-        patch("sentry.hybridcloud.tasks.backfill_outboxes.metrics") as metrics_mock,
-    ):
-        assert get_processing_state(AuthProvider._meta.db_table) == (4242, 3)
-    assert _counter_calls(metrics_mock, WATERMARK_READ_REDIS_FALLBACK_METRIC) == 0
 
 
 @django_db_all
@@ -898,8 +908,10 @@ def test_a_double_miss_keeps_the_default() -> None:
 
     # The read path still seeds Redis, so a rollback finds the pair it expects.
     assert read_processing_state(AuthProvider._meta.db_table) == (0, 1)
-    # A double miss creates no Postgres row: only the write path may.
-    assert not ControlOutboxBackfillWatermark.objects.filter(table_name=table_name).exists()
+    # The seed reaches Postgres too, or a table that never gets budget would stay absent
+    # from the store on the read path and report nothing.
+    assert _read_postgres_watermark(table_name) == (0, 1)
+    assert _read_redis_watermark(table_name) == (0, 1)
 
 
 @django_db_all
@@ -1041,11 +1053,11 @@ def test_a_cutover_cycle_does_not_restart_a_table() -> None:
         # No budget at all, so only the report pass runs.
         assert not backfill_outboxes_for(SiloMode.CONTROL, scheduled_count=10_000)
 
-        # The report pass created the row from the Redis pair, so the next read matches.
+        # The fallback is what holds the walk in place, so the read still matches.
         assert read_processing_state(AuthProvider._meta.db_table) == (4242, 3)
 
-    row = ControlOutboxBackfillWatermark.objects.get(table_name=table_name)
-    assert (row.low_bound, row.version) == (4242, 3)
+    # The report pass no longer mirrors after the cutover, so it wrote nothing.
+    assert not ControlOutboxBackfillWatermark.objects.filter(table_name=table_name).exists()
 
 
 @django_db_all
@@ -1093,7 +1105,7 @@ def test_read_option_on_leaves_the_redis_state_identical() -> None:
 @django_db_all
 @no_silo_test
 def test_a_failed_report_write_does_not_stop_the_walk() -> None:
-    """The report write raises now, so one bad table must not take the rest away."""
+    """The sync write only runs before the cutover, and one bad table must not stop it."""
     reset_processing_state()
     broken_table = AuthProvider._meta.db_table
     good_table = ApiToken._meta.db_table
@@ -1108,7 +1120,7 @@ def test_a_failed_report_write_does_not_stop_the_walk() -> None:
         return real_write(**kwargs)
 
     with (
-        override_options(READ_FROM_POSTGRES_OPTIONS),
+        override_options({WRITE_WATERMARK_TO_POSTGRES_OPTION: True}),
         patch.object(
             ControlOutboxBackfillWatermark.objects, "update_or_create", side_effect=fail_for_one
         ),
@@ -1117,8 +1129,9 @@ def test_a_failed_report_write_does_not_stop_the_walk() -> None:
         # No exception reaches the caller.
         assert not backfill_outboxes_for(SiloMode.CONTROL, scheduled_count=10_000)
 
+    # Redis is still the read path here, so the failure stays masked and only counted.
     assert _counter_calls(metrics_mock, WATERMARK_DUAL_WRITE_ERROR_METRIC) == 1
-    assert _counter_calls(metrics_mock, WATERMARK_REPORT_ERROR_METRIC) == 1
+    assert _counter_calls(metrics_mock, WATERMARK_REPORT_ERROR_METRIC) == 0
     # The walk carried on past the broken table.
     assert ControlOutboxBackfillWatermark.objects.get(table_name=good_table).low_bound == 7
     assert not ControlOutboxBackfillWatermark.objects.filter(table_name=broken_table).exists()
