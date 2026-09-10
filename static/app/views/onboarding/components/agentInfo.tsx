@@ -1,8 +1,8 @@
 import {InlineCode} from '@sentry/scraps/code';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {Hovercard} from 'sentry/components/hovercard';
 import {IconCheckmark, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 
@@ -19,9 +19,12 @@ interface AgentInfoProps {
 
 export function AgentInfo({onboardingCode}: AgentInfoProps) {
   return (
-    <Hovercard
+    <InfoText
       position="top"
-      body={
+      maxWidth={320}
+      size="md"
+      variant="muted"
+      title={
         <Stack gap="xl">
           <Stack gap="md">
             {AGENT_CAPABILITIES.map(capability => (
@@ -29,7 +32,7 @@ export function AgentInfo({onboardingCode}: AgentInfoProps) {
                 <Flex justify="center">
                   <IconCheckmark size="sm" variant="success" />
                 </Flex>
-                <Text variant="muted" size="sm">
+                <Text variant="muted" size="sm" align="left">
                   {capability}
                 </Text>
               </Grid>
@@ -40,7 +43,7 @@ export function AgentInfo({onboardingCode}: AgentInfoProps) {
               <Flex justify="center" paddingTop="2xs">
                 <IconInfo size="xs" variant="secondary" />
               </Flex>
-              <Text variant="muted" size="sm">
+              <Text variant="muted" size="sm" align="left">
                 {tct(
                   'Your agent uses ID [onboardingCode] to report setup progress here. Progress updates sent with this ID never include any part of your source code.',
                   {
@@ -53,9 +56,7 @@ export function AgentInfo({onboardingCode}: AgentInfoProps) {
         </Stack>
       }
     >
-      <Text size="md" variant="muted" underline="dotted">
-        {t('What your agent will do')}
-      </Text>
-    </Hovercard>
+      {t('What your agent will do')}
+    </InfoText>
   );
 }
