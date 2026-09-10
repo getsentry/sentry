@@ -7,6 +7,7 @@ import {Link} from '@sentry/scraps/link';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
+import {notifyAutofixInteraction} from 'sentry/components/events/autofix/autofixInteractionStore';
 import {getRepoPullRequestLink} from 'sentry/components/events/autofix/pullRequests';
 import {
   collectPatches,
@@ -198,15 +199,20 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
 
   useRefreshOnStepResult(id, section);
 
+  // Each of these hands the run back to Seer, so the result lands on the issue
+  // page behind the chat panel. Announce it so the page can offer to go there.
   const handleRetry = () => {
+    notifyAutofixInteraction(id);
     sendMessage?.(t('Retry the %s step for %s.', STEP_LABELS[step], shortId));
   };
 
   const handleContinue = (nextStep: AutofixExplorerStep) => {
+    notifyAutofixInteraction(id);
     sendMessage?.(t('Continue to the %s step for %s.', STEP_LABELS[nextStep], shortId));
   };
 
   const handleCreatePR = () => {
+    notifyAutofixInteraction(id);
     sendMessage?.(t('Draft a pull request for %s.', shortId));
   };
 

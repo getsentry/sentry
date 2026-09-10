@@ -22,6 +22,7 @@ import {
   IssueDetailsTourContext,
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import {SampleEventAlert} from 'sentry/views/issueDetails/sampleEventAlert';
+import {ScrollToAutofixButton} from 'sentry/views/issueDetails/scrollToAutofixButton';
 import {IssueDetailsSidebar} from 'sentry/views/issueDetails/sidebar/sidebar';
 import {ToggleSidebar} from 'sentry/views/issueDetails/sidebar/toggleSidebar';
 import {
@@ -140,6 +141,7 @@ export function GroupDetailsLayout({
                 </div>
               )}
             </SharedTourElement>
+            <ScrollToAutofixButton groupId={group.id} />
           </IssueDetailsColumn>
           <IssueDetailsSidebar group={group} event={event} project={project} />
         </GroupLayoutBody>
