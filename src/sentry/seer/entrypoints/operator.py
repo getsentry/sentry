@@ -1,5 +1,6 @@
 import logging
-from typing import Any, NotRequired, TypedDict
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 from sentry import features, options
 from sentry.constants import DataCategory
@@ -39,6 +40,9 @@ from sentry.taskworker.namespaces import seer_tasks
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+
+if TYPE_CHECKING:
+    from sentry.notifications.platform.templates.seer import SeerAgentPullRequest
 
 SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_ROOT_CAUSE_STARTED: ActivityType.SEER_RCA_STARTED,
@@ -851,6 +855,65 @@ def get_autofix_explorer_status(
     # no block matching the stopping point found, so return None
     # to indicate the step has not run before
     return None
+
+
+def notify_agent_entrypoints_of_pull_requests(
+    *,
+    organization: Organization,
+    run_id: int,
+    pull_requests: Sequence[Mapping[str, Any]],
+) -> None:
+    """Tell every entrypoint holding a cached payload for ``run_id`` which PRs it opened.
+
+    The same fan-out as ``SeerOperatorCompletionHook``, fired from the pr_created RPC
+    instead of the completion hook: the PR is opened by a Seer step that outlives the
+    agent's turn, so when the reply goes out there is nothing to link yet. Best-effort
+    throughout — a failed notification never fails the RPC that reported the PR.
+    """
+    if not SeerAgentOperator.has_access(organization=organization):
+        return
+
+    normalized: list[SeerAgentPullRequest] = []
+    for entry in pull_requests:
+        pr_payload = entry.get("pull_request") or {}
+        repo_name = entry.get("repo_name")
+        pr_number = pr_payload.get("pr_number")
+        pr_url = pr_payload.get("pr_url")
+        if not repo_name or pr_number is None or not pr_url:
+            continue
+        normalized.append({"repo_name": repo_name, "pr_number": int(pr_number), "pr_url": pr_url})
+    if not normalized:
+        return
+
+    for entrypoint_key, entrypoint_cls in agent_entrypoint_registry.registrations.items():
+        if not entrypoint_cls.has_access(organization=organization):
+            continue
+
+        cache_payload = SeerOperatorAgentCache[dict[str, Any]].get(
+            entrypoint_key=str(entrypoint_key), run_id=run_id
+        )
+        if not cache_payload:
+            continue
+        if cache_payload.get("organization_id") != organization.id:
+            # run_id is globally unique in Seer, so a payload for another org is a bug,
+            # not a routing choice; refuse rather than post into someone else's thread.
+            logger.error(
+                "seer.entrypoint.pull_requests.org_mismatch",
+                extra={"run_id": run_id, "organization_id": organization.id},
+            )
+            return
+
+        try:
+            entrypoint_cls.on_agent_pull_requests_created(
+                cache_payload=cache_payload,
+                run_id=run_id,
+                pull_requests=normalized,
+            )
+        except Exception:
+            logger.exception(
+                "seer.entrypoint.pull_requests.notify_failed",
+                extra={"entrypoint_key": str(entrypoint_key), "run_id": run_id},
+            )
 
 
 class SeerOperatorCompletionHook(AgentOnCompletionHook):

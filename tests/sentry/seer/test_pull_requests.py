@@ -329,6 +329,32 @@ class NotifySeerPrCreatedTest(TestCase):
         assert SeerRunPullRequest.objects.filter(pull_request=pull_request).exists()
         assert not PullRequestAttribution.objects.filter(pull_request=pull_request).exists()
 
+    @patch("sentry.seer.entrypoints.operator.notify_agent_entrypoints_of_pull_requests")
+    def test_groupless_run_notifies_agent_entrypoints(self, mock_notify: Mock) -> None:
+        """A run with no issue has no autofix thread to announce its PR on, so the chat
+        entrypoints are told directly."""
+        self._notify(self._payload(), group_id=None)
+
+        mock_notify.assert_called_once_with(
+            organization=self.organization, run_id=RUN_STATE_ID, pull_requests=self._payload()
+        )
+
+    @patch("sentry.seer.entrypoints.operator.notify_agent_entrypoints_of_pull_requests")
+    def test_issue_run_leaves_pr_announcement_to_autofix(self, mock_notify: Mock) -> None:
+        self._notify(self._payload(), group_id=self.group.id)
+
+        mock_notify.assert_not_called()
+
+    @patch(
+        "sentry.seer.entrypoints.operator.notify_agent_entrypoints_of_pull_requests",
+        side_effect=RuntimeError("slack down"),
+    )
+    def test_entrypoint_failure_does_not_fail_the_rpc(self, _mock_notify: Mock) -> None:
+        result = self._notify(self._payload(), group_id=None)
+
+        assert isinstance(result, NotifySeerPrCreatedSuccessResponse)
+        assert SeerRunPullRequest.objects.filter(pull_request=self._linked_pull_request()).exists()
+
     def test_returns_error_when_organization_missing(self) -> None:
         result = notify_seer_pr_created(
             organization_id=self.organization.id + 10_000,

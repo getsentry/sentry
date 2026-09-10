@@ -1,11 +1,14 @@
 from enum import StrEnum
-from typing import Any, Literal, Protocol, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TypedDict
 
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import PendingUserInput
 from sentry.seer.autofix.utils import CodingAgentProviderType
 from sentry.sentry_apps.event_types import SentryAppEventType
+
+if TYPE_CHECKING:
+    from sentry.notifications.platform.templates.seer import SeerAgentPullRequest
 
 
 class SeerEntrypointKey(StrEnum):
@@ -153,6 +156,22 @@ class SeerAgentEntrypoint[CachePayloadT](Protocol):
 
         Note: This is a static method. The entrypoint instance is NOT persisted between
         trigger and completion, so leverage the cached payload to persist any state.
+        """
+        ...
+
+    @staticmethod
+    def on_agent_pull_requests_created(
+        cache_payload: CachePayloadT,
+        run_id: int,
+        pull_requests: "list[SeerAgentPullRequest]",
+    ) -> None:
+        """
+        Called when Seer reports that an Agent run opened pull requests.
+
+        Arrives after on_agent_update: the reply goes out when the agent's turn ends, but
+        the pull request is opened by a separate Seer step that reports back through the
+        pr_created RPC once the PR exists. Static for the same reason as on_agent_update —
+        only the cached payload survives between trigger and this call.
         """
         ...
 

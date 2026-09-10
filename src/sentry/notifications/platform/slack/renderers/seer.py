@@ -25,6 +25,7 @@ from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
+    SeerAgentPullRequests,
     SeerAgentResponse,
     SeerAutofixError,
     SeerAutofixTrigger,
@@ -104,6 +105,8 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             return cls._render_agent_error(data)
         elif isinstance(data, SeerAgentResponse):
             return cls._render_agent_response(data)
+        elif isinstance(data, SeerAgentPullRequests):
+            return cls._render_agent_pull_requests(data)
         else:
             raise ValueError(f"SeerSlackRenderer does not support {data.__class__.__name__}")
 
@@ -282,6 +285,22 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             blocks.extend(cls.render_missing_scope_footer(data.missing_scope_settings_url))
 
         return SlackRenderable(blocks=blocks, text="Seer Agent has finished")
+
+    @classmethod
+    def _render_agent_pull_requests(cls, data: SeerAgentPullRequests) -> SlackRenderable:
+        # Plain mrkdwn links rather than link buttons: a button posts a block action back
+        # to Sentry, which would need a routed action id to be acknowledged, and there is
+        # nothing for Sentry to do with the click.
+        heading = AUTOFIX_CONFIG[AutofixStoppingPoint.OPEN_PR]["heading"]
+        lines = [
+            f"Seer opened <{pr['pr_url']}|{pr['repo_name']}#{pr['pr_number']}>"
+            for pr in data.pull_requests[:MAX_PRS]
+        ]
+        blocks: list[Block] = [
+            SectionBlock(text=MarkdownTextObject(text=heading)),
+            SectionBlock(text=MarkdownTextObject(text="\n".join(lines))),
+        ]
+        return SlackRenderable(blocks=blocks, text="Seer has summoned your pull request")
 
     @classmethod
     def _render_link_button(

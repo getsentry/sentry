@@ -16,6 +16,7 @@ import {LogsQuery} from './components/logsQuery';
 import {MetricsQuery} from './components/metricsQuery';
 import {Monitor} from './components/monitor/monitor';
 import {Profile} from './components/profile/profile';
+import {PullRequestRefEmbed} from './components/pullRequestRef';
 import {Release} from './components/release';
 import {Replay} from './components/replay';
 import {ReplaysQuery} from './components/replaysQuery';
@@ -47,6 +48,7 @@ const embeds = [
   MetricsQuery,
   Monitor,
   Profile,
+  PullRequestRefEmbed,
   Release,
   Replay,
   ReplaysQuery,

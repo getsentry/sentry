@@ -934,6 +934,14 @@ class MockAgentEntrypoint(SeerAgentEntrypoint[MockCachePayload]):
     ) -> None:
         return None
 
+    @staticmethod
+    def on_agent_pull_requests_created(
+        cache_payload: MockCachePayload,
+        run_id: int,
+        pull_requests: list,
+    ) -> None:
+        return None
+
 
 class TestSeerAgentOperatorAccess(TestCase):
     def setUp(self) -> None:
@@ -1344,3 +1352,78 @@ class TestSeerAgentOperatorCodeMode(TestCase):
 
         mock_client_cls.assert_called_once()
         assert mock_client_cls.call_args.kwargs["enable_code_mode_tools"] == "off"
+
+
+class TestNotifyAgentEntrypointsOfPullRequests(TestCase):
+    _PAYLOAD = [
+        {
+            "provider": "github",
+            "repo_name": "acme/web",
+            "repo_external_id": "1",
+            "pull_request": {
+                "pr_id": 999,
+                "pr_number": 482,
+                "pr_url": "https://gh/acme/web/pull/482",
+            },
+        }
+    ]
+
+    def _notify(self, *, cache_payload: dict | None, payload: list | None = None) -> Mock:
+        from sentry.seer.entrypoints.operator import notify_agent_entrypoints_of_pull_requests
+
+        mock_entrypoint_cls = Mock(spec=SeerAgentEntrypoint)
+        mock_entrypoint_cls.has_access.return_value = True
+        with (
+            patch.dict(
+                "sentry.seer.entrypoints.operator.agent_entrypoint_registry.registrations",
+                {MockAgentEntrypoint.key: mock_entrypoint_cls},
+                clear=True,
+            ),
+            patch(
+                "sentry.seer.entrypoints.operator.SeerOperatorAgentCache.get",
+                return_value=cache_payload,
+            ),
+            patch(
+                "sentry.seer.entrypoints.operator.SeerAgentOperator.has_access",
+                return_value=True,
+            ),
+        ):
+            notify_agent_entrypoints_of_pull_requests(
+                organization=self.organization,
+                run_id=MOCK_RUN_ID,
+                pull_requests=self._PAYLOAD if payload is None else payload,
+            )
+        return mock_entrypoint_cls
+
+    def test_notifies_the_entrypoint_with_the_normalized_pull_requests(self):
+        cache_payload = {"thread_id": "abc", "organization_id": self.organization.id}
+        mock_entrypoint_cls = self._notify(cache_payload=cache_payload)
+
+        mock_entrypoint_cls.on_agent_pull_requests_created.assert_called_once_with(
+            cache_payload=cache_payload,
+            run_id=MOCK_RUN_ID,
+            pull_requests=[
+                {
+                    "repo_name": "acme/web",
+                    "pr_number": 482,
+                    "pr_url": "https://gh/acme/web/pull/482",
+                }
+            ],
+        )
+
+    def test_skips_entrypoints_without_a_cached_run(self):
+        mock_entrypoint_cls = self._notify(cache_payload=None)
+        mock_entrypoint_cls.on_agent_pull_requests_created.assert_not_called()
+
+    def test_refuses_a_payload_cached_for_another_organization(self):
+        cache_payload = {"thread_id": "abc", "organization_id": self.organization.id + 1}
+        mock_entrypoint_cls = self._notify(cache_payload=cache_payload)
+        mock_entrypoint_cls.on_agent_pull_requests_created.assert_not_called()
+
+    def test_skips_pull_requests_missing_a_link(self):
+        cache_payload = {"thread_id": "abc", "organization_id": self.organization.id}
+        mock_entrypoint_cls = self._notify(
+            cache_payload=cache_payload,
+            payload=[{"repo_name": "acme/web", "pull_request": {"pr_number": 482}}],
+        )
+        mock_entrypoint_cls.on_agent_pull_requests_created.assert_not_called()

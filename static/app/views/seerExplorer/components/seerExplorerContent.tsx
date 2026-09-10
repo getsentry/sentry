@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, type ReactNode} from 'react';
+import {useCallback, useEffect, useMemo, useRef, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
@@ -13,6 +13,7 @@ import {
   AutofixChatProvider,
   type SendMessageOptions,
 } from 'sentry/components/seer/autofixChatContext';
+import {SeerRepoPRStatesProvider} from 'sentry/components/seer/markdown/embeds/components/pullRequestRef';
 import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
 import {IconClose, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -624,7 +625,7 @@ export function SeerExplorerContent({
               onSuggestionClick={readOnly ? undefined : sendMessage}
             />
           ) : (
-            <Fragment>
+            <SeerRepoPRStatesProvider repoPRStates={repoPRStates}>
               {groupTranscript(blocks).map(segment => {
                 const interactionPending =
                   isFileApprovalPending ||
@@ -701,7 +702,7 @@ export function SeerExplorerContent({
                   }
                 />
               )}
-            </Fragment>
+            </SeerRepoPRStatesProvider>
           )}
         </BlocksContainer>
         {isTimedOut && (

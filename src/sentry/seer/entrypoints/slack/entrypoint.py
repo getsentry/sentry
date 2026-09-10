@@ -10,6 +10,8 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
+    SeerAgentPullRequest,
+    SeerAgentPullRequests,
     SeerAgentResponse,
     SeerAgentWriteApproval,
     SeerAutofixError,
@@ -649,6 +651,24 @@ class SlackAgentEntrypoint(
             integration_id=integration_id,
             organization_id=organization_id,
             data=response_data,
+        )
+
+    @staticmethod
+    def on_agent_pull_requests_created(
+        cache_payload: SlackAgentCachePayload,
+        run_id: int,
+        pull_requests: list[SeerAgentPullRequest],
+    ) -> None:
+        organization_id = cache_payload["organization_id"]
+        schedule_all_thread_updates(
+            threads=[cache_payload["thread"]],
+            integration_id=cache_payload["integration_id"],
+            organization_id=organization_id,
+            data=SeerAgentPullRequests(
+                run_id=run_id,
+                organization_id=organization_id,
+                pull_requests=pull_requests,
+            ),
         )
 
 
