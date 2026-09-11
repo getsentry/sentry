@@ -512,8 +512,16 @@ jobs:
         run: |
           make build-api-contracts
 
+      # Backend-only changes can skip the frontend workflow, so validate the
+      # regenerated contracts and examples here before committing them.
+      - name: Typecheck API contracts and consumers
+        run: pnpm run typecheck
+
+      - name: Lint generated API contracts and examples
+        run: pnpm run lint:js static/app/utils/api/apiContracts.generated.ts tests/js/fixtures/generated/apiExamples.generated.ts
+
       - name: Apply any file changes
-        if: github.ref != 'refs/heads/master' && always()
+        if: github.ref != 'refs/heads/master'
         uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
         with:
           github-token: ${{ steps.token.outputs.token }}
@@ -680,6 +688,7 @@ jobs:
   backend-required-check:
     needs:
       [
+        api-contracts-typescript,
         api-docs,
         backend-test,
         backend-migration-tests,
