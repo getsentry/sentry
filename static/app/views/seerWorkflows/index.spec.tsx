@@ -48,7 +48,6 @@ describe('SeerWorkflows', () => {
       statusCode: 202,
       body: {
         runId: '09a15703-bf37-4208-bd90-c57013c9694b',
-        url: `/organizations/${scanOrganization.slug}/issues/autofix/workflows/?runId=09a15703-bf37-4208-bd90-c57013c9694b&expandLatest=duplicate_monitors`,
       },
     });
     const {router} = render(<SeerWorkflows />, {
@@ -56,20 +55,16 @@ describe('SeerWorkflows', () => {
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${scanOrganization.slug}/issues/autofix/workflows/`,
-          query: {
-            runId: '45e94493-c356-4d2b-bb26-ae4e2e508a74',
-            expandLatest: 'duplicate_monitors',
-          },
         },
       },
     });
-    expect(await screen.findByRole('button', {name: 'Collapse run'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Expand run'})).toBeInTheDocument();
     const runningRun = {
       ...previousRun,
       id: '09a15703-bf37-4208-bd90-c57013c9694b',
       extras: {status: 'running'},
     };
-    MockApiClient.addMockResponse({url, body: [runningRun]});
+    MockApiClient.addMockResponse({url, body: [runningRun, previousRun]});
     await userEvent.click(screen.getByRole('button', {name: 'Run monitor scan'}));
 
     expect(await screen.findByRole('img', {name: 'Running'})).toBeInTheDocument();
@@ -79,8 +74,9 @@ describe('SeerWorkflows', () => {
       url,
       expect.objectContaining({data: {strategy: 'duplicate_monitors'}})
     );
-    expect(router.location.query.runId).toBe('09a15703-bf37-4208-bd90-c57013c9694b');
+    expect(router.location.query).toEqual({});
     expect(screen.getByRole('button', {name: 'Collapse run'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Expand run'})).toBeInTheDocument();
 
     const completedRun = {
       ...runningRun,
@@ -101,12 +97,12 @@ describe('SeerWorkflows', () => {
         },
       ],
     };
-    MockApiClient.addMockResponse({url, body: [completedRun]});
+    MockApiClient.addMockResponse({url, body: [completedRun, previousRun]});
     await waitFor(
       () => expect(screen.queryByRole('img', {name: 'Running'})).not.toBeInTheDocument(),
       {timeout: 7000}
     );
-    expect(screen.getByRole('img', {name: 'Succeeded'})).toBeInTheDocument();
+    expect(screen.getAllByRole('img', {name: 'Succeeded'})).toHaveLength(2);
     expect(screen.getAllByText('No findings')).not.toHaveLength(0);
   }, 10000);
 

@@ -85,18 +85,18 @@ function SeerWorkflows() {
   const [expanded, setExpanded] = useState(new Set<string>());
   const {mutate: startMonitorScan, isPending: isStartingMonitorScan} = useMutation({
     mutationFn: () =>
-      fetchMutation<{runId: string; url: string}>({
+      fetchMutation<{runId: string}>({
         url: getApiUrl('/organizations/$organizationIdOrSlug/seer/workflows/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
         method: 'POST',
         data: {strategy: 'duplicate_monitors'},
       }),
-    onSuccess: result => {
+    onSuccess: async result => {
       setExpanded(previous =>
         new Set(previous).add(`${result.runId}:duplicate_monitors`)
       );
-      navigate(result.url);
+      await refetch();
     },
     onError: error => {
       addErrorMessage(
@@ -112,7 +112,6 @@ function SeerWorkflows() {
       '/organizations/$organizationIdOrSlug/seer/workflows/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: {runId: decodeScalar(location.query.runId)},
         staleTime: 0,
       }
     ),
