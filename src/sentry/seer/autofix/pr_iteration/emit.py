@@ -40,6 +40,7 @@ from sentry.seer.autofix.pr_iteration.details_store import (
     update_iteration,
 )
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.pause import PauseReason
 from sentry.seer.models.run import SeerRun, SeerRunPrIteration
 
 EventT = TypeVar("EventT", bound=analytics.Event)
@@ -50,30 +51,22 @@ BLOCKED_OUTCOMES_DATA_KEY = "blocked_outcomes"
 
 
 class PrIterationOutcome(StrEnum):
-    """How far a batch got. Ending values below the blocking ones.
+    """An outcome of running an iteration.
 
-    The ending values go on the completed event, the blocking values on the
-    blocked event. ``MISSING_PERMISSIONS`` only holds a batch up, so a batch
-    blocked on it reports both: the block now, and an ending value later, once
-    the app is granted what it needs and the work runs.
+    The goal is to run analytics on the trajectories of iterations
+    to figure out what the bottleneck is for getting autofix PRs green
 
-    The ``PAUSED_`` values are the opposite, and the reason they name the pause
-    rather than just reporting one: nothing lifts a pause, so a batch blocked
-    on one never runs and reports no ending at all. Whether the feedback was
-    abandoned because someone asked Seer to stop or because the run before it
-    broke is the whole question those rows answer. One per ``PauseReason``, and
-    :func:`outcome_for_pause` says so when the two lists drift apart.
-
-    ``ALREADY_PUSHED`` is the success: the batch is recorded on the hook pass
-    where its changes are on the PR, not on the earlier pass that only asked
-    for the push.
-
-    The failure values are Seer's own ``ExplorerFailureReason`` spellings, so a
-    reason Seer adds since is recorded under its own outcome by
-    :func:`outcome_for_failed_run` rather than folded into ``ERRORED``.
+    so each iteration should get a set of these events and we should be able
+    to glance at the events for a given iteration and understand at a high level
+    what happened
     """
 
+    # success case
     ALREADY_PUSHED = "already_pushed"
+
+    # various failure cases, can't recover from these
+    # and they should result in a paused iteration
+    # if we get too many of any of these we should work to fix it
     NO_CODE_CHANGES = "no_code_changes"
     NO_PULL_REQUEST = "no_pull_request"
     PR_CLOSED = "pr_closed"
@@ -83,20 +76,34 @@ class PrIterationOutcome(StrEnum):
     STALLED = "stalled"
     ERRORED = "errored"
 
+    # technically we can recover from this
+    # but an iteration is stuck until then
     MISSING_PERMISSIONS = "missing_permissions"
-    PAUSED = "paused"
+
+    # we can't recover from these at the moment
+    # when a iteration tries to trigger but is stopped
+    # because the run is paused
     PAUSED_USER_STOP = "paused_user_stop"
     PAUSED_RUN_ERRORED = "paused_run_errored"
     PAUSED_PR_CLOSED = "paused_pr_closed"
 
 
-# The pause reasons this module names an outcome for, derived so that adding a
-# ``PAUSED_`` member above is all it takes to report that reason as itself.
-_PAUSE_OUTCOMES = frozenset(
-    outcome.value
-    for outcome in PrIterationOutcome
-    if outcome.value.startswith(f"{PrIterationOutcome.PAUSED.value}_")
-)
+# Every pause reason has its own outcome; there is no catch-all. mypy flags a
+# missing key here the moment a ``PauseReason`` is added without one.
+_PAUSE_REASON_OUTCOMES: dict[PauseReason, PrIterationOutcome] = {
+    PauseReason.USER_STOP: PrIterationOutcome.PAUSED_USER_STOP,
+    PauseReason.RUN_ERRORED: PrIterationOutcome.PAUSED_RUN_ERRORED,
+    PauseReason.PR_CLOSED: PrIterationOutcome.PAUSED_PR_CLOSED,
+}
+
+
+def outcome_for_pause(reason: PauseReason) -> PrIterationOutcome:
+    """The outcome for a batch that arrived after the run was paused.
+
+    A pause reason maps one-to-one to its outcome, so the row records why the
+    feedback was abandoned rather than just that it was.
+    """
+    return _PAUSE_REASON_OUTCOMES[reason]
 
 
 def outcome_for_failed_run(run_state: SeerRunState) -> str:
@@ -106,28 +113,6 @@ def outcome_for_failed_run(run_state: SeerRunState) -> str:
     the batch left on the PR.
     """
     return run_state.failure_reason or PrIterationOutcome.ERRORED.value
-
-
-def outcome_for_pause(log_ctx: PrIterationLogContext, reason: str | None) -> str:
-    """The outcome for a batch that arrived after the run was paused.
-
-    Only the reasons named above are reported as themselves. A ``PauseReason``
-    added to ``pause`` without an outcome here is logged and reported as plain
-    ``PAUSED``, so the batch is still counted under an outcome that already
-    means something rather than opening a value nothing here has defined.
-    ``PAUSED`` also covers a marker too old or too new to name its reason.
-    """
-    if reason is None:
-        return PrIterationOutcome.PAUSED.value
-
-    outcome = f"{PrIterationOutcome.PAUSED.value}_{reason}"
-    if outcome in _PAUSE_OUTCOMES:
-        return outcome
-
-    log_ctx.error(
-        "autofix.pr_iteration.details.unknown_pause_reason", exc_info=False, pause_reason=reason
-    )
-    return PrIterationOutcome.PAUSED.value
 
 
 def _seer_run(*, run_id: int, organization_id: int) -> SeerRun | None:

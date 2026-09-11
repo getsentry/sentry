@@ -343,49 +343,17 @@ class PrIterationDetailsTest(TestCase):
         assert outcome_for_failed_run(state) == "out_of_credits"
 
     def test_a_pause_is_recorded_under_its_reason(self) -> None:
-        assert (
-            outcome_for_pause(self.log_ctx, PauseReason.USER_STOP)
-            == PrIterationOutcome.PAUSED_USER_STOP.value
-        )
-        assert (
-            outcome_for_pause(self.log_ctx, PauseReason.RUN_ERRORED)
-            == PrIterationOutcome.PAUSED_RUN_ERRORED.value
-        )
+        assert outcome_for_pause(PauseReason.USER_STOP) == PrIterationOutcome.PAUSED_USER_STOP
+        assert outcome_for_pause(PauseReason.RUN_ERRORED) == PrIterationOutcome.PAUSED_RUN_ERRORED
+        assert outcome_for_pause(PauseReason.PR_CLOSED) == PrIterationOutcome.PAUSED_PR_CLOSED
 
-    def test_every_pause_reason_has_an_outcome(self) -> None:
-        """The two lists drift apart in ``pause``; this is what notices."""
-        logger = MagicMock()
-        log_ctx = PrIterationLogContext(
-            logger,
-            run_state=_run_state(),
-            iteration=LogCtxIteration.UNTRIGGERED,
-            organization_id=self.organization.id,
-            group_id=self.group.id,
-        )
+    def test_every_pause_reason_maps_to_its_own_outcome(self) -> None:
+        """Each reason has a distinct ``PAUSED_`` outcome; none share one."""
+        outcomes = {outcome_for_pause(reason) for reason in PauseReason}
 
-        for reason in PauseReason:
-            assert outcome_for_pause(log_ctx, reason) != PrIterationOutcome.PAUSED.value
-
-        assert not logger.error.called
-
-    def test_a_pause_reason_added_since_is_recorded_as_a_plain_pause(self) -> None:
-        """A batch dropped for a reason with no outcome here is still a batch dropped."""
-        logger = MagicMock()
-        log_ctx = PrIterationLogContext(
-            logger,
-            run_state=_run_state(),
-            iteration=LogCtxIteration.UNTRIGGERED,
-            organization_id=self.organization.id,
-            group_id=self.group.id,
-        )
-
-        assert outcome_for_pause(log_ctx, "out_of_credits") == PrIterationOutcome.PAUSED.value
-        assert logger.error.call_args.args[0] == "autofix.pr_iteration.details.unknown_pause_reason"
-        assert logger.error.call_args.kwargs["extra"]["pause_reason"] == "out_of_credits"
-
-    def test_a_pause_that_names_no_reason_is_still_recorded(self) -> None:
-        """A marker written before reasons existed is still a batch we dropped."""
-        assert outcome_for_pause(self.log_ctx, None) == PrIterationOutcome.PAUSED.value
+        assert len(outcomes) == len(PauseReason)
+        for outcome in outcomes:
+            assert outcome.value.startswith("paused_")
 
 
 class RecordPrIterationBlockedTest(TestCase):
