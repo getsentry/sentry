@@ -6,14 +6,10 @@ import sentry_sdk
 from django.db.models import (
     Case,
     CharField,
-    Count,
-    Exists,
     F,
     IntegerField,
     OrderBy,
-    OuterRef,
     QuerySet,
-    Subquery,
     Value,
     When,
 )
@@ -48,8 +44,6 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.endpoints.bases import filter_to_accessible_discover_queries
 from sentry.discover.models import (
     DiscoverSavedQuery,
-    DiscoverSavedQueryLastVisited,
-    DiscoverSavedQueryStarred,
     DiscoverSavedQueryTypes,
 )
 from sentry.explore.endpoints.bases import (
@@ -63,8 +57,6 @@ from sentry.explore.endpoints.explore_saved_queries import (
 from sentry.explore.models import (
     ExploreSavedQuery,
     ExploreSavedQueryDataset,
-    ExploreSavedQueryLastVisited,
-    ExploreSavedQueryStarred,
 )
 from sentry.explore.types import SavedQueryType
 from sentry.locks import locks
@@ -139,122 +131,20 @@ def get_explore_queryset(
 def build_combined_queryset(
     discover_queryset: QuerySet[DiscoverSavedQuery],
     explore_queryset: QuerySet[ExploreSavedQuery],
-    sort_by_list: list[str],
-    *,
-    starred_only: bool,
-    organization: Organization,
-    user_id: int,
 ) -> QuerySet[DiscoverSavedQuery, dict[str, Any]]:
-    """Translate ``sortBy`` into an ordered union of the two querysets.
-
-    Mirrors the ``sortBy`` loop in ``explore_saved_queries.py``
-    """
+    """Build an ordered union of the two querysets.``"""
     order_by: list[str | OrderBy] = []
 
-    if starred_only:
-        # Copies what ``if starred == 1`` check in ``explore_saved_queries.py`` does
-        # Moved it before the loop over the order by since it overrides the entire list anyways
-        discover_queryset = discover_queryset.annotate(
-            position=Subquery(
-                DiscoverSavedQueryStarred.objects.filter(
-                    discover_saved_query_id=OuterRef("id"), user_id=user_id, starred=True
-                ).values("position")[:1],
-                output_field=IntegerField(),
-            )
-        )
-        explore_queryset = explore_queryset.annotate(
-            position=Subquery(
-                ExploreSavedQueryStarred.objects.filter(
-                    explore_saved_query_id=OuterRef("id"), user_id=user_id, starred=True
-                ).values("position")[:1],
-                output_field=IntegerField(),
-            )
-        )
-        order_by = ["position", "-date_added", "-id", "query_type"]
-    else:
-        for sort_by in sort_by_list:
-            if sort_by.startswith("-"):
-                sort_by, desc = sort_by[1:], True
-            else:
-                desc = False
+    # TODO: add the actual order by logic Explore implements
 
-            if sort_by == "name":
-                order_by.append("-lower_name" if desc else "lower_name")
+    # Rows with equal sort keys need a deterministic tiebreaker.
+    # id is not enough with two different types of queries, so we also use query type
 
-            elif sort_by == "dateAdded":
-                order_by.append("-date_added" if desc else "date_added")
+    if len(order_by) == 0:
+        order_by.append("lower_name")
 
-            elif sort_by == "dateUpdated":
-                order_by.append("-date_updated" if desc else "date_updated")
-
-            elif sort_by == "mostPopular":
-                order_by.append("visits" if desc else "-visits")
-
-            elif sort_by == "recentlyViewed":
-                discover_queryset = discover_queryset.annotate(
-                    user_last_visited=Subquery(
-                        DiscoverSavedQueryLastVisited.objects.filter(
-                            organization=organization,
-                            user_id=user_id,
-                            discover_saved_query_id=OuterRef("id"),
-                        ).values("last_visited")[:1]
-                    )
-                )
-                explore_queryset = explore_queryset.annotate(
-                    user_last_visited=Subquery(
-                        ExploreSavedQueryLastVisited.objects.filter(
-                            organization=organization,
-                            user_id=user_id,
-                            explore_saved_query_id=OuterRef("id"),
-                        ).values("last_visited")[:1]
-                    )
-                )
-                order_by.append(
-                    F("user_last_visited").asc(nulls_last=True)
-                    if desc
-                    else F("user_last_visited").desc(nulls_last=True)
-                )
-
-            elif sort_by == "myqueries":
-                order_by.append("my_queries")
-
-            elif sort_by == "mostStarred":
-                discover_queryset = discover_queryset.annotate(
-                    starred_count=Count("discoversavedquerystarred")
-                )
-                explore_queryset = explore_queryset.annotate(
-                    starred_count=Count("exploresavedquerystarred")
-                )
-                order_by.append("-starred_count")
-
-            elif sort_by == "starred":
-                discover_queryset = discover_queryset.annotate(
-                    is_starred=Exists(
-                        DiscoverSavedQueryStarred.objects.filter(
-                            discover_saved_query_id=OuterRef("id"), user_id=user_id, starred=True
-                        )
-                    )
-                )
-                explore_queryset = explore_queryset.annotate(
-                    is_starred=Exists(
-                        ExploreSavedQueryStarred.objects.filter(
-                            explore_saved_query_id=OuterRef("id"), user_id=user_id, starred=True
-                        )
-                    )
-                )
-                order_by.append("-is_starred")
-
-        if len(order_by) == 0:
-            order_by.append("lower_name")
-
-        #  Finally we always at least secondarily sort by dateAdded
-        if "dateAdded" not in sort_by_list and "-dateAdded" not in sort_by_list:
-            order_by.append("-date_added")
-
-        # Rows with equal sort keys need a deterministic tiebreaker.
-        # id is not enough with two different types of queries, so we also use query type
-        order_by.append("-id")
-        order_by.append("query_type")
+    order_by.append("-id")
+    order_by.append("query_type")
 
     # Both sides of a UNION must project the same columns in the same order
     columns = ["id", "query_type"]
@@ -403,34 +293,9 @@ class SavedQueriesEndpoint(OrganizationEndpoint):
                     discover_queryset = discover_queryset.none()
                     explore_queryset = explore_queryset.none()
 
-        exclude = request.query_params.get("exclude")
-        if exclude == "shared":
-            discover_queryset = discover_queryset.filter(created_by_id=request.user.id)
-            explore_queryset = explore_queryset.filter(created_by_id=request.user.id)
-        elif exclude == "owned":
-            discover_queryset = discover_queryset.exclude(created_by_id=request.user.id)
-            explore_queryset = explore_queryset.exclude(created_by_id=request.user.id)
-
-        starred_only = request.query_params.get("starred") == "1"
-        if starred_only:
-            discover_queryset = discover_queryset.filter(
-                id__in=DiscoverSavedQueryStarred.objects.filter(
-                    organization=organization, user_id=request.user.id, starred=True
-                ).values_list("discover_saved_query_id", flat=True)
-            )
-            explore_queryset = explore_queryset.filter(
-                id__in=ExploreSavedQueryStarred.objects.filter(
-                    organization=organization, user_id=request.user.id, starred=True
-                ).values_list("explore_saved_query_id", flat=True)
-            )
-
         combined = build_combined_queryset(
             discover_queryset,
             explore_queryset,
-            request.query_params.getlist("sortBy"),
-            starred_only=starred_only,
-            organization=organization,
-            user_id=request.user.id,
         )
 
         def data_fn(offset, limit):
