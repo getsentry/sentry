@@ -81,7 +81,6 @@ const server = new Set<PlatformKey>([
   'native',
   'node',
   'node-cloudflare-workers',
-  'node-connect',
   'node-express',
   'node-fastify',
   'node-hapi',

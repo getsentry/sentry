@@ -465,6 +465,8 @@ export const platforms: PlatformIntegration[] = [
     type: 'framework',
     language: 'node',
     link: 'https://docs.sentry.io/platforms/javascript/guides/connect/',
+    // Version 11 of the SDK removed the Connect instrumentation.
+    hidden: true,
   },
   {
     id: 'node-express',
