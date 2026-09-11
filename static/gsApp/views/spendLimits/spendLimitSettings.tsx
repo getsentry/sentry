@@ -1,6 +1,5 @@
 import type React from 'react';
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import upperFirst from 'lodash/upperFirst';
 
@@ -15,7 +14,6 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {useMedia} from 'sentry/utils/useMedia';
 
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {
@@ -172,8 +170,6 @@ export function SharedSpendLimitPriceTable({
   organization,
   includedAddOns,
 }: SharedSpendLimitPriceTableProps) {
-  const theme = useTheme();
-  const isXSmallScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
   const addOnDataCategories = Object.values(activePlan.addOnCategories).flatMap(
     addOnInfo => addOnInfo.dataCategories
   );
@@ -221,7 +217,7 @@ export function SharedSpendLimitPriceTable({
               gap="xs"
               align="center"
               paddingRight="xs"
-              wrap={isXSmallScreen ? 'wrap' : 'nowrap'}
+              wrap={{zero: 'wrap', sm: 'nowrap'}}
             >
               <Text>{pluralName}</Text>
               {reserved > 0 && (
@@ -441,19 +437,19 @@ function InnerSpendLimitSettings({
             return (
               <Flex
                 key={category}
-                direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
+                direction={{zero: 'column', xl: 'row'}}
                 justify="between"
-                align={{'screen:xs': 'start', 'screen:sm': 'center'}}
-                gap={{'screen:xs': 'xs', 'screen:sm': 'lg'}}
+                align={{zero: 'start', xl: 'center'}}
+                gap={{zero: 'xs', xl: 'lg'}}
                 padding="lg 0"
                 borderBottom={isLastInList ? undefined : 'primary'}
                 wrap="wrap"
               >
                 <Flex
                   gap="xs"
-                  align={{'screen:xs': 'start', 'screen:sm': 'center'}}
+                  align={{zero: 'start', xl: 'center'}}
                   flexGrow={1}
-                  direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
+                  direction={{zero: 'column', xl: 'row'}}
                 >
                   <Flex align="center" gap="xs">
                     <Text bold>{upperFirst(pluralName)}</Text>
@@ -518,19 +514,19 @@ function InnerSpendLimitSettings({
             return (
               <Flex
                 key={apiName}
-                direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
+                direction={{zero: 'column', xl: 'row'}}
                 justify="between"
-                align={{'screen:xs': 'start', 'screen:sm': 'center'}}
-                gap={{'screen:xs': 'xs', 'screen:sm': 'lg'}}
+                align={{zero: 'start', xl: 'center'}}
+                gap={{zero: 'xs', xl: 'lg'}}
                 padding="xl 0"
                 borderBottom={isLastInList ? undefined : 'primary'}
                 wrap="wrap"
               >
                 <Flex
                   gap="xs"
-                  align={{'screen:xs': 'start', 'screen:sm': 'center'}}
+                  align={{zero: 'start', xl: 'center'}}
                   flexGrow={1}
-                  direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
+                  direction={{zero: 'column', xl: 'row'}}
                 >
                   <Flex align="center" gap="xs">
                     <Text bold>{upperFirst(addOnInfo.productName)}</Text>
@@ -570,7 +566,7 @@ function InnerSpendLimitSettings({
             onUpdate={handleUpdate}
             reserved={null}
           />
-          <Container width={{'screen:xs': '100%', 'screen:sm': LARGE_INPUT_WIDTH}}>
+          <Container width={{zero: '100%', xl: LARGE_INPUT_WIDTH}}>
             <Text variant="muted" size="sm">
               {t(
                 'Charges are applied at the end of your usage cycle, and your limit can be adjusted at anytime.'
@@ -618,7 +614,7 @@ function BudgetModeSettings({
   }
 
   return (
-    <Grid columns={{'screen:xs': '1fr', 'screen:lg': 'repeat(2, 1fr)'}} gap="lg">
+    <Grid columns={{zero: '1fr', '4xl': 'repeat(2, 1fr)'}} gap="lg">
       {Object.values(OnDemandBudgetMode).map(budgetMode => {
         const budgetModeName = capitalize(budgetMode.replace('_', '-'));
         const isSelected = onDemandBudgets.budgetMode === budgetMode;
@@ -710,7 +706,7 @@ const StyledInput = styled(Input)`
   padding-left: ${p => p.theme.space['3xl']};
   width: 100px;
 
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     width: ${LARGE_INPUT_WIDTH};
   }
 `;
