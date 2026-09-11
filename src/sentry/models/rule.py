@@ -88,12 +88,6 @@ class Rule(Model):
                 ),
                 name="rule_owner_user_or_team_check",
             ),
-            # Keep this a standalone CheckConstraint, not a positive field type:
-            # switching would take the ACCESS EXCLUSIVE lock this one avoids.
-            models.CheckConstraint(
-                condition=models.Q(new_environment_id__gte=0),
-                name="rule_new_environment_id_check",
-            ),
         )
 
     __repr__ = sane_repr("project_id", "label")
