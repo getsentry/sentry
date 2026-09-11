@@ -9,7 +9,7 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {AutofixCursorGithubAccessModal} from 'sentry/components/events/autofix/autofixCursorGithubAccessModal';
-import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
+import {CodingAgentHandoffPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
 import {AutofixGithubCopilotPurchaseModal} from 'sentry/components/events/autofix/autofixGithubCopilotPurchaseModal';
 import {
   continueRunData,
@@ -986,7 +986,7 @@ export function useExplorerAutofix(
           if (permissionFailures.length > 0) {
             const installationUrl = permissionFailures[0]?.github_installation_url;
             openModal(deps => (
-              <AutofixGithubAppPermissionsModal
+              <CodingAgentHandoffPermissionsModal
                 {...deps}
                 installationUrl={installationUrl}
               />

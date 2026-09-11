@@ -1,11 +1,11 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
-import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
+import {PrIterationPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
 import {getReferrerFromBlocks} from 'sentry/components/events/autofix/autofixReferrer';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
@@ -21,7 +21,7 @@ import {useForceBashMode} from 'sentry/components/events/autofix/v3/useForceBash
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
@@ -173,11 +173,7 @@ function InstallationPermissionsButton({installationUrl}: {installationUrl?: str
       size="xs"
       onClick={() =>
         openModal(deps => (
-          <AutofixGithubAppPermissionsModal
-            {...deps}
-            installationUrl={installationUrl}
-            description={t('Seer had trouble talking to GitHub while running Autofix.')}
-          />
+          <PrIterationPermissionsModal {...deps} installationUrl={installationUrl} />
         ))
       }
     >
@@ -239,17 +235,6 @@ export function AutofixWarnings({
       <ConfigurationPermissionsButton />
     );
 
-  const repoNames = [
-    ...new Set(permissionWarnings.map(w => w.repo_name).filter(defined)),
-  ];
-
-  const repoNamesNode = repoNames.map((repoName, index) => (
-    <Fragment key={repoName}>
-      {index > 0 && ', '}
-      <code>{repoName}</code>
-    </Fragment>
-  ));
-
   return (
     <Stack gap="md" padding="md 2xl 0">
       <Alert
@@ -267,16 +252,9 @@ export function AutofixWarnings({
           </Flex>
         }
       >
-        {repoNames.length
-          ? tct(
-              "Seer can't fix the failing CI on your pull request because the configured GitHub App for [repoNames] is missing permissions. Update the app.",
-              {
-                repoNames: repoNamesNode,
-              }
-            )
-          : t(
-              "Seer can't fix the failing CI on your pull request because the configured GitHub App is missing permissions. Update the app."
-            )}
+        {t(
+          'Seer needs more GitHub App permissions to keep fixing CI on your pull requests.'
+        )}
       </Alert>
     </Stack>
   );
