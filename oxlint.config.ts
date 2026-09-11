@@ -24,6 +24,15 @@ const enableTypeAwareLinting = (() => {
 const CHARTCUTERIE_MESSAGE =
   'Chartcuterie runs server-side in Node.js. This import is not available.';
 
+const STORY_API_MESSAGE =
+  'Stories must not call the API. Render from fixture data (sentry-fixture/*) instead, so the page is deterministic and safe to screenshot.';
+const storyRestrictedApiImports = [
+  'sentry/api',
+  'sentry/utils/api/apiOptions',
+  'sentry/utils/api/apiFetch',
+  'sentry/utils/queryClient',
+].map(name => ({name, message: STORY_API_MESSAGE}));
+
 const restrictedThemeImportPattern = {
   group: ['sentry/utils/theme*', 'sentry/utils/theme'],
   importNames: ['lightTheme', 'darkTheme', 'default'],
@@ -1757,6 +1766,16 @@ const config = defineConfig({
         'import/no-webpack-loader-syntax': 'off',
         // Stories sometimes contain intentionally unusual hard-coded numbers.
         'no-loss-of-precision': 'off',
+        // Stories render from fixtures, never from the live API: a story that
+        // fetches shows whatever the proxied org happens to contain, which is
+        // neither deterministic nor safe to screenshot.
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: [restrictedThemeImportPattern],
+            paths: [...restrictedImportPaths, ...storyRestrictedApiImports],
+          },
+        ],
       },
     },
     // Keep lint-disable comments out of this SDK source because users consume
