@@ -1,33 +1,12 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {SavedQueriesLandingContent} from 'sentry/views/explore/savedQueries/savedQueriesLandingContent';
-
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
-}));
-
-jest.mock('sentry/utils/useLocation', () => ({
-  useLocation: jest.fn(),
-}));
-
-const mockUseNavigate = jest.mocked(useNavigate);
-const mockUseLocation = jest.mocked(useLocation);
 
 describe('SavedQueriesTable', () => {
   const {organization} = initializeOrg();
   let getSavedQueriesMock: jest.Mock;
   beforeEach(() => {
-    mockUseLocation.mockReturnValue(
-      LocationFixture({
-        pathname: '/organizations/org-slug/explore/saved-queries/',
-      })
-    );
-
     getSavedQueriesMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/explore/saved/`,
       body: [
@@ -55,40 +34,31 @@ describe('SavedQueriesTable', () => {
   });
 
   it('should render', async () => {
-    render(<SavedQueriesLandingContent />);
+    render(<SavedQueriesLandingContent />, {
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/explore/saved-queries/'},
+      },
+    });
     await screen.findByText('Created by Me');
     await screen.findByText('Created by Others');
     await screen.findByText('Most Starred');
   });
 
   it('should filter tables when searching', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-    const {rerender} = render(<SavedQueriesLandingContent />);
+    const {router} = render(<SavedQueriesLandingContent />, {
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/explore/saved-queries/'},
+      },
+    });
     await screen.findByText('Created by Me');
     await screen.findByText('Created by Others');
     await userEvent.type(screen.getByPlaceholderText('Search for a query'), 'Query Name');
     await userEvent.keyboard('{enter}');
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        pathname: '/organizations/org-slug/explore/saved-queries/',
-        query: expect.objectContaining({
-          query: 'Query Name',
-          ownedCursor: undefined,
-          sharedCursor: undefined,
-        }),
-      })
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/explore/saved-queries/'
     );
-
-    mockUseLocation.mockReturnValue(
-      LocationFixture({
-        pathname: '/organizations/org-slug/explore/saved-queries/',
-        query: {query: 'Query Name'},
-      })
-    );
-
-    rerender(<SavedQueriesLandingContent />);
+    expect(router.location.query).toEqual({query: 'Query Name'});
 
     expect(getSavedQueriesMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/explore/saved/`,
@@ -111,28 +81,19 @@ describe('SavedQueriesTable', () => {
   });
 
   it('resets cursors when searching from a paginated page', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-    mockUseLocation.mockReturnValue(
-      LocationFixture({
-        pathname: '/organizations/org-slug/explore/saved-queries/',
-        query: {ownedCursor: 'abc123', sharedCursor: 'def456'},
-      })
-    );
-    render(<SavedQueriesLandingContent />);
+    const {router} = render(<SavedQueriesLandingContent />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/saved-queries/',
+          query: {ownedCursor: 'abc123', sharedCursor: 'def456'},
+        },
+      },
+    });
     await screen.findByText('Created by Me');
     await userEvent.type(screen.getByPlaceholderText('Search for a query'), 'My Query');
     await userEvent.keyboard('{enter}');
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          query: 'My Query',
-          ownedCursor: undefined,
-          sharedCursor: undefined,
-        }),
-      })
-    );
+    expect(router.location.query).toEqual({query: 'My Query'});
   });
 
   it('hides owned queries table when there are no results', async () => {
@@ -140,7 +101,11 @@ describe('SavedQueriesTable', () => {
       url: `/organizations/${organization.slug}/explore/saved/`,
       body: [],
     });
-    render(<SavedQueriesLandingContent />);
+    render(<SavedQueriesLandingContent />, {
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/explore/saved-queries/'},
+      },
+    });
     await screen.findByText('Created by Others');
     expect(screen.queryByText('Created by Me')).not.toBeInTheDocument();
   });

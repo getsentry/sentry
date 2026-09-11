@@ -2,6 +2,7 @@ import {Button} from '@sentry/scraps/button';
 
 import {IconCopy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -46,6 +47,24 @@ export function CopyLLMPromptButton({
       {t('Copy Prompt for AI Agent')}
     </Button>
   );
+}
+
+export function getAgentSetupPrompt({
+  organizationSlug,
+  project,
+  dsn,
+}: {
+  dsn: string;
+  organizationSlug: string;
+  project: Pick<Project, 'slug' | 'platform'>;
+}) {
+  return `Read and follow https://skills.sentry.dev/instrument to set up Sentry agent tracing and conversations.
+
+Use this existing project: ${organizationSlug}/${project.slug}
+DSN: ${dsn}
+Platform hint: ${project.platform || 'unknown'}
+
+Then offer to set up the [Sentry plugin](https://docs.sentry.io/ai/agent-plugin/) so I can find and fix production issues from my coding agent.`;
 }
 
 /**

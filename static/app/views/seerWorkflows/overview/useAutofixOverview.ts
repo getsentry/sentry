@@ -290,6 +290,7 @@ export function useAutofixOverview({
     scopeGenerationRef.current += 1;
     requestedRunIdsRef.current.clear();
     refetchedRunIdsRef.current.clear();
+    // oxlint-disable-next-line react/set-state-in-effect
     setScmByRunId(new Map());
     setSettledRunIds(new Set());
     setStatsUnavailableRunIds(new Set());

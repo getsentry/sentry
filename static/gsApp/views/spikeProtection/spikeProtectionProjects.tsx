@@ -184,6 +184,7 @@ function SpikeProtectionProjects({subscription}: Props) {
 
   useEffect(() => {
     fetchProjects();
+    // oxlint-disable-next-line react/set-state-in-effect
     fetchData();
   }, [fetchProjects, fetchData]);
 

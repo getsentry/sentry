@@ -1,4 +1,5 @@
 import logging
+import random
 import time
 import uuid
 from datetime import UTC, datetime, timedelta, timezone
@@ -40,6 +41,7 @@ from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.group import EventOrdering, Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
 from sentry.models.projectownership import ProjectOwnership
@@ -96,6 +98,7 @@ from sentry.seer.sentry_data_models import (
     ProfileFlamegraphErrorResponse,
     ProfileFlamegraphMetadata,
     ProfileFlamegraphSuccessResponse,
+    ProjectMembersResponse,
     ReplayMetadataResponse,
     RepositoryDefinitionResponse,
     TeamMembersResponse,
@@ -124,6 +127,9 @@ from sentry.utils.snuba import raw_snql_query
 from sentry.utils.snuba_rpc import get_trace_rpc
 
 logger = logging.getLogger(__name__)
+
+PROJECT_MEMBER_LIMIT_MAX = 20
+PROJECT_ASSIGNMENT_HISTORY_LIMIT = 500
 
 
 def _get_full_trace_id(
@@ -1993,6 +1999,101 @@ def get_team_members(
         team_slug=team.slug,
         team_name=team.name,
         members=members,
+    )
+
+
+def get_project_members(
+    *,
+    organization_id: int,
+    project_id: int,
+    exclude_group_id: int | None = None,
+    limit: int = 3,
+) -> ProjectMembersResponse | None:
+    if (
+        not isinstance(limit, int)
+        or isinstance(limit, bool)
+        or not 1 <= limit <= PROJECT_MEMBER_LIMIT_MAX
+    ):
+        raise BadRequest(f"limit must be between 1 and {PROJECT_MEMBER_LIMIT_MAX}")
+
+    try:
+        project = Project.objects.get(
+            id=project_id,
+            organization_id=organization_id,
+            status=ObjectStatus.ACTIVE,
+        )
+    except Project.DoesNotExist:
+        return None
+
+    member_ids = {
+        user_id
+        for user_id in (
+            OrganizationMemberTeam.objects.filter(
+                team__projectteam__project_id=project.id,
+                team__status=TeamStatus.ACTIVE,
+                is_active=True,
+                organizationmember__user_id__isnull=False,
+                organizationmember__user_is_active=True,
+            )
+            .values_list("organizationmember__user_id", flat=True)
+            .distinct()
+        )
+        if user_id is not None
+    }
+    if not member_ids:
+        return ProjectMembersResponse(members=[])
+
+    activities = Activity.objects.filter(
+        project_id=project.id,
+        type=ActivityType.ASSIGNED.value,
+    )
+    if exclude_group_id is not None:
+        activities = activities.exclude(group_id=exclude_group_id)
+    activity_data = activities.order_by("-datetime", "-id").values_list("data", flat=True)[
+        :PROJECT_ASSIGNMENT_HISTORY_LIMIT
+    ]
+
+    selected_member_ids: list[int] = []
+    for data in activity_data.iterator(chunk_size=50):
+        data = data or {}
+        if data.get("assigneeType") != "user":
+            continue
+        try:
+            user_id = int(data["assignee"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if user_id not in member_ids or user_id in selected_member_ids:
+            continue
+        selected_member_ids.append(user_id)
+        if len(selected_member_ids) == limit:
+            break
+
+    if len(selected_member_ids) < limit:
+        member_ids.difference_update(selected_member_ids)
+        fallback_count = min(limit - len(selected_member_ids), len(member_ids))
+        metrics.incr(
+            "seer.get_project_members.fallback",
+            tags={"fallback_count": str(fallback_count)},
+            sample_rate=1.0,
+        )
+        selected_member_ids.extend(random.sample(list(member_ids), fallback_count))
+
+    users_by_id = {
+        user.id: user
+        for user in user_service.get_many(
+            filter={
+                "user_ids": selected_member_ids,
+                "is_active": True,
+                "organization_id": organization_id,
+            }
+        )
+    }
+    return ProjectMembersResponse(
+        members=[
+            UserIdentity(id=user.id, username=user.username)
+            for user_id in selected_member_ids
+            if (user := users_by_id.get(user_id)) is not None
+        ]
     )
 
 

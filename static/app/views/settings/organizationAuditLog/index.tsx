@@ -68,6 +68,7 @@ function OrganizationAuditLog() {
     const utc =
       decodeScalar(location.query.utc) === 'true' || getUserTimezone() === 'UTC';
 
+    // oxlint-disable-next-line react/set-state-in-effect
     setState(prevState => ({
       ...prevState,
       eventType,
@@ -148,6 +149,7 @@ function OrganizationAuditLog() {
   ]);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     fetchAuditLogData();
   }, [fetchAuditLogData]);
 

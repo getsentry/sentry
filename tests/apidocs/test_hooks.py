@@ -1,12 +1,18 @@
 from typing import Any
 from unittest import TestCase
+from unittest.mock import patch
 
 import pytest
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.apidocs.hooks import (
     _ENDPOINT_SERVERS,
+    _EXPERIMENTAL_OPERATIONS,
+    EXPERIMENTAL_NOTICE,
     _fix_nullable_enums,
     custom_postprocessing_hook,
+    custom_preprocessing_hook,
 )
 from sentry.apidocs.utils import SentryApiBuildError
 
@@ -52,6 +58,83 @@ class EndpointServersTest(TestCase):
         ]
         # Servers should NOT be applied to non-matching endpoint
         assert "servers" not in processed["paths"]["/api/0/other/endpoint/"]["get"]
+
+
+class PublishStatusFilterTest(TestCase):
+    """Only published statuses reach the OpenAPI pipeline, and PUBLIC_EXPERIMENTAL is marked."""
+
+    def setUp(self) -> None:
+        _EXPERIMENTAL_OPERATIONS.clear()
+
+    def tearDown(self) -> None:
+        _ENDPOINT_SERVERS.clear()
+        _EXPERIMENTAL_OPERATIONS.clear()
+
+    def _endpoint(self, path: str, status: ApiPublishStatus) -> tuple[Any, Any, str, Any]:
+        view_class = type(
+            "FakeEndpoint",
+            (),
+            {
+                "owner": ApiOwner.CRONS,
+                "publish_status": {"GET": status},
+                "servers": None,
+            },
+        )
+        callback = type("FakeCallback", (), {"view_class": view_class})
+        return (path, path, "GET", callback)
+
+    @patch("sentry.apidocs.hooks.__write_ownership_data")
+    def test_only_published_statuses_pass_the_filter(self, _write_ownership: Any) -> None:
+        endpoints = [
+            self._endpoint("/api/0/public/", ApiPublishStatus.PUBLIC),
+            self._endpoint("/api/0/public-experimental/", ApiPublishStatus.PUBLIC_EXPERIMENTAL),
+            self._endpoint("/api/0/experimental/", ApiPublishStatus.EXPERIMENTAL),
+            self._endpoint("/api/0/private/", ApiPublishStatus.PRIVATE),
+        ]
+
+        filtered = custom_preprocessing_hook(endpoints)
+
+        assert [path for path, _regex, _method, _cb in filtered] == [
+            "/api/0/public/",
+            "/api/0/public-experimental/",
+        ]
+        assert _EXPERIMENTAL_OPERATIONS == {("/api/0/public-experimental/", "get")}
+
+    def test_experimental_marker_stamped_on_operation(self) -> None:
+        _EXPERIMENTAL_OPERATIONS.add(("/api/0/public-experimental/", "get"))
+
+        result = {
+            "components": {"schemas": {}},
+            "paths": {
+                "/api/0/public-experimental/": {
+                    "get": {
+                        "tags": ["Events"],
+                        "description": "An unstable endpoint",
+                        "operationId": "get-unstable",
+                        "parameters": [],
+                    }
+                },
+                "/api/0/public/": {
+                    "get": {
+                        "tags": ["Events"],
+                        "description": "A stable endpoint",
+                        "operationId": "get-stable",
+                        "parameters": [],
+                    }
+                },
+            },
+        }
+
+        processed = custom_postprocessing_hook(result, None)
+
+        experimental = processed["paths"]["/api/0/public-experimental/"]["get"]
+        assert experimental["x-sentry-experimental"] is True
+        assert "x-sentry-experimental" not in processed["paths"]["/api/0/public/"]["get"]
+
+        # The docs render the description, not the marker, so the notice is the
+        # part a reader actually sees.
+        assert experimental["description"] == f"{EXPERIMENTAL_NOTICE}\n\nAn unstable endpoint"
+        assert processed["paths"]["/api/0/public/"]["get"]["description"] == "A stable endpoint"
 
 
 class SummaryUniquenessTest(TestCase):

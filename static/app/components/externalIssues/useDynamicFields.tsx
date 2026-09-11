@@ -25,6 +25,7 @@ export function useDynamicFields({action, integrationDetails}: UseDynamicFieldsP
 
   // If we ever refetch the action or config, replace the state with the response
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setDynamicFieldValues(getDynamicFields({action, integrationDetails}));
   }, [action, integrationDetails]);
   return {dynamicFieldValues, setDynamicFieldValue, setDynamicFieldValues};
