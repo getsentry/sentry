@@ -2,10 +2,12 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.seer.autofix.autofix_agent import NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.feature.dispatch import trigger_autofix_feature
+from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.feature.dispatch import AutofixFeatureArgs, trigger_autofix_feature
+from sentry.seer.autofix.feature.models import RCAStepArgs
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -39,10 +41,24 @@ class TestTriggerAutofixFeature(TestCase):
 
             run = trigger_autofix_feature(
                 self.group,
-                referrer=AutofixReferrer.NIGHT_SHIFT,
-                user_context="an upstream triage summary",
-                stopping_point=AutofixStoppingPoint.OPEN_PR,
-                repo_pins='{"owner/repo":{"base_sha":"abc123","base_branch":"main"}}',
+                AutofixFeatureArgs(
+                    referrer=AutofixReferrer.NIGHT_SHIFT,
+                    step=AutofixStep.ROOT_CAUSE,
+                    user_context="an upstream triage summary",
+                    stopping_point=AutofixStoppingPoint.OPEN_PR,
+                    step_args=RCAStepArgs(
+                        intelligence_level="high",
+                        reasoning_effort="low",
+                        repo_pins={
+                            "owner/repo": {
+                                "sha": "abc123",
+                                "branch": "main",
+                                "base_sha": "abc123",
+                                "base_branch": "main",
+                            }
+                        },
+                    ),
+                ),
             )
 
         assert run is fake_run
@@ -61,10 +77,37 @@ class TestTriggerAutofixFeature(TestCase):
         payload = run_kwargs["payload"]
         assert payload["group_id"] == self.group.id
         assert payload["project_id"] == self.group.project_id
+        assert payload["step"] == AutofixStep.ROOT_CAUSE
         assert payload["short_id"] == (self.group.qualified_short_id or str(self.group.id))
         assert payload["title"] == self.group.title
-        assert payload["repo_pins"] == {"owner/repo": {"sha": "abc123", "branch": "main"}}
-        assert payload["tweaks"]["user_context"] == "an upstream triage summary"
+        assert payload["user_context"] == "an upstream triage summary"
+        assert payload["stopping_point"] == AutofixStoppingPoint.OPEN_PR.value
+        # Retained while Seer continues to consume the legacy RCA payload shape.
+        assert payload["repo_pins"] == {
+            "owner/repo": {
+                "sha": "abc123",
+                "branch": "main",
+                "base_sha": "abc123",
+                "base_branch": "main",
+            }
+        }
+        assert payload["tweaks"] == {
+            "intelligence_level": "high",
+            "reasoning_effort": "low",
+            "user_context": "an upstream triage summary",
+        }
+        assert payload["step_args"] == {
+            "intelligence_level": "high",
+            "reasoning_effort": "low",
+            "repo_pins": {
+                "owner/repo": {
+                    "sha": "abc123",
+                    "branch": "main",
+                    "base_sha": "abc123",
+                    "base_branch": "main",
+                }
+            },
+        }
         # Seer persists this hook on the Explorer run so later PR iteration
         # completions continue through the Autofix completion flow.
         assert payload["on_completion_hook"] == {
@@ -94,7 +137,11 @@ class TestTriggerAutofixFeature(TestCase):
             with pytest.raises(NoSeerQuotaException):
                 trigger_autofix_feature(
                     self.group,
-                    referrer=AutofixReferrer.NIGHT_SHIFT,
+                    AutofixFeatureArgs(
+                        referrer=AutofixReferrer.NIGHT_SHIFT,
+                        step=AutofixStep.ROOT_CAUSE,
+                        step_args=RCAStepArgs(),
+                    ),
                 )
 
         MockClient.return_value.start_feature_run.assert_not_called()
@@ -112,8 +159,12 @@ class TestTriggerAutofixFeature(TestCase):
 
             run = trigger_autofix_feature(
                 self.group,
-                referrer=AutofixReferrer.NIGHT_SHIFT,
-                allow_free_cohort=True,
+                AutofixFeatureArgs(
+                    referrer=AutofixReferrer.NIGHT_SHIFT,
+                    step=AutofixStep.ROOT_CAUSE,
+                    step_args=RCAStepArgs(),
+                    allow_free_cohort=True,
+                ),
             )
 
         assert run is fake_run
@@ -132,8 +183,12 @@ class TestTriggerAutofixFeature(TestCase):
 
             trigger_autofix_feature(
                 self.group,
-                referrer=AutofixReferrer.NIGHT_SHIFT,
-                flush=False,
+                AutofixFeatureArgs(
+                    referrer=AutofixReferrer.NIGHT_SHIFT,
+                    step=AutofixStep.ROOT_CAUSE,
+                    step_args=RCAStepArgs(),
+                    flush=False,
+                ),
             )
 
         assert mock_client_cls.return_value.start_feature_run.call_args.kwargs["flush"] is False
@@ -151,9 +206,13 @@ class TestTriggerAutofixFeature(TestCase):
 
             trigger_autofix_feature(
                 self.group,
-                referrer=AutofixReferrer.NIGHT_SHIFT,
-                user=user,
-                enable_bash_tools=True,
+                AutofixFeatureArgs(
+                    referrer=AutofixReferrer.NIGHT_SHIFT,
+                    step=AutofixStep.ROOT_CAUSE,
+                    step_args=RCAStepArgs(),
+                    user=user,
+                    enable_bash_tools=True,
+                ),
             )
 
         client_kwargs = mock_client_cls.call_args.kwargs

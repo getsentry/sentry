@@ -180,11 +180,11 @@ class SeerAutofixOperator[CachePayloadT]:
         run_id: int | None = None,
     ) -> None:
         from sentry.seer.autofix.autofix_agent import (
-            NoSeerQuotaException,
             get_autofix_agent_state,
             trigger_autofix_agent,
             trigger_push_changes,
         )
+        from sentry.seer.autofix.exceptions import NoSeerQuotaException
         from sentry.seer.autofix.steps import AutofixStep
 
         event_lifecyle = SeerOperatorEventLifecycleMetric(
