@@ -215,7 +215,9 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
 
         if "starred" in attrs:
             data["starred"] = attrs["starred"]
-            data["position"] = attrs.get("position")
+
+        if "position" in attrs:
+            data["position"] = attrs["position"]
 
         for key in query_keys:
             if obj.query.get(key) is not None:
