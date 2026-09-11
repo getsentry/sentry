@@ -881,6 +881,16 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             )
         )
 
+    def _bot_review_feedback(self, review_id: int, login: str) -> Feedback:
+        return Feedback(
+            source=GithubPrReviewBodyFeedbackSource(
+                review_id=review_id,
+                body="fix it",
+                user={"id": review_id, "login": login},
+                author_is_bot=True,
+            )
+        )
+
     def _check_suite_feedback(self, *, updated_at: str | None = "2024-01-01T00:00:00Z") -> Feedback:
         check_suite: dict[str, Any] = {
             "id": 1,
@@ -1768,6 +1778,86 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         assert mock_trigger.call_args.kwargs["iteration_id"] == row.id
         assert row.data["feedback_count"] == 1
         assert row.data["dropped_count"] == 0
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_the_drain_records_the_review_bots_it_consumed(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+    ) -> None:
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        mock_fetch.return_value = self._state_on_head()
+        mock_pop.return_value = [
+            self._queued(self._bot_review_feedback(1, "coderabbitai[bot]")),
+            self._queued(self._bot_review_feedback(2, "coderabbitai[bot]")),
+            self._queued(self._bot_review_feedback(3, "seer-by-sentry[bot]")),
+            self._queued(self._check_suite_feedback()),
+            self._ui_queued(),
+        ]
+        self._open_iteration_row()
+
+        self._call()
+
+        (row,) = open_iterations(seer_run)
+        assert row.data["feedback_bot_logins"] == ["coderabbitai[bot]", "seer-by-sentry[bot]"]
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_dropped_bot_review_contributes_no_login(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+    ) -> None:
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        already_processed = self._bot_review_feedback(700, "seer-by-sentry[bot]")
+        block = MemoryBlock(
+            id="b1",
+            message=Message(
+                role="assistant", metadata={"feedback": serialize_feedback([already_processed])}
+            ),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+        mock_fetch.return_value = self._state(blocks=[block])
+        mock_pop.return_value = [
+            self._queued(already_processed),
+            self._queued(self._bot_review_feedback(701, "coderabbitai[bot]")),
+        ]
+        self._open_iteration_row()
+
+        self._call()
+
+        (row,) = open_iterations(seer_run)
+        assert row.data["dropped_count"] == 1
+        assert row.data["feedback_bot_logins"] == ["coderabbitai[bot]"]
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_deduped_bot_review_contributes_no_login(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+    ) -> None:
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        mock_fetch.return_value = self._state()
+        # Two bots cannot share a review id in practice: the pair pins the dedupe.
+        mock_pop.return_value = [
+            self._queued(self._bot_review_feedback(800, "coderabbitai[bot]")),
+            self._queued(self._bot_review_feedback(800, "seer-by-sentry[bot]")),
+        ]
+        self._open_iteration_row()
+
+        self._call()
+
+        (row,) = open_iterations(seer_run)
+        assert row.data["dropped_count"] == 1
+        assert row.data["feedback_bot_logins"] == ["coderabbitai[bot]"]
 
 
 class TriggerConsumePrIterationFeedbackTest(TestCase):
