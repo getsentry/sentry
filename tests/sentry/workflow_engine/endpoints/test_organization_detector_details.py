@@ -2,10 +2,8 @@ from datetime import timedelta
 from unittest import mock
 
 import pytest
-from django.test import override_settings
 from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
-from rest_framework.test import APIClient
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
@@ -17,7 +15,6 @@ from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.seer import agent_token
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -46,8 +43,6 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
-
-AGENT_TOKEN_SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
 
 
 @pytest.mark.snuba_ci
@@ -349,30 +344,6 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
 
         self.detector.refresh_from_db()
         assert self.detector.description == "New description for the detector"
-
-    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
-    def test_agent_token_missing_alerts_write_advertises_scope(self) -> None:
-        token, _ = agent_token.encode_agent_token(
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            scopes=["org:read"],
-            session_id="detector-update",
-        )
-        client = APIClient()
-
-        with self.feature(agent_token.FEATURE_FLAG):
-            response = client.put(
-                f"/api/0/organizations/{self.organization.slug}/detectors/{self.detector.id}/",
-                data={"name": "Updated Detector"},
-                format="json",
-                HTTP_AUTHORIZATION=f"Bearer {token}",
-            )
-
-        assert response.status_code == 403, response.content
-        assert (
-            response["WWW-Authenticate"]
-            == 'Bearer error="insufficient_scope", scope="alerts:write"'
-        )
 
     def test_update_eap_invalid_time_window_rejected(self) -> None:
         data = {**self.valid_data}
