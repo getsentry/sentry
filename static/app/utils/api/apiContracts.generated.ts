@@ -1272,7 +1272,8 @@ export type ConfigValidator = {
     | 'Universal'
     | 'W-SU'
     | 'WET'
-    | 'Zulu';
+    | 'Zulu'
+    | 'localtime';
 };
 
 export type CreateExternalIssueRequest = {
