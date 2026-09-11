@@ -38,7 +38,7 @@ from typing import Any, Literal, Union, is_typeddict
 from typing import get_type_hints as _get_type_hints
 
 import drf_spectacular
-from drf_spectacular.drainage import get_override
+from drf_spectacular.drainage import get_override, warn
 from drf_spectacular.plumbing import (
     UnableToProceedError,
     build_basic_type,
@@ -49,7 +49,7 @@ from drf_spectacular.plumbing import build_array_type as drf_build_array_type
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import _SchemaType
 
-from sentry.apidocs.utils import reload_module_with_type_checking_enabled
+from sentry.apidocs.utils import is_internal_build, reload_module_with_type_checking_enabled
 
 # This function is ported from the drf-spectacular library method here:
 # https://github.com/tfranzel/drf-spectacular/blob/03d315ced245db71cef1e45fd05a082b7dedc7aa/drf_spectacular/plumbing.py#L1100
@@ -109,6 +109,28 @@ def build_array_type(
     return drf_build_array_type(schema=schema, min_length=min_length, max_length=max_length)
 
 
+UNRESOLVED_EXTENSION = "x-sentry-unresolved"
+
+
+def resolve_type_hint_lenient(hint, context: str) -> Any:
+    """
+    Resolve ``hint`` like ``resolve_type_hint``, but in internal builds replace an
+    unresolvable hint with an untyped placeholder instead of failing the build.
+
+    The placeholder carries the offending hint under ``x-sentry-unresolved`` so
+    generated types show ``unknown`` exactly where the backend contract is not
+    expressible yet (a plain class used as a response, an unsupported generic).
+    The published spec keeps failing hard: an unresolvable public type is a bug.
+    """
+    try:
+        return resolve_type_hint(hint)
+    except UnableToProceedError:
+        if not is_internal_build():
+            raise
+        warn(f"could not resolve {hint!r} for {context}; emitting an untyped placeholder")
+        return {UNRESOLVED_EXTENSION: repr(hint)}
+
+
 def resolve_type_hint(hint) -> Any:
     """drf-spectacular library method modified as described above"""
     origin, args = _get_type_hint_origin(hint)
@@ -133,7 +155,12 @@ def resolve_type_hint(hint) -> Any:
             max_length=len(args),
             min_length=len(args),
         )
-    elif origin is dict or origin is defaultdict:
+    elif origin in (
+        dict,
+        defaultdict,
+        collections.abc.Mapping,
+        collections.abc.MutableMapping,
+    ):
         schema = build_basic_type(OpenApiTypes.OBJECT)
         if args and args[1] is not typing.Any and schema is not None:
             schema["additionalProperties"] = resolve_type_hint(args[1])
@@ -162,14 +189,20 @@ def resolve_type_hint(hint) -> Any:
             schema.update(basic_type)
         return schema
     elif is_typeddict(hint):
+        # A TypedDict enumerates every key it can carry, so internal builds describe
+        # it as a closed object: a serializer emitting an undeclared key is drift,
+        # not an extension. The published spec keeps objects open until existing
+        # drift on public endpoints has been measured and fixed.
+        closed: dict[str, Any] = {"additionalProperties": False} if is_internal_build() else {}
         return build_object_type(
             properties={
-                k: resolve_type_hint(v)
+                k: resolve_type_hint_lenient(v, f"{hint.__name__}.{k}")
                 for k, v in get_type_hints(hint).items()
                 if k not in excluded_fields
             },
             description=inspect.cleandoc(hint.__doc__ or ""),
             required=[h for h in hint.__required_keys__ if h not in excluded_fields],
+            **closed,
         )
     elif origin is Union or origin is UnionType:
         type_args = [arg for arg in args if arg is not type(None)]
@@ -196,7 +229,12 @@ def resolve_type_hint(hint) -> Any:
             else:
                 schema["nullable"] = True
         return schema
-    elif origin is collections.abc.Iterable:
+    elif origin in (
+        collections.abc.Iterable,
+        collections.abc.Collection,
+        collections.abc.Sequence,
+        collections.abc.MutableSequence,
+    ):
         return build_array_type(resolve_type_hint(args[0]))
     else:
         raise UnableToProceedError(hint)

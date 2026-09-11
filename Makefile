@@ -44,6 +44,14 @@ build-deprecated-docs:
 	@echo "--> Building deprecated openapi spec from json files"
 	pnpm run build-deprecated-docs
 
+# Like build-spectacular-docs, but also includes every private/experimental
+# endpoint method that declares a schema, stamps operations with
+# x-sentry-publish-status, and describes TypedDict responses as closed objects.
+# This is the input for frontend contract generation; it is never published.
+build-internal-api-docs: build-deprecated-docs
+	@echo "--> Building internal drf-spectacular openapi spec (public + schema-declaring private endpoints)"
+	@SENTRY_OPENAPI_INTERNAL=1 OPENAPIGENERATE=1 sentry django spectacular --file tests/apidocs/openapi-internal.json --format openapi-json --validate
+
 build-api-docs: build-deprecated-docs build-spectacular-docs
 	@echo "--> Dereference the json schema for ease of use"
 	pnpm run deref-api-docs

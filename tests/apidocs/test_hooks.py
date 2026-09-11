@@ -1,12 +1,17 @@
+import os
 from typing import Any
-from unittest import TestCase
+from unittest import TestCase, mock
 
 import pytest
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.apidocs.hooks import (
     _ENDPOINT_SERVERS,
+    _INTERNAL_OPERATIONS,
+    PUBLISH_STATUS_EXTENSION,
     _fix_nullable_enums,
     custom_postprocessing_hook,
+    custom_preprocessing_hook,
 )
 from sentry.apidocs.utils import SentryApiBuildError
 
@@ -241,3 +246,119 @@ class FixNullableEnumsTest(TestCase):
                 {"type": "object", "nullable": True},
             ],
         }
+
+
+def _fake_endpoint(publish_status: dict[str, Any], **handlers: Any) -> Any:
+    """A callback whose ``view_class`` carries only what the preprocessing hook reads."""
+    from sentry.api.api_owners import ApiOwner
+
+    namespace: dict[str, Any] = {
+        "owner": ApiOwner.ISSUES,
+        "publish_status": publish_status,
+        "__module__": "sentry.api.endpoints.fake",
+    }
+    namespace.update(handlers)
+    view_class = type("FakeEndpoint", (), namespace)
+
+    class Callback:
+        pass
+
+    callback = Callback()
+    callback.view_class = view_class  # type: ignore[attr-defined]
+    return callback
+
+
+def _public_operation(operation_id: str) -> dict[str, Any]:
+    return {
+        "tags": ["Events"],
+        "description": "Documented",
+        "operationId": operation_id,
+        "parameters": [],
+    }
+
+
+class InternalBuildTest(TestCase):
+    def setUp(self) -> None:
+        _INTERNAL_OPERATIONS.clear()
+
+    def tearDown(self) -> None:
+        _INTERNAL_OPERATIONS.clear()
+
+    def _endpoints(self) -> list[tuple[str, str, str, Any]]:
+        def documented(self: Any, request: Any) -> None:
+            pass
+
+        setattr(documented, "kwargs", {"schema": object()})  # left behind by @extend_schema
+
+        def undocumented(self: Any, request: Any) -> None:
+            pass
+
+        public = _fake_endpoint({"GET": ApiPublishStatus.PUBLIC}, get=documented)
+        private_documented = _fake_endpoint({"GET": ApiPublishStatus.PRIVATE}, get=documented)
+        private_undocumented = _fake_endpoint(
+            {"GET": ApiPublishStatus.EXPERIMENTAL}, get=undocumented
+        )
+        return [
+            ("/api/0/public/", "^api/0/public/$", "GET", public),
+            ("/api/0/private/", "^api/0/private/$", "GET", private_documented),
+            ("/api/0/undocumented/", "^api/0/undocumented/$", "GET", private_undocumented),
+        ]
+
+    @mock.patch("sentry.apidocs.hooks.__write_ownership_data")
+    def test_public_build_only_keeps_public_methods(self, _write: mock.Mock) -> None:
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("SENTRY_OPENAPI_INTERNAL", None)
+            filtered = custom_preprocessing_hook(self._endpoints())
+
+        assert [path for path, *_ in filtered] == ["/api/0/public/"]
+        assert _INTERNAL_OPERATIONS == {}
+
+    @mock.patch("sentry.apidocs.hooks.__write_ownership_data")
+    def test_internal_build_admits_private_methods_that_declare_a_schema(
+        self, _write: mock.Mock
+    ) -> None:
+        with mock.patch.dict(os.environ, {"SENTRY_OPENAPI_INTERNAL": "1"}):
+            filtered = custom_preprocessing_hook(self._endpoints())
+
+        assert [path for path, *_ in filtered] == ["/api/0/public/", "/api/0/private/"]
+        assert _INTERNAL_OPERATIONS == {("/api/0/private/", "get"): ApiPublishStatus.PRIVATE}
+
+    def test_internal_postprocessing_stamps_status_and_skips_reference_checks(self) -> None:
+        _INTERNAL_OPERATIONS[("/api/0/private/", "get")] = ApiPublishStatus.PRIVATE
+        result = {
+            "components": {"schemas": {}},
+            "paths": {
+                "/api/0/public/": {"get": _public_operation("public")},
+                # No tag and no description would fail the public checks;
+                # internal operations are exempt from them.
+                "/api/0/private/": {"get": {"operationId": "private", "parameters": []}},
+            },
+        }
+
+        with mock.patch.dict(os.environ, {"SENTRY_OPENAPI_INTERNAL": "1"}):
+            processed = custom_postprocessing_hook(result, None)
+
+        assert processed["paths"]["/api/0/public/"]["get"][PUBLISH_STATUS_EXTENSION] == "public"
+        assert processed["paths"]["/api/0/private/"]["get"][PUBLISH_STATUS_EXTENSION] == "private"
+
+    def test_internal_postprocessing_still_checks_public_operations(self) -> None:
+        result = {
+            "components": {"schemas": {}},
+            "paths": {"/api/0/public/": {"get": {"operationId": "public", "parameters": []}}},
+        }
+        with (
+            mock.patch.dict(os.environ, {"SENTRY_OPENAPI_INTERNAL": "1"}),
+            pytest.raises(SentryApiBuildError),
+        ):
+            custom_postprocessing_hook(result, None)
+
+    def test_public_build_does_not_stamp_status(self) -> None:
+        result = {
+            "components": {"schemas": {}},
+            "paths": {"/api/0/public/": {"get": _public_operation("public")}},
+        }
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("SENTRY_OPENAPI_INTERNAL", None)
+            processed = custom_postprocessing_hook(result, None)
+
+        assert PUBLISH_STATUS_EXTENSION not in processed["paths"]["/api/0/public/"]["get"]
