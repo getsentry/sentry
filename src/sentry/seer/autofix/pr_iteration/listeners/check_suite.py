@@ -145,7 +145,7 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
 
         run_state = resolved.autofix_run.run_state
         # A green suite carries no feedback of its own: it pre-empts an iteration
-        # some earlier feedback already deferred, so the row must already exist.
+        # some earlier feedback already deferred, so it never opens a row.
         log_ctx = bootstrap_iteration(
             logger=logger,
             run_state=run_state,

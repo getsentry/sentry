@@ -323,6 +323,9 @@ def comment_on_missing_permissions(
         return
 
     group_id = state.metadata.get("group_id") if state.metadata else None
+    if group_id is None:
+        raise ValueError(f"Missing group id in agent run {state.run_id}")
+
     post_missing_permissions_comment(
         organization=organization,
         run_id=run_id,

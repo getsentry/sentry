@@ -97,6 +97,9 @@ class TriggerPrIterationFromCommentTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
         self.repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
@@ -467,9 +470,6 @@ class TriggerPrIterationFromCommentTest(TestCase):
         # `@sentry stop iterating` already stopped this run, so consume would
         # drop anything queued here. Nothing is queued and nothing is written to
         # the PR: an :eyes: would promise an iteration that never comes.
-        self.create_seer_run(
-            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
-        )
         pause_pr_iteration(
             run_id=67890,
             organization_id=self.organization.id,
