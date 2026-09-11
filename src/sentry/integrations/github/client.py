@@ -324,7 +324,16 @@ class GithubProxyClient(IntegrationProxyClient):
         return get_jwt()
 
     @control_silo_function
-    def _refresh_access_token(self) -> AccessTokenData | None:
+    def refresh_access_token(self) -> AccessTokenData | None:
+        """Mint a new installation token and store what GitHub says it grants.
+
+        Public because re-reading an installation's permissions has no other
+        entrypoint: they arrive with the token and nowhere else. Callers outside
+        control silo go through ``integration_service.refresh_github_permissions``.
+
+        Unconditional -- ``get_access_token`` is the one that decides whether a
+        refresh is due.
+        """
         integration = Integration.objects.filter(id=self.integration.id).first()
         if not integration:
             return None
@@ -439,7 +448,7 @@ class GithubProxyClient(IntegrationProxyClient):
         should_refresh = not access_token or not expires_at or close_to_expiry
 
         if should_refresh:
-            return self._refresh_access_token()
+            return self.refresh_access_token()
 
         if access_token:
             return {
