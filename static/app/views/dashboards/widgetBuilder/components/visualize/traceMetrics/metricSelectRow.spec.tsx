@@ -7,7 +7,10 @@ import type {
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {MetricSelectRow} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricSelectRow';
-import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  useWidgetBuilderContext,
+  WidgetBuilderProvider,
+} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {serializeFields} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
@@ -178,6 +181,55 @@ describe('MetricSelectRow', () => {
     // Both metrics should be selected
     expect(screen.getByRole('button', {name: 'beta_metric'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'alpha_metric'})).toBeInTheDocument();
+  });
+
+  it('preserves table grouping fields when updating an aggregate', async () => {
+    let fields: QueryFieldValue[] | undefined;
+
+    function MetricSelectRows() {
+      const {state} = useWidgetBuilderContext();
+      fields = state.fields;
+
+      return state.fields?.map((field, index) => (
+        <MetricSelectRow key={index} field={field} index={index} disabled={false} />
+      ));
+    }
+
+    render(
+      <WidgetBuilderProvider>
+        <MetricSelectRows />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.TABLE,
+              field: [
+                'span.op',
+                'span.description',
+                'sum(value,alpha_metric,counter,none)',
+                'count(value,alpha_metric,counter,none)',
+              ],
+            },
+          },
+        },
+      }
+    );
+
+    const metricSelectors = await screen.findAllByRole('button', {name: 'alpha_metric'});
+    await userEvent.click(metricSelectors[0]!);
+    await userEvent.click(await screen.findByRole('option', {name: 'beta_metric'}));
+
+    await waitFor(() => {
+      expect(serializeFields(fields ?? [])).toEqual([
+        'span.op',
+        'span.description',
+        'sum(value,beta_metric,counter,none)',
+        'sum(value,beta_metric,counter,none)',
+      ]);
+    });
   });
 
   it('replaces invalid aggregates when changing to an incompatible metric type', async () => {

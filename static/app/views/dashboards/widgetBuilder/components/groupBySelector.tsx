@@ -14,15 +14,18 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 
 interface WidgetBuilderGroupBySelectorProps {
   validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
+  preserveAggregateFields?: boolean;
 }
 
 export function WidgetBuilderGroupBySelector({
+  preserveAggregateFields = false,
   validatedWidgetResponse,
 }: WidgetBuilderGroupBySelectorProps) {
   const {state, dispatch} = useWidgetBuilderContext();
@@ -87,8 +90,18 @@ export function WidgetBuilderGroupBySelector({
     tags,
   ]);
 
+  const groupByColumns = preserveAggregateFields
+    ? state.fields?.filter(field => field.kind === FieldValueKind.FIELD)
+    : state.fields;
+
   const handleGroupByChange = (newValue: QueryFieldValue[]) => {
-    dispatch({type: BuilderStateAction.SET_FIELDS, payload: newValue});
+    const fields = preserveAggregateFields
+      ? [
+          ...newValue,
+          ...(state.fields?.filter(field => field.kind !== FieldValueKind.FIELD) ?? []),
+        ]
+      : newValue;
+    dispatch({type: BuilderStateAction.SET_FIELDS, payload: fields});
   };
 
   return (
@@ -102,7 +115,7 @@ export function WidgetBuilderGroupBySelector({
       />
 
       <GroupBySelector
-        columns={state.fields}
+        columns={groupByColumns}
         fieldOptions={groupByOptions}
         onChange={handleGroupByChange}
         validatedWidgetResponse={validatedWidgetResponse}

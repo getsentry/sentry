@@ -5,7 +5,7 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import {useTraceMetricMultiMetricSelection} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricMultiMetricSelection';
 import {
   extractTraceMetricFromColumn,
-  getTraceMetricAggregateSource,
+  getTraceMetricAggregates,
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {hasMultipleMetricsSelected} from 'sentry/views/dashboards/widgetBuilder/utils/hasMultipleMetricsSelected';
 import type {TraceItemAttributeConfig} from 'sentry/views/explore/hooks/useTraceItemAttributes';
@@ -33,7 +33,7 @@ export function useWidgetBuilderTraceItemConfig(): TraceItemAttributeConfig {
   }
 
   if (state.dataset === WidgetType.TRACEMETRICS) {
-    const aggregateSource = getTraceMetricAggregateSource(
+    const aggregateSource = getTraceMetricAggregates(
       state.displayType,
       state.yAxis,
       state.fields
