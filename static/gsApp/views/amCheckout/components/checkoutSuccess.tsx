@@ -592,14 +592,14 @@ export function CheckoutSuccess({
       align="center"
       justify="between"
       gap="3xl"
-      direction={{zero: 'column', '2xl': 'row'}}
+      direction={{zero: 'column', '3xl': 'row'}}
     >
-      <Stack align={{zero: 'center', '2xl': 'start'}} maxWidth="500px">
-        <Heading size="2xl" as="h1" align={{zero: 'center', '2xl': 'left'}}>
+      <Stack align={{zero: 'center', '3xl': 'start'}} maxWidth="500px">
+        <Heading size="2xl" as="h1" align={{zero: 'center', '3xl': 'left'}}>
           {contentTitle}
         </Heading>
-        <Stack gap="2xl" align={{zero: 'center', '2xl': 'start'}}>
-          <Text variant="muted" size="lg" align={{zero: 'center', '2xl': 'left'}}>
+        <Stack gap="2xl" align={{zero: 'center', '3xl': 'start'}}>
+          <Text variant="muted" size="lg" align={{zero: 'center', '3xl': 'left'}}>
             {contentDescription}
           </Text>
           <Flex
