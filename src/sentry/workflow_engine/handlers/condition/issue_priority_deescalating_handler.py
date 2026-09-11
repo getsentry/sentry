@@ -14,10 +14,8 @@ class IssuePriorityDeescalatingConditionHandler(DataConditionHandler[WorkflowEve
     group = DataConditionHandler.Group.ACTION_FILTER
     subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
     comparison_json_schema = {
-        "anyOf": [
-            {"type": "integer", "enum": [*PriorityLevel]},
-            {"type": "boolean", "const": True},
-        ]
+        "type": "integer",
+        "enum": [*PriorityLevel],
     }
 
     @staticmethod
@@ -36,9 +34,6 @@ class IssuePriorityDeescalatingConditionHandler(DataConditionHandler[WorkflowEve
             raise DataConditionEvaluationException("No open period found")
         # use this to determine if we've breached the comparison priority before
         highest_seen_priority = open_period.data.get("highest_seen_priority", current_priority)
-
-        if comparison is True:
-            return current_priority < highest_seen_priority or group.status == GroupStatus.RESOLVED
 
         return comparison <= highest_seen_priority and (
             current_priority < comparison or group.status == GroupStatus.RESOLVED
