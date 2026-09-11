@@ -2410,7 +2410,8 @@ register(
     30,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Toggles emitting the smallest-transaction sampling-factor bucket metric during transaction rebalancing.
+# Nothing reads this option any more. It stays registered until the options automator
+# has unset it, since the automator can only unset a registered option.
 register(
     "dynamic-sampling.boost_low_volume_transactions.emit_smallest_transaction_factor_metric",
     default=False,
@@ -2459,9 +2460,8 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Killswitch for the legacy dynamic sampling pipeline. When set to True, the four
-# scheduled jobs (sliding_window_org, boost_low_volume_projects,
-# boost_low_volume_transactions, recalibrate_orgs) exit before they do any work.
+# Nothing reads this option any more. It stays registered until the options automator
+# has unset it, since the automator can only unset a registered option.
 register(
     "dynamic-sampling.legacy.killswitch",
     default=False,
@@ -2532,11 +2532,8 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Controls the intensity of dynamic sampling transaction rebalancing. 0.0 = explict rebalancing
-# not performed, 1.0= full rebalancing (tries to bring everything to mean). Note that even at 0.0
-# there will still be some rebalancing between the explicit and implicit transactions ( so setting rebalancing
-# to 0.0 is not the same as no rebalancing. To effectively disable rebalancing set the number of explicit
-# transactions to be rebalance (both small and large) to 0.
+# Nothing reads this option any more. It stays registered until the options automator
+# has unset it, since the automator can only unset a registered option.
 register(
     "dynamic-sampling.prioritise_transactions.rebalance_intensity",
     default=0.8,
