@@ -14,8 +14,10 @@ class IssuePriorityDeescalatingConditionHandler(DataConditionHandler[WorkflowEve
     group = DataConditionHandler.Group.ACTION_FILTER
     subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
     comparison_json_schema = {
-        "type": "integer",
-        "enum": [*PriorityLevel],
+        "anyOf": [
+            {"type": "integer", "enum": [*PriorityLevel]},
+            {"type": "boolean"},
+        ]
     }
 
     @staticmethod
