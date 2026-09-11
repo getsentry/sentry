@@ -46,9 +46,11 @@ from sentry.seer.autofix.pr_iteration.constants import (
     PR_ITERATION_PROVIDER,
     REVIEW_REQUEST_FLAG,
 )
+from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
+from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -339,6 +341,7 @@ class CheckSuiteAutofixRun:
     group_id: int
 
 
+@trace
 def resolve_check_suite_autofix_run(
     event: GithubCheckSuiteEvent, repositories: Sequence[Repository] | None = None
 ) -> CheckSuiteAutofixRun | None:
@@ -433,7 +436,13 @@ def resolve_check_suite_autofix_run(
             },
         )
 
-    return matches[0]
+    run = matches[0]
+    set_pr_iteration_attributes(
+        run_id=run.run_state.run_id,
+        organization_id=run.repository.organization_id,
+        group_id=run.group_id,
+    )
+    return run
 
 
 class CheckSuiteHeadMatch(NamedTuple):
@@ -580,6 +589,7 @@ def pr_iteration_enabled(organization: Organization) -> bool:
     )
 
 
+@trace
 def resolve_green_check_suite(
     check_suite_event: CheckSuiteEvent,
 ) -> ResolvedGreenCheckSuite | None:
@@ -710,6 +720,7 @@ def inspect_check_suite_head(
     )
 
 
+@trace
 def confirm_green_check_suite(
     resolved: ResolvedGreenCheckSuite,
 ) -> GreenCheckSuiteContext | None:
@@ -737,6 +748,7 @@ def confirm_green_check_suite(
     )
 
 
+@trace
 def should_defer_pr_iteration(resolved: ResolvedGreenCheckSuite) -> bool:
     """Whether a PR-iteration event on this head must leave a parked consume deferred.
 
@@ -827,6 +839,7 @@ class _SweepCost:
         )
 
 
+@trace
 def sweep_check_runs(
     scm: SourceCodeManager, head_sha: str, *, log_extra: Mapping[str, object]
 ) -> CheckRunsSweep | None:
