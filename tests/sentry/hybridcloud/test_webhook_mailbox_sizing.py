@@ -263,11 +263,6 @@ class MailboxBucketCountTest(TestCase):
             assert mailbox_bucket_count(MAILBOX) == _max_buckets()
 
     def test_the_window_is_read_without_a_multi_key_command(self) -> None:
-        """`ClusterPipeline` blocks `mget` outright, and dev and CI cannot catch that:
-        a single-host `redis.clusters` entry has no `is_redis_cluster`, so the client
-        here is a plain `StrictRedis` whose pipeline takes `mget` happily. Production
-        is the only place the cluster client is built, so the command shape is asserted
-        rather than exercised."""
         pipeline = MagicMock()
         pipeline.execute.return_value = [1, True] + ["1"] * (SHARD_COUNT - 1)
 

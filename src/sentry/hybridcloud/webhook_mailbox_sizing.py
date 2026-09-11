@@ -173,12 +173,7 @@ def _record_and_read_window(counter_key: str) -> int | None:
         pipe = redis.redis_clusters.get(settings.SENTRY_RATE_LIMIT_REDIS_CLUSTER).pipeline()
         pipe.incr(current_key)
         pipe.expire(current_key, SHARD_TTL_SECONDS)
-        # One GET per shard, not one MGET over them. `ClusterPipeline` replaces `mget`
-        # with an unconditional raise -- a guard against a cross-slot fanout that
-        # `_shard_key`'s hash tag has already ruled out, since it never consults the
-        # slot to decide. The shards share a slot, so the pipeline still packs every
-        # command into a single write to one node; only server-side atomicity across
-        # the reads is lost, which a sum of forward-only counters does not need.
+        # One GET per shard, as redis cluster does not support pipelining MGET
         for key in older_keys:
             pipe.get(key)
         results = pipe.execute(raise_on_error=True)
