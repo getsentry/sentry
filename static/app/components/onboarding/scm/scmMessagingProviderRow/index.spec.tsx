@@ -5,6 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
 import {
+  cleanup,
   render,
   renderGlobalModal,
   screen,
@@ -89,6 +90,14 @@ const connectedSlack: ScmMessagingResolvedProvider = {
   provider: slackProvider,
   status: 'connected',
   eligibleIntegrations: [slackIntegration],
+  permissionLimitedIntegration: undefined,
+};
+
+const installableMsteams: ScmMessagingResolvedProvider = {
+  providerKey: 'msteams',
+  provider: msteamsProvider,
+  status: 'installable',
+  eligibleIntegrations: [],
   permissionLimitedIntegration: undefined,
 };
 
@@ -196,6 +205,8 @@ function renderRow(
 
 describe('ScmMessagingProviderRow', () => {
   afterEach(() => {
+    // Unmount active queries before restoring focus to avoid triggering another refetch.
+    cleanup();
     jest.restoreAllMocks();
     focusManager.setFocused(undefined);
   });
@@ -232,45 +243,11 @@ describe('ScmMessagingProviderRow', () => {
       );
     });
 
-    it('opens the marketplace modal for MS Teams', async () => {
+    it('opens the marketplace modal for MS Teams and completes the install on return', async () => {
       mockPipeline();
-      const installableMsteams: ScmMessagingResolvedProvider = {
-        providerKey: 'msteams',
-        provider: msteamsProvider,
-        status: 'installable',
-        eligibleIntegrations: [],
-        permissionLimitedIntegration: undefined,
-      };
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/integrations/',
-        body: [],
-      });
-      renderGlobalModal({organization});
-      renderRow(installableMsteams);
-
-      const connect = screen.getByRole('button', {name: /Connect/});
-      expect(connect).toBeEnabled();
-
-      await userEvent.click(connect);
-
-      expect(
-        await screen.findByText('Installing Microsoft Teams Integration')
-      ).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Teams Marketplace'})).toBeInTheDocument();
-      expect(pipelineModal.openPipelineModal).not.toHaveBeenCalled();
-    });
-
-    it('closes the marketplace modal and completes the install once MS Teams appears', async () => {
       // Start unfocused so the later focus transition deterministically refetches.
       focusManager.setFocused(false);
       jest.spyOn(window, 'open').mockImplementation(() => null);
-      const installableMsteams: ScmMessagingResolvedProvider = {
-        providerKey: 'msteams',
-        provider: msteamsProvider,
-        status: 'installable',
-        eligibleIntegrations: [],
-        permissionLimitedIntegration: undefined,
-      };
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/',
         body: [],
@@ -281,18 +258,24 @@ describe('ScmMessagingProviderRow', () => {
         onInstallComplete,
       });
 
-      await userEvent.click(screen.getByRole('button', {name: /Connect/}));
-      await userEvent.click(
-        await screen.findByRole('button', {name: 'Teams Marketplace'})
-      );
+      const connect = screen.getByRole('button', {name: /Connect/});
+      expect(connect).toBeEnabled();
 
+      await userEvent.click(connect);
+
+      expect(
+        await screen.findByText('Installing Microsoft Teams Integration')
+      ).toBeInTheDocument();
+      expect(pipelineModal.openPipelineModal).not.toHaveBeenCalled();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Teams Marketplace'}));
       expect(onInstallComplete).not.toHaveBeenCalled();
 
       // The user finishes in the Marketplace and returns to the tab: the focus
-      // refetch surfaces the new team installation.
+      // refetch surfaces the new installation.
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/',
-        body: [{...msteamsIntegration, configData: {installationType: 'team'}}],
+        body: [msteamsIntegration],
       });
       act(() => focusManager.setFocused(true));
 
