@@ -34,7 +34,7 @@ import {
 } from 'getsentry/views/subscriptionPage/usageOverview/components/cta';
 import {
   USAGE_OVERVIEW_PANEL_HEADER_HEIGHT,
-  USAGE_OVERVIEW_PANEL_REFERRER,
+  USAGE_OVERVIEW_PRODUCT_LINK_REFERRER,
 } from 'getsentry/views/subscriptionPage/usageOverview/constants';
 import type {BreakdownPanelProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
 
@@ -112,7 +112,7 @@ function PanelHeader({
       </Flex>
       {productLink && (
         <LinkButton
-          to={`${productLink}?referrer=${USAGE_OVERVIEW_PANEL_REFERRER}`}
+          to={`${productLink}?referrer=${USAGE_OVERVIEW_PRODUCT_LINK_REFERRER}`}
           icon={<IconSettings />}
           aria-label={t('Configure %s', displayName)}
           tooltipProps={{

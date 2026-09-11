@@ -549,7 +549,10 @@ describe('ProductBreakdownPanel', () => {
     expect(screen.queryByText('Reserved spend')).not.toBeInTheDocument();
     expect(screen.getByText('Active contributors spend')).toBeInTheDocument();
     expect(screen.getByText('$80.00')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Configure Seer'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Configure Seer'})).toHaveAttribute(
+      'href',
+      `/settings/${organization.slug}/seer/repos/?referrer=product-breakdown-page`
+    );
 
     await screen.findByText('Active Contributors (3)'); // wait for billed seats to be loaded
   });
