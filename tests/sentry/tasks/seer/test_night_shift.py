@@ -739,6 +739,28 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         assert run_id is not None
         assert SeerNightShiftRun.objects.filter(id=run_id, organization=org).exists()
 
+    def test_no_seer_quota_does_not_resume_incomplete_run_without_shards(self) -> None:
+        org = self.create_organization()
+        schedule_id = "2024-07-22T22:00"
+
+        with (
+            patch(
+                "sentry.tasks.seer.night_shift.cron.quotas.backend.check_seer_quota",
+                side_effect=[True, False],
+            ),
+            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution") as mock_execution,
+        ):
+            first_run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
+            second_run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
+
+        assert first_run_id is not None
+        assert second_run_id is None
+        run = SeerNightShiftRun.objects.get(id=first_run_id)
+        assert run.date_completed is None
+        assert not run.shards.exists()
+        assert SeerNightShiftRun.objects.filter(organization=org).count() == 1
+        mock_execution.assert_called_once()
+
     def test_free_cohort_skips_quota_check(self) -> None:
         org = self.create_organization()
 

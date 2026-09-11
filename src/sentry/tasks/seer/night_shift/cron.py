@@ -252,6 +252,101 @@ def schedule_night_shift(
     )
 
 
+class _NoQuotaHandling(StrEnum):
+    """How to handle a Night Shift invocation when quota is unavailable."""
+
+    # Return without creating or executing a run.
+    SKIP_WITHOUT_RUN = "skip_without_run"
+    # Create an errored run for user-visible feedback, but do not execute it.
+    CREATE_FAILED_RUN = "create_failed_run"
+
+
+def _has_night_shift_quota(organization: Organization) -> bool:
+    # Free-cohort orgs receive Night Shift without a subscription.
+    return is_free_cohort_org(organization) or quotas.backend.check_seer_quota(
+        org_id=organization.id,
+        data_category=DataCategory.SEER_AUTOFIX,
+    )
+
+
+def _get_no_quota_handling(
+    organization: Organization, schedule_id: str | None
+) -> _NoQuotaHandling | None:
+    """Return special handling required by quota, or None to continue normally.
+
+    Scheduled invocations may continue without quota when the existing run is
+    complete or has persisted shards to resume.
+    """
+    if _has_night_shift_quota(organization):
+        return None
+    if schedule_id is None:
+        return _NoQuotaHandling.CREATE_FAILED_RUN
+
+    existing_run = SeerNightShiftRun.objects.filter(
+        organization=organization,
+        workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
+        schedule_id=schedule_id,
+    ).first()
+    if existing_run is not None and (
+        existing_run.date_completed is not None or existing_run.shards.exists()
+    ):
+        return None
+    return _NoQuotaHandling.SKIP_WITHOUT_RUN
+
+
+def _prepare_scheduled_run(
+    organization: Organization,
+    schedule_id: str,
+    *,
+    workflow_config: SeerWorkflowConfig,
+    extras: dict[str, object],
+) -> tuple[SeerNightShiftRun, bool]:
+    """Return the scheduled run and whether it should execute.
+
+    Existing incomplete runs are resumed. The boolean is false only when the
+    schedule already has a completed run.
+    """
+    run, created = SeerNightShiftRun.objects.get_or_create(
+        organization=organization,
+        workflow_config=workflow_config,
+        schedule_id=schedule_id,
+        defaults={"extras": extras},
+    )
+    if created:
+        return run, True
+
+    log_extra = {
+        "organization_id": organization.id,
+        "schedule_id": schedule_id,
+        "night_shift_run_id": run.id,
+    }
+    if run.date_completed is not None:
+        logger.info("night_shift.duplicate_run_skipped", extra=log_extra)
+        sentry_sdk.metrics.count("night_shift.duplicate_run_skipped", 1)
+        return run, False
+
+    logger.info("night_shift.incomplete_run_resumed", extra=log_extra)
+    sentry_sdk.metrics.count("night_shift.incomplete_run_resumed", 1)
+    return run, True
+
+
+def _dispatch_night_shift_run(
+    run: SeerNightShiftRun,
+    *,
+    resolved_options: SeerNightShiftRunOptions,
+    project_ids: list[int] | None,
+    execute_in_task: bool,
+) -> None:
+    task_kwargs: dict[str, Any] = {"options": resolved_options}
+    if project_ids is not None:
+        task_kwargs["project_ids"] = project_ids
+
+    if execute_in_task:
+        run_night_shift_execution.apply_async(args=[run.id], kwargs=task_kwargs)
+    else:
+        run_night_shift_execution(run.id, **task_kwargs)
+
+
 @instrumented_task(
     name="sentry.tasks.seer.night_shift.run_night_shift_for_org",
     namespace=seer_tasks,
@@ -287,22 +382,10 @@ def run_night_shift_for_org(
         {"organization_id": organization.id, "organization_slug": organization.slug}
     )
 
-    # Free-cohort orgs receive Night Shift without a subscription.
-    has_seer_quota = is_free_cohort_org(organization) or quotas.backend.check_seer_quota(
-        org_id=organization.id,
-        data_category=DataCategory.SEER_AUTOFIX,
-    )
-    if not has_seer_quota and schedule_id is not None:
-        existing_run = SeerNightShiftRun.objects.filter(
-            organization=organization,
-            workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
-            schedule_id=schedule_id,
-        ).first()
-        if existing_run is None or (
-            existing_run.date_completed is None and not existing_run.shards.exists()
-        ):
-            logger.info("night_shift.no_seer_quota", extra={"organization_id": organization.id})
-            return None
+    no_quota_handling = _get_no_quota_handling(organization, schedule_id)
+    if no_quota_handling is _NoQuotaHandling.SKIP_WITHOUT_RUN:
+        logger.info("night_shift.no_seer_quota", extra={"organization_id": organization.id})
+        return None
 
     # Manual project runs scope to a single project, whose tweaks feed the run
     # options; cron and org-wide manual runs have no single project.
@@ -317,13 +400,12 @@ def run_night_shift_for_org(
         strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
     )
 
-    extras: dict[str, object] = {"options": dict(resolved_options)}
+    extras: dict[str, object] = {"options": resolved_options}
     if project_ids is not None:
         extras["target_project_ids"] = project_ids
     if triggering_user_id is not None:
         extras["triggering_user_id"] = triggering_user_id
 
-    created = schedule_id is None
     if schedule_id is None:
         run = SeerNightShiftRun.objects.create(
             organization=organization,
@@ -331,37 +413,16 @@ def run_night_shift_for_org(
             extras=extras,
         )
     else:
-        run, created = SeerNightShiftRun.objects.get_or_create(
-            organization=organization,
+        run, should_execute = _prepare_scheduled_run(
+            organization,
+            schedule_id,
             workflow_config=workflow_config,
-            schedule_id=schedule_id,
-            defaults={"extras": extras},
+            extras=extras,
         )
-
-    if not created:
-        if run.date_completed is not None:
-            logger.info(
-                "night_shift.duplicate_run_skipped",
-                extra={
-                    "organization_id": organization.id,
-                    "schedule_id": schedule_id,
-                    "night_shift_run_id": run.id,
-                },
-            )
-            sentry_sdk.metrics.count("night_shift.duplicate_run_skipped", 1)
+        if not should_execute:
             return run.id
 
-        logger.info(
-            "night_shift.incomplete_run_resumed",
-            extra={
-                "organization_id": organization.id,
-                "schedule_id": schedule_id,
-                "night_shift_run_id": run.id,
-            },
-        )
-        sentry_sdk.metrics.count("night_shift.incomplete_run_resumed", 1)
-
-    if not has_seer_quota and schedule_id is None:
+    if no_quota_handling is _NoQuotaHandling.CREATE_FAILED_RUN:
         logger.info("night_shift.no_seer_quota", extra={"organization_id": organization.id})
         _record_run_error(
             run,
@@ -370,14 +431,12 @@ def run_night_shift_for_org(
         )
         return run.id
 
-    task_kwargs: dict[str, Any] = {"options": dict(resolved_options)}
-    if project_ids is not None:
-        task_kwargs["project_ids"] = project_ids
-
-    if execute_in_task:
-        run_night_shift_execution.apply_async(args=[run.id], kwargs=task_kwargs)
-    else:
-        run_night_shift_execution(run.id, **task_kwargs)
+    _dispatch_night_shift_run(
+        run,
+        resolved_options=resolved_options,
+        project_ids=project_ids,
+        execute_in_task=execute_in_task,
+    )
     return run.id
 
 
