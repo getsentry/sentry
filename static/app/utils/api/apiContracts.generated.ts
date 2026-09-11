@@ -8395,7 +8395,7 @@ export type ProjectWithTeam = {
 
 export type PromptsActivity = {
   feature: string;
-  status: 'snoozed' | 'visible' | 'dismissed';
+  status: 'snoozed' | 'dismissed' | 'visible';
 };
 
 export type PromptsActivityResponse = {
