@@ -115,9 +115,7 @@ export function ProjectAllocationsTable({
         ))}
         {!filteredMetrics.length && (
           <Table.Row>
-            <BodyCell columnKey="project" data-test-id="no-allocations">
-              {t('No allocations set')}
-            </BodyCell>
+            <BodyCell columnKey="project">{t('No allocations set')}</BodyCell>
           </Table.Row>
         )}
       </Table.Body>

@@ -116,7 +116,6 @@ function ScheduledChanges({
   const shortInterval = plan ? utils.getShortInterval(plan.billingInterval) : undefined;
   return (
     <Stack
-      data-test-id="scheduled-changes"
       gap="xl"
       padding="xl 0"
       width="100%"

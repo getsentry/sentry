@@ -224,7 +224,7 @@ describe('enabled Spend Allocations page', () => {
       await screen.findByRole('button', {name: 'Category Attachments'})
     ).toBeInTheDocument();
     await screen.findByText('Un-Allocated Attachments Pool');
-    expect(screen.getByTestId('no-allocations')).toBeInTheDocument();
+    expect(screen.getByText('No allocations set')).toBeInTheDocument();
 
     await selectEvent.openMenu(dropdown);
     // assert dropdown options are properly rendered
@@ -275,7 +275,7 @@ describe('enabled Spend Allocations page', () => {
       ],
     });
     await userEvent.click(screen.getByTestId('nextPeriod'));
-    expect(await screen.findByTestId('no-allocations')).toBeInTheDocument();
+    expect(await screen.findByText('No allocations set')).toBeInTheDocument();
     expect(mockGet_success).toHaveBeenCalledTimes(1);
   });
 
