@@ -187,6 +187,24 @@ S025_body_msg = (
     "endpoint accepts. Add it as request=."
 )
 
+S029_msg = (
+    "S029 Use .get_or_none() instead of .first() when querying "
+    "for a single unique row. If multiple similar rows exist, use an explicit "
+    ".order_by(...) before .first() to fetch a specific row."
+)
+
+
+def _is_unordered_first(node: ast.Call) -> bool:
+    if not isinstance(node.func, ast.Attribute) or node.func.attr != "first":
+        return False
+
+    current = node.func.value
+    while isinstance(current, ast.Call) and isinstance(current.func, ast.Attribute):
+        if current.func.attr == "order_by":
+            return not current.args
+        current = current.func.value
+    return True
+
 
 def _s015_msg() -> str:
     return (
@@ -1135,6 +1153,9 @@ class SentryVisitor(ast.NodeVisitor):
             and node.func.value.value.id == "self"
         ):
             self.errors.append((node.lineno, node.col_offset, S020_msg))
+
+        if _is_unordered_first(node):
+            self.errors.append((node.lineno, node.col_offset, S029_msg))
 
         self.generic_visit(node)
 

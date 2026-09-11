@@ -1610,3 +1610,36 @@ class E(Endpoint):
         return options.get("key", request.GET)
 """
     assert _run_input(src, SHAPED) == []
+
+
+def test_S029() -> None:
+    from tools.flake8_plugin import S029_msg
+
+    error = f"t.py:1:9: {S029_msg}"
+    assert _run("result = Model.objects.filter(id=1).first()") == [error]
+    assert _run("result = Model.objects.exclude(status='deleted').first()") == [error]
+    assert _run("result = Model.objects.first()") == [error]
+    assert _run("result = queryset.first()") == [error]
+    assert _run("result = get_queryset().first()") == [error]
+    assert _run("result = Model.objects.filter(id=1).select_related('owner').first()") == [error]
+    assert _run("result = Model.objects.filter(id=1).values('id').first()") == [error]
+    assert _run("result = Model.objects.filter(id=1).values_list('id').first()") == [error]
+    assert _run("result = Model.objects.filter(id=1).only('id').first()") == [error]
+    assert _run("result = Model.objects.order_by().first()") == [error]
+    assert _run("result = Model.objects.order_by().filter(id=1).first()") == [error]
+    assert _run(
+        "result = Model.objects.order_by('name').filter(active=True).order_by().first()"
+    ) == [error]
+
+    assert _run("result = Model.objects.order_by('id').first()") == []
+    assert (
+        _run(
+            "result = Model.objects.order_by('id').filter(active=True).select_related('owner').first()"
+        )
+        == []
+    )
+    assert (
+        _run("result = Model.objects.order_by().filter(active=True).order_by('id').first()") == []
+    )
+    assert _run("result = Model.objects.get_or_none(id=1)") == []
+    assert _run("result = value.first") == []
