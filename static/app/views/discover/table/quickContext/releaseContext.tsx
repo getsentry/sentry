@@ -198,7 +198,7 @@ const ReleaseContextContainer = styled(ContextContainer)`
     border: none;
     box-shadow: none;
   }
-  ${DataSection} {
+  [data-event-data-section] {
     padding: 0;
   }
   & + & {

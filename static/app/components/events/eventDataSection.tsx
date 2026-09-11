@@ -62,7 +62,13 @@ export function EventDataSection({
   const titleNode = <h3>{title}</h3>;
 
   return (
-    <DataSection ref={scrollToSection} className={className || ''} {...props}>
+    <DataSection
+      ref={scrollToSection}
+      className={className || ''}
+      data-event-data-section
+      padding={{zero: 'md xl', '3xl': 'lg 3xl'}}
+      {...props}
+    >
       <SectionHeader id={type} data-test-id={`event-section-${type}`}>
         {title && (
           <Title>

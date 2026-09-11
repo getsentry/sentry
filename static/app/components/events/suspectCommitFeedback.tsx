@@ -1,8 +1,8 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -38,14 +38,18 @@ export function SuspectCommitFeedback({
   if (feedbackSubmitted) {
     return (
       <Flex display={{zero: 'none', sm: 'flex'}} align="center" gap="xs">
-        <ThankYouText>{t('Thanks!')}</ThankYouText>
+        <Text variant="muted" density="comfortable" wrap="nowrap">
+          {t('Thanks!')}
+        </Text>
       </Flex>
     );
   }
 
   return (
     <Flex display={{zero: 'none', sm: 'flex'}} align="center" gap="xs">
-      <FeedbackText>{t('Is this correct?')}</FeedbackText>
+      <Text variant="muted" density="comfortable" wrap="nowrap">
+        {t('Is this correct?')}
+      </Text>
       <Flex gap="2xs">
         <Button
           size="zero"
@@ -63,17 +67,3 @@ export function SuspectCommitFeedback({
     </Flex>
   );
 }
-
-const FeedbackText = styled('span')`
-  font-size: ${p => p.theme.font.size.md};
-  line-height: 1.5;
-  color: ${p => p.theme.tokens.content.secondary};
-  white-space: nowrap;
-`;
-
-const ThankYouText = styled('span')`
-  font-size: ${p => p.theme.font.size.md};
-  line-height: 1.5;
-  color: ${p => p.theme.tokens.content.secondary};
-  white-space: nowrap;
-`;
