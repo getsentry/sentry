@@ -18,7 +18,7 @@ from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.types import FeatureRunStatus
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun
-from sentry.seer.monitor_cleanup import FEATURE, FEATURE_ID
+from sentry.seer.monitor_cleanup.constants import FEATURE, FEATURE_ID
 from sentry.seer.monitor_cleanup.results import load_monitor_cleanup_results
 from sentry.seer.monitor_cleanup.schemas import (
     RESPONSE_VERSION,

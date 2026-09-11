@@ -5,11 +5,10 @@ from datetime import datetime
 from functools import partial
 from typing import Literal, TypedDict
 
-from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import QuerySet, Value
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
-from rest_framework.exceptions import NotFound, Throttled, ValidationError
+from rest_framework.exceptions import NotFound, Throttled
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -30,7 +29,7 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.night_shift import SeerNightShiftRun
 from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.seer.models.workflow import SeerWorkflowStrategy
-from sentry.seer.monitor_cleanup import FEATURE, FEATURE_ID
+from sentry.seer.monitor_cleanup.constants import FEATURE, FEATURE_ID
 from sentry.seer.monitor_cleanup.runs import create_monitor_cleanup_run
 from sentry.seer.monitor_cleanup.schemas import MonitorCleanupRunExtras, MonitorCleanupRunResponse
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -48,7 +47,6 @@ class WorkflowRunCreateSerializer(serializers.Serializer):
 
 class WorkflowRunCreateResponse(TypedDict):
     runId: str
-    url: str
 
 
 class OrganizationSeerWorkflowsPermission(OrganizationPermission):
@@ -93,18 +91,6 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
                 agent__extras__project_ids__contained_by=[str(project.id) for project in projects],
             )
 
-        if run_id := request.GET.get("runId"):
-            try:
-                cleanup_runs = cleanup_runs.filter(uuid=run_id)
-            except DjangoValidationError:
-                cleanup_runs = cleanup_runs.none()
-                try:
-                    night_shift_runs = night_shift_runs.filter(id=run_id)
-                except (ValueError, AssertionError):
-                    raise ValidationError({"detail": "Enter a valid run ID."}) from None
-            else:
-                night_shift_runs = night_shift_runs.none()
-
         history = (
             night_shift_runs.annotate(run_kind=Value("night_shift"))
             .values("id", "date_added", "run_kind")
@@ -144,13 +130,7 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
         ):
             raise Throttled(detail="This organization has reached its scan limit. Try again later.")
         run = create_monitor_cleanup_run(request, organization)
-        return Response(
-            {
-                "runId": str(run.uuid),
-                "url": f"/organizations/{organization.slug}/issues/autofix/workflows/?runId={run.uuid}&expandLatest={strategy}",
-            },
-            status=202,
-        )
+        return Response({"runId": str(run.uuid)}, status=202)
 
 
 def serialize_workflow_page(

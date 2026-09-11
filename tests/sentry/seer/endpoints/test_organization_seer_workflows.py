@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from unittest.mock import patch
-from uuid import UUID
 
 import pytest
 from django.db import router, transaction
@@ -18,7 +17,7 @@ from sentry.seer.models.night_shift import (
     SeerNightShiftRunShard,
 )
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunPullRequest
-from sentry.seer.monitor_cleanup import FEATURE
+from sentry.seer.monitor_cleanup.constants import FEATURE
 from sentry.seer.monitor_cleanup.results import (
     load_monitor_cleanup_results,
     load_project_monitor_cleanup_result,
@@ -474,7 +473,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert run.run.type == "feature_run"
         assert run.extras["status"] == "running"
         assert run.extras["results"] == []
-        assert f"runId={run.run.uuid}" in response.data["url"]
+        assert response.data == {"runId": str(run.run.uuid)}
 
     def test_history_combines_runs_and_paginates_in_date_order(self) -> None:
         triage = Factories.create_seer_night_shift_run(organization=self.organization)
@@ -483,13 +482,9 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         with self.feature([FEATURE, "organizations:seer-night-shift"]):
             first = self.client.get(url, {"per_page": "1"})
             second = self.client.get(url, {"per_page": "1", "cursor": "1:1:0"})
-            cleanup_detail = self.client.get(url, {"runId": str(cleanup.run.uuid)})
-            triage_detail = self.client.get(url, {"runId": str(triage.id)})
         assert first.status_code == second.status_code == 200
         assert [run["id"] for run in first.data] == [str(cleanup.run.uuid)]
         assert [run["id"] for run in second.data] == [str(triage.id)]
-        assert [run["id"] for run in cleanup_detail.data] == [str(cleanup.run.uuid)]
-        assert [run["id"] for run in triage_detail.data] == [str(triage.id)]
         assert first.data[0]["extras"] == {"status": "running"}
         assert first.data[0]["results"] == []
         assert first.data[0]["dateAdded"] == cleanup.run.date_added
@@ -516,7 +511,6 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         with self.feature(FEATURE):
             response = self.client.get(
                 f"/api/0/organizations/{self.organization.slug}/seer/workflows/",
-                {"runId": str(seer_run.uuid)},
             )
         assert response.status_code == 200
         output = response.data[0]
@@ -583,23 +577,6 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
                 self.organization.slug, strategy="duplicate_monitors", status_code=429
             )
         assert SeerAgentRun.objects.filter(run__organization=self.organization).count() == 5
-
-    def test_rejects_run_id_above_bigint_range(self) -> None:
-        with self.feature(FEATURE):
-            response = self.client.get(
-                f"/api/0/organizations/{self.organization.slug}/seer/workflows/",
-                {"runId": "9223372036854775808"},
-            )
-        assert response.status_code == 400
-
-    def test_accepts_run_id_at_bigint_limit(self) -> None:
-        with self.feature(FEATURE):
-            response = self.client.get(
-                f"/api/0/organizations/{self.organization.slug}/seer/workflows/",
-                {"runId": "9223372036854775807"},
-            )
-        assert response.status_code == 200
-        assert response.data == []
 
     def test_tasks_ignore_deleted_run(self) -> None:
         run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
@@ -842,7 +819,6 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         with self.feature(FEATURE):
             response = self.client.get(
                 f"/api/0/organizations/{self.organization.slug}/seer/workflows/",
-                {"runId": str(run.run.uuid)},
             )
         assert response.status_code == 200
         assert response.data == []
@@ -959,37 +935,16 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
 
     def test_history_returns_night_shift_completion_datetime(self) -> None:
         completed_at = timezone.now()
-        run = Factories.create_seer_night_shift_run(
+        Factories.create_seer_night_shift_run(
             organization=self.organization, date_completed=completed_at
         )
         with self.feature("organizations:seer-night-shift"):
             response = self.client.get(
                 f"/api/0/organizations/{self.organization.slug}/seer/workflows/",
-                {"runId": str(run.id)},
             )
         assert response.status_code == 200
         assert response.data[0]["dateCompleted"] == completed_at
         assert datetime.fromisoformat(response.json()[0]["dateCompleted"]) == completed_at
-
-    def test_history_rejects_invalid_run_id(self) -> None:
-        with self.feature(FEATURE):
-            response = self.client.get(
-                f"/api/0/organizations/{self.organization.slug}/seer/workflows/",
-                {"runId": "not-a-run-id"},
-            )
-        assert response.status_code == 400
-        assert "detail" in response.data
-
-    def test_history_accepts_numeric_uuid(self) -> None:
-        run = SeerRun.objects.get(uuid=self.trigger().data["runId"])
-        run.update(uuid=UUID("12345678-1234-1234-1234-123456789012"))
-        with self.feature(FEATURE):
-            response = self.client.get(
-                f"/api/0/organizations/{self.organization.slug}/seer/workflows/",
-                {"runId": run.uuid.hex},
-            )
-        assert response.status_code == 200
-        assert response.data[0]["id"] == str(run.uuid)
 
     def test_finish_run_is_scoped_to_organization(self) -> None:
         run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])

@@ -3,7 +3,8 @@ import logging
 from django.utils import timezone
 
 from sentry.seer.models.run import SeerAgentRun
-from sentry.seer.monitor_cleanup import FEATURE_ID, runs
+from sentry.seer.monitor_cleanup import runs
+from sentry.seer.monitor_cleanup.constants import FEATURE_ID
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 
