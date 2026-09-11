@@ -57,7 +57,7 @@ def test_decode_extracts_segment_id() -> None:
     assert event.segment_id == "a" * 16
 
 
-@pytest.mark.parametrize("segment_id", ["aa:bb", "aa:bb:cc", "not-a-span-id"])
+@pytest.mark.parametrize("segment_id", ["aa:bb", "aa:bb:cc", "not-a-span-id", "aa:bb:cc:dd:ee:f"])
 def test_decode_rejects_invalid_segment_id(segment_id: str) -> None:
     payload = _valid_span(attributes={"sentry.segment.id": {"type": "string", "value": segment_id}})
 
