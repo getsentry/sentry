@@ -1,7 +1,7 @@
 from contextlib import AbstractContextManager, nullcontext
 from datetime import timedelta
 from typing import Any, Literal
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 from scm.errors import ResourceNotFound
@@ -24,6 +24,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
 from sentry.seer.autofix.pr_iteration.details_store import open_iterations
 from sentry.seer.autofix.pr_iteration.emit import open_pr_iteration_details
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
+from sentry.seer.autofix.pr_iteration.feedback_limits import MANUAL_FEEDBACK_MAX_LENGTH
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     ConsumeTask,
     ConsumeTriggerSource,
@@ -47,6 +48,7 @@ from sentry.seer.autofix.pr_iteration.pause import (
 )
 from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
+    clear_queued_autofix_feedback,
     peek_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
 )
@@ -205,6 +207,41 @@ class TriggerPrIterationFromCommentTest(TestCase):
             pr_number=7,
             comment_id=999,
             reaction="eyes",
+        )
+
+    @patch(f"{TASK_PATH}.metrics")
+    @patch(f"{TASK_PATH}._add_comment_reaction")
+    @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
+    @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    def test_an_over_long_comment_queues_nothing_and_is_not_acked(
+        self,
+        mock_get_state: MagicMock,
+        mock_trigger_consume: MagicMock,
+        mock_has_access: MagicMock,
+        mock_reaction: MagicMock,
+        mock_metrics: MagicMock,
+    ) -> None:
+        mock_get_state.return_value = self._agent_state()
+        self.addCleanup(clear_queued_autofix_feedback, 67890)
+        self.feedback = Feedback(
+            source=GithubPrCommentFeedbackSource(
+                comment={
+                    "id": 999,
+                    "body": "@sentry " + "a" * (MANUAL_FEEDBACK_MAX_LENGTH + 1),
+                    "user": {"login": "octocat"},
+                }
+            )
+        )
+
+        self._call()
+
+        assert peek_queued_autofix_feedback(67890) == []
+        mock_trigger_consume.assert_not_called()
+        mock_reaction.assert_not_called()
+        assert (
+            call("autofix.pr_iteration.comment_trigger.success")
+            not in mock_metrics.incr.call_args_list
         )
 
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")

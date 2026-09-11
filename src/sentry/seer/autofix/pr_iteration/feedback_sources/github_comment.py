@@ -73,6 +73,7 @@ class _GithubPrCommentFeedbackSourceBase(FeedbackSourceBase):
     # Per-subclass contract: must the comment be an ``@sentry`` iterate command?
     # Top-level PR comments require it; inline review comments don't.
     require_command: ClassVar[bool]
+    length_capped: ClassVar[bool] = True
     comment: GithubIssueComment
     # Derived from `comment` by `_parse_comment` — the single place a comment is
     # turned into feedback. Declared as a field (default "") so it serializes,
@@ -99,6 +100,10 @@ class _GithubPrCommentFeedbackSourceBase(FeedbackSourceBase):
     @property
     def text(self) -> str:
         return self.comment_feedback
+
+    @property
+    def actor_login(self) -> str | None:
+        return self.comment.user.login if self.comment.user else None
 
     def should_consume(self, run_state: SeerRunState) -> Decision:
         comment_id = self.comment.id
@@ -213,6 +218,7 @@ class GithubPrReviewBodyFeedbackSource(FeedbackSourceBase):
     """
 
     type: Literal["github-pr-review-body"] = "github-pr-review-body"
+    length_capped: ClassVar[bool] = True
     # The GitHub review id, used to dedupe re-delivered reviews.
     review_id: int | None = None
     # The submitted review's state — ``approved`` / ``changes_requested`` /
@@ -241,6 +247,10 @@ class GithubPrReviewBodyFeedbackSource(FeedbackSourceBase):
     @property
     def is_automated(self) -> bool:
         return self.author_is_bot
+
+    @property
+    def actor_login(self) -> str | None:
+        return self.user.login if self.user else None
 
     def should_consume(self, run_state: SeerRunState) -> Decision:
         if self.review_id is None:

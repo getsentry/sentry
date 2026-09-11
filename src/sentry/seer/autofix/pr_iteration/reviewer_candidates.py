@@ -42,6 +42,7 @@ from scm.helpers import iter_all_pages
 from scm.manager import SourceCodeManager
 from scm.types import GetCommitsByPathProtocol, GetPullRequestFilesProtocol, PullRequestFile
 
+from sentry.integrations.github.utils import is_github_bot_login
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.ownership.grammar import get_codeowners_path_and_owners
@@ -159,7 +160,7 @@ def collect_reviewer_candidates(
         )
         for login in logins:
             key = login.lower()
-            if key in seen or key in excluded or _is_bot_login(login):
+            if key in seen or key in excluded or is_github_bot_login(login):
                 continue
             seen.add(key)
             candidates.append(ReviewerCandidate(login=login, source=source))
@@ -181,12 +182,6 @@ def collect_reviewer_candidates(
         resolve_source(source, resolve)
 
     return candidates[:MAX_CANDIDATES]
-
-
-def _is_bot_login(login: str) -> bool:
-    # GitHub app identities ("dependabot[bot]"). Human-named bot accounts are
-    # caught per source where richer data exists (e.g. the commit author type).
-    return login.lower().endswith("[bot]")
 
 
 def _triggering_user_logins(seer_run: SeerRun, organization: Organization) -> list[str]:

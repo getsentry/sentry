@@ -8,7 +8,9 @@ from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.emit import open_pr_iteration_details
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_limits import check_feedback_length
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.utils import metrics
 from sentry.utils.redis import load_redis_script, redis_clusters
 
 logger = logging.getLogger(__name__)
@@ -42,7 +44,10 @@ def try_enqueue_autofix_feedback(
     run_state: SeerRunState,
     actor_user_id: int | None = None,
 ) -> bool:
-    decision = feedback.source.should_queue(run_state)
+    feedback_length = len(feedback.ui_text)
+    decision = check_feedback_length(log_ctx, feedback)
+    if decision.ok:
+        decision = feedback.source.should_queue(run_state)
 
     if decision.ok:
         item = QueuedAutofixFeedback(
@@ -70,6 +75,16 @@ def try_enqueue_autofix_feedback(
                 group_id=group_id,
             )
 
+    metrics.distribution(
+        "autofix.pr_iteration.feedback.length",
+        feedback_length,
+        tags={
+            "source": feedback.source.type,
+            "actor": "bot" if feedback.source.actor_is_bot else "human",
+            "queued": "true" if decision.ok else "false",
+        },
+    )
+
     # One log name for both branches, emitted after the push so ``queued`` means
     # the feedback is actually in Redis: ``outcome`` says which way it went and
     # ``reason`` says what the gate read to get there.
@@ -79,6 +94,7 @@ def try_enqueue_autofix_feedback(
         reason=decision.reason,
         feedback_source=feedback.source.type,
         feedback_id=feedback.feedback_id,
+        feedback_length=feedback_length,
         referrer=referrer.value,
         actor_user_id=actor_user_id,
         **feedback.source.log_fields(run_state),

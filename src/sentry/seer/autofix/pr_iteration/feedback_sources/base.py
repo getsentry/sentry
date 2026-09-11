@@ -80,6 +80,9 @@ class FeedbackSourceBase(BaseModel):
     # sources with none (UI) keep the UUID minted here.
     source_id: str = Field(default_factory=lambda: str(uuid4()))
 
+    # Per-subclass contract: False for text Sentry generated, True for text an actor wrote.
+    length_capped: ClassVar[bool] = False
+
     @property
     def text(self) -> str:
         """Verbatim text passed to the explorer agent in the prompt."""
@@ -89,6 +92,20 @@ class FeedbackSourceBase(BaseModel):
     def ui_text(self) -> str | None:
         """Text shown in the UI. ``None`` means fall back to ``text``."""
         return None
+
+    @property
+    def actor_login(self) -> str | None:
+        """The provider login of the actor that wrote this feedback."""
+        return None
+
+    @property
+    def actor_is_bot(self) -> bool:
+        # Imported lazily: sentry.integrations.github pulls in the slack notification
+        # registry, and this module loads before it during app startup.
+        from sentry.integrations.github.utils import is_github_bot_login
+
+        login = self.actor_login
+        return self.is_automated or is_github_bot_login(login)
 
     @property
     def is_automated(self) -> bool:
