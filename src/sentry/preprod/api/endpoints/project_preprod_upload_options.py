@@ -18,11 +18,6 @@ from sentry.objectstore import UsecaseId, get_session
 from sentry.objectstore.types import ObjectstoreUploadOptions
 from sentry.utils.http import absolute_uri
 
-_UPLOAD_USECASES = {
-    UsecaseId.PREPROD.value: UsecaseId.PREPROD,
-    UsecaseId.SNAPSHOTS.value: UsecaseId.SNAPSHOTS,
-}
-
 
 @cell_silo_endpoint
 class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
@@ -33,9 +28,9 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project: Project) -> Response:
-        usecase = _UPLOAD_USECASES.get(request.GET.get("usecase", UsecaseId.PREPROD.value))
-        if usecase is None:
+        if request.GET.get("usecase") not in (None, "auto"):
             return Response({"detail": "Invalid usecase"}, status=400)
+        usecase = UsecaseId.PREPROD
 
         organization = project.organization
         session = get_session(usecase, project)

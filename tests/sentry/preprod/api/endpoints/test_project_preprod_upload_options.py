@@ -44,19 +44,19 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
         mock_get_session.assert_called_once_with(UsecaseId.PREPROD, self.project)
 
     @patch("sentry.preprod.api.endpoints.project_preprod_upload_options.get_session")
-    def test_snapshots_usecase_when_requested(self, mock_get_session) -> None:
+    def test_auto_returns_preprod(self, mock_get_session) -> None:
         mock_session = MagicMock()
         mock_session.mint_token.return_value = "fake-token"
         mock_get_session.return_value = mock_session
 
-        response = self.client.get(self.url, {"usecase": "snapshots"})
+        response = self.client.get(self.url, {"usecase": "auto"})
 
         assert response.status_code == 200
-        assert response.data["objectstore"]["usecase"] == "snapshots"
-        mock_get_session.assert_called_once_with(UsecaseId.SNAPSHOTS, self.project)
+        assert response.data["objectstore"]["usecase"] == "preprod"
+        mock_get_session.assert_called_once_with(UsecaseId.PREPROD, self.project)
 
-    def test_rejects_unknown_usecase(self) -> None:
-        response = self.client.get(self.url, {"usecase": "attachments"})
+    def test_rejects_explicit_usecase(self) -> None:
+        response = self.client.get(self.url, {"usecase": "snapshots"})
 
         assert response.status_code == 400
 

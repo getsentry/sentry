@@ -280,7 +280,7 @@ class ProcessChunkTest(TestCase):
         )
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks.OdiffServer"),
             patch(
                 "sentry.preprod.snapshots.tasks._fetch_batch_images",
@@ -746,7 +746,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
         }
         session = _dict_backed_session(stored)
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot") as mock_auto_approve,
         ):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
@@ -1013,7 +1013,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
 
         with (
             self.options({"preprod.snapshots.auto-approve-sibling-diffs.enabled": True}),
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks._find_approved_sibling", return_value=sibling
             ) as mock_find_sibling,
@@ -1104,7 +1104,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
 
         with (
             self.options({"preprod.snapshots.auto-approve-sibling-diffs.enabled": False}),
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks._find_approved_sibling", return_value=sibling
             ) as mock_find_sibling,
@@ -2142,7 +2142,7 @@ class EndToEndFanoutTest(TestCase):
 
         with (
             self.options({"preprod.snapshots.auto-approve-sibling-diffs.enabled": True}),
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks._find_approved_sibling", return_value=sibling),
             patch(
                 "sentry.preprod.snapshots.tasks._fetch_batch_images", side_effect=self._fake_fetch
@@ -2283,7 +2283,7 @@ class EndToEndFanoutTest(TestCase):
 
         with (
             self.options({"preprod.snapshots.auto-approve-sibling-diffs.enabled": False}),
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks._find_approved_sibling", return_value=sibling),
             patch(
                 "sentry.preprod.snapshots.tasks._fetch_batch_images", side_effect=self._fake_fetch
