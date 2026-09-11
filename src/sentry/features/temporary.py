@@ -34,6 +34,9 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:create", SystemFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Controls whether or not the relocation endpoints can be used.
     manager.add("relocation:enabled", SystemFeature, FeatureHandlerStrategy.INTERNAL)
+    # Default for whether the frontend surfaces API responses that fail their zod schema as
+    # query errors. Off means those responses are still validated and reported, but returned.
+    manager.add("system:api-schema-strict", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 
     # Organization scoped features that are in development or in customer trials. #
     ###############################################################################
@@ -226,6 +229,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:api-fetch-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=True)
     # Enable derivation of the `client_kind` API-usage attribute.
     manager.add("organizations:api-client-kind-check", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
+    # Opt an organization into strict frontend API schema validation ahead of the system default.
+    manager.add("organizations:api-schema-strict", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=True)
     manager.add("organizations:sourcemap-issue-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable profiling
     manager.add("organizations:profiling", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)

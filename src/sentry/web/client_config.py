@@ -229,6 +229,8 @@ class _ClientConfig:
             yield "relocation:enabled"
         if features.has("system:multi-region"):
             yield "system:multi-region"
+        if features.has("system:api-schema-strict"):
+            yield "system:api-schema-strict"
         if self.last_org and features.has(
             "organizations:api-fetch-v2", self.last_org, actor=self.user
         ):

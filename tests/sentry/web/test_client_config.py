@@ -157,6 +157,7 @@ def test_client_config_features() -> None:
     assert "features" in result
     assert "organizations:create" in result["features"]
     assert "system:multi-region" not in result["features"]
+    assert "system:api-schema-strict" not in result["features"]
 
     with (
         override_options({"auth.allow-registration": True}),
@@ -164,6 +165,7 @@ def test_client_config_features() -> None:
             {
                 "auth:register": True,
                 "system:multi-region": True,
+                "system:api-schema-strict": True,
             }
         ),
     ):
@@ -172,6 +174,7 @@ def test_client_config_features() -> None:
         assert "features" in result
         assert "system:multi-region" in result["features"]
         assert "auth:register" in result["features"]
+        assert "system:api-schema-strict" in result["features"]
 
 
 @no_silo_test
