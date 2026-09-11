@@ -2,9 +2,9 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.seer.autofix.autofix_agent import NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.feature.dispatch import AutofixFeatureTrigger, trigger_autofix_feature
+from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.feature.dispatch import AutofixFeatureTriggerArgs, trigger_autofix_feature
 from sentry.seer.autofix.feature.models import RCAStepArgs
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix.steps import AutofixStep
@@ -41,7 +41,7 @@ class TestTriggerAutofixFeature(TestCase):
 
             run = trigger_autofix_feature(
                 self.group,
-                AutofixFeatureTrigger(
+                AutofixFeatureTriggerArgs(
                     referrer=AutofixReferrer.NIGHT_SHIFT,
                     step=AutofixStep.ROOT_CAUSE,
                     user_context="an upstream triage summary",
@@ -116,7 +116,7 @@ class TestTriggerAutofixFeature(TestCase):
             with pytest.raises(NoSeerQuotaException):
                 trigger_autofix_feature(
                     self.group,
-                    AutofixFeatureTrigger(
+                    AutofixFeatureTriggerArgs(
                         referrer=AutofixReferrer.NIGHT_SHIFT,
                         step=AutofixStep.ROOT_CAUSE,
                     ),
@@ -137,7 +137,7 @@ class TestTriggerAutofixFeature(TestCase):
 
             run = trigger_autofix_feature(
                 self.group,
-                AutofixFeatureTrigger(
+                AutofixFeatureTriggerArgs(
                     referrer=AutofixReferrer.NIGHT_SHIFT,
                     step=AutofixStep.ROOT_CAUSE,
                     allow_free_cohort=True,
@@ -160,7 +160,7 @@ class TestTriggerAutofixFeature(TestCase):
 
             trigger_autofix_feature(
                 self.group,
-                AutofixFeatureTrigger(
+                AutofixFeatureTriggerArgs(
                     referrer=AutofixReferrer.NIGHT_SHIFT,
                     step=AutofixStep.ROOT_CAUSE,
                     flush=False,
@@ -182,7 +182,7 @@ class TestTriggerAutofixFeature(TestCase):
 
             trigger_autofix_feature(
                 self.group,
-                AutofixFeatureTrigger(
+                AutofixFeatureTriggerArgs(
                     referrer=AutofixReferrer.NIGHT_SHIFT,
                     step=AutofixStep.ROOT_CAUSE,
                     user=user,

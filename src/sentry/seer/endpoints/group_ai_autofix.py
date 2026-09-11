@@ -43,7 +43,6 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix_agent import (
-    NoSeerQuotaException,
     get_autofix_agent_state,
     get_autofix_run_state,
     trigger_autofix_agent,
@@ -56,6 +55,7 @@ from sentry.seer.autofix.coding_agent import (
 )
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.github_perms import (
     get_blocked_pr_iteration_permissions,
 )

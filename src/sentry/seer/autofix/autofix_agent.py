@@ -36,6 +36,12 @@ from sentry.seer.autofix.artifact_schemas import (
 )
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.feature.dispatch import (
+    AutofixFeatureTriggerArgs,
+    trigger_autofix_feature,
+)
+from sentry.seer.autofix.feature.models import RCAStepArgs, RepoPin, RepoPins
 from sentry.seer.autofix.pr_iteration.constants import (
     MANUAL_FLAG,
     REVIEW_REQUEST_FLAG,
@@ -80,10 +86,6 @@ if TYPE_CHECKING:
     from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
-
-
-class NoSeerQuotaException(Exception):
-    pass
 
 
 class PrIterationNoPullRequestException(Exception):
@@ -465,6 +467,16 @@ def _build_base_shas_metadata(group: Group, referrer: AutofixReferrer) -> str | 
     return json.dumps(base_shas)
 
 
+def _parse_repo_pins(repo_pins: str | None) -> RepoPins | None:
+    if repo_pins is None:
+        return None
+
+    return {
+        repo_name: RepoPin.parse_obj(repo_pin)
+        for repo_name, repo_pin in json.loads(repo_pins).items()
+    }
+
+
 def trigger_autofix_agent(
     group: Group,
     step: AutofixStep,
@@ -517,15 +529,7 @@ def trigger_autofix_agent(
         "organizations:autofix-rca-in-seer", group.organization, actor=user
     )
     if step == AutofixStep.ROOT_CAUSE and run_id is None and use_seer_rca_feature:
-        # Local import avoids a circular import (dispatch imports this module).
-        from sentry.seer.autofix.feature.dispatch import (
-            AutofixFeatureTrigger,
-            parse_repo_pins,
-            trigger_autofix_feature,
-        )
-        from sentry.seer.autofix.feature.models import RCAStepArgs
-
-        feature_trigger = AutofixFeatureTrigger(
+        args = AutofixFeatureTriggerArgs(
             step=step,
             referrer=referrer,
             user_context=user_context,
@@ -534,14 +538,12 @@ def trigger_autofix_agent(
             user=user,
             enable_bash_tools=enable_bash_tools,
             step_args=RCAStepArgs(
-                repo_pins=parse_repo_pins(_build_base_shas_metadata(group, referrer))
+                repo_pins=_parse_repo_pins(_build_base_shas_metadata(group, referrer))
             ),
         )
-        feature_run = trigger_autofix_feature(
-            group,
-            feature_trigger,
-        )
+        feature_run = trigger_autofix_feature(group, args)
         feature_run_id = feature_run.seer_run_state_id
+
         if feature_run_id is None:
             # flush=True populates this on success; guard defensively.
             raise SeerApiError("autofix feature run has no run id", 500)

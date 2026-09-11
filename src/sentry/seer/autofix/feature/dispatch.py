@@ -16,15 +16,13 @@ from sentry.seer.agent.client_utils import (
     get_proxy_headers,
 )
 from sentry.seer.agent.on_completion_hook import extract_hook_definition
-from sentry.seer.autofix.autofix_agent import NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.feature.models import (
     FEATURE_ID,
     AutofixFeaturePayload,
     AutofixRCATweaks,
     RCAStepArgs,
-    RepoPin,
-    RepoPins,
 )
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix.steps import AutofixStep
@@ -32,15 +30,13 @@ from sentry.seer.autofix.utils import AutofixStoppingPoint, is_free_cohort_org
 from sentry.seer.models.run import SeerRun
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
-class AutofixFeatureTrigger:
-    """Inputs used to start or continue an Autofix feature run."""
-
+class AutofixFeatureTriggerArgs:
     step: AutofixStep
     referrer: AutofixReferrer
     step_args: RCAStepArgs | None = None
@@ -52,19 +48,9 @@ class AutofixFeatureTrigger:
     flush: bool = True
 
 
-def parse_repo_pins(repo_pins: str | None) -> RepoPins | None:
-    if repo_pins is None:
-        return None
-
-    return {
-        repo_name: RepoPin.parse_obj(repo_pin)
-        for repo_name, repo_pin in json.loads(repo_pins).items()
-    }
-
-
 def trigger_autofix_feature(
     group: Group,
-    trigger: AutofixFeatureTrigger,
+    trigger: AutofixFeatureTriggerArgs,
 ) -> SeerRun:
     # Free cohort orgs bypass quota only when called from night shift
     # (allow_free_cohort=True). Not exposed via the API.
