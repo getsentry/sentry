@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {ATTRIBUTE_METADATA} from '@sentry/conventions';
+import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions/attributes/search';
 import * as Sentry from '@sentry/react';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -364,7 +364,7 @@ function getTokenAttribute(
   attributes: Record<string, string | number | boolean>,
   key: 'gen_ai.usage.cache_creation.input_tokens' | 'gen_ai.usage.cache_read.input_tokens'
 ) {
-  for (const candidate of ATTRIBUTE_METADATA[key].keys) {
+  for (const candidate of ATTRIBUTE_SEARCH_METADATA[key]!.deprecationChain) {
     if (attributes[candidate] !== undefined) {
       return attributes[candidate];
     }

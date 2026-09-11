@@ -2,7 +2,7 @@ import type React from 'react';
 import {Fragment, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {ATTRIBUTE_METADATA} from '@sentry/conventions';
+import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions/attributes/search';
 
 import {Tag} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';
@@ -390,7 +390,7 @@ function getNumberAttrByConvention(
   node: AITraceSpanNode,
   key: 'gen_ai.usage.cache_creation.input_tokens' | 'gen_ai.usage.cache_read.input_tokens'
 ): number | undefined {
-  for (const candidate of ATTRIBUTE_METADATA[key].keys) {
+  for (const candidate of ATTRIBUTE_SEARCH_METADATA[key]!.deprecationChain) {
     const value = getNumberAttr(node, candidate);
     if (value !== undefined) {
       return value;
