@@ -364,7 +364,7 @@ function getTokenAttribute(
   attributes: Record<string, string | number | boolean>,
   key: 'gen_ai.usage.cache_creation.input_tokens' | 'gen_ai.usage.cache_read.input_tokens'
 ) {
-  for (const candidate of ATTRIBUTE_SEARCH_METADATA[key]!.deprecationChain) {
+  for (const candidate of ATTRIBUTE_SEARCH_METADATA[key]?.deprecationChain ?? [key]) {
     if (attributes[candidate] !== undefined) {
       return attributes[candidate];
     }
@@ -436,12 +436,16 @@ function HighlightedTokenAttributes({
           {link: <ExternalLink href={TOKEN_TROUBLESHOOTING_URL} />}
         )}
       >
-        {tokenSummary}
+        <TokenSummary>{tokenSummary}</TokenSummary>
       </InfoText>
     );
   }
 
-  return <InfoText title={breakdownTooltip}>{tokenSummary}</InfoText>;
+  return (
+    <InfoText title={breakdownTooltip}>
+      <TokenSummary>{tokenSummary}</TokenSummary>
+    </InfoText>
+  );
 }
 
 function HighlightedContextUtilization({
@@ -483,6 +487,10 @@ function HighlightedContextUtilization({
 
   return <InfoText title={tooltipContent}>{inlineText}</InfoText>;
 }
+
+const TokenSummary = styled('span')`
+  white-space: nowrap;
+`;
 
 const TokensTooltipTitle = styled('div')`
   display: grid;

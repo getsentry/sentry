@@ -22,6 +22,7 @@ import {t} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -391,7 +392,7 @@ function getNumberAttrByConvention(
   node: AITraceSpanNode,
   key: 'gen_ai.usage.cache_creation.input_tokens' | 'gen_ai.usage.cache_read.input_tokens'
 ): number | undefined {
-  for (const candidate of ATTRIBUTE_SEARCH_METADATA[key]!.deprecationChain) {
+  for (const candidate of ATTRIBUTE_SEARCH_METADATA[key]?.deprecationChain ?? [key]) {
     const value = getNumberAttr(node, candidate);
     if (value !== undefined) {
       return value;
@@ -665,7 +666,7 @@ function TokenCount({breakdown}: {breakdown: ConversationTokenBreakdown}) {
         </TokenBreakdownGrid>
       }
     >
-      <Count value={breakdown.total} />
+      <TokenCountValue>{formatAbbreviatedNumber(breakdown.total)}</TokenCountValue>
     </Tooltip>
   );
 }
@@ -710,6 +711,11 @@ function AggregateItem({
 
   return content;
 }
+
+const TokenCountValue = styled('span')`
+  text-decoration: underline dotted;
+  text-underline-offset: ${p => p.theme.space['2xs']};
+`;
 
 const TokenBreakdownGrid = styled('div')`
   display: grid;

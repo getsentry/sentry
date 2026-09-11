@@ -243,6 +243,7 @@ describe('ConversationDetailPage summary errors', () => {
     renderPage();
 
     const tokenCount = await screen.findByText('200');
+    expect(tokenCount).not.toHaveAttribute('title');
     await userEvent.hover(tokenCount.parentElement!);
 
     expect(await screen.findByText('Input')).toBeInTheDocument();
