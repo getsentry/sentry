@@ -1,18 +1,26 @@
 import {Fragment} from 'react';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 
+interface MissingFeature {
+  description: string;
+  key: string;
+  name: string;
+}
+
 interface AutofixGithubAppPermissionsModalProps extends ModalRenderProps {
-  /** First sentence. The linked "update settings" sentence is always appended. */
-  description?: string;
+  /** Which flow opened the modal; selects the copy. */
+  variant: 'pr_iteration' | 'coding_agent_handoff' | 'integration_settings';
   /** GitHub permissions URL for the install. Falls back to GitHub's installations index. */
   installationUrl?: string;
+  /** Feature tiers the install is missing; rendered by the `integration_settings` variant. */
+  missingFeatures?: MissingFeature[];
 }
 
 const DEFAULT_INSTALLATIONS_URL = 'https://github.com/settings/installations/';
@@ -23,11 +31,15 @@ export function AutofixGithubAppPermissionsModal({
   Footer,
   closeModal,
   installationUrl,
-  description = t(
-    'The Sentry GitHub App does not have sufficient permissions to launch a coding agent.'
-  ),
+  variant,
+  missingFeatures,
 }: AutofixGithubAppPermissionsModalProps) {
   const settingsUrl = installationUrl ?? DEFAULT_INSTALLATIONS_URL;
+
+  const settingsSentence = tct(
+    'Please update your [link:GitHub App installation settings] to grant the required permissions.',
+    {link: <ExternalLink href={settingsUrl} />}
+  );
 
   return (
     <Fragment>
@@ -35,13 +47,35 @@ export function AutofixGithubAppPermissionsModal({
         <Heading as="h3">{t('Update GitHub App Permissions')}</Heading>
       </Header>
       <Body>
-        <Text as="p">
-          {description}{' '}
-          {tct(
-            'Please update your [link:GitHub App installation settings] to grant the required permissions.',
-            {link: <ExternalLink href={settingsUrl} />}
-          )}
-        </Text>
+        {variant === 'pr_iteration' ? (
+          <Text as="p">
+            {t(
+              'Seer needs additional GitHub App permissions to keep iterating on the pull requests in this run and get CI passing.'
+            )}{' '}
+            {t('Review and accept the updated permissions to let Seer continue.')}
+          </Text>
+        ) : variant === 'coding_agent_handoff' ? (
+          <Text as="p">
+            {t(
+              'The Sentry GitHub App does not have sufficient permissions to launch a coding agent.'
+            )}{' '}
+            {settingsSentence}
+          </Text>
+        ) : (
+          <Stack gap="lg">
+            <Text as="p">
+              {t('This installation is missing permissions for the following features:')}
+            </Text>
+            <ul>
+              {missingFeatures?.map(feature => (
+                <li key={feature.key}>
+                  <Text>{feature.description}</Text>
+                </li>
+              ))}
+            </ul>
+            <Text as="p">{settingsSentence}</Text>
+          </Stack>
+        )}
       </Body>
       <Footer>
         <Grid flow="column" align="center" gap="md">

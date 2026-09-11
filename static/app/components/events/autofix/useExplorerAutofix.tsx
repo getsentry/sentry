@@ -1066,6 +1066,7 @@ export function useExplorerAutofix(
               <AutofixGithubAppPermissionsModal
                 {...deps}
                 installationUrl={installationUrl}
+                variant="coding_agent_handoff"
               />
             ));
           }
