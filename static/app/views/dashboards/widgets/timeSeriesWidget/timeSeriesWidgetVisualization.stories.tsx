@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import shuffle from 'lodash/shuffle';
 import moment from 'moment-timezone';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
@@ -13,8 +14,6 @@ import * as Storybook from 'sentry/stories';
 import type {DateString} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {DAY, HOUR, MINUTE} from 'sentry/utils/formatters';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import type {
   LegendSelection,
   Release,
@@ -984,12 +983,8 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
   });
 
   story('Drag to Select', () => {
-    const {start, end} = useLocationQuery({
-      fields: {
-        start: decodeScalar,
-        end: decodeScalar,
-      },
-    });
+    const [start] = useQueryState('start', parseAsString.withDefault(''));
+    const [end] = useQueryState('end', parseAsString.withDefault(''));
 
     const durationTimeSeries1 = toTimeSeriesSelection(
       sampleDurationTimeSeries,

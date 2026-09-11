@@ -1,13 +1,13 @@
 import {useMemo} from 'react';
 import {skipToken} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {useMailbox} from 'sentry/components/feedback/useMailbox';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {coaleseIssueStatsPeriodQuery} from 'sentry/utils/feedback/coaleseIssueStatsPeriodQuery';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 
 interface Props {
   listHeadTime: number;
@@ -17,22 +17,24 @@ interface Props {
 
 const PER_PAGE = 25;
 
+const feedbackListParsers = {
+  end: parseAsString.withDefault(''),
+  environment: parseAsStringArray,
+  field: parseAsStringArray,
+  project: parseAsStringArray,
+  query: parseAsString.withDefault(''),
+  start: parseAsString.withDefault(''),
+  statsPeriod: parseAsString.withDefault(''),
+  utc: parseAsString.withDefault(''),
+};
+
 function useFeedbackListQuery({listHeadTime, organization, prefetch}: Props) {
   const [mailbox] = useMailbox();
-  const queryView = useLocationQuery({
-    fields: {
-      limit: PER_PAGE,
-      queryReferrer: 'feedback_list_page',
-      end: decodeScalar,
-      environment: decodeList,
-      field: decodeList,
-      project: decodeList,
-      query: decodeScalar,
-      start: decodeScalar,
-      statsPeriod: decodeScalar,
-      utc: decodeScalar,
-    },
-  });
+  const [locationQuery] = useQueryStates(feedbackListParsers);
+  const queryView = useMemo(
+    () => ({limit: PER_PAGE, queryReferrer: 'feedback_list_page', ...locationQuery}),
+    [locationQuery]
+  );
 
   const fixedQueryView = useMemo(
     () =>

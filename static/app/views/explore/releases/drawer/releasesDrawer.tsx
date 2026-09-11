@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import {debug} from '@sentry/core';
+import {useQueryStates} from 'nuqs';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import type {ChartId} from 'sentry/components/charts/chartWidgetLoader';
@@ -12,32 +13,31 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDateFromTimestamp} from 'sentry/utils/dates';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ReleasesDrawerDetails} from 'sentry/views/explore/releases/drawer/releasesDrawerDetails';
 import {ReleasesDrawerList} from 'sentry/views/explore/releases/drawer/releasesDrawerList';
 
-import {RELEASES_DRAWER_FIELD_MAP} from './utils';
+import {RELEASES_DRAWER_PARSERS} from './utils';
 
 /**
  * The container for the Releases Drawer. Handles displaying either the
  * releases list or details.
  */
 export function ReleasesDrawer() {
-  const {
-    rd,
-    rdChart,
-    rdEnd,
-    rdEnv,
-    rdEvent,
-    rdSource,
-    rdStart,
-    rdProject,
-    rdRelease,
-    rdReleaseProjectId,
-  } = useLocationQuery({
-    fields: RELEASES_DRAWER_FIELD_MAP,
-  });
+  const [
+    {
+      rd,
+      rdChart,
+      rdEnd,
+      rdEnv,
+      rdEvent,
+      rdSource,
+      rdStart,
+      rdProject,
+      rdRelease,
+      rdReleaseProjectId,
+    },
+  ] = useQueryStates(RELEASES_DRAWER_PARSERS);
   const start = getDateFromTimestamp(rdStart);
   const end = getDateFromTimestamp(rdEnd);
   const defaultPageFilters = usePageFilters();

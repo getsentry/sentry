@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 
@@ -11,8 +12,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 
 const BASE_COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
@@ -38,19 +37,18 @@ export function ReleasesDrawerFeatureFlagsTable({
   onRowMouseOut,
 }: Props) {
   const datetime = normalizeDateTimeParams(pageFilters.datetime);
-  const locationQuery = useLocationQuery({
-    fields: {
-      [ReleasesDrawerFields.FLAGS_CURSOR]: decodeScalar,
-    },
-  });
+  const [flagsCursor] = useQueryState(
+    ReleasesDrawerFields.FLAGS_CURSOR,
+    parseAsString.withDefault('')
+  );
   const query = useMemo(() => {
     return {
       ...datetime,
-      cursor: locationQuery[ReleasesDrawerFields.FLAGS_CURSOR],
+      cursor: flagsCursor,
       per_page: 10,
       queryReferrer: 'releasesDrawer',
     };
-  }, [locationQuery, datetime]);
+  }, [flagsCursor, datetime]);
 
   const {flags, isPending, error, pageLinks} = useFlagsInEventPaginated({
     eventId,

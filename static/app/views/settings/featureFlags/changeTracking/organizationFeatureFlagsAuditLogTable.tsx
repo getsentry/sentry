@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import {createParser, parseAsString, useQueryStates} from 'nuqs';
 
 import type {ColumnKey} from 'sentry/components/featureFlags/featureFlagsLogTable';
 import {FeatureFlagsLogTable} from 'sentry/components/featureFlags/featureFlagsLogTable';
@@ -9,8 +10,6 @@ import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
@@ -21,19 +20,27 @@ const BASE_COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
   {key: 'createdAt', name: t('Date')},
 ];
 
+// The default has to cover a blank `?sort=` as well as an absent key, which is
+// what the previous `decodeScalar(value, '-created_at')` did. A plain
+// `withDefault` only fills in an absent key, leaving `''` to be stripped below.
+const parseAsSortKey = createParser({
+  parse: (value: string) => value || null,
+  serialize: (value: string) => value,
+}).withDefault('-created_at');
+
+const auditLogParsers = {
+  cursor: parseAsString.withDefault(''),
+  end: parseAsString.withDefault(''),
+  flag: parseAsString.withDefault(''),
+  sort: parseAsSortKey,
+  start: parseAsString.withDefault(''),
+  statsPeriod: parseAsString.withDefault(''),
+  utc: parseAsString.withDefault(''),
+};
+
 export function OrganizationFeatureFlagsAuditLogTable() {
   const organization = useOrganization();
-  const locationQuery = useLocationQuery({
-    fields: {
-      cursor: decodeScalar,
-      end: decodeScalar,
-      flag: decodeScalar,
-      sort: (value: any) => decodeScalar(value, '-created_at'),
-      start: decodeScalar,
-      statsPeriod: decodeScalar,
-      utc: decodeScalar,
-    },
-  });
+  const [locationQuery] = useQueryStates(auditLogParsers);
 
   const query = useMemo(() => {
     const filteredFields = Object.fromEntries(

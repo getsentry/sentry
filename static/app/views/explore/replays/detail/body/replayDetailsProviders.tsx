@@ -1,10 +1,10 @@
 import {useEffect, type ReactNode} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {DEFAULT_REPLAY_LIST_SORT} from 'sentry/components/replays/table/useReplayTableSort';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useInitialTimeOffsetMs} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import {useLogReplayDataLoaded} from 'sentry/utils/replays/hooks/useLogReplayDataLoaded';
 import {useMarkReplayViewed} from 'sentry/utils/replays/hooks/useMarkReplayViewed';
@@ -17,10 +17,24 @@ import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/repl
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import {replayListApiOptions} from 'sentry/utils/replays/replayListApiOptions';
 import type {ReplayReader} from 'sentry/utils/replays/replayReader';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ReplaySummaryContextProvider} from 'sentry/views/explore/replays/detail/ai/replaySummaryContext';
 import {type ReplayListQueryReferrer} from 'sentry/views/explore/replays/types';
+
+const replayDetailsParsers = {
+  cursor: parseAsString.withDefault(''),
+  end: parseAsString.withDefault(''),
+  environment: parseAsStringArray,
+  project: parseAsStringArray,
+  query: parseAsString.withDefault(''),
+  start: parseAsString.withDefault(''),
+  playlistStart: parseAsString.withDefault(''),
+  playlistEnd: parseAsString.withDefault(''),
+  playlistSort: parseAsString.withDefault(''),
+  sort: parseAsString.withDefault(''),
+  referrer: parseAsString.withDefault(''),
+};
 
 interface Props {
   children: ReactNode;
@@ -46,30 +60,16 @@ export function ReplayDetailsProviders({children, replay, projectSlug}: Props) {
     }
   }, [markAsViewed, organization, projectSlug, replayRecord]);
 
-  const {playlistStart, playlistEnd, playlistSort, ...query} = useLocationQuery({
-    fields: {
-      cursor: decodeScalar,
-      end: decodeScalar,
-      environment: decodeList,
-      project: decodeList,
-      query: decodeScalar,
-      start: decodeScalar,
-      playlistStart: decodeScalar,
-      playlistEnd: decodeScalar,
-      playlistSort: decodeScalar,
-      sort: decodeScalar,
-      referrer: decodeScalar,
-    },
-  });
+  const [{playlistStart, playlistEnd, playlistSort, ...locationQuery}] =
+    useQueryStates(replayDetailsParsers);
 
   // We use the playlist prefix to make it clear that these URL params are used
   // for the playlist navigation, and to avoid confusion with the regular start and end params.
-  if (playlistStart && playlistEnd) {
-    query.start = playlistStart;
-    query.end = playlistEnd;
-  }
-  query.sort =
-    !playlistSort || playlistSort === '' ? DEFAULT_REPLAY_LIST_SORT : playlistSort;
+  const query = {
+    ...locationQuery,
+    ...(playlistStart && playlistEnd ? {start: playlistStart, end: playlistEnd} : {}),
+    sort: playlistSort || DEFAULT_REPLAY_LIST_SORT,
+  };
 
   const replayListOptions = replayListApiOptions({
     options: {query},

@@ -1,6 +1,6 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import {act, renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import type {AggregationKeyWithAlias, Column} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -43,8 +43,8 @@ describe('useWidgetBuilderState', () => {
       })
     );
 
-    const {result} = renderHook(() => useWidgetBuilderState(), {
-      wrapper: WidgetBuilderProvider,
+    const {result} = renderHookWithProviders(useWidgetBuilderState, {
+      additionalWrapper: WidgetBuilderProvider,
     });
 
     expect(result.current.state.title).toBe('test');
@@ -52,8 +52,8 @@ describe('useWidgetBuilderState', () => {
   });
 
   it('sets the new title and description in the query params', () => {
-    const {result} = renderHook(() => useWidgetBuilderState(), {
-      wrapper: WidgetBuilderProvider,
+    const {result} = renderHookWithProviders(useWidgetBuilderState, {
+      additionalWrapper: WidgetBuilderProvider,
     });
     act(() => {
       result.current.dispatch({
@@ -86,8 +86,8 @@ describe('useWidgetBuilderState', () => {
   });
 
   it('does not update the url when the updateUrl option is false', () => {
-    const {result} = renderHook(() => useWidgetBuilderState(), {
-      wrapper: WidgetBuilderProvider,
+    const {result} = renderHookWithProviders(useWidgetBuilderState, {
+      additionalWrapper: WidgetBuilderProvider,
     });
 
     act(() => {
@@ -111,8 +111,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.displayType).toBe(DisplayType.AREA);
@@ -125,16 +125,16 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.displayType).toBe(DisplayType.TABLE);
     });
 
     it('sets the display type in the query params', () => {
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       act(() => {
@@ -165,8 +165,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.displayType).toBe(DisplayType.LINE);
@@ -222,8 +222,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.displayType).toBe(DisplayType.LINE);
@@ -284,8 +284,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.displayType).toBe(DisplayType.TABLE);
@@ -356,8 +356,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.yAxis).toEqual([
@@ -411,8 +411,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.fields).toEqual([
@@ -466,8 +466,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.fields).toEqual([
@@ -521,8 +521,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.fields).toEqual([
@@ -561,8 +561,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.query).toEqual(['event.type:test', 'event.type:test2']);
@@ -586,8 +586,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.fields).toEqual([
@@ -626,8 +626,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       act(() => {
@@ -656,8 +656,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       act(() => {
@@ -688,8 +688,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       act(() => {
@@ -722,8 +722,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.query).toEqual(['event.type:test', 'event.type:test2']);
@@ -743,8 +743,8 @@ describe('useWidgetBuilderState', () => {
         LocationFixture({query: {selectedAggregate: '0'}})
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.selectedAggregate).toBeUndefined();
@@ -770,8 +770,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.thresholds).toEqual({
@@ -803,8 +803,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.thresholds).toEqual({
@@ -833,8 +833,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       act(() => {
@@ -860,8 +860,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       act(() => {
@@ -885,8 +885,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.sort).toEqual([]);
@@ -914,8 +914,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       act(() => {
@@ -940,8 +940,8 @@ describe('useWidgetBuilderState', () => {
     it('resets limit when the display type is switched to table', () => {
       mockedUsedLocation.mockReturnValue(LocationFixture({query: {limit: '3'}}));
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.limit).toBe(3);
@@ -972,8 +972,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       act(() => {
@@ -1000,8 +1000,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.limit).toBe(3);
@@ -1023,16 +1023,16 @@ describe('useWidgetBuilderState', () => {
         LocationFixture({query: {dataset: WidgetType.ISSUE}})
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.dataset).toBe(WidgetType.ISSUE);
     });
 
     it('sets the dataset in the query params', () => {
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       act(() => {
@@ -1055,8 +1055,8 @@ describe('useWidgetBuilderState', () => {
     it('returns errors as the default dataset', () => {
       mockedUsedLocation.mockReturnValue(LocationFixture({query: {dataset: 'invalid'}}));
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.dataset).toBe(WidgetType.ERRORS);
@@ -1069,8 +1069,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.displayType).toBe(DisplayType.LINE);
@@ -1092,8 +1092,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.displayType).toBe(DisplayType.TABLE);
@@ -1124,8 +1124,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       act(() => {
@@ -1165,8 +1165,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.yAxis).toEqual([
@@ -1203,8 +1203,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.sort).toEqual([{field: 'project.name', kind: 'desc'}]);
@@ -1235,8 +1235,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'desc'}]);
@@ -1267,8 +1267,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.selectedAggregate).toBe(0);
@@ -1294,8 +1294,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'desc'}]);
@@ -1321,8 +1321,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.thresholds).toEqual({
@@ -1351,8 +1351,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.legendAlias).toEqual(['test']);
@@ -1374,8 +1374,8 @@ describe('useWidgetBuilderState', () => {
         LocationFixture({query: {field: ['event.type', 'potato', 'count()']}})
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.fields).toEqual([
@@ -1401,8 +1401,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.fields).toEqual([
@@ -1438,8 +1438,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.fields).toEqual([
@@ -1472,8 +1472,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.fields).toEqual([
@@ -1503,8 +1503,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'desc'}]);
@@ -1526,8 +1526,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.sort).toEqual([{field: 'sortField', kind: 'desc'}]);
@@ -1556,8 +1556,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.sort).toEqual([{field: 'notInFields', kind: 'desc'}]);
@@ -1583,8 +1583,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.yAxis).toEqual([
@@ -1612,8 +1612,8 @@ describe('useWidgetBuilderState', () => {
           },
         })
       );
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.sort).toEqual([]);
@@ -1639,8 +1639,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.sort).toEqual([
@@ -1675,8 +1675,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.sort).toEqual([{field: 'release', kind: 'desc'}]);
@@ -1708,8 +1708,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.sort).toEqual([]);
@@ -1742,8 +1742,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.sort).toEqual([
@@ -1781,8 +1781,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.limit).toBe(5);
@@ -1827,8 +1827,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.legendType).toBe('breakdown');
@@ -1858,8 +1858,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.fields).toEqual([
@@ -1897,8 +1897,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.sort).toEqual([{field: 'count()', kind: 'desc'}]);
@@ -1925,8 +1925,8 @@ describe('useWidgetBuilderState', () => {
           },
         })
       );
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.limit).toBe(5);
@@ -1957,8 +1957,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'desc'}]);
@@ -1983,8 +1983,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       // We expect desc even though freq doesn't use '-'
@@ -2012,8 +2012,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.limit).toBe(4);
@@ -2039,8 +2039,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.legendAlias).toEqual(['test', 'test2']);
@@ -2068,8 +2068,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.selectedAggregate).toBe(0);
@@ -2095,8 +2095,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.selectedAggregate).toBe(0);
@@ -2134,8 +2134,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       // Dispatch SET_Y_AXIS with a different aggregate (simulating metric change)
@@ -2170,8 +2170,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       // Dispatch SET_Y_AXIS with the same aggregate (e.g., adding a second one)
@@ -2211,8 +2211,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       // Verify initial yAxis has args preserved from deserialization.
@@ -2305,8 +2305,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       act(() => {
@@ -2352,8 +2352,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       act(() => {
@@ -2393,8 +2393,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       act(() => {
@@ -2427,8 +2427,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       act(() => {
@@ -2478,8 +2478,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       act(() => {
@@ -2532,8 +2532,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       act(() => {
@@ -2567,8 +2567,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       act(() => {
@@ -2625,8 +2625,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       // selectedAggregate should default to the last aggregate index (1, since
@@ -2650,8 +2650,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       // selectedAggregate should be undefined when there's only one aggregate
@@ -2675,8 +2675,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       act(() => {
@@ -2738,8 +2738,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.fields).toEqual([
@@ -2781,8 +2781,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       expect(result.current.state.description).toBe('existing description');
@@ -2809,8 +2809,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       act(() => {
@@ -2841,8 +2841,8 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderHookWithProviders(useWidgetBuilderState, {
+        additionalWrapper: WidgetBuilderProvider,
       });
 
       act(() => {

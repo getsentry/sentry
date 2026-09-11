@@ -1,6 +1,7 @@
 import {useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Container} from '@sentry/scraps/layout';
 
@@ -17,8 +18,6 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -46,12 +45,8 @@ export default function PreprodBuilds() {
     [location.query.display]
   );
 
-  const {query: urlSearchQuery, cursor} = useLocationQuery({
-    fields: {
-      query: decodeScalar,
-      cursor: decodeScalar,
-    },
-  });
+  const [urlSearchQuery] = useQueryState('query', parseAsString.withDefault(''));
+  const [cursor] = useQueryState('cursor', parseAsString.withDefault(''));
 
   const [localSearchQuery, setLocalSearchQuery] = useState(urlSearchQuery || '');
   const [debouncedLocalSearchQuery] = useDebouncedValue(localSearchQuery, {

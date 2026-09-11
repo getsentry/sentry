@@ -1,6 +1,6 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import {act, renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
@@ -30,8 +30,9 @@ describe('useQueryParamState', () => {
       LocationFixture({query: {testField: 'initial state'}})
     );
 
-    const {result} = renderHook(() => useQueryParamState({fieldName: 'testField'}), {
-      wrapper: UrlParamBatchProvider,
+    const {result} = renderHookWithProviders(useQueryParamState, {
+      initialProps: {fieldName: 'testField'},
+      additionalWrapper: UrlParamBatchProvider,
     });
 
     expect(result.current[0]).toBe('initial state');
@@ -41,8 +42,9 @@ describe('useQueryParamState', () => {
     const mockedNavigate = jest.fn();
     mockedUseNavigate.mockReturnValue(mockedNavigate);
 
-    const {result} = renderHook(() => useQueryParamState({fieldName: 'testField'}), {
-      wrapper: UrlParamBatchProvider,
+    const {result} = renderHookWithProviders(useQueryParamState, {
+      initialProps: {fieldName: 'testField'},
+      additionalWrapper: UrlParamBatchProvider,
     });
 
     act(() => {
@@ -84,12 +86,10 @@ describe('useQueryParamState', () => {
 
     const testDeserializer = (value: string) => `${value.toUpperCase()} - decoded`;
 
-    const {result} = renderHook(
-      () => useQueryParamState({fieldName: 'testField', deserializer: testDeserializer}),
-      {
-        wrapper: UrlParamBatchProvider,
-      }
-    );
+    const {result} = renderHookWithProviders(useQueryParamState, {
+      initialProps: {fieldName: 'testField', deserializer: testDeserializer},
+      additionalWrapper: UrlParamBatchProvider,
+    });
 
     expect(result.current[0]).toBe('INITIAL STATE - decoded');
   });
@@ -107,12 +107,10 @@ describe('useQueryParamState', () => {
     const testSerializer = (value: TestType) =>
       `${value.value} - ${value.count} - ${value.isActive}`;
 
-    const {result} = renderHook(
-      () => useQueryParamState({fieldName: 'testField', serializer: testSerializer}),
-      {
-        wrapper: UrlParamBatchProvider,
-      }
-    );
+    const {result} = renderHookWithProviders(useQueryParamState, {
+      initialProps: {fieldName: 'testField', serializer: testSerializer},
+      additionalWrapper: UrlParamBatchProvider,
+    });
 
     act(() => {
       result.current[1]({value: 'newValue', count: 2, isActive: true});
@@ -133,17 +131,14 @@ describe('useQueryParamState', () => {
     const mockedNavigate = jest.fn();
     mockedUseNavigate.mockReturnValue(mockedNavigate);
 
-    const {result} = renderHook(
-      () =>
-        useQueryParamState<Sort[]>({
-          fieldName: 'sort',
-          decoder: decodeSorts,
-          serializer: value => value.map(formatSort),
-        }),
-      {
-        wrapper: UrlParamBatchProvider,
-      }
-    );
+    const {result} = renderHookWithProviders(useQueryParamState<Sort[]>, {
+      initialProps: {
+        fieldName: 'sort',
+        decoder: decodeSorts,
+        serializer: value => value.map(formatSort),
+      },
+      additionalWrapper: UrlParamBatchProvider,
+    });
 
     expect(result.current[0]).toEqual([{field: 'testField', kind: 'desc'}]);
 
@@ -165,12 +160,10 @@ describe('useQueryParamState', () => {
       LocationFixture({query: {testField: 'initial state'}})
     );
 
-    const {result, rerender} = renderHook(
-      () => useQueryParamState({fieldName: 'testField'}),
-      {
-        wrapper: UrlParamBatchProvider,
-      }
-    );
+    const {result, rerender} = renderHookWithProviders(useQueryParamState, {
+      initialProps: {fieldName: 'testField'},
+      additionalWrapper: UrlParamBatchProvider,
+    });
 
     expect(result.current[0]).toBe('initial state');
 
@@ -179,7 +172,7 @@ describe('useQueryParamState', () => {
       LocationFixture({query: {testField: 'changed via URL'}})
     );
 
-    rerender();
+    rerender({fieldName: 'testField'});
 
     // Local state should NOT be updated because syncStateWithUrl is false
     expect(result.current[0]).toBe('initial state');
@@ -190,12 +183,10 @@ describe('useQueryParamState', () => {
       LocationFixture({query: {testField: 'initial state'}})
     );
 
-    const {result, rerender} = renderHook(
-      () => useQueryParamState({fieldName: 'testField', syncStateWithUrl: true}),
-      {
-        wrapper: UrlParamBatchProvider,
-      }
-    );
+    const {result, rerender} = renderHookWithProviders(useQueryParamState, {
+      initialProps: {fieldName: 'testField', syncStateWithUrl: true},
+      additionalWrapper: UrlParamBatchProvider,
+    });
 
     expect(result.current[0]).toBe('initial state');
 
@@ -204,7 +195,7 @@ describe('useQueryParamState', () => {
       LocationFixture({query: {testField: 'changed via URL'}})
     );
 
-    rerender();
+    rerender({fieldName: 'testField', syncStateWithUrl: true});
 
     // Local state should be updated because syncStateWithUrl is true
     expect(result.current[0]).toBe('changed via URL');
