@@ -1,6 +1,7 @@
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
+import pytest
 from django.utils import timezone
 
 from sentry.analytics.events.issue_resolved import IssueResolvedEvent
@@ -10,11 +11,13 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.external_issues import GeneratedExternalIssueDetails
+from sentry.integrations.utils.issue_url import get_issue_url_path
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.release import Release
+from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
@@ -23,6 +26,34 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 from tests.sentry.sentry_apps.tasks.test_sentry_apps import MockResponseInstance
+
+
+@pytest.mark.parametrize(
+    "url",
+    (
+        "ftp://tracker.example.com/tracker/issues/1",
+        "https://user:password@tracker.example.com/tracker/issues/1",
+        "https://tracker.example.com:8443/tracker/issues/1",
+        "http://tracker.example.com/tracker/issues/1",
+        "https://tracker.example.com/tracker-other/issues/1",
+        "https://tracker.example.com/tracker/%2E%2E/issues/1",
+        "https://tracker.example.com/tracker/project%23other/issues/1",
+        "https://tracker.example.com:port/tracker/issues/1",
+    ),
+)
+def test_issue_url_rejects_invalid_installation_urls(url: str) -> None:
+    with pytest.raises(IntegrationFormError):
+        get_issue_url_path(url, "https://tracker.example.com/tracker")
+
+
+def test_issue_url_ignores_fragment_and_default_port() -> None:
+    assert (
+        get_issue_url_path(
+            "https://TRACKER.example.com:443/tracker/issues/1/?view=1#comment",
+            "https://tracker.example.com/tracker",
+        )
+        == "/issues/1"
+    )
 
 
 class IssueSyncIntegration(TestCase):
