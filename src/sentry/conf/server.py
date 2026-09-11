@@ -1020,7 +1020,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer.lightweight_rca_cluster",
     "sentry.tasks.seer.investigation",
     "sentry.tasks.seer.night_shift.cron",
-    "sentry.tasks.seer.monitor_cleanup",
     "sentry.tasks.seer.backfill_supergroups_lightweight",
     # Used for tests
     "sentry.taskworker.tasks.examples",

@@ -1,11 +1,9 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from unittest.mock import patch
 
 import pytest
-from django.db import router, transaction
-from django.test import RequestFactory, override_settings
+from django.test import override_settings
 from django.utils import timezone
-from rest_framework.request import Request
 
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -16,14 +14,13 @@ from sentry.seer.models.night_shift import (
     SeerNightShiftRunResult,
     SeerNightShiftRunShard,
 )
-from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunPullRequest
+from sentry.seer.models.run import SeerAgentRun, SeerRunPullRequest
 from sentry.seer.monitor_cleanup.constants import FEATURE
 from sentry.seer.monitor_cleanup.results import (
     parse_monitor_cleanup_results,
     parse_project_monitor_cleanup_result,
 )
 from sentry.seer.monitor_cleanup.runs import (
-    create_monitor_cleanup_run,
     deliver_monitor_cleanup_result,
     finish_run,
 )
@@ -31,7 +28,6 @@ from sentry.seer.monitor_cleanup.schemas import (
     SeerMonitorCleanupArtifact,
     SeerOrganizationMonitorCleanupArtifact,
 )
-from sentry.tasks.seer.monitor_cleanup import expire_run
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 
@@ -374,10 +370,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         self.addCleanup(seer_access.stop)
 
     def trigger(self):
-        with (
-            self.feature(FEATURE),
-            patch("sentry.tasks.seer.monitor_cleanup.expire_run.apply_async"),
-        ):
+        with self.feature(FEATURE):
             return self.get_success_response(
                 self.organization.slug, strategy="duplicate_monitors", status_code=202
             )
@@ -580,77 +573,11 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             )
         assert SeerAgentRun.objects.filter(run__organization=self.organization).count() == 5
 
-    def test_tasks_ignore_deleted_run(self) -> None:
+    def test_finish_run_ignores_deleted_run(self) -> None:
         run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
         run_id = run.run_id
         run.run.delete()
         finish_run(run_id, organization_id=self.organization.id, error="Late failure")
-        expire_run(run_id, self.organization.id)
-
-    def test_timeout_finishes_stranded_run_without_polling(self) -> None:
-        run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
-        run.run.update(date_added=timezone.now() - timedelta(minutes=16))
-        expire_run(run.run_id, self.organization.id)
-        run.refresh_from_db()
-        assert run.extras["status"] == "failed"
-        assert run.extras["date_completed"] is not None
-
-    def test_timeout_does_not_overwrite_completed_run(self) -> None:
-        run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
-        finish_run(run.run_id, organization_id=self.organization.id, outputs=[])
-        run.run.update(date_added=timezone.now() - timedelta(minutes=16))
-        expire_run(run.run_id, self.organization.id)
-        run.refresh_from_db()
-        assert run.extras["status"] == "complete"
-
-    def test_timeout_is_queued_after_commit(self) -> None:
-        request = Request(RequestFactory().get("/"))
-        request.user = self.user
-        with (
-            self.feature(FEATURE),
-            patch("sentry.tasks.seer.monitor_cleanup.expire_run.apply_async") as enqueue,
-            self.capture_on_commit_callbacks(execute=True),
-            transaction.atomic(using=router.db_for_write(SeerRun)),
-        ):
-            run = create_monitor_cleanup_run(request, self.organization)
-            enqueue.assert_not_called()
-        enqueue.assert_called_once_with(args=[run.id, self.organization.id], countdown=900)
-
-    def test_rolled_back_trigger_does_not_schedule_timeout(self) -> None:
-        request = Request(RequestFactory().get("/"))
-        request.user = self.user
-        with (
-            self.feature(FEATURE),
-            patch("sentry.tasks.seer.monitor_cleanup.expire_run.apply_async") as enqueue,
-            self.capture_on_commit_callbacks(execute=True),
-        ):
-            with (
-                pytest.raises(RuntimeError),
-                transaction.atomic(using=router.db_for_write(SeerRun)),
-            ):
-                create_monitor_cleanup_run(request, self.organization)
-                raise RuntimeError("Rollback")
-        enqueue.assert_not_called()
-        assert not SeerAgentRun.objects.filter(run__organization=self.organization).exists()
-        assert not CellOutbox.objects.filter(category=OutboxCategory.SEER_RUN_CREATE).exists()
-
-    def test_timeout_enqueue_failure_marks_committed_run_failed(self) -> None:
-        with (
-            self.feature(FEATURE),
-            patch(
-                "sentry.tasks.seer.monitor_cleanup.expire_run.apply_async", side_effect=RuntimeError
-            ),
-            self.capture_on_commit_callbacks(execute=True),
-        ):
-            response = self.get_success_response(
-                self.organization.slug, strategy="duplicate_monitors", status_code=202
-            )
-        run = SeerAgentRun.objects.get(run__uuid=response.data["runId"])
-        assert run.extras["status"] == "failed"
-        assert "timeout" in run.extras["error"]
-        assert CellOutbox.objects.filter(
-            category=OutboxCategory.SEER_RUN_CREATE, object_identifier=run.run_id
-        ).exists()
 
     def test_requires_feature(self) -> None:
         self.get_error_response(
@@ -746,7 +673,6 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert output["findings"][0]["monitors"][1]["id"] == str(self.duplicate.id)
         run.refresh_from_db()
         assert run.extras["status"] == "complete"
-        assert run.extras["response_schema_version"] == 1
 
     def test_missing_response_version_fails(self) -> None:
         run, _ = self.deliver({"data": self.organization_artifact().dict()})
@@ -955,13 +881,6 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         run.refresh_from_db()
         assert run.extras["status"] == "running"
         assert run.extras["date_completed"] is None
-
-    def test_timeout_is_scoped_to_organization(self) -> None:
-        run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
-        run.run.update(date_added=timezone.now() - timedelta(minutes=16))
-        expire_run(run.run_id, self.create_organization().id)
-        run.refresh_from_db()
-        assert run.extras["status"] == "running"
 
     @patch("sentry.seer.monitor_cleanup.runs.logger")
     def test_delivery_logs_upstream_error(self, logger) -> None:

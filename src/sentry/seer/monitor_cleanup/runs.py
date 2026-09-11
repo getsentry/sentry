@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from datetime import timedelta
-from functools import partial
 from typing import Any, Literal, cast
 from uuid import UUID
 
@@ -21,18 +19,15 @@ from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.seer.monitor_cleanup.constants import FEATURE, FEATURE_ID
 from sentry.seer.monitor_cleanup.results import parse_monitor_cleanup_results
 from sentry.seer.monitor_cleanup.schemas import (
-    RESPONSE_VERSION,
     MonitorCleanupOutput,
     MonitorCleanupRunExtras,
-    SeerMonitorCleanupResponseV1,
+    SeerMonitorCleanupResponse,
 )
-from sentry.tasks.seer import monitor_cleanup as monitor_cleanup_tasks
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
 TERMINAL = {"complete", "partial", "failed"}
-RUN_TIMEOUT = timedelta(minutes=15)
 
 
 def create_monitor_cleanup_run(request: Request, organization: Organization) -> SeerRun:
@@ -48,21 +43,16 @@ def create_monitor_cleanup_run(request: Request, organization: Organization) -> 
         "status": "running",
         "date_completed": None,
         "error": None,
-        "response_schema_version": RESPONSE_VERSION,
         "project_ids": [],
         "results": [],
     }
     return client.start_feature_run(
         feature_id=FEATURE_ID,
-        payload={"response_version": RESPONSE_VERSION},
+        payload={"response_version": 1},
         title="Monitor cleanup",
         flush=False,
         extras=dict(extras),
         referrer=FEATURE_ID,
-        on_run_created=lambda run: transaction.on_commit(
-            partial(monitor_cleanup_tasks.schedule_timeout, run.id, run.organization_id),
-            using=router.db_for_write(SeerRun),
-        ),
     )
 
 
@@ -107,7 +97,7 @@ def deliver_monitor_cleanup_result(
         )
         return
     try:
-        response = SeerMonitorCleanupResponseV1.parse_obj(result)
+        response = SeerMonitorCleanupResponse.parse_obj(result)
         outputs = parse_monitor_cleanup_results(
             response.data, agent_run.run.organization, agent_run.run.user_id
         )
@@ -147,7 +137,6 @@ def finish_run(
             "status": "failed" if error else scan_status,
             "date_completed": timezone.now().isoformat(),
             "error": error,
-            "response_schema_version": RESPONSE_VERSION,
             "project_ids": [output["projectId"] for output in outputs],
             "results": list(outputs),
         }

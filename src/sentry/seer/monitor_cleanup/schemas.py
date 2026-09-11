@@ -5,8 +5,6 @@ from typing import Literal, NotRequired, TypedDict
 
 from pydantic import BaseModel, Field
 
-RESPONSE_VERSION: Literal[1] = 1
-
 
 class SeerMonitorPropertyValue(BaseModel):
     monitor_id: int
@@ -43,7 +41,7 @@ class SeerOrganizationMonitorCleanupArtifact(BaseModel):
     projects: list[SeerProjectMonitorCleanupArtifact]
 
 
-class SeerMonitorCleanupResponseV1(BaseModel):
+class SeerMonitorCleanupResponse(BaseModel):
     schema_version: Literal[1]
     data: SeerOrganizationMonitorCleanupArtifact
 
@@ -95,7 +93,6 @@ class MonitorCleanupRunExtras(TypedDict):
     status: Literal["running", "complete", "partial", "failed"]
     date_completed: str | None
     error: str | None
-    response_schema_version: Literal[1]
     project_ids: list[str]
     results: list[MonitorCleanupOutput]
 
