@@ -1209,9 +1209,16 @@ class TestTriggerAutofixAgent(TestCase):
             )
 
         prompt_metadata = mock_client.start_run.call_args.kwargs["prompt_metadata"]
-        assert json.loads(prompt_metadata["base_shas"]) == {
-            "owner/repo": {"base_sha": "abc123", "base_branch": "main"}
+        expected_repo_pins = {
+            "owner/repo": {
+                "sha": "abc123",
+                "branch": "main",
+                "base_sha": "abc123",
+                "base_branch": "main",
+            }
         }
+        assert json.loads(prompt_metadata["base_shas"]) == expected_repo_pins
+        assert json.loads(prompt_metadata["repo_pins"]) == expected_repo_pins
 
     @patch("sentry.scm.factory.new")
     @patch("sentry.quotas.backend.record_seer_run")
