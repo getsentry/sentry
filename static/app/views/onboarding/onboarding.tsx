@@ -50,6 +50,14 @@ import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
 // this window, so gating exposure on org age keeps them out of the experiment.
 const NEW_ORG_ONBOARDING_WINDOW_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
+/**
+ * Off until the messaging experiment ramps. The FlagPole config resolves every
+ * production org to control today, so reporting now would fill the experiment
+ * population with pre-launch control rows. Flip this in the same change as the
+ * rollout segment.
+ */
+const SCM_MESSAGING_EXPOSURE_ENABLED = false;
+
 const legacyOnboardingSteps: StepDescriptor[] = [
   {
     id: OnboardingStepId.WELCOME,
@@ -319,11 +327,26 @@ export function OnboardingWithoutContext() {
     reportExposure: isNewOrgOnboarding,
   });
 
-  // VDY-146 owns treatment exposure and interaction analytics. For now the
-  // host consumes the nested assignment without reporting it.
+  // The arms first differ after platform/features: treatment continues to the
+  // messaging step, control to SDK setup. Exposure is reported once the user
+  // is past that fork, from the route rather than the step list because the
+  // list itself depends on this assignment.
+  //
+  // The route alone is not enough: the invalid-state guards below redirect off
+  // both of these steps, and the redirect runs in an effect, so a bare route
+  // check reports exposure for a user who is sent back before either arm
+  // renders. Repeat the same staged-state conditions here.
+  const isPastPlatformFeatures =
+    (stepId === OnboardingStepId.SCM_MESSAGING &&
+      defined(onboardingContext.selectedPlatform)) ||
+    (stepId === OnboardingStepId.SETUP_DOCS && defined(selectedProjectSlug));
   const {inExperiment: hasScmMessaging} = useExperiment({
     feature: 'onboarding-scm-messaging-experiment',
-    reportExposure: false,
+    reportExposure:
+      SCM_MESSAGING_EXPOSURE_ENABLED &&
+      isNewOrgOnboarding &&
+      hasScmOnboarding &&
+      isPastPlatformFeatures,
   });
 
   const onboardingSteps = getOnboardingSteps({hasScmOnboarding, hasScmMessaging});
