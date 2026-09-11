@@ -4,6 +4,9 @@ from unittest.mock import ANY, MagicMock, patch
 import orjson
 from scm.helpers import iter_all_pages
 
+from sentry.analytics.events.pr_iteration_events import (
+    AiAutofixPrIterationCheckSuiteConcludedEvent,
+)
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
@@ -46,6 +49,10 @@ from sentry.seer.autofix.pr_iteration.listeners.check_suite import (
 )
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import (
+    assert_any_analytics_event,
+    assert_not_analytics_event,
+)
 from sentry.testutils.helpers.options import override_options
 
 CHECK_PATH = "sentry.seer.autofix.pr_iteration.listeners.check_suite"
@@ -465,6 +472,85 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         assert autofix.run_state is not None
         mock_trigger_consume.assert_called_once()
         mock_assign.assert_not_called()
+
+    @patch("sentry.analytics.record")
+    @patch(f"{CHECK_PATH}.assign_user_for_exhausted_cap")
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_a_failing_suite_records_its_conclusion(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        _mock_enqueue: MagicMock,
+        _mock_trigger_consume: MagicMock,
+        _mock_assign: MagicMock,
+        mock_record: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.return_value = self._agent_state()
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
+        raw["check_suite"]["conclusion"] = "failure"
+
+        pr_iteration_from_check_suite_listener(self._event(raw))
+
+        assert_any_analytics_event(
+            mock_record,
+            AiAutofixPrIterationCheckSuiteConcludedEvent(
+                organization_id=self.organization.id,
+                run_id=67890,
+                head_sha="abc",
+                conclusion="failure",
+                app_name="CI",
+                check_suite_id=1,
+                updated_at="2024-01-01T00:00:00Z",
+            ),
+        )
+
+    @patch("sentry.analytics.record")
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    def test_an_unhandled_suite_records_nothing(
+        self, _mock_get_state: MagicMock, mock_record: MagicMock
+    ) -> None:
+        pr_iteration_from_check_suite_listener(self._event(self._raw(), action="requested"))
+        pr_iteration_from_check_suite_listener(self._event(self._raw(), conclusion="cancelled"))
+
+        assert_not_analytics_event(mock_record, AiAutofixPrIterationCheckSuiteConcludedEvent)
+
+    @patch("sentry.analytics.record")
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback", return_value=[])
+    @patch(f"{CHECK_PATH}.green_review_side_effects_enabled", return_value=False)
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    def test_a_green_suite_records_its_conclusion(
+        self,
+        mock_resolve: MagicMock,
+        _mock_enabled: MagicMock,
+        _mock_peek: MagicMock,
+        mock_record: MagicMock,
+    ) -> None:
+        raw = self._raw()
+        raw["check_suite"]["conclusion"] = "success"
+        resolved = MagicMock()
+        resolved.event = GithubCheckSuiteEvent(**raw)
+        resolved.organization.id = self.organization.id
+        resolved.autofix_run.run_state = self._agent_state()
+        mock_resolve.return_value = resolved
+
+        pr_iteration_from_check_suite_listener(self._event(raw, conclusion="success"))
+
+        assert_any_analytics_event(
+            mock_record,
+            AiAutofixPrIterationCheckSuiteConcludedEvent(
+                organization_id=self.organization.id,
+                run_id=67890,
+                head_sha="abc",
+                conclusion="success",
+                app_name="CI",
+                check_suite_id=1,
+                updated_at="2024-01-01T00:00:00Z",
+            ),
+        )
 
     @patch(f"{CHECK_SUITES_PATH}.sentry_sdk.capture_exception")
     @patch(TRIGGER_CONSUME_PATH)

@@ -25,7 +25,7 @@ from sentry.analytics.events.pr_iteration_events import (
 )
 from sentry.models.group import Group
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.autofix.autofix_agent import get_iterations, get_latest_iteration_index
+from sentry.seer.autofix.autofix_agent import Iteration, get_iterations
 from sentry.seer.autofix.pr_iteration.details_store import (
     add_iteration,
     claim_iteration,
@@ -169,6 +169,7 @@ def record_pr_iteration_counts(
     queued_count: int,
     dropped_count: int,
     automated_feedback_count: int,
+    feedback_bot_slugs: list[str],
 ) -> None:
     """Write what the drain saw onto the row it claimed."""
     try:
@@ -187,6 +188,7 @@ def record_pr_iteration_counts(
             queued_count=queued_count,
             dropped_count=dropped_count,
             automated_feedback_count=automated_feedback_count,
+            feedback_bot_slugs=feedback_bot_slugs,
         )
     except Exception:
         log_ctx.error("autofix.pr_iteration.details.counts_failed")
@@ -210,23 +212,41 @@ def discard_pr_iteration_details(
         log_ctx.error("autofix.pr_iteration.details.discard_failed")
 
 
-def state_iteration_id(log_ctx: PrIterationLogContext, run_state: SeerRunState) -> int | None:
-    """The id the run's latest iteration was started with."""
+def _latest_iteration(log_ctx: PrIterationLogContext, run_state: SeerRunState) -> Iteration | None:
+    """The run's latest iteration, or None when it has none."""
     try:
         iterations = get_iterations(run_state)
     except Exception:
         log_ctx.error("autofix.pr_iteration.details.get_iterations_failed")
         return None
 
-    if not iterations or not iterations[-1].blocks:
+    return iterations[-1] if iterations else None
+
+
+def _iteration_id(iteration: Iteration) -> int | None:
+    """The id the iteration was started with."""
+    if not iteration.blocks:
         return None
 
-    metadata = iterations[-1].blocks[0].message.metadata or {}
+    metadata = iteration.blocks[0].message.metadata or {}
     try:
         # Prompt metadata is a string map; the id goes out stringified.
         return int(metadata[ITERATION_ID_METADATA_KEY])
     except (KeyError, TypeError, ValueError):
         return None
+
+
+def _pushed_head_shas(iteration: Iteration, run_state: SeerRunState) -> list[str]:
+    """The commit SHAs the latest iteration pushed, one for each repository."""
+    repos = {
+        patch.repo_name for block in iteration.blocks for patch in (block.merged_file_patches or [])
+    }
+    shas = {
+        pr_state.commit_sha
+        for repo in repos
+        if (pr_state := run_state.repo_pr_states.get(repo)) and pr_state.commit_sha
+    }
+    return sorted(shas)
 
 
 def _build_event(
@@ -235,6 +255,7 @@ def _build_event(
     *,
     iteration_index: int,
     outcome: str,
+    head_shas: list[str],
 ) -> AiAutofixPrIterationFeedbackBatchCompletedEvent | None:
     """The event for a finished iteration. None when its row is incomplete."""
     known = {f.name for f in fields(AiAutofixPrIterationFeedbackBatchCompletedEvent)}
@@ -246,6 +267,7 @@ def _build_event(
             iteration_index=iteration_index,
             duration_ms=duration_ms,
             outcome=outcome,
+            head_shas=head_shas,
             **payload,
         )
     except TypeError:
@@ -254,6 +276,7 @@ def _build_event(
             "iteration_index",
             "duration_ms",
             "outcome",
+            "head_shas",
         }
         log_ctx.error(
             "autofix.pr_iteration.details.incomplete_row",
@@ -276,8 +299,9 @@ def complete_pr_iteration_details(
     The row goes however the batch ended: leaving it behind would let the next
     completion hook emit this batch under a later iteration's outcome.
     """
-    iteration_id = state_iteration_id(log_ctx, run_state)
-    if iteration_id is None:
+    latest = _latest_iteration(log_ctx, run_state)
+    iteration_id = _iteration_id(latest) if latest is not None else None
+    if latest is None or iteration_id is None:
         log_ctx.error(
             "autofix.pr_iteration.details.unresolved", exc_info=False, reason="no_iteration_id"
         )
@@ -296,11 +320,17 @@ def complete_pr_iteration_details(
             log_ctx.info("autofix.pr_iteration.details.skipped", reason="already_emitted")
             return
 
+        head_shas = (
+            _pushed_head_shas(latest, run_state)
+            if outcome == PrIterationOutcome.ALREADY_PUSHED.value
+            else []
+        )
         event = _build_event(
             log_ctx,
             iteration,
-            iteration_index=get_latest_iteration_index(run_state),
+            iteration_index=latest.index,
             outcome=outcome,
+            head_shas=head_shas,
         )
         if event is None or not remove_iteration(iteration):
             return
