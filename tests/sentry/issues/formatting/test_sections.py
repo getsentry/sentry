@@ -248,11 +248,15 @@ def test_threads_zero_cap_renders_nothing() -> None:
         threads=[ThreadDetails(name=f"T{i}", stacktrace=stacktrace) for i in range(5)],
     )
     assert (
-        _render(threads_section, event, MD, dataclasses.replace(LIMITS_DEFAULT, max_threads=0))
+        _render(
+            threads_section, event, MD, dataclasses.replace(LIMITS_DEFAULT, max_threads_listed=0)
+        )
         == ""
     )
     # and the cap is still filled exactly when it is non-zero
-    out = _render(threads_section, event, MD, dataclasses.replace(LIMITS_DEFAULT, max_threads=2))
+    out = _render(
+        threads_section, event, MD, dataclasses.replace(LIMITS_DEFAULT, max_threads_listed=2)
+    )
     assert [f"T{i}" in out for i in range(5)] == [True, True, False, False, False]
 
 
@@ -361,28 +365,54 @@ def test_section_empty_renders_nothing(section: SectionFn) -> None:
     assert _render(section, EventObject(title="t"), MD, LIMITS_DEFAULT) == ""
 
 
-def test_threads_only_with_stacktrace() -> None:
+def test_threads_lists_every_thread_including_stacktrace_less_ones() -> None:
+    # a crashed thread often carries no stacktrace on a mobile crash, and dropping it loses the
+    # one row that matters
     with_st = ThreadDetails(
-        name="main", crashed=True, stacktrace=Stacktrace(frames=[Frame(function="f", line_no=1)])
+        name="main",
+        state="RUNNABLE",
+        stacktrace=Stacktrace(frames=[Frame(function="f", line_no=1)]),
     )
-    without_st = ThreadDetails(name="worker")
-    event = EventObject(title="t", threads=[with_st, without_st])
+    crashed_no_st = ThreadDetails(id=8157, name="GameThread", crashed=True, state="WAITING")
+    event = EventObject(title="t", threads=[with_st, crashed_no_st])
     out = _render(threads_section, event, MD, LIMITS_DEFAULT)
+
     assert "main" in out
-    assert "**Crashed:** Yes" in out
-    assert "worker" not in out
+    assert "GameThread" in out
+    assert "**State:** RUNNABLE" in out
+    assert "**State:** WAITING" in out
+    assert "**Flags:** crashed" in out
+    assert "**ID:** 8157" in out
+    # the stacktrace-less thread reports zero frames rather than vanishing
+    assert "**Frames:** 0" in out
+    assert "**Frames:** 1" in out
 
 
-def test_threads_capped_by_max_threads() -> None:
-    # more threads than max_threads -> section output is bounded by the count cap
+def test_threads_reports_both_flags() -> None:
+    event = EventObject(title="t", threads=[ThreadDetails(name="main", crashed=True, current=True)])
+    assert "**Flags:** crashed, current" in _render(threads_section, event, MD, LIMITS_DEFAULT)
+
+
+def test_threads_cap_stacktraces_without_dropping_the_listing() -> None:
+    # the stacktraces are what cost, so they are capped separately from the listing
     frame = Frame(function="f", line_no=1)
     threads = [
         ThreadDetails(name=f"t{i}", stacktrace=Stacktrace(frames=[frame])) for i in range(20)
     ]
     event = EventObject(title="t", threads=threads)
-    tight = dataclasses.replace(LIMITS_DEFAULT, max_threads=3)
+    tight = dataclasses.replace(LIMITS_DEFAULT, max_thread_stacktraces=3)
     out = _render(threads_section, event, MD, tight)
-    assert out.count("```") == 3 * 2  # one fenced stacktrace per rendered thread, capped at 3
+
+    assert out.count("```") == 3 * 2  # three fenced stacktraces
+    for i in range(20):
+        assert f"t{i}" in out  # but every thread is still listed
+
+
+def test_threads_listing_is_bounded() -> None:
+    threads = [ThreadDetails(name=f"t{i}") for i in range(20)]
+    event = EventObject(title="t", threads=threads)
+    tight = dataclasses.replace(LIMITS_DEFAULT, max_threads_listed=3)
+    out = _render(threads_section, event, MD, tight)
     assert "t0" in out and "t2" in out
     assert "t3" not in out
 
