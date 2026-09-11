@@ -28,12 +28,11 @@ from sentry.models.organization import Organization
 from sentry.ratelimits import backend as ratelimits
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.night_shift import SeerNightShiftRun
-from sentry.seer.models.run import SeerRun
+from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.seer.monitor_cleanup import FEATURE, FEATURE_ID
-from sentry.seer.monitor_cleanup.results import serialize_monitor_cleanup_run
 from sentry.seer.monitor_cleanup.runs import create_monitor_cleanup_run
-from sentry.seer.monitor_cleanup.schemas import MonitorCleanupRunResponse
+from sentry.seer.monitor_cleanup.schemas import MonitorCleanupRunExtras, MonitorCleanupRunResponse
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -173,5 +172,29 @@ def serialize_workflow_page(
         for result in serialize(list(triage), request.user, SeerNightShiftRunSerializer())
     }
     for run in cleanup:
-        results[("monitor_cleanup", run.id)] = serialize_monitor_cleanup_run(run.agent)
+        results[("monitor_cleanup", run.id)] = _serialize_monitor_cleanup_run(run.agent)
     return [results[(entry["run_kind"], entry["id"])] for entry in entries]
+
+
+def _serialize_monitor_cleanup_run(agent_run: SeerAgentRun) -> MonitorCleanupRunResponse:
+    extras: MonitorCleanupRunExtras = agent_run.extras
+    run_uuid = str(agent_run.run.uuid)
+    return {
+        "id": run_uuid,
+        "dateAdded": agent_run.run.date_added,
+        "dateCompleted": datetime.fromisoformat(extras["date_completed"])
+        if extras["date_completed"] is not None
+        else None,
+        "strategy": "duplicate_monitors",
+        "extras": {"status": extras["status"]},
+        "errorMessage": extras["error"],
+        "results": [
+            {
+                "id": f"{run_uuid}:{output['projectId']}",
+                "kind": "duplicate_monitors",
+                "seerRunId": run_uuid,
+                "extras": output,
+            }
+            for output in extras["results"]
+        ],
+    }

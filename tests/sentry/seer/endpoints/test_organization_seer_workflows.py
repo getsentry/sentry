@@ -424,7 +424,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         )
         outputs = prepare_monitor_cleanup_results(artifact, self.organization, self.user.id)
         run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
-        finish_run(run.run_id, outputs=outputs)
+        finish_run(run.run_id, organization_id=self.organization.id, outputs=outputs)
         run.refresh_from_db()
         assert len(run.extras["results"]) == 2
         assert {result["projectSlug"] for result in run.extras["results"]} == {
@@ -438,14 +438,16 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         artifact = OrganizationMonitorCleanupArtifact(scan_status="complete", projects=[])
         outputs = prepare_monitor_cleanup_results(artifact, self.organization, self.user.id)
         run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
-        finish_run(run.run_id, outputs=outputs)
+        finish_run(run.run_id, organization_id=self.organization.id, outputs=outputs)
         run.refresh_from_db()
         assert run.extras["status"] == "complete"
         assert not run.extras["results"]
 
     def test_partial_discovery_stays_partial(self) -> None:
         run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
-        finish_run(run.run_id, outputs=[], scan_status="partial")
+        finish_run(
+            run.run_id, organization_id=self.organization.id, outputs=[], scan_status="partial"
+        )
         run.refresh_from_db()
         assert run.extras["status"] == "partial"
         assert run.extras["date_completed"] is not None
@@ -553,13 +555,13 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
 
     def test_allows_scan_after_previous_run_completes(self) -> None:
         run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
-        finish_run(run.run_id, error="Scan failed")
+        finish_run(run.run_id, organization_id=self.organization.id, error="Scan failed")
         assert self.trigger().data["runId"] != str(run.run.uuid)
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_rate_limits_repeated_triggers(self) -> None:
         run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
-        finish_run(run.run_id, error="Scan failed")
+        finish_run(run.run_id, organization_id=self.organization.id, error="Scan failed")
         with self.feature(FEATURE):
             self.get_error_response(
                 self.organization.slug, strategy="duplicate_monitors", status_code=429
@@ -605,22 +607,22 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
         run_id = run.run_id
         run.run.delete()
-        finish_run(run_id, error="Late failure")
-        expire_run(run_id)
+        finish_run(run_id, organization_id=self.organization.id, error="Late failure")
+        expire_run(run_id, self.organization.id)
 
     def test_timeout_finishes_stranded_run_without_polling(self) -> None:
         run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
         run.run.update(date_added=timezone.now() - timedelta(minutes=16))
-        expire_run(run.run_id)
+        expire_run(run.run_id, self.organization.id)
         run.refresh_from_db()
         assert run.extras["status"] == "failed"
         assert run.extras["date_completed"] is not None
 
     def test_timeout_does_not_overwrite_completed_run(self) -> None:
         run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
-        finish_run(run.run_id, outputs=[])
+        finish_run(run.run_id, organization_id=self.organization.id, outputs=[])
         run.run.update(date_added=timezone.now() - timedelta(minutes=16))
-        expire_run(run.run_id)
+        expire_run(run.run_id, self.organization.id)
         run.refresh_from_db()
         assert run.extras["status"] == "complete"
 
@@ -635,7 +637,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         ):
             run = create_monitor_cleanup_run(request, self.organization)
             enqueue.assert_not_called()
-        enqueue.assert_called_once_with(args=[run.id], countdown=900)
+        enqueue.assert_called_once_with(args=[run.id, self.organization.id], countdown=900)
 
     def test_rolled_back_trigger_does_not_schedule_timeout(self) -> None:
         request = Request(RequestFactory().get("/"))
@@ -730,8 +732,12 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         output = format_monitor_cleanup_results(
             self.artifact(), self.organization.id, self.project.id
         )
-        finish_run(run.run_id, outputs=[output])
-        finish_run(run.run_id, error="Late failure must not replace a completed result")
+        finish_run(run.run_id, organization_id=self.organization.id, outputs=[output])
+        finish_run(
+            run.run_id,
+            organization_id=self.organization.id,
+            error="Late failure must not replace a completed result",
+        )
         run.refresh_from_db()
         assert len(run.extras["results"]) == 1
         assert run.extras["status"] == "complete"
@@ -829,7 +835,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         outputs = prepare_monitor_cleanup_results(
             self.organization_artifact(), self.organization, self.user.id
         )
-        finish_run(run.run_id, outputs=outputs)
+        finish_run(run.run_id, organization_id=self.organization.id, outputs=outputs)
         member = self.create_user()
         self.create_member(organization=self.organization, user=member, role="member")
         self.organization.flags.allow_joinleave = False
@@ -982,3 +988,36 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             )
         assert response.status_code == 200
         assert response.data[0]["id"] == str(run.uuid)
+
+    def test_finish_run_is_scoped_to_organization(self) -> None:
+        run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
+        other = self.create_organization()
+        finish_run(run.run_id, organization_id=other.id, error="Wrong organization")
+        run.refresh_from_db()
+        assert run.extras["status"] == "running"
+        assert run.extras["date_completed"] is None
+
+    def test_timeout_is_scoped_to_organization(self) -> None:
+        run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
+        run.run.update(date_added=timezone.now() - timedelta(minutes=16))
+        expire_run(run.run_id, self.create_organization().id)
+        run.refresh_from_db()
+        assert run.extras["status"] == "running"
+
+    @patch("sentry.seer.monitor_cleanup.runs.logger")
+    def test_delivery_logs_upstream_error(self, logger) -> None:
+        run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
+        deliver_monitor_cleanup_result(
+            self.organization.id, run.run.uuid, "error", None, "Agent execution failed"
+        )
+        logger.warning.assert_called_once_with(
+            "monitor_cleanup.delivery.failed",
+            extra={
+                "organization_id": self.organization.id,
+                "run_uuid": str(run.run.uuid),
+                "status": "error",
+                "error": "Agent execution failed",
+            },
+        )
+        run.refresh_from_db()
+        assert run.extras["status"] == "failed"

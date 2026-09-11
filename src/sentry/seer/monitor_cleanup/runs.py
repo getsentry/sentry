@@ -32,9 +32,6 @@ RUN_TIMEOUT = timedelta(minutes=15)
 
 
 def create_monitor_cleanup_run(request: Request, organization: Organization) -> SeerRun:
-    # Timeout scheduling calls finish_run if enqueueing fails.
-    from sentry.tasks.seer.monitor_cleanup import schedule_timeout
-
     if not features.has(FEATURE, organization, actor=request.user):
         raise NotFound
     if not request.user.is_authenticated:
@@ -43,38 +40,98 @@ def create_monitor_cleanup_run(request: Request, organization: Organization) -> 
         client = SeerAgentClient(organization=organization, user=request.user)
     except SeerPermissionError as error:
         raise PermissionDenied(str(error)) from error
-    with transaction.atomic(router.db_for_write(SeerRun)):
-        extras: MonitorCleanupRunExtras = {
-            "status": "running",
-            "date_completed": None,
-            "error": None,
-            "response_schema_version": RESPONSE_VERSION,
-            "project_ids": [],
-            "results": [],
-        }
-        run = client.start_feature_run(
-            feature_id=FEATURE_ID,
-            payload={"response_version": RESPONSE_VERSION},
-            title="Monitor cleanup",
-            flush=False,
-            extras=dict(extras),
-            referrer=FEATURE_ID,
+    extras: MonitorCleanupRunExtras = {
+        "status": "running",
+        "date_completed": None,
+        "error": None,
+        "response_schema_version": RESPONSE_VERSION,
+        "project_ids": [],
+        "results": [],
+    }
+    return client.start_feature_run(
+        feature_id=FEATURE_ID,
+        payload={"response_version": RESPONSE_VERSION},
+        title="Monitor cleanup",
+        flush=False,
+        extras=dict(extras),
+        referrer=FEATURE_ID,
+        on_run_created=_schedule_run_timeout,
+    )
+
+
+def deliver_monitor_cleanup_result(
+    organization_id: int,
+    run_uuid: UUID,
+    status: FeatureRunStatus,
+    result: dict[str, Any] | None,
+    error: str | None,
+    prompt_version: str | None = None,
+) -> None:
+    log_extra = {"organization_id": organization_id, "run_uuid": str(run_uuid), "status": status}
+    logger.info("monitor_cleanup.delivery.received", extra=log_extra)
+    agent_run = (
+        SeerAgentRun.objects.select_related("run__organization")
+        .filter(
+            run__organization_id=organization_id,
+            source=FEATURE_ID,
+            run__uuid=run_uuid,
         )
-        transaction.on_commit(lambda: schedule_timeout(run.id), using=router.db_for_write(SeerRun))
-    return run
+        .first()
+    )
+    if agent_run is None:
+        logger.warning("monitor_cleanup.delivery.missing_run", extra=log_extra)
+        return
+    if agent_run.extras.get("status") in TERMINAL:
+        logger.info("monitor_cleanup.delivery.already_finished", extra=log_extra)
+        return
+    if agent_run.run.user_id is None:
+        finish_run(
+            agent_run.run_id,
+            organization_id=organization_id,
+            error="The triggering user no longer exists.",
+        )
+        return
+    if status != "completed" or result is None:
+        logger.warning("monitor_cleanup.delivery.failed", extra={**log_extra, "error": error})
+        finish_run(
+            agent_run.run_id,
+            organization_id=organization_id,
+            error="Seer could not complete this scan.",
+        )
+        return
+    try:
+        response = MonitorCleanupResponseV1.parse_obj(result)
+        outputs = prepare_monitor_cleanup_results(
+            response.data, agent_run.run.organization, agent_run.run.user_id
+        )
+    except Exception:
+        logger.exception("monitor_cleanup.invalid_output", extra={"agent_run_id": agent_run.id})
+        finish_run(
+            agent_run.run_id,
+            organization_id=organization_id,
+            error="Seer returned findings that could not be loaded.",
+        )
+        return
+    scan_status = response.data.scan_status
+    if any(project.scan_status == "partial" for project in response.data.projects):
+        scan_status = "partial"
+    finish_run(
+        agent_run.run_id, organization_id=organization_id, outputs=outputs, scan_status=scan_status
+    )
 
 
 def finish_run(
     run_id: int,
     *,
+    organization_id: int,
     outputs: Sequence[MonitorCleanupOutput] = (),
     scan_status: Literal["complete", "partial"] = "complete",
     error: str | None = None,
 ) -> None:
     with transaction.atomic(router.db_for_write(SeerAgentRun)):
         agent_run = (
-            SeerAgentRun.objects.select_for_update()
-            .filter(run_id=run_id, source=FEATURE_ID)
+            SeerAgentRun.objects.select_for_update(of=("self",))
+            .filter(run_id=run_id, run__organization_id=organization_id, source=FEATURE_ID)
             .first()
         )
         if agent_run is None or agent_run.extras.get("status") in TERMINAL:
@@ -88,43 +145,22 @@ def finish_run(
             "results": list(outputs),
         }
         agent_run.update(extras={**agent_run.extras, **extras})
-
-
-def deliver_monitor_cleanup_result(
-    organization_id: int,
-    run_uuid: UUID,
-    status: FeatureRunStatus,
-    result: dict[str, Any] | None,
-    error: str | None,
-    prompt_version: str | None = None,
-) -> None:
-    agent_run = (
-        SeerAgentRun.objects.select_related("run__organization")
-        .filter(
-            run__organization_id=organization_id,
-            source=FEATURE_ID,
-            run__uuid=run_uuid,
-        )
-        .first()
+    logger.info(
+        "monitor_cleanup.run.finished",
+        extra={
+            "run_id": run_id,
+            "organization_id": organization_id,
+            "status": extras["status"],
+            "error": error,
+        },
     )
-    if agent_run is None or agent_run.extras.get("status") in TERMINAL:
-        return
-    if agent_run.run.user_id is None:
-        finish_run(agent_run.run_id, error="The triggering user no longer exists.")
-        return
-    if status != "completed" or result is None:
-        finish_run(agent_run.run_id, error="Seer could not complete this scan.")
-        return
-    try:
-        response = MonitorCleanupResponseV1.parse_obj(result)
-        outputs = prepare_monitor_cleanup_results(
-            response.data, agent_run.run.organization, agent_run.run.user_id
-        )
-    except Exception:
-        logger.exception("monitor_cleanup.invalid_output", extra={"agent_run_id": agent_run.id})
-        finish_run(agent_run.run_id, error="Seer returned findings that could not be loaded.")
-        return
-    scan_status = response.data.scan_status
-    if any(project.scan_status == "partial" for project in response.data.projects):
-        scan_status = "partial"
-    finish_run(agent_run.run_id, outputs=outputs, scan_status=scan_status)
+
+
+def _schedule_run_timeout(run: SeerRun) -> None:
+    # The timeout task calls finish_run, so import it after this module is initialized.
+    from sentry.tasks.seer.monitor_cleanup import schedule_timeout
+
+    transaction.on_commit(
+        lambda: schedule_timeout(run.id, run.organization_id),
+        using=router.db_for_write(SeerRun),
+    )

@@ -1,20 +1,21 @@
-from datetime import datetime
+from collections.abc import Mapping
 
 from sentry.auth import access
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.models.run import SeerAgentRun
 from sentry.seer.monitor_cleanup.schemas import (
     MonitorCleanupArtifact,
+    MonitorCleanupComparison,
+    MonitorCleanupComparisonValue,
+    MonitorCleanupFinding,
     MonitorCleanupOutput,
     MonitorCleanupResource,
-    MonitorCleanupRunExtras,
-    MonitorCleanupRunResponse,
+    MonitorFinding,
     OrganizationMonitorCleanupArtifact,
 )
 from sentry.users.services.user.service import user_service
-from sentry.workflow_engine.models import Detector, DetectorWorkflow
+from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
 
 
 def prepare_monitor_cleanup_results(
@@ -49,11 +50,7 @@ def format_monitor_cleanup_results(
     ids = {monitor_id for finding in findings for monitor_id in finding.monitor_ids}
     alert_ids = {alert_id for finding in findings for alert_id in finding.alert_ids}
     monitors: dict[int, MonitorCleanupResource] = {
-        detector.id: {
-            "id": str(detector.id),
-            "name": detector.name,
-            "enabled": detector.enabled,
-        }
+        detector.id: _serialize_resource(detector)
         for detector in Detector.objects.filter(
             id__in=ids,
             project_id=project_id,
@@ -62,11 +59,7 @@ def format_monitor_cleanup_results(
         )
     }
     alerts: dict[int, MonitorCleanupResource] = {
-        link.workflow_id: {
-            "id": str(link.workflow_id),
-            "name": link.workflow.name,
-            "enabled": link.workflow.enabled,
-        }
+        link.workflow_id: _serialize_resource(link.workflow)
         for link in DetectorWorkflow.objects.filter(
             detector_id__in=monitors,
             workflow_id__in=alert_ids,
@@ -79,50 +72,33 @@ def format_monitor_cleanup_results(
         "projectId": str(project_id),
         "scan": {"status": artifact.scan_status, "monitorsScanned": artifact.monitors_scanned},
         "summary": artifact.summary,
-        "findings": [
-            {
-                "kind": finding.kind,
-                "monitors": [monitors[monitor_id] for monitor_id in finding.monitor_ids],
-                "suggestedKeepId": str(finding.suggested_keep_id)
-                if finding.suggested_keep_id is not None
-                else None,
-                "alerts": [alerts[alert_id] for alert_id in dict.fromkeys(finding.alert_ids)],
-                "reason": finding.reason,
-                "comparison": [
-                    {
-                        "property": row.property,
-                        "values": [
-                            {"monitorId": str(value.monitor_id), "value": value.value}
-                            for value in row.values
-                        ],
-                    }
-                    for row in finding.comparison
-                ],
-            }
-            for finding in findings
-        ],
+        "findings": [_format_finding(finding, monitors, alerts) for finding in findings],
     }
 
 
-def serialize_monitor_cleanup_run(agent_run: SeerAgentRun) -> MonitorCleanupRunResponse:
-    extras: MonitorCleanupRunExtras = agent_run.extras
-    run_uuid = str(agent_run.run.uuid)
+def _serialize_resource(resource: Detector | Workflow) -> MonitorCleanupResource:
+    return {"id": str(resource.id), "name": resource.name, "enabled": resource.enabled}
+
+
+def _format_finding(
+    finding: MonitorFinding,
+    monitors: Mapping[int, MonitorCleanupResource],
+    alerts: Mapping[int, MonitorCleanupResource],
+) -> MonitorCleanupFinding:
+    comparisons: list[MonitorCleanupComparison] = []
+    for row in finding.comparison:
+        values: list[MonitorCleanupComparisonValue] = [
+            {"monitorId": str(value.monitor_id), "value": value.value} for value in row.values
+        ]
+        comparisons.append({"property": row.property, "values": values})
+
     return {
-        "id": run_uuid,
-        "dateAdded": agent_run.run.date_added,
-        "dateCompleted": datetime.fromisoformat(extras["date_completed"])
-        if extras["date_completed"] is not None
+        "kind": finding.kind,
+        "monitors": [monitors[monitor_id] for monitor_id in finding.monitor_ids],
+        "suggestedKeepId": str(finding.suggested_keep_id)
+        if finding.suggested_keep_id is not None
         else None,
-        "strategy": "duplicate_monitors",
-        "extras": {"status": extras["status"]},
-        "errorMessage": extras["error"],
-        "results": [
-            {
-                "id": f"{run_uuid}:{output['projectId']}",
-                "kind": "duplicate_monitors",
-                "seerRunId": run_uuid,
-                "extras": output,
-            }
-            for output in extras["results"]
-        ],
+        "alerts": [alerts[alert_id] for alert_id in dict.fromkeys(finding.alert_ids)],
+        "reason": finding.reason,
+        "comparison": comparisons,
     }
