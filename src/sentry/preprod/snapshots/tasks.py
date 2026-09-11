@@ -53,7 +53,7 @@ from sentry.preprod.snapshots.reconstruction import reconstruct_base_manifest
 from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import preprod_tasks
+from sentry.taskworker.namespaces import preprod_snapshots_tasks, preprod_tasks
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
@@ -888,6 +888,7 @@ def _process_chunk(
 @instrumented_task(
     name="sentry.preprod.tasks.process_snapshot_comparison_chunk",
     namespace=preprod_tasks,
+    alias_namespace=preprod_snapshots_tasks,
     retry=Retry(times=3),
     silo_mode=SiloMode.CELL,
     processing_deadline_duration=CHUNK_PROCESSING_DEADLINE,
@@ -943,6 +944,7 @@ def process_snapshot_comparison_chunk(
 @instrumented_task(
     name="sentry.preprod.tasks.compare_snapshots",
     namespace=preprod_tasks,
+    alias_namespace=preprod_snapshots_tasks,
     retry=Retry(times=3),
     silo_mode=SiloMode.CELL,
     processing_deadline_duration=300,
@@ -1330,6 +1332,7 @@ def _finalize_if_all_chunks_done(
 @instrumented_task(
     name="sentry.preprod.tasks.finalize_snapshot_comparison",
     namespace=preprod_tasks,
+    alias_namespace=preprod_snapshots_tasks,
     retry=Retry(times=3),
     silo_mode=SiloMode.CELL,
     processing_deadline_duration=300,
