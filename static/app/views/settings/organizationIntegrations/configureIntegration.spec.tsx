@@ -422,6 +422,7 @@ describe('ConfigureIntegration GCP re-verification', () => {
     });
     const integration = OrganizationIntegrationsFixture({
       id: integrationId,
+      name: 'Google Cloud Platform',
       provider: {
         ...OrganizationIntegrationsFixture().provider,
         key: providerKey,
@@ -508,6 +509,13 @@ describe('ConfigureIntegration GCP re-verification', () => {
     await userEvent.type(field, value);
     await userEvent.tab();
   }
+
+  it('shows the provider name for an existing GCP integration', async () => {
+    setup();
+
+    expect(await screen.findByText('Google Cloud Platform for Seer')).toBeInTheDocument();
+    expect(screen.queryByText('Google Cloud Platform')).not.toBeInTheDocument();
+  });
 
   it('shows the connection status for a GCP integration', async () => {
     setup();
