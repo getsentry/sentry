@@ -19,6 +19,26 @@ STATUS = Feature[IssueStatus](
     "status", default=IssueStatus.OPEN, codec=EnumCodec(IssueStatus), version=2
 )
 
+# Id of the first ReconcileStatusAction whose target equaled the current status.
+# First-write-wins; never cleared. Used to find reconciles that can be deleted.
+FIRST_NO_CHANGE_RECONCILE_ID = Feature[int | None]("first_no_change_reconcile_id", default=None)
+
+# Id of the first ReconcileStatusAction that changed status, but which a later
+# natural status event would have driven STATUS to the same value anyway.
+# First-write-wins; never cleared.
+FIRST_SUPERSEDED_RECONCILE_ID = Feature[int | None]("first_superseded_reconcile_id", default=None)
+
+# Internal to reconcile-redundancy detection; do not consume.
+_MIRROR_STATUS = Feature[IssueStatus](
+    "_mirror_status", default=IssueStatus.OPEN, codec=EnumCodec(IssueStatus)
+)
+_COUNTERFACTUAL_STATUS = Feature[IssueStatus | None](
+    "_counterfactual_status",
+    default=None,
+    codec=OptionalCodec(EnumCodec(IssueStatus)),
+)
+_WATCHED_RECONCILE_ID = Feature[int | None]("_watched_reconcile_id", default=None)
+
 # The current Progress of the issue.
 PROGRESS = Feature[IssueProgressState | None](
     "progress",
