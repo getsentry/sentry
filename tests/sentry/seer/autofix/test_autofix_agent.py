@@ -603,8 +603,10 @@ class TestTriggerAutofixAgent(TestCase):
         assert result == feature_run
         mock_feature.assert_called_once()
         assert mock_feature.call_args.args[0] == self.group
-        assert json.loads(mock_feature.call_args.kwargs["repo_pins"]) == {
-            "owner/repo": {"base_sha": "abc123", "base_branch": "main"}
+        feature_trigger = mock_feature.call_args.args[1]
+        assert feature_trigger.step_args is not None
+        assert feature_trigger.step_args.repo_pins == {
+            "owner/repo": {"sha": "abc123", "branch": "main"}
         }
         # legacy explorer run is not started for a flagged root-cause kickoff
         mock_client_class.return_value.start_run.assert_not_called()
@@ -640,7 +642,8 @@ class TestTriggerAutofixAgent(TestCase):
                 stopping_point=AutofixStoppingPoint.CODE_CHANGES,
             )
 
-        assert mock_feature.call_args.kwargs["stopping_point"] == AutofixStoppingPoint.CODE_CHANGES
+        feature_trigger = mock_feature.call_args.args[1]
+        assert feature_trigger.stopping_point == AutofixStoppingPoint.CODE_CHANGES
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
@@ -665,8 +668,9 @@ class TestTriggerAutofixAgent(TestCase):
                 enable_bash_tools=True,
             )
 
-        assert mock_feature.call_args.kwargs["user"] == user
-        assert mock_feature.call_args.kwargs["enable_bash_tools"] is True
+        feature_trigger = mock_feature.call_args.args[1]
+        assert feature_trigger.user == user
+        assert feature_trigger.enable_bash_tools is True
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
@@ -687,7 +691,8 @@ class TestTriggerAutofixAgent(TestCase):
                 run_id=None,
             )
 
-        assert mock_feature.call_args.kwargs["enable_bash_tools"] is True
+        feature_trigger = mock_feature.call_args.args[1]
+        assert feature_trigger.enable_bash_tools is True
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
