@@ -19,6 +19,7 @@ from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.services import eventstore
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils.sdk import set_span_attribute
@@ -26,7 +27,7 @@ from sentry.utils.sdk import set_span_attribute
 VALID_AVERAGE_COLUMNS = {"span.self_time", "span.duration"}
 
 
-def add_comparison_to_event(event, average_columns):
+def add_comparison_to_event(event: Event | GroupEvent, average_columns: list[str]):
     if "spans" not in event.data:
         return
     group_to_span_map = defaultdict(list)
