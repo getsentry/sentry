@@ -10,6 +10,7 @@ import {
   QueryEmbedTable,
   type QueryEmbedColumn,
 } from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable';
+import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatNumber} from 'sentry/utils/number/formatNumber';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
@@ -17,8 +18,8 @@ import {replayListApiOptions} from 'sentry/utils/replays/replayListApiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
-import {ReplaysQueryLink} from './replaysQueryLink';
-import type {ReplaysQueryData} from './replaysQueryUtils';
+import {getReplaysQueryTitle} from './replaysQueryLink';
+import {getReplaysQueryHref, type ReplaysQueryData} from './replaysQueryUtils';
 
 /**
  * An archived replay keeps its id but loses everything measured about it, so
@@ -101,9 +102,12 @@ export default function ReplaysQueryBlock({data}: {data: ReplaysQueryData}) {
 
   return (
     <QueryEmbedCard
-      link={<ReplaysQueryLink data={data} />}
+      href={getReplaysQueryHref(data, organization)}
+      icon={IconPlay}
+      linkLabel={t('View Replays')}
       query={data.query}
       testId="seer-replays-query-embed"
+      title={getReplaysQueryTitle(data)}
     >
       <QueryEmbedTable
         columns={COLUMNS}

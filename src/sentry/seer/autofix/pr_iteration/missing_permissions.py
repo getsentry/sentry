@@ -35,6 +35,8 @@ from collections.abc import Iterable
 from typing import Any
 
 from django.utils import timezone
+from scm import actions as scm_actions
+from scm.types import CreatePullRequestCommentProtocol
 
 from sentry import analytics
 from sentry.analytics.events.pr_iteration_events import (
@@ -42,6 +44,7 @@ from sentry.analytics.events.pr_iteration_events import (
 )
 from sentry.locks import locks
 from sentry.models.organization import Organization
+from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.github_perms import (
     MissingGithubPermissions,
@@ -105,9 +108,29 @@ def repos_missing_permissions(
     return get_missing_permissions_by_repo(organization, repo_names)
 
 
+def _comment_failed(
+    reason: str,
+    scopes_tag: str,
+    log_ctx: PrIterationLogContext,
+    log_fields: dict[str, Any],
+    *,
+    exc_info: bool = True,
+) -> bool:
+    metrics.incr(
+        "autofix.pr_iteration.missing_permissions.comment_failed",
+        tags={"missing_scopes": scopes_tag, "reason": reason},
+    )
+    log_ctx.error(
+        "autofix.pr_iteration.missing_permissions.comment_failed",
+        exc_info=exc_info,
+        reason=reason,
+        **log_fields,
+    )
+    return False
+
+
 def _post_comment(
     organization: Organization,
-    repo_name: str,
     pr_number: int,
     info: MissingGithubPermissions,
     log_ctx: PrIterationLogContext,
@@ -126,16 +149,21 @@ def _post_comment(
             **log_fields,
         )
         return False
+
     try:
-        client = info.integration.get_installation(organization_id=organization.id).get_client()
-        client.create_comment(repo_name, str(pr_number), {"body": _comment_body(url)})
+        scm = make_scm(organization.id, info.repository_id, referrer="seer")
     except Exception:
-        metrics.incr(
-            "autofix.pr_iteration.missing_permissions.comment_failed",
-            tags={"missing_scopes": scopes_tag},
+        return _comment_failed("scm_init_failed", scopes_tag, log_ctx, log_fields)
+
+    if not isinstance(scm, CreatePullRequestCommentProtocol):
+        return _comment_failed(
+            "unsupported_provider", scopes_tag, log_ctx, log_fields, exc_info=False
         )
-        log_ctx.error("autofix.pr_iteration.missing_permissions.comment_failed", **log_fields)
-        return False
+
+    try:
+        scm_actions.create_pull_request_comment(scm, str(pr_number), _comment_body(url))
+    except Exception:
+        return _comment_failed("post_failed", scopes_tag, log_ctx, log_fields)
     return True
 
 
@@ -333,7 +361,7 @@ def post_missing_permissions_comment(
             _skip(log_ctx, "raced", **log_fields)
             return
 
-        if not _post_comment(organization, repo_name, pr_number, info, log_ctx, log_fields):
+        if not _post_comment(organization, pr_number, info, log_ctx, log_fields):
             return
 
         record_missing_permissions_marker(

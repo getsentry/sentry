@@ -330,12 +330,6 @@ div.traceback > ul {
 
     > div > table.key-value {
       margin-bottom: 5px;
-
-      > tbody > tr > th {
-        color: @gray-dark;
-        text-align: right;
-        padding-right: 12px !important;
-      }
     }
 
     .btn-toggle {
@@ -426,10 +420,6 @@ div.traceback > ul {
       transition: 0.1s opacity linear;
     }
 
-    &.key-value {
-      display: none;
-    }
-
     .ws {
       display: none;
       overflow: hidden;
@@ -460,12 +450,8 @@ div.traceback > ul {
     border-radius: 5px;
     padding-left: 0;
 
-    .key-value {
-      display: none;
-
-      pre {
-        overflow: auto;
-      }
+    .key-value pre {
+      overflow: auto;
     }
 
     > li {
@@ -506,10 +492,6 @@ div.traceback > ul {
     }
 
     &.expanded {
-      .key-value {
-        display: table;
-      }
-
       > li.active {
         position: relative;
         z-index: 0;

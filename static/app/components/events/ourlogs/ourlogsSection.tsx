@@ -85,7 +85,7 @@ export function OurlogsSection({
       return {traceId};
     }
     return;
-  }, [replayId, replayData?.data, traceId]);
+  }, [replayId, replayData, traceId]);
 
   if (replayId && isReplayLoading) {
     return null;

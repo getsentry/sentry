@@ -481,9 +481,7 @@ instrumentUserEvent();
 export * from '@testing-library/react';
 
 export {
-  // eslint-disable-next-line import/export
   fireEvent,
-  // eslint-disable-next-line import/export
   render,
   renderGlobalModal,
   renderHookWithProviders,

@@ -682,7 +682,7 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
   // See: https://github.com/clauderic/dnd-kit/issues/921
   const [items, setItems] = useState(props.items);
   useEffect(() => {
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect
     setItems(props.items);
   }, [props.items]);
 

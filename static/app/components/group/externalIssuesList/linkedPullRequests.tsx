@@ -416,22 +416,31 @@ export function LinkedPullRequests({
   const {currentPullRequests, historicalPullRequests} = collapseBeforeLatestRegression
     ? partitionLinkedPullRequests(data.pullRequests, data.latestRegressionAt)
     : {currentPullRequests: data.pullRequests, historicalPullRequests: []};
+  const shouldCollapseHistoricalPullRequests = currentPullRequests.some(
+    pullRequest => pullRequest.status === 'open' || pullRequest.status === 'draft'
+  );
+  const visiblePullRequests = shouldCollapseHistoricalPullRequests
+    ? currentPullRequests
+    : data.pullRequests;
+  const collapsedPullRequests = shouldCollapseHistoricalPullRequests
+    ? historicalPullRequests
+    : [];
 
   return (
     <Stack gap="sm" width="100%">
-      {currentPullRequests.length > 0 && (
+      {visiblePullRequests.length > 0 && (
         <PullRequestList
           ariaLabel={t('Linked pull requests')}
           group={group}
-          pullRequests={currentPullRequests}
+          pullRequests={visiblePullRequests}
           variant={variant}
         />
       )}
-      {historicalPullRequests.length > 0 && (
+      {collapsedPullRequests.length > 0 && (
         <HistoricalPullRequests
           key={group.id}
           group={group}
-          pullRequests={historicalPullRequests}
+          pullRequests={collapsedPullRequests}
           variant={variant}
         />
       )}
@@ -491,9 +500,7 @@ function HistoricalPullRequests({
 
   return (
     <Disclosure size="sm" expanded={expanded} onExpandedChange={setExpanded}>
-      <Disclosure.Title>
-        {expanded ? t('Hide other PRs') : t('Show other PRs')}
-      </Disclosure.Title>
+      <Disclosure.Title>{t('PRs before last regression')}</Disclosure.Title>
       <Disclosure.Content>
         <PullRequestList
           ariaLabel={t('Other linked pull requests')}

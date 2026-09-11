@@ -4,10 +4,11 @@ import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Prose} from '@sentry/scraps/text';
 
-import {IconCopy} from 'sentry/icons';
+import {IconClose, IconCopy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 
@@ -49,9 +50,29 @@ function CopyCaptureMessagesPromptButton() {
 }
 
 export function ConversationMissingMessagesAlert() {
+  const organization = useOrganization();
+  const {dismiss, isDismissed} = useDismissAlert({
+    key: `${organization.id}:conversation-missing-messages-alert`,
+  });
+
+  if (isDismissed) {
+    return null;
+  }
+
   return (
     <Alert.Container>
-      <Alert variant="info">
+      <Alert
+        variant="info"
+        trailingItems={
+          <Button
+            aria-label={t('Dismiss banner')}
+            icon={<IconClose variant="accent" />}
+            onClick={dismiss}
+            size="zero"
+            variant="transparent"
+          />
+        }
+      >
         <Stack direction="column" gap="md" paddingTop="2xs">
           <Heading as="h4" variant="accent">
             {t('Capture Your Conversation Messages')}

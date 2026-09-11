@@ -40,6 +40,10 @@ export function useCrossEventQueries(
     const metricQuery: string[] = [];
 
     for (const crossEvent of slicedCrossEvents) {
+      if (crossEvent.type !== 'metrics' && crossEvent.query.trim() === '') {
+        continue;
+      }
+
       switch (crossEvent.type) {
         case 'spans':
           spanQuery.push(crossEvent.query);
@@ -57,6 +61,10 @@ export function useCrossEventQueries(
           break;
         }
       }
+    }
+
+    if (!spanQuery.length && !logQuery.length && !metricQuery.length) {
+      return;
     }
 
     return {spanQuery, logQuery, metricQuery};

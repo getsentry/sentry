@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {linkProjectToRepository} from 'sentry/components/onboarding/scm/linkProjectToRepository';
+import type {CreatedProject} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import type {CreatedProjectRule} from 'sentry/components/onboarding/useCreateProjectRules';
 import {t} from 'sentry/locale';
@@ -10,10 +11,14 @@ import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
-import type {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import type {
+  NotificationSelection,
+  useCreateNotificationAction,
+} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
 
 type GetIntegrationAction = ReturnType<
@@ -24,7 +29,7 @@ export interface ScmProjectCreationResult {
   project: Project;
   /**
    * True when an already-created project was reused (back-nav with an
-   * unchanged platform) instead of creating a new one.
+   * unchanged platform and destination) instead of creating a new one.
    */
   reused: boolean;
   workflowIds: string[];
@@ -33,17 +38,18 @@ export interface ScmProjectCreationResult {
 
 interface UseScmProjectCreationOptions {
   /**
-   * Slug of a project created earlier in this onboarding session, used for the
-   * reuse-on-back check. Persisted via onProjectCreated.
+   * The project created earlier in this onboarding session, with the
+   * messaging destination it was created for. Drives the reuse-on-back check.
+   * Persisted via onCreatedProjectChange.
    */
-  createdProjectSlug: string | undefined;
+  createdProject: CreatedProject | undefined;
   /**
-   * Persists the created project slug (onboarding session state). Called
+   * Persists the created project (onboarding session state). Called
    * immediately after the project POST succeeds and before repository linking
    * or completion, so the duplicate-prevention handoff to SDK setup is never
    * skipped by a later failure.
    */
-  onProjectCreated: (slug: string) => void;
+  onCreatedProjectChange: (createdProject: CreatedProject) => void;
   selectedRepository: Repository | undefined;
 }
 
@@ -51,7 +57,7 @@ interface CreateOrReuseProjectOptions {
   /**
    * Runs after creation (or reuse) succeeds, while the duplicate-submit guard
    * is still held. Completion must happen inside the guarded window: the
-   * projects store and session slug update asynchronously, so a second click
+   * projects store and session state update asynchronously, so a second click
    * after the guard released but before the re-render could pass the reuse
    * check with stale data and create a duplicate.
    */
@@ -67,6 +73,13 @@ interface CreateOrReuseProjectOptions {
    * Defaults to a no-op (email-only creation).
    */
   getIntegrationAction?: GetIntegrationAction;
+  /**
+   * The messaging destination this submission would create a workflow for;
+   * undefined for an email-only submission (Set up later). Compared against
+   * the created project's destination on reuse: "Set up later" means "change
+   * nothing now", so undefined never abandons a created project.
+   */
+  stagedSelection?: NotificationSelection;
 }
 
 const noopIntegrationAction: GetIntegrationAction = () => {};
@@ -79,12 +92,12 @@ const noopIntegrationAction: GetIntegrationAction = () => {};
  *
  * Owns the onboarding-specific concerns around useCreateProjectAndRules:
  * synchronous duplicate-submit protection, reuse of an unchanged project on
- * back-navigation, slug persistence ordering, default team/name resolution,
- * and best-effort repository linking.
+ * back-navigation, created-project persistence ordering, default team/name
+ * resolution, and best-effort repository linking.
  */
 export function useScmProjectCreation({
-  createdProjectSlug,
-  onProjectCreated,
+  createdProject,
+  onCreatedProjectChange,
   selectedRepository,
 }: UseScmProjectCreationOptions) {
   const organization = useOrganization();
@@ -106,20 +119,28 @@ export function useScmProjectCreation({
       platform,
       alertRuleConfig,
       getIntegrationAction,
+      stagedSelection,
       onSuccess,
     }: CreateOrReuseProjectOptions): Promise<ScmProjectCreationResult | undefined> => {
       if (isCreatingRef.current) {
         return undefined;
       }
 
-      // If a project was already created for this platform (e.g. the user
-      // went back after the project received its first event), reuse it.
-      // If the platform changed, abandon the old project and create a new
-      // one — matching legacy onboarding behavior.
-      const existingProject = createdProjectSlug
-        ? projects.find(p => p.slug === createdProjectSlug)
+      // Reuse the project created earlier in this session (e.g. the user went
+      // back after it received its first event) when nothing that shaped it
+      // changed: the same platform and, for a submission that stages a
+      // destination, the same destination it was created for. Any other
+      // change abandons the old project and creates a new one, matching the
+      // unchanged-return check in useScmProjectDetails.
+      const existingProject = createdProject
+        ? projects.find(p => p.slug === createdProject.slug)
         : undefined;
-      if (existingProject?.platform === platform.key) {
+      if (
+        createdProject &&
+        existingProject?.platform === platform.key &&
+        (stagedSelection === undefined ||
+          isSameSelection(stagedSelection, createdProject.messagingSelection))
+      ) {
         const result: ScmProjectCreationResult = {
           project: existingProject,
           reused: true,
@@ -153,7 +174,22 @@ export function useScmProjectCreation({
           return undefined;
         }
 
-        onProjectCreated(creation.project.slug);
+        // Slug and destination in one update, before the linking await below:
+        // a reload during linking restores both together, so the reuse check
+        // can never see a slug without its destination.
+        onCreatedProjectChange({
+          slug: creation.project.slug,
+          messagingSelection: stagedSelection,
+        });
+
+        // Recorded before the best-effort repository link: the project and its
+        // rules exist at this point whatever linking does.
+        trackAnalytics('onboarding.scm_project_created', {
+          organization,
+          platform: platform.key,
+          project_id: creation.project.id,
+          notification: creation.notificationRule ? 'integration' : 'email_only',
+        });
 
         if (selectedRepository?.id) {
           await linkProjectToRepository({
@@ -178,9 +214,9 @@ export function useScmProjectCreation({
     },
     [
       createProjectAndRules,
-      createdProjectSlug,
-      onProjectCreated,
-      organization.slug,
+      createdProject,
+      onCreatedProjectChange,
+      organization,
       projects,
       selectedRepository,
       teams,
@@ -188,4 +224,18 @@ export function useScmProjectCreation({
   );
 
   return {createOrReuseProject, isCreating, isDataPending};
+}
+
+function isSameSelection(
+  staged: NotificationSelection,
+  saved: NotificationSelection | undefined
+) {
+  if (!saved) {
+    return false;
+  }
+  return (
+    staged.provider === saved.provider &&
+    staged.integrationId === saved.integrationId &&
+    staged.channel === saved.channel
+  );
 }

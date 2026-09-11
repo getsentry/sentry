@@ -4,6 +4,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_alert_rule,
     migrate_metric_data_conditions,
 )
+from sentry.workflow_engine.models import DataCondition
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
@@ -44,3 +45,24 @@ class TestIssuePriorityGreaterOrEqualCondition(ConditionTestCase):
         self.group.update(priority=PriorityLevel.HIGH)
         self.assert_passes(data_condition_critical, self.event_data)
         self.assert_passes(data_condition_warning, self.event_data)
+
+    def test_string_comparison(self) -> None:
+        # Tolerate invalid string comparisons until cleanup (ISWF-3433).
+        # Bypass pre_save schema enforcement to simulate existing bad data.
+        dc = self.create_data_condition(
+            type=self.condition,
+            comparison=PriorityLevel.HIGH,
+            condition_result=True,
+        )
+        DataCondition.objects.filter(id=dc.id).update(comparison="high")
+        dc.refresh_from_db()
+
+        self.group.update(priority=PriorityLevel.MEDIUM)
+        self.assert_does_not_pass(dc, self.event_data)
+
+        self.group.update(priority=PriorityLevel.HIGH)
+        self.assert_passes(dc, self.event_data)
+
+        DataCondition.objects.filter(id=dc.id).update(comparison="not-a-priority")
+        dc.refresh_from_db()
+        self.assert_does_not_pass(dc, self.event_data)

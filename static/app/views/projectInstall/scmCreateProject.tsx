@@ -252,141 +252,155 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
 
   const submitTooltipText = form.submitTooltipText;
 
+  // A real form so Enter in the project name field submits through the
+  // Create project button (implicit submission), which stays a no-op while
+  // the button is disabled.
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    form.submit();
+  };
+
   return (
     <SentryDocumentTitle title={t('Create a new project')}>
       <Access access={canUserCreateProject ? ['project:read'] : ['project:admin']}>
-        <Stack padding="3xl" gap="2xl" align="center">
-          <LayoutGroup>
-            {/* Keep spacing inside each animated section so it collapses with it. */}
-            <MotionStack
-              flexGrow={1}
-              gap="0"
-              padding="2xl"
-              maxWidth={CREATE_PROJECT_MAX_WIDTH}
-              width="100%"
-              border="primary"
-              radius="lg"
-              layout
-            >
-              <Layout.Title>{t('Create a new project')}</Layout.Title>
+        <form onSubmit={handleSubmit}>
+          <Stack padding="3xl" gap="2xl" align="center">
+            <LayoutGroup>
+              {/* Keep spacing inside each animated section so it collapses with it. */}
+              <MotionStack
+                flexGrow={1}
+                gap="0"
+                padding="2xl"
+                maxWidth={CREATE_PROJECT_MAX_WIDTH}
+                width="100%"
+                border="primary"
+                radius="lg"
+                layout
+              >
+                <Layout.Title>{t('Create a new project')}</Layout.Title>
 
-              <MotionStack gap="md" paddingBottom="2xl" layout="position">
-                <Heading as="h1">{t('Create a project')}</Heading>
-                <Text variant="secondary" density="comfortable">
-                  {tct(
-                    'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from. [link: Read the docs].',
-                    {
-                      link: (
-                        <ExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/create-new-project/" />
-                      ),
-                    }
-                  )}
-                </Text>
-              </MotionStack>
-
-              {showRepositorySection && (
                 <MotionStack gap="md" paddingBottom="2xl" layout="position">
-                  <Flex justify="between" align="center">
-                    <Stack gap="sm">
-                      <Heading as="h4">{t('Repository')}</Heading>
-                      <Text variant="secondary" density="comfortable" size="sm">
-                        {t(
-                          'Source context in stack traces, suspect commits, and deploy tracking'
-                        )}
-                      </Text>
-                    </Stack>
-                    <Tag variant="muted">{t('Optional')}</Tag>
-                  </Flex>
-
-                  <ScmIntegrationConnect
-                    analyticsFlow="project-creation"
-                    allowIntegrationSwitching
-                    selectedIntegration={selectedIntegration}
-                    selectedRepository={selectedRepository}
-                    onIntegrationChange={handleIntegrationChange}
-                    onRepositoryChange={handleRepositoryChange}
-                    onClearDerivedState={handleClearDerivedState}
-                    maxWidth={CREATE_PROJECT_MAX_WIDTH}
-                  />
+                  <Heading as="h1">{t('Create a project')}</Heading>
+                  <Text variant="secondary" density="comfortable">
+                    {tct(
+                      'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from. [link: Read the docs].',
+                      {
+                        link: (
+                          <ExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/create-new-project/" />
+                        ),
+                      }
+                    )}
+                  </Text>
                 </MotionStack>
-              )}
 
-              <MotionContainer layout="position" paddingBottom="2xl">
-                <ScmPlatformFeaturesCore
+                {showRepositorySection && (
+                  <MotionStack gap="md" paddingBottom="2xl" layout="position">
+                    <Flex justify="between" align="center">
+                      <Stack gap="sm">
+                        <Heading as="h4">{t('Repository')}</Heading>
+                        <Text variant="secondary" density="comfortable" size="sm">
+                          {t(
+                            'Source context in stack traces, suspect commits, and deploy tracking'
+                          )}
+                        </Text>
+                      </Stack>
+                      <Tag variant="muted">{t('Optional')}</Tag>
+                    </Flex>
+
+                    <ScmIntegrationConnect
+                      analyticsFlow="project-creation"
+                      allowIntegrationSwitching
+                      selectedIntegration={selectedIntegration}
+                      selectedRepository={selectedRepository}
+                      onIntegrationChange={handleIntegrationChange}
+                      onRepositoryChange={handleRepositoryChange}
+                      onClearDerivedState={handleClearDerivedState}
+                      maxWidth={CREATE_PROJECT_MAX_WIDTH}
+                    />
+                  </MotionStack>
+                )}
+
+                <MotionContainer layout="position" paddingBottom="2xl">
+                  <ScmPlatformFeaturesCore
+                    analyticsFlow="project-creation"
+                    selectedRepository={selectedRepository}
+                    selectedPlatform={selectedPlatform}
+                    onPlatformChange={handlePlatformChange}
+                    onFeaturesChange={handleFeaturesChange}
+                  />
+                </MotionContainer>
+
+                <MotionContainer layout="position" paddingBottom="2xl">
+                  <Separator orientation="horizontal" />
+                </MotionContainer>
+
+                <ScmFeatureSelectionPanel
                   analyticsFlow="project-creation"
                   selectedRepository={selectedRepository}
                   selectedPlatform={selectedPlatform}
-                  onPlatformChange={handlePlatformChange}
+                  selectedFeatures={selectedFeatures}
                   onFeaturesChange={handleFeaturesChange}
+                  trailing={
+                    <MotionContainer
+                      layout="position"
+                      paddingTop="2xl"
+                      paddingBottom="2xl"
+                    >
+                      <Separator orientation="horizontal" />
+                    </MotionContainer>
+                  }
                 />
-              </MotionContainer>
 
-              <MotionContainer layout="position" paddingBottom="2xl">
-                <Separator orientation="horizontal" />
-              </MotionContainer>
+                <MotionContainer layout="position" paddingBottom="2xl">
+                  <ScmProjectDetailsCore
+                    projectName={form.projectName}
+                    onProjectNameChange={form.onProjectNameChange}
+                    onProjectNameBlur={form.onProjectNameBlur}
+                    teamSlug={form.teamSlug}
+                    onTeamChange={form.onTeamChange}
+                    isOrgMemberWithNoAccess={form.isOrgMemberWithNoAccess}
+                  />
+                </MotionContainer>
 
-              <ScmFeatureSelectionPanel
-                analyticsFlow="project-creation"
-                selectedRepository={selectedRepository}
-                selectedPlatform={selectedPlatform}
-                selectedFeatures={selectedFeatures}
-                onFeaturesChange={handleFeaturesChange}
-                trailing={
-                  <MotionContainer layout="position" paddingTop="2xl" paddingBottom="2xl">
-                    <Separator orientation="horizontal" />
-                  </MotionContainer>
-                }
-              />
+                <MotionContainer layout="position" paddingBottom="2xl">
+                  <Separator orientation="horizontal" />
+                </MotionContainer>
 
-              <MotionContainer layout="position" paddingBottom="2xl">
-                <ScmProjectDetailsCore
-                  projectName={form.projectName}
-                  onProjectNameChange={form.onProjectNameChange}
-                  onProjectNameBlur={form.onProjectNameBlur}
-                  teamSlug={form.teamSlug}
-                  onTeamChange={form.onTeamChange}
-                  isOrgMemberWithNoAccess={form.isOrgMemberWithNoAccess}
-                />
-              </MotionContainer>
-
-              <MotionContainer layout="position" paddingBottom="2xl">
-                <Separator orientation="horizontal" />
-              </MotionContainer>
-
-              <MotionContainer layout="position">
-                <ScmAlertFrequencySection
-                  analyticsFlow="project-creation"
-                  alertRuleConfig={form.alertRuleConfig}
-                  notificationProps={form.notificationProps}
-                  onAlertChange={form.onAlertChange}
-                />
-              </MotionContainer>
-            </MotionStack>
-            {/* Page-level CTA: disabled until a platform and project details are
+                <MotionContainer layout="position">
+                  <ScmAlertFrequencySection
+                    analyticsFlow="project-creation"
+                    alertRuleConfig={form.alertRuleConfig}
+                    notificationProps={form.notificationProps}
+                    onAlertChange={form.onAlertChange}
+                  />
+                </MotionContainer>
+              </MotionStack>
+              {/* Page-level CTA: disabled until a platform and project details are
               ready. */}
-            <MotionStack
-              gap="md"
-              maxWidth={CREATE_PROJECT_MAX_WIDTH}
-              width="100%"
-              layout="position"
-            >
-              <ProjectCreationErrorAlert error={form.error} />
-              <Flex justify="end">
-                <Tooltip title={submitTooltipText} disabled={!submitTooltipText}>
-                  <Button
-                    variant="primary"
-                    onClick={form.submit}
-                    disabled={!form.canSubmit}
-                    busy={form.isBusy}
-                    icon={<IconProject />}
-                  >
-                    {t('Create project')}
-                  </Button>
-                </Tooltip>
-              </Flex>
-            </MotionStack>
-          </LayoutGroup>
-        </Stack>
+              <MotionStack
+                gap="md"
+                maxWidth={CREATE_PROJECT_MAX_WIDTH}
+                width="100%"
+                layout="position"
+              >
+                <ProjectCreationErrorAlert error={form.error} />
+                <Flex justify="end">
+                  <Tooltip title={submitTooltipText} disabled={!submitTooltipText}>
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      disabled={!form.canSubmit}
+                      busy={form.isBusy}
+                      icon={<IconProject />}
+                    >
+                      {t('Create project')}
+                    </Button>
+                  </Tooltip>
+                </Flex>
+              </MotionStack>
+            </LayoutGroup>
+          </Stack>
+        </form>
       </Access>
     </SentryDocumentTitle>
   );

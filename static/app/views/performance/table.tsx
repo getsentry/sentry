@@ -141,6 +141,7 @@ export function Table({
       trackAnalytics('performance_views.landing.table.seen', {
         organization,
       });
+      // oxlint-disable-next-line react/set-state-in-effect
       setTableMetricSet(true);
     }
   }, [organization, tableMetricSet]);

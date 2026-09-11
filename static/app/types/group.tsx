@@ -131,6 +131,48 @@ export const VALID_ISSUE_CATEGORIES = [
   IssueCategory.CONFIGURATION,
 ];
 
+/**
+ * Numeric values used by issue category workflow conditions.
+ * These must match GroupCategory in src/sentry/issues/grouptype.py.
+ */
+export enum GroupCategory {
+  ERROR = 1,
+  PERFORMANCE = 2,
+  CRON = 4,
+  REPLAY = 5,
+  FEEDBACK = 6,
+  UPTIME = 7,
+  METRIC_ALERT = 8,
+  OUTAGE = 10,
+  METRIC = 11,
+  DB_QUERY = 12,
+  HTTP_CLIENT = 13,
+  FRONTEND = 14,
+  MOBILE = 15,
+  AI_DETECTED = 16,
+  PREPROD = 17,
+  CONFIGURATION = 19,
+}
+
+export const ISSUE_CATEGORY_TO_GROUP_CATEGORY: Record<IssueCategory, GroupCategory> = {
+  [IssueCategory.ERROR]: GroupCategory.ERROR,
+  [IssueCategory.PERFORMANCE]: GroupCategory.PERFORMANCE,
+  [IssueCategory.CRON]: GroupCategory.CRON,
+  [IssueCategory.REPLAY]: GroupCategory.REPLAY,
+  [IssueCategory.FEEDBACK]: GroupCategory.FEEDBACK,
+  [IssueCategory.UPTIME]: GroupCategory.UPTIME,
+  [IssueCategory.METRIC_ALERT]: GroupCategory.METRIC_ALERT,
+  [IssueCategory.OUTAGE]: GroupCategory.OUTAGE,
+  [IssueCategory.METRIC]: GroupCategory.METRIC,
+  [IssueCategory.DB_QUERY]: GroupCategory.DB_QUERY,
+  [IssueCategory.HTTP_CLIENT]: GroupCategory.HTTP_CLIENT,
+  [IssueCategory.FRONTEND]: GroupCategory.FRONTEND,
+  [IssueCategory.MOBILE]: GroupCategory.MOBILE,
+  [IssueCategory.AI_DETECTED]: GroupCategory.AI_DETECTED,
+  [IssueCategory.PREPROD]: GroupCategory.PREPROD,
+  [IssueCategory.CONFIGURATION]: GroupCategory.CONFIGURATION,
+};
+
 export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.ERROR]: t('Runtime errors or exceptions.'),
   [IssueCategory.OUTAGE]: t('Uptime or cron monitoring issues.'),

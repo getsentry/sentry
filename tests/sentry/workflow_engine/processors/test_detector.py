@@ -1,6 +1,7 @@
 import unittest
 import uuid
 from dataclasses import replace
+from datetime import timedelta
 from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, call, patch
@@ -38,6 +39,7 @@ from sentry.workflow_engine.processors.detector import (
     get_detectors_for_event_data,
     get_preferred_detector,
     process_detectors,
+    query_all_projects_detector,
 )
 from sentry.workflow_engine.processors.evaluation_logging import emit_detector_evaluation_logs
 from sentry.workflow_engine.processors.evaluations import (
@@ -1255,6 +1257,34 @@ class TestGetDetectorsForEvent(TestCase):
         assert result is None
 
 
+class TestQueryAllProjectsDetector(TestCase):
+    def test_returns_none_when_missing(self) -> None:
+        assert query_all_projects_detector(self.organization.id) is None
+
+    def test_returns_detector_when_exists(self) -> None:
+        detector = ensure_default_all_projects_detector(self.organization.id)
+        assert query_all_projects_detector(self.organization.id) == detector
+
+    def test_returns_first_when_many_exist(self) -> None:
+        with freeze_time(timezone.now() - timedelta(hours=2)):
+            first = self.create_all_projects_detector(self.organization)
+        with freeze_time(timezone.now() - timedelta(hours=1)):
+            _second = self.create_all_projects_detector(self.organization)
+        with freeze_time(timezone.now()):
+            _third = self.create_all_projects_detector(self.organization)
+        result = query_all_projects_detector(self.organization.id)
+        assert result is not None
+        assert result.id == first.id
+
+    def test_separate_orgs_unaffected(self) -> None:
+        org1 = self.create_organization()
+        org2 = self.create_organization()
+        d1 = ensure_default_all_projects_detector(org1.id)
+        d2 = ensure_default_all_projects_detector(org2.id)
+        assert query_all_projects_detector(org1.id) == d1
+        assert query_all_projects_detector(org2.id) == d2
+
+
 class TestEventDetectorsAllProject(TestCase):
     def setUp(self) -> None:
         self.issue_stream_detector = self.create_detector(
@@ -1290,11 +1320,16 @@ class TestEventDetectorsAllProject(TestCase):
         assert get_all_projects_detector(self.organization.id) is None
 
     def test_many_all_projects_detectors(self) -> None:
-        self.create_all_projects_detector(self.organization)
-        self.create_all_projects_detector(self.organization)
-        self.create_all_projects_detector(self.organization)
+        with freeze_time(timezone.now() - timedelta(hours=2)):
+            first = self.create_all_projects_detector(self.organization)
+        with freeze_time(timezone.now() - timedelta(hours=1)):
+            _second = self.create_all_projects_detector(self.organization)
+        with freeze_time(timezone.now()):
+            _third = self.create_all_projects_detector(self.organization)
         cache.clear()
-        assert get_all_projects_detector(self.organization.id) is None
+        result = get_all_projects_detector(self.organization.id)
+        assert result is not None
+        assert result.id == first.id
 
     def test_cached_miss_is_invalidated_when_detector_is_created(self) -> None:
         self.all_projects_detector.delete()

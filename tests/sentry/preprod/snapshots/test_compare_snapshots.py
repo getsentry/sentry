@@ -224,6 +224,85 @@ class ProcessChunkTest(TestCase):
             comparison.refresh_from_db()
             assert comparison.chunks_done_indices == [0]
 
+    def test_chunk_writes_sibling_results_separately(self):
+        from sentry.preprod.snapshots.image_diff.types import DiffResult
+        from sentry.preprod.snapshots.manifest import (
+            ChunkAssignment,
+            ChunkCandidate,
+            ChunkResult,
+            ComparisonPlan,
+        )
+        from sentry.preprod.snapshots.tasks import process_snapshot_comparison_chunk
+
+        head_artifact = self.create_preprod_artifact(project=self.project)
+        base_artifact = self.create_preprod_artifact(project=self.project)
+        head = self.create_preprod_snapshot_metrics(head_artifact)
+        base = self.create_preprod_snapshot_metrics(base_artifact)
+        comparison = self.create_preprod_snapshot_comparison(
+            head_snapshot_metrics=head,
+            base_snapshot_metrics=base,
+            state=PreprodSnapshotComparison.State.PROCESSING,
+        )
+
+        plan = ComparisonPlan(
+            head_artifact_id=head_artifact.id,
+            base_artifact_id=base_artifact.id,
+            chunks=[
+                ChunkAssignment(
+                    chunk_index=0,
+                    candidates=[
+                        ChunkCandidate(
+                            name="a.png",
+                            head_hash="h",
+                            base_hash="b",
+                            pixel_count=10,
+                            diff_threshold=0.0,
+                            kind="sibling",
+                        )
+                    ],
+                )
+            ],
+            non_diff_images={},
+        )
+        prefix = f"{self.organization.id}/{self.project.id}/{head_artifact.id}/{base_artifact.id}"
+        stored = {f"{prefix}/plan.json": orjson.dumps(plan.dict())}
+        session = _dict_backed_session(stored)
+
+        diff = DiffResult(
+            diff_mask_png=b"png",
+            changed_pixels=5,
+            total_pixels=100,
+            aligned_height=10,
+            before_width=10,
+            before_height=10,
+            after_width=10,
+            after_height=10,
+        )
+
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.OdiffServer"),
+            patch(
+                "sentry.preprod.snapshots.tasks._fetch_batch_images",
+                return_value=({"h": b"img", "b": b"img"}, set()),
+            ),
+            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
+            patch("sentry.preprod.snapshots.tasks.compare_images_batch", return_value=[diff]),
+        ):
+            process_snapshot_comparison_chunk(
+                comparison_id=comparison.id,
+                chunk_index=0,
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        result_key = f"{prefix}/chunks/0.json"
+        stored_result = ChunkResult(**orjson.loads(stored[result_key]))
+        assert stored_result.images == {}
+        assert set(stored_result.sibling_images) == {"a.png"}
+
     def _comparison(self, chunks_total, done_indices=None):
         head_artifact = self.create_preprod_artifact(project=self.project)
         base_artifact = self.create_preprod_artifact(project=self.project)
@@ -610,10 +689,75 @@ class FinalizeSnapshotComparisonTest(TestCase):
         assert comparison.images_changed == 1
         assert f"{prefix}/comparison.json" in stored
         assert mock_auto_approve.call_count == 1
-        called_head_artifact, called_manifest, called_session = mock_auto_approve.call_args.args
+        (
+            called_head_artifact,
+            called_manifest,
+            called_plan,
+            called_sibling_images,
+            called_session,
+        ) = mock_auto_approve.call_args.args
         assert called_head_artifact.id == h.id
         assert called_manifest.head_artifact_id == h.id
         assert called_session is session
+
+    def test_finalize_passes_sibling_results_to_auto_approve(self):
+        from sentry.preprod.snapshots.manifest import (
+            ChunkAssignment,
+            ChunkCandidate,
+            ChunkResult,
+            ComparisonImageResult,
+            ComparisonPlan,
+        )
+        from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
+
+        comparison, h, b = self._comparison(1, done_indices=[0])
+        plan = ComparisonPlan(
+            head_artifact_id=h.id,
+            base_artifact_id=b.id,
+            chunks=[
+                ChunkAssignment(
+                    chunk_index=0,
+                    candidates=[
+                        ChunkCandidate(
+                            name="a.png",
+                            head_hash="a-head",
+                            base_hash="a-sib",
+                            pixel_count=10,
+                            diff_threshold=0.0,
+                            kind="sibling",
+                        )
+                    ],
+                )
+            ],
+            non_diff_images={},
+            sibling_artifact_id=77,
+            sibling_comparison_key="sib/comparison.json",
+        )
+        sibling_images = {
+            "a.png": ComparisonImageResult(
+                status="unchanged", head_hash="a-head", base_hash="a-sib"
+            )
+        }
+        result = ChunkResult(chunk_index=0, images={}, sibling_images=sibling_images)
+        prefix = f"{self.organization.id}/{self.project.id}/{h.id}/{b.id}"
+        stored = {
+            f"{prefix}/plan.json": orjson.dumps(plan.dict()),
+            f"{prefix}/chunks/0.json": orjson.dumps(result.dict()),
+        }
+        session = _dict_backed_session(stored)
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot") as mock_auto_approve,
+        ):
+            finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+        assert mock_auto_approve.call_count == 1
+        (_head, _manifest, called_plan, called_sibling_images, _session) = (
+            mock_auto_approve.call_args.args
+        )
+        assert called_sibling_images == sibling_images
+        assert called_plan.sibling_artifact_id == 77
 
     def test_finalize_writes_images_errored_column(self):
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
@@ -807,6 +951,185 @@ class CompareSnapshotsOrchestratorTest(TestCase):
             comparison.state == PreprodSnapshotComparison.State.PROCESSING
         )  # finalizer sets SUCCESS, not orchestrator
         assert dispatch.call_count == 1
+
+    def test_orchestrator_records_sibling_in_plan(self):
+        import orjson
+
+        from sentry.preprod.snapshots.manifest import (
+            ComparisonImageResult,
+            ComparisonManifest,
+            ComparisonPlan,
+            ComparisonSummary,
+            ImageMetadata,
+            SnapshotManifest,
+        )
+        from sentry.preprod.snapshots.tasks import (
+            SiblingComparison,
+            _plan_key,
+            compare_snapshots,
+        )
+
+        head_artifact, base_artifact = self._setup()
+        head_manifest = SnapshotManifest(
+            images={"changed.png": ImageMetadata(content_hash="h1", width=100, height=100)},
+            diff_threshold=None,
+        )
+        base_manifest = SnapshotManifest(
+            images={"changed.png": ImageMetadata(content_hash="h0", width=100, height=100)},
+            diff_threshold=None,
+        )
+        stored = {
+            "head_manifest": orjson.dumps(head_manifest.dict()),
+            "base_manifest": orjson.dumps(base_manifest.dict()),
+        }
+        session = _dict_backed_session(stored)
+
+        sibling_manifest = ComparisonManifest(
+            head_artifact_id=77,
+            base_artifact_id=0,
+            summary=ComparisonSummary(
+                total=1,
+                changed=1,
+                unchanged=0,
+                added=0,
+                removed=0,
+                errored=0,
+                renamed=0,
+                skipped=0,
+            ),
+            images={
+                "changed.png": ComparisonImageResult(
+                    status="changed", head_hash="hsib", base_hash="hsib_base"
+                )
+            },
+        )
+        sibling_snapshot_manifest = SnapshotManifest(
+            images={"changed.png": ImageMetadata(content_hash="hsib", width=100, height=100)},
+            diff_threshold=None,
+        )
+        sibling = SiblingComparison(
+            77, "sib/comparison.json", sibling_manifest, sibling_snapshot_manifest
+        )
+
+        with (
+            self.options({"preprod.snapshots.auto-approve-sibling-diffs.enabled": True}),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch(
+                "sentry.preprod.snapshots.tasks._find_approved_sibling", return_value=sibling
+            ) as mock_find_sibling,
+            patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+        ):
+            compare_snapshots(
+                project_id=self.project.id,
+                org_id=self.organization.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        plan_key = _plan_key(
+            self.organization.id, self.project.id, head_artifact.id, base_artifact.id
+        )
+        plan = ComparisonPlan(**orjson.loads(stored[plan_key]))
+        assert plan.sibling_artifact_id == 77
+        assert plan.sibling_comparison_key == "sib/comparison.json"
+        sibling_candidates = [
+            c for chunk in plan.chunks for c in chunk.candidates if c.kind == "sibling"
+        ]
+        assert len(sibling_candidates) == 1
+
+        mock_find_sibling.assert_called_once()
+        called_head, called_session = mock_find_sibling.call_args.args
+        assert called_head.id == head_artifact.id
+        assert called_session is session
+
+    def test_orchestrator_records_sibling_without_candidates_when_disabled(self):
+        import orjson
+
+        from sentry.preprod.snapshots.manifest import (
+            ComparisonImageResult,
+            ComparisonManifest,
+            ComparisonPlan,
+            ComparisonSummary,
+            ImageMetadata,
+            SnapshotManifest,
+        )
+        from sentry.preprod.snapshots.tasks import (
+            SiblingComparison,
+            _plan_key,
+            compare_snapshots,
+        )
+
+        head_artifact, base_artifact = self._setup()
+        head_manifest = SnapshotManifest(
+            images={"changed.png": ImageMetadata(content_hash="h1", width=100, height=100)},
+            diff_threshold=None,
+        )
+        base_manifest = SnapshotManifest(
+            images={"changed.png": ImageMetadata(content_hash="h0", width=100, height=100)},
+            diff_threshold=None,
+        )
+        stored = {
+            "head_manifest": orjson.dumps(head_manifest.dict()),
+            "base_manifest": orjson.dumps(base_manifest.dict()),
+        }
+        session = _dict_backed_session(stored)
+
+        sibling_manifest = ComparisonManifest(
+            head_artifact_id=77,
+            base_artifact_id=0,
+            summary=ComparisonSummary(
+                total=1,
+                changed=1,
+                unchanged=0,
+                added=0,
+                removed=0,
+                errored=0,
+                renamed=0,
+                skipped=0,
+            ),
+            images={
+                "changed.png": ComparisonImageResult(
+                    status="changed", head_hash="hsib", base_hash="hsib_base"
+                )
+            },
+        )
+        sibling_snapshot_manifest = SnapshotManifest(
+            images={"changed.png": ImageMetadata(content_hash="hsib", width=100, height=100)},
+            diff_threshold=None,
+        )
+        sibling = SiblingComparison(
+            77, "sib/comparison.json", sibling_manifest, sibling_snapshot_manifest
+        )
+
+        with (
+            self.options({"preprod.snapshots.auto-approve-sibling-diffs.enabled": False}),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch(
+                "sentry.preprod.snapshots.tasks._find_approved_sibling", return_value=sibling
+            ) as mock_find_sibling,
+            patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+        ):
+            compare_snapshots(
+                project_id=self.project.id,
+                org_id=self.organization.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        mock_find_sibling.assert_called_once()
+
+        plan_key = _plan_key(
+            self.organization.id, self.project.id, head_artifact.id, base_artifact.id
+        )
+        plan = ComparisonPlan(**orjson.loads(stored[plan_key]))
+        assert plan.sibling_artifact_id == sibling.artifact_id
+        assert plan.sibling_comparison_key == sibling.comparison_key
+        sibling_candidates = [
+            c for chunk in plan.chunks for c in chunk.candidates if c.kind == "sibling"
+        ]
+        assert sibling_candidates == []
 
     def test_orchestrator_finalizes_when_no_diff_chunks(self):
         import orjson
@@ -1724,3 +2047,285 @@ class EndToEndFanoutTest(TestCase):
             sample_rate=1.0,
             tags={"app_id_temp": head_artifact.app_id or ""},
         )
+
+    def test_full_flow_auto_approves_via_sibling_results(self):
+        from sentry.preprod.models import PreprodComparisonApproval
+        from sentry.preprod.snapshots.image_diff.types import DiffResult
+        from sentry.preprod.snapshots.manifest import (
+            ComparisonImageResult,
+            ComparisonManifest,
+            ComparisonSummary,
+            ImageMetadata,
+            SnapshotManifest,
+        )
+        from sentry.preprod.snapshots.tasks import (
+            SiblingComparison,
+            compare_snapshots,
+            finalize_snapshot_comparison,
+            process_snapshot_comparison_chunk,
+        )
+
+        commit_comparison = self.create_commit_comparison(
+            organization=self.organization, pr_number=42, head_repo_name="owner/repo"
+        )
+        head_artifact = self.create_preprod_artifact(
+            project=self.project, commit_comparison=commit_comparison
+        )
+        base_artifact = self.create_preprod_artifact(project=self.project)
+        head = self.create_preprod_snapshot_metrics(head_artifact)
+        head.extras = {"manifest_key": "head_manifest"}
+        head.save()
+        base = self.create_preprod_snapshot_metrics(base_artifact)
+        base.extras = {"manifest_key": "base_manifest"}
+        base.save()
+
+        head_manifest = SnapshotManifest(
+            images={
+                "added.png": ImageMetadata(content_hash="ha1", width=10, height=10),
+                "unchanged.png": ImageMetadata(content_hash="hsame", width=10, height=10),
+            },
+            diff_threshold=None,
+        )
+        base_manifest = SnapshotManifest(
+            images={"unchanged.png": ImageMetadata(content_hash="hsame", width=10, height=10)},
+            diff_threshold=None,
+        )
+        sibling_comparison_key = "sib/comparison.json"
+        sibling_manifest = ComparisonManifest(
+            head_artifact_id=777,
+            base_artifact_id=0,
+            summary=ComparisonSummary(
+                total=1,
+                changed=0,
+                unchanged=0,
+                added=1,
+                removed=0,
+                errored=0,
+                renamed=0,
+                skipped=0,
+            ),
+            images={"added.png": ComparisonImageResult(status="added", head_hash="sib1")},
+        )
+        sibling_snapshot_manifest = SnapshotManifest(
+            images={"added.png": ImageMetadata(content_hash="sib1", width=10, height=10)},
+            diff_threshold=None,
+        )
+        sibling = SiblingComparison(
+            777, sibling_comparison_key, sibling_manifest, sibling_snapshot_manifest
+        )
+
+        stored = {
+            "head_manifest": orjson.dumps(head_manifest.dict()),
+            "base_manifest": orjson.dumps(base_manifest.dict()),
+            sibling_comparison_key: orjson.dumps(sibling_manifest.dict()),
+        }
+        session = _dict_backed_session(stored)
+        dispatched: list[dict] = []
+
+        kwargs = dict(
+            project_id=self.project.id,
+            org_id=self.organization.id,
+            head_artifact_id=head_artifact.id,
+            base_artifact_id=base_artifact.id,
+        )
+
+        unchanged_diff = DiffResult(
+            diff_mask_png=b"png",
+            changed_pixels=0,
+            total_pixels=100,
+            aligned_height=10,
+            before_width=10,
+            before_height=10,
+            after_width=10,
+            after_height=10,
+        )
+
+        with (
+            self.options({"preprod.snapshots.auto-approve-sibling-diffs.enabled": True}),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks._find_approved_sibling", return_value=sibling),
+            patch(
+                "sentry.preprod.snapshots.tasks._fetch_batch_images", side_effect=self._fake_fetch
+            ),
+            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
+            patch(
+                "sentry.preprod.snapshots.tasks.compare_images_batch",
+                side_effect=lambda pairs, server: [unchanged_diff for _ in pairs],
+            ),
+            patch("sentry.preprod.snapshots.tasks.OdiffServer"),
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+            patch("sentry.analytics.record"),
+            patch(
+                "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async",
+                side_effect=lambda kwargs, **_: dispatched.append(kwargs),
+            ),
+            patch("sentry.preprod.snapshots.tasks.finalize_snapshot_comparison.apply_async"),
+        ):
+            compare_snapshots(**kwargs)
+
+            comparison = PreprodSnapshotComparison.objects.get(
+                head_snapshot_metrics__preprod_artifact=head_artifact
+            )
+            for chunk_kwargs in dispatched:
+                process_snapshot_comparison_chunk(**chunk_kwargs)
+
+            finalize_snapshot_comparison(
+                comparison_id=comparison.id,
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+
+        approval = PreprodComparisonApproval.objects.get(
+            preprod_artifact=head_artifact,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        )
+        assert approval.extras is not None
+        assert approval.extras["prev_approved_artifact_id"] == 777
+        assert approval.extras["threshold_matched_image_count"] == 1
+
+    def test_full_flow_auto_approves_exact_match_when_disabled(self):
+        from sentry.preprod.models import PreprodComparisonApproval
+        from sentry.preprod.snapshots.image_diff.types import DiffResult
+        from sentry.preprod.snapshots.manifest import (
+            ComparisonImageResult,
+            ComparisonManifest,
+            ComparisonSummary,
+            ImageMetadata,
+            SnapshotManifest,
+        )
+        from sentry.preprod.snapshots.tasks import (
+            SiblingComparison,
+            compare_snapshots,
+            finalize_snapshot_comparison,
+            process_snapshot_comparison_chunk,
+        )
+
+        commit_comparison = self.create_commit_comparison(
+            organization=self.organization, pr_number=42, head_repo_name="owner/repo"
+        )
+        head_artifact = self.create_preprod_artifact(
+            project=self.project, commit_comparison=commit_comparison
+        )
+        base_artifact = self.create_preprod_artifact(project=self.project)
+        head = self.create_preprod_snapshot_metrics(head_artifact)
+        head.extras = {"manifest_key": "head_manifest"}
+        head.save()
+        base = self.create_preprod_snapshot_metrics(base_artifact)
+        base.extras = {"manifest_key": "base_manifest"}
+        base.save()
+
+        head_manifest = SnapshotManifest(
+            images={
+                "added.png": ImageMetadata(content_hash="ha1", width=10, height=10),
+                "unchanged.png": ImageMetadata(content_hash="hsame", width=10, height=10),
+            },
+            diff_threshold=None,
+        )
+        base_manifest = SnapshotManifest(
+            images={"unchanged.png": ImageMetadata(content_hash="hsame", width=10, height=10)},
+            diff_threshold=None,
+        )
+        sibling_comparison_key = "sib/comparison.json"
+        sibling_manifest = ComparisonManifest(
+            head_artifact_id=777,
+            base_artifact_id=0,
+            summary=ComparisonSummary(
+                total=1,
+                changed=0,
+                unchanged=0,
+                added=1,
+                removed=0,
+                errored=0,
+                renamed=0,
+                skipped=0,
+            ),
+            images={"added.png": ComparisonImageResult(status="added", head_hash="ha1")},
+        )
+        sibling_snapshot_manifest = SnapshotManifest(
+            images={"added.png": ImageMetadata(content_hash="ha1", width=10, height=10)},
+            diff_threshold=None,
+        )
+        sibling = SiblingComparison(
+            777, sibling_comparison_key, sibling_manifest, sibling_snapshot_manifest
+        )
+
+        stored = {
+            "head_manifest": orjson.dumps(head_manifest.dict()),
+            "base_manifest": orjson.dumps(base_manifest.dict()),
+            sibling_comparison_key: orjson.dumps(sibling_manifest.dict()),
+        }
+        session = _dict_backed_session(stored)
+        dispatched: list[dict] = []
+
+        kwargs = dict(
+            project_id=self.project.id,
+            org_id=self.organization.id,
+            head_artifact_id=head_artifact.id,
+            base_artifact_id=base_artifact.id,
+        )
+
+        unchanged_diff = DiffResult(
+            diff_mask_png=b"png",
+            changed_pixels=0,
+            total_pixels=100,
+            aligned_height=10,
+            before_width=10,
+            before_height=10,
+            after_width=10,
+            after_height=10,
+        )
+
+        with (
+            self.options({"preprod.snapshots.auto-approve-sibling-diffs.enabled": False}),
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks._find_approved_sibling", return_value=sibling),
+            patch(
+                "sentry.preprod.snapshots.tasks._fetch_batch_images", side_effect=self._fake_fetch
+            ),
+            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
+            patch(
+                "sentry.preprod.snapshots.tasks.compare_images_batch",
+                side_effect=lambda pairs, server: [unchanged_diff for _ in pairs],
+            ),
+            patch("sentry.preprod.snapshots.tasks.OdiffServer"),
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+            patch("sentry.analytics.record"),
+            patch(
+                "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async",
+                side_effect=lambda kwargs, **_: dispatched.append(kwargs),
+            ),
+            patch("sentry.preprod.snapshots.tasks.finalize_snapshot_comparison.apply_async"),
+        ):
+            compare_snapshots(**kwargs)
+
+            comparison = PreprodSnapshotComparison.objects.get(
+                head_snapshot_metrics__preprod_artifact=head_artifact
+            )
+            for chunk_kwargs in dispatched:
+                process_snapshot_comparison_chunk(**chunk_kwargs)
+
+            finalize_snapshot_comparison(
+                comparison_id=comparison.id,
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+
+        approval = PreprodComparisonApproval.objects.get(
+            preprod_artifact=head_artifact,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        )
+        assert approval.extras is not None
+        assert approval.extras["prev_approved_artifact_id"] == 777
+        assert approval.extras["threshold_matched_image_count"] == 0

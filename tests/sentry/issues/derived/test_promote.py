@@ -1,9 +1,11 @@
 from collections.abc import Generator
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
+from django.db.models import Model
+from django.db.models.query import QuerySet
 from django.utils import timezone as django_timezone
 
 from sentry.issues.action_log.publish import publish_action
@@ -23,7 +25,8 @@ from sentry.issues.derived.promote import (
     PromotionFailed,
     PromotionResult,
     _generation_cache,
-    _read_live_generated_at,
+    _LiveState,
+    _read_live_state,
     build_and_promote_batch,
     build_and_promote_derived_data,
     promote_to_live,
@@ -58,12 +61,12 @@ def _hide_first_row_read() -> Generator[None]:
     """
     seen = iter([True])
 
-    def hide_once(group_id: int) -> datetime | None:
+    def hide_once(group_id: int) -> _LiveState | None:
         if next(seen, False):
             return None
-        return _read_live_generated_at(group_id)
+        return _read_live_state(group_id)
 
-    with patch("sentry.issues.derived.promote._read_live_generated_at", hide_once):
+    with patch("sentry.issues.derived.promote._read_live_state", hide_once):
         yield
 
 
@@ -263,6 +266,51 @@ class PromoteToLiveTest(TestCase):
 
         with _hide_first_row_read():
             assert promote_to_live(candidate) is PromotionResult.RACE_LOST
+
+    def test_promote_update_path_race_returns_race_lost_when_cursor_not_ahead(self) -> None:
+        """Straddling a concurrent create on the UPDATE path is RACE_LOST, not CURSOR_BEHIND.
+
+        The initial UPDATE can miss because the row isn't yet visible while
+        the follow-up SELECT sees the just-committed row with the same
+        cursor. That row would have satisfied the UPDATE guard, so retry.
+        """
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+
+        gen_time = django_timezone.now()
+        candidate = GroupDerivedData(
+            group_id=group.id,
+            generated_at=gen_time,
+            cursor_date=EPOCH,
+            cursor_id=0,
+            data={},
+            pipeline_hash=PIPELINE.pipeline_hash,
+        )
+        processing._drain_log(candidate, PIPELINE, time_limit=timedelta(minutes=5), persist=False)
+
+        # Seed a row a same-cursor, older-generation writer would have
+        # produced. Forcing the first UPDATE to return 0 simulates the
+        # row being invisible when the UPDATE ran but visible to the
+        # follow-up SELECT.
+        GroupDerivedData.objects.filter(group_id=group.id).update(
+            generated_at=gen_time - timedelta(seconds=10),
+            cursor_date=candidate.cursor_date,
+            cursor_id=candidate.cursor_id,
+        )
+
+        real_update = QuerySet.update
+        blinded = 0
+
+        def blind_first_update(self: QuerySet[Model], **kwargs: object) -> int:
+            nonlocal blinded
+            if self.model is GroupDerivedData and blinded == 0:
+                blinded += 1
+                return 0
+            return real_update(self, **kwargs)
+
+        with patch.object(QuerySet, "update", blind_first_update):
+            assert promote_to_live(candidate) is PromotionResult.RACE_LOST
+        assert blinded == 1
 
     def test_promote_returns_group_missing_when_group_deleted(self) -> None:
         candidate = GroupDerivedData(

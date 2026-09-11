@@ -95,6 +95,10 @@ from sentry.seer.autofix.pr_iteration.pause import (
     pause_pr_iteration,
     record_pause_blocked,
 )
+from sentry.seer.autofix.pr_iteration.pr_state import (
+    iteration_prs_any_closed,
+    record_pr_closed,
+)
 from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
     clear_queued_autofix_feedback,
@@ -418,6 +422,20 @@ def consume_queued_autofix_feedback(
             activation_id=task_state.id if task_state else None,
         )
 
+        if iteration_prs_any_closed(organization, state):
+            record_pr_closed("consume")
+            pause_pr_iteration(
+                run_id=run_id,
+                organization_id=organization_id,
+                reason=PauseReason.PR_CLOSED,
+            )
+            log_ctx.info(
+                "autofix.pr_iteration.consume_feedback.skipped",
+                trigger_id=trigger_id,
+                reason="pr_closed",
+            )
+            return
+
         try:
             _drain_queued_autofix_feedback(
                 log_ctx=log_ctx,
@@ -473,6 +491,24 @@ def _drain_queued_autofix_feedback(
             "autofix.pr_iteration.consume_feedback.drain",
             outcome="skipped",
             reason="run_processing" if state.status == "processing" else "run_errored",
+            run_status=state.status,
+            trigger_id=trigger_id,
+            trigger_source=trigger_source,
+            left_queued_count=count_queued_autofix_feedback(run_id),
+        )
+        return
+
+    # The previous iteration's push (triggered separately, from the
+    # on_completion_hook) races this drain. If it left unpushed changes
+    # behind, wait for it rather than starting a new iteration against a PR
+    # that's about to change underneath it. has_code_changes() reports
+    # synced when there was nothing to push, so that case is unaffected.
+    _, all_changes_pushed = state.has_code_changes()
+    if not all_changes_pushed:
+        log_ctx.info(
+            "autofix.pr_iteration.consume_feedback.drain",
+            outcome="skipped",
+            reason="push_pending",
             run_status=state.status,
             trigger_id=trigger_id,
             trigger_source=trigger_source,

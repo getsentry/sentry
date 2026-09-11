@@ -3,7 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -11,7 +11,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {
   LocalWidgetLegendSelectionState,
   useLocalWidgetLegendSelectionState,
@@ -245,36 +245,29 @@ export default function DashboardBlock({id, title}: EmbedOutput<'dashboard'>) {
   const dashboard = useMemo(() => (data ? getDashboardPreview(data) : undefined), [data]);
 
   return (
-    <Container
-      background="primary"
-      border="primary"
-      containerType="inline-size"
-      padding="md"
-      radius="md"
+    <SeerEmbedBlock
+      badge={
+        dashboard ? (
+          <Text size="sm" variant="muted">
+            {tn('%s widget', '%s widgets', dashboard.widgets.length)}
+          </Text>
+        ) : null
+      }
+      href={href}
+      icon={IconDashboard}
+      linkLabel={t('View Dashboard')}
+      testId="seer-dashboard-embed"
+      title={dashboard?.title ?? title ?? t('Dashboard %s', id)}
     >
-      <Stack gap="md">
-        <Flex align="center" justify="between" gap="md" wrap="wrap">
-          <ResourceLink
-            icon={IconDashboard}
-            href={href}
-            title={dashboard?.title ?? title ?? t('Dashboard %s', id)}
-          />
-          {dashboard ? (
-            <Text size="sm" variant="muted">
-              {tn('%s widget', '%s widgets', dashboard.widgets.length)}
-            </Text>
-          ) : null}
-        </Flex>
-        {isPending ? (
-          <LoadingIndicator />
-        ) : isError || !dashboard ? (
-          <Alert role="alert" variant="danger">
-            {t('Unable to load dashboard details.')}
-          </Alert>
-        ) : (
-          <DashboardPreview dashboard={dashboard} href={href} />
-        )}
-      </Stack>
-    </Container>
+      {isPending ? (
+        <LoadingIndicator />
+      ) : isError || !dashboard ? (
+        <Alert role="alert" variant="danger">
+          {t('Unable to load dashboard details.')}
+        </Alert>
+      ) : (
+        <DashboardPreview dashboard={dashboard} href={href} />
+      )}
+    </SeerEmbedBlock>
   );
 }
