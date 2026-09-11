@@ -15,12 +15,10 @@ export const getNodeMetricsOnboarding = <
   docsPlatform,
   packageName,
   importPath,
-  version,
 }: {
   docsPlatform: string;
   packageName: `@sentry/${string}`;
   importPath?: string;
-  version?: string;
 }): OnboardingConfig<PlatformOptions> => {
   const importFrom = importPath ?? packageName;
   return {
@@ -38,7 +36,7 @@ export const getNodeMetricsOnboarding = <
               }
             ),
           },
-          getInstallCodeBlock(params, {packageName, version}),
+          getInstallCodeBlock(params, {packageName}),
           {
             type: 'text',
             text: tct(
