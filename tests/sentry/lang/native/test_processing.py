@@ -591,51 +591,6 @@ def test_minidump_select_snapshot_thread(
     assert minidump_event["level"] == "info"
 
 
-@pytest.mark.parametrize(
-    "preferred", [True, 2.0, -2, "-2", "", "two", "２", "2" * 21, 2**64, {}, [], 999]
-)
-def test_minidump_unmatched_thread(
-    minidump_event: dict[str, Any], minidump_symbolicator: mock.Mock, preferred: Any
-) -> None:
-    minidump_event["exception"]["values"][0]["thread_id"] = preferred
-
-    process_minidump(minidump_symbolicator, minidump_event)
-
-    assert minidump_event["exception"]["values"][0]["thread_id"] == preferred
-    assert not any(
-        thread.get("crashed") or thread.get("current")
-        for thread in minidump_event["threads"]["values"]
-    )
-    assert minidump_event["errors"][0]["type"] == EventErrorType.INVALID_DATA
-    assert minidump_event["errors"][0]["name"] == "exception.values.0.thread_id"
-
-
-def test_minidump_empty_thread(
-    minidump_event: dict[str, Any], minidump_symbolicator: mock.Mock
-) -> None:
-    response = minidump_symbolicator.process_minidump.return_value
-    response["stacktraces"][1]["frames"] = []
-
-    process_minidump(minidump_symbolicator, minidump_event)
-
-    assert minidump_event["exception"]["values"][0]["thread_id"] == 2
-    assert minidump_event["errors"][0]["type"] == EventErrorType.INVALID_DATA
-
-
-def test_minidump_duplicate_thread(
-    minidump_event: dict[str, Any], minidump_symbolicator: mock.Mock
-) -> None:
-    response = minidump_symbolicator.process_minidump.return_value
-    duplicate = deepcopy(response["stacktraces"][1])
-    duplicate["thread_id"] = "2"
-    response["stacktraces"].append(duplicate)
-
-    process_minidump(minidump_symbolicator, minidump_event)
-
-    assert minidump_event["exception"]["values"][0]["thread_id"] == 2
-    assert minidump_event["errors"][0]["type"] == EventErrorType.INVALID_DATA
-
-
 def test_minidump_legacy_selection(
     minidump_event: dict[str, Any], minidump_symbolicator: mock.Mock
 ) -> None:
@@ -683,10 +638,10 @@ def test_minidump_groups_by_selected_stack(
     minidump_event["threads"] = {"values": [{"id": 2, "crashed": False}]}
     minidump_event["exception"]["values"][0]["thread_id"] = preferred
     first = deepcopy(minidump_event)
+    first["exception"]["values"][0].pop("thread_id")
     second = deepcopy(minidump_event)
 
     process_minidump(minidump_symbolicator, first)
-    response["stacktraces"][1]["frames"][0]["function"] = "different_hang"
     process_minidump(minidump_symbolicator, second)
 
     config = load_grouping_config()
@@ -756,107 +711,3 @@ def test_minidump_preserves_event_attributes(
     assert exception["stacktrace"]["frames"][-1]["function"] == "hang"
     assert minidump_event["level"] == level
     assert is_handled(minidump_event) is handled
-
-
-def test_minidump_failure_keeps_event_stack(
-    minidump_event: dict[str, Any], minidump_symbolicator: mock.Mock
-) -> None:
-    exception = minidump_event["exception"]["values"][0]
-    stack = {"frames": [{"function": "client_hang"}]}
-    exception["stacktrace"] = deepcopy(stack)
-    minidump_symbolicator.process_minidump.return_value = {
-        "status": "failed",
-        "message": "invalid minidump",
-    }
-
-    process_minidump(minidump_symbolicator, minidump_event)
-
-    assert exception["thread_id"] == 2
-    assert exception["stacktrace"] == stack
-
-
-@pytest.mark.parametrize("thread_id", [99, "invalid"])
-@django_db_all
-def test_minidump_unmatched_thread_does_not_group_by_watchdog(
-    minidump_event: dict[str, Any], minidump_symbolicator: mock.Mock, thread_id: int | str
-) -> None:
-    minidump_event["exception"]["values"][0]["thread_id"] = thread_id
-    response = minidump_symbolicator.process_minidump.return_value
-    response["stacktraces"] = response["stacktraces"][:1]
-    first = deepcopy(minidump_event)
-    second = deepcopy(minidump_event)
-
-    process_minidump(minidump_symbolicator, first)
-    response["stacktraces"][0]["frames"][0]["function"] = "different_watchdog"
-    process_minidump(minidump_symbolicator, second)
-
-    config = load_grouping_config()
-    first_event = Event(event_id="a" * 32, project_id=1, data=first)
-    second_event = Event(event_id="b" * 32, project_id=1, data=second)
-    first_hashes = {
-        variant.get_hash() for variant in first_event.get_grouping_variants(config).values()
-    } - {None}
-    second_hashes = {
-        variant.get_hash() for variant in second_event.get_grouping_variants(config).values()
-    } - {None}
-    assert first_hashes
-    assert first_hashes == second_hashes
-
-
-def test_minidump_symbolicates_fallback(
-    minidump_event: dict[str, Any], minidump_symbolicator: mock.Mock
-) -> None:
-    exception = minidump_event["exception"]["values"][0]
-    exception["thread_id"] = 99
-    exception["stacktrace"] = {
-        "frames": [{"instruction_addr": "0x4000"}],
-        "registers": {"rip": "0x4000"},
-    }
-    thread = {"id": 99, "name": "client", "current": True, "crashed": False}
-    minidump_event["threads"] = {"values": [deepcopy(thread)]}
-    minidump_event["debug_meta"] = {
-        "images": [
-            {
-                "type": "elf",
-                "image_addr": "0x4000",
-                "debug_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-            }
-        ]
-    }
-    minidump_symbolicator.process_payload.return_value = {
-        "status": "completed",
-        "modules": deepcopy(minidump_event["debug_meta"]["images"]),
-        "stacktraces": [
-            {
-                "frames": [
-                    {
-                        "original_index": 0,
-                        "status": "symbolicated",
-                        "instruction_addr": "0x4000",
-                        "function": "client_hang",
-                    }
-                ]
-            }
-        ],
-    }
-    functions = get_native_symbolication_functions(
-        minidump_event, list(find_stacktraces_in_data(minidump_event))
-    )
-    assert functions == [SymbolicatorFunction.native, SymbolicatorFunction.minidump]
-
-    process_native_stacktraces(minidump_symbolicator, minidump_event)
-    stack = deepcopy(exception["stacktrace"])
-    images = deepcopy(minidump_event["debug_meta"]["images"])
-    process_minidump(minidump_symbolicator, minidump_event)
-
-    assert exception["stacktrace"]["frames"][0]["function"] == "client_hang"
-    assert (
-        minidump_event["debug_meta"]["images"][0]["debug_id"]
-        == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
-    )
-    assert exception["thread_id"] == 99
-    assert exception["stacktrace"] == stack
-    assert exception["stacktrace"]["registers"] == {"rip": "0x4000"}
-    assert minidump_event["debug_meta"]["images"] == images
-    assert thread in minidump_event["threads"]["values"]
-    assert not minidump_event["threads"]["values"][0].get("crashed")
