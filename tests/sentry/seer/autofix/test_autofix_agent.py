@@ -604,6 +604,9 @@ class TestTriggerAutofixAgent(TestCase):
         mock_feature.assert_called_once()
         assert mock_feature.call_args.args[0] == self.group
         feature_trigger = mock_feature.call_args.args[1]
+        assert feature_trigger.step == AutofixStep.ROOT_CAUSE
+        assert feature_trigger.run_id is None
+        assert feature_trigger.insert_index is None
         assert feature_trigger.step_args is not None
         assert feature_trigger.step_args.repo_pins == {
             "owner/repo": {
@@ -623,6 +626,35 @@ class TestTriggerAutofixAgent(TestCase):
         )
         assert payload["run_id"] == 777
         assert payload["sentry_run_id"] == str(feature_run.uuid)
+
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.feature.dispatch.trigger_autofix_feature")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_root_cause_rerun_routes_to_feature_when_flagged(
+        self, mock_client_class, mock_feature, mock_broadcast
+    ):
+        """A root-cause retry reaches RCA-in-Seer with continuation context."""
+        feature_run = self.create_seer_run(
+            organization=self.group.organization, type="feature_run", seer_run_state_id=777
+        )
+        mock_feature.return_value = feature_run
+
+        with self.feature("organizations:autofix-rca-in-seer"):
+            result = trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.ROOT_CAUSE,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=67890,
+                insert_index=4,
+            )
+
+        assert result == feature_run
+        mock_feature.assert_called_once()
+        feature_trigger = mock_feature.call_args.args[1]
+        assert feature_trigger.step == AutofixStep.ROOT_CAUSE
+        assert feature_trigger.run_id == 67890
+        assert feature_trigger.insert_index == 4
+        mock_client_class.return_value.continue_run.assert_not_called()
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
