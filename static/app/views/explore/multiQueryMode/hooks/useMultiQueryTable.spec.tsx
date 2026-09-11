@@ -79,24 +79,21 @@ describe('useMultiQueryTable', () => {
         ],
         method: 'GET',
       });
-      renderHookWithProviders(
-        () =>
-          hook({
-            enabled: true,
-            groupBys: [],
-            query: 'test value',
-            sortBys: [],
-            yAxes: [],
-          }),
-        {
-          initialRouterConfig: {
-            location: {
-              pathname: '/mock-pathname/',
-              query: {},
-            },
+      renderHookWithProviders(hook, {
+        initialProps: {
+          enabled: true,
+          groupBys: [],
+          query: 'test value',
+          sortBys: [],
+          yAxes: [],
+        },
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {},
           },
-        }
-      );
+        },
+      });
 
       expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);
       expect(mockNormalRequestUrl).toHaveBeenCalledWith(
