@@ -82,6 +82,12 @@ class GroupCategory(IntEnum):
     """
     CONFIGURATION = 19
 
+    """
+    Issues in how an application uses generative-AI/LLM providers,
+    such as wasteful prompt-cache utilization.
+    """
+    GEN_AI = 20
+
 
 # Categories that replaced GroupCategory.PERFORMANCE for span-evidence performance issue types
 PERFORMANCE_ISSUE_CATEGORIES = frozenset(
@@ -786,6 +792,20 @@ class WebVitalsGroup(GroupType):  # TODO: Rename to WebVitalsGroupType
     # Web Vital issues are always triggered for the purpose of using autofix
     always_trigger_seer_automation = True
     released = True
+
+
+@dataclass(frozen=True)
+class LLMCacheUsageGroupType(GroupType):
+    type_id = 14001
+    slug = "llm_cache_usage"
+    description = "LLM Cache Usage"
+    category = GroupCategory.GEN_AI.value
+    default_priority = PriorityLevel.MEDIUM
+    released = False
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    enable_status_change_workflow_notifications = False
+    enable_workflow_notifications = False
 
 
 def should_create_group(

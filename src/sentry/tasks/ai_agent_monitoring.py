@@ -1,5 +1,4 @@
 import logging
-import re
 from typing import Any
 
 from django.conf import settings
@@ -12,6 +11,8 @@ from sentry.relay.config.ai_model_costs import (
     AIModelMetadata,
     AIModelMetadataConfig,
     ModelId,
+    normalize_model_id,
+    prefix_glob_model_name,
 )
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -24,51 +25,6 @@ logger = logging.getLogger(__name__)
 # API endpoints
 OPENROUTER_MODELS_API_URL = "https://openrouter.ai/api/v1/models"
 MODELS_DEV_API_URL = "https://models.dev/api.json"
-
-
-def _normalize_model_id(model_id: str) -> str:
-    """
-    Normalize a model id by removing dates and versions.
-    Example:
-    - "gpt-4" -> "gpt-4"
-    - "gpt-4-20241022" -> "gpt-4"
-    - "gpt-4-v1.0" -> "gpt-4"
-    - "gpt-4-20241022-v1.0" -> "gpt-4"
-    - "gpt-4-20241022-v1.0-beta" -> "gpt-4"
-    - "gpt-4-20241022-v1.0-beta-1" -> "gpt-4"
-    - "gpt-4-20241022-v1.0-beta-1" -> "gpt-4"
-
-    Args:
-        model_id: The model id to normalize
-
-    Returns:
-        The normalized model id
-    """
-    return re.sub(
-        r"(([-_@])(\d{4}[-/.]\d{2}[-/.]\d{2}|\d{8}))?([-_]v\d+[:.]?\d*([-:].*)?)?$", "", model_id
-    )
-
-
-def _create_prefix_glob_model_name(model_id: str) -> str:
-    """
-    Create a glob version of a model name by adding a wildcard prefix.
-
-    This handles cases where models have random prefixes before the actual model name.
-    Can be used on both regular model IDs and suffix-globbed model names.
-
-    Examples:
-    - "gpt-4" -> "*gpt-4"
-    - "claude-3-5-sonnet" -> "*claude-3-5-sonnet"
-    - "o3-pro" -> "*o3-pro"
-
-    Args:
-        model_id: The original model ID or a suffix-globbed model name
-
-    Returns:
-        The glob version with a wildcard prefix
-    """
-    # Simply prepend * to the model name
-    return f"*{model_id}"
 
 
 def _add_glob_model_names(models_dict: dict[ModelId, AIModelMetadata]) -> None:
@@ -88,11 +44,11 @@ def _add_glob_model_names(models_dict: dict[ModelId, AIModelMetadata]) -> None:
     model_ids = list(models_dict.keys())
 
     for model_id in model_ids:
-        normalized_model_id = _normalize_model_id(model_id)
+        normalized_model_id = normalize_model_id(model_id)
         if normalized_model_id != model_id and normalized_model_id not in models_dict:
             models_dict[normalized_model_id] = models_dict[model_id]
 
-        prefix_glob_name = _create_prefix_glob_model_name(normalized_model_id)
+        prefix_glob_name = prefix_glob_model_name(normalized_model_id)
         if prefix_glob_name not in models_dict:
             models_dict[prefix_glob_name] = models_dict[normalized_model_id]
 
