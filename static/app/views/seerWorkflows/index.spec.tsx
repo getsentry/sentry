@@ -17,6 +17,157 @@ describe('SeerWorkflows', () => {
     MockApiClient.clearMockResponses();
   });
 
+  it('hides the monitor scan trigger when its flag is disabled', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [],
+    });
+    render(<SeerWorkflows />, {organization});
+    expect(await screen.findByText('No workflow runs yet.')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Run monitor scan'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('starts a scan, expands its running row, and polls for completion', async () => {
+    const scanOrganization = OrganizationFixture({
+      features: ['seer-workflows-monitor-cleanup'],
+    });
+    const url = `/organizations/${scanOrganization.slug}/seer/workflows/`;
+    const previousRun = {
+      id: '45e94493-c356-4d2b-bb26-ae4e2e508a74',
+      strategy: 'duplicate_monitors',
+      dateAdded: '2026-09-09T00:00:00Z',
+      extras: {status: 'complete'},
+      results: [],
+    };
+    MockApiClient.addMockResponse({url, body: [previousRun]});
+    const startScan = MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      statusCode: 202,
+      body: {
+        runId: '09a15703-bf37-4208-bd90-c57013c9694b',
+      },
+    });
+    const {router} = render(<SeerWorkflows />, {
+      organization: scanOrganization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${scanOrganization.slug}/issues/autofix/workflows/`,
+        },
+      },
+    });
+    expect(await screen.findByRole('button', {name: 'Expand run'})).toBeInTheDocument();
+    const runningRun = {
+      ...previousRun,
+      id: '09a15703-bf37-4208-bd90-c57013c9694b',
+      extras: {status: 'running'},
+    };
+    MockApiClient.addMockResponse({url, body: [runningRun, previousRun]});
+    await userEvent.click(screen.getByRole('button', {name: 'Run monitor scan'}));
+
+    expect(await screen.findByRole('img', {name: 'Running'})).toBeInTheDocument();
+    expect(screen.getAllByText('Scanning monitors…')).not.toHaveLength(0);
+    expect(startScan).toHaveBeenCalledTimes(1);
+    expect(startScan).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({data: {strategy: 'duplicate_monitors'}})
+    );
+    expect(router.location.query).toEqual({});
+    expect(screen.getByRole('button', {name: 'Collapse run'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Expand run'})).toBeInTheDocument();
+
+    const completedRun = {
+      ...runningRun,
+      extras: {status: 'complete'},
+      results: [
+        {
+          id: '1',
+          kind: 'duplicate_monitors',
+          extras: {
+            outputKind: 'monitor_cleanup',
+            schemaVersion: 1,
+            projectId: '1',
+            projectSlug: 'checkout',
+            scan: {status: 'complete', monitorsScanned: 2},
+            summary: 'No duplicates found.',
+            findings: [],
+          },
+        },
+      ],
+    };
+    MockApiClient.addMockResponse({url, body: [completedRun, previousRun]});
+    await waitFor(
+      () => expect(screen.queryByRole('img', {name: 'Running'})).not.toBeInTheDocument(),
+      {timeout: 7000}
+    );
+    expect(screen.getAllByRole('img', {name: 'Succeeded'})).toHaveLength(2);
+    expect(screen.getAllByText('No findings')).not.toHaveLength(0);
+  }, 10000);
+
+  it('renders structured duplicate monitor findings in workflow history', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [
+        {
+          id: '09a15703-bf37-4208-bd90-c57013c9694b',
+          strategy: 'duplicate_monitors',
+          dateAdded: '2026-09-09T00:00:00Z',
+          extras: {
+            status: 'complete',
+            coverage: {total: 1, complete: 1, partial: 0, failed: 0},
+          },
+          issues: [],
+          results: [
+            {
+              id: '1',
+              kind: 'duplicate_monitors',
+              seerRunId: '09a15703-bf37-4208-bd90-c57013c9694b',
+              extras: {
+                outputKind: 'monitor_cleanup',
+                schemaVersion: 1,
+                projectId: '1',
+                projectSlug: 'checkout',
+                scan: {status: 'complete', monitorsScanned: 2},
+                summary: 'One matching pair',
+                findings: [
+                  {
+                    kind: 'exact_duplicate',
+                    monitors: [
+                      {id: '10', name: 'Checkout errors', enabled: true},
+                      {id: '11', name: 'Checkout errors copy', enabled: true},
+                    ],
+                    suggestedKeepId: '10',
+                    alerts: [],
+                    comparison: [],
+                    reason: 'Matching thresholds',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+    render(<SeerWorkflows />, {organization});
+    expect(await screen.findByText('Duplicate monitors')).toBeInTheDocument();
+    expect(screen.getByText('1 exact duplicate group')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Expand run'}));
+    expect(screen.getByRole('link', {name: 'Checkout errors'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'View comparison'}));
+    expect(screen.getByRole('button', {name: 'Delete duplicates'})).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
+    expect(
+      screen.getByRole('link', {
+        name: 'View prompt and agent run 09a15703-bf37-4208-bd90-c57013c9694b',
+      })
+    ).toHaveAttribute(
+      'href',
+      expect.stringContaining('explorerRunId=09a15703-bf37-4208-bd90-c57013c9694b')
+    );
+  });
+
   it('renders list of runs', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/workflows/`,
@@ -557,7 +708,7 @@ describe('SeerWorkflows', () => {
     );
   });
 
-  it('falls back to extras.agent_run_id for the dispatches panel when a run has no seer runs', async () => {
+  it('does not use legacy state IDs for dispatch links', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/workflows/`,
       body: [
@@ -577,10 +728,10 @@ describe('SeerWorkflows', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Expand run'}));
 
-    expect(screen.getByRole('button', {name: 'Batch 1'})).toHaveAttribute(
-      'href',
-      expect.stringContaining('explorerRunId=42')
-    );
+    expect(screen.queryByRole('button', {name: 'Batch 1'})).not.toBeInTheDocument();
+    expect(
+      screen.getByText('No triage batches recorded for this run.')
+    ).toBeInTheDocument();
   });
 
   it('shows no triage batches recorded when a run has no shards', async () => {
@@ -961,8 +1112,8 @@ describe('SeerWorkflows', () => {
     expect(screen.getByRole('option', {name: 'Succeeded'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'Failed'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'Skipped'})).toBeInTheDocument();
-    // Running is not derivable from the current API response.
-    expect(screen.queryByRole('option', {name: 'Running'})).not.toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Running'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Incomplete'})).toBeInTheDocument();
   });
 
   it('expandLatest auto-expands the latest run visible under active filters', async () => {

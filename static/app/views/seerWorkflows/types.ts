@@ -31,9 +31,10 @@ type SeerNightShiftRunOptions = {
   source?: string;
 };
 
-type SeerNightShiftRunExtras = {
-  agent_run_id?: number | string;
+export type SeerNightShiftRunExtras = {
+  coverage?: {complete: number; failed: number; partial: number; total: number};
   options?: SeerNightShiftRunOptions;
+  status?: 'running' | 'complete' | 'partial' | 'failed';
   target_project_ids?: number[];
   triggering_user_id?: number;
 };
@@ -56,13 +57,36 @@ export type SeerNightShiftRun = {
   issues: SeerNightShiftRunIssue[];
   seerRuns: SeerNightShiftSeerRun[];
   triageStrategy: string;
+  results?: SeerWorkflowResult[];
+  strategy?: 'agentic_triage';
 };
 
-export type WorkflowKind = 'agentic_triage';
+export type MonitorCleanupStatus = 'running' | 'complete' | 'partial' | 'failed';
+
+export type MonitorCleanupRun = {
+  dateAdded: string;
+  dateCompleted: string | null;
+  errorMessage: string | null;
+  extras: {status: MonitorCleanupStatus};
+  id: string;
+  results: SeerWorkflowResult[];
+  strategy: 'duplicate_monitors';
+};
+
+export type SeerWorkflowRun = SeerNightShiftRun | MonitorCleanupRun;
+
+export type WorkflowKind = 'agentic_triage' | 'duplicate_monitors';
+
+export type SeerWorkflowResult = {
+  extras: unknown;
+  id: string;
+  kind: string;
+  seerRunId: string | null;
+};
 
 export type StrategyVisibility = 'configurable' | 'internal';
 export type StrategyCategory = 'issues' | 'reliability' | 'user_experience';
-export type RunStatus = 'succeeded' | 'failed' | 'skipped' | 'running';
+export type RunStatus = 'succeeded' | 'failed' | 'skipped' | 'running' | 'partial';
 
 export type Frequency = 'hourly' | 'daily' | 'weekly';
 
@@ -85,6 +109,10 @@ export type WorkflowRow = {
   runId: string;
   status: RunStatus;
   errorMessage?: string | null;
+  monitorCleanup?: {
+    results: SeerWorkflowResult[];
+    scanStatus?: MonitorCleanupStatus;
+  };
   options?: SeerNightShiftRunOptions;
   resultText?: string;
   source?: string;
@@ -92,7 +120,6 @@ export type WorkflowRow = {
   triage?: {
     issues: SeerNightShiftRunIssue[];
     seerRuns: SeerNightShiftSeerRun[];
-    agentRunId?: number | string;
     dryRun?: boolean;
     maxCandidates?: number;
   };
