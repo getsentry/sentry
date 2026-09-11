@@ -168,6 +168,8 @@ export function initializeSdk(config: Config) {
        * the pointer moves.
        */
       /Cannot read properties of undefined \(reading 'getDataParams'\)/,
+      // Firefox uses a different phrasing for the same error
+      /can't access property ['"]getDataParams['"]/,
     ],
 
     beforeBreadcrumb(crumb) {
