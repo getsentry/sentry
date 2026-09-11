@@ -19,6 +19,11 @@ STATUS = Feature[IssueStatus](
     "status", default=IssueStatus.OPEN, codec=EnumCodec(IssueStatus), version=2
 )
 
+# Alternate status computation used by the merge-aware debug pipeline.
+MERGE_AWARE_STATUS = Feature[IssueStatus](
+    "merge_aware_status", default=IssueStatus.OPEN, codec=EnumCodec(IssueStatus)
+)
+
 # The current Progress of the issue.
 PROGRESS = Feature[IssueProgressState | None](
     "progress",
