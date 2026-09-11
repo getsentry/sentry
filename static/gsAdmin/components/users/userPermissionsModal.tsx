@@ -1,21 +1,22 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
-import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Stack} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
+
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {BooleanField} from 'sentry/components/forms/fields/booleanField';
-import {Form} from 'sentry/components/forms/form';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {User} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
-
-const fieldProps = {
-  stacked: true,
-  inline: false,
-  flexibleControlStateSize: true,
-} as const;
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 
 type Props = ModalRenderProps & {
   onSubmit: (user: User) => void;
@@ -23,8 +24,6 @@ type Props = ModalRenderProps & {
 };
 
 export function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}: Props) {
-  const api = useApi({persistInFlight: true});
-
   const {
     data: availablePermissions,
     isPending: availablePermissionsLoading,
@@ -50,6 +49,79 @@ export function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}:
     {staleTime: 0}
   );
 
+  const permissions = permissionList ?? [];
+  const available = availablePermissions ?? [];
+
+  const mutation = useMutation({
+    mutationFn: async (data: Record<string, boolean>) => {
+      addLoadingMessage('Saving changes\u2026');
+      const currentPerms = new Set(permissions);
+      const newPerms = available.filter(k => data[k]);
+      const addedPerms = newPerms.filter(perm => !currentPerms.has(perm));
+      const removedPerms = permissions.filter(perm => !data[perm]);
+
+      await Promise.all([
+        fetchMutation({
+          url: getApiUrl('/users/$userId/', {path: {userId: user.id}}),
+          method: 'PUT',
+          data: {isSuperuser: data.isSuperuser, isStaff: data.isStaff},
+        }),
+        ...addedPerms.map(perm =>
+          fetchMutation({
+            url: getApiUrl('/users/$userId/permissions/$permissionName/', {
+              path: {userId: user.id, permissionName: perm},
+            }),
+            method: 'POST',
+          })
+        ),
+        ...removedPerms.map(perm =>
+          fetchMutation({
+            url: getApiUrl('/users/$userId/permissions/$permissionName/', {
+              path: {userId: user.id, permissionName: perm},
+            }),
+            method: 'DELETE',
+          })
+        ),
+      ]);
+
+      return {
+        ...user,
+        isSuperuser: Boolean(data.isSuperuser),
+        isStaff: Boolean(data.isStaff),
+        permissions: new Set(newPerms),
+      };
+    },
+    onSuccess: newUser => {
+      onSubmit(newUser);
+      closeModal();
+    },
+    onError: () => addErrorMessage('Unable to update user permissions.'),
+    onSettled: clearIndicators,
+  });
+
+  const defaultValues: Record<string, boolean> = {
+    isSuperuser: user.isSuperuser,
+    isStaff: user.isStaff,
+    ...Object.fromEntries(available.map(k => [k, permissions.includes(k)])),
+  };
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues,
+    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
+  });
+
+  useEffect(() => {
+    if (availablePermissions && permissionList) {
+      form.reset({
+        isSuperuser: user.isSuperuser,
+        isStaff: user.isStaff,
+        ...Object.fromEntries(
+          availablePermissions.map(k => [k, permissionList.includes(k)])
+        ),
+      });
+    }
+  }, [availablePermissions, permissionList, form, user.isStaff, user.isSuperuser]);
+
   if (permissionListError || availablePermissionsError) {
     return <LoadingError />;
   }
@@ -62,85 +134,46 @@ export function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}:
     <Fragment>
       <Header closeButton>Edit Permissions</Header>
       <Body>
-        <Form
-          onSubmit={(data, onSuccess, onError) => {
-            addLoadingMessage('Saving changes\u2026');
-
-            // XXX(dcramer): why did i optimize the api for individual idempotent perm changes..
-
-            // existing users permissions
-            const currentPerms = new Set(permissionList);
-
-            // permissions as defined by form submission
-            const newPerms: string[] = availablePermissions.filter(k => data[k]);
-            const addedPerms = newPerms.filter(perm => !currentPerms.has(perm));
-            const removedPerms = permissionList.filter(perm => !data[perm]);
-
-            const requests = [
-              api.requestPromise(`/users/${user.id}/`, {
-                method: 'PUT',
-                data: {isSuperuser: data.isSuperuser, isStaff: data.isStaff},
-              }),
-              ...addedPerms.map(perm =>
-                api.requestPromise(`/users/${user.id}/permissions/${perm}/`, {
-                  method: 'POST',
-                })
-              ),
-              ...removedPerms.map(perm =>
-                api.requestPromise(`/users/${user.id}/permissions/${perm}/`, {
-                  method: 'DELETE',
-                })
-              ),
-            ];
-
-            Promise.all(requests)
-              .then(() => {
-                onSuccess({
-                  // TODO(dcramer): we could technically pull latest user state from the isSuperuser submission and
-                  // merge it here
-                  ...user,
-                  isSuperuser: data.isSuperuser,
-                  isStaff: data.isStaff,
-                  permissions: newPerms,
-                });
-              })
-              .catch(error => {
-                // TODO(dcramer): technically this is wrong and should probably reload the initial form data as
-                // some of the API changes might have been successful whereas others were not. Probably ok though
-                // just click some buttons again.
-                onError(error);
-              })
-              .finally(() => {
-                clearIndicators();
-              });
-          }}
-          onSubmitSuccess={newUser => {
-            onSubmit(newUser);
-            closeModal();
-          }}
-          initialData={{
-            isSuperuser: user.isSuperuser,
-            isStaff: user.isStaff,
-            ...Object.fromEntries(
-              availablePermissions.map(k => [k, permissionList.includes(k)])
-            ),
-          }}
-        >
-          <BooleanField
-            {...fieldProps}
-            name="isSuperuser"
-            label="Grant superuser permission (required for admin access)."
-          />
-          <BooleanField
-            {...fieldProps}
-            name="isStaff"
-            label="Grant staff permission (WIP, will be required for admin access in the future)."
-          />
-          <h4>Additional Permissions</h4>
-          {availablePermissions.map(perm => (
-            <BooleanField {...fieldProps} key={perm} name={perm} label={perm} />
-          ))}
-        </Form>
+        <form.AppForm form={form}>
+          <Stack gap="lg">
+            <form.AppField name="isSuperuser">
+              {field => (
+                <field.Layout.Stack label="Grant superuser permission (required for admin access).">
+                  <field.Switch
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                  />
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
+            <form.AppField name="isStaff">
+              {field => (
+                <field.Layout.Stack label="Grant staff permission (WIP, will be required for admin access in the future).">
+                  <field.Switch
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                  />
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
+            <Heading as="h4">Additional Permissions</Heading>
+            {available.map(perm => (
+              <form.AppField key={perm} name={perm}>
+                {field => (
+                  <field.Layout.Stack label={perm}>
+                    <field.Switch
+                      checked={field.state.value}
+                      onChange={field.handleChange}
+                    />
+                  </field.Layout.Stack>
+                )}
+              </form.AppField>
+            ))}
+            <Button type="submit" variant="primary">
+              Save Changes
+            </Button>
+          </Stack>
+        </form.AppForm>
       </Body>
     </Fragment>
   );
