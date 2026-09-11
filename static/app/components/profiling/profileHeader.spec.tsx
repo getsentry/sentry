@@ -195,6 +195,23 @@ describe('ProfileHeader', () => {
     }
   });
 
+  it('forwards an absolute date range, which is a real page filter here', () => {
+    renderHeader({
+      query: {
+        project: project.id,
+        start: '2024-03-01T12:00:00.000Z',
+        end: '2024-03-08T12:00:00.000Z',
+      },
+    });
+
+    // This route does not inject the profile's time window into start/end the
+    // way the continuous one does, so a range here belongs to the viewer.
+    const trail = within(screen.getByRole('banner')).getByRole('list');
+    const params = queryOf(within(trail).getByRole('link', {name: 'Profiles'}));
+    expect(params.get('start')).toBe('2024-03-01T12:00:00.000Z');
+    expect(params.get('end')).toBe('2024-03-08T12:00:00.000Z');
+  });
+
   it('drops the transaction crumb until the profile resolves', () => {
     renderHeader({profile: {type: 'loading'}});
 

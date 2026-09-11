@@ -179,6 +179,31 @@ describe('ContinuousProfileHeader', () => {
     }
   });
 
+  it('does not forward the profile time window to the crumbs', () => {
+    renderHeader({
+      query: {
+        project: project.id,
+        environment: 'prod',
+        // The chunk window the flamegraph route injects — page state, not a
+        // range the viewer chose.
+        start: '2024-03-01T12:00:00.000Z',
+        end: '2024-03-01T12:00:03.000Z',
+        utc: 'true',
+      },
+    });
+
+    const trail = within(screen.getByRole('banner')).getByRole('list');
+    for (const name of ['Profiles', TRANSACTION_NAME]) {
+      const params = queryOf(within(trail).getByRole('link', {name}));
+      expect(params.get('start')).toBeNull();
+      expect(params.get('end')).toBeNull();
+      expect(params.get('utc')).toBeNull();
+      // Project and environment are real page filters and still travel.
+      expect(params.get('project')).toBe(project.id);
+      expect(params.get('environment')).toBe('prod');
+    }
+  });
+
   it('drops the transaction crumb when the profile has no linked transaction', () => {
     renderHeader({span: undefined});
 

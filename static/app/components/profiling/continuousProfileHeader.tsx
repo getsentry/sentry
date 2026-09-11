@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import omit from 'lodash/omit';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 
@@ -57,7 +58,20 @@ export function ContinuousProfileHeader({
   // Replaces the legacy `preservePageFilters` flag that was on every crumb:
   // BreadcrumbList link items build their own query, so the page filter params
   // have to be forwarded explicitly or navigating clears the selection.
-  const selection = extractSelectionParameters(location.query);
+  //
+  // `start`/`end` are excluded because this page does not use them as a page
+  // filter: `generateContinuousProfileFlamechartRouteWithQuery` injects the
+  // chunk's own time window into them, which is a few seconds wide. Forwarding
+  // that would open both destinations on a window with nothing in it. Dropping
+  // them lets the destination fall back to the viewer's pinned range, or the
+  // default period. A `statsPeriod` carried in from an earlier page is inert
+  // here (an absolute range nulls the period) but still meaningful there, so it
+  // travels — clearing start/end is what keeps the two from competing.
+  const selection = omit(extractSelectionParameters(location.query), [
+    'start',
+    'end',
+    'utc',
+  ]);
 
   // `profilesRouteWithQuery` reads environment/statsPeriod/start/end/query off
   // the query it is given. Passing `selection` — which can only hold page filter
