@@ -6,14 +6,11 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry.ingestion_delay.query import (
     measure_delay_seconds,
 )
-from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import before_now
+from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
-class MeasureDelaySecondsTest(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.project
-
+class MeasureDelaySecondsTest(OrganizationEventsEndpointTestBase):
     def _measure_delay_seconds(self) -> float | None:
         return measure_delay_seconds(
             organization_id=self.organization.id,
@@ -28,14 +25,33 @@ class MeasureDelaySecondsTest(TestCase):
         response.column_values = [mock.MagicMock(results=[result])]
         return response
 
-    @mock.patch("sentry.ingestion_delay.query.snuba_rpc.table_rpc")
-    def test_returns_measured_value(self, mock_table_rpc: mock.MagicMock) -> None:
-        mock_table_rpc.return_value = [self._response(42.5)]
-        assert self._measure_delay_seconds() == 42.5
+    def _store_span_received_at(self, received_at: datetime) -> None:
+        span = self.create_span(
+            {
+                "description": "foo",
+                "data": {
+                    "sentry._internal.received_at": received_at.timestamp(),
+                },
+            },
+            start_ts=received_at,
+        )
+        self.store_spans([span])
 
-    @mock.patch("sentry.ingestion_delay.query.snuba_rpc.table_rpc")
-    def test_no_result_returns_none(self, mock_table_rpc: mock.MagicMock) -> None:
-        mock_table_rpc.return_value = [self._response(0.0)]  # no result comes back as 0.0
+    def test_returns_measured_value(self) -> None:
+        self._store_span_received_at(before_now(seconds=42.5))
+        delay = self._measure_delay_seconds()
+        # Upper bound is intentionally loose to reduce flakiness.
+        # ingested_at timestamp is inserted by snuba and we can't inject it in test.
+        assert 42.5 <= delay < 50
+
+    def test_returns_measured_value_multiple_spans(self) -> None:
+        for i in range(100):
+            self._store_span_received_at(before_now(seconds=i * 10))
+        delay = self._measure_delay_seconds()
+        assert delay is not None
+        assert 980 <= delay < 1000
+
+    def test_no_result_returns_none(self) -> None:
         assert self._measure_delay_seconds() is None
 
     @mock.patch("sentry.ingestion_delay.query.snuba_rpc.table_rpc")
@@ -45,11 +61,12 @@ class MeasureDelaySecondsTest(TestCase):
 
     @mock.patch("sentry.ingestion_delay.query.snuba_rpc.table_rpc")
     def test_measures_all_projects_in_organization(self, mock_table_rpc: mock.MagicMock) -> None:
+        project = self.project
         other = self.create_project(organization=self.organization)
         mock_table_rpc.return_value = [self._response(1.0)]
         self._measure_delay_seconds()
         request = mock_table_rpc.call_args[0][0][0]
-        assert set(request.meta.project_ids) == {self.project.id, other.id}
+        assert set(request.meta.project_ids) == {project.id, other.id}
 
     @mock.patch("sentry.ingestion_delay.query.snuba_rpc.table_rpc")
     def test_query_failure_does_not_propagate(self, mock_table_rpc: mock.MagicMock) -> None:

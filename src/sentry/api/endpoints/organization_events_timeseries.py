@@ -229,7 +229,9 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 organization,
                 actor=request.user,
             )
-            include_measured_ingestion_delay_metadata = features.has(
+            include_measured_ingestion_delay_metadata = request.GET.get(
+                "includeMeasuredIngestionDelayMetadata"
+            ) is not None and features.has(
                 "organizations:measured-ingestion-delay-metadata",
                 organization,
                 actor=request.user,

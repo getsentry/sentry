@@ -128,15 +128,27 @@ def measure_delay_seconds(
         return None
 
     if not responses or not responses[0].column_values:
+        logger.warning(
+            "ingestion_delay.no_responses",
+            extra={"organization_id": organization_id, "item_type": item_type},
+        )
         return None
 
     results = responses[0].column_values[0].results
     if not results:
+        logger.warning(
+            "ingestion_delay.no_results",
+            extra={"organization_id": organization_id, "item_type": item_type},
+        )
         return None
 
     value = results[0].val_double
 
     # no rows returns 0, and 0 delay is impossible
     if value <= 0:
+        logger.warning(
+            "ingestion_delay.no_value",
+            extra={"organization_id": organization_id, "item_type": item_type},
+        )
         return None
     return value
