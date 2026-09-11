@@ -32,6 +32,7 @@ from sentry.seer.autofix.pr_iteration.constants import (
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     ConsumeTask,
+    ConsumeTriggerSource,
     Decision,
     TriggerDecision,
 )
@@ -715,7 +716,6 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
             feedback=parked.feedback,
             run_state=resolved.autofix_run.run_state,
             bypass=True,
-            triggered_by="green_check_suite",
         )
         mock_defer.assert_called_once_with(resolved)
         mock_confirm.assert_not_called()
@@ -745,7 +745,7 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
                 "sentry_organization_id": self.organization.id,
                 "sentry_group_id": self.group.id,
                 "scm_infos": [{"scm_repo_full_name": "owner/repo"}],
-                "triggered_by": "green_check_suite",
+                "trigger_source": ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER,
                 "outcome": "not_triggered",
                 "reason": "no_parked_feedback",
                 "countdown": None,

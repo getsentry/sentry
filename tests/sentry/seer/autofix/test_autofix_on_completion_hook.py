@@ -861,7 +861,7 @@ class TestPrIterationCompletionHook(TestCase):
         assert task_kwargs["run_id"] == 123
         assert task_kwargs["organization_id"] == self.organization.id
         assert task_kwargs["trigger_id"]
-        assert task_kwargs["trigger_source"] == ConsumeTriggerSource.FEEDBACK
+        assert task_kwargs["trigger_source"] == ConsumeTriggerSource.COMPLETION
 
     @patch(f"{HOOK_PATH}.complete_pr_iteration_details")
     def test_no_pull_request_reaches_completion_details_as_that_outcome(self, mock_complete):

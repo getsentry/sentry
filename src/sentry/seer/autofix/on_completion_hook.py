@@ -992,18 +992,16 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 "run_id": run_id,
                 "organization_id": organization.id,
                 "trigger_id": trigger_id,
-                "trigger_source": ConsumeTriggerSource.FEEDBACK,
+                "trigger_source": ConsumeTriggerSource.COMPLETION,
             }
         )
         log_ctx.info(
             "autofix.pr_iteration.feedback.trigger",
-            # `triggered_by` counts the two producers apart: arrival vs iteration-end.
-            triggered_by="completion_hook",
             outcome="triggered",
             reason="iteration_finished",
             countdown=None,
             trigger_id=trigger_id,
-            trigger_source=ConsumeTriggerSource.FEEDBACK,
+            trigger_source=ConsumeTriggerSource.COMPLETION,
         )
 
     @classmethod

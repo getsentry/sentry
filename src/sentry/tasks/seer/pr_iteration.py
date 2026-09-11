@@ -179,13 +179,19 @@ def trigger_consume_pr_iteration_feedback(
     run_state: SeerRunState,
     bypass: bool = False,
     delay: int | None = None,
-    triggered_by: str = "feedback",
 ) -> None:
+    # Determined up front so every ``feedback.trigger`` line carries it, the
+    # gates below included: it is the only field naming who asked for this
+    # consume. ``should_trigger`` can still upgrade it to a time-limit defer.
+    trigger_source = (
+        ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER if bypass else ConsumeTriggerSource.FEEDBACK
+    )
+
     if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
         record_pause_blocked("trigger_consume")
         log_ctx.info(
             "autofix.pr_iteration.feedback.trigger",
-            triggered_by=triggered_by,
+            trigger_source=trigger_source,
             outcome="not_triggered",
             reason="paused",
             countdown=None,
@@ -209,7 +215,7 @@ def trigger_consume_pr_iteration_feedback(
     ):
         log_ctx.info(
             "autofix.pr_iteration.feedback.trigger",
-            triggered_by=triggered_by,
+            trigger_source=trigger_source,
             outcome="not_triggered",
             reason="missing_github_permissions",
             countdown=None,
@@ -224,14 +230,10 @@ def trigger_consume_pr_iteration_feedback(
 
     if bypass:
         decision = TriggerDecision(task=ConsumeTask.Now, reason="bypass")
-        trigger_source = ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER
     else:
         decision = feedback.source.should_trigger(run_state)
-        trigger_source = (
-            ConsumeTriggerSource.TIME_LIMIT_DEFER
-            if isinstance(decision.task, ConsumeTask.Later)
-            else ConsumeTriggerSource.FEEDBACK
-        )
+        if isinstance(decision.task, ConsumeTask.Later):
+            trigger_source = ConsumeTriggerSource.TIME_LIMIT_DEFER
 
     countdown = None
     trigger_id = None
@@ -258,7 +260,6 @@ def trigger_consume_pr_iteration_feedback(
 
     log_ctx.info(
         "autofix.pr_iteration.feedback.trigger",
-        triggered_by=triggered_by,
         outcome=outcome,
         reason=decision.reason,
         countdown=countdown,
