@@ -206,7 +206,7 @@ def _build_conversation_response(
 @cell_silo_endpoint
 class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
@@ -241,8 +241,6 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         Response[list[AIConversationResponse]] | Response[ValidationErrorResponse] | Response[None]
     ):
         """Return AI conversations ordered by latest span time.
-
-        **Experimental:** This API is under active development and may change.
 
         `query` uses Sentry search syntax against spans. A conversation matches when
         any span matches. Summary values then include all conversation spans inside

@@ -201,7 +201,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
 class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin, GroupAiEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
-        "GET": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     formatter_adapter = staticmethod(format_autofix)
     owner = ApiOwner.ML_AI
@@ -552,8 +552,6 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         - Root Cause Analysis
         - Proposed Solution
         - Generated code changes
-
-        This endpoint although documented is still experimental and the payload may change in the future.
         """
         try:
             state = get_autofix_agent_state(group.organization, group.id)
