@@ -188,7 +188,7 @@ describe('Seer log embed', () => {
 
   it('measures the breakdown against every value, not just the drawn ones', async () => {
     mockLogDetails();
-    // Six values for five slots: the sixth is what the drawn shares are missing.
+    // Four values for three slots: the fourth is what the drawn shares are missing.
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
@@ -196,9 +196,7 @@ describe('Seer log embed', () => {
           {region: 'a', 'count()': 10},
           {region: 'b', 'count()': 10},
           {region: 'c', 'count()': 10},
-          {region: 'd', 'count()': 10},
-          {region: 'e', 'count()': 10},
-          {region: 'f', 'count()': 50},
+          {region: 'd', 'count()': 70},
         ],
       },
     });
@@ -206,11 +204,11 @@ describe('Seer log embed', () => {
     renderLog({view: 'attribute', attribute: 'region'});
 
     expect(await screen.findByTestId('seer-log-attribute-breakdown')).toBeInTheDocument();
-    // 10 of 100, not 10 of the 50 that fit.
-    expect(await screen.findAllByText('10%')).toHaveLength(5);
-    expect(screen.queryByText('f')).not.toBeInTheDocument();
+    // 10 of 100, not 10 of the 30 that fit.
+    expect(await screen.findAllByText('10%')).toHaveLength(3);
+    expect(screen.queryByText('d')).not.toBeInTheDocument();
     expect(screen.getByText('Other')).toBeInTheDocument();
-    expect(screen.getByText('50%')).toBeInTheDocument();
+    expect(screen.getByText('70%')).toBeInTheDocument();
   });
 
   it('falls back to the summary when view "attribute" has no key', async () => {
