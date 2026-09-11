@@ -11,8 +11,8 @@ from sentry.analytics.events.pr_iteration_events import (
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
 from sentry.seer.autofix.github_perms import MissingGithubPermissions
-from sentry.seer.autofix.pr_iteration.emit import open_pr_iteration_details
-from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.emit import bootstrap_iteration
+from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.missing_permissions import (
     MISSING_PERMISSIONS_EXTRA,
     _scopes_tag,
@@ -30,6 +30,7 @@ MODULE = "sentry.seer.autofix.pr_iteration.missing_permissions"
 REPO_NAME = "getsentry/sentry"
 OTHER_REPO_NAME = "getsentry/seer"
 RUN_ID = 1
+GROUP_ID = 7
 INTEGRATION_ID = 42
 
 
@@ -67,7 +68,11 @@ def _patch_scm(case: TestCase) -> tuple[MagicMock, MagicMock]:
 
 def _log_ctx(state: SeerRunState) -> PrIterationLogContext:
     return PrIterationLogContext.for_run(
-        logging.getLogger(MODULE), state, organization_id=1, group_id=None
+        logging.getLogger(MODULE),
+        state,
+        organization_id=1,
+        group_id=GROUP_ID,
+        iteration=LogCtxIteration.TRIGGERED,
     )
 
 
@@ -167,8 +172,8 @@ class BlockIterationForMissingPermissionsTest(TestCase):
         mock_delay.assert_not_called()
 
     def _open_row(self) -> None:
-        open_pr_iteration_details(
-            log_ctx=_log_ctx(_state(getsentry__sentry=7)),
+        bootstrap_iteration(
+            logger=logging.getLogger(MODULE),
             run_state=_state(getsentry__sentry=7),
             organization_id=self.organization.id,
             group_id=self.group.id,

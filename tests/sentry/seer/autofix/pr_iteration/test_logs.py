@@ -1,7 +1,10 @@
 from unittest.mock import Mock
 
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
-from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.logs import (
+    LogCtxIteration,
+    PrIterationLogContext,
+)
 from sentry.testutils.cases import TestCase
 
 REPO_NAME = "owner/repo"
@@ -29,6 +32,7 @@ class PrIterationIdentityDerivationTest(TestCase):
         with self.assertNumQueries(0):
             PrIterationLogContext(
                 Mock(),
+                iteration=LogCtxIteration.TRIGGERED,
                 run_state=state,
                 organization_id=ORGANIZATION_ID,
                 group_id=GROUP_ID,

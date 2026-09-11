@@ -26,7 +26,7 @@ from sentry.seer.autofix.pr_iteration.details_store import open_iterations
 from sentry.seer.autofix.pr_iteration.emit import (
     BLOCKED_OUTCOMES_DATA_KEY,
     PrIterationOutcome,
-    open_pr_iteration_details,
+    bootstrap_iteration,
 )
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
@@ -43,7 +43,10 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
-from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.logs import (
+    LogCtxIteration,
+    PrIterationLogContext,
+)
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
@@ -100,6 +103,9 @@ class TriggerPrIterationFromCommentTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
         self.repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
@@ -470,9 +476,6 @@ class TriggerPrIterationFromCommentTest(TestCase):
         # `@sentry stop iterating` already stopped this run, so consume would
         # drop anything queued here. Nothing is queued and nothing is written to
         # the PR: an :eyes: would promise an iteration that never comes.
-        self.create_seer_run(
-            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
-        )
         pause_pr_iteration(
             run_id=67890,
             organization_id=self.organization.id,
@@ -1070,9 +1073,20 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         seer_run = self.create_seer_run(
             organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
         )
+        # The row the batch is recorded against: callers open it before queuing.
+        bootstrap_iteration(
+            logger=MagicMock(),
+            run_state=self._state(),
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
         try_enqueue_autofix_feedback(
             log_ctx=PrIterationLogContext(
-                MagicMock(), run_state=self._state(), organization_id=self.organization.id
+                MagicMock(),
+                iteration=LogCtxIteration.TRIGGERED,
+                run_state=self._state(),
+                organization_id=self.organization.id,
+                group_id=None,
             ),
             run_id=67890,
             organization_id=self.organization.id,
@@ -1674,13 +1688,8 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         assert mock_trigger.call_args.kwargs["commit_author"] is None
 
     def _open_iteration_row(self) -> None:
-        open_pr_iteration_details(
-            log_ctx=PrIterationLogContext(
-                MagicMock(),
-                run_state=self._state(),
-                organization_id=self.organization.id,
-                group_id=self.group.id,
-            ),
+        bootstrap_iteration(
+            logger=MagicMock(),
             run_state=self._state(),
             organization_id=self.organization.id,
             group_id=self.group.id,
@@ -1793,7 +1802,11 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
 
     def _log_ctx(self) -> PrIterationLogContext:
         return PrIterationLogContext(
-            self.log, run_state=self._state(), organization_id=self.organization.id
+            self.log,
+            iteration=LogCtxIteration.TRIGGERED,
+            run_state=self._state(),
+            organization_id=self.organization.id,
+            group_id=None,
         )
 
     def _feedback(self) -> Feedback:
@@ -1855,8 +1868,8 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
             organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
         )
         pause_pr_iteration(run_id=67890, organization_id=self.organization.id, reason=reason)
-        open_pr_iteration_details(
-            log_ctx=self._log_ctx(),
+        bootstrap_iteration(
+            logger=MagicMock(),
             run_state=self._state(),
             organization_id=self.organization.id,
             group_id=self.group.id,

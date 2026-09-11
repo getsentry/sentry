@@ -15,16 +15,16 @@ from sentry.seer.autofix.pr_iteration.details_store import (
 )
 from sentry.seer.autofix.pr_iteration.emit import (
     PrIterationOutcome,
+    bootstrap_iteration,
     complete_pr_iteration_details,
     discard_pr_iteration_details,
-    open_pr_iteration_details,
     outcome_for_failed_run,
     outcome_for_pause,
     record_pr_iteration_blocked,
     record_pr_iteration_counts,
     trigger_pr_iteration_details,
 )
-from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.pause import PauseReason
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.testutils.cases import TestCase
@@ -67,14 +67,15 @@ class PrIterationDetailsTest(TestCase):
         )
         self.log_ctx = PrIterationLogContext(
             MagicMock(),
+            iteration=LogCtxIteration.TRIGGERED,
             run_state=_run_state(),
             organization_id=self.organization.id,
             group_id=self.group.id,
         )
 
     def _open(self) -> None:
-        open_pr_iteration_details(
-            log_ctx=self.log_ctx,
+        bootstrap_iteration(
+            logger=MagicMock(),
             run_state=_run_state(),
             organization_id=self.organization.id,
             group_id=self.group.id,
@@ -161,25 +162,21 @@ class PrIterationDetailsTest(TestCase):
                 queued_count=3,
                 dropped_count=1,
                 automated_feedback_count=1,
-                duration_ms=0,
                 outcome="already_pushed",
             ),
         )
         # A surviving row is an iteration still owing an event.
         assert self._open_rows() == []
 
-    def test_the_completion_measures_how_long_the_iteration_took(self) -> None:
+    def test_the_completion_records_the_outcome_it_ended_with(self) -> None:
         self._open()
         iteration_id = self._trigger()
         assert iteration_id is not None
-        (row,) = self._open_rows()
-        row.update(date_added=timezone.now() - timedelta(seconds=30))
 
         with patch("sentry.analytics.record") as mock_record:
             self._complete(iteration_id, outcome=PrIterationOutcome.PUSH_FAILED.value)
 
         event = mock_record.call_args.args[0]
-        assert 30_000 <= event.duration_ms < 60_000
         assert event.outcome == "push_failed"
 
     def test_an_incomplete_row_keeps_its_row_and_emits_nothing(self) -> None:
@@ -215,8 +212,9 @@ class PrIterationDetailsTest(TestCase):
         assert self._trigger() is None
         assert first is not None
 
-    def test_a_second_open_resets_the_row_left_by_an_abandoned_iteration(self) -> None:
-        # A pause clears the queue, so the row it opened waits for feedback that never runs.
+    def test_a_second_open_reuses_the_row_left_by_an_abandoned_iteration(self) -> None:
+        # A pause clears the queue, so the row it opened waits for feedback that never
+        # runs. The next feedback joins that row rather than opening a second one.
         self._open()
         (stale,) = self._open_rows()
         stale.update(date_added=timezone.now() - timedelta(hours=2))
@@ -225,21 +223,6 @@ class PrIterationDetailsTest(TestCase):
 
         (row,) = self._open_rows()
         assert row.id == stale.id
-        assert row.date_added > stale.date_added
-
-    def test_the_reset_row_measures_only_the_iteration_that_claimed_it(self) -> None:
-        self._open()
-        (stale,) = self._open_rows()
-        stale.update(date_added=timezone.now() - timedelta(hours=2))
-        self._open()
-        iteration_id = self._trigger()
-        assert iteration_id is not None
-
-        with patch("sentry.analytics.record") as mock_record:
-            self._complete(iteration_id)
-
-        event = mock_record.call_args.args[0]
-        assert event.duration_ms < 60_000
 
     def test_a_waiting_row_never_doubles_up(self) -> None:
         self._open()
@@ -321,7 +304,6 @@ class PrIterationDetailsTest(TestCase):
                 queued_count=3,
                 dropped_count=1,
                 automated_feedback_count=1,
-                duration_ms=0,
                 outcome="no_code_changes",
             ),
         )
@@ -373,7 +355,13 @@ class PrIterationDetailsTest(TestCase):
     def test_every_pause_reason_has_an_outcome(self) -> None:
         """The two lists drift apart in ``pause``; this is what notices."""
         logger = MagicMock()
-        log_ctx = PrIterationLogContext(logger, run_state=_run_state())
+        log_ctx = PrIterationLogContext(
+            logger,
+            run_state=_run_state(),
+            iteration=LogCtxIteration.UNTRIGGERED,
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
 
         for reason in PauseReason:
             assert outcome_for_pause(log_ctx, reason) != PrIterationOutcome.PAUSED.value
@@ -383,7 +371,13 @@ class PrIterationDetailsTest(TestCase):
     def test_a_pause_reason_added_since_is_recorded_as_a_plain_pause(self) -> None:
         """A batch dropped for a reason with no outcome here is still a batch dropped."""
         logger = MagicMock()
-        log_ctx = PrIterationLogContext(logger, run_state=_run_state())
+        log_ctx = PrIterationLogContext(
+            logger,
+            run_state=_run_state(),
+            iteration=LogCtxIteration.UNTRIGGERED,
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
 
         assert outcome_for_pause(log_ctx, "out_of_credits") == PrIterationOutcome.PAUSED.value
         assert logger.error.call_args.args[0] == "autofix.pr_iteration.details.unknown_pause_reason"
@@ -402,14 +396,15 @@ class RecordPrIterationBlockedTest(TestCase):
         )
         self.log_ctx = PrIterationLogContext(
             MagicMock(),
+            iteration=LogCtxIteration.UNTRIGGERED,
             run_state=_run_state(),
             organization_id=self.organization.id,
             group_id=self.group.id,
         )
 
     def _open(self) -> None:
-        open_pr_iteration_details(
-            log_ctx=self.log_ctx,
+        bootstrap_iteration(
+            logger=self.log_ctx.logger,
             run_state=_run_state(),
             organization_id=self.organization.id,
             group_id=self.group.id,
