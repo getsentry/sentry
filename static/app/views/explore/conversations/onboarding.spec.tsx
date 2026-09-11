@@ -118,39 +118,50 @@ describe('ConversationOnboarding', () => {
     );
   });
 
-  it('offers an agent prompt even when auto instrumentation is unavailable', async () => {
-    const {organization} = setupProject('ruby');
-
-    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
-
-    await userEvent.click(await screen.findByRole('button', {name: 'Copy prompt'}));
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      expect.stringContaining('Platform hint: ruby')
-    );
-
-    await userEvent.click(screen.getByRole('tab', {name: 'For you'}));
-    expect(screen.getByRole('link', {name: 'Manually instrument'})).toBeInTheDocument();
-  });
-
-  it('keeps human instructions available when a project has no DSN', async () => {
-    const {organization, project} = setupProject('node');
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/keys/`,
-      body: [],
+  it('uses the same agent setup for unsupported platforms', async () => {
+    const {organization, project} = setupProject('other');
+    const prompt = getAgentSetupPrompt({
+      organizationSlug: organization.slug,
+      project,
+      dsn: ProjectKeysFixture()[0].dsn.public,
     });
 
     render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
 
-    expect(
-      await screen.findByRole('tab', {name: 'For you', selected: true})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('tab', {name: 'For your agent'})).toHaveAttribute(
+    await userEvent.click(await screen.findByRole('button', {name: 'Copy prompt'}));
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(prompt);
+    expect(screen.getByText(prompt, {collapseWhitespace: false})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'For you'})).toHaveAttribute(
       'aria-disabled',
       'true'
     );
-    expect(screen.getByRole('link', {name: 'documentation'})).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Copy prompt'})).not.toBeInTheDocument();
   });
+
+  it.each([
+    {platform: 'node', linkName: 'documentation'},
+    {platform: 'other', linkName: 'Manually instrument'},
+  ] as const)(
+    'keeps documentation available without a DSN for $platform',
+    async ({platform, linkName}) => {
+      const {organization, project} = setupProject(platform);
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/keys/`,
+        body: [],
+      });
+
+      render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+
+      expect(
+        await screen.findByRole('tab', {name: 'For you', selected: true})
+      ).not.toHaveAttribute('aria-disabled', 'true');
+      expect(screen.getByRole('tab', {name: 'For your agent'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(screen.getByRole('link', {name: linkName})).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Copy prompt'})).not.toBeInTheDocument();
+    }
+  );
 
   it('defaults a Node project to the Node target and installs @sentry/node', async () => {
     const {organization} = setupProject('node');

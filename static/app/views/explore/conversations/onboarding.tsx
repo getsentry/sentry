@@ -246,16 +246,20 @@ function ConversationOnboardingPanel({
   children,
   dsn,
   onDismiss,
+  hasPlatformInstructions = true,
 }: {
   children: React.ReactNode;
   onDismiss: () => void;
   project: Project;
   dsn?: string;
+  hasPlatformInstructions?: boolean;
 }) {
   const organization = useOrganization();
   const prompt = dsn
     ? getAgentSetupPrompt({organizationSlug: organization.slug, project, dsn})
     : undefined;
+  const defaultTab = prompt ? 'agent' : 'human';
+  const isHumanTabDisabled = Boolean(prompt) && !hasPlatformInstructions;
 
   return (
     <Panel>
@@ -294,7 +298,8 @@ function ConversationOnboardingPanel({
                 <Setup>
                   <SetupTitle project={project} />
                   <Tabs
-                    defaultValue={prompt ? 'agent' : 'human'}
+                    key={defaultTab}
+                    defaultValue={defaultTab}
                     aria-label={t('Setup instructions')}
                   >
                     <TabList variant="floating">
@@ -315,7 +320,20 @@ function ConversationOnboardingPanel({
                         <IconBot />
                         {t('For your agent')}
                       </TabList.Item>
-                      <TabList.Item key="human" textValue={t('For you')}>
+                      <TabList.Item
+                        key="human"
+                        textValue={t('For you')}
+                        disabled={isHumanTabDisabled}
+                        tooltip={
+                          isHumanTabDisabled
+                            ? {
+                                title: t(
+                                  "Step-by-step instructions aren't available for this platform."
+                                ),
+                              }
+                            : undefined
+                        }
+                      >
                         <IconUser />
                         {t('For you')}
                       </TabList.Item>
@@ -758,7 +776,12 @@ function UnsupportedPlatformOnboarding({
   dsn?: string;
 }) {
   return (
-    <ConversationOnboardingPanel project={project} dsn={dsn} onDismiss={onDismiss}>
+    <ConversationOnboardingPanel
+      project={project}
+      dsn={dsn}
+      onDismiss={onDismiss}
+      hasPlatformInstructions={false}
+    >
       <Prose>
         <Text as="p">
           {tct(
@@ -795,7 +818,12 @@ function NoDocsOnboarding({
   dsn?: string;
 }) {
   return (
-    <ConversationOnboardingPanel project={project} dsn={dsn} onDismiss={onDismiss}>
+    <ConversationOnboardingPanel
+      project={project}
+      dsn={dsn}
+      onDismiss={onDismiss}
+      hasPlatformInstructions={false}
+    >
       <Prose>
         <Text as="p">
           {tct(
