@@ -19,7 +19,7 @@ export function GroupingComponentFrames({
   const isCollapsible = items.length > 2;
 
   useEffect(() => {
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect
     setCollapsed(initialCollapsed);
   }, [initialCollapsed]);
 

@@ -882,9 +882,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.dynamic_sampling.per_org.feature_cache",
     "sentry.dynamic_sampling.per_org.scheduler",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
-    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
-    "sentry.dynamic_sampling.tasks.recalibrate_orgs",
-    "sentry.dynamic_sampling.tasks.sliding_window_org",
     "sentry.feedback.tasks.update_user_reports",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
@@ -1143,22 +1140,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "transaction-name-clusterer": {
         "task": "performance:sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
         "schedule": crontab("17", "*", "*", "*", "*"),
-    },
-    "dynamic-sampling-boost-low-volume-projects": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_projects",
-        "schedule": crontab("*/10", "*", "*", "*", "*"),
-    },
-    "dynamic-sampling-boost-low-volume-transactions": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
-        "schedule": crontab("*/10", "*", "*", "*", "*"),
-    },
-    "dynamic-sampling-recalibrate-orgs": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.recalibrate_orgs",
-        "schedule": crontab("*/10", "*", "*", "*", "*"),
-    },
-    "dynamic-sampling-sliding-window-org": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.sliding_window_org",
-        "schedule": crontab("*/10", "*", "*", "*", "*"),
     },
     "dynamic-sampling-schedule-per-org-calculations": {
         "task": "telemetry-experience:sentry.dynamic_sampling.per_org.schedule_per_org_calculations",
@@ -2926,7 +2907,7 @@ SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
 # Implemented in getsentry to run additional devserver workers.
 SENTRY_EXTRA_WORKERS: MutableSequence[str] = []
 
-SAMPLED_DEFAULT_RATE = 1.0
+SAMPLED_DEFAULT_RATE = 0.07
 
 # A set of extra URLs to sample
 ADDITIONAL_SAMPLED_URLS: dict[str, float] = {}

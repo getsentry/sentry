@@ -124,6 +124,11 @@ function getInstallErrorMessage(
 
 export interface ScmMessagingProviderRowProps {
   activeRow: ScmMessagingActiveRow;
+  /**
+   * True while continue is waiting on revalidation or project create.
+   * Required alongside `onContinue` so the picker cannot stay idle.
+   */
+  isContinuing: boolean;
   messagingSetup: ScmMessagingSetup;
   onActiveRowChange: (row: ScmMessagingActiveRow) => void;
   onContinue: () => void;
@@ -162,6 +167,7 @@ export function ScmMessagingProviderRow({
   onActiveRowChange,
   renderChannelPicker,
   isRefetchingIntegrations = false,
+  isContinuing,
   onContinue,
 }: ScmMessagingProviderRowProps) {
   const organization = useOrganization();
@@ -233,10 +239,9 @@ export function ScmMessagingProviderRow({
   const handleConfigured = useCallback(
     (setup: ScmMessagingSetup & {mode: 'selected'}) => {
       onMessagingSetupChange(setup);
-      onActiveRowChange(null);
       onContinue();
     },
-    [onMessagingSetupChange, onActiveRowChange, onContinue]
+    [onMessagingSetupChange, onContinue]
   );
 
   const errorMessage = getInstallErrorMessage(installState);
@@ -283,11 +288,14 @@ export function ScmMessagingProviderRow({
                       </Tooltip>
                     )}
                   {resolvedProvider.status === 'connected' &&
-                    visualState !== 'removing' && (
+                    visualState !== 'removing' &&
+                    (isConfigured ? (
                       <Tag variant="success" icon={<IconCheckmark />}>
-                        {isConfigured ? t('Destination added') : t('Connected')}
+                        {t('Connected')}
                       </Tag>
-                    )}
+                    ) : (
+                      <Tag variant="info">{t('Authorized')}</Tag>
+                    ))}
                 </Flex>
                 <RowSubtitle
                   visualState={visualState}
@@ -314,7 +322,7 @@ export function ScmMessagingProviderRow({
 
         {visualState === 'configuring' &&
           resolvedProvider.eligibleIntegrations.length > 0 && (
-            <Container borderTop="primary" padding="lg">
+            <Container borderTop="primary">
               {renderChannelPicker ? (
                 renderChannelPicker({
                   integrations: resolvedProvider.eligibleIntegrations,
@@ -328,6 +336,7 @@ export function ScmMessagingProviderRow({
                   onCancel={handleCancelConfiguring}
                   onConfigured={handleConfigured}
                   existingSetup={isConfigured ? messagingSetup : undefined}
+                  isContinuing={isContinuing}
                 />
               )}
             </Container>

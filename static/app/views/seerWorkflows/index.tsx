@@ -233,6 +233,7 @@ function SeerWorkflows() {
     const latest = candidates.reduce((acc, row) =>
       Date.parse(row.dateAdded) > Date.parse(acc.dateAdded) ? row : acc
     );
+    // oxlint-disable-next-line react/set-state-in-effect
     setExpanded(prev => {
       const next = new Set(prev);
       next.add(latest.id);

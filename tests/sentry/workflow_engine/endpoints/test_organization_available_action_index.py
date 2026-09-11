@@ -292,6 +292,49 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             },
         ]
 
+    def test_filter_by_type(self) -> None:
+        self.setup_integrations()
+        self.setup_email()
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"type": Action.Type.SLACK},
+            status_code=200,
+        )
+        assert response.data == [
+            {
+                "type": Action.Type.SLACK,
+                "handlerGroup": ActionHandler.Group.NOTIFICATION.value,
+                "configSchema": {},
+                "dataSchema": {},
+                "integrations": [
+                    {"id": str(self.slack_integration.id), "name": self.slack_integration.name}
+                ],
+            }
+        ]
+
+    def test_filter_by_multiple_types(self) -> None:
+        self.setup_integrations()
+        self.setup_email()
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"type": [Action.Type.EMAIL, Action.Type.GITHUB]},
+            status_code=200,
+        )
+        assert [action["type"] for action in response.data] == [
+            Action.Type.EMAIL,
+            Action.Type.GITHUB,
+        ]
+
+    def test_invalid_type_filter(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"type": "carrier_pigeon"},
+            status_code=400,
+        )
+        assert response.data == {"type": ["Invalid action type: carrier_pigeon"]}
+
     @with_feature({"organizations:integrations-ticket-rules": False})
     def test_does_not_return_ticket_actions_without_feature(self) -> None:
         self.setup_integrations()

@@ -192,6 +192,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
         return;
       }
       if (isSidebarMode) {
+        // oxlint-disable-next-line react/set-state-in-effect
         openSidebar();
       } else {
         openSeerExplorerDrawer();
@@ -304,6 +305,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const isPolling = pollingState === 'polling' || pollingState === 'polling-with-backoff';
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setLastViewedAt(Date.now());
   }, [runId]);
 
@@ -344,6 +346,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const [hasEverOpened, setHasEverOpened] = useState(false);
   useEffect(() => {
     if (isOpen || isPoppedOut) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setHasEverOpened(true);
     }
   }, [isOpen, isPoppedOut]);
@@ -372,6 +375,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
 
   useEffect(() => {
     if (isOpen || isPoppedOut || runId === null) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsDoneThinking(false);
     }
   }, [isOpen, isPoppedOut, runId]);

@@ -114,6 +114,9 @@ export function CommandPalette({
 
   const getDocEl = useCallback(
     () => state.input.current?.closest('[role="document"]') as HTMLElement | null,
+    // The dependency is the ref object while React Compiler infers the `.current`
+    // read inside the callback. Refs are stable, so the memoization already holds.
+    // oxlint-disable-next-line react/preserve-manual-memoization
     [state.input]
   );
 

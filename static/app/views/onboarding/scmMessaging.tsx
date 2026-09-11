@@ -125,6 +125,9 @@ export function ScmMessaging({
   );
 
   const isSubmitting = isCreating || submissionMode !== undefined;
+  // The picker stays open through revalidation and create, so it must spin
+  // from the click — not only after submissionMode is set.
+  const isContinuing = continueRequested || submissionMode === 'continue';
 
   // Continue creates the project and alert rules, so it must wait for a
   // conclusively revalidated destination — not merely the absence of a
@@ -215,6 +218,7 @@ export function ScmMessaging({
       return;
     }
     if (messagingSetup.mode !== 'selected') {
+      // oxlint-disable-next-line react/set-state-in-effect
       setContinueRequested(false);
       return;
     }
@@ -347,6 +351,7 @@ export function ScmMessaging({
                     activeRow={validatedActiveRow}
                     onActiveRowChange={setActiveRow}
                     isRefetchingIntegrations={isRefetchingIntegrations}
+                    isContinuing={isContinuing}
                     onContinue={requestContinue}
                   />
                 ))}

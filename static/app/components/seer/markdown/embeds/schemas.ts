@@ -543,13 +543,40 @@ export const SEER_EMBED_SCHEMAS = {
   },
   trace: {
     description:
-      'The ONLY way to reference a Sentry trace (the trace waterfall view). ' +
+      'The ONLY way to reference a Sentry trace. Renders a compact link. ' +
+      'Use the 32-character trace ID. Provide `timestamp` when known so the ' +
+      'link opens on the right time range, and `spanId` to focus a span. ' +
+      'This never renders the waterfall itself — when the user wants to see the ' +
+      'trace, emit the separate `traceWaterfall` embed. ' +
+      'Never use a markdown link for trace references.',
+    level: ['inline'],
+    schema: z.object({
+      traceId: z.string().min(1),
+      timestamp: isoTimestampSchema.optional(),
+      spanId: z.string().min(1).optional(),
+    }),
+    examples: [
+      {
+        label: 'Trace',
+        data: {
+          traceId: 'a1b2c3d4e5f678901234567890abcdef',
+          timestamp: '2026-08-25T16:37:12Z',
+        },
+      },
+    ],
+  },
+  traceWaterfall: {
+    description:
+      'Render the live, interactive trace waterfall for one trace. ' +
+      'This is a large, data-heavy widget that loads the whole span tree, so only ' +
+      'emit it when the user actually wants to look at the trace — they asked to ' +
+      'see it, or the answer is about the shape or timing of the spans. Merely ' +
+      'citing a trace is the `trace` embed, which does NOT expand into a waterfall. ' +
       'Use the 32-character trace ID. Provide `timestamp` when known so the ' +
       'waterfall opens on the right time range, and `spanId` to focus a span. ' +
-      'Inline: renders a compact link. Block: renders the live trace waterfall. ' +
       'Do not duplicate the waterfall spans or duration details as text. ' +
-      'Never use a markdown link for trace references.',
-    level: ['inline', 'block'],
+      'Emit at most one per response.',
+    level: ['block'],
     schema: z.object({
       traceId: z.string().min(1),
       timestamp: isoTimestampSchema.optional(),
@@ -558,7 +585,6 @@ export const SEER_EMBED_SCHEMAS = {
     examples: [
       {
         label: 'Trace waterfall',
-        level: 'block',
         data: {
           traceId: 'a1b2c3d4e5f678901234567890abcdef',
           timestamp: '2026-08-25T16:37:12Z',

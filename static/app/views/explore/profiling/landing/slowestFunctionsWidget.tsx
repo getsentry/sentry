@@ -100,6 +100,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
   const [expandedIndex, setExpandedIndex] = useState(0);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setSortFunction(DEFAULT_SORTING_OPTION);
     setExpandedIndex(0);
   }, [

@@ -43,6 +43,7 @@ export function WebAuthn2FAMethod({
       return;
     }
 
+    // oxlint-disable-next-line react/set-state-in-effect
     setHasActivated(true);
     activate('u2f');
   }, [activate, hasActivated, isActive]);
@@ -63,6 +64,7 @@ export function WebAuthn2FAMethod({
       return;
     }
 
+    // oxlint-disable-next-line react/set-state-in-effect
     setError(null);
 
     if (!window.PublicKeyCredential) {

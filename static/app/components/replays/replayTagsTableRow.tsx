@@ -8,9 +8,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {ReleaseDropdownFilter} from 'sentry/components/replays/releaseDropdownFilter';
 import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
+import {KeyValueTableRow} from 'sentry/components/tables/keyValueTable';
 import {Version} from 'sentry/components/version';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
