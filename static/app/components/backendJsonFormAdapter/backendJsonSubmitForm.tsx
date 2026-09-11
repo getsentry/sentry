@@ -581,10 +581,12 @@ export function BackendJsonSubmitForm({
                             onChange={handleChange}
                             placeholder={field.placeholder}
                             disabled={disabledProp}
+                            maxLength={field.maxLength}
                             type={
-                              field.type === 'string' || field.type === 'text'
+                              field.inputType ??
+                              (field.type === 'string' || field.type === 'text'
                                 ? 'text'
-                                : field.type
+                                : field.type)
                             }
                           />
                         </fieldApi.Layout.Stack>

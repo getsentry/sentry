@@ -36,6 +36,8 @@ interface JsonFormAdapterBoolean extends JsonFormAdapterBase {
 interface JsonFormAdapterString extends JsonFormAdapterBase {
   type: 'string' | 'text' | 'textarea' | 'url' | 'email';
   autosize?: boolean;
+  inputType?: 'datetime-local';
+  maxLength?: number;
   maxRows?: number;
 }
 
@@ -76,7 +78,10 @@ interface JsonFormAdapterNumber extends JsonFormAdapterBase {
   default?: number;
 }
 
-type ChoiceMapperSelector = {choices: Array<[string, string]>; placeholder?: string};
+type ChoiceMapperSelector = {
+  choices: Array<[string, string]>;
+  placeholder?: string;
+};
 
 interface JsonFormAdapterChoiceMapperBase extends JsonFormAdapterBase {
   type: 'choice_mapper';
