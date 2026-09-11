@@ -62,10 +62,13 @@ describe('ProjectEnvironments', () => {
     ['active', false, "You don't have any environments yet."],
     ['hidden', true, "You don't have any hidden environments."],
   ])('renders the %s empty state', async (_label, isHidden, message) => {
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/environments/',
-      body: [],
-    });
+    MockApiClient.addContractResponse(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/environments/',
+      {
+        path: {organizationIdOrSlug: 'org-slug', projectIdOrSlug: 'project-slug'},
+        body: [],
+      }
+    );
 
     renderComponent(isHidden);
 
@@ -73,10 +76,13 @@ describe('ProjectEnvironments', () => {
   });
 
   it('renders active environments', async () => {
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/environments/',
-      body: EnvironmentsFixture(),
-    });
+    MockApiClient.addContractResponse(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/environments/',
+      {
+        path: {organizationIdOrSlug: 'org-slug', projectIdOrSlug: 'project-slug'},
+        body: EnvironmentsFixture().map(({id, name}) => ({id, name, isHidden: false})),
+      }
+    );
 
     renderComponent(false);
 
@@ -86,10 +92,13 @@ describe('ProjectEnvironments', () => {
   });
 
   it('shows event counts per environment', async () => {
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/environments/',
-      body: EnvironmentsFixture(),
-    });
+    MockApiClient.addContractResponse(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/environments/',
+      {
+        path: {organizationIdOrSlug: 'org-slug', projectIdOrSlug: 'project-slug'},
+        body: EnvironmentsFixture().map(({id, name}) => ({id, name, isHidden: false})),
+      }
+    );
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/tags/environment/values/',
       body: [
@@ -107,10 +116,13 @@ describe('ProjectEnvironments', () => {
   });
 
   it('filters environments and persists the search query', async () => {
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/environments/',
-      body: EnvironmentsFixture(),
-    });
+    MockApiClient.addContractResponse(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/environments/',
+      {
+        path: {organizationIdOrSlug: 'org-slug', projectIdOrSlug: 'project-slug'},
+        body: EnvironmentsFixture().map(({id, name}) => ({id, name, isHidden: false})),
+      }
+    );
 
     const {router} = renderComponent(false);
 
@@ -136,14 +148,25 @@ describe('ProjectEnvironments', () => {
     ['%app_env%', '%2525app_env%2525'],
     ['us%2Feast', 'us%25252Feast'],
   ])('double-encodes environment path params for %s', async (name, encodedName) => {
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/environments/',
-      body: [{id: '1', name}],
-    });
-    const hideMock = MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/environments/${encodedName}/`,
-      method: 'PUT',
-    });
+    MockApiClient.addContractResponse(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/environments/',
+      {
+        path: {organizationIdOrSlug: 'org-slug', projectIdOrSlug: 'project-slug'},
+        body: [{id: '1', name, isHidden: false}],
+      }
+    );
+    const hideMock = MockApiClient.addContractResponse(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/environments/$environment/',
+      {
+        path: {
+          organizationIdOrSlug: 'org-slug',
+          projectIdOrSlug: 'project-slug',
+          environment: encodeURIComponent(name),
+        },
+        method: 'PUT',
+        body: {id: '1', name, isHidden: true},
+      }
+    );
 
     renderComponent(false);
 
@@ -158,14 +181,29 @@ describe('ProjectEnvironments', () => {
   });
 
   it('renders hidden environments and unhides them', async () => {
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/environments/',
-      body: HiddenEnvironmentsFixture(),
-    });
-    const showMock = MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/environments/zzz/',
-      method: 'PUT',
-    });
+    MockApiClient.addContractResponse(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/environments/',
+      {
+        path: {organizationIdOrSlug: 'org-slug', projectIdOrSlug: 'project-slug'},
+        body: HiddenEnvironmentsFixture().map(({id, name}) => ({
+          id,
+          name,
+          isHidden: true,
+        })),
+      }
+    );
+    const showMock = MockApiClient.addContractResponse(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/environments/$environment/',
+      {
+        path: {
+          organizationIdOrSlug: 'org-slug',
+          projectIdOrSlug: 'project-slug',
+          environment: 'zzz',
+        },
+        method: 'PUT',
+        body: {id: '1', name: 'zzz', isHidden: false},
+      }
+    );
 
     renderComponent(true);
 

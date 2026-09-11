@@ -20,6 +20,104 @@ describe('api', () => {
     fetchMock.resetMocks();
   });
 
+  describe('addContractResponse', () => {
+    const route = '/projects/$organizationIdOrSlug/$projectIdOrSlug/environments/';
+    const path = {organizationIdOrSlug: 'org-slug', projectIdOrSlug: 'project-slug'};
+
+    it('registers a GET response with encoded parameters, matchers, and headers', async () => {
+      const body = [{id: '1', name: 'production', isHidden: false}];
+      const mock = MockApiClient.addContractResponse(route, {
+        path: {...path, projectIdOrSlug: 'project/slash'},
+        method: undefined,
+        body,
+        headers: {Link: 'next-page'},
+        match: [MockApiClient.matchQuery({visibility: 'visible'})],
+      });
+      const url = '/projects/org-slug/project%2Fslash/environments/';
+
+      const [json, , response] = await api.requestPromise(url, {
+        query: {visibility: 'visible'},
+        includeAllArgs: true,
+      });
+
+      expect(json).toEqual(body);
+      expect(response?.getResponseHeader('Link')).toBe('next-page');
+      expect(mock).toHaveBeenCalledWith(
+        url,
+        expect.objectContaining({query: {visibility: 'visible'}})
+      );
+    });
+
+    it('registers a response for an explicit PUT method', async () => {
+      const body = [{id: '1', name: 'production', isHidden: true}];
+      const mock = MockApiClient.addContractResponse(route, {path, method: 'PUT', body});
+
+      await expect(
+        api.requestPromise('/projects/org-slug/project-slug/environments/', {
+          method: 'PUT',
+        })
+      ).resolves.toEqual(body);
+      expect(mock).toHaveBeenCalledTimes(1);
+    });
+
+    it('supports routes without path parameters', async () => {
+      MockApiClient.addContractResponse('/organizations/', {body: []});
+
+      await expect(api.requestPromise('/organizations/')).resolves.toEqual([]);
+    });
+
+    it('requires the GET response shape when the method is omitted', () => {
+      MockApiClient.addContractResponse(route, {
+        path,
+        // @ts-expect-error GET requires every environment to have an id.
+        body: [{name: 'production', isHidden: false}],
+      });
+      // @ts-expect-error A successful response body is required.
+      MockApiClient.addContractResponse(route, {path});
+    });
+
+    it('checks fixture values and rejects undeclared fields on inline responses', () => {
+      const invalidFixture = {id: 1, name: 'production', isHidden: false};
+      MockApiClient.addContractResponse(route, {
+        path,
+        // @ts-expect-error Environment IDs on the wire are strings.
+        body: [invalidFixture],
+      });
+      MockApiClient.addContractResponse(route, {
+        path,
+        // @ts-expect-error displayName is not part of the backend response.
+        body: [{id: '1', name: 'production', isHidden: false, displayName: 'Production'}],
+      });
+    });
+
+    it('requires a contract for the route and method', () => {
+      // @ts-expect-error This route does not have a response contract.
+      MockApiClient.addContractResponse('/api-tokens/', {body: []});
+      MockApiClient.addContractResponse(route, {
+        path,
+        // @ts-expect-error The route only has GET and PUT response contracts.
+        method: 'POST',
+        body: [],
+      });
+      MockApiClient.addContractResponse(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/custom-inbound-filters/',
+        // @ts-expect-error GET returns a list, but POST returns a single filter.
+        {path, method: 'POST', body: []}
+      );
+    });
+
+    it('requires path parameters and rejects error status codes', () => {
+      // @ts-expect-error Both organization and project path parameters are required.
+      MockApiClient.addContractResponse(route, {body: []});
+      MockApiClient.addContractResponse(route, {
+        path,
+        body: [],
+        // @ts-expect-error Error responses must use addMockResponse.
+        statusCode: 500,
+      });
+    });
+  });
+
   describe('Client', () => {
     describe('cancel()', () => {
       it('should abort any open XHR requests', () => {

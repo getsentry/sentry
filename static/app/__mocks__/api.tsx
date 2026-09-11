@@ -2,6 +2,12 @@ import isEqual from 'lodash/isEqual';
 
 import type * as ApiNamespace from 'sentry/api';
 import type {ResponseMeta} from 'sentry/types/api';
+import type {ApiMapping} from 'sentry/utils/api/apiContracts.generated';
+import {
+  getApiUrl,
+  type ExtractPathParams,
+  type OptionalPathParams,
+} from 'sentry/utils/api/getApiUrl';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 const RealApi = jest.requireActual<typeof ApiNamespace>('sentry/api');
@@ -59,6 +65,24 @@ interface ResponseType extends ResponseMeta {
 }
 
 type MockResponse = [resp: ResponseType, mock: jest.Mock];
+
+type ContractMockResponse<TPath extends keyof ApiMapping> = Omit<
+  Partial<ResponseType>,
+  'body' | 'method' | 'status' | 'statusCode' | 'url'
+> & {
+  // ApiMapping describes successful JSON responses, not error or empty responses.
+  status?: 200 | 201 | 202 | 208;
+  statusCode?: 200 | 201 | 202 | 208;
+} & (ExtractPathParams<TPath> extends never
+    ? {path?: never}
+    : {path: Record<ExtractPathParams<TPath>, string | number>}) &
+  {
+    [TMethod in keyof ApiMapping[TPath] & string]: {
+      body: ApiMapping[TPath][TMethod] extends {response: infer TResponse}
+        ? TResponse
+        : never;
+    } & (TMethod extends 'GET' ? {method?: TMethod} : {method: TMethod});
+  }[keyof ApiMapping[TPath] & string];
 
 /**
  * Compare two records. `want` is all the entries we want to have the same value in `check`
@@ -136,6 +160,20 @@ class Client implements ApiNamespace.Client {
     };
 
     return dataMatcher;
+  }
+
+  /**
+   * Mock a successful JSON response using the backend's route and method contract.
+   * Defaults to GET. Path parameters are encoded just like getApiUrl.
+   * Use addMockResponse for errors, empty responses, or undocumented endpoints.
+   */
+  static addContractResponse<TPath extends keyof ApiMapping>(
+    route: TPath,
+    response: ContractMockResponse<NoInfer<TPath>>
+  ) {
+    const {path, ...options} = response;
+    const url = getApiUrl(route, ...([{path}] as OptionalPathParams<TPath>));
+    return Client.addMockResponse({...options, url, method: options.method ?? 'GET'});
   }
 
   // Returns a jest mock that represents Client.request calls
