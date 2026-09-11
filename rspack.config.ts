@@ -15,6 +15,7 @@ import {ReactRefreshRspackPlugin} from '@rspack/plugin-react-refresh';
 import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
 import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
+import type {ReactCompilerOptions} from 'oxc-transform-react';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
@@ -45,6 +46,9 @@ const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
 
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const IS_ADMIN_UI_DEV = !!env.SENTRY_ADMIN_UI_DEV;
+
+// TODO: Enable in production
+const USE_REACT_COMPILER = IS_DEPLOY_PREVIEW || IS_ACCEPTANCE_TEST || IS_UI_DEV_ONLY;
 
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
 const WEBPACK_MODE: Configuration['mode'] = IS_PRODUCTION ? 'production' : 'development';
@@ -198,7 +202,7 @@ const DEFINED_ENV_VARS = {
   'process.env.ENABLE_SENTRY_TOOLBAR': JSON.stringify(ENABLE_SENTRY_TOOLBAR),
 };
 
-const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptions => ({
+const swcReactLoaderConfig = (): SwcLoaderOptions => ({
   env: {
     mode: 'usage',
     // https://rspack.rs/guide/features/builtin-swc-loader#polyfill-injection
@@ -243,10 +247,6 @@ const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptio
       tsx: true,
     },
     transform: {
-      // TODO: Enable in production
-      reactCompiler:
-        options.reactCompiler &&
-        (IS_DEPLOY_PREVIEW || IS_ACCEPTANCE_TEST || IS_UI_DEV_ONLY),
       react: {
         runtime: 'automatic',
         development: DEV_MODE,
@@ -257,6 +257,16 @@ const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptio
   },
   isModule: 'unknown',
 });
+
+/**
+ * Memoizes components ahead of swc-loader. The compiler needs the pristine
+ * source, so it cannot share swc's pass, and running it here keeps the JSX,
+ * emotion and fast refresh transforms in one place downstream.
+ */
+const reactCompilerLoader = {
+  loader: path.resolve(import.meta.dirname, './build-utils/react-compiler-loader.ts'),
+  options: {target: '19'} satisfies ReactCompilerOptions,
+};
 
 /**
  * Main Webpack config for Sentry React SPA.
@@ -333,13 +343,15 @@ const appConfig: Configuration = {
             // "illegal escape sequence" warnings in dev mode.
             exclude: /node_modules[\\/](core-js|react-select)/,
             loader: 'builtin:swc-loader',
-            options: swcReactLoaderConfig({reactCompiler: false}),
+            options: swcReactLoaderConfig(),
           },
           {
             // Application code only.
             exclude: /node_modules/,
-            loader: 'builtin:swc-loader',
-            options: swcReactLoaderConfig({reactCompiler: true}),
+            use: [
+              {loader: 'builtin:swc-loader', options: swcReactLoaderConfig()},
+              ...(USE_REACT_COMPILER ? [reactCompilerLoader] : []),
+            ],
           },
         ],
       },
@@ -348,7 +360,7 @@ const appConfig: Configuration = {
         use: [
           {
             loader: 'builtin:swc-loader',
-            options: swcReactLoaderConfig({reactCompiler: false}),
+            options: swcReactLoaderConfig(),
           },
           {
             loader: '@mdx-js/loader',
