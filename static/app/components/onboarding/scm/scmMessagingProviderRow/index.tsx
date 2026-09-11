@@ -124,6 +124,11 @@ function getInstallErrorMessage(
 
 export interface ScmMessagingProviderRowProps {
   activeRow: ScmMessagingActiveRow;
+  /**
+   * True while continue is waiting on revalidation or project create.
+   * Required alongside `onContinue` so the picker cannot stay idle.
+   */
+  isContinuing: boolean;
   messagingSetup: ScmMessagingSetup;
   onActiveRowChange: (row: ScmMessagingActiveRow) => void;
   onContinue: () => void;
@@ -162,6 +167,7 @@ export function ScmMessagingProviderRow({
   onActiveRowChange,
   renderChannelPicker,
   isRefetchingIntegrations = false,
+  isContinuing,
   onContinue,
 }: ScmMessagingProviderRowProps) {
   const organization = useOrganization();
@@ -233,10 +239,9 @@ export function ScmMessagingProviderRow({
   const handleConfigured = useCallback(
     (setup: ScmMessagingSetup & {mode: 'selected'}) => {
       onMessagingSetupChange(setup);
-      onActiveRowChange(null);
       onContinue();
     },
-    [onMessagingSetupChange, onActiveRowChange, onContinue]
+    [onMessagingSetupChange, onContinue]
   );
 
   const errorMessage = getInstallErrorMessage(installState);
@@ -331,6 +336,7 @@ export function ScmMessagingProviderRow({
                   onCancel={handleCancelConfiguring}
                   onConfigured={handleConfigured}
                   existingSetup={isConfigured ? messagingSetup : undefined}
+                  isContinuing={isContinuing}
                 />
               )}
             </Container>

@@ -267,6 +267,8 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             DetectorParams.QUERY,
             DetectorParams.SORT,
             DetectorParams.ID,
+            DetectorParams.TYPE,
+            DetectorParams.ENABLED,
             VisibilityParams.PER_PAGE,
             CursorQueryParam,
         ],
@@ -291,6 +293,19 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             return self.respond(status=status.HTTP_401_UNAUTHORIZED)
 
         queryset = self.filter_detectors(request, organization)
+
+        if detector_types := request.GET.getlist("type"):
+            detector_types = [DETECTOR_TYPE_ALIASES.get(value, value) for value in detector_types]
+            queryset = queryset.filter(type__in=detector_types)
+
+        raw_enabled = request.GET.get("enabled")
+        if raw_enabled is not None:
+            try:
+                enabled = serializers.BooleanField().run_validation(raw_enabled)
+            except ValidationError as error:
+                raise ValidationError({"enabled": error.detail}) from error
+            queryset = queryset.filter(enabled=enabled)
+
         queryset = exclude_disallowed_metric_detectors(queryset, organization)
 
         sort_by = request.GET.get("sortBy", "id")

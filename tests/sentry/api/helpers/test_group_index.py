@@ -761,9 +761,10 @@ class UpdateGroupsTest(TestCase):
         assert "set_resolved" in [entry["type"] for entry in activity]
         assert activity[-1]["id"] == "0"
 
-    def test_resolve_in_next_release_no_activity_when_action_log_is_empty(self) -> None:
+    def test_resolve_in_next_release_falls_back_when_action_log_is_empty(self) -> None:
         # A gated project can still read an empty log: the GALE write for this
-        # resolve goes through an outbox that may not have drained yet.
+        # resolve goes through an outbox that may not have drained yet. Fall back to
+        # Activity rather than omitting the key, matching the other feed endpoints.
         self.create_release(project=self.project, version="test@1.0.0.0")
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
@@ -775,15 +776,18 @@ class UpdateGroupsTest(TestCase):
         with (
             action_log_activity_enabled(),
             patch.object(GroupActionLogEntry.objects, "get_actions_for_group", return_value=[]),
-            self.assertLogs("sentry.api.helpers.group_index.update", level="INFO") as logs,
+            self.assertLogs(
+                "sentry.api.serializers.models.groupactionlogentry", level="INFO"
+            ) as logs,
         ):
             response = update_groups(request, group_list)
 
         assert any(
-            record.message == "group_index.groupactionlogentry.not_found" for record in logs.records
+            record.message == "issues.action_log.activity_read.not_found" for record in logs.records
         )
         assert response is not None
-        assert "activity" not in response.data
+        # the log read is patched to return nothing, so anything here came from Activity
+        assert "activity" in response.data
 
     def test_resolve_in_next_release_ignores_action_log_when_disabled(self) -> None:
         # With the gate closed the log may cover only part of this project's history,

@@ -15,7 +15,6 @@ def adjusted_factor_ttl_ms() -> int:
 
 # Parameters to bound the queries run in Snuba.
 MAX_ORGS_PER_QUERY = 80
-MAX_PROJECTS_PER_QUERY = 4000
 MAX_TRANSACTIONS_PER_PROJECT = 20
 
 # MIN and MAX rebalance factor in order to make sure we don't go crazy when rebalancing orgs.

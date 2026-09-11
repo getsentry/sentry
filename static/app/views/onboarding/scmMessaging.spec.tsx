@@ -1100,7 +1100,7 @@ describe('ScmMessaging', () => {
       );
     });
 
-    it('Confirm and continue keeps siblings hidden and restores the footer when creation fails', async () => {
+    it('Confirm and continue keeps siblings and the footer hidden when creation fails', async () => {
       mockExclusiveSlackProviders();
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/slack-1/channels/',
@@ -1132,16 +1132,15 @@ describe('ScmMessaging', () => {
       await selectEvent.select(screen.getByLabelText('channel'), '#alerts');
       await userEvent.click(screen.getByRole('button', {name: 'Confirm and continue'}));
 
-      // activeRow clears after save; selected setup keeps siblings hidden and
-      // brings the footer back. The requested continue fails, so the step
-      // stays with the destination staged and Continue enabled for a retry.
+      // Picker stays open (activeRow is not cleared), so siblings remain hidden
+      // and the footer stays hidden. The requested continue fails, so the step
+      // stays with the destination staged for a retry from the picker.
       expect(screen.queryByText('discord')).not.toBeInTheDocument();
       expect(screen.queryByText('msteams')).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Set up later'})
+      ).not.toBeInTheDocument();
       await waitFor(() => expect(createProjectRequest).toHaveBeenCalledTimes(1));
-      await waitFor(() =>
-        expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
-      );
       expect(onComplete).not.toHaveBeenCalled();
     });
 

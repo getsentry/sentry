@@ -108,6 +108,7 @@ function useConversationSpanWaiter(project: Project) {
 
   useEffect(() => {
     if (hasEvents && shouldRefetch) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setShouldRefetch(false);
     }
   }, [hasEvents, shouldRefetch]);
@@ -218,7 +219,7 @@ function ConversationOnboardingPanel({
                     {t('Preview Conversations')}
                   </Heading>
                   <Arcade
-                    src="https://demo.arcade.software/oV2kLNiavNzbDHX12Bib?embed"
+                    src="https://demo.arcade.software/aEDAYP7ebTJvWKABSBdc?embed"
                     loading="lazy"
                     allowFullScreen
                   />

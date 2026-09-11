@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any
+from typing import Any, TypedDict
+from urllib.parse import quote, urlencode
 
 from sentry.ai_monitoring.message_normalizer import (
     FILTERED,
@@ -8,6 +9,31 @@ from sentry.ai_monitoring.message_normalizer import (
     normalize_to_messages,
     stringify_message_content,
 )
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+
+
+class ConversationProject(TypedDict):
+    id: int
+    name: str
+    slug: str
+
+
+def serialize_conversation_project(project: Project) -> ConversationProject:
+    return {"id": project.id, "name": project.name, "slug": project.slug}
+
+
+def get_conversation_url(
+    organization: Organization,
+    conversation_id: str,
+    project_id: int | None = None,
+) -> str:
+    query = urlencode({"project": project_id}) if project_id is not None else None
+    return organization.absolute_url(
+        f"/organizations/{organization.slug}/explore/agents/conversations/"
+        f"{quote(conversation_id, safe='')}/",
+        query=query,
+    )
 
 
 def timestamp_to_float(value: Any) -> float:

@@ -142,7 +142,7 @@ export function useRegisteredTabSelection(
         setLocalValue(newValue);
       }
     },
-    [ctx, key]
+    [ctx, key, setLocalValue]
   );
 
   return [selectedValue, setValue];
