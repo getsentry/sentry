@@ -10,7 +10,19 @@ from drf_spectacular.plumbing import build_basic_type
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import Direction
 
+from sentry.api.serializers.shaping import shaping_for_response_type
 from sentry.apidocs.spectacular_ports import resolve_type_hint
+
+# Attached to a response schema whose serializer declares expand/collapse keys;
+# `sentry.apidocs.hooks` lifts it onto the operation and strips it again.
+SHAPING_EXTENSION = "x-sentry-shaping"
+
+
+def with_response_shaping(schema: Any, hint: Any) -> Any:
+    shaping = shaping_for_response_type(hint)
+    if shaping is not None and isinstance(schema, dict):
+        schema[SHAPING_EXTENSION] = shaping.as_dict()
+    return schema
 
 
 class TokenAuthExtension(OpenApiAuthenticationExtension):
@@ -57,7 +69,8 @@ class SentryResponseSerializerExtension(OpenApiSerializerExtension):
         if "return" not in type_hints:
             raise TypeError("Please type the return value of the serializer with a TypedDict")
 
-        return resolve_type_hint(type_hints["return"])
+        hint = type_hints["return"]
+        return with_response_shaping(resolve_type_hint(hint), hint)
 
 
 class SentryInlineResponseSerializerExtension(OpenApiSerializerExtension):
@@ -74,7 +87,9 @@ class SentryInlineResponseSerializerExtension(OpenApiSerializerExtension):
         return self.target.__name__
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> Any:
-        return resolve_type_hint(self.target.typeSchema)
+        return with_response_shaping(
+            resolve_type_hint(self.target.typeSchema), self.target.typeSchema
+        )
 
 
 class RestrictedJsonFieldExtension(OpenApiSerializerFieldExtension):

@@ -6,6 +6,7 @@ from typing import Any, ClassVar
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, serialize
+from sentry.api.serializers.shaping import ResponseShaping
 from sentry.incidents.endpoints.serializers.incident import (
     DetailedIncidentSerializerResponse,
     IncidentSerializerResponse,
@@ -35,6 +36,8 @@ from sentry.workflow_engine.models import (
 
 
 class WorkflowEngineIncidentSerializer(Serializer):
+    shaping = ResponseShaping(expand={"activities": ("activities",)})
+
     def __init__(self, expand: list[str] | None = None) -> None:
         self.expand = expand or []
 
@@ -105,7 +108,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
                 results[open_period]["incident_id"] = fake_id
                 results[open_period]["incident_identifier"] = fake_id
 
-        if "activities" in self.expand:
+        if self._expand("activities"):
             gopas = list(
                 GroupOpenPeriodActivity.objects.filter(group_open_period__in=item_list).order_by(
                     "date_added", "id"
@@ -191,7 +194,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
             "organizationId": str(obj.project.organization.id),
             "projects": attrs["projects"],
             "alertRule": attrs["alert_rule"],
-            "activities": attrs["activities"] if "activities" in self.expand else None,
+            "activities": attrs["activities"] if self._expand("activities") else None,
             "status": self.get_incident_status(obj.group.priority, obj.date_ended),
             "statusMethod": (
                 IncidentStatusMethod.RULE_TRIGGERED.value

@@ -15,6 +15,7 @@ from django.utils import timezone
 from sentry import features, options, projectoptions, quotas, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.team import get_org_roles
+from sentry.api.serializers.shaping import ResponseShaping
 from sentry.app import env
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
@@ -82,6 +83,17 @@ TRANSACTION_STATS_COUNT = "count(span.duration)"
 LATEST_DEPLOYS_KEY: Final = "latestDeploys"
 UNUSED_ON_FRONTEND_FEATURES: Final = "unusedFeatures"
 ORGANIZATION_KEY: Final = "organization"
+
+# `options` is gathered here but only emitted by the organization project and
+# detailed project serializers, whose response types carry the field.
+PROJECT_SHAPING = ResponseShaping(
+    expand={
+        "transaction_stats": ("transactionStats",),
+        "session_stats": ("sessionStats",),
+        "options": ("options",),
+    },
+    collapse={UNUSED_ON_FRONTEND_FEATURES: ("features",)},
+)
 
 
 # These features are not used on the frontend,
@@ -334,6 +346,8 @@ class ProjectSerializer(Serializer):
     such as "show all projects for this organization", and its attributes be kept to a minimum.
     """
 
+    shaping = PROJECT_SHAPING
+
     def __init__(
         self,
         environment_id: str | None = None,
@@ -356,17 +370,6 @@ class ProjectSerializer(Serializer):
         self.expand = expand
         self.expand_context = expand_context or {}
         self.collapse = collapse
-
-    def _expand(self, key: str) -> bool:
-        if self.expand is None:
-            return False
-
-        return key in self.expand
-
-    def _collapse(self, key: str) -> bool:
-        if self.collapse is None:
-            return False
-        return key in self.collapse
 
     def get_attrs(
         self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: Any
@@ -759,6 +762,8 @@ class _DeployDict(TypedDict):
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
+    shaping = PROJECT_SHAPING.extend(collapse={LATEST_DEPLOYS_KEY: (LATEST_DEPLOYS_KEY,)})
+
     def __init__(self, access: Access | None = None, **kwargs):
         self.access = access
         super().__init__(**kwargs)
@@ -1039,6 +1044,9 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
+    # Collapsing `organization` reduces it to `{id, slug}` rather than omitting it.
+    shaping = PROJECT_SHAPING.extend(collapse={ORGANIZATION_KEY: (ORGANIZATION_KEY,)})
+
     def get_attrs(
         self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> dict[Project, dict[str, Any]]:

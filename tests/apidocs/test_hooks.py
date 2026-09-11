@@ -3,6 +3,7 @@ from unittest import TestCase
 
 import pytest
 
+from sentry.apidocs.extensions import SHAPING_EXTENSION
 from sentry.apidocs.hooks import (
     _ENDPOINT_SERVERS,
     _fix_nullable_enums,
@@ -241,3 +242,83 @@ class FixNullableEnumsTest(TestCase):
                 {"type": "object", "nullable": True},
             ],
         }
+
+
+class ResponseShapingTest(TestCase):
+    def _operation(self, **extra: Any) -> dict[str, Any]:
+        return {
+            "tags": ["Teams"],
+            "description": "List teams",
+            "operationId": "list teams",
+            "parameters": [
+                {
+                    "in": "query",
+                    "name": "expand",
+                    "description": "Additional data to include in the response.",
+                    "schema": {"type": "array", "items": {"enum": ["projects", "externalTeams"]}},
+                },
+                {
+                    "in": "query",
+                    "name": "collapse",
+                    "description": "Fields to remove.",
+                    "schema": {"enum": ["organization"]},
+                },
+            ],
+            "responses": {
+                "200": {
+                    "content": {
+                        "application/json": {"schema": {"$ref": "#/components/schemas/TeamList"}}
+                    }
+                }
+            },
+            **extra,
+        }
+
+    def test_stamps_expand_and_collapse_from_the_response_shaping(self) -> None:
+        result = {
+            "components": {
+                "schemas": {
+                    "TeamList": {
+                        "type": "array",
+                        "items": {"$ref": "#/components/schemas/Team"},
+                    },
+                    "Team": {
+                        "type": "object",
+                        "properties": {"id": {"type": "string"}},
+                        SHAPING_EXTENSION: {
+                            "expand": {
+                                "projects": ["projects"],
+                                "externalTeams": ["externalTeams"],
+                                "organization": ["organization"],
+                            },
+                            "collapse": {"organization": ["organization"]},
+                        },
+                    },
+                }
+            },
+            "paths": {"/api/0/teams/": {"get": self._operation()}},
+        }
+
+        processed = custom_postprocessing_hook(result, None)
+
+        operation = processed["paths"]["/api/0/teams/"]["get"]
+        # Restricted to the values the parameter's enum documents.
+        assert operation["x-sentry-expand"] == {
+            "projects": ["projects"],
+            "externalTeams": ["externalTeams"],
+        }
+        assert operation["x-sentry-collapse"] == {"organization": ["organization"]}
+        # The marker never reaches the published components.
+        assert SHAPING_EXTENSION not in processed["components"]["schemas"]["Team"]
+
+    def test_operation_without_shaping_parameters_is_untouched(self) -> None:
+        operation = self._operation(parameters=[])
+        result = {
+            "components": {"schemas": {"TeamList": {"type": "array", "items": {"type": "object"}}}},
+            "paths": {"/api/0/teams/": {"get": operation}},
+        }
+
+        processed = custom_postprocessing_hook(result, None)
+
+        assert "x-sentry-expand" not in processed["paths"]["/api/0/teams/"]["get"]
+        assert "x-sentry-collapse" not in processed["paths"]["/api/0/teams/"]["get"]

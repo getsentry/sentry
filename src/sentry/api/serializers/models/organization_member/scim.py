@@ -2,6 +2,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sentry.api.serializers import Serializer
+from sentry.api.serializers.shaping import ResponseShaping
 from sentry.core.endpoints.scim.constants import SCIM_SCHEMA_USER
 from sentry.models.organizationmember import OrganizationMember
 
@@ -9,6 +10,8 @@ from .response import OrganizationMemberSCIMSerializerResponse
 
 
 class OrganizationMemberSCIMSerializer(Serializer[OrganizationMemberSCIMSerializerResponse]):
+    shaping = ResponseShaping(expand={"active": ("active",)})
+
     def __init__(self, expand: Sequence[str] | None = None) -> None:
         self.expand = expand or []
 
@@ -24,7 +27,7 @@ class OrganizationMemberSCIMSerializer(Serializer[OrganizationMemberSCIMSerializ
             "meta": {"resourceType": "User"},
             "sentryOrgRole": obj.role,
         }
-        if "active" in self.expand:
+        if self._expand("active"):
             result["active"] = True
 
         return result

@@ -11,6 +11,7 @@ from django.db.models import Count
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.shaping import ResponseShaping
 from sentry.app import env
 from sentry.auth.access import (
     Access,
@@ -160,8 +161,19 @@ class TeamSerializerResponse(BaseTeamSerializerResponse, _TeamSerializerResponse
     pass
 
 
+# `collapse` is accepted for backwards compatibility but no team key honours it.
+TEAM_SHAPING = ResponseShaping(
+    expand={
+        "projects": ("projects",),
+        "externalTeams": ("externalTeams",),
+        "organization": ("organization",),
+    },
+)
+
+
 @register(Team)
 class BaseTeamSerializer(Serializer):
+    shaping = TEAM_SHAPING
     expand: Sequence[str] | None
     collapse: Sequence[str] | None
     access: Access | None
@@ -175,17 +187,6 @@ class BaseTeamSerializer(Serializer):
         self.collapse = collapse
         self.expand = expand
         self.access = access
-
-    def _expand(self, key: str) -> bool:
-        if self.expand is None:
-            return False
-
-        return key in self.expand
-
-    def _collapse(self, key: str) -> bool:
-        if self.collapse is None:
-            return False
-        return key in self.collapse
 
     def get_attrs(
         self, item_list: Sequence[Team], user: User | RpcUser | AnonymousUser, **kwargs: Any
@@ -397,6 +398,8 @@ def get_team_memberships(team_ids: list[int]) -> list[TeamMembership]:
 
 
 class TeamSCIMSerializer(Serializer[OrganizationTeamSCIMSerializerResponse]):
+    shaping = ResponseShaping(expand={"members": ("members",)})
+
     def __init__(
         self,
         expand: Sequence[str] | None = None,
@@ -407,11 +410,11 @@ class TeamSCIMSerializer(Serializer[OrganizationTeamSCIMSerializerResponse]):
         self, item_list: Sequence[Team], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> dict[Team, dict[str, Any]]:
         result: dict[int, dict[str, Any]] = {
-            team.id: ({"members": []} if "members" in self.expand else {}) for team in item_list
+            team.id: ({"members": []} if self._expand("members") else {}) for team in item_list
         }
         teams_by_id = {t.id: t for t in item_list}
 
-        if teams_by_id and "members" in self.expand:
+        if teams_by_id and self._expand("members"):
             team_ids = [t.id for t in item_list]
             team_memberships = get_team_memberships(team_ids=team_ids)
 

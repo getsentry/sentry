@@ -14,6 +14,7 @@ from sentry import features, release_health, tsdb
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializerResponse
 from sentry.api.serializers.models.group import (
+    GROUP_SHAPING,
     BaseGroupSerializerResponse,
     GroupAnnotation,
     GroupLevelStr,
@@ -304,7 +305,29 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     matchingEventEnvironment: NotRequired[str | None]
 
 
+# The issue stream honours the shared group keys plus its own; the OpenAPI
+# `expand`/`collapse` parameters for the group index endpoints derive from this.
+GROUP_STREAM_SHAPING = GROUP_SHAPING.extend(
+    expand={
+        "sessions": ("sessionCount",),
+        "inbox": ("inbox",),
+        "owners": ("owners",),
+        "integrationIssues": ("integrationIssues",),
+        "sentryAppIssues": ("sentryAppIssues",),
+        "latestEventHasAttachments": ("latestEventHasAttachments",),
+    },
+    collapse={
+        "base": tuple(BaseGroupSerializerResponse.__annotations__),
+        "stats": ("stats", "count", "userCount", "firstSeen", "lastSeen"),
+        "lifetime": ("lifetime",),
+        "filtered": ("filtered",),
+    },
+)
+
+
 class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
+    shaping = GROUP_STREAM_SHAPING
+
     def __init__(
         self,
         environment_ids: list[int] | None = None,

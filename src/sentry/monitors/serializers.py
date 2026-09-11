@@ -9,6 +9,7 @@ from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
+from sentry.api.serializers.shaping import ResponseShaping
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.monitors.models import (
@@ -196,6 +197,8 @@ class MonitorBulkEditResponse:
 
 @register(Monitor)
 class MonitorSerializer(Serializer[MonitorSerializerResponse]):
+    shaping = ResponseShaping(expand={"alertRule": ("alertRule",)})
+
     def __init__(self, environments=None, expand=None):
         self.environments = environments
         self.expand = expand
@@ -317,12 +320,6 @@ class MonitorSerializer(Serializer[MonitorSerializerResponse]):
 
         return result
 
-    def _expand(self, key) -> bool:
-        if self.expand is None:
-            return False
-
-        return key in self.expand
-
 
 class MonitorCheckInSerializerResponseOptional(TypedDict, total=False):
     groups: list[str]
@@ -344,6 +341,8 @@ class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional)
 
 @register(MonitorCheckIn)
 class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
+    shaping = ResponseShaping(expand={"groups": ("groups",)})
+
     def __init__(self, start=None, end=None, expand=None, organization_id=None, project_id=None):
         self.start = start  # timestamp of the beginning of the specified date range
         self.end = end  # timestamp of the end of the specified date range
@@ -417,12 +416,6 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
             result["groups"] = attrs.get("groups", [])
 
         return result
-
-    def _expand(self, key) -> bool:
-        if self.expand is None:
-            return False
-
-        return key in self.expand
 
 
 @register(CheckinProcessingError)

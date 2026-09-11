@@ -15,6 +15,7 @@ from django.db.models import Min, prefetch_related_objects
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
+from sentry.api.serializers.shaping import ResponseShaping
 from sentry.constants import LOG_LEVELS
 from sentry.eventtypes import EventTypeStr
 from sentry.integrations.mixins.issues import IssueBasicIntegration
@@ -250,7 +251,19 @@ def _get_level_label(group: Group) -> GroupLevelStr:
     return LOG_LEVELS.get(group.level, "unknown")
 
 
+# Shared by every group serializer; the stream serializer extends it.
+GROUP_SHAPING = ResponseShaping(
+    expand={"derivedData": ("derivedData",)},
+    collapse={
+        "stats": ("count", "userCount", "firstSeen", "lastSeen"),
+        "unhandled": ("isUnhandled",),
+    },
+)
+
+
 class GroupSerializerBase(Serializer, ABC):
+    shaping = GROUP_SHAPING
+
     def __init__(
         self,
         collapse=None,
@@ -481,17 +494,6 @@ class GroupSerializerBase(Serializer, ABC):
         self, generic_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
         pass
-
-    def _expand(self, key) -> bool:
-        if self.expand is None:
-            return False
-
-        return key in self.expand
-
-    def _collapse(self, key) -> bool:
-        if self.collapse is None:
-            return False
-        return key in self.collapse
 
     def _get_status(self, attrs: Mapping[str, Any], obj: Group):
         status = obj.status

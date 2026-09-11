@@ -9,6 +9,7 @@ from django.db.models import Prefetch, Q, prefetch_related_objects
 from rest_framework import serializers
 
 from sentry.api.serializers import Serializer, register
+from sentry.api.serializers.shaping import ResponseShaping
 from sentry.constants import ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -117,8 +118,13 @@ class RuleSerializerResponse(RuleSerializerResponseOptional):
     snooze: bool
 
 
+RULE_SHAPING = ResponseShaping(expand={"lastTriggered": ("lastTriggered",)})
+
+
 @register(Rule)
 class RuleSerializer(Serializer[RuleSerializerResponse]):
+    shaping = RULE_SHAPING
+
     def __init__(
         self,
         expand: list[str] | None = None,
@@ -225,7 +231,7 @@ class RuleSerializer(Serializer[RuleSerializerResponse]):
             if len(errors):
                 result[rule]["errors"] = errors
 
-        if "lastTriggered" in self.expand:
+        if self._expand("lastTriggered"):
             last_triggered_lookup: dict[int, datetime] = {}
             if item_list:
                 rule_ids = [rule.id for rule in item_list]
@@ -367,6 +373,8 @@ class RuleSerializer(Serializer[RuleSerializerResponse]):
 
 
 class WorkflowEngineRuleSerializer(Serializer):
+    shaping = RULE_SHAPING
+
     def __init__(
         self,
         expand: list[str] | None = None,
@@ -597,7 +605,7 @@ class WorkflowEngineRuleSerializer(Serializer):
             integration_cache = {i.id: i for i in integrations}
 
         last_triggered_lookup: dict[int, datetime] = {}
-        if "lastTriggered" in self.expand:
+        if self._expand("lastTriggered"):
             last_triggered_lookup = self._fetch_workflow_last_triggered(item_list)
 
         result: dict[Workflow, dict[str, Any]] = defaultdict(dict)
@@ -775,7 +783,7 @@ class WorkflowEngineRuleSerializer(Serializer):
             if len(errors):
                 result[workflow]["errors"] = errors
 
-            if "lastTriggered" in self.expand:
+            if self._expand("lastTriggered"):
                 result[workflow]["last_triggered"] = last_triggered_lookup.get(workflow.id, None)
 
             result[workflow]["actions"] = serialized_actions

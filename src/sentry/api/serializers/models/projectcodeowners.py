@@ -2,6 +2,7 @@ import logging
 from typing import Any
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.shaping import ResponseShaping
 from sentry.integrations.api.serializers.models.repository_project_path_config import (
     RepositoryProjectPathConfigSerializer,
 )
@@ -15,6 +16,18 @@ logger = logging.getLogger(__name__)
 
 @register(ProjectCodeOwners)
 class ProjectCodeOwnersSerializer(Serializer):
+    # `renameIdentifier` and `hasTargetingContext` rewrite the embedded schema
+    # in place rather than adding a field.
+    shaping = ResponseShaping(
+        expand={
+            "codeMapping": ("codeMapping",),
+            "ownershipSyntax": ("ownershipSyntax",),
+            "errors": ("errors",),
+            "renameIdentifier": (),
+            "hasTargetingContext": (),
+        },
+    )
+
     def __init__(
         self,
         expand=None,
@@ -91,23 +104,23 @@ class ProjectCodeOwnersSerializer(Serializer):
             "provider": attrs.get("provider", "unknown"),
         }
 
-        if "codeMapping" in self.expand:
+        if self._expand("codeMapping"):
             config = attrs.get("codeMapping", {})
             data["codeMapping"] = serialize(
                 config, user=user, serializer=RepositoryProjectPathConfigSerializer()
             )
 
-        if "ownershipSyntax" in self.expand:
+        if self._expand("ownershipSyntax"):
             data["ownershipSyntax"] = convert_schema_to_rules_text(obj.schema)
 
-        if "errors" in self.expand:
+        if self._expand("errors"):
             _, errors = build_codeowners_associations(obj.raw, obj.project)
             data["errors"] = errors
 
-        if "renameIdentifier" in self.expand and hasattr(obj, "schema") and obj.schema:
+        if self._expand("renameIdentifier") and hasattr(obj, "schema") and obj.schema:
             self.rename_schema_identifier_for_parsing(obj.schema)
 
-        if "hasTargetingContext" in self.expand:
+        if self._expand("hasTargetingContext"):
             if obj.schema and obj.schema.get("rules"):
                 for rule in obj.schema["rules"]:
                     for rule_owner in rule["owners"]:

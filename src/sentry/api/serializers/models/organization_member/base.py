@@ -6,6 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.shaping import ResponseShaping
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organizationmember import OrganizationMember
 from sentry.users.models.user import User
@@ -18,6 +19,8 @@ from .utils import get_organization_id
 
 @register(OrganizationMember)
 class OrganizationMemberSerializer(Serializer):
+    shaping = ResponseShaping(expand={"externalUsers": ("externalUsers",)})
+
     def __init__(self, expand: Sequence[str] | None = None) -> None:
         self.expand = expand or []
 
@@ -41,7 +44,7 @@ class OrganizationMemberSerializer(Serializer):
             email_map[u["id"]] = u["email"]
 
         external_users_map = defaultdict(list)
-        if "externalUsers" in self.expand:
+        if self._expand("externalUsers"):
             organization_id = get_organization_id(item_list)
             external_actors = list(
                 ExternalActor.objects.filter(
@@ -129,7 +132,7 @@ class OrganizationMemberSerializer(Serializer):
             "roleName": roles.get(obj.role).name,  # Deprecated
         }
 
-        if "externalUsers" in self.expand:
+        if self._expand("externalUsers"):
             data["externalUsers"] = attrs.get("externalUsers", [])
 
         return data

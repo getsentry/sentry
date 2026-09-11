@@ -6,6 +6,8 @@ from drf_spectacular.utils import OpenApiParameter
 
 from sentry import constants
 from sentry.api.helpers.projects import PROJECT_ID_OR_SLUG_SCHEMA
+from sentry.api.serializers.models.group_stream import GROUP_STREAM_SHAPING
+from sentry.api.serializers.models.team import TEAM_SHAPING
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.sessions import STATS_PERIODS
@@ -451,17 +453,12 @@ class IssueParams:
         required=False,
     )
 
+    # Derived from the issue stream serializer so the documented values cannot
+    # drift from the ones the serializer honours.
     GROUP_INDEX_EXPAND = OpenApiParameter(
         name="expand",
         description="Additional data to include in the response.",
-        enum=[
-            "inbox",
-            "owners",
-            "sessions",
-            "integrationIssues",
-            "sentryAppIssues",
-            "latestEventHasAttachments",
-        ],
+        enum=list(GROUP_STREAM_SHAPING.expand_keys),
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.STR,
         required=False,
@@ -471,7 +468,7 @@ class IssueParams:
     GROUP_INDEX_COLLAPSE = OpenApiParameter(
         name="collapse",
         description="Fields to remove from the response to improve query performance.",
-        enum=["stats", "lifetime", "base", "unhandled", "filtered"],
+        enum=list(GROUP_STREAM_SHAPING.collapse_keys),
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.STR,
         required=False,
@@ -1080,8 +1077,9 @@ List of strings to opt out of certain pieces of data. Supports `organization`.
         location="query",
         required=False,
         type=str,
+        enum=list(TEAM_SHAPING.expand_keys),
         description="""
-List of strings to opt in to additional data. Supports `projects`, `externalTeams`.
+List of strings to opt in to additional data.
 """,
     )
 

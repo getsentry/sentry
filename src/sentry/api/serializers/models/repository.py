@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register
+from sentry.api.serializers.shaping import ResponseShaping
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
 
@@ -41,12 +42,11 @@ class RepositorySettingsSerializer(Serializer[RepositorySettingsSerializerRespon
 
 @register(Repository)
 class RepositorySerializer(Serializer[RepositorySerializerResponse]):
+    shaping = ResponseShaping(expand={"settings": ("settings",)})
+
     def __init__(self, expand: Sequence[str] | None = None) -> None:
         super().__init__()
         self.expand = expand or []
-
-    def _expand(self, key: str) -> bool:
-        return key in self.expand
 
     def get_attrs(
         self, item_list: Sequence[Repository], user: Any, **kwargs: Any

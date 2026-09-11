@@ -8,6 +8,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, Subquery
 
 from sentry.api.serializers import Serializer, serialize
+from sentry.api.serializers.shaping import ResponseShaping
 
 if TYPE_CHECKING:
     from sentry.incidents.endpoints.serializers.alert_rule import (
@@ -56,6 +57,10 @@ class WorkflowEngineDetectorSerializer(Serializer):
     """
     A temporary serializer to be used by the old alert rule endpoints to return data read from the new ACI models
     """
+
+    shaping = ResponseShaping(
+        expand={"latestIncident": ("latestIncident",), "eventTypes": ("eventTypes",)},
+    )
 
     def __init__(self, expand: list[str] | None = None, prepare_component_fields: bool = False):
         self.expand = expand or []
@@ -336,7 +341,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
         # Note: originalAlertRuleId comes from AlertRuleActivity snapshots, which were not
         # migrated to the workflow engine. This field will always be None for detectors.
 
-        if "latestIncident" in self.expand:
+        if self._expand("latestIncident"):
             # to get the actions for a detector, we need to go from detector -> workflow -> action filters for that workflow -> actions
             detector_workflow_values = DetectorWorkflow.objects.filter(
                 detector__in=detector_ids
@@ -402,7 +407,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             result[detector]["snuba_query_id"] = snuba_query.id
 
         # Only query for event types if they will be included in the output
-        if "eventTypes" in self.expand:
+        if self._expand("eventTypes"):
             event_types_by_snuba_query: defaultdict[int, list[str]] = defaultdict(list)
             for event_type in SnubaQueryEventType.objects.filter(
                 snuba_query_id__in=snuba_query_ids
@@ -461,7 +466,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
         if not obj.enabled:
             data["snooze"] = True
 
-        if "latestIncident" in self.expand:
+        if self._expand("latestIncident"):
             data["latestIncident"] = attrs.get("latestIncident", None)
 
         extrapolation_mode = attrs.get("extrapolationMode")
@@ -470,7 +475,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
 
         # Only include eventTypes when explicitly requested (e.g., in detail views)
         # to match DetailedAlertRuleSerializer behavior
-        if "eventTypes" in self.expand:
+        if self._expand("eventTypes"):
             data["eventTypes"] = attrs.get("event_types", [])
 
         return data

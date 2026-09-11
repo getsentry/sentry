@@ -9,8 +9,10 @@ from drf_spectacular.generators import EndpointEnumerator, SchemaGenerator
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.serializers.shaping import SHAPING_KINDS
 from sentry.apidocs.api_ownership_allowlist_dont_modify import API_OWNERSHIP_ALLOWLIST_DONT_MODIFY
 from sentry.apidocs.build import OPENAPI_TAGS
+from sentry.apidocs.extensions import SHAPING_EXTENSION
 from sentry.apidocs.utils import SentryApiBuildError
 
 HTTP_METHOD_NAME = Literal[
@@ -233,6 +235,7 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
 
     _fix_issue_paths(result)
     _fix_nullable_enums(result)
+    _stamp_response_shaping(result)
 
     # Fetch schema component references
     schema_components = result["components"]["schemas"]
@@ -322,6 +325,74 @@ def _fix_nullable_enums(node: Any) -> None:
     elif isinstance(node, list):
         for item in node:
             _fix_nullable_enums(item)
+
+
+def _stamp_response_shaping(result: Any) -> None:
+    """
+    Record, on every operation that accepts ``expand`` or ``collapse``, which
+    response fields each accepted value adds or removes, as
+    ``x-sentry-expand`` / ``x-sentry-collapse``: ``{value: [field, ...]}``.
+
+    The mapping comes from the ``x-sentry-shaping`` marker the serializer
+    extensions leave on the response schema, restricted to the values the
+    parameter's enum documents. The marker is stripped afterwards so the
+    published schemas are unchanged.
+    """
+    components = result.get("components", {}).get("schemas", {})
+    for endpoints in result["paths"].values():
+        for method_info in endpoints.values():
+            parameters = {
+                param["name"]: param
+                for param in method_info.get("parameters", [])
+                if param.get("in") == "query" and param.get("name") in SHAPING_KINDS
+            }
+            if not parameters:
+                continue
+            shaping = _response_shaping(method_info, components)
+            if not shaping:
+                continue
+            for kind, param in parameters.items():
+                mapping = shaping.get(kind)
+                if not mapping:
+                    continue
+                allowed = _parameter_enum(param)
+                method_info[f"x-sentry-{kind}"] = {
+                    key: fields
+                    for key, fields in mapping.items()
+                    if allowed is None or key in allowed
+                }
+    _strip_shaping_markers(result)
+
+
+def _response_shaping(method_info: Mapping[str, Any], components: Mapping[str, Any]) -> Any:
+    for code in ("200", "201"):
+        content = method_info.get("responses", {}).get(code, {}).get("content", {})
+        schema = content.get("application/json", {}).get("schema")
+        if not schema:
+            continue
+        schema = dereference_schema(schema, components)
+        marker = schema.get(SHAPING_EXTENSION)
+        if marker is None and "items" in schema:
+            marker = dereference_schema(schema["items"], components).get(SHAPING_EXTENSION)
+        if marker is not None:
+            return marker
+    return None
+
+
+def _parameter_enum(param: Mapping[str, Any]) -> set[str] | None:
+    schema = param.get("schema", {})
+    enum = schema.get("enum") or schema.get("items", {}).get("enum")
+    return set(enum) if enum else None
+
+
+def _strip_shaping_markers(node: Any) -> None:
+    if isinstance(node, dict):
+        node.pop(SHAPING_EXTENSION, None)
+        for value in node.values():
+            _strip_shaping_markers(value)
+    elif isinstance(node, list):
+        for item in node:
+            _strip_shaping_markers(item)
 
 
 def _fix_issue_paths(result: Any) -> Any:

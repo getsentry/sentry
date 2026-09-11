@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
-from typing import Any, Generic, TypeVar, overload
+from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
+from typing import Any, ClassVar, Generic, TypeVar, overload
 
 from django.contrib.auth.models import AnonymousUser
 
+from sentry.api.serializers.shaping import ResponseShaping, ShapingKind, is_requested
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.tracing import set_span_data, start_span
@@ -158,6 +159,25 @@ class Serializer(Generic[T]):
     from ``T`` via ``# type: ignore[return-value]`` — concrete subclasses
     override ``serialize`` with a real body that genuinely returns ``T``.
     """
+
+    #: The ``?expand=`` / ``?collapse=`` values this serializer honours, each
+    #: mapped to the response fields it toggles. Serializers that accept those
+    #: parameters set ``self.expand`` / ``self.collapse`` in ``__init__`` and read
+    #: them through ``_expand`` / ``_collapse``, which only accept declared keys.
+    shaping: ClassVar[ResponseShaping | None] = None
+    expand: Iterable[str] | None
+    collapse: Iterable[str] | None
+
+    def _expand(self, key: str) -> bool:
+        """Whether ``key`` was requested via ``?expand=``. ``key`` must be in ``shaping``."""
+        return self._is_requested("expand", key)
+
+    def _collapse(self, key: str) -> bool:
+        """Whether ``key`` was requested via ``?collapse=``. ``key`` must be in ``shaping``."""
+        return self._is_requested("collapse", key)
+
+    def _is_requested(self, kind: ShapingKind, key: str) -> bool:
+        return is_requested(self, kind, key)
 
     def __call__(
         self,
