@@ -24,11 +24,12 @@ import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
 } from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
-import type {
-  Block,
-  RepoPRState,
-  SeerExplorerResponse,
-  SeerExplorerRunId,
+import {
+  normalizeBlocks,
+  type Block,
+  type RepoPRState,
+  type SeerExplorerResponse,
+  type SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
 import {
   isSeerExplorerEnabled,
@@ -638,7 +639,13 @@ export const useSeerExplorer = () => {
     previousPRStatesRef.current = currentPRStates;
   }, [apiData?.session?.repo_pr_states]);
 
-  const rawSessionData = apiData?.session ?? null;
+  const rawSessionData = useMemo(() => {
+    const session = apiData?.session ?? null;
+    if (!session) {
+      return null;
+    }
+    return {...session, blocks: normalizeBlocks(session.blocks)};
+  }, [apiData?.session]);
 
   // Append optimistic blocks to session data while polling, enabling a more responsive UI with loading placeholders.
   const processedSessionData = useMemo(() => {
