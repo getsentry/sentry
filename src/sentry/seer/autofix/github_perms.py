@@ -122,7 +122,8 @@ def get_missing_permissions_by_repo(
 ) -> dict[str, MissingGithubPermissions]:
     """Map each of `repo_names` whose GitHub App install is missing a feature
     tier to the tiers it is missing. Repos with a complete install, no active
-    org-scoped GitHub repository row, or no integration are absent.
+    org-scoped GitHub repository row, no integration, or an install whose
+    permissions we do not know are absent.
     """
     if not repo_names:
         return {}
@@ -158,7 +159,21 @@ def get_missing_permissions_by_repo(
             )
             continue
 
-        missing_tiers = get_missing_permission_tiers(integration.metadata.get("permissions", {}))
+        # None is not "holds nothing", it is "we never learned what this install
+        # holds" -- token refresh writes whatever GitHub returned, including a
+        # missing permissions payload. Checking it would report every tier as
+        # missing and ask the user to grant permissions they may already have.
+        permissions = integration.metadata.get("permissions")
+        if permissions is None:
+            _warn_unresolved(
+                organization,
+                "permissions_unknown",
+                repository_id=repository_id,
+                integration_id=integration_id,
+            )
+            continue
+
+        missing_tiers = get_missing_permission_tiers(permissions)
         if missing_tiers:
             missing_by_repo[repo_name] = MissingGithubPermissions(
                 integration=integration, missing_tiers=missing_tiers, repository_id=repository_id
