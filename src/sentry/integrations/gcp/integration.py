@@ -94,15 +94,29 @@ class GcpVerification(TypedDict):
     projects: list[GcpProjectVerification]
 
 
+class GcpServiceVerification(TypedDict):
+    service: str
+    status: str
+    error_detail: str | None
+
+
 class GcpProjectVerification(TypedDict):
     gcp_project_id: str
     connection_status: str
+    services: list[GcpServiceVerification]
     error_detail: str | None
+
+
+class GcpServiceVerificationSerializer(Serializer[GcpServiceVerification]):
+    service = CharField(required=True)
+    status = CharField(required=True)
+    error_detail = CharField(required=False, allow_null=True, allow_blank=True, default=None)
 
 
 class GcpProjectVerificationSerializer(Serializer[GcpProjectVerification]):
     gcp_project_id = CharField(required=True, max_length=64)
     connection_status = CharField(required=True)
+    services = GcpServiceVerificationSerializer(many=True, required=True)
     error_detail = CharField(required=False, allow_null=True, allow_blank=True, default=None)
 
 
@@ -192,6 +206,7 @@ class GcpVerificationApiStep:
                 {
                     "gcp_project_id": project["gcp_project_id"],
                     "connection_status": project["connection_status"],
+                    "services": project["services"],
                     "error_detail": project.get("error_detail") or None,
                 }
                 for project in validated_data["projects"]
@@ -297,6 +312,7 @@ class GcpIntegration(IntegrationInstallation):
             {
                 "gcp_project_id": project_id,
                 "connection_status": GCP_STATUS_UNVERIFIED,
+                "services": [],
                 "error_detail": None,
             }
             for project_id in new_config["projects"]
@@ -384,6 +400,7 @@ class GcpIntegrationProvider(IntegrationProvider):
                     {
                         "gcp_project_id": project_id,
                         "connection_status": "error",
+                        "services": [],
                         "error_detail": "Verification failed to run during setup.",
                     }
                     for project_id in extra["projects"]

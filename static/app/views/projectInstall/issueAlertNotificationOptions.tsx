@@ -309,6 +309,7 @@ function useNotificationPicker(resolveRestore: RestoreResolver) {
       // the setup CTA and do NOT latch, so this effect re-runs after a
       // refetch delivers it. Don't half-apply the restore, so the picker
       // can't look submittable with an unresolved integration.
+      // oxlint-disable-next-line react/set-state-in-effect
       setShouldRenderSetupButton(true);
       return;
     }

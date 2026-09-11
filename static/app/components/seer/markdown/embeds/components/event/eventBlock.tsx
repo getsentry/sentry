@@ -1,6 +1,6 @@
 import {useQuery} from '@tanstack/react-query';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {EventMessage} from 'sentry/components/events/eventMessage';
@@ -8,7 +8,7 @@ import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlig
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {EventTagView} from 'sentry/components/seer/markdown/embeds/components/event/eventViews/tag';
 import {EventTagsView} from 'sentry/components/seer/markdown/embeds/components/event/eventViews/tags';
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconFire} from 'sentry/icons';
@@ -129,42 +129,33 @@ export default function SeerEventBlock({id, issueId, shortId, view, tagKeys}: Ev
   });
 
   return (
-    <Container
-      background="primary"
-      border="primary"
-      containerType="inline-size"
-      data-test-id="seer-event-embed"
-      padding="lg"
-      radius="md"
-      width="100%"
+    <SeerEmbedBlock
+      gap="lg"
+      href={eventHref}
+      icon={IconFire}
+      linkLabel={t('View Event')}
+      testId="seer-event-embed"
+      title={getEventLinkTitle({id, shortId})}
     >
-      <Stack gap="lg">
-        <ResourceLink
-          icon={IconFire}
-          href={eventHref}
-          title={getEventLinkTitle({id, shortId})}
-        />
-
-        {isPending ? (
-          <Flex justify="center" padding="md">
-            <LoadingIndicator mini />
-          </Flex>
-        ) : isError || !event ? (
-          <Text variant="muted">{t('Unable to load event details')}</Text>
-        ) : (
-          <Stack gap="lg">
-            <EventSummary event={event} />
-            <EventBlockView
-              view={resolvedView}
-              tagKeys={tagKeys}
-              event={event}
-              issueId={issueId}
-              organization={organization}
-              distributionsHref={distributionsHref}
-            />
-          </Stack>
-        )}
-      </Stack>
-    </Container>
+      {isPending ? (
+        <Flex justify="center" padding="md">
+          <LoadingIndicator mini />
+        </Flex>
+      ) : isError || !event ? (
+        <Text variant="muted">{t('Unable to load event details')}</Text>
+      ) : (
+        <Stack gap="lg">
+          <EventSummary event={event} />
+          <EventBlockView
+            view={resolvedView}
+            tagKeys={tagKeys}
+            event={event}
+            issueId={issueId}
+            organization={organization}
+            distributionsHref={distributionsHref}
+          />
+        </Stack>
+      )}
+    </SeerEmbedBlock>
   );
 }

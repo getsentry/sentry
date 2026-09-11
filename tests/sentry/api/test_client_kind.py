@@ -304,6 +304,38 @@ class SetClientKindAttributesTest(TestCase):
         assert sdk.set_tag.call_args_list == [mock.call("client_kind_test", "script")]
 
 
+class AccessLogAttributesTest(TestCase):
+    """Asserted on the underlying Django request, which is all `access_log` sees."""
+
+    def stored(self, request: Request) -> tuple[Any, Any]:
+        django_request: Any = request._request
+        return (
+            getattr(django_request, "client_kind", None),
+            getattr(django_request, "client_host", None),
+        )
+
+    def test_stores_the_derived_kind(self) -> None:
+        request = make_request(auth=api_token(), user_agent="curl/8.7.1")
+        set_client_kind_attributes(request)
+        assert self.stored(request) == (ClientKind.SCRIPT, None)
+
+    def test_stores_the_client_host_for_mcp(self) -> None:
+        request = make_request(
+            auth=api_token(),
+            user_agent="sentry-mcp/1.0",
+            headers={
+                "X-Sentry-MCP-Version": "1.0",
+                "X-Sentry-MCP-Client-Family": "Claude-Code",
+            },
+        )
+        set_client_kind_attributes(request)
+        assert self.stored(request) == (ClientKind.MCP, "claude-code")
+
+    def test_absent_until_dispatch_runs(self) -> None:
+        # An un-attributed request leaves the attributes absent, not empty.
+        assert self.stored(make_request(auth=api_token())) == (None, None)
+
+
 class AttributionSpanTest(TestCase):
     def record(self, request: Request) -> tuple[Any, list[tuple[str, Any]]]:
         with (

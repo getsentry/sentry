@@ -16,6 +16,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
+import {ModalStore} from 'sentry/stores/modalStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DiffStatus, isPairSidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
@@ -492,8 +493,14 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
       ) {
         return;
       }
+      if (typeof ModalStore.getState().renderer === 'function') {
+        return;
+      }
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+        return;
+      }
+      if (tag === 'BUTTON' && (e.key === 'Enter' || e.key === ' ')) {
         return;
       }
       const {
