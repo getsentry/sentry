@@ -68,7 +68,7 @@ def add_comparison_to_event(event, average_columns):
             for span in group_to_span_map[group]:
                 average_results = {}
                 for col in row:
-                    if col.startswith("avg") and row is not None and row[col] > 0:
+                    if col.startswith("avg") and row[col] is not None and row[col] > 0:
                         average_results[col] = row[col]
                 if average_results:
                     span["span.averageResults"] = average_results
