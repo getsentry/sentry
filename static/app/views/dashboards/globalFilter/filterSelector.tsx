@@ -150,6 +150,7 @@ export function FilterSelector({
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setActiveFilterValues(initialValues);
     setStagedFilterValues([]);
   }, [initialValues]);

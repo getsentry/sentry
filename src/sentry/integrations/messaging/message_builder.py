@@ -71,8 +71,11 @@ def build_attachment_title(obj: Group | Event | GroupEvent) -> str:
     ev_type = obj.get_event_type()
     title = obj.title
 
-    if ev_type == "error" and "type" in ev_metadata:
-        title = ev_metadata["type"]
+    if ev_type == "error":
+        # A synthetic exception's type is a platform label, not the identity of what went wrong,
+        # so it makes a poor title.
+        if "type" in ev_metadata and not ev_metadata.get("synthetic"):
+            title = ev_metadata["type"]
 
     elif ev_type == "csp":
         title = f"{ev_metadata['directive']} - {ev_metadata['uri']}"

@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group, KeyValueListData} from 'sentry/types/group';
@@ -33,7 +32,7 @@ export function EventRegressionSummary({event, group}: EventRegressionSummaryPro
       sectionKey={SectionKey.REGRESSION_SUMMARY}
       title={t('Regression Summary')}
     >
-      <StyledKeyValueList data={data} shouldSort={false} />
+      <KeyValueTableDataList data={data} shouldSort={false} />
     </FoldSection>
   );
 }
@@ -123,7 +122,3 @@ function formatBreakpoint(breakpoint: number) {
     {local: true}
   );
 }
-
-const StyledKeyValueList = styled(KeyValueList)`
-  margin-bottom: 0 !important;
-`;

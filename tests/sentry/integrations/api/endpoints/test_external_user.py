@@ -79,3 +79,41 @@ class ExternalUserTest(APITestCase):
             "userId": str(self.user.id),
             "integrationId": str(self.integration.id),
         }
+
+    def test_create_association_when_name_is_mapped_to_another_user(self) -> None:
+        other_user = self.create_user()
+        self.create_member(user=other_user, organization=self.organization)
+        self.create_external_user(
+            other_user,
+            self.organization,
+            self.integration,
+            external_name=self.data["externalName"],
+        )
+
+        with self.feature({"organizations:integrations-codeowners": True}):
+            response = self.get_success_response(self.org_slug, status_code=201, **self.data)
+
+        assert response.data["userId"] == str(self.user.id)
+        assert response.data["externalName"] == self.data["externalName"]
+        assert response.data["id"]
+
+    def test_multiple_case_insensitive_associations_for_same_user(self) -> None:
+        self.create_external_user(
+            self.user,
+            self.organization,
+            self.integration,
+            external_name=self.data["externalName"],
+        )
+        self.create_external_user(
+            self.user,
+            self.organization,
+            self.integration,
+            external_name=self.data["externalName"].lower(),
+        )
+
+        with self.feature({"organizations:integrations-codeowners": True}):
+            response = self.get_error_response(self.org_slug, status_code=409, **self.data)
+
+        assert response.data == {
+            "detail": "Multiple external associations match the requested actor."
+        }

@@ -1,6 +1,8 @@
 from collections.abc import Sequence
 from datetime import datetime, timezone
-from unittest.mock import call, patch
+from types import SimpleNamespace
+from typing import Any
+from unittest.mock import MagicMock, call, patch
 
 from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import ActionSource, GroupActionActor, ViewAction
@@ -17,11 +19,13 @@ from sentry.issues.derived.tasks import (
     regenerate_stale_derived_data_batch,
 )
 from sentry.issues.derived.tasks_util import (
+    SpawnState,
     _pick_random_fresh_group_ranges,
     group_id_ranges_for_hash,
 )
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.group import Group, GroupStatus
+from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -234,6 +238,89 @@ class GenerateProjectDerivedDataPaginationTest(DerivedDataTaskTestBase):
             stale_only=False,
         )
         mock_project_delay.assert_not_called()
+
+    @patch("taskbroker_client.state.current_task")
+    def test_selfchain_skips_self_schedule_when_marked_during_work(
+        self, mock_current_task: MagicMock
+    ) -> None:
+        # Entry guard passes; a concurrent delivery marks before we self-schedule the next page.
+        groups = self.create_unprocessed_groups(3)
+        group_ids = sorted(group.id for group in groups)
+        mock_current_task.return_value = SimpleNamespace(id="proj-act-race")
+
+        def mark_during_chunk(
+            chunk_group_ids: Sequence[int], batch_size: int
+        ) -> list[tuple[int, int]]:
+            mark_spawned("generate_project_derived_data", "proj-act-race")
+            return [(chunk_group_ids[0], chunk_group_ids[-1] + 1)]
+
+        with (
+            override_options(
+                {
+                    "issues.derived.project-batch-size": 2,
+                    "issues.derived.project-max-tasks": 1,
+                }
+            ),
+            patch(
+                "sentry.issues.derived.tasks._chunk_group_ids_into_ranges",
+                side_effect=mark_during_chunk,
+            ),
+            patch.object(generate_project_derived_data_batch, "delay") as mock_batch_delay,
+            patch.object(generate_project_derived_data, "apply_async") as mock_project_delay,
+        ):
+            generate_project_derived_data(project_id=self.project.id)
+
+        mock_batch_delay.assert_called_once_with(
+            project_id=self.project.id,
+            group_id_start=group_ids[0],
+            group_id_end=group_ids[1] + 1,
+            stale_only=False,
+        )
+        mock_project_delay.assert_not_called()
+
+    @patch("taskbroker_client.state.current_task")
+    def test_selfchain_marks_after_self_schedule(self, mock_current_task: MagicMock) -> None:
+        groups = self.create_unprocessed_groups(3)
+        group_ids = sorted(group.id for group in groups)
+        mock_current_task.return_value = SimpleNamespace(id="proj-act-mark")
+
+        with (
+            override_options(
+                {
+                    "issues.derived.project-batch-size": 2,
+                    "issues.derived.project-max-tasks": 1,
+                }
+            ),
+            patch.object(generate_project_derived_data_batch, "delay"),
+            patch.object(generate_project_derived_data, "apply_async") as mock_project_delay,
+        ):
+            generate_project_derived_data(project_id=self.project.id)
+
+        mock_project_delay.assert_called_once()
+        assert already_spawned("generate_project_derived_data", "proj-act-mark") is True
+        call_kwargs: dict[str, Any] = mock_project_delay.call_args.kwargs["kwargs"]
+        assert group_ids[1] == call_kwargs["cursor_group_id"]
+
+
+class SpawnStateTest(TestCase):
+    def test_roundtrip(self) -> None:
+        spawn = SpawnState(SimpleNamespace(id="act-spawn-state"), "merge_groups")
+        assert spawn.task_key == "merge_groups"
+        assert spawn.activation_id == "act-spawn-state"
+        assert spawn.already_spawned() is False
+
+        spawn.mark_spawned()
+
+        assert spawn.already_spawned() is True
+        assert already_spawned(spawn.task_key, "act-spawn-state") is True
+
+    def test_noop_without_activation(self) -> None:
+        spawn = SpawnState(None, "merge_groups")
+        assert spawn.task_key == "merge_groups"
+        assert spawn.activation_id is None
+        assert spawn.already_spawned() is False
+        spawn.mark_spawned()
+        assert already_spawned(spawn.task_key, "act-none") is False
 
 
 @with_feature("projects:issue-action-log-write-to-db")

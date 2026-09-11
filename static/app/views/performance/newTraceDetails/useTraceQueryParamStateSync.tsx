@@ -4,12 +4,22 @@ import * as qs from 'query-string';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 // Syncs query params with URL state. Only performs a state sync if the query params have changed.
-export function useTraceQueryParamStateSync(query: Record<string, string | undefined>) {
+// Waterfalls embedded in another page (e.g. a Seer response) opt out with `disabled` so they do
+// not rewrite the host page's query string.
+export function useTraceQueryParamStateSync(
+  query: Record<string, string | undefined>,
+  options?: {disabled?: boolean}
+) {
   const previousQueryRef = useRef(query);
   const syncStateTimeoutRef = useRef<number | null>(null);
   const navigate = useNavigate();
+  const disabled = options?.disabled ?? false;
 
   useEffect(() => {
+    if (disabled) {
+      return;
+    }
+
     const keys = Object.keys(query);
     const previousKeys = Object.keys(previousQueryRef.current);
 
@@ -40,5 +50,5 @@ export function useTraceQueryParamStateSync(query: Record<string, string | undef
         {replace: true}
       );
     }, 1000);
-  }, [navigate, query]);
+  }, [disabled, navigate, query]);
 }

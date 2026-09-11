@@ -21,7 +21,6 @@ from sentry.types.cell import (
     CellDirectory,
     CellResolutionError,
     Locality,
-    RegionCategory,
     find_all_cell_names,
     find_all_multitenant_locality_names,
     find_all_signup_locality_names,
@@ -71,19 +70,16 @@ class CellDirectoryTest(TestCase):
         {
             "name": "us",
             "cells": ["us"],
-            "category": RegionCategory.MULTI_TENANT.name,
             "new_org_cell": "us",
         },
         {
             "name": "eu",
             "cells": ["eu"],
-            "category": RegionCategory.MULTI_TENANT.name,
             "new_org_cell": "eu",
         },
         {
             "name": "acme",
             "cells": ["acme"],
-            "category": RegionCategory.SINGLE_TENANT.name,
             "new_org_cell": "acme",
         },
     ]
@@ -103,8 +99,8 @@ class CellDirectoryTest(TestCase):
     @contextmanager
     def _in_global_state(directory: CellDirectory) -> Generator[None]:
         # Pass localities through even when empty; omitting them (None) makes
-        # the test directory synthesize a 1:1 MULTI_TENANT locality per cell,
-        # which would override the categories defined in the config under test.
+        # the test directory synthesize a 1:1 locality per cell, which would
+        # override the localities defined in the config under test.
         with get_test_env_directory().swap_state(
             tuple(directory.cells), localities=tuple(directory.localities)
         ):
@@ -142,7 +138,6 @@ class CellDirectoryTest(TestCase):
             {
                 "name": "us",
                 "cells": ["us"],
-                "category": RegionCategory.MULTI_TENANT.name,
                 "new_org_cell": "us",
                 "visible": False,
                 "signup_visible": False,
@@ -321,7 +316,6 @@ class CellDirectoryTest(TestCase):
             {
                 "name": "us",
                 "cells": ["us"],
-                "category": RegionCategory.MULTI_TENANT.name,
                 "new_org_cell": "us",
             },
         ]

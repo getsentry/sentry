@@ -392,11 +392,15 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
         try:
             all_states = client.get_work_item_states(project)["value"]
         except ApiError as err:
+            # An empty set is indistinguishable from a project where nothing is done, so
+            # `get_resolve_sync_action` would unresolve on every transition and the inbound
+            # sync would then advance the issue's watermark past the resolve it just lost.
+            # Raising leaves both the status and the watermark alone, as jira already does.
             self.logger.info(
                 "vsts.get-done-states.failed",
                 extra={"integration_id": self.model.id, "exception": err},
             )
-            return set()
+            raise
         return {state["name"] for state in all_states if state["category"] in self.done_categories}
 
     def get_issue_display_name(self, external_issue: ExternalIssue) -> str:

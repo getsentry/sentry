@@ -3,7 +3,7 @@ from unittest.mock import call, patch
 from django.conf import settings
 from django.test import override_settings
 
-from sentry.analytics.events.ai_autofix_pr_events import (
+from sentry.analytics.events.autofix_events import (
     AiAutofixPrClosedEvent,
     AiAutofixPrMergedEvent,
     AiAutofixPrOpenedEvent,

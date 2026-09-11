@@ -1,16 +1,11 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-
-jest.mock('sentry/utils/useLocation');
-const mockedUsedLocation = jest.mocked(useLocation);
 
 function useWrapper(yAxis: string) {
   const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
@@ -35,8 +30,6 @@ describe('useVisualizeFields', () => {
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
     });
-
-    mockedUsedLocation.mockReturnValue(LocationFixture());
   });
 
   it('returns numeric fields', () => {

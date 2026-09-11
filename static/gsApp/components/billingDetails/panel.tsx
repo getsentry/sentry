@@ -57,6 +57,7 @@ export function BillingDetailsPanel({
 
   useEffect(() => {
     if (expandInitially && !isLoading && !hasSomeBillingDetails(billingDetails)) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsEditing(true);
       setExpandInitially(false);
     }

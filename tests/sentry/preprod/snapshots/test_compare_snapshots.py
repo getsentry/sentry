@@ -55,7 +55,8 @@ class ChunksDoneIndicesTest(TestCase):
         assert (timezone.now() - comparison.date_updated).total_seconds() < 5
 
 
-def test_retry_objectstore_retries_once_on_429():
+@patch("sentry.preprod.snapshots.tasks.time.sleep")
+def test_retry_objectstore_retries_once_on_429(mock_sleep: MagicMock) -> None:
     calls = {"n": 0}
 
     def op():
@@ -66,6 +67,7 @@ def test_retry_objectstore_retries_once_on_429():
 
     assert _retry_objectstore(op) == "ok"
     assert calls["n"] == 2
+    mock_sleep.assert_called_once_with(0.5)
 
 
 def test_retry_objectstore_fails_fast_on_404():
@@ -76,12 +78,15 @@ def test_retry_objectstore_fails_fast_on_404():
         _retry_objectstore(op)
 
 
-def test_retry_objectstore_gives_up_after_max_attempts():
-    def op():
-        raise RequestError("unavailable", 503, "unavailable")
+@patch("sentry.preprod.snapshots.tasks.time.sleep")
+def test_retry_objectstore_gives_up_after_max_attempts(mock_sleep: MagicMock) -> None:
+    operation = MagicMock(side_effect=RequestError("unavailable", 503, "unavailable"))
 
     with pytest.raises(RequestError):
-        _retry_objectstore(op)
+        _retry_objectstore(operation)
+
+    assert operation.call_count == 2
+    mock_sleep.assert_called_once_with(0.5)
 
 
 def _mock_session_with_manifests(manifests_by_key: dict[str, bytes]) -> MagicMock:

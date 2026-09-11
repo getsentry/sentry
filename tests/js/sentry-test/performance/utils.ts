@@ -227,8 +227,16 @@ export class MockSpan {
    * @param opts.numSpans If provided, will create the same span numSpan times
    */
   addChild(opts: AddSpanOpts, numSpans = 1) {
-    const {startTimestamp, endTimestamp, op, description, hash, status, problemSpan} =
-      opts;
+    const {
+      startTimestamp,
+      endTimestamp,
+      op,
+      description,
+      hash,
+      status,
+      problemSpan,
+      data,
+    } = opts;
 
     for (let i = 0; i < numSpans; i++) {
       const span = new MockSpan({
@@ -239,6 +247,7 @@ export class MockSpan {
         hash,
         status,
         problemSpan,
+        data,
       });
       this.children.push(span);
     }

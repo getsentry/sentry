@@ -233,6 +233,7 @@ function SeerWorkflows() {
     const latest = candidates.reduce((acc, row) =>
       Date.parse(row.dateAdded) > Date.parse(acc.dateAdded) ? row : acc
     );
+    // oxlint-disable-next-line react/set-state-in-effect
     setExpanded(prev => {
       const next = new Set(prev);
       next.add(latest.id);
@@ -256,7 +257,7 @@ function SeerWorkflows() {
         ) : isPending ? (
           <LoadingIndicator />
         ) : (
-          <Container width={{'screen:md': '100%', 'screen:lg': '70%'}}>
+          <Fragment>
             <Container
               background="secondary"
               border="muted"
@@ -439,7 +440,7 @@ function SeerWorkflows() {
                 })
               )}
             </SimpleTable>
-          </Container>
+          </Fragment>
         )}
       </Stack>
     </SentryDocumentTitle>

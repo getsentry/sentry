@@ -585,17 +585,25 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
       return a === b;
     };
 
+    const toOption = (val: OptionType['value']) =>
+      creatable && defined(val)
+        ? ({value: val, label: String(val)} as OptionType)
+        : undefined;
+
     if (props.multiple && Array.isArray(props.value)) {
       mappedValue = props.value
-        .map(val =>
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          flatOptions.find(option => compare(option.value, val))
+        .map(
+          val =>
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+            flatOptions.find(option => compare(option.value, val)) ?? toOption(val)
         )
         .filter(defined);
     } else {
       mappedValue =
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        flatOptions.find(option => compare(option.value, props.value)) ?? mappedValue;
+        flatOptions.find(option => compare(option.value, props.value)) ??
+        toOption(props.value) ??
+        mappedValue;
     }
   }
 

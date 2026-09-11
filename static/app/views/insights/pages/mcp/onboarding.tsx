@@ -93,6 +93,7 @@ function useAiSpanWaiter(project: Project) {
 
   useEffect(() => {
     if (hasEvents && shouldRefetch) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setShouldRefetch(false);
     }
   }, [hasEvents, shouldRefetch]);

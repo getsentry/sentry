@@ -22,7 +22,10 @@ import {
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
-import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
+import {
+  partitionLinkedPullRequests,
+  useLinkedPullRequests,
+} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
 import {Placeholder} from 'sentry/components/placeholder';
 import {
   IconAdd,
@@ -666,12 +669,15 @@ function ActionButtons({
   onContinueInSeer,
   onRetryCodeChanges,
 }: AutofixActionProps) {
-  const openPullRequests =
-    linkedPullRequestsData?.pullRequests
-      .filter(
-        pullRequest => pullRequest.status === 'open' || pullRequest.status === 'draft'
-      )
-      .sort((a, b) => Date.parse(b.dateCreated) - Date.parse(a.dateCreated)) ?? [];
+  const {currentPullRequests} = partitionLinkedPullRequests(
+    linkedPullRequestsData?.pullRequests ?? [],
+    linkedPullRequestsData?.latestRegressionAt
+  );
+  const openPullRequests = currentPullRequests
+    .filter(
+      pullRequest => pullRequest.status === 'open' || pullRequest.status === 'draft'
+    )
+    .sort((a, b) => Date.parse(b.dateCreated) - Date.parse(a.dateCreated));
   const hasMultiplePullRequests = openPullRequests.length > 1;
   const displayedPullRequests = hasMultiplePullRequests
     ? openPullRequests.slice(0, 2)

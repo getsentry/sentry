@@ -9,6 +9,7 @@ import {useTranslation} from '@sentry/scraps/translationContext';
 import {IconSpan} from 'sentry/icons';
 import {unreachable} from 'sentry/utils/unreachable';
 
+import {ClippedDetail} from './clippedDetail';
 import {ToolCallIndicator, type ToolCallStatus} from './toolCallIndicator';
 
 /**
@@ -167,7 +168,7 @@ function InputBox({input}: {input: ReactNode}) {
         <Text size="sm" variant="secondary" monospace bold>
           {t('Input:')}
         </Text>
-        {input}
+        <ClippedDetail>{input}</ClippedDetail>
       </Flex>
     </Container>
   );
@@ -181,7 +182,7 @@ function OutputBox({output}: {output: ReactNode}) {
         <Text size="sm" variant="secondary" monospace bold>
           {t('Output:')}
         </Text>
-        {output}
+        <ClippedDetail>{output}</ClippedDetail>
       </Flex>
     </Container>
   );

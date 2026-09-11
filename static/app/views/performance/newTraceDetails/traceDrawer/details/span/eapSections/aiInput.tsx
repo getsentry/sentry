@@ -285,6 +285,7 @@ function MessagesArrayRenderer({
   const previousMessagesLength = usePrevious(messages.length);
   useLayoutEffect(() => {
     if (previousMessagesLength !== messages.length) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsExpanded(messages.length <= MAX_MESSAGES_TO_SHOW);
     }
   }, [messages.length, previousMessagesLength]);

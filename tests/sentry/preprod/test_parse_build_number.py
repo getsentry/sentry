@@ -2,7 +2,7 @@ import pytest
 
 from sentry.preprod.build_distribution_utils import (
     _BUILD_NUMBER_COMPONENT_WIDTH,
-    parse_build_number,
+    ParsedBuildNumber,
 )
 from sentry.utils.numbers import validate_bigint
 
@@ -48,22 +48,40 @@ from sentry.utils.numbers import validate_bigint
     ],
 )
 def test_parse_build_number(build: str, expected: int | None) -> None:
-    assert parse_build_number(build) == expected
+    parsed = ParsedBuildNumber.parse(build)
+    assert (parsed.encoded if parsed else None) == expected
+
+
+def test_parsed_build_number_preserves_trimmed_input() -> None:
+    assert ParsedBuildNumber.parse(" 152.0.4191.9 ") == ParsedBuildNumber(
+        raw="152.0.4191.9",
+        encoded=152_000_000_004_191,
+    )
 
 
 def test_dotted_builds_sort_correctly_within_a_version() -> None:
-    assert parse_build_number("1.99") < parse_build_number("2.0")  # type: ignore[operator]
+    lower = ParsedBuildNumber.parse("1.99")
+    higher = ParsedBuildNumber.parse("2.0")
+    assert lower is not None
+    assert higher is not None
+    assert lower.encoded < higher.encoded
 
 
 def test_distinguishes_builds_that_naive_concatenation_would_collide() -> None:
     # "1.2.3", "12.3", and "1.23" would all naively concatenate to "123".
-    assert parse_build_number("1.2.3") != parse_build_number("12.3")
-    assert parse_build_number("1.2.3") != parse_build_number("1.23")
+    first = ParsedBuildNumber.parse("1.2.3")
+    second = ParsedBuildNumber.parse("12.3")
+    third = ParsedBuildNumber.parse("1.23")
+    assert first is not None
+    assert second is not None
+    assert third is not None
+    assert first.encoded != second.encoded
+    assert first.encoded != third.encoded
 
 
 def test_largest_dotted_build_fits_the_bigint_column() -> None:
     widest_component = "9" * _BUILD_NUMBER_COMPONENT_WIDTH
     largest = f"{widest_component}.{widest_component}.{widest_component}"
-    parsed = parse_build_number(largest)
+    parsed = ParsedBuildNumber.parse(largest)
     assert parsed is not None
-    assert validate_bigint(parsed)
+    assert validate_bigint(parsed.encoded)

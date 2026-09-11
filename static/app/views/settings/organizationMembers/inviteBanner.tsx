@@ -96,6 +96,7 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
     if (!isEligibleForBanner) {
       return;
     }
+    // oxlint-disable-next-line react/set-state-in-effect
     fetchMissingMembers();
     promptsCheck(api, {
       organization,

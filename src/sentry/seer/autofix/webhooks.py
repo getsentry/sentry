@@ -7,7 +7,7 @@ import sentry_sdk
 from django.conf import settings
 
 from sentry import analytics, features
-from sentry.analytics.events.ai_autofix_pr_events import (
+from sentry.analytics.events.autofix_events import (
     AiAutofixPrClosedEvent,
     AiAutofixPrEvent,
     AiAutofixPrMergedEvent,

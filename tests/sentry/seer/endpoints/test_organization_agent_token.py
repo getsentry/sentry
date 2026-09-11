@@ -23,7 +23,6 @@ from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework.test import APIClient
 
-from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.endpoints.project_rules import ProjectRulesEndpoint
 from sentry.api.endpoints.seer_models import SEER_MODELS_CACHE_KEY
 from sentry.apidocs.hooks import CustomEndpointEnumerator
@@ -130,11 +129,13 @@ def _public_get_endpoints() -> tuple[PublicGetEndpoint, ...]:
     discovered = enumerator._get_api_endpoints(enumerator.patterns, "")
     for path, _path_regex, method, callback in discovered:
         view = callback.view_class
+        status = view.publish_status.get(method)
         if (
             method != "GET"
             or not path.startswith("/api/0/")
             or path.startswith("/api/0/{var}/")
-            or view.publish_status.get(method) is not ApiPublishStatus.PUBLIC
+            or status is None
+            or not status.is_published
         ):
             continue
 
@@ -169,11 +170,13 @@ def _public_mutation_endpoints() -> tuple[PublicMutationEndpoint, ...]:
     discovered = enumerator._get_api_endpoints(enumerator.patterns, "")
     for path, _path_regex, method, callback in discovered:
         view = callback.view_class
+        status = view.publish_status.get(method)
         if (
             method == "GET"
             or not path.startswith("/api/0/")
             or path.startswith("/api/0/{var}/")
-            or view.publish_status.get(method) is not ApiPublishStatus.PUBLIC
+            or status is None
+            or not status.is_published
         ):
             continue
 
@@ -1280,6 +1283,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             "OrganizationProfilingChunksEndpoint": "organizations:continuous-profiling",
             "OrganizationProfilingFlamegraphEndpoint": "organizations:profiling",
             "OrganizationTraceItemAttributesEndpoint": "organizations:visibility-explore-view",
+            "OrganizationTraceItemMetricsEndpoint": "organizations:visibility-explore-view",
             "ProjectProfilingProfileEndpoint": "organizations:profiling",
         }
         if feature := endpoint_flags.get(endpoint.endpoint_name):

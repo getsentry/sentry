@@ -1,4 +1,5 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
@@ -115,6 +116,24 @@ describe('SimpleTable component', () => {
 
     expect(header.tagName).toBe('TH');
     expect(within(header).getByRole('button', {name: 'A'})).toBeInTheDocument();
+  });
+
+  it('centers a column header through styles rather than a DOM attribute', () => {
+    render(
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell align="center">A</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      />
+    );
+
+    const header = screen.getByRole('columnheader', {name: 'A'});
+    const content = within(header).getByText('A').parentElement!;
+
+    expect(header).not.toHaveAttribute('align');
+    expect(getEmotionRules(content).join('')).toContain('justify-content: center');
   });
 
   it('renders a single spanning cell when given a full width row', () => {

@@ -237,6 +237,7 @@ export function InvoiceComparison() {
   // typing isn't clobbered.
   useEffect(() => {
     if (queryStart) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setStartInput(utcIsoToDatetimeLocalValue(queryStart));
     }
     if (queryEnd) {

@@ -77,6 +77,7 @@ from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation impo
 from sentry.workflow_engine.endpoints.validators.utils import (
     is_workflow_connected_to_all_projects_detector,
     should_include_all_projects_detector_workflows,
+    should_include_all_projects_detector_workflows_or_raise,
 )
 from sentry.workflow_engine.models import DetectorWorkflow, Workflow
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
@@ -136,7 +137,7 @@ class OrganizationWorkflowEndpoint(OrganizationEndpoint):
         workflow = kwargs["workflow"]
         organization = kwargs["organization"]
         if is_workflow_connected_to_all_projects_detector(workflow):
-            if not should_include_all_projects_detector_workflows(request, organization):
+            if not should_include_all_projects_detector_workflows_or_raise(request, organization):
                 raise PermissionDenied
             return args, kwargs
 
@@ -261,13 +262,25 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         queryset = self.filter_workflows(request, organization)
         workflows = list(queryset)
 
-        if not workflows:
-            return queryset, workflows
-
         if raw_idlist := request.GET.getlist("id"):
             requested_ids = set(to_valid_int_id_list("id", raw_idlist))
-            if requested_ids != {workflow.id for workflow in workflows}:
+            missing_workflow_ids = requested_ids - {workflow.id for workflow in workflows}
+            if missing_workflow_ids:
+                all_projects_detector = get_all_projects_detector(organization.id)
+                if (
+                    all_projects_detector
+                    and DetectorWorkflow.objects.filter(
+                        detector_id=all_projects_detector.id,
+                        workflow_id__in=missing_workflow_ids,
+                    ).exists()
+                ):
+                    should_include_all_projects_detector_workflows_or_raise(request, organization)
+                if not workflows:
+                    return queryset, workflows
                 raise PermissionDenied
+
+        if not workflows:
+            return queryset, workflows
 
         if not can_edit_workflows(workflows, request):
             raise PermissionDenied

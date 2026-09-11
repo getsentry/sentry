@@ -28,7 +28,6 @@ import {
 import {useAssignedSearchValues} from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
 import {useMemberUsernames} from 'sentry/utils/membersAndTeams/useMemberUsernames';
 import {escapeIssueTagKey} from 'sentry/utils/queryString';
-import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {useFetchOrganizationFeatureFlags} from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
 
@@ -430,7 +429,7 @@ function builtInIssuesFields({
     ...semverFields,
   };
 
-  if (!orgHasIssueInbox(organization)) {
+  if (!organization.features.includes('issue-inbox')) {
     delete allFields[FieldKey.ISSUE_PROGRESS];
   }
 

@@ -76,6 +76,7 @@ export function Format({onExpand, expandPaths, args}: FormatProps) {
     }
     switch (x) {
       case '%c':
+        // oxlint-disable-next-line react/immutability
         styling = args[i++];
         return '';
       case '%s': {

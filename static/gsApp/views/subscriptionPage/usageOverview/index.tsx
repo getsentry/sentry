@@ -72,6 +72,7 @@ export function UsageOverview({
               ? subscription.onDemandBudgets.sharedMaxBudget
               : (subscription.onDemandBudgets?.budgets?.[dataCategory] ?? 0)) > 0;
         if (isSelectable) {
+          // oxlint-disable-next-line react/set-state-in-effect
           setSelectedProduct(
             isAddOn
               ? (productFromQuery as AddOnCategory)

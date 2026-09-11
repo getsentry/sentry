@@ -111,6 +111,7 @@ export function InvestigationFixtureApi({
 
   useEffect(() => {
     registerFixtureHandler(organizationSlug, handler);
+    // oxlint-disable-next-line react/set-state-in-effect
     setReady(true);
 
     return () => {

@@ -23,7 +23,7 @@ describe('SelectMembers', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('loads project members as default options', async () => {
+  it('selects a project member and displays their name', async () => {
     const onChange = jest.fn();
     const projectMembersRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/users/`,
@@ -32,7 +32,7 @@ describe('SelectMembers', () => {
       body: [{user: projectUser, role: 'member', projects: ['project-slug']}],
     });
 
-    render(
+    const {rerender} = render(
       <SelectMembers
         aria-label="Member"
         onChange={onChange}
@@ -60,6 +60,44 @@ describe('SelectMembers', () => {
         value: projectUser.id,
       })
     );
+
+    rerender(
+      <SelectMembers
+        aria-label="Member"
+        onChange={onChange}
+        organization={organization}
+        projectIds={['123']}
+        value={projectUser.id}
+      />
+    );
+    expect(screen.getByText('Project Member')).toBeInTheDocument();
+    expect(screen.queryByText(projectUser.email)).not.toBeInTheDocument();
+
+    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Member'}));
+    expect(screen.getByText(projectUser.email)).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.getByText('Project Member')).toBeInTheDocument();
+    expect(screen.queryByText(projectUser.email)).not.toBeInTheDocument();
+  });
+
+  it('displays a saved member', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [{user: projectUser, role: 'member', projects: ['project-slug']}],
+    });
+
+    render(
+      <SelectMembers
+        aria-label="Member"
+        onChange={jest.fn()}
+        organization={organization}
+        projectIds={['123']}
+        value={projectUser.id}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByText('Project Member')).toBeInTheDocument();
   });
 
   it('searches organization members and disables users outside the project', async () => {

@@ -253,6 +253,7 @@ export function LandingAggregateFlamegraph({
   useEffect(() => {
     const newView = decodeViewOrDefault(location.query.view, 'flamegraph');
     if (newView !== view) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setView(decodeViewOrDefault(location.query.view, 'flamegraph'));
     }
   }, [location.query.view, view]);

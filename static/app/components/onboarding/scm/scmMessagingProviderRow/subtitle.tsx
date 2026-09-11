@@ -63,20 +63,36 @@ export function RowSubtitle({
     );
   }
 
+  if (visualState === 'configuring') {
+    if (resolvedProvider.eligibleIntegrations.length === 1) {
+      return (
+        <Flex gap="2xs" align="center">
+          <Text variant="muted" size="sm">
+            {t('Connected to')}
+          </Text>
+          <Text size="sm">{resolvedProvider.eligibleIntegrations[0]!.name}</Text>
+        </Flex>
+      );
+    }
+    return (
+      <Text variant="muted" size="sm">
+        {t('Choose where to send your alerts')}
+      </Text>
+    );
+  }
+
   if (visualState === 'configured' && messagingSetup.mode === 'selected') {
+    const workspaceName = resolvedProvider.eligibleIntegrations.find(
+      i => i.id === messagingSetup.integrationId
+    )?.name;
+
     return (
       <Flex gap="xs" align="center">
-        <Text size="sm">
-          {
-            resolvedProvider.eligibleIntegrations.find(
-              i => i.id === messagingSetup.integrationId
-            )?.name
-          }
-        </Text>
-        <Text variant="muted" size="sm" aria-hidden>
-          /
-        </Text>
         <Text size="sm">{messagingSetup.channelName}</Text>
+        <Text variant="muted" size="sm" aria-hidden>
+          {t('in')}
+        </Text>
+        <Text size="sm">{workspaceName}</Text>
       </Flex>
     );
   }
@@ -84,9 +100,7 @@ export function RowSubtitle({
   if (visualState === 'removing' && messagingSetup.mode === 'selected') {
     return (
       <Text variant="muted" size="sm">
-        {t(
-          'This removes the destination from project setup. The integration stays connected to your organization.'
-        )}
+        {t('You can reconnect at any time')}
       </Text>
     );
   }

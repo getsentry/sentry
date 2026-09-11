@@ -21,6 +21,7 @@ from sentry.auth.superuser import get_superuser_scopes, is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.constants import ObjectStatus
 from sentry.data_secrecy.logic import should_allow_superuser_access
+from sentry.models.apiscopes import add_scope_hierarchy
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -132,6 +133,11 @@ class Access(abc.ABC):
         check_scope_declaration(scope)
         return scope in self.scopes
 
+    def would_have_scope_with_added_auth_scope(self, scope: str) -> bool:
+        """Whether adding ``scope`` to the current auth scope cap would grant it."""
+        check_scope_declaration(scope)
+        return False
+
     def get_organization_role(self) -> OrganizationRole | None:
         if self.role is not None:
             return organization_roles.get(self.role)
@@ -235,6 +241,15 @@ class DbAccess(Access):
     @property
     def role(self) -> str | None:
         return self._member.role if self._member else None
+
+    def would_have_scope_with_added_auth_scope(self, scope: str) -> bool:
+        check_scope_declaration(scope)
+        if self._member is None or self.scopes_upper_bound is None:
+            return False
+        candidate_scopes = _intersect_member_and_token_scopes(
+            self._member.get_scopes(), self.scopes_upper_bound | {scope}
+        )
+        return scope in add_scope_hierarchy(list(candidate_scopes))
 
     @cached_property
     def _team_memberships(self) -> Mapping[Team, OrganizationMemberTeam]:
@@ -466,6 +481,16 @@ class RpcBackedAccess(Access):
             self.rpc_user_organization_context.member.scopes,
             self.scopes_upper_bound,
         )
+
+    def would_have_scope_with_added_auth_scope(self, scope: str) -> bool:
+        check_scope_declaration(scope)
+        member = self.rpc_user_organization_context.member
+        if member is None or self.scopes_upper_bound is None:
+            return False
+        candidate_scopes = _intersect_member_and_token_scopes(
+            member.scopes, self.scopes_upper_bound | {scope}
+        )
+        return scope in add_scope_hierarchy(list(candidate_scopes))
 
     # TODO(cathy): remove this
     @property

@@ -9,7 +9,8 @@ from sentry.integrations.github import client
 from sentry.integrations.github.actions.create_ticket import GitHubCreateTicketAction
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
-from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, CreateExternalIssueAction
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
+from sentry.issues.action_log.types import CreateExternalIssueAction
 from sentry.models.activity import Activity
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
@@ -151,7 +152,10 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         event = self.get_group_event()
 
         # Trigger its `after`
-        with capture_action_log() as action_log:
+        with (
+            action_context_scope(ActionSource.SYSTEM),
+            capture_action_log() as action_log,
+        ):
             self.trigger(event, rule_object)
 
         action_log.assert_logged(

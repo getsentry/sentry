@@ -118,6 +118,7 @@ export function EditableText({
   // Close editing if the field becomes disabled (e.g. form revalidation)
   useEffect(() => {
     if (isDisabled) {
+      // oxlint-disable-next-line react/set-state-in-effect
       handleCancel();
     }
   }, [handleCancel, isDisabled]);
@@ -132,6 +133,7 @@ export function EditableText({
     setOptimisticValue(null);
 
     if (isEditing) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setDraftValue(null);
       exitEditing();
     }

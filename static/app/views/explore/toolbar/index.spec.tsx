@@ -112,6 +112,7 @@ describe('ExploreToolbar', () => {
   it('disables changing visualize fields for count', async () => {
     let visualizes: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       visualizes = useQueryParamsVisualizes();
       return <ExploreToolbar />;
     }
@@ -129,6 +130,7 @@ describe('ExploreToolbar', () => {
   it('changes to count(span.duration) when using count', async () => {
     let visualizes: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       visualizes = useQueryParamsVisualizes();
       return <ExploreToolbar />;
     }
@@ -159,6 +161,7 @@ describe('ExploreToolbar', () => {
   it('disables changing visualize fields for epm', async () => {
     let visualizes: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       visualizes = useQueryParamsVisualizes();
       return <ExploreToolbar />;
     }
@@ -180,6 +183,7 @@ describe('ExploreToolbar', () => {
   it('changes to epm() when using epm', async () => {
     let visualizes: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       visualizes = useQueryParamsVisualizes();
       return <ExploreToolbar />;
     }
@@ -216,6 +220,7 @@ describe('ExploreToolbar', () => {
   it('defaults count_unique argument to span.op', async () => {
     let visualizes: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       visualizes = useQueryParamsVisualizes();
       return <ExploreToolbar />;
     }
@@ -254,7 +259,9 @@ describe('ExploreToolbar', () => {
     let fields!: readonly string[];
     let visualizes: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       fields = useQueryParamsFields();
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       visualizes = useQueryParamsVisualizes();
       return <ExploreToolbar />;
     }
@@ -329,6 +336,7 @@ describe('ExploreToolbar', () => {
     let groupBys: any;
 
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       groupBys = useQueryParamsGroupBys();
       return <ExploreToolbar />;
     }
@@ -587,6 +595,7 @@ describe('ExploreToolbar', () => {
     let groupBys: readonly string[] = [];
 
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       groupBys = useQueryParamsGroupBys();
       return <ExploreToolbar />;
     }
@@ -633,7 +642,9 @@ describe('ExploreToolbar', () => {
     let mode: Mode | undefined;
 
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       groupBys = useQueryParamsGroupBys();
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       mode = useQueryParamsMode();
       return <ExploreToolbar />;
     }
@@ -662,7 +673,9 @@ describe('ExploreToolbar', () => {
     let mode: any;
 
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       groupBys = useQueryParamsGroupBys();
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       mode = useQueryParamsMode();
       return <ExploreToolbar />;
     }
@@ -686,7 +699,9 @@ describe('ExploreToolbar', () => {
     let mode: any;
 
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       groupBys = useQueryParamsGroupBys();
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       mode = useQueryParamsMode();
       return <ExploreToolbar />;
     }
@@ -707,6 +722,7 @@ describe('ExploreToolbar', () => {
     let aggregateFields: any;
 
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       aggregateFields = useQueryParamsAggregateFields();
       return <ExploreToolbar />;
     }
@@ -731,6 +747,7 @@ describe('ExploreToolbar', () => {
   it('allows changing sort by in samples mode', async () => {
     let sortBys: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       sortBys = useQueryParamsSortBys();
       return <ExploreToolbar />;
     }
@@ -783,7 +800,9 @@ describe('ExploreToolbar', () => {
     let sortBys: any;
     let setMode: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       setMode = useSetQueryParamsMode();
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       sortBys = useQueryParamsAggregateSortBys();
       return <ExploreToolbar />;
     }
@@ -854,8 +873,11 @@ describe('ExploreToolbar', () => {
     let aggregateSortBys: any;
     let setMode: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       setMode = useSetQueryParamsMode();
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       samplesSortBys = useQueryParamsSortBys();
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       aggregateSortBys = useQueryParamsAggregateSortBys();
       return <ExploreToolbar />;
     }

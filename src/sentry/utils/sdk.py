@@ -60,7 +60,7 @@ UNSAFE_FILES = (
 # Tasks not included here are sampled with `SENTRY_BACKEND_APM_SAMPLING`.
 # If a parent task schedules other tasks, rates propagate to the children.
 SAMPLED_TASKS = {
-    "sentry.tasks.auto_source_code_config.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
+    "sentry.tasks.auto_source_code_config": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.send_ping": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.store.process_event": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event_from_reprocessing": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
@@ -72,7 +72,7 @@ SAMPLED_TASKS = {
     ),
     "sentry.tasks.process_suspect_commits": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
     "sentry.tasks.process_commit_context": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
-    "sentry.tasks.post_process.post_process_group": settings.SENTRY_POST_PROCESS_GROUP_APM_SAMPLING,
+    "sentry.issues.tasks.post_process.post_process_group": settings.SENTRY_POST_PROCESS_GROUP_APM_SAMPLING,
     "sentry.tasks.reprocessing2.handle_remaining_events": settings.SENTRY_REPROCESSING_APM_SAMPLING,
     "sentry.tasks.reprocessing2.reprocess_group": settings.SENTRY_REPROCESSING_APM_SAMPLING,
     "sentry.tasks.reprocessing2.finish_reprocessing": settings.SENTRY_REPROCESSING_APM_SAMPLING,
@@ -81,20 +81,18 @@ SAMPLED_TASKS = {
     "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.ingest.transaction_clusterer.tasks.cluster_projects": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.tasks.process_buffer.process_incr": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
-    "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
+    "sentry.replays.tasks.delete_replay": settings.SAMPLED_DEFAULT_RATE,
     "sentry.replays.tasks.delete_replay_recording_async": settings.SAMPLED_DEFAULT_RATE,
     # Mirror the rate the ingest-replay-recordings consumer used for its
     # per-message transaction, now that the work runs as a task.
     "sentry.replays.tasks.process_replay_recording": settings.SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING,
     "sentry.tasks.summaries.weekly_reports.schedule_organizations": 1.0,
-    "sentry.profiles.task.process_profile": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.profiles.task.process_profile_from_kafka": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.profiles.task.process_profile_from_kafka_raw": 0.1
+    * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.monitors.tasks.clock_pulse": 1.0,
-    "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 1.0,
-    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 1.0,
-    "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.dynamic_sampling.per_org.run_calculations_per_org": 1.0,
     "sentry.dynamic_sampling.per_org.schedule_per_org_calculations": 1.0,
-    "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.autofix.configure_seer_for_existing_org": 1.0,
     "sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks": 1.0,
 }

@@ -139,6 +139,9 @@ def _adjust_http_request_members(ctx: ClassDefContext) -> None:
         add_attribute_to_class(ctx.api, ctx.cls, "superuser", AnyType(TypeOfAny.explicit))
         # added by OrganizationEndpoint.convert_args and similar
         add_attribute_to_class(ctx.api, ctx.cls, "organization", AnyType(TypeOfAny.explicit))
+        # added by sentry.api.client_kind.set_client_kind_attributes
+        add_attribute_to_class(ctx.api, ctx.cls, "client_kind", AnyType(TypeOfAny.explicit))
+        add_attribute_to_class(ctx.api, ctx.cls, "client_host", AnyType(TypeOfAny.explicit))
         # added by sentry.api.authentication.RelayAuthentication
         add_attribute_to_class(ctx.api, ctx.cls, "relay", AnyType(TypeOfAny.explicit))
         add_attribute_to_class(ctx.api, ctx.cls, "relay_request_data", AnyType(TypeOfAny.explicit))

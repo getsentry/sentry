@@ -107,8 +107,8 @@ const Head = styled(Table.Head)`
 `;
 
 const HeadCell = styled(Table.HeadCell, {
-  shouldForwardProp: prop => prop !== 'align' && prop !== 'isFirst',
-})<{align?: 'left' | 'right'; isFirst?: boolean}>`
+  shouldForwardProp: prop => prop !== 'isFirst',
+})<{isFirst?: boolean}>`
   height: ${TABLE_HEAD_ROW_HEIGHT}px;
   display: flex;
   align-items: center;
@@ -150,16 +150,6 @@ const HeadCell = styled(Table.HeadCell, {
   ${HeaderCellContent} > svg {
     align-self: flex-start;
   }
-
-  ${p =>
-    p.align &&
-    css`
-      justify-content: ${p.align};
-
-      ${HeaderCellContent} {
-        justify-content: ${p.align};
-      }
-    `}
 `;
 
 const Row = styled(Table.Row, {

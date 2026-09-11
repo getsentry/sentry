@@ -41,7 +41,6 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useApi} from 'sentry/utils/useApi';
@@ -220,7 +219,7 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
             groupId: storeGroup.id,
             organizationSlug: organization.slug,
             environments: incomingEnvs,
-            expandDerivedData: orgHasIssueInbox(organization),
+            expandDerivedData: organization.features.includes('issue-inbox'),
           }).queryKey,
           prev => (prev ? {...prev, json: storeGroup as Group} : prev)
         );
@@ -393,6 +392,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       // something smarter.
       delete locationQuery._allp;
       navigate({...window.location, query: locationQuery}, {replace: true});
+      // oxlint-disable-next-line react/set-state-in-effect
       setAllProjectChanged(true);
     }
   }, [group?.project.id, allProjectChanged, navigate]);

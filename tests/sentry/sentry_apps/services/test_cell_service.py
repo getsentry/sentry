@@ -18,6 +18,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
 from sentry.types.activity import ActivityType
+from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_rpc_user
 
 
@@ -30,7 +31,10 @@ class TestSentryAppCellService(TestCase):
         self.group = self.create_group(project=self.project)
 
         self.sentry_app = self.create_sentry_app(
-            name="Testin", organization=self.org, webhook_url="https://example.com"
+            name="Testin",
+            organization=self.org,
+            webhook_url="https://example.com",
+            scopes=("event:write",),
         )
 
         self.install = self.create_sentry_app_installation(
@@ -38,6 +42,11 @@ class TestSentryAppCellService(TestCase):
         )
         self.rpc_installation = serialize_sentry_app_installation(self.install)
         self.auth_context = AuthenticationContext(user=serialize_rpc_user(self.user))
+        assert self.sentry_app.proxy_user_id is not None
+        with assume_test_silo_mode_of(User):
+            self.sentry_app_user = serialize_rpc_user(
+                User.objects.get(id=self.sentry_app.proxy_user_id)
+            )
 
     def _action_log_records(
         self, records: list[logging.LogRecord], action: str
@@ -472,11 +481,15 @@ class TestSentryAppCellService(TestCase):
                 action="link",
                 fields={"title": "An Issue"},
                 uri="/link-issue",
-                user=serialize_rpc_user(self.user),
+                user=self.sentry_app_user,
             )
 
         assert result.error is None
-        assert len(self._action_log_records(logs.records, "link_platform_external_issue")) == 1
+        records = self._action_log_records(logs.records, "link_platform_external_issue")
+        assert len(records) == 1
+        assert getattr(records[0], "source") == ActionSource.API
+        assert getattr(records[0], "actor_type") == "sentry_app"
+        assert getattr(records[0], "actor_id") == str(self.sentry_app.id)
         assert self._action_log_records(logs.records, "create_platform_external_issue") == []
 
     def test_create_external_issue_records_action_log(self) -> None:
@@ -498,6 +511,32 @@ class TestSentryAppCellService(TestCase):
         assert getattr(records[0], "actor_type") == "user"
         assert getattr(records[0], "actor_id") == str(self.user.id)
 
+    def test_create_external_issue_records_sentry_app_actor(self) -> None:
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            result = sentry_app_cell_service.create_external_issue(
+                organization_id=self.org.id,
+                installation=self.rpc_installation,
+                group_id=self.group.id,
+                web_url="https://example.com/project/issue-1",
+                project="ProjectName",
+                identifier="issue-1",
+                user=self.sentry_app_user,
+            )
+
+        assert result.error is None
+
+        activity_records = self._action_log_records(logs.records, "create_issue")
+        assert len(activity_records) == 1
+        assert getattr(activity_records[0], "source") == ActionSource.API
+        assert getattr(activity_records[0], "actor_type") == "sentry_app"
+        assert getattr(activity_records[0], "actor_id") == str(self.sentry_app.id)
+
+        platform_records = self._action_log_records(logs.records, "create_platform_external_issue")
+        assert len(platform_records) == 1
+        assert getattr(platform_records[0], "source") == ActionSource.API
+        assert getattr(platform_records[0], "actor_type") == "sentry_app"
+        assert getattr(platform_records[0], "actor_id") == str(self.sentry_app.id)
+
     def test_delete_external_issue_records_action_log(self) -> None:
         with assume_test_silo_mode_of(PlatformExternalIssue):
             external_issue = PlatformExternalIssue.objects.create(
@@ -513,7 +552,7 @@ class TestSentryAppCellService(TestCase):
                 organization_id=self.org.id,
                 installation=self.rpc_installation,
                 external_issue_id=external_issue.id,
-                user=serialize_rpc_user(self.user),
+                user=self.sentry_app_user,
             )
 
         assert result.success is True
@@ -521,8 +560,8 @@ class TestSentryAppCellService(TestCase):
         assert len(records) == 1
         record = records[0]
         assert getattr(record, "source") == ActionSource.API
-        assert getattr(record, "actor_type") == "user"
-        assert getattr(record, "actor_id") == str(self.user.id)
+        assert getattr(record, "actor_type") == "sentry_app"
+        assert getattr(record, "actor_id") == str(self.sentry_app.id)
         assert getattr(record, "metadata") == {
             "service_type": self.sentry_app.slug,
             "display_name": "Test#123",

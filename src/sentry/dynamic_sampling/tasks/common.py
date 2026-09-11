@@ -6,18 +6,7 @@ from datetime import timedelta
 from typing import TypedDict
 
 import sentry_sdk
-from snuba_sdk import (
-    Column,
-    Condition,
-    Direction,
-    Entity,
-    Function,
-    Granularity,
-    Op,
-    OrderBy,
-    Query,
-    Request,
-)
+from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query, Request
 
 from sentry import quotas
 from sentry.dynamic_sampling.tasks.constants import CHUNK_SIZE, MAX_ORGS_PER_QUERY
@@ -30,9 +19,6 @@ from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.snuba.referrer import Referrer
 from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.snuba import raw_snql_query
-
-ACTIVE_ORGS_DEFAULT_TIME_INTERVAL = timedelta(hours=1)
-ACTIVE_ORGS_DEFAULT_GRANULARITY = Granularity(3600)
 
 ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL = timedelta(minutes=5)
 ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY = Granularity(60)
@@ -61,149 +47,6 @@ MEASURE_CONFIGS: dict[SamplingMeasure, MeasureConfig] = {
         "tags": {},
     },
 }
-
-
-class GetActiveOrgs:
-    """
-    Fetch organizations in batches.
-    A batch will return at max max_orgs elements
-    It will accumulate org ids in the list until either it accumulates max_orgs or the
-    number of projects in the already accumulated orgs is more than max_projects or there
-    are no more orgs
-    """
-
-    def __init__(
-        self,
-        max_orgs: int = MAX_ORGS_PER_QUERY,
-        max_projects: int | None = None,
-        time_interval: timedelta = ACTIVE_ORGS_DEFAULT_TIME_INTERVAL,
-        granularity: Granularity = ACTIVE_ORGS_DEFAULT_GRANULARITY,
-        measure: SamplingMeasure = SamplingMeasure.SEGMENTS,
-    ) -> None:
-        config = MEASURE_CONFIGS[measure]
-        self.metric_id = indexer.resolve_shared_org(str(config["mri"]))
-        self.use_case_id = config["use_case_id"]
-        self.tag_filters = config["tags"]
-
-        self.offset = 0
-        self.last_result: list[tuple[int, int]] = []
-        self.has_more_results = True
-        self.max_orgs = max_orgs
-        self.max_projects = max_projects
-        self.time_interval = time_interval
-        self.granularity = granularity
-
-    def __iter__(self) -> GetActiveOrgs:
-        return self
-
-    def __next__(self) -> list[int]:
-        if self._enough_results_cached():
-            # we have enough in the cache to satisfy the current iteration
-            return self._get_from_cache()
-
-        if self.has_more_results:
-            # not enough for the current iteration and data still in the db top it up from db
-            where_conditions = [
-                Condition(
-                    Column("timestamp"),
-                    Op.GTE,
-                    deprecated_utcnow() - self.time_interval,
-                ),
-                Condition(Column("timestamp"), Op.LT, deprecated_utcnow()),
-                Condition(Column("metric_id"), Op.EQ, self.metric_id),
-            ]
-            for tag_name, tag_value in self.tag_filters.items():
-                tag_string_id = indexer.resolve_shared_org(tag_name)
-                tag_column = f"tags_raw[{tag_string_id}]"
-                where_conditions.append(Condition(Column(tag_column), Op.EQ, tag_value))
-
-            query = (
-                Query(
-                    match=Entity(EntityKey.GenericOrgMetricsCounters.value),
-                    select=[
-                        Function("uniq", [Column("project_id")], "num_projects"),
-                        Column("org_id"),
-                    ],
-                    groupby=[
-                        Column("org_id"),
-                    ],
-                    where=where_conditions,
-                    orderby=[
-                        OrderBy(Column("org_id"), Direction.ASC),
-                    ],
-                    granularity=self.granularity,
-                )
-                .set_limit(CHUNK_SIZE + 1)
-                .set_offset(self.offset)
-            )
-            request = Request(
-                dataset=Dataset.PerformanceMetrics.value,
-                app_id="dynamic_sampling",
-                query=query,
-                tenant_ids={
-                    "use_case_id": self.use_case_id.value,
-                    "cross_org_query": 1,
-                },
-            )
-            data = raw_snql_query(
-                request,
-                referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,
-            )["data"]
-            count = len(data)
-
-            self.has_more_results = count > CHUNK_SIZE
-            self.offset += CHUNK_SIZE
-            if self.has_more_results:
-                data = data[:-1]
-            for row in data:
-                self.last_result.append((row["org_id"], row["num_projects"]))
-
-        if len(self.last_result) > 0:
-            # we have some data left return up to the max amount
-            return self._get_from_cache()  # we still have something left in cache
-        else:
-            # nothing left in the DB or cache
-            raise StopIteration()
-
-    def _enough_results_cached(self) -> bool:
-        """
-        Return true if we have enough data to return a full batch in the cache (i.e. last_result)
-        """
-        if len(self.last_result) >= self.max_orgs:
-            return True
-
-        if self.max_projects is not None:
-            total_projects = 0
-            for _, num_projects in self.last_result:
-                total_projects += num_projects
-                if num_projects >= self.max_projects:
-                    return True
-        return False
-
-    def _get_orgs(self, orgs_and_counts: list[tuple[int, int]]) -> list[int]:
-        """
-        Extracts the orgs from last_result
-        """
-        return [org for org, _ in orgs_and_counts]
-
-    def _get_from_cache(self) -> list[int]:
-        """
-        Returns a batch from cache and removes the elements returned from the cache
-        """
-        count_projects = 0
-        for idx, (org_id, num_projects) in enumerate(self.last_result):
-            count_projects += num_projects
-            if idx >= (self.max_orgs - 1) or (
-                self.max_projects is not None and count_projects >= self.max_projects
-            ):
-                # we got to the number of elements desired
-                ret_val = self._get_orgs(self.last_result[: idx + 1])
-                self.last_result = self.last_result[idx + 1 :]
-                return ret_val
-        # if we are here we haven't reached our max limit, return everything
-        ret_val = self._get_orgs(self.last_result)
-        self.last_result = []
-        return ret_val
 
 
 @dataclass(frozen=True)

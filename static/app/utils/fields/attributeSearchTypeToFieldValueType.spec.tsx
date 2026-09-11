@@ -1,4 +1,4 @@
-import type {AttributeSearchType} from '@sentry/conventions';
+import type {AttributeSearchType} from '@sentry/conventions/attributes/search';
 
 import {attributeSearchTypeToFieldValueType} from './attributeSearchTypeToFieldValueType';
 import {FieldValueType} from './types';

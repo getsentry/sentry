@@ -55,6 +55,7 @@ export function StacktraceFlamegraph({frames}: StacktraceFlamegraphProps) {
     };
 
     // Create profile from sampled data
+    // oxlint-disable-next-line react/capitalized-calls -- Static factory on SampledProfile, not a component.
     const profile = SampledProfile.FromProfile(sampledProfileData, frameIndex, {
       type: 'flamegraph',
     });

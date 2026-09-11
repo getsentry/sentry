@@ -21,6 +21,7 @@ import {
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {isSafeHref} from 'sentry/utils/marked/marked';
+import {safeURL} from 'sentry/utils/url/safeURL';
 
 /**
  * Every data type Seer surfaces as a resource link
@@ -82,23 +83,22 @@ export function ResourceLink({
   );
 
   if (/^https?:\/\//.test(href) && isSafeHref(href)) {
-    try {
-      const parsed = new URL(href);
-      if (parsed.origin !== window.location.origin) {
-        return (
-          <ExternalLink href={href}>
-            {icon} {title}
-          </ExternalLink>
-        );
-      }
-      return (
-        <Link to={parsed.pathname + parsed.search + parsed.hash}>
-          {icon} {title}
-        </Link>
-      );
-    } catch {
+    const parsed = safeURL(href);
+    if (!parsed) {
       return null;
     }
+    if (parsed.origin !== window.location.origin) {
+      return (
+        <ExternalLink href={href}>
+          {icon} {title}
+        </ExternalLink>
+      );
+    }
+    return (
+      <Link to={parsed.pathname + parsed.search + parsed.hash}>
+        {icon} {title}
+      </Link>
+    );
   }
 
   if (/^\/[^/]/.test(href)) {

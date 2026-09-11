@@ -46,15 +46,22 @@ const organization = OrganizationFixture({
   features: ['gen-ai-conversations'],
 });
 
-function mockConversations(body: Array<Record<string, unknown>>) {
-  MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/agents/conversations/`,
+const sortingOrganization = OrganizationFixture({
+  features: ['gen-ai-conversations', 'gen-ai-conversations-querying-enhancements'],
+});
+
+function mockConversations(
+  body: Array<Record<string, unknown>>,
+  currentOrganization = organization
+) {
+  return MockApiClient.addMockResponse({
+    url: `/organizations/${currentOrganization.slug}/agents/conversations/`,
     body,
   });
 }
 
-function renderTable() {
-  return render(<ConversationsTable />, {organization});
+function renderTable(currentOrganization = organization) {
+  return render(<ConversationsTable />, {organization: currentOrganization});
 }
 
 describe('ConversationsTable', () => {
@@ -225,6 +232,49 @@ describe('ConversationsTable', () => {
       const stored = localStorage.getItem(COLUMN_WIDTHS_STORAGE_KEY);
       expect(stored && JSON.parse(stored)).toEqual({tools: 300});
     });
+  });
+
+  it('sorts by supported headers when the feature is enabled', async () => {
+    const request = mockConversations(
+      [{...BASE_CONVERSATION, title: 'Sortable conversation'}],
+      sortingOrganization
+    );
+
+    renderTable(sortingOrganization);
+
+    await screen.findByText('Sortable conversation');
+    expect(screen.getByRole('columnheader', {name: 'Age'})).toHaveAttribute(
+      'aria-sort',
+      'descending'
+    );
+    expect(screen.queryByRole('button', {name: 'Conversation'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Tools'})).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Cost'}));
+
+    await waitFor(() =>
+      expect(request).toHaveBeenCalledWith(
+        `/organizations/${sortingOrganization.slug}/agents/conversations/`,
+        expect.objectContaining({
+          query: expect.objectContaining({sort: ['-totalCost']}),
+        })
+      )
+    );
+    await waitFor(() =>
+      expect(screen.getByRole('columnheader', {name: 'Cost'})).toHaveAttribute(
+        'aria-sort',
+        'descending'
+      )
+    );
+  });
+
+  it('does not make headers sortable when the feature is disabled', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: 'Unsortable conversation'}]);
+
+    renderTable();
+
+    await screen.findByText('Unsortable conversation');
+    expect(screen.queryByRole('button', {name: 'Cost'})).not.toBeInTheDocument();
   });
 
   it('navigates to the conversation detail on row click', async () => {

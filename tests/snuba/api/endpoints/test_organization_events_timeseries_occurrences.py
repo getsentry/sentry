@@ -73,7 +73,7 @@ class OrganizationEventsTimeseriesOccurrencesEndpointTest(
         ]
         self.store_eap_items(occurrences)
         with self.options(
-            {EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: self.callsite_name}
+            {EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION: [self.callsite_name]}
         ):
             return self._do_request(
                 data={

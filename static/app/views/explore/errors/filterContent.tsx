@@ -1,4 +1,4 @@
-import {Grid} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -20,28 +20,39 @@ export function ErrorsFilterSection() {
         searchSource="errors-filter"
         placeholder={t('Search for errors, users, tags, and more')}
       >
-        {/* TODO: add in min-content column for cross event querying when that's implemented */}
         <Grid
+          areas={{
+            zero: `
+              "filters"
+              "search"
+            `,
+            '3xl': '"filters search"',
+          }}
+          columns={{zero: '100%', '3xl': 'minmax(300px, auto) 1fr'}}
           gap="md"
-          columns={{'screen:sm': '1fr', 'screen:md': 'minmax(300px, auto) 1fr'}}
+          width="100%"
         >
-          <StyledPageFilterBar condensed>
-            <ProjectPageFilter />
-            <EnvironmentPageFilter />
-            <DatePageFilter />
-          </StyledPageFilterBar>
+          <Container area="filters" justifySelf={{zero: 'stretch', sm: 'start'}}>
+            <StyledPageFilterBar condensed>
+              <ProjectPageFilter />
+              <EnvironmentPageFilter />
+              <DatePageFilter />
+            </StyledPageFilterBar>
+          </Container>
 
-          <TraceItemSearchQueryBuilder
-            initialQuery=""
-            searchSource="errors-filter"
-            booleanAttributes={{}}
-            booleanSecondaryAliases={{}}
-            itemType={TraceItemDataset.ERRORS}
-            numberAttributes={{}}
-            numberSecondaryAliases={{}}
-            stringAttributes={{}}
-            stringSecondaryAliases={{}}
-          />
+          <Container area="search">
+            <TraceItemSearchQueryBuilder
+              initialQuery=""
+              searchSource="errors-filter"
+              booleanAttributes={{}}
+              booleanSecondaryAliases={{}}
+              itemType={TraceItemDataset.ERRORS}
+              numberAttributes={{}}
+              numberSecondaryAliases={{}}
+              stringAttributes={{}}
+              stringSecondaryAliases={{}}
+            />
+          </Container>
         </Grid>
       </SearchQueryBuilderProvider>
     </Layout.Main>

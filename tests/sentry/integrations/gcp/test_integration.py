@@ -20,7 +20,6 @@ from sentry.integrations.gcp.utils import (
     GCP_STATUS_UNVERIFIED,
     parse_customer_sa_email,
     parse_gcp_project_ids,
-    resolve_project_error_detail,
     validate_gcp_project_id,
 )
 from sentry.integrations.models.gcp_service_account import GcpServiceAccount
@@ -91,6 +90,10 @@ class GcpIntegrationTest(TestCase):
                 {
                     "gcp_project_id": project_id,
                     "connection_status": connection_status,
+                    "services": [
+                        {"service": service, "status": connection_status, "error_detail": None}
+                        for service in ("logging", "monitoring", "cloudtrace")
+                    ],
                     "error_detail": None,
                 }
                 for project_id in project_ids
@@ -217,7 +220,9 @@ class GcpIntegrationTest(TestCase):
     def _validated_verification(self, **overrides: object) -> GcpVerification:
         data: dict[str, Any] = {
             "connectionStatus": "connected",
-            "projects": [{"gcpProjectId": "my-gcp-project", "connectionStatus": "connected"}],
+            "projects": [
+                {"services": [], "gcpProjectId": "my-gcp-project", "connectionStatus": "connected"}
+            ],
         }
         data.update(overrides)
         serializer = GcpVerificationInputSerializer(data=data)
@@ -255,6 +260,7 @@ class GcpIntegrationTest(TestCase):
             "connection_status": "connected",
             "projects": [
                 {
+                    "services": [],
                     "gcp_project_id": "my-gcp-project",
                     "connection_status": "connected",
                     "error_detail": None,
@@ -274,6 +280,7 @@ class GcpIntegrationTest(TestCase):
                 connectionStatus="permission_denied",
                 projects=[
                     {
+                        "services": [],
                         "gcpProjectId": "my-gcp-project",
                         "connectionStatus": "permission_denied",
                         "errorDetail": "IAM roles not granted",
@@ -289,6 +296,7 @@ class GcpIntegrationTest(TestCase):
             "connection_status": "permission_denied",
             "projects": [
                 {
+                    "services": [],
                     "gcp_project_id": "my-gcp-project",
                     "connection_status": "permission_denied",
                     "error_detail": "IAM roles not granted",
@@ -308,7 +316,13 @@ class GcpIntegrationTest(TestCase):
 
         result = step.handle_post(
             self._validated_verification(
-                projects=[{"gcpProjectId": "project-prod", "connectionStatus": "connected"}]
+                projects=[
+                    {
+                        "services": [],
+                        "gcpProjectId": "project-prod",
+                        "connectionStatus": "connected",
+                    }
+                ]
             ),
             pipeline,
             Mock(),
@@ -323,7 +337,11 @@ class GcpIntegrationTest(TestCase):
             data={
                 "connectionStatus": "quota_exceeded",
                 "projects": [
-                    {"gcpProjectId": "my-gcp-project", "connectionStatus": "quota_exceeded"}
+                    {
+                        "services": [],
+                        "gcpProjectId": "my-gcp-project",
+                        "connectionStatus": "quota_exceeded",
+                    }
                 ],
             }
         )
@@ -337,6 +355,36 @@ class GcpIntegrationTest(TestCase):
         assert not serializer.is_valid()
         assert "projects" in serializer.errors
 
+    def test_verification_serializer_requires_services(self) -> None:
+        serializer = GcpVerificationInputSerializer(
+            data={
+                "connectionStatus": "connected",
+                "projects": [{"gcpProjectId": "my-gcp-project", "connectionStatus": "connected"}],
+            }
+        )
+
+        assert not serializer.is_valid()
+        assert serializer.errors["projects"][0]["services"][0].code == "required"
+
+    def test_verification_serializer_requires_service_identity_and_status(self) -> None:
+        serializer = GcpVerificationInputSerializer(
+            data={
+                "connectionStatus": "connected",
+                "projects": [
+                    {
+                        "gcpProjectId": "my-gcp-project",
+                        "connectionStatus": "connected",
+                        "services": [{}],
+                    }
+                ],
+            }
+        )
+
+        assert not serializer.is_valid()
+        errors = serializer.errors["projects"][0]["services"][0]
+        assert errors["service"][0].code == "required"
+        assert errors["status"][0].code == "required"
+
     def test_verification_step_normalizes_blank_error_detail(self) -> None:
         step = GcpVerificationApiStep()
         state: dict[str, object] = {
@@ -348,6 +396,7 @@ class GcpIntegrationTest(TestCase):
             self._validated_verification(
                 projects=[
                     {
+                        "services": [],
                         "gcpProjectId": "my-gcp-project",
                         "connectionStatus": "connected",
                         "errorDetail": "",
@@ -363,6 +412,80 @@ class GcpIntegrationTest(TestCase):
         assert verification["projects"][0]["error_detail"] is None
 
     # -- Build + install --
+
+    def test_service_results_survive_installation_and_config_reload(self) -> None:
+        state = self._state(projects=["project-prod", "project-staging"])
+        pipeline = self._make_pipeline(state=state)
+        verification = self._validated_verification(
+            connectionStatus="permission_denied",
+            projects=[
+                {
+                    "gcpProjectId": "project-prod",
+                    "connectionStatus": "connected",
+                    "services": [{"service": "logging", "status": "connected"}],
+                },
+                {
+                    "gcpProjectId": "project-staging",
+                    "connectionStatus": "permission_denied",
+                    "services": [
+                        {"service": "logging", "status": "connected", "errorDetail": None},
+                        {
+                            "service": "monitoring",
+                            "status": "api_disabled",
+                            "errorDetail": "Enable the Monitoring API.",
+                        },
+                        {
+                            "service": "cloudtrace",
+                            "status": "permission_denied",
+                            "errorDetail": "Check service account access.",
+                        },
+                    ],
+                },
+            ],
+        )
+        result = GcpVerificationApiStep().handle_post(verification, pipeline, Mock())
+        assert result == PipelineStepResult.advance()
+        built = self.provider.build_integration(state)
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="gcp",
+            external_id=str(self.organization.id),
+            name="Google Cloud Platform",
+        )
+
+        self.provider.post_install(integration, self.organization, extra=built["post_install_data"])
+
+        installation = integration.get_installation(organization_id=self.organization.id)
+        assert isinstance(installation, GcpIntegration)
+        data = installation.get_config_data()
+        assert data["connection_status"] == "permission_denied"
+        assert data["last_verified_at"] is not None
+        assert data["project_statuses"] == [
+            {
+                "gcp_project_id": "project-prod",
+                "connection_status": "connected",
+                "services": [{"service": "logging", "status": "connected", "error_detail": None}],
+                "error_detail": None,
+            },
+            {
+                "gcp_project_id": "project-staging",
+                "connection_status": "permission_denied",
+                "services": [
+                    {"service": "logging", "status": "connected", "error_detail": None},
+                    {
+                        "service": "monitoring",
+                        "status": "api_disabled",
+                        "error_detail": "Enable the Monitoring API.",
+                    },
+                    {
+                        "service": "cloudtrace",
+                        "status": "permission_denied",
+                        "error_detail": "Check service account access.",
+                    },
+                ],
+                "error_detail": None,
+            },
+        ]
 
     def test_build_integration_returns_correct_data(self) -> None:
         result = self.provider.build_integration(self._state())
@@ -396,6 +519,7 @@ class GcpIntegrationTest(TestCase):
             "connection_status": "connected",
             "projects": [
                 {
+                    "services": [],
                     "gcp_project_id": "my-gcp-project",
                     "connection_status": "connected",
                     "error_detail": None,
@@ -448,6 +572,7 @@ class GcpIntegrationTest(TestCase):
                     "connection_status": "connected",
                     "projects": [
                         {
+                            "services": [],
                             "gcp_project_id": "my-gcp-project",
                             "connection_status": "connected",
                             "error_detail": None,
@@ -482,6 +607,7 @@ class GcpIntegrationTest(TestCase):
                     "connection_status": "permission_denied",
                     "projects": [
                         {
+                            "services": [],
                             "gcp_project_id": "my-gcp-project",
                             "connection_status": "permission_denied",
                             "error_detail": "IAM roles not granted",
@@ -498,6 +624,7 @@ class GcpIntegrationTest(TestCase):
         assert org_integration.config["connection_status"] == "permission_denied"
         assert org_integration.config["project_statuses"] == [
             {
+                "services": [],
                 "gcp_project_id": "my-gcp-project",
                 "connection_status": "permission_denied",
                 "error_detail": "IAM roles not granted",
@@ -533,6 +660,7 @@ class GcpIntegrationTest(TestCase):
         assert org_integration.config["last_verified_at"] is None
         assert org_integration.config["project_statuses"] == [
             {
+                "services": [],
                 "gcp_project_id": "my-gcp-project",
                 "connection_status": "error",
                 "error_detail": "Verification failed to run during setup.",
@@ -583,6 +711,7 @@ class GcpIntegrationTest(TestCase):
         assert config["last_verified_at"] is None
         assert config["project_statuses"] == [
             {
+                "services": [],
                 "gcp_project_id": "my-gcp-project",
                 "connection_status": GCP_STATUS_UNVERIFIED,
                 "error_detail": None,
@@ -593,7 +722,7 @@ class GcpIntegrationTest(TestCase):
         installation = self._create_installed_integration()
 
         installation.update_organization_config(
-            {"projects": " project-prod , project-staging ,project-prod"}
+            {"projects": [" project-prod ", "project-staging", "project-prod"]}
         )
 
         config = self._stored_config()
@@ -609,7 +738,7 @@ class GcpIntegrationTest(TestCase):
             projects=["project-prod", "project-staging"]
         )
 
-        installation.update_organization_config({"projects": "project-staging, project-prod"})
+        installation.update_organization_config({"projects": ["project-staging", "project-prod"]})
 
         config = self._stored_config()
         assert config["projects"] == ["project-prod", "project-staging"]
@@ -621,17 +750,32 @@ class GcpIntegrationTest(TestCase):
             projects=["project-prod", "project-staging"]
         )
 
-        installation.update_organization_config({"projects": "project-staging, project-new"})
+        installation.update_organization_config({"projects": ["project-staging", "project-new"]})
 
         config = self._stored_config()
         assert config["connection_status"] == GCP_STATUS_UNVERIFIED
         assert config["last_verified_at"] is None
+        assert config["project_statuses"] == [
+            {
+                "gcp_project_id": project_id,
+                "connection_status": GCP_STATUS_UNVERIFIED,
+                "services": [],
+                "error_detail": None,
+            }
+            for project_id in ("project-staging", "project-new")
+        ]
+
+    def test_update_config_rejects_a_string_of_projects(self) -> None:
+        installation = self._create_installed_integration()
+
+        with pytest.raises(IntegrationConfigurationError, match="must be a list"):
+            installation.update_organization_config({"projects": "project-prod, project-staging"})
 
     def test_update_config_rejects_invalid_project_id(self) -> None:
         installation = self._create_installed_integration()
 
         with pytest.raises(IntegrationConfigurationError, match="Invalid GCP project ID"):
-            installation.update_organization_config({"projects": "INVALID"})
+            installation.update_organization_config({"projects": ["INVALID"]})
 
         assert self._stored_config()["projects"] == ["my-gcp-project"]
 
@@ -639,7 +783,7 @@ class GcpIntegrationTest(TestCase):
         installation = self._create_installed_integration()
 
         with pytest.raises(IntegrationConfigurationError, match="At least one GCP project ID"):
-            installation.update_organization_config({"projects": "  ,  "})
+            installation.update_organization_config({"projects": ["  ", ""]})
 
     def test_update_config_rejects_empty_customer_sa_email(self) -> None:
         installation = self._create_installed_integration()
@@ -662,7 +806,7 @@ class GcpIntegrationTest(TestCase):
     def test_update_config_noop_when_nothing_changed(self) -> None:
         installation = self._create_installed_integration()
         installation.update_organization_config(
-            {"customer_sa_email": _CUSTOMER_SA, "projects": "my-gcp-project"}
+            {"customer_sa_email": _CUSTOMER_SA, "projects": ["my-gcp-project"]}
         )
 
         config = self._stored_config()
@@ -689,7 +833,15 @@ class GcpIntegrationTest(TestCase):
         assert "disabled" not in fields["customer_sa_email"]
         assert "disabled" not in fields["projects"]
 
-    def test_get_config_data_flattens_projects(self) -> None:
+    def test_projects_field_is_a_creatable_multi_select(self) -> None:
+        installation = self._create_installed_integration()
+        fields = {f["name"]: f for f in installation.get_organization_config()}
+
+        assert fields["projects"]["type"] == "select"
+        assert fields["projects"]["multiple"] is True
+        assert fields["projects"]["creatable"] is True
+
+    def test_get_config_data_returns_projects_as_a_list(self) -> None:
         installation = self._create_installed_integration(
             projects=["project-a", "project-b", "project-c"]
         )
@@ -697,7 +849,7 @@ class GcpIntegrationTest(TestCase):
 
         assert data["sentry_sa_email"] == _SA_EMAIL
         assert data["customer_sa_email"] == _CUSTOMER_SA
-        assert data["projects"] == "project-a, project-b, project-c"
+        assert data["projects"] == ["project-a", "project-b", "project-c"]
 
     def test_get_config_data_exposes_the_connection_status(self) -> None:
         installation = self._create_installed_integration()
@@ -709,6 +861,11 @@ class GcpIntegrationTest(TestCase):
             {
                 "gcp_project_id": "my-gcp-project",
                 "connection_status": "connected",
+                "services": [
+                    {"service": "logging", "status": "connected", "error_detail": None},
+                    {"service": "monitoring", "status": "connected", "error_detail": None},
+                    {"service": "cloudtrace", "status": "connected", "error_detail": None},
+                ],
                 "error_detail": None,
             }
         ]
@@ -821,7 +978,7 @@ class GcpIntegrationTest(TestCase):
         assert parse_gcp_project_ids(["project-a", "project-b"]) == ["project-a", "project-b"]
 
     def test_parse_gcp_project_ids_rejects_unusable_input(self) -> None:
-        with pytest.raises(IntegrationConfigurationError, match="comma-separated list"):
+        with pytest.raises(IntegrationConfigurationError, match="must be a list"):
             parse_gcp_project_ids(42)
 
     def test_parse_customer_sa_email_trims(self) -> None:
@@ -834,64 +991,6 @@ class GcpIntegrationTest(TestCase):
     def test_parse_customer_sa_email_rejects_overlong_values(self) -> None:
         with pytest.raises(IntegrationConfigurationError, match="at most"):
             parse_customer_sa_email("a" * 250 + "@customer.com")
-
-    def test_resolve_project_error_detail_prefers_the_project_level_message(self) -> None:
-        detail = resolve_project_error_detail(
-            {
-                "gcp_project_id": "project-a",
-                "connection_status": "permission_denied",
-                "error_detail": "SA impersonation chain failed",
-                "services": [
-                    {"service": "logging", "status": "permission_denied", "error_detail": "nope"}
-                ],
-            }
-        )
-        assert detail == "SA impersonation chain failed"
-
-    def test_resolve_project_error_detail_rolls_up_failing_services(self) -> None:
-        detail = resolve_project_error_detail(
-            {
-                "gcp_project_id": "project-a",
-                "connection_status": "error",
-                "error_detail": None,
-                "services": [
-                    {"service": "logging", "status": "connected", "error_detail": None},
-                    {
-                        "service": "monitoring",
-                        "status": "api_disabled",
-                        "error_detail": "API is disabled",
-                    },
-                    {
-                        "service": "cloudtrace",
-                        "status": "project_not_found",
-                        "error_detail": "Project not found",
-                    },
-                ],
-            }
-        )
-        assert detail == ("Cloud Monitoring: API is disabled; Cloud Trace: Project not found")
-
-    def test_resolve_project_error_detail_handles_unknown_service(self) -> None:
-        detail = resolve_project_error_detail(
-            {
-                "gcp_project_id": "project-a",
-                "connection_status": "error",
-                "error_detail": None,
-                "services": [{"service": "brand-new", "status": "error", "error_detail": None}],
-            }
-        )
-        assert detail == "brand-new: Unknown error"
-
-    def test_resolve_project_error_detail_is_none_when_connected(self) -> None:
-        detail = resolve_project_error_detail(
-            {
-                "gcp_project_id": "project-a",
-                "connection_status": "connected",
-                "error_detail": None,
-                "services": [{"service": "logging", "status": "connected", "error_detail": None}],
-            }
-        )
-        assert detail is None
 
     def test_validate_gcp_project_id_rejects_invalid_ids(self) -> None:
         for project_id in [

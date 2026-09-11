@@ -145,7 +145,7 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
       invalidFilterKeys: localInvalidFilterKeys,
     };
   }, [
-    props.validatedSearchQueryData?.query.fields,
+    props.validatedSearchQueryData,
     spanBooleanAttributes,
     spanNumberAttributes,
     spanStringAttributesWithSemver,

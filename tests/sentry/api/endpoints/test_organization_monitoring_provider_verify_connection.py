@@ -28,6 +28,11 @@ def _denied_result(project_id: str = "proj-a") -> dict[str, Any]:
                 "services": [
                     {"service": "logging", "status": "connected", "error_detail": None},
                     {
+                        "service": "monitoring",
+                        "status": "api_disabled",
+                        "error_detail": "Enable the Monitoring API.",
+                    },
+                    {
                         "service": "cloudtrace",
                         "status": "permission_denied",
                         "error_detail": "IAM roles not granted",
@@ -68,6 +73,7 @@ class OrganizationMonitoringProviderVerifyConnectionTest(APITestCase):
                         {
                             "gcp_project_id": project_id,
                             "connection_status": "unverified",
+                            "services": [],
                             "error_detail": None,
                         }
                         for project_id in project_ids
@@ -187,12 +193,14 @@ class OrganizationMonitoringProviderVerifyConnectionTest(APITestCase):
         _PATCH_VERIFY,
         return_value={
             "connection_status": "connected",
-            "projects": [{"gcp_project_id": "proj-a"}],
+            "projects": [{"gcp_project_id": "proj-a", "connection_status": "connected"}],
         },
     )
     def test_invalid_seer_response_returns_502(
         self, mock_verify: MagicMock, mock_sa_email: MagicMock
     ) -> None:
+        self._install()
+        original_config = self._config()
         with self.feature("organizations:seer-infra-telemetry"):
             response = self.get_response(
                 self.organization.slug,
@@ -202,6 +210,7 @@ class OrganizationMonitoringProviderVerifyConnectionTest(APITestCase):
 
         assert response.status_code == 502
         assert response.data == {"detail": "Failed to verify GCP connection. Please try again."}
+        assert self._config() == original_config
 
     def test_missing_required_fields(self) -> None:
         with self.feature("organizations:seer-infra-telemetry"):
@@ -273,7 +282,24 @@ class OrganizationMonitoringProviderVerifyConnectionTest(APITestCase):
                 gcp_project_ids=["proj-a"],
             )
 
-        assert response.data["projects"][0]["errorDetail"] == ("Cloud Trace: IAM roles not granted")
+        assert response.data["projects"][0] == {
+            "gcpProjectId": "proj-a",
+            "connectionStatus": "permission_denied",
+            "services": [
+                {"service": "logging", "status": "connected", "errorDetail": None},
+                {
+                    "service": "monitoring",
+                    "status": "api_disabled",
+                    "errorDetail": "Enable the Monitoring API.",
+                },
+                {
+                    "service": "cloudtrace",
+                    "status": "permission_denied",
+                    "errorDetail": "IAM roles not granted",
+                },
+            ],
+            "errorDetail": None,
+        }
 
         config = self._config()
         assert config["connection_status"] == "permission_denied"
@@ -281,7 +307,20 @@ class OrganizationMonitoringProviderVerifyConnectionTest(APITestCase):
             {
                 "gcp_project_id": "proj-a",
                 "connection_status": "permission_denied",
-                "error_detail": "Cloud Trace: IAM roles not granted",
+                "services": [
+                    {"service": "logging", "status": "connected", "error_detail": None},
+                    {
+                        "service": "monitoring",
+                        "status": "api_disabled",
+                        "error_detail": "Enable the Monitoring API.",
+                    },
+                    {
+                        "service": "cloudtrace",
+                        "status": "permission_denied",
+                        "error_detail": "IAM roles not granted",
+                    },
+                ],
+                "error_detail": None,
             }
         ]
         assert config["last_verified_at"] is not None
@@ -329,10 +368,114 @@ class OrganizationMonitoringProviderVerifyConnectionTest(APITestCase):
             {
                 "gcp_project_id": "proj-a",
                 "connection_status": "connected",
+                "services": [
+                    {"service": "logging", "status": "connected", "error_detail": None},
+                    {"service": "monitoring", "status": "connected", "error_detail": None},
+                    {"service": "cloudtrace", "status": "connected", "error_detail": None},
+                ],
                 "error_detail": None,
             }
         ]
         assert config["last_verified_at"] is not None
+
+    @patch(_PATCH_SA_EMAIL, return_value=_SENTRY_SA)
+    @patch(_PATCH_VERIFY)
+    def test_preserves_project_details_and_separates_projects(
+        self, mock_verify: MagicMock, mock_sa_email: MagicMock
+    ) -> None:
+        self._install(projects=["proj-a", "proj-b"])
+        denied = _denied_result()["projects"][0]
+        denied["error_detail"] = "Check the configured service account."
+        connected = {
+            "gcp_project_id": "proj-b",
+            "connection_status": "connected",
+            "services": [
+                {"service": "logging", "status": "connected", "error_detail": None},
+            ],
+            "error_detail": None,
+        }
+        mock_verify.return_value = {
+            "connection_status": "permission_denied",
+            "projects": [denied, connected],
+        }
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_success_response(
+                self.organization.slug,
+                customer_sa_email=_CUSTOMER_SA,
+                gcp_project_ids=["proj-a", "proj-b"],
+            )
+
+        assert response.data["projects"][0]["errorDetail"] == (
+            "Check the configured service account."
+        )
+        assert response.data["projects"][1]["errorDetail"] is None
+        assert self._config()["project_statuses"] == [denied, connected]
+
+    @patch(_PATCH_SA_EMAIL, return_value=_SENTRY_SA)
+    @patch(_PATCH_VERIFY)
+    def test_missing_details_are_stored_as_null(
+        self, mock_verify: MagicMock, mock_sa_email: MagicMock
+    ) -> None:
+        self._install()
+        mock_verify.return_value = {
+            "connection_status": "connected",
+            "projects": [
+                {
+                    "gcp_project_id": "proj-a",
+                    "connection_status": "connected",
+                    "services": [{"service": "logging", "status": "connected"}],
+                }
+            ],
+        }
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_success_response(
+                self.organization.slug,
+                customer_sa_email=_CUSTOMER_SA,
+                gcp_project_ids=["proj-a"],
+            )
+
+        assert response.data["projects"][0]["errorDetail"] is None
+        assert response.data["projects"][0]["services"][0]["errorDetail"] is None
+        assert self._config()["project_statuses"] == [
+            {
+                "gcp_project_id": "proj-a",
+                "connection_status": "connected",
+                "services": [
+                    {"service": "logging", "status": "connected", "error_detail": None},
+                ],
+                "error_detail": None,
+            }
+        ]
+
+    @patch(_PATCH_SA_EMAIL, return_value=_SENTRY_SA)
+    @patch(_PATCH_VERIFY)
+    def test_invalid_services_are_not_recorded(
+        self, mock_verify: MagicMock, mock_sa_email: MagicMock
+    ) -> None:
+        self._install()
+        original_config = self._config()
+        mock_verify.return_value = {
+            "connection_status": "connected",
+            "projects": [
+                {
+                    "gcp_project_id": "proj-a",
+                    "connection_status": "connected",
+                    "services": [{"service": "logging"}],
+                }
+            ],
+        }
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_response(
+                self.organization.slug,
+                customer_sa_email=_CUSTOMER_SA,
+                gcp_project_ids=["proj-a"],
+            )
+
+        assert response.status_code == 502
+        assert self._config() == original_config
 
     @patch(_PATCH_SA_EMAIL, return_value=_SENTRY_SA)
     @patch(_PATCH_VERIFY, return_value=_denied_result())

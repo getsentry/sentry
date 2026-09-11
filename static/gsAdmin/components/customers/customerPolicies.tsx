@@ -2,7 +2,7 @@ import moment from 'moment-timezone';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {ResultGrid} from 'admin/components/resultGrid';
+import {ResultGrid} from 'sentry/components/resultGrid';
 
 const getRow = (row: any) => [
   <td key="name">
@@ -25,7 +25,6 @@ export function CustomerPolicies({orgId}: any) {
       panelTitle="Policies and Consent"
       path={`/_admin/customers/${orgId}/`}
       endpoint={`/customers/${orgId}/policies/`}
-      method="GET"
       defaultParams={{per_page: 10}}
       useQueryString={false}
       columns={[

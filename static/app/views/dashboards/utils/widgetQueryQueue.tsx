@@ -59,6 +59,7 @@ export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}
         onSettled: (_item: QueueItem, queuer) => {
           const queueIsEmpty = queuer.peekAllItems().length === 0;
           if (queueIsEmpty && startTimeRef.current) {
+            // oxlint-disable-next-line react/purity
             const endTime = performance.now();
             const totalTime = endTime - startTimeRef.current;
             startTimeRef.current = undefined;

@@ -123,15 +123,7 @@ export function ProfilePreview({
     }
 
     return;
-  }, [
-    canvasView,
-    event,
-    organization,
-    spanThreadId,
-    profileID,
-    profilerID,
-    project?.slug,
-  ]);
+  }, [canvasView, event, organization, spanThreadId, profileID, profilerID, project]);
 
   // The most recent profile formats should contain a timestamp indicating
   // the beginning of the profile. This timestamp can be after the start

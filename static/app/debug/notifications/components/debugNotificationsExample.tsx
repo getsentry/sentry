@@ -27,7 +27,7 @@ export function DebugNotificationsExample({
   );
   return (
     <Container padding="md" border="primary" radius="md">
-      <ExampleGrid columns="1fr auto" gap="lg xl">
+      <ExampleGrid columns="auto minmax(0, 1fr)" gap="lg xl">
         <Flex justify="between" column="span 2" align="center">
           <Heading as="h3">Example Data</Heading>
           <SegmentedControl
@@ -46,7 +46,9 @@ export function DebugNotificationsExample({
           Subject
         </Text>
         {displayFormat === ExampleDataFormat.FORMATTED ? (
-          <Text>{registration.example.subject.map(block => block.text).join(' ')}</Text>
+          <Text wordBreak="break-word">
+            {registration.example.subject.map(block => block.text).join(' ')}
+          </Text>
         ) : (
           <CodeBlock language="json">
             {JSON.stringify(registration.example.subject, null, 2)}
@@ -56,7 +58,7 @@ export function DebugNotificationsExample({
           Body
         </Text>
         {displayFormat === ExampleDataFormat.FORMATTED ? (
-          <Text>{JSON.stringify(registration.example.body)}</Text>
+          <Text wordBreak="break-word">{JSON.stringify(registration.example.body)}</Text>
         ) : (
           <CodeBlock language="javascript">
             {JSON.stringify(registration.example.body)}

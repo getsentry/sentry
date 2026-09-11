@@ -104,18 +104,12 @@ Writing or editing frontend tests (`*.spec.tsx`, RTL, `MockApiClient`, routing/n
 
 ## Sentry SDK Instrumentation
 
-Before inventing a key for `Sentry.setTag`/`setContext`, or a span's `setAttribute`, check whether OTel or Sentry already has a standard name for it in `@sentry/conventions`. Reusing a convention name keeps the attribute queryable and consistent with what other producers (SDKs, Relay) already emit for the same concept — a bespoke name fragments the same data across two keys. This mirrors the Python-side rule in the **`backend-conventions`** skill; the two must stay in sync since a frontend and backend span can describe the same request.
+Before inventing a key for `Sentry.setTag`/`setContext`, or a span's `setAttribute`, check whether OTel or Sentry already has a standard name for it in `@sentry/conventions`. Reuse existing names so the same attribute remains queryable across producers such as SDKs and Relay.
 
-The individual name constants (e.g. `USER_AGENT_ORIGINAL`) live at the `/attributes` subpath, not the package root — the root only re-exports the metadata tables: `ATTRIBUTE_METADATA` (the full per-attribute record — brief, type, aliases, deprecation) and `ATTRIBUTE_SEARCH_METADATA` (the descriptions the search-field UI renders, see `static/app/utils/fields/`). Both are a separate concern from the name itself.
+Find attribute name constants in `@sentry/conventions/attributes/search`, where they are prefixed with `SEARCH_`. Use `span.setAttribute` to attach the value with the existing convention name:
 
 ```tsx
-import {USER_AGENT_ORIGINAL} from '@sentry/conventions/attributes';
+import {SEARCH_USER_AGENT__ORIGINAL} from '@sentry/conventions/attributes/search';
 
-// WRONG: inventing a name for a concept the conventions already cover
-span.setAttribute('request_user_agent', navigator.userAgent);
-
-// RIGHT: use the existing convention name
-span.setAttribute(USER_AGENT_ORIGINAL, navigator.userAgent);
+span.setAttribute(SEARCH_USER_AGENT__ORIGINAL, navigator.userAgent);
 ```
-
-These are generated from the OTel semantic conventions plus Sentry's own model — grep `node_modules/@sentry/conventions/dist/attributes.d.ts` for candidate keywords before adding a new one.

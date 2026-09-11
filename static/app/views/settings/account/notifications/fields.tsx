@@ -212,7 +212,7 @@ export const NOTIFICATION_SETTING_FIELDS = {
   spikeProtection: {
     name: 'spikeProtection',
     type: 'select',
-    label: t('Spike Protection'),
+    label: t('Spike Protection Notifications'),
     choices: [
       ['always', t('On')],
       ['never', t('Off')],

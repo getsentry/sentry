@@ -12,12 +12,13 @@ import {
   fullWidthCellStyle,
   Table,
   type TableColumnConfig,
+  useIsColumnHidden,
 } from '@sentry/scraps/table';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import type {ColumnAlign} from 'sentry/components/tables/gridEditable';
 import {
+  type ColumnAlign,
   HeaderCellContent,
   type SortDirection,
 } from 'sentry/components/tables/sortableHeaderCell';
@@ -40,8 +41,12 @@ interface RowProps extends HTMLAttributes<HTMLTableRowElement> {
 type HeaderCellVariant = 'default' | 'first' | 'remaining' | 'full-width';
 
 export function SimpleTable({children, columns, header, ...props}: TableProps) {
+  // Cells name their column so it can be hidden, which is not an invitation to
+  // resize it: this shell has no resize affordance of its own.
+  const unresizableColumns = columns?.map(column => ({resizable: false, ...column}));
+
   return (
-    <StyledTable columns={columns} {...props}>
+    <StyledTable columns={unresizableColumns} {...props}>
       <PanelProvider>
         {header && <Table.Head>{header}</Table.Head>}
         <Table.Body>{children}</Table.Body>
@@ -74,6 +79,7 @@ function HeaderCell({
 }: HTMLAttributes<HTMLTableCellElement> & {
   align?: ColumnAlign;
   children?: React.ReactNode;
+  columnKey?: string;
   divider?: boolean;
   handleSortClick?: (event: React.MouseEvent) => void;
   sort?: SortDirection;
@@ -111,12 +117,22 @@ function Row({children, variant = 'default', ref, ...props}: RowProps) {
 
 function RowCell({
   children,
+  columnKey,
   ...props
 }: ComponentProps<typeof Flex> & {
   children: React.ReactNode;
+  columnKey?: string;
 }) {
   return (
-    <Flex as="td" role="cell" align="center" overflow="hidden" padding="lg xl" {...props}>
+    <Flex
+      as="td"
+      role="cell"
+      align="center"
+      overflow="hidden"
+      padding="lg xl"
+      hidden={useIsColumnHidden(columnKey)}
+      {...props}
+    >
       {children}
     </Flex>
   );
@@ -178,7 +194,7 @@ const HeaderDivider = styled('div')`
 `;
 
 const ColumnHeaderCell = styled(Table.HeadCell, {
-  shouldForwardProp: prop => prop !== 'align' && prop !== 'variant',
+  shouldForwardProp: prop => prop !== 'variant',
 })<{variant: HeaderCellVariant; align?: ColumnAlign}>`
   outline: none;
   padding: 0 ${p => p.theme.space.xl};
@@ -195,9 +211,16 @@ const ColumnHeaderCell = styled(Table.HeadCell, {
   ${HeaderCellContent} {
     flex: 1;
     height: 100%;
-    justify-content: space-between;
     min-width: 0;
   }
+
+  ${p =>
+    !p.align &&
+    css`
+      ${HeaderCellContent} {
+        justify-content: space-between;
+      }
+    `}
 
   ${HeaderCellContent}:focus-visible {
     box-shadow: inset 0 0 0 2px ${p => p.theme.tokens.focus.default};
@@ -212,14 +235,6 @@ const ColumnHeaderCell = styled(Table.HeadCell, {
   &[aria-sort] {
     color: ${p => p.theme.tokens.content.primary};
   }
-
-  ${p =>
-    p.align === 'right' &&
-    css`
-      ${HeaderCellContent} {
-        justify-content: flex-end;
-      }
-    `}
 
   ${p =>
     p.variant === 'first' &&

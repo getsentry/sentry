@@ -75,12 +75,14 @@ export function useDifferentialFlamegraphModel(
 
   const differentialFlamegraph = useMemo(() => {
     if (!beforeFlamegraph || !afterFlamegraph) {
+      // oxlint-disable-next-line react/capitalized-calls -- Static factory on DifferentialFlamegraphModel, not a component.
       return DifferentialFlamegraphModel.Empty();
     }
 
     const span = Sentry.startInactiveSpan({
       name: 'differential_flamegraph.import',
     });
+    // oxlint-disable-next-line react/capitalized-calls -- Static factory on DifferentialFlamegraphModel, not a component.
     const flamegraph = DifferentialFlamegraphModel.FromDiff(
       {
         before: beforeFlamegraph,

@@ -1,7 +1,7 @@
 import datetime
 from collections.abc import Mapping, Sequence
 from functools import cached_property
-from typing import cast
+from typing import Any, cast
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
@@ -32,6 +32,10 @@ from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
+
+
+def assignee_response(login: str, name: str | None = None) -> dict[str, Any]:
+    return {"data": {"repository": {"results": {"nodes": [{"login": login, "name": name}]}}}}
 
 
 @all_silo_test
@@ -73,9 +77,9 @@ class GitHubIssueBasicAllSiloTest(TestCase):
             },
         )
         responses.add(
-            responses.GET,
-            "https://api.github.com/repos/getsentry/sentry/assignees",
-            json=[{"login": "leeandher"}],
+            responses.POST,
+            "https://api.github.com/graphql",
+            json=assignee_response("leeandher", "Lee Ander"),
         )
 
         responses.add(
@@ -96,6 +100,10 @@ class GitHubIssueBasicAllSiloTest(TestCase):
         assert assignee_field["name"] == "assignee"
         assert assignee_field["type"] == "select"
         assert assignee_field["label"] == "Assignee"
+        assert assignee_field["choices"] == (
+            ("", "Unassigned"),
+            ("leeandher", "Lee Ander (@leeandher)"),
+        )
         assert label_field["name"] == "labels"
         assert label_field["type"] == "select"
         assert label_field["label"] == "Labels"
@@ -172,30 +180,6 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             assert request.headers[PROXY_OI_HEADER] == str(self.install.org_integration.id)
             assert request.headers[PROXY_BASE_URL_HEADER] == "https://api.github.com"
             assert PROXY_SIGNATURE_HEADER in request.headers
-
-    @responses.activate
-    def test_get_allowed_assignees(self) -> None:
-        responses.add(
-            responses.GET,
-            "https://api.github.com/repos/getsentry/sentry/assignees",
-            json=[{"login": "MeredithAnya", "name": "Meredith Anya"}],
-        )
-
-        assert self.install.get_allowed_assignees(self.repo) == (
-            ("", "Unassigned"),
-            ("MeredithAnya", "Meredith Anya (@MeredithAnya)"),
-        )
-
-        if self.should_call_api_without_proxying():
-            assert len(responses.calls) == 2
-
-            request = responses.calls[0].request
-            assert request.headers["Authorization"] == "Bearer jwt_token_1"
-
-            request = responses.calls[1].request
-            assert request.headers["Authorization"] == "Bearer token_1"
-        else:
-            self._check_proxying()
 
     @responses.activate
     def test_get_repo_labels(self) -> None:
@@ -647,9 +631,9 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         )
 
         responses.add(
-            responses.GET,
-            "https://api.github.com/repos/getsentry/sentry/assignees",
-            json=[{"login": "MeredithAnya"}],
+            responses.POST,
+            "https://api.github.com/graphql",
+            json=assignee_response("MeredithAnya"),
         )
         responses.add(
             responses.GET,
@@ -673,9 +657,9 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         assert create_config[0]["choices"] == [("getsentry/sentry", "sentry")]
 
         responses.add(
-            responses.GET,
-            "https://api.github.com/repos/getsentry/hello/assignees",
-            json=[{"login": "MeredithAnya"}],
+            responses.POST,
+            "https://api.github.com/graphql",
+            json=assignee_response("MeredithAnya"),
         )
         responses.add(
             responses.GET,
@@ -801,9 +785,9 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             },
         )
         responses.add(
-            responses.GET,
-            "https://api.github.com/repos/getsentry/sentry/assignees",
-            json=[{"login": "MeredithAnya"}],
+            responses.POST,
+            "https://api.github.com/graphql",
+            json=assignee_response("MeredithAnya"),
         )
         responses.add(
             responses.GET,

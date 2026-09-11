@@ -109,7 +109,7 @@ export default function OrganizationDataForwardingSetup() {
                   features={features}
                 />
               )}
-              <Tabs value={provider} onChange={setProvider} disableOverflow>
+              <Tabs value={provider} onChange={setProvider}>
                 <TabList variant="floating">
                   {Object.entries(ProviderLabels).map(([key, label]) => (
                     <TabList.Item

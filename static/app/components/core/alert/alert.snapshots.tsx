@@ -2,7 +2,6 @@ import {ThemeProvider} from '@emotion/react';
 
 import {Alert, type AlertProps} from '@sentry/scraps/alert';
 
-// eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 const themes = {light: lightTheme, dark: darkTheme};

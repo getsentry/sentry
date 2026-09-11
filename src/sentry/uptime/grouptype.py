@@ -128,10 +128,10 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
         return int(data_packet.packet.check_result["scheduled_check_time_ms"])
 
     @override
-    def evaluate(
+    def _evaluate(
         self, data_packet: DataPacket[UptimePacketValue]
     ) -> dict[DetectorGroupKey, DetectorEvaluation]:
-        result = super().evaluate(data_packet)
+        result = super()._evaluate(data_packet)
 
         if not result:
             return result

@@ -402,6 +402,7 @@ export function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
     if (isLoading || !firstLoad) {
       return;
     }
+    // oxlint-disable-next-line react/set-state-in-effect
     setFirstLoad(false);
 
     if (initialMode === 'allProjects') {

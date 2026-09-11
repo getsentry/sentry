@@ -8,8 +8,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import * as SidebarSection from 'sentry/components/sidebarSection';
+import {KeyValueTable, KeyValueTableRow} from 'sentry/components/tables/keyValueTable';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
 import {Version} from 'sentry/components/version';
@@ -45,7 +45,7 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
     <SidebarSection.Wrap>
       <SidebarSection.Title>{t('Project Release Details')}</SidebarSection.Title>
       <SidebarSection.Content>
-        <KeyValueTable>
+        <KeyValueTable margin>
           <KeyValueTableRow
             keyName={t('Created')}
             value={<DateTime date={dateCreated} />}

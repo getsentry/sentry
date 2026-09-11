@@ -109,27 +109,18 @@ export function describeService(service: GcpServiceResult): string {
   }`;
 }
 
-function parseGcpProjectIds(value: string): string[] {
-  return [
-    ...new Set(
-      value
-        .split(',')
-        .map(id => id.trim())
-        .filter(Boolean)
-    ),
-  ];
-}
-
 export function buildGcpVerifyPayload(
   configData: Record<string, unknown> | null | undefined
 ): {customerSaEmail: string; gcpProjectIds: string[]} | null {
   const customerSaEmail = configData?.customer_sa_email;
   const projectIds = configData?.projects;
-  if (typeof customerSaEmail !== 'string' || typeof projectIds !== 'string') {
+  if (typeof customerSaEmail !== 'string' || !Array.isArray(projectIds)) {
     return null;
   }
 
-  const gcpProjectIds = parseGcpProjectIds(projectIds);
+  const gcpProjectIds = [
+    ...new Set(projectIds.map(id => String(id).trim()).filter(Boolean)),
+  ];
   if (!customerSaEmail || !gcpProjectIds.length) {
     return null;
   }

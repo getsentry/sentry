@@ -7,6 +7,15 @@ export interface TagToken {
   name: string;
   raw: string;
   type: 'tag';
+  /**
+   * Position of this tag among all tags in the message, in document order.
+   *
+   * Assigned by `Markdown` after lexing rather than here, because marked defers
+   * inline tokenization to a second pass -- so the order tokenizers run in does
+   * not match the order tags appear in. Undefined for tokens that were lexed
+   * without going through `Markdown`.
+   */
+  index?: number;
 }
 
 const TAG_START_RE = /\{%\s+[\w-]/;

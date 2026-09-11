@@ -276,7 +276,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         data_packet: DataPacket[ProcessedSubscriptionUpdate | AnomalyDetectionUpdate] = DataPacket(
             str(query_subscription.id), query_subscription_update
         )
-        eval_result = handler.evaluate(data_packet)
+        eval_result = handler._evaluate(data_packet)
 
         occurrence = None
         for result in eval_result.values():

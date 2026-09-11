@@ -58,6 +58,7 @@ export function ChooseYourBillingCycle({
           const formattedPriceBeforeDiscount = previousPlanPrice
             ? utils.formatPrice({cents: priceBeforeDiscount})
             : '';
+          // oxlint-disable-next-line react/immutability
           previousPlanPrice = priceAfterDiscount;
 
           return (

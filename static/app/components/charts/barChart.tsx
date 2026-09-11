@@ -3,7 +3,7 @@ import type {BarSeriesOption} from 'echarts';
 
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 
-import {BarSeries} from './series/barSeries';
+import {createBarSeries} from './series/barSeries';
 import type {BaseChartProps} from './baseChart';
 import {BaseChart} from './baseChart';
 
@@ -27,7 +27,7 @@ function transformToBarSeries({
   animation,
 }: Pick<BarChartProps, 'barOpacity' | 'hideZeros' | 'series' | 'stacked' | 'animation'>) {
   return series.map(({seriesName, data, ...options}) =>
-    BarSeries({
+    createBarSeries({
       name: seriesName,
       stack: stacked ? 'stack1' : undefined,
       data: data?.map(({value, name, itemStyle}) => {

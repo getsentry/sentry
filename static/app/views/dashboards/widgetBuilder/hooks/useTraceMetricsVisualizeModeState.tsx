@@ -225,6 +225,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
   // to TRACEMETRICS.
   useEffect(() => {
     if (state.dataset !== WidgetType.TRACEMETRICS) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsEquationMode(false);
       return;
     }

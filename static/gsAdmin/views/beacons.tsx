@@ -2,10 +2,10 @@ import moment from 'moment-timezone';
 
 import {Link} from '@sentry/scraps/link';
 
+import {ResultGrid} from 'sentry/components/resultGrid';
 import {Truncate} from 'sentry/components/truncate';
 
 import {PageHeader} from 'admin/components/pageHeader';
-import {ResultGrid} from 'admin/components/resultGrid';
 
 const getRow = (row: any) => [
   <td key="beacon">
@@ -45,7 +45,6 @@ export function Beacons() {
         inPanel
         path="/_admin/beacons/"
         endpoint="/beacons/"
-        method="GET"
         columns={[
           <th key="beacon">Beacon</th>,
           <th key="version" style={{width: 100, textAlign: 'center'}}>

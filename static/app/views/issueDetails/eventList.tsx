@@ -62,11 +62,13 @@ export function EventList({group}: EventListProps) {
     },
   });
 
+  // oxlint-disable-next-line react/immutability
   eventView.sorts = decodeSorts(location.query.sort).filter(sort =>
     fields.includes(sort.field)
   );
 
   if (!eventView.sorts.length) {
+    // oxlint-disable-next-line react/immutability
     eventView.sorts = [{field: 'timestamp', kind: 'desc'}];
   }
 

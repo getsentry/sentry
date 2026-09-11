@@ -333,7 +333,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
   const [settledTeamIdsKey, setSettledTeamIdsKey] = useState<string | null>(null);
   useEffect(() => {
     if (!teamsLoading) {
-      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect
       setSettledTeamIdsKey(teamIdsKey);
     }
   }, [teamsLoading, teamIdsKey]);
@@ -372,6 +372,9 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
       }
     });
     return map;
+    // React Compiler treats one of these dependencies as mutated later in the
+    // component, so it cannot prove the memoization is preserved.
+    // oxlint-disable-next-line react/preserve-manual-memoization
   }, [orderedPrRunIdsKey]);
 
   const toggleGroup = (groupKey: StatusGroupKey, expanded: boolean) => {

@@ -470,7 +470,7 @@ class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
 class SentryAppInstallationExternalIssuePermission(SentryAppInstallationPermission):
     scope_map = {
         "POST": ("event:write", "event:admin"),
-        "DELETE": ("event:admin",),
+        "DELETE": ("event:write", "event:admin"),
     }
 
 

@@ -1,5 +1,6 @@
 import {fireEvent, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {closeModal, openModal} from 'sentry/actionCreators/modal';
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import type {
   SidebarItem,
@@ -179,5 +180,41 @@ describe('SnapshotListView', () => {
 
     fireEvent.keyDown(document.body, {key: 'ArrowDown'});
     expect(onSelectSnapshot).toHaveBeenCalledWith('s1.png');
+  });
+
+  it('leaves Enter and Space to a focused button instead of opening the snapshot', () => {
+    const onOpenSnapshot = jest.fn();
+    render(
+      <SnapshotListView
+        items={[changedGroup(1)]}
+        imageBaseUrl="/api/0/projects/org-slug/project-slug/files/images/"
+        selectedSnapshotKey="s0.png"
+        onOpenSnapshot={onOpenSnapshot}
+      />
+    );
+
+    const button = screen.getAllByRole('button', {name: 'Zoom in'})[0]!;
+    fireEvent.keyDown(button, {key: 'Enter'});
+    fireEvent.keyDown(button, {key: ' '});
+
+    expect(onOpenSnapshot).not.toHaveBeenCalled();
+  });
+
+  it('ignores shortcuts while a modal is open', () => {
+    const onSelectSnapshot = jest.fn();
+    render(
+      <SnapshotListView
+        items={[changedGroup(3)]}
+        imageBaseUrl="/api/0/projects/org-slug/project-slug/files/images/"
+        selectedSnapshotKey="s0.png"
+        onSelectSnapshot={onSelectSnapshot}
+      />
+    );
+
+    openModal(() => null);
+    fireEvent.keyDown(document.body, {key: 'ArrowDown'});
+    closeModal();
+
+    expect(onSelectSnapshot).not.toHaveBeenCalled();
   });
 });

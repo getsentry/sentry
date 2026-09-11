@@ -1884,6 +1884,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.data.get("metadata") == {
             "type": "Foo",
             "value": "bar",
+            "synthetic": False,
             "initial_priority": PriorityLevel.HIGH,
         }
 

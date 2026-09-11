@@ -45,7 +45,7 @@ export function GroupEventAttachmentsTableRow({
   return (
     <Fragment>
       <SimpleTable.Row className={sharedClassName}>
-        <FlexCenter className={sharedClassName}>
+        <SimpleTable.RowCell className={sharedClassName} whiteSpace="nowrap">
           <div>
             <AttachmentName>{attachment.name}</AttachmentName>
             <div>
@@ -59,14 +59,14 @@ export function GroupEventAttachmentsTableRow({
               </Link>
             </div>
           </div>
-        </FlexCenter>
-        <FlexCenter className={sharedClassName}>
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell className={sharedClassName} whiteSpace="nowrap">
           {friendlyAttachmentType[attachment.type] ?? t('Other')}
-        </FlexCenter>
-        <FlexCenter className={sharedClassName}>
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell className={sharedClassName} whiteSpace="nowrap">
           <FileSize bytes={attachment.size} />
-        </FlexCenter>
-        <FlexCenter className={sharedClassName}>
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell className={sharedClassName} whiteSpace="nowrap">
           <EventAttachmentActions
             withPreviewButton
             attachment={attachment}
@@ -75,17 +75,17 @@ export function GroupEventAttachmentsTableRow({
             previewIsOpen={previewIsOpen}
             projectSlug={projectSlug}
           />
-        </FlexCenter>
+        </SimpleTable.RowCell>
       </SimpleTable.Row>
       {previewIsOpen && (
         <SimpleTable.Row>
-          <InlineAttachment className="preview">
+          <SimpleTable.FullWidthCell className="preview">
             <InlineEventAttachment
               attachment={attachment}
               projectSlug={projectSlug}
               eventId={attachment.event_id}
             />
-          </InlineAttachment>
+          </SimpleTable.FullWidthCell>
         </SimpleTable.Row>
       )}
     </Fragment>
@@ -94,14 +94,4 @@ export function GroupEventAttachmentsTableRow({
 
 const AttachmentName = styled('div')`
   font-weight: bold;
-`;
-
-const FlexCenter = styled(SimpleTable.RowCell)`
-  display: flex;
-  align-items: center;
-  white-space: nowrap;
-`;
-
-const InlineAttachment = styled(SimpleTable.FullWidthCell)`
-  grid-column: 1/-1;
 `;

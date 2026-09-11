@@ -2,6 +2,7 @@ import {createContext, useContext, useEffect, useMemo, useRef} from 'react';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  type CreatedProject,
   type ScmMessagingSetup,
   UNCONFIGURED_SCM_MESSAGING_SETUP,
 } from 'sentry/components/onboarding/scm/scmMessagingSetup';
@@ -19,7 +20,7 @@ type OnboardingContextProps = {
   ) => void;
   setAgenticProgressClientRunId: (clientRunId?: string) => void;
   setAgenticProgressOnboardingCode: (onboardingCode?: string) => void;
-  setCreatedProjectSlug: (slug?: string) => void;
+  setCreatedProject: (createdProject?: CreatedProject) => void;
   setMessagingSetup: (messagingSetup: ScmMessagingSetup) => void;
   setSelectedFeatures: (features?: ProductSolution[]) => void;
   setSelectedIntegration: (integration?: Integration) => void;
@@ -28,7 +29,7 @@ type OnboardingContextProps = {
   agentSetupProjectBaseline?: OnboardingSessionState['agentSetupProjectBaseline'];
   agenticProgressClientRunId?: string;
   agenticProgressOnboardingCode?: string;
-  createdProjectSlug?: string;
+  createdProject?: CreatedProject;
   selectedFeatures?: ProductSolution[];
   selectedIntegration?: Integration;
   selectedPlatform?: OnboardingSelectedSDK;
@@ -44,12 +45,20 @@ type OnboardingSessionState = {
   };
   agenticProgressClientRunId?: string;
   agenticProgressOnboardingCode?: string;
-  createdProjectSlug?: string;
+  createdProject?: CreatedProject;
   messagingSetup?: ScmMessagingSetup;
   selectedFeatures?: ProductSolution[];
   selectedIntegration?: Integration;
   selectedPlatform?: OnboardingSelectedSDK;
   selectedRepository?: Repository;
+};
+
+/**
+ * Session shape from before the created project carried its messaging
+ * destination. Read once on load to lift the slug; never written.
+ */
+type LegacyOnboardingSessionState = OnboardingSessionState & {
+  createdProjectSlug?: string;
 };
 
 /**
@@ -64,8 +73,8 @@ const OnboardingContext = createContext<OnboardingContextProps>({
   setSelectedRepository: () => {},
   selectedFeatures: undefined,
   setSelectedFeatures: () => {},
-  createdProjectSlug: undefined,
-  setCreatedProjectSlug: () => {},
+  createdProject: undefined,
+  setCreatedProject: () => {},
   messagingSetup: UNCONFIGURED_SCM_MESSAGING_SETUP,
   setMessagingSetup: () => {},
   agentSetupProjectBaseline: undefined,
@@ -89,10 +98,34 @@ type ProviderProps = {
 };
 
 export function OnboardingContextProvider({children, initialValue}: ProviderProps) {
-  const [onboarding, setOnboarding, removeOnboarding] = useSessionStorage(
-    ONBOARDING_SESSION_KEY,
-    initialValue
-  );
+  const [onboarding, setOnboarding, removeOnboarding] = useSessionStorage<
+    LegacyOnboardingSessionState | undefined
+  >(ONBOARDING_SESSION_KEY, initialValue);
+
+  // A session written before createdProject existed holds only the slug under
+  // createdProjectSlug. Lift it once on load so the docs step still resolves
+  // the real slug and the reuse check still finds the project. Those sessions
+  // never recorded the destination, so it lifts as undefined: a submission
+  // that stages a destination then creates a fresh project rather than
+  // reusing one whose workflow may target another channel. Declared before
+  // the stale-repo guard so that guard's clear of the derived state wins.
+  // Drop this once sessions written before it shipped are gone.
+  const hadLegacyCreatedProjectSlug = useRef(!!onboarding?.createdProjectSlug);
+  useEffect(() => {
+    if (hadLegacyCreatedProjectSlug.current) {
+      hadLegacyCreatedProjectSlug.current = false;
+      setOnboarding(prev => {
+        const {createdProjectSlug, ...rest}: LegacyOnboardingSessionState = prev ?? {};
+        if (rest.createdProject || !createdProjectSlug) {
+          return rest;
+        }
+        return {
+          ...rest,
+          createdProject: {slug: createdProjectSlug, messagingSelection: undefined},
+        };
+      });
+    }
+  }, [setOnboarding]);
 
   // An optimistic repo (empty id, see useScmRepoSelection) persisted by a
   // refresh mid-resolution can never fetch detection and would hold the
@@ -111,7 +144,7 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
         selectedRepository: undefined,
         selectedPlatform: undefined,
         selectedFeatures: undefined,
-        createdProjectSlug: undefined,
+        createdProject: undefined,
       }));
     }
   }, [setOnboarding]);
@@ -134,9 +167,9 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
       setSelectedFeatures: (selectedFeatures?: ProductSolution[]) => {
         setOnboarding(prev => ({...prev, selectedFeatures}));
       },
-      createdProjectSlug: onboarding?.createdProjectSlug,
-      setCreatedProjectSlug: (createdProjectSlug?: string) => {
-        setOnboarding(prev => ({...prev, createdProjectSlug}));
+      createdProject: onboarding?.createdProject,
+      setCreatedProject: (createdProject?: CreatedProject) => {
+        setOnboarding(prev => ({...prev, createdProject}));
       },
       messagingSetup: onboarding?.messagingSetup ?? UNCONFIGURED_SCM_MESSAGING_SETUP,
       setMessagingSetup: (messagingSetup: ScmMessagingSetup) => {
@@ -164,7 +197,7 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
           ...prev,
           selectedPlatform: undefined,
           selectedFeatures: undefined,
-          createdProjectSlug: undefined,
+          createdProject: undefined,
         }));
       },
       // Full-flow exits should clear every staged choice explicitly. Do not use

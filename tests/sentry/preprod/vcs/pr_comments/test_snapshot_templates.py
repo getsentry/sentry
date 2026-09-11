@@ -599,10 +599,11 @@ class FormatSoloPrCommentTest(SnapshotPrCommentTestBase):
         assert "## Sentry Snapshot Testing" in result
         assert "2 uploaded" in result
         assert (
-            f"No base snapshot found for [`{base_sha}`]({base_repo_url}/commit/{base_sha})"
+            f"Base commit [`{base_sha}`]({base_repo_url}/commit/{base_sha}) did not produce snapshots"
             in result
         )
-        assert "main branch" in result
+        assert "Did its snapshot job fail?" in result
+        assert "Try rebasing this branch on a commit with a successful snapshot job." in result
         assert f"/settings/projects/{self.project.slug}/snapshots/" in result
 
     def test_missing_base_empty_artifacts_raises(self) -> None:

@@ -13,13 +13,13 @@ import {Flex, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ResultGrid} from 'sentry/components/resultGrid';
 import {IconSync} from 'sentry/icons';
 import type {DocIntegration} from 'sentry/types/integrations';
 
 import {CustomerContact} from 'admin/components/customerContact';
 import {CustomerStatus} from 'admin/components/customerStatus';
 import {PercentChange} from 'admin/components/percentChange';
-import {ResultGrid} from 'admin/components/resultGrid';
 
 /**
  * DEPRECATION WARNING
@@ -66,7 +66,6 @@ function SentryAppList() {
         per_page: 10,
       }}
       hasPagination={false}
-      method="GET"
       columns={[
         <th key="apps">Name</th>,
         <th key="installs" style={{width: 150, textAlign: 'right'}}>
@@ -92,7 +91,6 @@ function DocIntegrationList() {
         per_page: 10,
       }}
       hasPagination={false}
-      method="GET"
       columns={[
         <th key="apps">Name</th>,
         <th key="popularity" style={{width: 150, textAlign: 'right'}}>
@@ -197,7 +195,6 @@ function CustomersByVolume() {
         }}
         defaultSort="events.24h"
         hasPagination={false}
-        method="GET"
         columns={[
           <th key="customer">Customer</th>,
           <th key="events" style={{width: 130, textAlign: 'center'}}>

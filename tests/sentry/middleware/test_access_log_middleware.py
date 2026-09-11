@@ -10,6 +10,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationEndpoint
+from sentry.api.client_kind import FEATURE_FLAG as CLIENT_KIND_FEATURE_FLAG
 from sentry.api.endpoints.internal.rpc import InternalRpcServiceEndpoint
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.models.apitoken import ApiToken
@@ -206,6 +207,9 @@ optional_access_log_fields = (
     "snuba_throttle_threshold",
     "token_last_characters",
     "gateway_proxy",
+    # Only present for organizations opted into `client_kind`.
+    "client_kind",
+    "client_host",
 )
 
 
@@ -479,6 +483,50 @@ class TestOrganizationIdPresentForRegion(LogCaptureAPITestCase):
 
         tested_log = self.get_tested_log(args=[self.organization.slug])
         assert tested_log.organization_id == str(self.organization.id)
+
+
+class TestClientKindLogged(LogCaptureAPITestCase):
+    """`client_kind` has to reach the access log, not just the span.
+
+    Span attributes stop at Snuba -- the analytics warehouse promotes a fixed
+    allow-list of span columns -- so the access log is the only path by which caller
+    attribution becomes queryable downstream.
+    """
+
+    endpoint = "sentry-api-0-organization-stats-v2"
+
+    def setUp(self) -> None:
+        self.login_as(user=self.user)
+
+    def request_stats(self) -> None:
+        self._caplog.set_level(logging.INFO, logger="sentry")
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={
+                "project": [-1],
+                "category": ["error"],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(quantity)"],
+            },
+        )
+
+    def test_client_kind_logged_for_an_opted_in_org(self) -> None:
+        with self.feature(CLIENT_KIND_FEATURE_FLAG):
+            self.request_stats()
+
+        tested_log = self.get_tested_log(args=[self.organization.slug])
+        # A session cookie and no token is the web UI.
+        assert tested_log.client_kind == "frontend"
+
+    def test_absent_for_an_org_that_has_not_opted_in(self) -> None:
+        with self.feature({CLIENT_KIND_FEATURE_FLAG: False}):
+            self.request_stats()
+
+        tested_log = self.get_tested_log(args=[self.organization.slug])
+        # Absent rather than "unknown": a disabled org has to stay distinguishable
+        # from one whose traffic genuinely classifies as unknown.
+        assert not hasattr(tested_log, "client_kind")
 
 
 @control_silo_test

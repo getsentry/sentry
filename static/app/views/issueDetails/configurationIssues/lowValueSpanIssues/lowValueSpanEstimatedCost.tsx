@@ -4,8 +4,8 @@ import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {KeyValueData} from 'sentry/components/keyValueData';
 import {Placeholder} from 'sentry/components/placeholder';
+import {KeyValueTableDataRow} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -79,7 +79,7 @@ export function LowValueSpanEstimatedCost({
   }
 
   return (
-    <KeyValueData.Content
+    <KeyValueTableDataRow
       disableFormattedData
       item={{key: 'estimated-cost', subject: t('Estimated cost'), value}}
     />

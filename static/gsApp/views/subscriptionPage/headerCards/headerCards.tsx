@@ -23,13 +23,15 @@ function getCards(organization: Organization, subscription: Subscription) {
   const isTrialOrFreePlan =
     subscription.onTrialPlan || isDeveloperPlan(subscription.planDetails);
 
+  const isPaidPlan = subscription.planDetails.totalPrice > 0;
+
   // the organization can use PAYG
   const canUsePayg = supportsPayg(subscription);
 
   // the user can update the PAYG budget
   const canUpdatePayg = canUsePayg && hasBillingPerms;
 
-  if (subscription.canSelfServe && !isTrialOrFreePlan && hasBillingPerms) {
+  if (subscription.canSelfServe && isPaidPlan && hasBillingPerms) {
     cards.push(
       <NextBillCard
         key="next-bill"

@@ -20,7 +20,6 @@ export default function AdminOrganizations() {
       <ResultGrid
         path="/manage/organizations/"
         endpoint="/organizations/?show=all"
-        method="GET"
         columns={[<th key="column-org">Organization</th>]}
         columnsForRow={getRow}
         hasSearch

@@ -104,6 +104,9 @@ function AvatarCropper({maxDimension, minDimension, updateDataUrlState, dataUrl}
     drawToCanvas(newDimensions);
   };
 
+  // React Compiler could not prove this memoization is preserved; it bails out on
+  // code this callback depends on. Revisit once those bailouts are fixed.
+  // oxlint-disable-next-line react/preserve-manual-memoization
   const drawToCanvas = useCallback(
     (dimensions = resizeDimensions) => {
       if (!canvasRef.current || !imageRef.current) {

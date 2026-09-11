@@ -5,6 +5,7 @@ import type {z} from 'zod';
 import {NODE_ENV} from 'sentry/constants/env';
 
 import type {SeerEmbedProps} from './registry';
+import {useTrackEmbedRendered} from './renderTracking';
 import {ALL_SEER_EMBED_SCHEMAS, type SeerEmbedName} from './schemas';
 
 export type EmbedOutput<N extends SeerEmbedName> = z.output<
@@ -51,8 +52,11 @@ export function defineSeerEmbed<N extends SeerEmbedName>({
 }: DefineSeerEmbedOptions<N>) {
   const {schema} = ALL_SEER_EMBED_SCHEMAS[name];
 
-  function Embed({data, level}: SeerEmbedProps) {
+  function Embed({data, level, index}: SeerEmbedProps) {
     const parsed = schema.safeParse(data);
+    // Called before the early return so the hook stays unconditional; it
+    // no-ops for an embed that failed validation and renders nothing.
+    useTrackEmbedRendered({name, level, index, rendered: parsed.success});
     if (!parsed.success) {
       reportInvalidEmbed(name, parsed.error.issues);
       return null;

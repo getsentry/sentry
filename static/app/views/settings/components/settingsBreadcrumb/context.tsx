@@ -51,6 +51,7 @@ function BreadcrumbProvider({children}: ProviderProps) {
   // When our routes change update the path mapping
   useEffect(
     () =>
+      // oxlint-disable-next-line react/set-state-in-effect
       setPathMap(oldPathMap => {
         const routePath = getRouteStringFromRoutes({matches});
         const newPathMap = {...oldPathMap};

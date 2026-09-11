@@ -36,7 +36,7 @@ import {
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 
-interface EventTagTreeRowConfig {
+export interface EventTagTreeRowConfig {
   // Omits the dropdown of actions applicable to this tag
   disableActions?: boolean;
   // Omit error styling from being displayed, even if context is invalid

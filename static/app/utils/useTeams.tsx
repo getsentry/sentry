@@ -346,12 +346,14 @@ export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   // Load specified team slugs
   useEffect(() => {
     if (shouldLoadByQuery) {
+      // oxlint-disable-next-line react/set-state-in-effect
       loadTeamsByQuery();
     }
   }, [shouldLoadByQuery, loadTeamsByQuery]);
 
   useEffect(() => {
     if (shouldLoadUserTeams) {
+      // oxlint-disable-next-line react/set-state-in-effect
       loadUserTeams();
     }
   }, [shouldLoadUserTeams, loadUserTeams]);

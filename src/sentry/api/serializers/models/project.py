@@ -90,7 +90,6 @@ ORGANIZATION_KEY: Final = "organization"
 PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
     "discard-transaction",
     "first-event-severity-calculation",
-    "alert-filters",
     "servicehooks",
     "similarity-embeddings",
 }

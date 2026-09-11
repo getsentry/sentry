@@ -19,6 +19,13 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 export interface UseConversationsOptions {
   conversationId: string;
   endTimestamp?: number;
+  /**
+   * Projects to scope the span query to, overriding the page filters. A caller
+   * that is not the conversations route -- an embed rendered into some other
+   * page -- knows the conversation's own project and must not inherit whatever
+   * the host page happens to have selected.
+   */
+  projects?: number[];
   startTimestamp?: number;
 }
 
@@ -314,8 +321,8 @@ export function useConversation(
       ? normalizeDateTimeParams(selection.datetime)
       : {};
 
-  const project =
-    selection.projects.length > 0 ? selection.projects : [ALL_ACCESS_PROJECTS];
+  const selectedProjects = conversation.projects ?? selection.projects;
+  const project = selectedProjects.length > 0 ? selectedProjects : [ALL_ACCESS_PROJECTS];
 
   const queryParams = {
     project,

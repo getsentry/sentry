@@ -322,6 +322,8 @@ class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
                 ],
             }
         )
+        # API rule updates may omit frequency entirely (see ProjectRuleDetailsEndpoint).
+        rule_data.pop("frequency", None)
 
         self.issue_alert.update(
             label="hello world",

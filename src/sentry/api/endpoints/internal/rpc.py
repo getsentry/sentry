@@ -1,7 +1,7 @@
 import pydantic
 import sentry_sdk
 from rest_framework import status
-from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError
+from rest_framework.exceptions import NotFound, ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -106,6 +106,12 @@ class InternalRpcServiceEndpoint(Endpoint):
                 raise Exception(
                     f"Problem processing rpc service endpoint {service_name}/{method_name}"
                 ) from e
+            # Something failed internally when processing the RPC, so we return
+            # a 500 error to the caller.
+            sentry_sdk.set_tag("rpc_implementation_error", type(e).__name__)
             sentry_sdk.capture_exception()
-            raise ValidationError from e
+            return Response(
+                data={"detail": "Internal error in RPC service"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
         return Response(data=result)

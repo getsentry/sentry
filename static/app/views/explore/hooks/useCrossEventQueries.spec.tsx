@@ -94,6 +94,34 @@ describe('useCrossEventQueries', () => {
     });
   });
 
+  it.each(['', '   '])('ignores blank logs and spans queries (%j)', query => {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
+      additionalWrapper: wrapper([
+        {type: 'logs', query},
+        {type: 'spans', query},
+      ]),
+      initialProps: ALL_CROSS_EVENT_DATASETS_AVAILABLE,
+    });
+
+    expect(result.current).toBeUndefined();
+  });
+
+  it('preserves populated queries alongside blank queries', () => {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
+      additionalWrapper: wrapper([
+        {type: 'logs', query: '   '},
+        {type: 'spans', query: 'test:a'},
+      ]),
+      initialProps: ALL_CROSS_EVENT_DATASETS_AVAILABLE,
+    });
+
+    expect(result.current).toStrictEqual({
+      logQuery: [],
+      spanQuery: ['test:a'],
+      metricQuery: [],
+    });
+  });
+
   it('appends queries with the same types', () => {
     const {result} = renderHookWithProviders(useCrossEventQueries, {
       additionalWrapper: wrapper([
@@ -258,10 +286,6 @@ describe('useCrossEventQueries', () => {
       initialProps: ALL_CROSS_EVENT_DATASETS_AVAILABLE,
     });
 
-    expect(result.current).toStrictEqual({
-      logQuery: [],
-      spanQuery: [],
-      metricQuery: [],
-    });
+    expect(result.current).toBeUndefined();
   });
 });

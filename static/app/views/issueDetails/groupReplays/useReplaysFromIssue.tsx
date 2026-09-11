@@ -77,6 +77,7 @@ export function useReplaysFromIssue({
     shouldClean: newLocation => newLocation.pathname.includes(`/issues/${group.id}/`),
   });
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     fetchReplayIds();
   }, [fetchReplayIds]);
 

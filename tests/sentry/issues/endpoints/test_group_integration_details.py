@@ -508,33 +508,28 @@ class GroupIntegrationDetailsTest(APITestCase):
         assert response.data["detail"] == "Your organization does not have access to this feature."
 
     def test_simple_delete(self) -> None:
-        self.login_as(user=self.user)
-        org = self.organization
-        group = self.create_group()
-        integration = self.create_integration(
-            organization=org, provider="example", name="Example", external_id="example:1"
+        self.organization.update_option("sentry:events_member_admin", False)
+        member = self.create_user()
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
         )
-
-        external_issue = ExternalIssue.objects.get_or_create(
-            organization_id=org.id, integration_id=integration.id, key="APP-123"
-        )[0]
-
-        group_link = GroupLink.objects.get_or_create(
-            group_id=group.id,
-            project_id=group.project_id,
-            linked_type=GroupLink.LinkedType.issue,
-            linked_id=external_issue.id,
-            relationship=GroupLink.Relationship.references,
-        )[0]
-
-        path = f"/api/0/organizations/{org.slug}/issues/{group.id}/integrations/{integration.id}/?externalIssue={external_issue.id}"
+        token = self.create_user_auth_token(user=member, scope_list=["event:write"])
+        group = self.group
+        integration = self.create_integration(
+            organization=self.organization, provider="example", external_id="example:1"
+        )
+        external_issue = self.create_integration_external_issue(
+            group=group, integration=integration, key="APP-123"
+        )
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/integrations/{integration.id}/?externalIssue={external_issue.id}"
 
         with self.feature("organizations:integrations-issue-basic"):
-            response = self.client.delete(path)
+            response = self.client.delete(path, HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
-            assert response.status_code == 204
-            assert not ExternalIssue.objects.filter(id=external_issue.id).exists()
-            assert not GroupLink.objects.filter(id=group_link.id).exists()
+        assert response.status_code == 204, response.content
+        assert not ExternalIssue.objects.filter(id=external_issue.id).exists()
+        assert not GroupLink.objects.get_group_issues(group, external_issue.id).exists()
+        assert Group.objects.get(id=group.id).status == group.status
 
     def test_delete_feature_disabled(self) -> None:
         self.login_as(user=self.user)

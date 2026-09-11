@@ -1,7 +1,8 @@
 from collections import defaultdict
 from typing import TypedDict
 
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -38,6 +39,22 @@ from sentry.workflow_engine.processors.action import (
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler
 
+AVAILABLE_ACTION_TYPES = tuple(
+    action_type for action_type in Action.Type if action_type not in DEPRECATED_ACTION_TYPES
+)
+AVAILABLE_ACTION_TYPE_VALUES = frozenset(
+    action_type.value for action_type in AVAILABLE_ACTION_TYPES
+)
+AVAILABLE_ACTION_TYPE_PARAMETER = OpenApiParameter(
+    name="type",
+    location="query",
+    required=False,
+    type=str,
+    enum=[action_type.value for action_type in AVAILABLE_ACTION_TYPES],
+    many=True,
+    description="Filter by action type. Can be specified multiple times.",
+)
+
 
 class AvailableIntegration(TypedDict):
     integration: RpcIntegration
@@ -55,6 +72,7 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
         operation_id="Fetch Available Actions",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
+            AVAILABLE_ACTION_TYPE_PARAMETER,
         ],
         responses={
             201: inline_sentry_response_serializer(
@@ -72,6 +90,18 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
         """
         Returns a list of available actions for a given org
         """
+        requested_action_types = set(request.GET.getlist("type"))
+        invalid_action_types = requested_action_types - AVAILABLE_ACTION_TYPE_VALUES
+        if invalid_action_types:
+            raise ValidationError(
+                {
+                    "type": [
+                        f"Invalid action type: {action_type}"
+                        for action_type in sorted(invalid_action_types)
+                    ]
+                }
+            )
+
         can_create_tickets = features.has("organizations:integrations-ticket-rules", organization)
 
         integration_services = get_integration_services(organization.id)
@@ -109,6 +139,9 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
 
         actions = []
         for action_type, handler in action_handler_registry.registrations.items():
+            if requested_action_types and str(action_type) not in requested_action_types:
+                continue
+
             # skip ticket creation actions if organization doesn't have the feature
             if not can_create_tickets and handler.group == ActionHandler.Group.TICKET_CREATION:
                 continue

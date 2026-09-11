@@ -196,6 +196,7 @@ export function CategoricalSeriesWidgetVisualization(
 
     if (plottable.needsColor) {
       color = palette[seriesColorIndex % palette.length]!;
+      // oxlint-disable-next-line react/immutability
       seriesColorIndex += 1;
     }
 

@@ -157,7 +157,7 @@ ALWAYS_RUN_TESTS: set[str] = {
     "tests/sentry/backup/test_validate.py",
 }
 
-# Seer public-API matrix discovers PUBLIC mutations at collection time, so
+# Seer public-API matrix discovers published mutations at collection time, so
 # endpoint module edits (including publish_status flips) need an explicit include.
 PUBLIC_API_MATRIX_TEST = "tests/sentry/seer/endpoints/test_organization_agent_token.py"
 PUBLIC_API_MATRIX_PATH_TRIGGERS: list[re.Pattern[str]] = [

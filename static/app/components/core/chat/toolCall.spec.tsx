@@ -1,6 +1,39 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ToolCall} from '@sentry/scraps/chat';
+
+// `ClippedBox` measures content via `ResizeObserver`; this mock reports a fixed height
+// synchronously (as the real observer would on first layout) so a clip decision is available
+// immediately, without waiting on a real browser layout pass.
+function mockContentHeight(height: number) {
+  const previous = window.ResizeObserver;
+
+  class MockResizeObserver {
+    callback: ResizeObserverCallback;
+    constructor(callback: ResizeObserverCallback) {
+      this.callback = callback;
+    }
+    observe(element: Element) {
+      this.callback(
+        [
+          {
+            target: element,
+            // @ts-expect-error partial mock: only `blockSize` is read.
+            contentBoxSize: [{blockSize: height}],
+          },
+        ],
+        this
+      );
+    }
+    unobserve() {}
+    disconnect() {}
+  }
+
+  window.ResizeObserver = MockResizeObserver;
+  return () => {
+    window.ResizeObserver = previous;
+  };
+}
 
 describe('ToolCall', () => {
   it('renders a title plus a trailing reference, no output', () => {
@@ -95,6 +128,51 @@ describe('ToolCall', () => {
       'href',
       '/traces/a3805648/'
     );
+  });
+
+  it('does not clip short output, and shows no expand affordance', () => {
+    const restore = mockContentHeight(20);
+    render(
+      <ToolCall title="Query spans" status="success" output={<span>12 rows</span>} />
+    );
+
+    expect(screen.getByText('12 rows')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Show More'})).not.toBeInTheDocument();
+    restore();
+  });
+
+  it('clips output taller than the cap behind a click-to-expand affordance', async () => {
+    const restore = mockContentHeight(500);
+    render(
+      <ToolCall
+        title="Query spans"
+        status="success"
+        output={<span>{'{"very": "long json body"}'}</span>}
+      />
+    );
+
+    const expandButton = screen.getByRole('button', {name: 'Show More'});
+    expect(expandButton).toBeInTheDocument();
+    // The content itself still renders (it is clipped via `max-height`, not removed).
+    expect(screen.getByText('{"very": "long json body"}')).toBeInTheDocument();
+
+    await userEvent.click(expandButton);
+    expect(screen.queryByRole('button', {name: 'Show More'})).not.toBeInTheDocument();
+    restore();
+  });
+
+  it('clips a tall input the same way as output', () => {
+    const restore = mockContentHeight(500);
+    render(
+      <ToolCall
+        title="Query spans"
+        status="success"
+        input={<span>dataset is spans</span>}
+      />
+    );
+
+    expect(screen.getByRole('button', {name: 'Show More'})).toBeInTheDocument();
+    restore();
   });
 
   it('renders supplementary detail children inline, always visible', () => {

@@ -59,6 +59,7 @@ export function CreditCardPanel({
 
   useEffect(() => {
     if (expandInitially) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsEditing(true);
       setExpandInitially(false);
     }
@@ -66,12 +67,14 @@ export function CreditCardPanel({
 
   useEffect(() => {
     // Open credit card update form/modal and track clicks from payment failure notifications (in app, email, etc.)
+    // oxlint-disable-next-line react/set-state-in-effect
     setReferrer(decodeScalar(location.query?.referrer));
   }, [location.query?.referrer]);
 
   useEffect(() => {
     // There are multiple billing failure referrals and each should have analytics tracking
     if (referrer?.includes('billing-failure')) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setFromBillingFailure(true);
 
       setIsEditing(true);

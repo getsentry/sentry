@@ -122,6 +122,7 @@ describe('IssuesSecondaryNavigation', () => {
 
       function ContextCapture() {
         const {getLLMContext} = useLLMContext();
+        // oxlint-disable-next-line react/immutability
         ref.current = () => getLLMContext().nodes;
         return null;
       }

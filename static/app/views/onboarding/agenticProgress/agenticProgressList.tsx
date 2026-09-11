@@ -286,6 +286,7 @@ export function AgenticProgressList({
 }) {
   const [hasEntered, setHasEntered] = useState(false);
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setHasEntered(true);
   }, []);
 

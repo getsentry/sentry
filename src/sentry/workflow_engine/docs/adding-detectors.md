@@ -30,7 +30,7 @@ flowchart TD
     State -->|No| Shared{Can use shared condition loading and metrics?}
     Shared -->|Yes| Base[Inherit BaseDetectorHandler]
     Shared -->|No| Interface[Implement DetectorHandler]
-    Base --> Own[Implement full evaluate_impl orchestration]
+    Base --> Own[Implement full evaluate orchestration]
     Interface --> OwnAll[Implement complete evaluate contract]
 ```
 
@@ -56,7 +56,7 @@ Uptime and metric issues are canonical examples.
 
 [`BaseDetectorHandler`](../handlers/detector/base.py) provides condition-group loading
 and common evaluation metrics, but it does not provide a general stateless evaluation
-algorithm. A concrete subclass must implement `evaluate_impl`, `create_occurrence`,
+algorithm. A concrete subclass must implement `evaluate`, `create_occurrence`,
 `extract_value`, and `extract_dedupe_value`; custom orchestration can provide trivial
 implementations for hooks it does not use. The subclass owns its state and output
 semantics.

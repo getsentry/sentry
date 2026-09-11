@@ -1470,6 +1470,25 @@ class TestStartFeatureRun(TestCase):
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    def test_feature_run_enqueues_proxy_headers(self, mock_request, _mock_access) -> None:
+        proxy_headers = {"X-Viewer-Context": "signed-viewer-context"}
+        client = SeerAgentClient(self.organization, self.user)
+        run = client.start_feature_run(
+            feature_id="autofix",
+            payload={},
+            title="Autofix RCA",
+            flush=False,
+            referrer="autofix",
+            proxy_headers=proxy_headers,
+        )
+
+        mock_request.assert_not_called()
+        outbox = self._outbox_for(run)
+        assert outbox is not None and outbox.payload is not None
+        assert outbox.payload["body"]["proxy_headers"] == proxy_headers
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
     def test_creates_agent_run_mirror(self, mock_request, _mock_access) -> None:
         client = SeerAgentClient(self.organization, self.user)
         run = client.start_feature_run(

@@ -288,6 +288,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
       </ProfilingContextMenu>
       <div
         ref={el => {
+          // oxlint-disable-next-line react/immutability
           props.contextMenu.subMenuRef.current = el;
         }}
         id="sub-menu-portal"
@@ -544,6 +545,7 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
       </ProfilingContextMenu>
       <div
         ref={el => {
+          // oxlint-disable-next-line react/immutability
           props.contextMenu.subMenuRef.current = el;
         }}
         id="sub-menu-portal"

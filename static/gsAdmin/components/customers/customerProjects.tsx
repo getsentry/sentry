@@ -5,10 +5,9 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
+import {ResultGrid} from 'sentry/components/resultGrid';
 import {IconProject} from 'sentry/icons';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-
-import {ResultGrid} from 'admin/components/resultGrid';
 
 type Props = {
   orgId: string;
@@ -23,7 +22,6 @@ export function CustomerProjects({orgId}: Props) {
       endpoint={getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
         path: {organizationIdOrSlug: orgId},
       })}
-      method="GET"
       defaultParams={{per_page: 10, statsPeriod: '30d'}}
       useQueryString={false}
       hasSearch

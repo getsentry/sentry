@@ -19,6 +19,8 @@ export {
   /** @public */
   useContainerBreakpoint,
   useHasContainerQuery,
+  useResponsivePropResolver,
   useResponsivePropValue,
 } from './styles';
 export {getBorder, getMargin, getRadius, getSpacing} from './styles';
+export {FLEX_JUSTIFY_CONTENT, type FlexJustify} from './styles';

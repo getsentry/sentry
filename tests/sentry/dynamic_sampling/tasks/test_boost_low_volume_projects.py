@@ -7,7 +7,6 @@ from django.utils import timezone
 from sentry.dynamic_sampling.rules.base import get_guarded_project_sample_rate
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
-    boost_low_volume_projects,
     boost_low_volume_projects_of_org_with_query,
     fetch_projects_with_total_root_transaction_count_and_rates,
     query_project_counts_by_org,
@@ -230,16 +229,6 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             org_id=org1.id,
         )
 
-        # bulk task
-        with self.tasks():
-            boost_low_volume_projects.delay()
-
-        sample_rate, got_value = get_boost_low_volume_projects_sample_rate(
-            org1.id, p1.id, error_sample_rate_fallback=None
-        )
-        assert (sample_rate, got_value) == (None, False)
-
-        # single-org task
         with self.tasks():
             boost_low_volume_projects_of_org_with_query.delay(org1.id)
 
@@ -249,22 +238,6 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         assert (sample_rate, got_value) == (None, False)
 
         assert get_guarded_project_sample_rate(org1, p1) == 0.2
-
-    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
-    def test_project_mode_sampling_with_query_zero_metrics(self) -> None:
-        organization = self.create_organization("test-org")
-        project = self.create_project(organization=organization)
-
-        organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
-        project.update_option("sentry:target_sample_rate", 0.2)
-
-        # make sure that no rebalancing is actually run
-        with patch(
-            "sentry.dynamic_sampling.models.projects_rebalancing.ProjectsRebalancingModel._run"
-        ) as mock_run:
-            with self.tasks():
-                boost_low_volume_projects.delay()
-            assert not mock_run.called
 
     def test_complex(self) -> None:
         org1 = self.create_organization("test-org1")
@@ -498,9 +471,8 @@ class TestSpanMetricQuery(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
 @freeze_time(MOCK_DATETIME)
 class TestEndToEndMeasureDispatching(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     """
-    End-to-end tests verifying that the boost_low_volume_projects task correctly
-    dispatches orgs to the right measure and that segment, transaction, and span
-    processing are all executed correctly.
+    End-to-end tests verifying that the per-org query task and the project count
+    query use the right measure.
     """
 
     @property
@@ -545,74 +517,6 @@ class TestEndToEndMeasureDispatching(BaseMetricsLayerTestCase, TestCase, SnubaTe
         )
         assert got_value
         assert sample_rate is not None
-
-    def test_main_task_dispatches_correct_measures(self) -> None:
-        """
-        The main boost_low_volume_projects task should call _process_orgs_for_boost
-        with SEGMENTS measure for all orgs discovered via GetActiveOrgs scan.
-        """
-        org1 = self.create_organization("org-1")
-        org2 = self.create_organization("org-2")
-        p1 = self.create_project(organization=org1)
-        p2 = self.create_project(organization=org2)
-
-        # Both orgs emit SpanMRI with is_segment=true
-        for p, org in [(p1, org1), (p2, org2)]:
-            self.store_performance_metric(
-                name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-                tags={"transaction": "foo", "decision": "keep", "is_segment": "true"},
-                minutes_before_now=30,
-                value=1,
-                project_id=p.id,
-                org_id=org.id,
-            )
-
-        with patch(
-            "sentry.dynamic_sampling.tasks.boost_low_volume_projects._process_orgs_for_boost"
-        ) as mock_process:
-            with self.tasks():
-                boost_low_volume_projects()
-
-            # Collect all calls: (org_ids, measure) pairs
-            calls_by_measure: dict[SamplingMeasure, list[int]] = {}
-            for call in mock_process.call_args_list:
-                org_ids = call[0][0]
-                measure = call[0][1]
-                calls_by_measure.setdefault(measure, []).extend(org_ids)
-
-            assert org1.id in calls_by_measure.get(SamplingMeasure.SEGMENTS, [])
-            assert org2.id in calls_by_measure.get(SamplingMeasure.SEGMENTS, [])
-
-    def test_segment_only_org_is_discovered_by_main_task(self) -> None:
-        """
-        An org that emits segment metrics (SpanMRI with is_segment=true)
-        must be discovered and processed by the main boost_low_volume_projects task.
-        """
-        org = self.create_organization("segment-only-org")
-        project = self.create_project(organization=org)
-
-        self.store_performance_metric(
-            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "foo", "decision": "keep", "is_segment": "true"},
-            minutes_before_now=30,
-            value=5,
-            project_id=project.id,
-            org_id=org.id,
-        )
-
-        with patch(
-            "sentry.dynamic_sampling.tasks.boost_low_volume_projects._process_orgs_for_boost"
-        ) as mock_process:
-            with self.tasks():
-                boost_low_volume_projects()
-
-            calls_by_measure: dict[SamplingMeasure, list[int]] = {}
-            for call in mock_process.call_args_list:
-                org_ids = call[0][0]
-                measure = call[0][1]
-                calls_by_measure.setdefault(measure, []).extend(org_ids)
-
-            assert org.id in calls_by_measure.get(SamplingMeasure.SEGMENTS, [])
 
     @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
     def test_segments_query_uses_span_mri_with_is_segment_tag(self) -> None:

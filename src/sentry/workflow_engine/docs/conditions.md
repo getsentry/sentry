@@ -252,7 +252,7 @@ A [`Detector`](../models/detector.py) represents configured detection. A runtime
 is selected through the detector type's [`DetectorSettings`](../types.py).
 
 The common stateful path is
-[`StatefulDetectorHandler.evaluate_impl`](../handlers/detector/stateful.py):
+[`StatefulDetectorHandler.evaluate`](../handlers/detector/stateful.py):
 
 1. Extract one packet-wide positive integer dedupe value.
 2. Extract one evaluation value or a mapping of `DetectorGroupKey` to value.

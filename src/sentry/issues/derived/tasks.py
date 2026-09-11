@@ -232,19 +232,18 @@ def generate_project_derived_data(
 
     from sentry import options
     from sentry.issues.derived.processing import PIPELINE
+    from sentry.issues.derived.tasks_util import SpawnState
     from sentry.models.group import Group
-    from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 
-    task_state = current_task()
-    activation_id = task_state.id if task_state else None
-    if activation_id and already_spawned(_GENERATE_PROJECT_TASK_KEY, activation_id):
+    spawn = SpawnState(current_task(), _GENERATE_PROJECT_TASK_KEY)
+    if spawn.already_spawned():
         logger.info(
             "generate_project_derived_data.duplicate_redelivery.skipped",
-            extra={"project_id": project_id, "activation_id": activation_id},
+            extra={"project_id": project_id, "activation_id": spawn.activation_id},
         )
         metrics.incr(
             "taskworker.selfchain.duplicate_skipped",
-            tags={"task": _GENERATE_PROJECT_TASK_KEY},
+            tags={"task": spawn.task_key},
         )
         return
 
@@ -282,16 +281,28 @@ def generate_project_derived_data(
         )
 
     if next_cursor_group_id is not None:
-        generate_project_derived_data.apply_async(
-            kwargs={
-                "project_id": project_id,
-                "cursor_group_id": next_cursor_group_id,
-                "stale_only": stale_only,
-            },
-            headers={"sentry-propagate-traces": False},
-        )
-        if activation_id:
-            mark_spawned(_GENERATE_PROJECT_TASK_KEY, activation_id)
+        # Check just before self-spawn and mark after: narrowest race window without going
+        # at-most-once. Still best-effort — concurrent deliveries can both pass this check and
+        # double-spawn; we only shrink the window so that is less likely.
+        if spawn.already_spawned():
+            logger.info(
+                "generate_project_derived_data.duplicate_redelivery.skipped_before_spawn",
+                extra={"project_id": project_id, "activation_id": spawn.activation_id},
+            )
+            metrics.incr(
+                "taskworker.selfchain.duplicate_skipped",
+                tags={"task": spawn.task_key},
+            )
+        else:
+            generate_project_derived_data.apply_async(
+                kwargs={
+                    "project_id": project_id,
+                    "cursor_group_id": next_cursor_group_id,
+                    "stale_only": stale_only,
+                },
+                headers={"sentry-propagate-traces": False},
+            )
+            spawn.mark_spawned()
 
     logger.info(
         "generate_project_derived_data.scheduled",

@@ -99,13 +99,13 @@ function buildRoutes() {
                 path: 'projects/:projectId/',
                 component: ProjectDetails,
               },
-              {
-                path: 'invoices/:region/:invoiceId/',
-                component: InvoiceDetails,
-              },
             ],
           },
         ],
+      },
+      {
+        path: 'invoices/:region/:invoiceId/',
+        component: InvoiceDetails,
       },
       {
         path: 'doc-integrations/',

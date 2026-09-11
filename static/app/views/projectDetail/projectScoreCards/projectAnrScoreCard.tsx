@@ -122,6 +122,7 @@ export function ProjectAnrScoreCard({
           setPreviousSessionsData(response.json);
         });
     } else {
+      // oxlint-disable-next-line react/set-state-in-effect
       setPreviousSessionsData(null);
     }
     return () => {

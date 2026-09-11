@@ -4,7 +4,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {BillingDetailsFixture} from 'getsentry-test/fixtures/billingDetails';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 
-// eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
 import {lightTheme} from 'sentry/utils/theme/theme';
 
 import {BillingDetailsPanel} from 'getsentry/components/billingDetails/panel';

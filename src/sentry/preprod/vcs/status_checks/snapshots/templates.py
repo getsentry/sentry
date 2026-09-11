@@ -237,8 +237,9 @@ def format_missing_base_snapshot_status_check_messages(
     base_sha_markdown = format_commit_sha_markdown(base_sha, repo_url=base_repo_url)
     summary = _format_solo_snapshot_summary(artifacts, snapshot_metrics_map)
     summary += (
-        f"\n\nNo base snapshot found for {base_sha_markdown}. "
-        "Make sure snapshots are uploaded from your main branch."
+        f"\n\nBase commit {base_sha_markdown} did not produce snapshots to compare against. "
+        "Did its snapshot job fail? "
+        "Try rebasing this branch on a commit with a successful snapshot job."
     )
 
     settings_url = _get_settings_url(project)

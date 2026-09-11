@@ -72,6 +72,7 @@ class BaseSignupVerificationView(BaseView):
         metrics.incr(
             "signup_verification.failure",
             tags={"reason": reason, "signup_method": self.signup_method},
+            sample_rate=1.0,
             skip_internal=False,
         )
 

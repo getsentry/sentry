@@ -22,6 +22,7 @@ export function PaymentIntentForm(props: IntentFormProps) {
 
   useEffect(() => {
     if (isError) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setErrorMessage(error);
     }
   }, [isError, error]);

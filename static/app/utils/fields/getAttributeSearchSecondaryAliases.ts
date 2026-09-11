@@ -1,4 +1,7 @@
-import {ATTRIBUTE_SEARCH_METADATA, type AttributeSearchType} from '@sentry/conventions';
+import {
+  ATTRIBUTE_SEARCH_METADATA,
+  type AttributeSearchType,
+} from '@sentry/conventions/attributes/search';
 
 import type {TagCollection} from 'sentry/types/group';
 

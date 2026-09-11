@@ -14,7 +14,6 @@ import {t} from 'sentry/locale';
 import type {Level} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {getTraceIssueSeverityClassName} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
@@ -61,7 +60,7 @@ function Issue(props: IssueProps) {
       groupId: String(props.issue.issue_id),
       organizationSlug: props.organization.slug,
       environments: [],
-      expandDerivedData: orgHasIssueInbox(props.organization),
+      expandDerivedData: props.organization.features.includes('issue-inbox'),
     }),
     staleTime: 10 * 60 * 1000,
   });

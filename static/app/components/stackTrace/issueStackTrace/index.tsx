@@ -263,9 +263,11 @@ function IssueStackTraceContent({
               </Fragment>
             )}
           </Stack>
-          <ErrorBoundary customComponent={null}>
-            <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
-          </ErrorBoundary>
+          {exc.stacktrace && (
+            <ErrorBoundary customComponent={null}>
+              <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
+            </ErrorBoundary>
+          )}
           <StackTraceProvider
             exceptionIndex={isStandalone ? undefined : exc.exceptionIndex}
             event={event}
@@ -347,7 +349,7 @@ function IssueStackTraceContent({
                     newestFirst={isNewestFirst}
                     onExceptionClick={expandException}
                   />
-                  {idx === firstVisibleExceptionIndex ? (
+                  {exc.stacktrace && idx === firstVisibleExceptionIndex ? (
                     <ErrorBoundary customComponent={null}>
                       <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
                     </ErrorBoundary>

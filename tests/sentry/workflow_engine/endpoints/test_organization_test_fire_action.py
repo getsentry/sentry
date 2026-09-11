@@ -7,7 +7,7 @@ from sentry.integrations.pagerduty.client import PagerDutyClient
 from sentry.integrations.pagerduty.utils import PagerDutyServiceDict, add_service
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.issues.action_log import ActionSource, GroupActionActor
-from sentry.issues.action_log.types import CreateIssueAction
+from sentry.issues.action_log.types import CreateExternalIssueAction, CreateIssueAction
 from sentry.models.project import Project
 from sentry.notifications.notification_action.group_type_notification_registry import (
     IssueAlertRegistryHandler,
@@ -212,13 +212,19 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
             }
         ]
 
+        actor = GroupActionActor.user(self.user.id)
         with capture_action_log() as log:
             self.get_success_response(self.organization.slug, actions=action_data)
 
         log.assert_logged(
             CreateIssueAction,
             source=ActionSource.WEB,
-            actor=GroupActionActor.user(self.user.id),
+            actor=actor,
+        )
+        log.assert_logged(
+            CreateExternalIssueAction,
+            source=ActionSource.WEB,
+            actor=actor,
         )
 
     def test_no_projects_available(self) -> None:

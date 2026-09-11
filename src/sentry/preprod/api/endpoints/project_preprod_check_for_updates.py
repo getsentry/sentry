@@ -12,9 +12,9 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectDistributionPermission, ProjectEndpoint
 from sentry.models.project import Project
 from sentry.preprod.build_distribution_utils import (
+    ParsedBuildNumber,
     find_current_and_latest,
     get_download_url_for_artifact,
-    parse_build_number,
 )
 from sentry.preprod.models import PreprodArtifact
 from sentry.ratelimits.config import RateLimitConfig
@@ -107,9 +107,9 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
                 status=400,
             )
 
-        provided_build_number: int | None = None
+        provided_build_number = None
         if provided_build_number_str is not None:
-            provided_build_number = parse_build_number(provided_build_number_str)
+            provided_build_number = ParsedBuildNumber.parse(provided_build_number_str)
             if provided_build_number is None:
                 return Response({"error": "Invalid build_number format"}, status=400)
 

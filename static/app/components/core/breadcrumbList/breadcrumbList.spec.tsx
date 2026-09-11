@@ -26,16 +26,9 @@ describe('BreadcrumbList container-query collapse', () => {
   let consoleError: jest.SpyInstance;
 
   beforeEach(() => {
-    // Known pre-existing issue: the `containerType` prop leaks a `containertype`
-    // attribute onto the DOM node, which React warns about. That's a bug in the
-    // core Container primitive, unrelated to the collapse behavior under test —
-    // tolerate exactly that warning and re-throw anything else.
+    // These tests assert on rendered DOM and emitted styles, where a React
+    // warning usually means a prop leaked onto a host element. Fail on any.
     consoleError = jest.spyOn(console, 'error').mockImplementation((...args) => {
-      // React formats warnings with %s placeholders, so the offending prop name
-      // ("containerType") lands in a later arg — check them all.
-      if (args.some(arg => typeof arg === 'string' && arg.includes('containerType'))) {
-        return;
-      }
       throw new Error(`Unexpected console.error: ${args.map(String).join(' ')}`);
     });
   });

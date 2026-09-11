@@ -110,6 +110,19 @@ class OrganizationInvestigationIndexTest(APITestCase):
         assert run.projection["pendingInput"] is None
         assert run.projection["broadScan"]["status"] == "queued"
 
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
+    def test_agentic_creation_schedules_automatic_execution(self, dispatch: mock.Mock) -> None:
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                self.collection_url,
+                data={"source": {"type": "manual", "prompt": "Investigate latency"}},
+                format="json",
+            )
+
+        assert response.status_code == 201, response.data
+        run = InvestigationOrchestrationRun.objects.get(investigation_id=response.data["id"])
+        dispatch.assert_called_once_with(run.id)
+
     def test_agentic_creation_rejects_an_inaccessible_project_atomically(self) -> None:
         foreign_project = self.create_project(organization=self.create_organization())
 

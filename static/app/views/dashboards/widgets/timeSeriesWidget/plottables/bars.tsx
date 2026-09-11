@@ -2,7 +2,7 @@
 import color from 'color';
 import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 
-import {BarSeries} from 'sentry/components/charts/series/barSeries';
+import {createBarSeries} from 'sentry/components/charts/series/barSeries';
 import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 
 import {
@@ -41,7 +41,7 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
     const scaledTimeSeries = this.scaleToUnit(plottingOptions.unit);
 
     return [
-      BarSeries({
+      createBarSeries({
         name: this.name,
         stack: config.stack,
         yAxisIndex: plottingOptions.yAxisPosition === 'left' ? 0 : 1,

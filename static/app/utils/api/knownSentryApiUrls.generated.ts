@@ -431,6 +431,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/workflows/'
   | '/organizations/$organizationIdOrSlug/workflows/$workflowId/'
   | '/organizations/$organizationIdOrSlug/workflows/$workflowId/group-history/'
+  | '/organizations/$organizationIdOrSlug/workflows/$workflowId/project-scope/'
   | '/organizations/$organizationIdOrSlug/workflows/$workflowId/stats/'
   | '/projects/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/'

@@ -7,6 +7,7 @@ __all__ = ["FeatureManager"]
 import abc
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
@@ -36,6 +37,15 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+@dataclass(slots=True)
+class _ProjectHandlerEvaluation:
+    """Results from running feature-specific handlers across projects."""
+
+    decisions: dict[Project, bool]
+    unresolved_projects: set[Project]
+    failed: bool
+
+
 class RegisteredFeatureManager:
     """
     Feature functions that are built around the need to register feature
@@ -58,7 +68,11 @@ class RegisteredFeatureManager:
         for feature_name in handler.features:
             self._handler_registry[feature_name].append(handler)
 
-    def _get_handler(self, feature: Feature, actor: User) -> bool | None:
+    def _get_handler(
+        self,
+        feature: Feature,
+        actor: User | RpcUser | AnonymousUser | None,
+    ) -> bool | None:
         for handler in self._handler_registry[feature.name]:
             rv = handler(feature, actor)
             if rv is not None:
@@ -103,39 +117,60 @@ class RegisteredFeatureManager:
         """
 
         result: dict[Project, bool | None] = {}
-        remaining = set(objects)
-
-        handlers = self._handler_registry[name]
         try:
-            for handler in handlers:
-                if not remaining:
-                    break
+            evaluation = self._evaluate_handlers_for_projects(name, organization, objects, actor)
+            result.update(evaluation.decisions)
 
-                with start_span(
-                    op="feature.has_for_batch.handler",
-                    name=f"{type(handler).__name__} ({name})",
-                ) as span:
-                    batch_size = len(remaining)
-                    set_span_data(span, "Batch Size", batch_size)
-                    set_span_data(span, "Feature Name", name)
-                    set_span_data(span, "Handler Type", type(handler).__name__)
-
-                    batch = FeatureCheckBatch(self, name, organization, remaining, actor)
-                    handler_result = handler.has_for_batch(batch)
-                    for obj, flag in handler_result.items():
-                        if flag is not None:
-                            remaining.remove(obj)
-                            result[obj] = flag
-                    set_span_data(span, "Flags Found", batch_size - len(remaining))
+            if evaluation.failed:
+                return result
 
             default_flag = settings.SENTRY_FEATURES.get(name, False)
-            for obj in remaining:
-                result[obj] = default_flag
+            for project in evaluation.unresolved_projects:
+                result[project] = default_flag
         except Exception as e:
             if in_random_rollout("features.error.capture_rate"):
                 sentry_sdk.capture_exception(e)
 
         return result
+
+    def _evaluate_handlers_for_projects(
+        self,
+        feature_name: str,
+        organization: Organization,
+        projects: Iterable[Project],
+        actor: User | RpcUser | AnonymousUser | None,
+    ) -> _ProjectHandlerEvaluation:
+        decisions: dict[Project, bool] = {}
+        unresolved_projects = set(projects)
+        try:
+            for handler in self._handler_registry[feature_name]:
+                if not unresolved_projects:
+                    break
+
+                with start_span(
+                    op="feature.has_for_batch.handler",
+                    name=f"{type(handler).__name__} ({feature_name})",
+                ) as span:
+                    batch_size = len(unresolved_projects)
+                    set_span_data(span, "Batch Size", batch_size)
+                    set_span_data(span, "Feature Name", feature_name)
+                    set_span_data(span, "Handler Type", type(handler).__name__)
+
+                    batch = FeatureCheckBatch(
+                        self, feature_name, organization, unresolved_projects, actor
+                    )
+                    handler_result = handler.has_for_batch(batch)
+                    for project, value in handler_result.items():
+                        if value is not None:
+                            unresolved_projects.remove(project)
+                            decisions[project] = value
+                    set_span_data(span, "Flags Found", batch_size - len(unresolved_projects))
+        except Exception as e:
+            if in_random_rollout("features.error.capture_rate"):
+                sentry_sdk.capture_exception(e)
+            return _ProjectHandlerEvaluation(decisions, unresolved_projects, failed=True)
+
+        return _ProjectHandlerEvaluation(decisions, unresolved_projects, failed=False)
 
 
 FLAGPOLE_OPTION_PREFIX = "feature"
@@ -340,7 +375,8 @@ class FeatureManager(RegisteredFeatureManager):
     ) -> dict[str, dict[str, bool | None]] | None:
         """
         Determine if multiple features are enabled. Unhandled flags will not be in
-        the results if they cannot be handled.
+        the results if they cannot be handled. Feature-specific handlers take
+        precedence over the entity handler.
 
         Will only accept one type of feature, either all ProjectFeatures or all
         OrganizationFeatures.
@@ -351,14 +387,109 @@ class FeatureManager(RegisteredFeatureManager):
         """
         try:
             if self._entity_handler:
-                with metrics.timer("features.entity_batch_has", sample_rate=0.01):
-                    return self._entity_handler.batch_has(
-                        feature_names,
-                        actor,
-                        projects=projects,
-                        organization=organization,
-                        skip_experiment_exposure=skip_experiment_exposure,
-                    )
+                if not any(self._handler_registry.get(name) for name in feature_names):
+                    with metrics.timer("features.entity_batch_has", sample_rate=0.01):
+                        return self._entity_handler.batch_has(
+                            feature_names,
+                            actor,
+                            projects=projects,
+                            organization=organization,
+                            skip_experiment_exposure=skip_experiment_exposure,
+                        )
+
+                if projects is not None:
+                    entity_keys = [f"project:{project.id}" for project in projects]
+                else:
+                    entity_keys = [
+                        "unscoped" if organization is None else f"organization:{organization.id}"
+                    ]
+
+                batch_results: dict[str, dict[str, bool | None]] = {
+                    entity_key: {} for entity_key in entity_keys
+                }
+                unresolved_features: list[str] = []
+
+                # Evaluate feature-specific handlers first. Features without a complete
+                # project or organization decision fall through to the entity handler.
+                for feature_name in feature_names:
+                    if not self._handler_registry.get(feature_name):
+                        unresolved_features.append(feature_name)
+                        continue
+
+                    if projects is not None:
+                        if not projects:
+                            unresolved_features.append(feature_name)
+                            continue
+                        # Use the same logic as `has_for_batch` to evaluate the feature
+                        # for each project in the batch.
+                        evaluation = self._evaluate_handlers_for_projects(
+                            feature_name,
+                            projects[0].organization,
+                            projects,
+                            actor,
+                        )
+                        for project, project_value in evaluation.decisions.items():
+                            project_key = f"project:{project.id}"
+                            batch_results[project_key][feature_name] = project_value
+
+                        if evaluation.failed:
+                            for project in evaluation.unresolved_projects:
+                                project_key = f"project:{project.id}"
+                                batch_results[project_key][feature_name] = False
+                        elif evaluation.unresolved_projects:
+                            # The entity handler must evaluate a feature if any project
+                            # is unresolved.
+                            unresolved_features.append(feature_name)
+                    else:
+                        try:
+                            if organization is None:
+                                feature = self.get(feature_name)
+                            else:
+                                feature = self.get(feature_name, organization)
+                            handler_value = self._get_handler(feature, actor)
+                        except Exception as e:
+                            if in_random_rollout("features.error.capture_rate"):
+                                sentry_sdk.capture_exception(e)
+                            handler_value = False
+
+                        if handler_value is None:
+                            unresolved_features.append(feature_name)
+                        else:
+                            batch_results[entity_keys[0]][feature_name] = handler_value
+
+                # Evaluate unresolved features together with the entity handler.
+                if unresolved_features:
+                    with metrics.timer("features.entity_batch_has", sample_rate=0.01):
+                        entity_results = self._entity_handler.batch_has(
+                            unresolved_features,
+                            actor,
+                            projects=projects,
+                            organization=organization,
+                            skip_experiment_exposure=skip_experiment_exposure,
+                        )
+
+                    if entity_results:
+                        # Preserve feature-specific decisions when merging entity results.
+                        for entity_key, entity_feature_results in entity_results.items():
+                            feature_results = batch_results.setdefault(entity_key, {})
+                            for feature_name, value in entity_feature_results.items():
+                                feature_results.setdefault(feature_name, value)
+
+                # Callers treat a feature as fully batch-evaluated once any entity has a
+                # result. For features with feature-specific handlers, complete missing
+                # entity results with the same final fallback as `has()`.
+                for feature_name in feature_names:
+                    if not self._handler_registry.get(feature_name):
+                        continue
+                    default_value = settings.SENTRY_FEATURES.get(feature_name, False)
+                    if default_value is None:
+                        default_value = False
+                    for entity_key in entity_keys:
+                        feature_results = batch_results[entity_key]
+                        if feature_results.get(feature_name) is None:
+                            feature_results[feature_name] = default_value
+
+                return batch_results or None
             else:
                 # Fall back to default handler if no entity handler available.
                 project_features = [name for name in feature_names if name.startswith("projects:")]

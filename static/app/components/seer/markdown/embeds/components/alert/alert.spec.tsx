@@ -84,9 +84,11 @@ describe('alert embed', () => {
       data: {id: automation.id, kind: 'issue'},
     });
 
+    // The block's name is the collapse toggle; the link out is a separate target.
     expect(
-      await screen.findByRole('link', {name: automation.name}, {timeout: 5_000})
-    ).toHaveAttribute(
+      await screen.findByRole('button', {name: automation.name}, {timeout: 5_000})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'View Alert'})).toHaveAttribute(
       'href',
       `/organizations/org-slug/monitors/alerts/${automation.id}/`
     );
@@ -107,7 +109,7 @@ describe('alert embed', () => {
     renderDetectorAlert(detector, 'metric');
 
     expect(
-      await screen.findByRole('link', {name: detector.name}, {timeout: 5_000})
+      await screen.findByRole('button', {name: detector.name}, {timeout: 5_000})
     ).toBeInTheDocument();
     expect(await screen.findByText('Dataset:')).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Rules'})).toBeInTheDocument();

@@ -305,6 +305,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
 
   useEffect(() => {
     if (autorefreshEnabled) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setTimeseriesIngestDelay(getMaxIngestDelayTimestamp());
     }
   }, [autorefreshEnabled]);

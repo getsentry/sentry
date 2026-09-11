@@ -86,7 +86,7 @@ class GroupedDetectorEvaluationResult:
     tainted: bool
 
 
-class DetectorHandler(abc.ABC, Generic[DataPacketType]):
+class BaseDetectorHandler(abc.ABC, Generic[DataPacketType]):
     """
     Abstract base class defining the public interface for detector handlers.
     """
@@ -95,14 +95,14 @@ class DetectorHandler(abc.ABC, Generic[DataPacketType]):
         self.detector = detector
 
     @abc.abstractmethod
-    def evaluate(
+    def _evaluate(
         self, data_packet: DataPacket[DataPacketType]
     ) -> dict[DetectorGroupKey, DetectorEvaluation]:
         pass
 
 
-class BaseDetectorHandler(
-    DetectorHandler[DataPacketType],
+class DetectorHandler(
+    BaseDetectorHandler[DataPacketType],
     Generic[DataPacketType, DataPacketEvaluationType],
 ):
     """
@@ -139,7 +139,7 @@ class BaseDetectorHandler(
         else:
             self.condition_group = None
 
-    def evaluate(
+    def _evaluate(
         self, data_packet: DataPacket[DataPacketType]
     ) -> dict[DetectorGroupKey, DetectorEvaluation]:
         tags = {
@@ -147,7 +147,7 @@ class BaseDetectorHandler(
             "result": "unknown",
         }
         try:
-            value = self.evaluate_impl(data_packet)
+            value = self.evaluate(data_packet)
             tags["result"] = "tainted" if value.tainted else "success"
             metrics.incr("workflow_engine_detector.evaluation", tags=tags, sample_rate=1.0)
             return value.result
@@ -157,13 +157,9 @@ class BaseDetectorHandler(
             raise
 
     @abc.abstractmethod
-    def evaluate_impl(
-        self, data_packet: DataPacket[DataPacketType]
-    ) -> GroupedDetectorEvaluationResult:
+    def evaluate(self, data_packet: DataPacket[DataPacketType]) -> GroupedDetectorEvaluationResult:
         """
         This method is used to evaluate the data packet's value against the conditions on the detector.
-
-        TODO - rename this to `evaluate` and change current evaluate to `_evaluate`
         """
         pass
 
@@ -192,15 +188,5 @@ class BaseDetectorHandler(
         Extracts the evaluation value from the data packet to be processed.
 
         This value is used to determine if the data condition group is in a triggered state.
-        """
-        pass
-
-    @abc.abstractmethod
-    def extract_dedupe_value(self, data_packet: DataPacket[DataPacketType]) -> int:
-        """
-        Extracts the de-duplication value from a passed data packet. This duplication
-        value is used to determine if we've already processed data to this point or not.
-
-        This is normally a timestamp, but could be any sortable value; (e.g. a sequence number, timestamp, etc).
         """
         pass

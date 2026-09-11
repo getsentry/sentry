@@ -8,7 +8,7 @@ import {Text} from '@sentry/scraps/text';
 import type {ContainerBreakpointSize} from 'sentry/utils/theme';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
-import {ResizableWindow} from './resizableWindow';
+import {allowOpenOverlayOverflowCss, ResizableWindow} from './resizableWindow';
 
 interface DemoProps extends FlexProps {
   resizable?: boolean;
@@ -27,6 +27,7 @@ export function Demo({resizable, ...props}: DemoProps) {
         style={{marginBottom: '-1lh'}}
       >
         <Flex
+          css={allowOpenOverlayOverflowCss}
           data-test-id="storybook-demo"
           width="100%"
           align="center"
@@ -79,6 +80,7 @@ export function Demo({resizable, ...props}: DemoProps) {
       <Flex align="center" justify="center" padding="xl">
         <ResizableWindow ref={containerRef}>
           <Flex
+            css={allowOpenOverlayOverflowCss}
             flex="1"
             data-test-id="storybook-demo"
             width="100%"

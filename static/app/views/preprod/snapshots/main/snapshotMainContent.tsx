@@ -158,6 +158,7 @@ export function SnapshotMainContent({
       return;
     }
     const cardIndex = (cardOffsets[singleViewIndex] ?? 0) + variantIndex;
+    // oxlint-disable-next-line react/set-state-in-effect
     setCurrentCardIndex(cardIndex);
     setScrollProgress(totalCards <= 1 ? 100 : (cardIndex / (totalCards - 1)) * 100);
   }, [viewMode, singleViewIndex, variantIndex, totalCards, cardOffsets]);

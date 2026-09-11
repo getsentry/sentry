@@ -50,7 +50,7 @@ export function CrossEventQueryingDropdown() {
     : t('For more targeted results, you can also cross reference other datasets.');
 
   return (
-    <Container width="100%">
+    <Container width={{zero: '100%', md: 'auto'}}>
       {triggerProps => (
         <DropdownMenu
           onAction={onAction}

@@ -414,6 +414,7 @@ export function SentryComponentInspector() {
           </ProfilingContextMenu>
           <div
             ref={el => {
+              // oxlint-disable-next-line react/immutability
               contextMenu.subMenuRef.current = el;
             }}
             data-inspector-skip

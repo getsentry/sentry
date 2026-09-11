@@ -58,6 +58,7 @@ export function ReprocessAlert({
   }, [api, eventId, orgSlug, projSlug]);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     checkEventReprocessable();
   }, [checkEventReprocessable]);
 

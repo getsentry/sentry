@@ -15,7 +15,7 @@ from sentry.seer.agent.client_models import (
     RepoPRState,
     SeerRunState,
 )
-from sentry.seer.autofix.autofix_agent import AutofixStep, NoSeerQuotaException
+from sentry.seer.autofix.autofix_agent import NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
@@ -27,6 +27,7 @@ from sentry.seer.autofix.pr_iteration.pause import (
     pause_pr_iteration,
 )
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import APITestCase, SnubaTestCase

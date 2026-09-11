@@ -19,13 +19,21 @@ interface Props {
 export function SamplingModeSwitch({initialTargetRate}: Props) {
   const {samplingMode} = useOrganization();
   const hasAccess = useHasDynamicSamplingWriteAccess();
+  // Advanced Mode can no longer be entered. An organization already in it can still leave it.
+  const isInAdvancedMode = samplingMode === 'project';
 
   const handleSwitchMode = () => {
     openSamplingModeSwitchModal({
-      samplingMode: samplingMode === 'organization' ? 'project' : 'organization',
+      samplingMode: 'organization',
       initialTargetRate,
     });
   };
+
+  const disabledReason = isInAdvancedMode
+    ? t('You do not have permission to change this setting.')
+    : t(
+        'Advanced Mode is no longer available. Sample rates are configured for the whole organization.'
+      );
 
   return (
     <Flex as="label" align="center" gap="md" marginBottom="0">
@@ -42,15 +50,12 @@ export function SamplingModeSwitch({initialTargetRate}: Props) {
       >
         {t('Advanced Mode')}
       </InfoText>
-      <Tooltip
-        disabled={hasAccess}
-        title={t('You do not have permission to change this setting.')}
-      >
+      <Tooltip disabled={hasAccess && isInAdvancedMode} title={disabledReason}>
         <Switch
           size="lg"
           onChange={handleSwitchMode}
-          disabled={!hasAccess}
-          checked={samplingMode === 'project'}
+          disabled={!hasAccess || !isInAdvancedMode}
+          checked={isInAdvancedMode}
         />
       </Tooltip>
     </Flex>

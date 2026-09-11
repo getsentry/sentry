@@ -54,14 +54,6 @@ def connect_workflows_to_issue_stream(
     )
 
 
-def connect_workflows_to_detector(
-    detector: Detector,
-    workflows: list[Workflow],
-) -> Sequence[DetectorWorkflow]:
-    connections = [DetectorWorkflow(workflow=workflow, detector=detector) for workflow in workflows]
-    return DetectorWorkflow.objects.bulk_create(connections, ignore_conflicts=True)
-
-
 def create_priority_workflow(org: Organization) -> Workflow:
     with transaction.atomic(router.db_for_write(Workflow)):
         when_condition_group = DataConditionGroup.objects.create(
@@ -216,7 +208,7 @@ def ensure_pull_request_workflow(organization: Organization, detector: Detector)
 
 def ensure_default_organization_workflows(organization: Organization) -> list[Workflow]:
     """
-    Raises on Workflow.MultipleObjectsReturned, Detector.MultipleObjectsReturned, UnableToAcquireLockApiError
+    Raises on Workflow.MultipleObjectsReturned, UnableToAcquireLockApiError
     """
     workflows: list[Workflow] = []
     if not options.get("workflow_engine.auto_creation.pull_request_workflow"):

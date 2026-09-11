@@ -50,38 +50,6 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
 
     @responses.activate
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
-    def test_get_allowed_assignees(self, mock_get_jwt: MagicMock) -> None:
-        responses.add(
-            responses.POST,
-            f"https://{self._IP_ADDRESS}/api/v3/app/installations/installation_id/access_tokens",
-            json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
-        )
-
-        responses.add(
-            responses.GET,
-            f"https://{self._IP_ADDRESS}/api/v3/repos/getsentry/sentry/assignees",
-            json=[{"login": "MeredithAnya"}],
-        )
-
-        repo = "getsentry/sentry"
-        assert self.install.get_allowed_assignees(repo) == (
-            ("", "Unassigned"),
-            ("MeredithAnya", "MeredithAnya"),
-        )
-
-        if self.should_call_api_without_proxying():
-            assert len(responses.calls) == 2
-
-            request = responses.calls[0].request
-            assert request.headers["Authorization"] == "Bearer jwt_token_1"
-
-            request = responses.calls[1].request
-            assert request.headers["Authorization"] == "Bearer token_1"
-        else:
-            self._check_proxying()
-
-    @responses.activate
-    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     def test_get_repo_labels(self, mock_get_jwt: MagicMock) -> None:
         responses.add(
             responses.POST,

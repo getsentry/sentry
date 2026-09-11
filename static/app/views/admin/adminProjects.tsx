@@ -45,7 +45,6 @@ export default function AdminProjects() {
       <ResultGrid
         path="/manage/projects/"
         endpoint="/projects/?show=all"
-        method="GET"
         columns={columns}
         columnsForRow={getRow}
         hasSearch

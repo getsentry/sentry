@@ -83,14 +83,6 @@ class TestNormalizeContentParts:
 
 
 class TestNormalizeToMessages:
-    def test_old_format_content(self) -> None:
-        messages = json_string([{"role": "user", "content": "Hello"}])
-        assert normalize_to_messages(messages, "user") == [{"role": "user", "content": "Hello"}]
-
-    def test_new_format_parts(self) -> None:
-        messages = json_string([{"role": "user", "parts": [{"type": "text", "content": "Hello"}]}])
-        assert normalize_to_messages(messages, "user") == [{"role": "user", "content": "Hello"}]
-
     def test_prefers_parts_format_when_both_exist(self) -> None:
         messages = json_string(
             [
@@ -170,13 +162,6 @@ class TestExtractAssistantOutput:
             "assistant",
         )
         assert result["response_text"] == "New"
-
-    def test_prefers_new_format_content(self) -> None:
-        result = extract_assistant_output(
-            json_string([{"role": "assistant", "content": "New content"}]),
-            "assistant",
-        )
-        assert result["response_text"] == "New content"
 
     def test_parses_json_encoded_content_string(self) -> None:
         result = extract_assistant_output(

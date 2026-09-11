@@ -4,7 +4,6 @@ import pytest
 from django.utils import timezone
 
 from sentry.dynamic_sampling.tasks.common import (
-    GetActiveOrgs,
     GetActiveOrgsVolumes,
     OrganizationDataVolume,
     get_organization_volume,
@@ -17,55 +16,6 @@ from sentry.testutils.helpers.datetime import freeze_time
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
     hour=0, minute=0, second=0, microsecond=0
 )
-
-
-@freeze_time(MOCK_DATETIME)
-class TestGetActiveOrgs(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
-    def setUp(self) -> None:
-        # create 10 orgs each with 10 transactions
-        for i in range(10):
-            org = self.create_organization(f"org-{i}")
-            for i in range(10):
-                project = self.create_project(organization=org)
-                self.store_performance_metric(
-                    name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-                    tags={
-                        "transaction": "foo_transaction",
-                        "decision": "keep",
-                        "is_segment": "true",
-                    },
-                    minutes_before_now=30,
-                    value=1,
-                    project_id=project.id,
-                    org_id=org.id,
-                )
-
-    @property
-    def now(self):
-        return MOCK_DATETIME
-
-    def test_get_active_orgs_no_max_projects(self) -> None:
-        total_orgs = 0
-        for idx, orgs in enumerate(GetActiveOrgs(3)):
-            num_orgs = len(orgs)
-            total_orgs += num_orgs
-            if idx in [0, 1, 2]:
-                assert num_orgs == 3  # first batch should be full
-            else:
-                assert num_orgs == 1  # second should contain the remaining 3
-        assert total_orgs == 10
-
-    def test_get_active_orgs_with_max_projects(self) -> None:
-        total_orgs = 0
-        for orgs in GetActiveOrgs(3, 18):
-            # we ask for max 18 proj (that's 2 org per request since one org has 10 )
-            num_orgs = len(orgs)
-            total_orgs += num_orgs
-            assert num_orgs == 2  # only 2 orgs since we limit the number of projects
-        assert total_orgs == 10
-
-
-NOW_ISH = timezone.now().replace(second=0, microsecond=0)
 
 
 @freeze_time(MOCK_DATETIME)
@@ -146,114 +96,6 @@ class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase
         org_id = 99999999  # can we do better, an id we know for sure is not in the DB?
         org_volume = get_organization_volume(org_id)
         assert org_volume is None
-
-
-@freeze_time(MOCK_DATETIME)
-class TestGetActiveOrgsMeasureFiltering(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
-    """
-    Tests that SEGMENTS and SPANS measures filter metrics correctly.
-    """
-
-    @property
-    def now(self):
-        return MOCK_DATETIME
-
-    def test_segments_measure_only_counts_segment_spans(self) -> None:
-        """
-        Test that SEGMENTS measure only counts SpanMRI with is_segment=true.
-        """
-        org1 = self.create_organization("test-org-1")
-        project1 = self.create_project(organization=org1)
-        org2 = self.create_organization("test-org-2")
-        project2 = self.create_project(organization=org2)
-
-        # Store span metric with is_segment=true (should be counted by SEGMENTS measure)
-        self.store_performance_metric(
-            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "foo", "decision": "keep", "is_segment": "true"},
-            minutes_before_now=30,
-            value=1,
-            project_id=project1.id,
-            org_id=org1.id,
-        )
-
-        # Store span metric without is_segment (should NOT be counted by SEGMENTS measure)
-        self.store_performance_metric(
-            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "bar", "decision": "keep"},
-            minutes_before_now=30,
-            value=100,
-            project_id=project2.id,
-            org_id=org2.id,
-        )
-
-        found_orgs = []
-        for orgs in GetActiveOrgs(max_orgs=10, measure=SamplingMeasure.SEGMENTS):
-            found_orgs.extend(orgs)
-
-        assert org1.id in found_orgs
-        assert org2.id not in found_orgs
-
-    def test_segments_measure_excludes_non_segment_spans(self) -> None:
-        """
-        Test that SEGMENTS measure excludes SpanMRI without is_segment=true.
-        """
-        org1 = self.create_organization("test-org-1")
-        project1 = self.create_project(organization=org1)
-        org2 = self.create_organization("test-org-2")
-        project2 = self.create_project(organization=org2)
-
-        # Store span metric with is_segment=true (should be counted)
-        self.store_performance_metric(
-            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "foo", "decision": "keep", "is_segment": "true"},
-            minutes_before_now=30,
-            value=1,
-            project_id=project1.id,
-            org_id=org1.id,
-        )
-
-        # Store span metric without is_segment (should NOT be counted)
-        self.store_performance_metric(
-            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "bar", "decision": "keep"},
-            minutes_before_now=30,
-            value=100,
-            project_id=project2.id,
-            org_id=org2.id,
-        )
-
-        found_orgs = []
-        for orgs in GetActiveOrgs(max_orgs=10, measure=SamplingMeasure.SEGMENTS):
-            found_orgs.extend(orgs)
-
-        assert org1.id in found_orgs
-        assert org2.id not in found_orgs
-
-    def test_segments_measure_multiple_orgs(self) -> None:
-        """
-        Test GetActiveOrgs with SEGMENTS measure for multiple organizations.
-        """
-        created_org_ids = []
-        for i in range(5):
-            org = self.create_organization(f"segment-org-{i}")
-            created_org_ids.append(org.id)
-            project = self.create_project(organization=org)
-            self.store_performance_metric(
-                name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-                tags={"transaction": "tx", "decision": "keep", "is_segment": "true"},
-                minutes_before_now=30,
-                value=1,
-                project_id=project.id,
-                org_id=org.id,
-            )
-
-        found_orgs = []
-        for orgs in GetActiveOrgs(max_orgs=10, measure=SamplingMeasure.SEGMENTS):
-            found_orgs.extend(orgs)
-
-        for org_id in created_org_ids:
-            assert org_id in found_orgs
 
 
 @freeze_time(MOCK_DATETIME)

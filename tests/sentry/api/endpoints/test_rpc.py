@@ -145,6 +145,22 @@ class RpcServiceEndpointTest(APITestCase):
             "detail": ErrorDetail(string="Malformed request.", code="parse_error")
         }
 
+    def test_implementation_error_returns_500(self) -> None:
+        path = self._get_path("organization", "get_organization_by_id")
+        data = {"args": {"id": 0}}
+
+        with (
+            patch("sentry.api.endpoints.internal.rpc.in_test_environment", return_value=False),
+            patch(
+                "sentry.api.endpoints.internal.rpc.dispatch_to_local_service",
+                side_effect=OSError("cell unreachable"),
+            ),
+        ):
+            response = self._send_post_request(path, data)
+
+        assert response.status_code == 500
+        assert response.data == {"detail": "Internal error in RPC service"}
+
     def test_viewer_context_propagated_from_meta(self) -> None:
         """ViewerContext in meta is set as the contextvar during dispatch."""
         organization = self.create_organization()
