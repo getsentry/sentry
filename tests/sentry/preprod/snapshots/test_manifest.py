@@ -194,3 +194,36 @@ class TestImageMetadataExtras:
         meta = ImageMetadata(**_meta(platform="ios"))
         result = image_metadata_extras(meta, exclude={"width"})
         assert result == _reference_extras(meta, exclude={"width"})
+
+
+def test_versioned_plan_round_trips_frozen_fingerprints():
+    import orjson
+
+    from sentry.preprod.snapshots.manifest import ComparisonPlan, ImageFingerprint
+
+    fingerprint = ImageFingerprint("screen.png", "changed", "approved-hash")
+    plan = ComparisonPlan(
+        head_artifact_id=1,
+        base_artifact_id=2,
+        chunks=[],
+        non_diff_images={},
+        schema_version=2,
+        sibling_artifact_id=3,
+        sibling_comparison_key="approved/comparison.json",
+        sibling_fingerprints=[fingerprint],
+    )
+    parsed = ComparisonPlan(**orjson.loads(orjson.dumps(plan.dict())))
+    assert parsed == plan
+    assert parsed.sibling_fingerprints == [fingerprint]
+
+
+def test_unknown_plan_version_is_rejected():
+    import pytest
+    from pydantic import ValidationError
+
+    from sentry.preprod.snapshots.manifest import ComparisonPlan
+
+    with pytest.raises(ValidationError):
+        ComparisonPlan(
+            head_artifact_id=1, base_artifact_id=2, chunks=[], non_diff_images={}, schema_version=3
+        )

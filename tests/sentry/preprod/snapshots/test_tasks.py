@@ -1,8 +1,24 @@
 import io
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+from objectstore_client import RequestError
 from PIL import Image, PngImagePlugin
 
+from sentry.preprod.snapshots.approval import SiblingComparison
+from sentry.preprod.snapshots.categorize import categorize_image_diff
+from sentry.preprod.snapshots.comparison import (
+    _create_pixel_batches,
+    _effective_diff_threshold,
+    _process_chunk,
+)
+from sentry.preprod.snapshots.execution import (
+    ImageDiffFailure,
+    ImagePair,
+    _fetch_batch_images,
+    measure_image_pairs,
+)
 from sentry.preprod.snapshots.image_diff.compare import get_comparison_size
 from sentry.preprod.snapshots.image_diff.types import DiffResult, ImageSize
 from sentry.preprod.snapshots.manifest import (
@@ -14,17 +30,13 @@ from sentry.preprod.snapshots.manifest import (
     ImageMetadata,
     SnapshotManifest,
 )
-from sentry.preprod.snapshots.tasks import (
-    SiblingComparison,
-    _build_comparison_plan,
+from sentry.preprod.snapshots.storage import (
     _chunk_result_key,
     _comparison_key,
     _diff_mask_key,
-    _effective_diff_threshold,
     _plan_key,
-    _process_chunk,
-    categorize_image_diff,
 )
+from sentry.preprod.snapshots.workflow import _build_comparison_plan
 
 
 def test_objectstore_key_layout():
@@ -278,7 +290,7 @@ class TestCategorizeImageDiffSelective:
 
 def test_build_comparison_plan_splits_diff_and_non_diff():
     from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
-    from sentry.preprod.snapshots.tasks import _build_comparison_plan
+    from sentry.preprod.snapshots.workflow import _build_comparison_plan
 
     head = SnapshotManifest(
         images={
@@ -308,7 +320,7 @@ def test_build_comparison_plan_splits_diff_and_non_diff():
 
 def test_build_comparison_plan_diff_threshold_precedence():
     from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
-    from sentry.preprod.snapshots.tasks import _build_comparison_plan
+    from sentry.preprod.snapshots.workflow import _build_comparison_plan
 
     head = SnapshotManifest(
         images={
@@ -335,7 +347,7 @@ def test_build_comparison_plan_diff_threshold_precedence():
 
 def test_build_comparison_plan_diff_threshold_defaults_to_zero():
     from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
-    from sentry.preprod.snapshots.tasks import _build_comparison_plan
+    from sentry.preprod.snapshots.workflow import _build_comparison_plan
 
     head = SnapshotManifest(
         images={"default.png": ImageMetadata(content_hash="h1", width=10, height=10)},
@@ -355,7 +367,7 @@ def test_build_comparison_plan_diff_threshold_defaults_to_zero():
 def test_build_comparison_plan_uses_comparison_dimensions_for_pixel_limit():
     from sentry.preprod.snapshots.image_diff.compare import MAX_DIFF_PIXELS
     from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
-    from sentry.preprod.snapshots.tasks import _build_comparison_plan
+    from sentry.preprod.snapshots.workflow import _build_comparison_plan
 
     head = SnapshotManifest(
         images={"huge.png": ImageMetadata(content_hash="h1", width=MAX_DIFF_PIXELS, height=1)},
@@ -376,7 +388,7 @@ def test_build_comparison_plan_uses_comparison_dimensions_for_pixel_limit():
 
 def test_build_comparison_plan_detects_rename():
     from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
-    from sentry.preprod.snapshots.tasks import _build_comparison_plan
+    from sentry.preprod.snapshots.workflow import _build_comparison_plan
 
     head = SnapshotManifest(
         images={"new.png": ImageMetadata(content_hash="shared", width=10, height=10)},
@@ -417,16 +429,16 @@ def test_process_chunk_enforces_actual_batch_pixel_limit():
     }
 
     with (
-        patch("sentry.preprod.snapshots.tasks.MAX_PIXELS_PER_BATCH", 150),
+        patch("sentry.preprod.snapshots.execution.MAX_PIXELS_PER_BATCH", 150),
         patch(
-            "sentry.preprod.snapshots.tasks._fetch_batch_images",
+            "sentry.preprod.snapshots.execution._fetch_batch_images",
             return_value=(fetched, set()),
         ),
         patch(
-            "sentry.preprod.snapshots.tasks.compare_images_batch", return_value=[None]
+            "sentry.preprod.snapshots.execution.compare_images_batch", return_value=[None]
         ) as compare,
         patch.object(PngImagePlugin.PngImageFile, "load") as load,
-        patch("sentry.preprod.snapshots.tasks.OdiffServer"),
+        patch("sentry.preprod.snapshots.execution.OdiffServer"),
     ):
         result = _process_chunk(MagicMock(), assignment, 1, 2, 3, 4)
 
@@ -472,13 +484,15 @@ def test_process_chunk_routes_sibling_candidates_without_diff_mask() -> None:
     )
     session = MagicMock()
     with (
-        patch("sentry.preprod.snapshots.tasks._fetch_batch_images", return_value=(fetched, set())),
         patch(
-            "sentry.preprod.snapshots.tasks.compare_images_batch",
+            "sentry.preprod.snapshots.execution._fetch_batch_images", return_value=(fetched, set())
+        ),
+        patch(
+            "sentry.preprod.snapshots.execution.compare_images_batch",
             return_value=[diff_result, diff_result],
         ),
-        patch("sentry.preprod.snapshots.tasks.OdiffServer"),
-        patch("sentry.preprod.snapshots.tasks._put_diff_mask") as put_mask,
+        patch("sentry.preprod.snapshots.execution.OdiffServer"),
+        patch("sentry.preprod.snapshots.comparison._put_diff_mask") as put_mask,
     ):
         result = _process_chunk(session, assignment, 1, 2, 3, 4)
 
@@ -510,9 +524,11 @@ def test_process_chunk_sibling_fetch_failure_is_errored_in_sibling_images() -> N
         ],
     )
     with (
-        patch("sentry.preprod.snapshots.tasks._fetch_batch_images", return_value=({}, {"a-sib"})),
-        patch("sentry.preprod.snapshots.tasks.compare_images_batch", return_value=[]),
-        patch("sentry.preprod.snapshots.tasks.OdiffServer"),
+        patch(
+            "sentry.preprod.snapshots.execution._fetch_batch_images", return_value=({}, {"a-sib"})
+        ),
+        patch("sentry.preprod.snapshots.execution.compare_images_batch", return_value=[]),
+        patch("sentry.preprod.snapshots.execution.OdiffServer"),
     ):
         result = _process_chunk(MagicMock(), assignment, 1, 2, 3, 4)
 
@@ -768,3 +784,145 @@ def test_build_comparison_plan_skips_sibling_candidate_over_pixel_limit() -> Non
     plan = _build_comparison_plan(head, base, 1, 2, sibling=sibling)
     assert all(c.kind == "base" for chunk in plan.chunks for c in chunk.candidates)
     assert plan.non_diff_images["big.png"].reason == "exceeds_pixel_limit"
+
+
+def test_tiny_images_are_split_by_pair_count():
+    candidate = ChunkCandidate(
+        name="screen.png", head_hash="head", base_hash="base", pixel_count=1, diff_threshold=0.0
+    )
+    batches = _create_pixel_batches([candidate] * 50_000, 40_000_000, max_pairs_per_batch=100)
+    assert len(batches) == 500
+    assert {len(batch) for batch in batches} == {100}
+    assert sum(map(len, batches)) == 50_000
+
+
+def test_image_downloads_use_bounded_reads_and_safe_temporary_paths(tmp_path: Path):
+    class BoundedStream(io.BytesIO):
+        def read(self, size: int = -1) -> bytes:
+            assert 0 < size <= 1024 * 1024
+            return super().read(size)
+
+    payload = BoundedStream(b"x" * (2 * 1024 * 1024 + 10))
+    session = MagicMock()
+    session.get.return_value.payload = payload
+    images, failed = _fetch_batch_images(session, "1/2", {"../../content"}, directory=tmp_path)
+    assert failed == set()
+    path = images["../../content"]
+    assert path.parent == tmp_path
+    assert path.stat().st_size == 2 * 1024 * 1024 + 10
+    assert payload.closed
+    session.get.assert_called_once_with("1/2/../../content")
+
+
+def test_partial_download_retry_replaces_the_incomplete_file(tmp_path: Path):
+    failed_payload = MagicMock()
+    failed_payload.read.side_effect = [b"incomplete", RequestError("busy", 503, "busy")]
+    complete_payload = io.BytesIO(b"complete")
+    session = MagicMock()
+    session.get.side_effect = [
+        MagicMock(payload=failed_payload),
+        MagicMock(payload=complete_payload),
+    ]
+    with patch("sentry.preprod.snapshots.storage.time.sleep"):
+        images, failed = _fetch_batch_images(session, "1/2", {"image"}, directory=tmp_path)
+    assert failed == set()
+    assert images["image"].read_bytes() == b"complete"
+    assert session.get.call_count == 2
+    failed_payload.close.assert_called_once()
+    assert complete_payload.closed
+
+
+def test_measurements_preserve_request_order_and_clean_up_downloads():
+    buffer = io.BytesIO()
+    Image.new("RGBA", (10, 10), (255, 0, 0, 255)).save(buffer, format="PNG")
+    payloads = {"1/2/good": buffer.getvalue(), "1/2/bad": b"not an image"}
+    session = MagicMock()
+    session.get.side_effect = lambda key: MagicMock(payload=io.BytesIO(payloads[key]))
+    downloaded: dict[str, Path] = {}
+
+    def fetch(*args, **kwargs):
+        result = _fetch_batch_images(*args, **kwargs)
+        downloaded.update(result[0])
+        return result
+
+    with patch("sentry.preprod.snapshots.execution._fetch_batch_images", side_effect=fetch):
+        results = measure_image_pairs(
+            session, [ImagePair("bad", "good"), ImagePair("good", "good", include_mask=False)], 1, 2
+        )
+    assert results[0] == ImageDiffFailure("image_processing_failed")
+    assert isinstance(results[1], DiffResult)
+    assert results[1].changed_pixels == 0
+    assert results[1].diff_mask_png == b""
+    assert session.get.call_count == 2
+    assert all(not path.exists() for path in downloaded.values())
+
+
+@pytest.mark.parametrize("threshold, expected", [(0.1, "unchanged"), (0.099, "changed")])
+def test_threshold_boundary_is_applied_after_measurement(threshold: float, expected: str):
+    candidate = ChunkCandidate(
+        name="image.png",
+        head_hash="head",
+        base_hash="base",
+        pixel_count=100,
+        diff_threshold=threshold,
+        kind="sibling",
+    )
+    measurement = DiffResult(
+        diff_mask_png=b"",
+        changed_pixels=10,
+        total_pixels=100,
+        aligned_height=10,
+        before_width=10,
+        before_height=10,
+        after_width=10,
+        after_height=10,
+    )
+    with patch(
+        "sentry.preprod.snapshots.comparison.measure_image_pairs", return_value=[measurement]
+    ):
+        result = _process_chunk(
+            MagicMock(), ChunkAssignment(chunk_index=0, candidates=[candidate]), 1, 2, 3, 4
+        )
+    assert result.sibling_images["image.png"].status == expected
+    assert result.images == {}
+
+
+def test_versioned_masks_do_not_collide_for_names_with_the_same_stem():
+    assignment = ChunkAssignment(
+        chunk_index=0,
+        candidates=[
+            ChunkCandidate(
+                name="screen.png",
+                head_hash="head",
+                base_hash="base",
+                pixel_count=100,
+                diff_threshold=0.0,
+            ),
+            ChunkCandidate(
+                name="screen.jpg",
+                head_hash="head",
+                base_hash="base",
+                pixel_count=100,
+                diff_threshold=0.0,
+            ),
+        ],
+    )
+    measurement = DiffResult(
+        diff_mask_png=b"png",
+        changed_pixels=10,
+        total_pixels=100,
+        aligned_height=10,
+        before_width=10,
+        before_height=10,
+        after_width=10,
+        after_height=10,
+    )
+    with patch(
+        "sentry.preprod.snapshots.comparison.measure_image_pairs",
+        return_value=[measurement, measurement],
+    ):
+        result = _process_chunk(
+            MagicMock(), assignment, 1, 2, 3, 4, mask_prefix="1/2/3/4/runs/run/diff/chunk"
+        )
+    assert result.images["screen.png"].diff_mask_key != result.images["screen.jpg"].diff_mask_key
+    assert result.images["screen.png"].diff_mask_image_id == "3/4/runs/run/diff/chunk/0.png"

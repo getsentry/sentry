@@ -6,6 +6,12 @@ import orjson
 
 from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
+from sentry.preprod.snapshots.approval import (
+    ImageFingerprint,
+    _build_comparison_fingerprints,
+    _hash_only_diffs,
+    _HashOnlyDiff,
+)
 from sentry.preprod.snapshots.manifest import (
     ComparisonImageResult,
     ComparisonManifest,
@@ -15,14 +21,7 @@ from sentry.preprod.snapshots.manifest import (
     SnapshotManifest,
 )
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
-from sentry.preprod.snapshots.tasks import (
-    ImageFingerprint,
-    _build_comparison_fingerprints,
-    _find_approved_sibling,
-    _hash_only_diffs,
-    _HashOnlyDiff,
-    _try_auto_approve_snapshot,
-)
+from sentry.preprod.snapshots.workflow import _find_approved_sibling, _try_auto_approve_snapshot
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import (
     assert_any_analytics_event,
@@ -958,3 +957,25 @@ class TryAutoApproveSnapshotTest(TestCase):
         assert result is not None
         assert result.artifact_id == sibling.id
         assert call(comp_key) in session.get.call_args_list
+
+
+def test_approval_decision_is_independent_of_storage_and_rejects_missing_evidence():
+    from sentry.preprod.snapshots.approval import decide_approval
+
+    head = {ImageFingerprint("screen.png", "changed", "head")}
+    sibling = {ImageFingerprint("screen.png", "changed", "sibling")}
+    assert decide_approval(head, sibling, {}).reason == "evidence_mismatch"
+    decision = decide_approval(
+        head,
+        sibling,
+        {
+            "screen.png": ComparisonImageResult(
+                status="unchanged",
+                head_hash="head",
+                base_hash="sibling",
+            )
+        },
+    )
+    assert decision.reason == "approved"
+    assert decision.threshold_matches == 1
+    assert decide_approval(set(), set(), {}).reason == "no_changes"

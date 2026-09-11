@@ -1,14 +1,28 @@
 from __future__ import annotations
 
+import io
+import threading
+from dataclasses import replace
 from unittest.mock import ANY, MagicMock, patch
 
 import orjson
 import pytest
 from objectstore_client import RequestError
+from PIL import Image
 
+from sentry.preprod.models import PreprodComparisonApproval
+from sentry.preprod.snapshots.approval import SiblingComparison
+from sentry.preprod.snapshots.approval import _try_auto_approve_snapshot as apply_auto_approval
 from sentry.preprod.snapshots.image_diff.types import ImageSize
+from sentry.preprod.snapshots.manifest import ComparisonManifest, ImageMetadata, SnapshotManifest
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison
-from sentry.preprod.snapshots.tasks import _retry_objectstore
+from sentry.preprod.snapshots.storage import ComparisonStorage, _retry_objectstore
+from sentry.preprod.snapshots.tasks import (
+    compare_snapshots,
+    finalize_snapshot_comparison,
+    process_snapshot_comparison_chunk,
+)
+from sentry.preprod.snapshots.workflow import _mark_chunk_done, _publish_plan
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
 
@@ -31,7 +45,7 @@ class ChunksDoneIndicesTest(TestCase):
         assert comparison.chunks_total is None
 
     def test_mark_chunk_done_accumulates_distinct_indices(self):
-        from sentry.preprod.snapshots.tasks import _mark_chunk_done
+        from sentry.preprod.snapshots.workflow import _mark_chunk_done
 
         comparison = self._comparison()
         _mark_chunk_done(comparison.id, 0)
@@ -45,7 +59,7 @@ class ChunksDoneIndicesTest(TestCase):
 
         from django.utils import timezone
 
-        from sentry.preprod.snapshots.tasks import _mark_chunk_done
+        from sentry.preprod.snapshots.workflow import _mark_chunk_done
 
         comparison = self._comparison()
         stale = timezone.now() - timedelta(seconds=10_000)
@@ -55,7 +69,7 @@ class ChunksDoneIndicesTest(TestCase):
         assert (timezone.now() - comparison.date_updated).total_seconds() < 5
 
 
-@patch("sentry.preprod.snapshots.tasks.time.sleep")
+@patch("sentry.preprod.snapshots.storage.time.sleep")
 def test_retry_objectstore_retries_once_on_429(mock_sleep: MagicMock) -> None:
     calls = {"n": 0}
 
@@ -78,7 +92,7 @@ def test_retry_objectstore_fails_fast_on_404():
         _retry_objectstore(op)
 
 
-@patch("sentry.preprod.snapshots.tasks.time.sleep")
+@patch("sentry.preprod.snapshots.storage.time.sleep")
 def test_retry_objectstore_gives_up_after_max_attempts(mock_sleep: MagicMock) -> None:
     operation = MagicMock(side_effect=RequestError("unavailable", 503, "unavailable"))
 
@@ -110,7 +124,7 @@ def _dict_backed_session(stored: dict[str, bytes]) -> MagicMock:
         if key not in stored:
             return None
         result = MagicMock()
-        result.payload.read.return_value = stored[key]
+        result.payload = io.BytesIO(stored[key])
         return result
 
     def _put(contents, key, content_type):
@@ -191,13 +205,15 @@ class ProcessChunkTest(TestCase):
         )
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
             patch(
-                "sentry.preprod.snapshots.tasks._fetch_batch_images",
+                "sentry.preprod.snapshots.execution._fetch_batch_images",
                 return_value=({"h": b"img", "b": b"img"}, set()),
             ),
-            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
-            patch("sentry.preprod.snapshots.tasks.compare_images_batch", return_value=[diff]),
+            patch(
+                "sentry.preprod.snapshots.execution.read_image_size", return_value=ImageSize(1, 1)
+            ),
+            patch("sentry.preprod.snapshots.execution.compare_images_batch", return_value=[diff]),
         ):
             process_snapshot_comparison_chunk(
                 comparison_id=comparison.id,
@@ -280,14 +296,16 @@ class ProcessChunkTest(TestCase):
         )
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
-            patch("sentry.preprod.snapshots.tasks.OdiffServer"),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.execution.OdiffServer"),
             patch(
-                "sentry.preprod.snapshots.tasks._fetch_batch_images",
+                "sentry.preprod.snapshots.execution._fetch_batch_images",
                 return_value=({"h": b"img", "b": b"img"}, set()),
             ),
-            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
-            patch("sentry.preprod.snapshots.tasks.compare_images_batch", return_value=[diff]),
+            patch(
+                "sentry.preprod.snapshots.execution.read_image_size", return_value=ImageSize(1, 1)
+            ),
+            patch("sentry.preprod.snapshots.execution.compare_images_batch", return_value=[diff]),
         ):
             process_snapshot_comparison_chunk(
                 comparison_id=comparison.id,
@@ -373,14 +391,16 @@ class ProcessChunkTest(TestCase):
         )
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
             patch(
-                "sentry.preprod.snapshots.tasks._fetch_batch_images",
+                "sentry.preprod.snapshots.execution._fetch_batch_images",
                 return_value=({"h": b"img", "b": b"img"}, set()),
             ),
-            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
-                "sentry.preprod.snapshots.tasks.compare_images_batch",
+                "sentry.preprod.snapshots.execution.read_image_size", return_value=ImageSize(1, 1)
+            ),
+            patch(
+                "sentry.preprod.snapshots.execution.compare_images_batch",
                 return_value=[self._diff_result()],
             ),
             patch(
@@ -413,14 +433,16 @@ class ProcessChunkTest(TestCase):
         )
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
             patch(
-                "sentry.preprod.snapshots.tasks._fetch_batch_images",
+                "sentry.preprod.snapshots.execution._fetch_batch_images",
                 return_value=({"h": b"img", "b": b"img"}, set()),
             ),
-            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
-                "sentry.preprod.snapshots.tasks.compare_images_batch",
+                "sentry.preprod.snapshots.execution.read_image_size", return_value=ImageSize(1, 1)
+            ),
+            patch(
+                "sentry.preprod.snapshots.execution.compare_images_batch",
                 return_value=[self._diff_result()],
             ),
             patch(
@@ -465,17 +487,19 @@ class ProcessChunkTest(TestCase):
         )
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
             patch(
-                "sentry.preprod.snapshots.tasks._fetch_batch_images",
+                "sentry.preprod.snapshots.execution._fetch_batch_images",
                 return_value=({"h": b"img", "b": b"img"}, set()),
             ),
-            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
-                "sentry.preprod.snapshots.tasks.compare_images_batch",
+                "sentry.preprod.snapshots.execution.read_image_size", return_value=ImageSize(1, 1)
+            ),
+            patch(
+                "sentry.preprod.snapshots.execution.compare_images_batch",
                 return_value=[unchanged_diff],
             ),
-            self.assertLogs("sentry.preprod.snapshots.tasks", level="INFO"),
+            self.assertLogs("sentry.preprod.snapshots.comparison", level="INFO"),
         ):
             process_snapshot_comparison_chunk(
                 comparison_id=comparison.id,
@@ -504,9 +528,9 @@ class ProcessChunkTest(TestCase):
         )
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
             patch(
-                "sentry.preprod.snapshots.tasks._process_chunk",
+                "sentry.preprod.snapshots.workflow._process_chunk",
                 side_effect=Exception("boom"),
             ),
             patch(
@@ -540,13 +564,13 @@ class ProcessChunkTest(TestCase):
         )
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
             patch(
-                "sentry.preprod.snapshots.tasks._process_chunk",
+                "sentry.preprod.snapshots.workflow._process_chunk",
                 side_effect=ValueError("odiff exploded"),
             ),
             patch("sentry.preprod.snapshots.tasks.finalize_snapshot_comparison.apply_async"),
-            self.assertLogs("sentry.preprod.snapshots.tasks", level="INFO") as logs,
+            self.assertLogs("sentry.preprod.snapshots.workflow", level="INFO") as logs,
         ):
             process_snapshot_comparison_chunk(
                 comparison_id=comparison.id,
@@ -637,9 +661,9 @@ class FinalizeSnapshotComparisonTest(TestCase):
         }
         session = _dict_backed_session(stored)
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
-            patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot"),
-            patch("sentry.preprod.snapshots.tasks.metrics") as mock_metrics,
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow._try_auto_approve_snapshot"),
+            patch("sentry.preprod.snapshots.workflow.metrics") as mock_metrics,
         ):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
         comparison.refresh_from_db()
@@ -665,7 +689,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
 
         comparison, h, b = self._comparison(1, state=PreprodSnapshotComparison.State.SUCCESS)
-        with patch("sentry.preprod.snapshots.tasks.get_session") as session:
+        with patch("sentry.preprod.snapshots.workflow.get_session") as session:
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
         assert not session.called
 
@@ -680,8 +704,10 @@ class FinalizeSnapshotComparisonTest(TestCase):
         }
         session = _dict_backed_session(stored)
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
-            patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot") as mock_auto_approve,
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
+            patch(
+                "sentry.preprod.snapshots.workflow._try_auto_approve_snapshot"
+            ) as mock_auto_approve,
         ):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
         comparison.refresh_from_db()
@@ -746,8 +772,10 @@ class FinalizeSnapshotComparisonTest(TestCase):
         }
         session = _dict_backed_session(stored)
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
-            patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot") as mock_auto_approve,
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
+            patch(
+                "sentry.preprod.snapshots.workflow._try_auto_approve_snapshot"
+            ) as mock_auto_approve,
         ):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
         comparison.refresh_from_db()
@@ -766,7 +794,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
         prefix = f"{self.organization.id}/{self.project.id}/{h.id}/{b.id}"
         stored = {f"{prefix}/plan.json": orjson.dumps(self._single_chunk_plan(h, b).dict())}
         session = _dict_backed_session(stored)
-        with patch("sentry.preprod.snapshots.tasks.get_session", return_value=session):
+        with patch("sentry.preprod.snapshots.workflow.get_session", return_value=session):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
         comparison.refresh_from_db()
         assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
@@ -783,8 +811,10 @@ class FinalizeSnapshotComparisonTest(TestCase):
         }
         session = _dict_backed_session(stored)
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
-            patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot") as mock_auto_approve,
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
+            patch(
+                "sentry.preprod.snapshots.workflow._try_auto_approve_snapshot"
+            ) as mock_auto_approve,
         ):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
@@ -796,7 +826,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
 
         comparison, h, b = self._comparison(None)
-        with patch("sentry.preprod.snapshots.tasks.get_session") as session:
+        with patch("sentry.preprod.snapshots.workflow.get_session") as session:
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
         assert not session.called
         comparison.refresh_from_db()
@@ -806,7 +836,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
 
         comparison, h, b = self._comparison(3, done_indices=[0])
-        with patch("sentry.preprod.snapshots.tasks.get_session") as session:
+        with patch("sentry.preprod.snapshots.workflow.get_session") as session:
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
         assert not session.called
         comparison.refresh_from_db()
@@ -839,8 +869,8 @@ class FinalizeSnapshotComparisonTest(TestCase):
             return session
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", side_effect=_capture),
-            patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot"),
+            patch("sentry.preprod.snapshots.workflow.get_session", side_effect=_capture),
+            patch("sentry.preprod.snapshots.workflow._try_auto_approve_snapshot"),
         ):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
         assert date_updated_at_finalize["value"] > stale
@@ -854,7 +884,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
         prefix = f"{self.organization.id}/{self.project.id}/{h.id}/{b.id}"
         stored = {f"{prefix}/plan.json": orjson.dumps(self._single_chunk_plan(h, b).dict())}
         session = _dict_backed_session(stored)
-        with patch("sentry.preprod.snapshots.tasks.get_session", return_value=session):
+        with patch("sentry.preprod.snapshots.workflow.get_session", return_value=session):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
         comparison.refresh_from_db()
         assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
@@ -869,7 +899,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
         prefix = f"{self.organization.id}/{self.project.id}/{h.id}/{b.id}"
         stored = {f"{prefix}/plan.json": orjson.dumps(self._single_chunk_plan(h, b).dict())}
         session = _dict_backed_session(stored)
-        with patch("sentry.preprod.snapshots.tasks.get_session", return_value=session):
+        with patch("sentry.preprod.snapshots.workflow.get_session", return_value=session):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
         comparison.refresh_from_db()
         assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
@@ -883,8 +913,8 @@ class FinalizeSnapshotComparisonTest(TestCase):
         comparison, h, b = self._comparison(1, done_indices=[0])
         session = _dict_backed_session({})
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
-            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.update_preprod_snapshot_vcs") as vcs,
         ):
             finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
         comparison.refresh_from_db()
@@ -930,11 +960,11 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"
             ) as dispatch,
-            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+            patch("sentry.preprod.snapshots.workflow.update_preprod_snapshot_vcs"),
         ):
             compare_snapshots(
                 project_id=self.project.id,
@@ -955,6 +985,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
     def test_orchestrator_records_sibling_in_plan(self):
         import orjson
 
+        from sentry.preprod.snapshots.approval import SiblingComparison
         from sentry.preprod.snapshots.manifest import (
             ComparisonImageResult,
             ComparisonManifest,
@@ -963,11 +994,8 @@ class CompareSnapshotsOrchestratorTest(TestCase):
             ImageMetadata,
             SnapshotManifest,
         )
-        from sentry.preprod.snapshots.tasks import (
-            SiblingComparison,
-            _plan_key,
-            compare_snapshots,
-        )
+        from sentry.preprod.snapshots.storage import _plan_key
+        from sentry.preprod.snapshots.tasks import compare_snapshots
 
         head_artifact, base_artifact = self._setup()
         head_manifest = SnapshotManifest(
@@ -1013,12 +1041,12 @@ class CompareSnapshotsOrchestratorTest(TestCase):
 
         with (
             self.options({"preprod.snapshots.auto-approve-sibling-diffs.enabled": True}),
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
             patch(
-                "sentry.preprod.snapshots.tasks._find_approved_sibling", return_value=sibling
+                "sentry.preprod.snapshots.workflow._find_approved_sibling", return_value=sibling
             ) as mock_find_sibling,
             patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
-            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+            patch("sentry.preprod.snapshots.workflow.update_preprod_snapshot_vcs"),
         ):
             compare_snapshots(
                 project_id=self.project.id,
@@ -1046,6 +1074,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
     def test_orchestrator_records_sibling_without_candidates_when_disabled(self):
         import orjson
 
+        from sentry.preprod.snapshots.approval import SiblingComparison
         from sentry.preprod.snapshots.manifest import (
             ComparisonImageResult,
             ComparisonManifest,
@@ -1054,11 +1083,8 @@ class CompareSnapshotsOrchestratorTest(TestCase):
             ImageMetadata,
             SnapshotManifest,
         )
-        from sentry.preprod.snapshots.tasks import (
-            SiblingComparison,
-            _plan_key,
-            compare_snapshots,
-        )
+        from sentry.preprod.snapshots.storage import _plan_key
+        from sentry.preprod.snapshots.tasks import compare_snapshots
 
         head_artifact, base_artifact = self._setup()
         head_manifest = SnapshotManifest(
@@ -1104,12 +1130,12 @@ class CompareSnapshotsOrchestratorTest(TestCase):
 
         with (
             self.options({"preprod.snapshots.auto-approve-sibling-diffs.enabled": False}),
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
             patch(
-                "sentry.preprod.snapshots.tasks._find_approved_sibling", return_value=sibling
+                "sentry.preprod.snapshots.workflow._find_approved_sibling", return_value=sibling
             ) as mock_find_sibling,
             patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
-            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+            patch("sentry.preprod.snapshots.workflow.update_preprod_snapshot_vcs"),
         ):
             compare_snapshots(
                 project_id=self.project.id,
@@ -1155,14 +1181,14 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"
             ) as dispatch,
             patch(
                 "sentry.preprod.snapshots.tasks.finalize_snapshot_comparison.apply_async"
             ) as finalize,
-            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+            patch("sentry.preprod.snapshots.workflow.update_preprod_snapshot_vcs"),
         ):
             compare_snapshots(
                 project_id=self.project.id,
@@ -1215,11 +1241,11 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"
             ) as dispatch,
-            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+            patch("sentry.preprod.snapshots.workflow.update_preprod_snapshot_vcs"),
         ):
             compare_snapshots(
                 project_id=self.project.id,
@@ -1273,12 +1299,12 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
             patch(
                 "sentry.preprod.snapshots.tasks.finalize_snapshot_comparison.apply_async"
             ) as finalize,
-            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+            patch("sentry.preprod.snapshots.workflow.update_preprod_snapshot_vcs"),
         ):
             compare_snapshots(
                 project_id=self.project.id,
@@ -1330,9 +1356,9 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
-            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+            patch("sentry.preprod.snapshots.workflow.update_preprod_snapshot_vcs"),
         ):
             compare_snapshots(
                 project_id=self.project.id,
@@ -1372,8 +1398,8 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.get.side_effect = _get
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
-            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.update_preprod_snapshot_vcs") as vcs,
         ):
             compare_snapshots(
                 project_id=self.project.id,
@@ -1409,8 +1435,8 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.get.return_value = None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
-            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.update_preprod_snapshot_vcs") as vcs,
         ):
             compare_snapshots(
                 project_id=self.project.id,
@@ -1446,11 +1472,11 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         comparison.save()
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session") as session_factory,
+            patch("sentry.preprod.snapshots.workflow.get_session") as session_factory,
             patch(
                 "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"
             ) as dispatch,
-            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+            patch("sentry.preprod.snapshots.workflow.update_preprod_snapshot_vcs"),
         ):
             compare_snapshots(
                 project_id=self.project.id,
@@ -1533,9 +1559,9 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
-            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+            patch("sentry.preprod.snapshots.workflow.update_preprod_snapshot_vcs"),
         ):
             compare_snapshots(
                 project_id=self.project.id,
@@ -1590,9 +1616,9 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
-            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+            patch("sentry.preprod.snapshots.workflow.update_preprod_snapshot_vcs"),
         ):
             compare_snapshots(
                 project_id=self.project.id,
@@ -1650,9 +1676,9 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
-            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
+            patch("sentry.preprod.snapshots.workflow.update_preprod_snapshot_vcs") as vcs,
         ):
             compare_snapshots(
                 project_id=self.project.id,
@@ -1676,9 +1702,9 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
-            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
+            patch("sentry.preprod.snapshots.workflow.update_preprod_snapshot_vcs") as vcs,
         ):
             compare_snapshots(
                 project_id=self.project.id,
@@ -1715,9 +1741,9 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.compare_snapshots.apply_async") as reschedule,
-            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+            patch("sentry.preprod.snapshots.workflow.update_preprod_snapshot_vcs"),
         ):
             compare_snapshots(
                 project_id=self.project.id,
@@ -1772,9 +1798,9 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.compare_snapshots.apply_async") as reschedule,
-            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+            patch("sentry.preprod.snapshots.workflow.update_preprod_snapshot_vcs"),
         ):
             compare_snapshots(
                 project_id=self.project.id,
@@ -1827,9 +1853,9 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.compare_snapshots.apply_async") as reschedule,
-            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
+            patch("sentry.preprod.snapshots.workflow.update_preprod_snapshot_vcs") as vcs,
         ):
             compare_snapshots(
                 project_id=self.project.id,
@@ -1876,9 +1902,9 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         session.put.side_effect = lambda *a, **k: None
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
             patch("sentry.preprod.snapshots.tasks.compare_snapshots.apply_async") as reschedule,
-            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+            patch("sentry.preprod.snapshots.workflow.update_preprod_snapshot_vcs"),
         ):
             compare_snapshots(
                 project_id=self.project.id,
@@ -1949,7 +1975,7 @@ class EndToEndFanoutTest(TestCase):
             after_height=10,
         )
 
-    def _fake_fetch(self, session, key_prefix, hashes):
+    def _fake_fetch(self, session, key_prefix, hashes, **kwargs):
         return {h: b"img" for h in hashes}, set()
 
     def test_full_flow_reaches_success(self):
@@ -1979,24 +2005,27 @@ class EndToEndFanoutTest(TestCase):
         )
 
         with (
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
-            patch("sentry.preprod.snapshots.tasks.MAX_PIXELS_PER_BATCH", 1),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow.MAX_PIXELS_PER_BATCH", 1),
             patch(
-                "sentry.preprod.snapshots.tasks._fetch_batch_images", side_effect=self._fake_fetch
+                "sentry.preprod.snapshots.execution._fetch_batch_images",
+                side_effect=self._fake_fetch,
             ),
-            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
-                "sentry.preprod.snapshots.tasks.compare_images_batch",
-                side_effect=lambda pairs, server: [self._diff_result() for _ in pairs],
+                "sentry.preprod.snapshots.execution.read_image_size", return_value=ImageSize(1, 1)
             ),
-            patch("sentry.preprod.snapshots.tasks.OdiffServer"),
-            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+            patch(
+                "sentry.preprod.snapshots.execution.compare_images_batch",
+                side_effect=lambda pairs, server, **kwargs: [self._diff_result() for _ in pairs],
+            ),
+            patch("sentry.preprod.snapshots.execution.OdiffServer"),
+            patch("sentry.preprod.snapshots.workflow.update_preprod_snapshot_vcs"),
             patch(
                 "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async",
                 side_effect=lambda kwargs, **_: dispatched.append(kwargs),
             ),
             patch("sentry.preprod.snapshots.tasks.finalize_snapshot_comparison.apply_async"),
-            patch("sentry.preprod.snapshots.tasks.metrics") as mock_metrics,
+            patch("sentry.preprod.snapshots.workflow.metrics") as mock_metrics,
         ):
             compare_snapshots(**kwargs)
 
@@ -2050,6 +2079,7 @@ class EndToEndFanoutTest(TestCase):
 
     def test_full_flow_auto_approves_via_sibling_results(self):
         from sentry.preprod.models import PreprodComparisonApproval
+        from sentry.preprod.snapshots.approval import SiblingComparison
         from sentry.preprod.snapshots.image_diff.types import DiffResult
         from sentry.preprod.snapshots.manifest import (
             ComparisonImageResult,
@@ -2059,7 +2089,6 @@ class EndToEndFanoutTest(TestCase):
             SnapshotManifest,
         )
         from sentry.preprod.snapshots.tasks import (
-            SiblingComparison,
             compare_snapshots,
             finalize_snapshot_comparison,
             process_snapshot_comparison_chunk,
@@ -2142,18 +2171,21 @@ class EndToEndFanoutTest(TestCase):
 
         with (
             self.options({"preprod.snapshots.auto-approve-sibling-diffs.enabled": True}),
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
-            patch("sentry.preprod.snapshots.tasks._find_approved_sibling", return_value=sibling),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow._find_approved_sibling", return_value=sibling),
             patch(
-                "sentry.preprod.snapshots.tasks._fetch_batch_images", side_effect=self._fake_fetch
+                "sentry.preprod.snapshots.execution._fetch_batch_images",
+                side_effect=self._fake_fetch,
             ),
-            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
-                "sentry.preprod.snapshots.tasks.compare_images_batch",
-                side_effect=lambda pairs, server: [unchanged_diff for _ in pairs],
+                "sentry.preprod.snapshots.execution.read_image_size", return_value=ImageSize(1, 1)
             ),
-            patch("sentry.preprod.snapshots.tasks.OdiffServer"),
-            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+            patch(
+                "sentry.preprod.snapshots.execution.compare_images_batch",
+                side_effect=lambda pairs, server, **kwargs: [unchanged_diff for _ in pairs],
+            ),
+            patch("sentry.preprod.snapshots.execution.OdiffServer"),
+            patch("sentry.preprod.snapshots.workflow.update_preprod_snapshot_vcs"),
             patch("sentry.analytics.record"),
             patch(
                 "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async",
@@ -2191,6 +2223,7 @@ class EndToEndFanoutTest(TestCase):
 
     def test_full_flow_auto_approves_exact_match_when_disabled(self):
         from sentry.preprod.models import PreprodComparisonApproval
+        from sentry.preprod.snapshots.approval import SiblingComparison
         from sentry.preprod.snapshots.image_diff.types import DiffResult
         from sentry.preprod.snapshots.manifest import (
             ComparisonImageResult,
@@ -2200,7 +2233,6 @@ class EndToEndFanoutTest(TestCase):
             SnapshotManifest,
         )
         from sentry.preprod.snapshots.tasks import (
-            SiblingComparison,
             compare_snapshots,
             finalize_snapshot_comparison,
             process_snapshot_comparison_chunk,
@@ -2283,18 +2315,21 @@ class EndToEndFanoutTest(TestCase):
 
         with (
             self.options({"preprod.snapshots.auto-approve-sibling-diffs.enabled": False}),
-            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
-            patch("sentry.preprod.snapshots.tasks._find_approved_sibling", return_value=sibling),
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.workflow._find_approved_sibling", return_value=sibling),
             patch(
-                "sentry.preprod.snapshots.tasks._fetch_batch_images", side_effect=self._fake_fetch
+                "sentry.preprod.snapshots.execution._fetch_batch_images",
+                side_effect=self._fake_fetch,
             ),
-            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
-                "sentry.preprod.snapshots.tasks.compare_images_batch",
-                side_effect=lambda pairs, server: [unchanged_diff for _ in pairs],
+                "sentry.preprod.snapshots.execution.read_image_size", return_value=ImageSize(1, 1)
             ),
-            patch("sentry.preprod.snapshots.tasks.OdiffServer"),
-            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+            patch(
+                "sentry.preprod.snapshots.execution.compare_images_batch",
+                side_effect=lambda pairs, server, **kwargs: [unchanged_diff for _ in pairs],
+            ),
+            patch("sentry.preprod.snapshots.execution.OdiffServer"),
+            patch("sentry.preprod.snapshots.workflow.update_preprod_snapshot_vcs"),
             patch("sentry.analytics.record"),
             patch(
                 "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async",
@@ -2329,3 +2364,356 @@ class EndToEndFanoutTest(TestCase):
         assert approval.extras is not None
         assert approval.extras["prev_approved_artifact_id"] == 777
         assert approval.extras["threshold_matched_image_count"] == 0
+
+
+@cell_silo_test
+class VersionedSnapshotComparisonTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.head = self.create_preprod_artifact(project=self.project)
+        self.base = self.create_preprod_artifact(project=self.project)
+        head_metrics = self.create_preprod_snapshot_metrics(self.head)
+        head_metrics.extras = {"manifest_key": "head_manifest"}
+        head_metrics.save()
+        base_metrics = self.create_preprod_snapshot_metrics(self.base)
+        base_metrics.extras = {"manifest_key": "base_manifest"}
+        base_metrics.save()
+        self.head_manifest = SnapshotManifest(
+            images={
+                "first.png": ImageMetadata(content_hash="head", width=10, height=10),
+                "second.png": ImageMetadata(content_hash="head", width=10, height=10),
+                "same.png": ImageMetadata(content_hash="same", width=10, height=10),
+            }
+        )
+        self.base_manifest = SnapshotManifest(
+            images={
+                "first.png": ImageMetadata(content_hash="base", width=10, height=10),
+                "second.png": ImageMetadata(content_hash="base", width=10, height=10),
+                "same.png": ImageMetadata(content_hash="same", width=10, height=10),
+            }
+        )
+        before, after = io.BytesIO(), io.BytesIO()
+        Image.new("RGBA", (10, 10), (0, 0, 0, 255)).save(before, format="PNG")
+        Image.new("RGBA", (10, 10), (255, 0, 0, 255)).save(after, format="PNG")
+        prefix = f"{self.organization.id}/{self.project.id}"
+        self.stored = {
+            "head_manifest": orjson.dumps(self.head_manifest.dict()),
+            "base_manifest": orjson.dumps(self.base_manifest.dict()),
+            f"{prefix}/head": after.getvalue(),
+            f"{prefix}/base": before.getvalue(),
+        }
+        self.session = _dict_backed_session(self.stored)
+        self.enterContext(
+            patch("sentry.preprod.snapshots.workflow.get_session", return_value=self.session)
+        )
+        self.enterContext(
+            self.options({"preprod.snapshots.versioned-comparison-plans.enabled": True})
+        )
+        self.enterContext(patch("sentry.preprod.snapshots.workflow.MAX_PAIRS_PER_CHUNK", 1))
+        self.sibling_lookup = self.enterContext(
+            patch("sentry.preprod.snapshots.workflow._find_approved_sibling", return_value=None)
+        )
+        self.auto_approve = self.enterContext(
+            patch("sentry.preprod.snapshots.workflow._try_auto_approve_snapshot")
+        )
+        self.vcs = self.enterContext(
+            patch("sentry.preprod.snapshots.workflow.update_preprod_snapshot_vcs")
+        )
+        self.dispatch = self.enterContext(
+            patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async")
+        )
+        self.finalize_dispatch = self.enterContext(
+            patch("sentry.preprod.snapshots.tasks.finalize_snapshot_comparison.apply_async")
+        )
+        self.kwargs = dict(
+            project_id=self.project.id,
+            org_id=self.organization.id,
+            head_artifact_id=self.head.id,
+            base_artifact_id=self.base.id,
+        )
+
+    def _start(self):
+        compare_snapshots(**self.kwargs)
+        comparison = PreprodSnapshotComparison.objects.get(
+            head_snapshot_metrics__preprod_artifact=self.head
+        )
+        store = ComparisonStorage(
+            self.session,
+            self.organization.id,
+            self.project.id,
+            self.head.id,
+            self.base.id,
+            comparison.extras["snapshot_execution_id"],
+        )
+        return comparison, store
+
+    def _finish(self, comparison, store):
+        finalize_snapshot_comparison(comparison_id=comparison.id, **store.task_kwargs())
+        comparison.refresh_from_db()
+        return ComparisonManifest(**orjson.loads(self.stored[comparison.extras["comparison_key"]]))
+
+    def test_workers_read_only_their_assignment_and_complete_out_of_order(self):
+        comparison, store = self._start()
+        assert comparison.chunks_total == 2
+        self.session.get.reset_mock()
+        second = self.dispatch.call_args_list[1].kwargs["kwargs"]
+        first = self.dispatch.call_args_list[0].kwargs["kwargs"]
+        process_snapshot_comparison_chunk(**second)
+        fetched_keys = [call.args[0] for call in self.session.get.call_args_list]
+        assert store.assignment_key(1) in fetched_keys
+        assert store.plan_key not in fetched_keys
+        process_snapshot_comparison_chunk(**first)
+        process_snapshot_comparison_chunk(**first)
+        manifest = self._finish(comparison, store)
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+        assert sorted(comparison.chunks_done_indices) == [0, 1]
+        assert manifest.summary.changed == 2
+        assert manifest.summary.unchanged == 1
+        assert manifest.summary.total == 3
+        assert manifest.images["first.png"].diff_mask_key in self.stored
+        assert manifest.images["first.png"].diff_mask_image_id is not None
+        assert f"/runs/{store.execution_id}/" in manifest.images["first.png"].diff_mask_image_id
+        self._finish(comparison, store)
+        self.auto_approve.assert_called_once()
+
+    def test_retry_resumes_published_plan_even_after_option_is_disabled(self):
+        self.dispatch.side_effect = RuntimeError("interrupted dispatch")
+        with pytest.raises(RuntimeError, match="interrupted dispatch"):
+            compare_snapshots(**self.kwargs)
+        comparison = PreprodSnapshotComparison.objects.get(
+            head_snapshot_metrics__preprod_artifact=self.head
+        )
+        assert comparison.state == PreprodSnapshotComparison.State.FAILED
+        store = ComparisonStorage(
+            self.session,
+            self.organization.id,
+            self.project.id,
+            self.head.id,
+            self.base.id,
+            comparison.extras["snapshot_execution_id"],
+        )
+        original_plan = self.stored[store.plan_key]
+        self.stored["head_manifest"] = b"not a manifest"
+        self.sibling_lookup.side_effect = AssertionError(
+            "must not select another sibling on resume"
+        )
+        self.session.get.reset_mock()
+        self.dispatch.side_effect = None
+        self.dispatch.reset_mock()
+        with self.options({"preprod.snapshots.versioned-comparison-plans.enabled": False}):
+            compare_snapshots(**self.kwargs)
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.PROCESSING
+        assert comparison.extras["snapshot_execution_id"] == store.execution_id
+        assert self.stored[store.plan_key] == original_plan
+        self.session.get.assert_called_once_with(store.plan_key)
+        assert self.dispatch.call_count == 2
+
+    def test_recompare_fences_off_old_execution(self):
+        comparison, old_store = self._start()
+        old_task = self.dispatch.call_args_list[0].kwargs["kwargs"]
+        comparison.delete()
+        self.dispatch.reset_mock()
+        replacement, store = self._start()
+        assert store.execution_id != old_store.execution_id
+        self.session.get.reset_mock()
+        process_snapshot_comparison_chunk(**old_task)
+        finalize_snapshot_comparison(
+            comparison_id=old_task["comparison_id"], **old_store.task_kwargs()
+        )
+        _mark_chunk_done(replacement.id, 0, old_store.execution_id)
+        replacement.refresh_from_db()
+        assert replacement.chunks_done_indices == []
+        self.session.get.assert_not_called()
+
+    def test_competing_publication_reuses_the_winning_plan(self):
+        comparison, store = self._start()
+        original = store.read_plan()
+        alternative = original.copy(update={"sibling_artifact_id": 999})
+        published = _publish_plan(comparison, replace(store, execution_id=None), alternative)
+        assert published is not None
+        winner, plan = published
+        assert winner.execution_id == store.execution_id
+        assert plan == original
+        assert store.read_plan() == original
+
+    def _assert_bad_result_degrades(self, data):
+        comparison, store = self._start()
+        first, second = [call.kwargs["kwargs"] for call in self.dispatch.call_args_list]
+        process_snapshot_comparison_chunk(**first)
+        process_snapshot_comparison_chunk(**second)
+        self.stored[store.chunk_result_key(0)] = data
+        manifest = self._finish(comparison, store)
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+        assert manifest.summary.errored == 1
+        assert manifest.summary.changed == 1
+        assert manifest.images["first.png"].reason == "chunk_result_unreadable"
+        assert manifest.images["second.png"].status == "changed"
+
+    def test_corrupt_chunk_result_degrades_without_losing_other_images(self):
+        self._assert_bad_result_degrades(b"not json")
+
+    def test_incomplete_chunk_result_degrades_without_losing_other_images(self):
+        self._assert_bad_result_degrades(orjson.dumps({"chunk_index": 0, "images": {}}))
+
+    def test_wrong_hash_result_degrades_without_losing_other_images(self):
+        self._assert_bad_result_degrades(
+            orjson.dumps(
+                {
+                    "chunk_index": 0,
+                    "images": {
+                        "first.png": {
+                            "status": "unchanged",
+                            "head_hash": "wrong",
+                            "base_hash": "base",
+                        }
+                    },
+                }
+            )
+        )
+
+    def test_missing_assignment_is_terminal_and_does_not_block_finalization(self):
+        comparison, store = self._start()
+        first, second = [call.kwargs["kwargs"] for call in self.dispatch.call_args_list]
+        del self.stored[store.assignment_key(0)]
+        process_snapshot_comparison_chunk(**first)
+        process_snapshot_comparison_chunk(**second)
+        assert store.chunk_result_key(0) not in self.stored
+        manifest = self._finish(comparison, store)
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+        assert manifest.summary.errored == 1
+        assert manifest.summary.changed == 1
+
+    def test_deadline_interruption_is_not_marked_complete(self):
+        comparison, store = self._start()
+        task = self.dispatch.call_args_list[0].kwargs["kwargs"]
+        with patch(
+            "sentry.preprod.snapshots.workflow._process_chunk",
+            side_effect=BaseException("worker stopped"),
+        ):
+            with pytest.raises(BaseException, match="worker stopped"):
+                process_snapshot_comparison_chunk(**task)
+        comparison.refresh_from_db()
+        assert comparison.chunks_done_indices == []
+        assert store.chunk_result_key(0) not in self.stored
+        process_snapshot_comparison_chunk(**task)
+        comparison.refresh_from_db()
+        assert comparison.chunks_done_indices == [0]
+
+    def test_no_diff_chunks_still_finalize(self):
+        self.stored["head_manifest"] = self.stored["base_manifest"]
+        comparison, store = self._start()
+        assert comparison.chunks_total == 0
+        self.dispatch.assert_not_called()
+        self.finalize_dispatch.assert_called_once()
+        manifest = self._finish(comparison, store)
+        assert manifest.summary.unchanged == 3
+        assert manifest.summary.errored == 0
+
+    def test_unknown_algorithm_fails_without_running_image_comparison(self):
+        comparison, store = self._start()
+        assignment = store.read_assignment(0)
+        assert assignment is not None
+        assignment.diff_algorithm_version += 1
+        store.write_assignment(assignment)
+        with patch("sentry.preprod.snapshots.workflow._process_chunk") as compare:
+            process_snapshot_comparison_chunk(**self.dispatch.call_args_list[0].kwargs["kwargs"])
+        compare.assert_not_called()
+        comparison.refresh_from_db()
+        assert comparison.chunks_done_indices == [0]
+        assert store.chunk_result_key(0) not in self.stored
+
+    def test_report_uploads_cannot_overwrite_another_finalizers_report(self):
+        comparison, store = self._start()
+        for call in self.dispatch.call_args_list:
+            process_snapshot_comparison_chunk(**call.kwargs["kwargs"])
+        manifest = self._finish(comparison, store)
+        published_key = comparison.extras["comparison_key"]
+        another_key = store.write_comparison(manifest)
+        assert another_key != published_key
+        comparison.refresh_from_db()
+        assert comparison.extras["comparison_key"] == published_key
+        assert self.stored[published_key] == self.stored[another_key]
+
+    def test_approval_uses_frozen_fingerprints_without_rereading_the_sibling(self):
+        from sentry.preprod.snapshots.manifest import ComparisonImageResult, ComparisonSummary
+
+        sibling_manifest = ComparisonManifest(
+            head_artifact_id=333,
+            base_artifact_id=self.base.id,
+            summary=ComparisonSummary(
+                total=2, changed=2, added=0, removed=0, unchanged=0, renamed=0, errored=0
+            ),
+            images={
+                "first.png": ComparisonImageResult(
+                    status="changed", head_hash="sibling", base_hash="base"
+                ),
+                "second.png": ComparisonImageResult(
+                    status="changed", head_hash="sibling", base_hash="base"
+                ),
+            },
+        )
+        sibling_snapshot = SnapshotManifest(
+            images={
+                "first.png": ImageMetadata(content_hash="sibling", width=10, height=10),
+                "second.png": ImageMetadata(content_hash="sibling", width=10, height=10),
+            }
+        )
+        self.sibling_lookup.return_value = SiblingComparison(
+            333,
+            "approved/comparison.json",
+            sibling_manifest,
+            sibling_snapshot,
+        )
+        prefix = f"{self.organization.id}/{self.project.id}"
+        self.stored[f"{prefix}/sibling"] = self.stored[f"{prefix}/head"]
+        with self.options({"preprod.snapshots.auto-approve-sibling-diffs.enabled": True}):
+            comparison, store = self._start()
+        assert comparison.chunks_total == 4
+        for call in reversed(self.dispatch.call_args_list):
+            process_snapshot_comparison_chunk(**call.kwargs["kwargs"])
+        self.session.get.reset_mock()
+        with patch(
+            "sentry.preprod.snapshots.workflow._try_auto_approve_snapshot",
+            wraps=apply_auto_approval,
+        ):
+            manifest = self._finish(comparison, store)
+        approval = PreprodComparisonApproval.objects.get(preprod_artifact=self.head)
+        assert approval.extras["threshold_matched_image_count"] == 2
+        assert approval.extras["prev_approved_artifact_id"] == 333
+        assert manifest.summary.changed == 2
+        assert manifest.summary.unchanged == 1
+        assert "approved/comparison.json" not in [
+            call.args[0] for call in self.session.get.call_args_list
+        ]
+        assert len([key for key in self.stored if "/diff/" in key]) == 2
+
+    def test_cleanup_failure_does_not_replace_a_deadline_interruption(self):
+        self.dispatch.side_effect = BaseException("deadline exceeded")
+        with patch(
+            "sentry.preprod.snapshots.workflow._fail_comparison",
+            side_effect=RuntimeError("database unavailable"),
+        ):
+            with pytest.raises(BaseException, match="deadline exceeded"):
+                compare_snapshots(**self.kwargs)
+
+    def test_result_reads_are_concurrent_and_return_in_plan_order(self):
+        from sentry.preprod.snapshots.workflow import _read_chunk_results
+
+        comparison, store = self._start()
+        for call in self.dispatch.call_args_list:
+            process_snapshot_comparison_chunk(**call.kwargs["kwargs"])
+        comparison.refresh_from_db()
+        plan = store.read_plan()
+        original_get = self.session.get.side_effect
+        rendezvous = threading.Barrier(2)
+
+        def get(key):
+            rendezvous.wait(timeout=5)
+            return original_get(key)
+
+        self.session.get.side_effect = get
+        results = list(_read_chunk_results(comparison, store, plan))
+        assert [result.chunk_index for result in results] == [0, 1]
+        assert results[0].images["first.png"].status == "changed"
+        assert results[1].images["second.png"].status == "changed"

@@ -28,14 +28,16 @@ DIFF_ALGORITHM_VERSION = 1
 MAX_DIFF_PIXELS = 40_000_000
 
 
-def _open_image(source: bytes | Image.Image) -> Image.Image:
+def _open_image(source: bytes | Path | Image.Image) -> Image.Image:
     if isinstance(source, bytes):
         return Image.open(io.BytesIO(source))
+    if isinstance(source, Path):
+        return Image.open(source)
     return source
 
 
-def read_image_size(source: bytes) -> ImageSize:
-    with Image.open(io.BytesIO(source)) as img:
+def read_image_size(source: bytes | Path) -> ImageSize:
+    with _open_image(source) as img:
         return ImageSize(width=img.width, height=img.height)
 
 
@@ -76,41 +78,54 @@ def _encode_mask_png(mask: Image.Image) -> bytes:
 
 
 def compare_images(
-    before: bytes | Image.Image,
-    after: bytes | Image.Image,
+    before: bytes | Path | Image.Image,
+    after: bytes | Path | Image.Image,
 ) -> DiffResult | None:
     return compare_images_batch([(before, after)])[0]
 
 
 def compare_images_batch(
-    pairs: Sequence[tuple[bytes | Image.Image, bytes | Image.Image]],
+    pairs: Sequence[tuple[bytes | Path | Image.Image, bytes | Path | Image.Image]],
     server: OdiffServer | None = None,
+    *,
+    include_masks: Sequence[bool] | None = None,
 ) -> list[DiffResult | None]:
+    if include_masks is not None and len(include_masks) != len(pairs):
+        raise ValueError("Expected one mask setting per image pair")
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir_path = Path(tmpdir)
         if server is not None:
-            return _compare_pairs(pairs, server, tmpdir_path)
+            return _compare_pairs(pairs, server, tmpdir_path, include_masks)
         with OdiffServer() as new_server:
-            return _compare_pairs(pairs, new_server, tmpdir_path)
+            return _compare_pairs(pairs, new_server, tmpdir_path, include_masks)
 
 
 def _compare_pairs(
-    pairs: Sequence[tuple[bytes | Image.Image, bytes | Image.Image]],
+    pairs: Sequence[tuple[bytes | Path | Image.Image, bytes | Path | Image.Image]],
     server: OdiffServer,
     tmpdir_path: Path,
+    include_masks: Sequence[bool] | None,
 ) -> list[DiffResult | None]:
     return [
-        _compare_single_pair(idx, before, after, server, tmpdir_path)
+        _compare_single_pair(
+            idx,
+            before,
+            after,
+            server,
+            tmpdir_path,
+            include_masks[idx] if include_masks is not None else True,
+        )
         for idx, (before, after) in enumerate(pairs)
     ]
 
 
 def _compare_single_pair(
     idx: int,
-    before: bytes | Image.Image,
-    after: bytes | Image.Image,
+    before: bytes | Path | Image.Image,
+    after: bytes | Path | Image.Image,
     server: OdiffServer,
     tmpdir_path: Path,
+    include_mask: bool = True,
 ) -> DiffResult | None:
     before_img: Image.Image | None = None
     after_img: Image.Image | None = None
@@ -166,7 +181,7 @@ def _compare_single_pair(
             diff_mask = _mask_from_diff_output(output_path)
             changed_pixels = sum(diff_mask.histogram()[1:])
 
-        diff_mask_png = _encode_mask_png(diff_mask)
+        diff_mask_png = _encode_mask_png(diff_mask) if include_mask else b""
 
         return DiffResult(
             diff_mask_png=diff_mask_png,
@@ -186,9 +201,9 @@ def _compare_single_pair(
             before_padded.close()
         if after_padded is not None and after_padded is not after_img:
             after_padded.close()
-        if before_img is not None and isinstance(before, bytes):
+        if before_img is not None and isinstance(before, (bytes, Path)):
             before_img.close()
-        if after_img is not None and isinstance(after, bytes):
+        if after_img is not None and isinstance(after, (bytes, Path)):
             after_img.close()
         if diff_mask is not None:
             diff_mask.close()

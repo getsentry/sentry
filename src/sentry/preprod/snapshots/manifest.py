@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Set
-from typing import Any, Literal
+from typing import Any, Literal, NamedTuple
 
 from pydantic import BaseModel, Field, validator
 
@@ -120,6 +120,15 @@ class ChunkCandidate(BaseModel):
 class ChunkAssignment(BaseModel):
     chunk_index: int
     candidates: list[ChunkCandidate]
+    schema_version: Literal[1, 2] = 1
+    diff_algorithm_version: int = 1
+
+
+class ImageFingerprint(NamedTuple):
+    name: str
+    status: str
+    head_hash: str | None = None
+    previous_image_file_name: str | None = None
 
 
 class ComparisonPlan(BaseModel):
@@ -130,6 +139,9 @@ class ComparisonPlan(BaseModel):
     non_diff_images: dict[str, ComparisonImageResult]
     sibling_artifact_id: int | None = None
     sibling_comparison_key: str | None = None
+    sibling_fingerprints: list[tuple[str, str, str | None, str | None]] | None = None
+    schema_version: Literal[1, 2] = 1
+    diff_algorithm_version: int = 1
 
 
 class ChunkResult(BaseModel):

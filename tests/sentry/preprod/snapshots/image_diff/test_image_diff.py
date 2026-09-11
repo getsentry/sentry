@@ -140,3 +140,16 @@ class TestCompareImagesBatch:
         assert batch is not None
         assert single.changed_pixels == batch.changed_pixels
         assert single.total_pixels == batch.total_pixels
+
+
+def test_counts_only_comparison_preserves_measurements_without_encoding_mask():
+    before = _make_solid_image(10, 10, (0, 0, 0, 255))
+    after = _make_solid_image(20, 10, (255, 0, 0, 255))
+    reference = compare_images(before, after)
+    with patch("sentry.preprod.snapshots.image_diff.compare._encode_mask_png") as encode:
+        measured = compare_images_batch([(before, after)], include_masks=[False])[0]
+    assert reference is not None
+    assert measured is not None
+    assert measured.dict(exclude={"diff_mask_png"}) == reference.dict(exclude={"diff_mask_png"})
+    assert measured.diff_mask_png == b""
+    encode.assert_not_called()
