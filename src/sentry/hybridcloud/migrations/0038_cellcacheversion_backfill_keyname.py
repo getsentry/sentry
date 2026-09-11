@@ -10,12 +10,11 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 def backfill_keyname(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     CellCacheVersion = apps.get_model("hybridcloud", "CellCacheVersion")
-    queryset = RangeQuerySetWrapperWithProgressBar(
-        CellCacheVersion.objects.filter(keyname__isnull=True)
-    )
+    queryset = RangeQuerySetWrapperWithProgressBar(CellCacheVersion.objects.all())
     for row in queryset:
-        row.keyname = row.key
-        row.save(update_fields=["keyname"])
+        if row.keyname is None:
+            row.keyname = row.key
+            row.save(update_fields=["keyname"])
 
 
 class Migration(CheckedMigration):
