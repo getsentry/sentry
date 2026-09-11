@@ -1,4 +1,5 @@
 import type {AutofixStartStepData} from 'sentry/serviceWorker/worker/handleAutofixStartStep';
+import type {SeerExplorerSendMessageData} from 'sentry/serviceWorker/worker/handleSeerExplorerSendMessage';
 
 /**
  * The base type for all Event* types.
@@ -18,7 +19,15 @@ interface AutofixStartStepEventMessage extends EventMessageBase {
   name: 'autofix.startStep';
 }
 
-export type EventMessage = PingEventMessage | AutofixStartStepEventMessage;
+interface SeerExplorerSendMessageEventMessage extends EventMessageBase {
+  data: SeerExplorerSendMessageData;
+  name: 'seerExplorer.sendMessage';
+}
+
+export type EventMessage =
+  | PingEventMessage
+  | AutofixStartStepEventMessage
+  | SeerExplorerSendMessageEventMessage;
 
 /**
  * The web `NotificationOptions` type only covers the widely-supported fields.

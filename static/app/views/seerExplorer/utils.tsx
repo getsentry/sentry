@@ -646,7 +646,7 @@ function locationToUrl(location: LocationDescriptor): string | null {
   return `${base}${queryPart}${hashPart}`;
 }
 
-const RUN_ID_QUERY_PARAM = 'explorerRunId';
+export const RUN_ID_QUERY_PARAM = 'explorerRunId';
 const RESUME_RUN_QUERY_PARAM = 'explorerRunResume';
 
 export function parseRunIdParam(value: string): SeerExplorerRunId | null {

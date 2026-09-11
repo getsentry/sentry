@@ -20,6 +20,7 @@ import type {
   LLMContextSnapshot,
 } from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
+import {useNotifyWhenSeerReplies} from 'sentry/views/seerExplorer/hooks/useNotifyWhenSeerReplies';
 import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
@@ -178,6 +179,7 @@ export const useSeerExplorer = () => {
 
   const {runId, chatStates} = useSeerExplorerChatState();
   const dispatch = useSeerExplorerChatDispatch();
+  const notifyWhenSeerReplies = useNotifyWhenSeerReplies();
   const [lastSentMessage, setLastSentMessage] = useState<{
     insertIndex: number;
     loadingPlaceholderContent: string;
@@ -255,6 +257,11 @@ export const useSeerExplorer = () => {
           queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
         });
       }
+
+      notifyWhenSeerReplies(
+        params.runId ?? response.sentry_run_id ?? response.run_id,
+        params.query
+      );
     },
     onError: (e, params) => {
       if (params.runId !== null) {

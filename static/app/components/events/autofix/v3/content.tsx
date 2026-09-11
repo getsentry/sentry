@@ -21,12 +21,13 @@ import {CodingAgentsCard} from 'sentry/components/events/autofix/v3/codingAgents
 import {SeerDrawerNextStep} from 'sentry/components/events/autofix/v3/nextStep';
 import {PullRequestsCard} from 'sentry/components/events/autofix/v3/pullRequestsCard';
 import {RootCauseCard} from 'sentry/components/events/autofix/v3/rootCauseCard';
-import {SeerEnableNotifications} from 'sentry/components/events/autofix/v3/seerEnableNotifications';
 import {SolutionCard} from 'sentry/components/events/autofix/v3/solutionCard';
 import {Placeholder} from 'sentry/components/placeholder';
+import {SeerEnableNotifications} from 'sentry/components/seer/seerEnableNotifications';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 
 interface SeerDrawerContentProps {
@@ -36,6 +37,7 @@ interface SeerDrawerContentProps {
 }
 
 export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentProps) {
+  const organization = useOrganization();
   const sections = useMemo(
     () => getOrderedAutofixSections(autofix.runState),
     [autofix.runState]
@@ -83,7 +85,10 @@ export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentP
         </Alert>
       ))}
 
-      <SeerEnableNotifications status={autofix.runState?.status} />
+      <SeerEnableNotifications
+        isEnabled={organization.features.includes('autofix-browser-notifications')}
+        status={autofix.runState?.status}
+      />
     </Stack>
   );
 }

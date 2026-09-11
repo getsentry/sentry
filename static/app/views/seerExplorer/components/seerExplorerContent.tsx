@@ -13,6 +13,7 @@ import {
   AutofixChatProvider,
   type SendMessageOptions,
 } from 'sentry/components/seer/autofixChatContext';
+import {SeerEnableNotifications} from 'sentry/components/seer/seerEnableNotifications';
 import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
 import {IconClose, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -620,6 +621,14 @@ export function SeerExplorerContent({
         {menu}
         {showSlackUpgradeAlert && (
           <UpdateSlackAlert num_configurations={activeSlackIntegrations.length} />
+        )}
+        {organization && (
+          <SeerEnableNotifications
+            isEnabled={organization.features.includes(
+              'seer-explorer-browser-notifications'
+            )}
+            status={sessionData?.status}
+          />
         )}
         <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
           {isEmptyState ? (
