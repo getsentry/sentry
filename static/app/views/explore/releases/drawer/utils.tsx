@@ -65,15 +65,13 @@ export function cleanLocationQuery(
 export function cleanReleaseCursors(
   query: Record<string, string[] | string | null | undefined>
 ) {
-  return omit(
-    query,
-    RELEASES_DRAWER_FIELD_KEYS.filter(key =>
-      [
-        ReleasesDrawerFields.COMMIT_CURSOR,
-        ReleasesDrawerFields.FILES_CURSOR,
-        ReleasesDrawerFields.LIST_CURSOR,
-        ReleasesDrawerFields.ACTIVE_REPO,
-      ].includes(key as ReleasesDrawerFields)
-    )
-  );
+  // Listed directly rather than intersected with RELEASES_DRAWER_FIELD_KEYS:
+  // ACTIVE_REPO has no parser, so the intersection silently dropped it and left
+  // the repo selection behind.
+  return omit(query, [
+    ReleasesDrawerFields.COMMIT_CURSOR,
+    ReleasesDrawerFields.FILES_CURSOR,
+    ReleasesDrawerFields.LIST_CURSOR,
+    ReleasesDrawerFields.ACTIVE_REPO,
+  ]);
 }

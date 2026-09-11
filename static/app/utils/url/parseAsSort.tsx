@@ -13,7 +13,7 @@ export const parseAsSort = createParser({
  * Multi-value counterpart to `parseAsSort`, for the repeated `?sort=a&sort=b`
  * form that a few list views accept.
  */
-export const parseAsSorts = createMultiParser({
-  parse: (values: readonly string[]) => decodeSorts([...values]),
-  serialize: (values: Sort[]) => values.map(encodeSort),
-}).withDefault([] as Sort[]);
+export const parseAsSorts = createMultiParser<Sort[]>({
+  parse: values => decodeSorts([...values]),
+  serialize: values => values.map(encodeSort),
+}).withDefault([]);
