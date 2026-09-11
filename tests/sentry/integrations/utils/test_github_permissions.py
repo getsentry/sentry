@@ -1,18 +1,16 @@
+from unittest import mock
+
 import pytest
 
 from sentry.integrations.utils.github_permissions import (
-    GITHUB_APP_REQUIRED_PERMISSIONS_OPTION,
     get_github_permissions_update_url,
     get_missing_github_app_permissions,
 )
-from sentry.testutils.helpers.options import override_options
 
 
-@pytest.mark.django_db
 @pytest.mark.parametrize(
     ("required_permissions", "permissions", "expected"),
     [
-        (None, {"contents": "read"}, None),
         ({}, {"contents": "read"}, None),
         (
             {"contents": "read", "pull_requests": "write"},
@@ -52,12 +50,11 @@ from sentry.testutils.helpers.options import override_options
     ],
 )
 def test_get_missing_github_app_permissions(required_permissions, permissions, expected) -> None:
-    options = (
-        {}
-        if required_permissions is None
-        else {GITHUB_APP_REQUIRED_PERMISSIONS_OPTION: required_permissions}
-    )
-    with override_options(options):
+    with mock.patch.dict(
+        "sentry.integrations.utils.github_permissions.GITHUB_APP_REQUIRED_PERMISSIONS",
+        required_permissions,
+        clear=True,
+    ):
         assert get_missing_github_app_permissions({"permissions": permissions}) == expected
 
 
