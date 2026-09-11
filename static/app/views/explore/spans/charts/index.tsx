@@ -25,7 +25,6 @@ import {
   ChartVisualization,
   useChartVisualizationPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
-import {DroppedDataOverlay} from 'sentry/views/explore/components/chart/droppedDataStrip';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {ChartContextMenu} from 'sentry/views/explore/components/chartContextMenu';
@@ -185,7 +184,6 @@ function Chart({
   // Layers control, rather than living in the chart legend. Defaults to on so
   // the data is visible, but the user can hide it.
   const [layersVisible, setLayersVisible] = useState(true);
-  const showAnnotations = annotationsAvailable && layersVisible;
   const {
     dismiss: dismissChartSelectionAlert,
     isDismissed: isChartSelectionAlertDismissed,
@@ -375,6 +373,8 @@ function Chart({
             <ChartVisualization
               chartInfo={chartInfo}
               chartRef={chartRef}
+              droppedData={annotationsAvailable ? annotations : undefined}
+              showDroppedData={layersVisible}
               chartXRangeSelection={{
                 initialSelection: initialChartSelection,
                 onSelectionEnd: () => {
@@ -433,15 +433,6 @@ function Chart({
         height={chartHeight}
         revealActions="always"
       />
-      {showAnnotations &&
-        defined(timeseriesResult.meta?.start) &&
-        defined(timeseriesResult.meta?.end) && (
-          <DroppedDataOverlay
-            annotations={annotations}
-            start={timeseriesResult.meta.start}
-            end={timeseriesResult.meta.end}
-          />
-        )}
     </ChartWrapper>
   );
 }

@@ -36,6 +36,7 @@ import {escape} from 'sentry/utils';
 import {getUserTimezone} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
+import type {DataFidelityAnnotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
@@ -48,6 +49,7 @@ import type {
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import {WidgetNoDataPanel} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
+import {useDroppedDataBand} from 'sentry/views/explore/components/chart/droppedDataBand/useDroppedDataBand';
 import {useReleaseBubbles} from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
@@ -55,6 +57,7 @@ import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/compon
 import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
 import {formatYAxisValue} from './formatters/formatYAxisValue';
+import {Bars} from './plottables/bars';
 import type {Plottable} from './plottables/plottable';
 import {assignPlottablesToYAxes} from './assignPlottablesToYAxes';
 import {createReleaseSeriesOptions} from './createReleaseSeriesOptions';
@@ -88,6 +91,12 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
 
   /**
+   * Data-fidelity annotations rendered as a severity strip between the plot
+   * and the x-axis line. No-ops when empty.
+   */
+  droppedData?: DataFidelityAnnotation[];
+
+  /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
   legendSelection?: LegendSelection;
@@ -108,6 +117,12 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * Array of `Release` objects. If provided, they are plotted on line and area visualizations as vertical lines
    */
   releases?: Release[];
+
+  /**
+   * When false, hide the dropped-data band and collapse the reserved space.
+   * Defaults to true when `droppedData` is provided.
+   */
+  showDroppedData?: boolean;
 
   /**
    * Defines the legend's visibility.
@@ -401,6 +416,23 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     yAxes.push(releaseBubbleYAxis);
   }
 
+  const {
+    connectDroppedDataChartRef,
+    droppedDataSeries,
+    droppedDataXAxis,
+    droppedDataGrid,
+    droppedDataYAxis,
+  } = useDroppedDataBand({
+    alignInMiddle: props.plottables.some(plottable => plottable instanceof Bars),
+    annotations: props.droppedData,
+    showDroppedData: props.showDroppedData,
+    yAxisIndex: yAxes.length,
+  });
+
+  if (droppedDataYAxis) {
+    yAxes.push(droppedDataYAxis);
+  }
+
   const showYAxisProp = props.showYAxis ?? 'auto';
   const showYAxis = showYAxisProp === 'auto';
   const chartYAxes = showYAxis ? yAxes : yAxes.map(() => HIDDEN_AXIS);
@@ -440,8 +472,18 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       if (hasReleaseBubblesSeries) {
         connectReleaseBubbleChartRef(e);
       }
+
+      if (droppedDataSeries) {
+        connectDroppedDataChartRef(e);
+      }
     },
-    [hasReleaseBubblesSeries, connectReleaseBubbleChartRef, props.plottables]
+    [
+      hasReleaseBubblesSeries,
+      connectReleaseBubbleChartRef,
+      droppedDataSeries,
+      connectDroppedDataChartRef,
+      props.plottables,
+    ]
   );
 
   const handleChartReady = useCallback(
@@ -471,6 +513,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const hasCustomTicks = customTicks && customTicks.length > 0;
 
+  const xAxisBandOffset = xAxisOffset(releaseBubbleXAxis) + xAxisOffset(droppedDataXAxis);
+  const gridBandBottom = gridBottom(releaseBubbleGrid) + gridBottom(droppedDataGrid);
+
   const xAxis = showXAxis
     ? {
         animation: false,
@@ -496,7 +541,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         // When customValues are provided, suppress auto-tick generation
         // so ECharts only renders our timezone-aligned ticks.
         splitNumber: hasCustomTicks ? 0 : X_AXIS_SPLIT_NUMBER,
-        ...releaseBubbleXAxis,
+        ...(xAxisBandOffset > 0
+          ? {
+              axisLine: {onZero: false},
+              offset: xAxisBandOffset,
+            }
+          : {}),
       }
     : HIDDEN_AXIS;
 
@@ -614,7 +664,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     {}
   );
 
-  const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
+  const allSeries = [...seriesFromPlottables, releaseSeries, droppedDataSeries].filter(
+    defined
+  );
 
   const runHandler = (
     batch: {dataIndex: number; seriesIndex?: number},
@@ -688,9 +740,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             left: 2,
             top: 10,
             right: 8,
-            bottom: 0,
+            bottom: gridBandBottom,
             containLabel: true,
-            ...releaseBubbleGrid,
             ...xAxisGrid,
           }}
           legend={
@@ -777,6 +828,14 @@ const HIDDEN_AXIS = {
   axisLabel: {show: false},
   axisPointer: {label: {show: false}},
 } satisfies XAXisComponentOption | YAXisComponentOption;
+
+function xAxisOffset(xAxis: {offset?: number}): number {
+  return xAxis.offset ?? 0;
+}
+
+function gridBottom(grid: {bottom?: number}): number {
+  return grid.bottom ?? 0;
+}
 
 TimeSeriesWidgetVisualization.LoadingPlaceholder = WidgetLoadingPanel;
 TimeSeriesWidgetVisualization.NoData = WidgetNoDataPanel;
