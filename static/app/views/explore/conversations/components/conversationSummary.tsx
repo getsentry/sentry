@@ -388,9 +388,7 @@ function getGenAiOpType(node: AITraceSpanNode): string | undefined {
 
 function getNumberAttrByConvention(
   node: AITraceSpanNode,
-  key:
-    | 'gen_ai.usage.cache_creation.input_tokens'
-    | 'gen_ai.usage.cache_read.input_tokens'
+  key: 'gen_ai.usage.cache_creation.input_tokens' | 'gen_ai.usage.cache_read.input_tokens'
 ): number | undefined {
   for (const candidate of ATTRIBUTE_METADATA[key].keys) {
     const value = getNumberAttr(node, candidate);

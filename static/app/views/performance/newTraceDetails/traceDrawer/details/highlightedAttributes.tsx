@@ -362,9 +362,7 @@ function HighlightedTools({
 
 function getTokenAttribute(
   attributes: Record<string, string | number | boolean>,
-  key:
-    | 'gen_ai.usage.cache_creation.input_tokens'
-    | 'gen_ai.usage.cache_read.input_tokens'
+  key: 'gen_ai.usage.cache_creation.input_tokens' | 'gen_ai.usage.cache_read.input_tokens'
 ) {
   for (const candidate of ATTRIBUTE_METADATA[key].keys) {
     if (attributes[candidate] !== undefined) {
