@@ -4,6 +4,7 @@ import {expectTypeOf} from 'expect-type';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {ApiMapping} from 'sentry/utils/api/apiContracts.generated';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -12,6 +13,27 @@ type Promisable<T> = T | Promise<T>;
 type QueryFunctionResult<T> = Promisable<ApiResponse<T>>;
 
 describe('apiOptions', () => {
+  it('infers the response type from the backend contract', () => {
+    const options = apiOptions.contract('/organizations/$organizationIdOrSlug/teams/', {
+      staleTime: 0,
+      path: {organizationIdOrSlug: 'org-slug'},
+    });
+
+    type Expected =
+      ApiMapping['/organizations/$organizationIdOrSlug/teams/']['GET']['response'];
+    expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<Expected>>();
+    expect(options.queryKey).toEqual([
+      '/organizations/org-slug/teams/',
+      {},
+      {infinite: false},
+    ]);
+  });
+
+  it('rejects routes without a GET contract', () => {
+    // @ts-expect-error `/api-tokens/` declares no response type on the backend
+    apiOptions.contract('/api-tokens/', {staleTime: 0});
+  });
+
   it('should encode path parameters correctly', () => {
     const options = apiOptions.as<unknown>()(
       '/organizations/$organizationIdOrSlug/releases/$version/',
