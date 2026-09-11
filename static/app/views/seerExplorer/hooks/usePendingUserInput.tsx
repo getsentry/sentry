@@ -48,6 +48,7 @@ export function usePendingUserInput({
   userScrolledUpRef,
 }: UsePendingUserInputProps) {
   const pendingInputType = pendingInput?.input_type;
+  const pendingInputId = pendingInput?.id;
 
   // File approval state
   const [fileApprovalIndex, setFileApprovalIndex] = useState(0);
@@ -56,6 +57,7 @@ export function usePendingUserInput({
   // Reset file approval state when pendingInput changes
   useEffect(() => {
     if (pendingInputType === 'file_change_approval') {
+      // oxlint-disable-next-line react/set-state-in-effect
       setFileApprovalIndex(0);
       setFileApprovalDecisions([]);
     }
@@ -105,8 +107,8 @@ export function usePendingUserInput({
 
       if (nextIndex >= fileApprovalTotalPatches) {
         // All patches reviewed - submit to backend
-        if (pendingInput?.id) {
-          respondToUserInput(pendingInput.id, {
+        if (pendingInputId) {
+          respondToUserInput(pendingInputId, {
             decisions: newDecisions,
           });
         }
@@ -116,7 +118,7 @@ export function usePendingUserInput({
       fileApprovalDecisions,
       fileApprovalIndex,
       fileApprovalTotalPatches,
-      pendingInput?.id,
+      pendingInputId,
       respondToUserInput,
     ]
   );
@@ -144,6 +146,7 @@ export function usePendingUserInput({
   // Reset question state when pendingInput changes
   useEffect(() => {
     if (pendingInputType === 'ask_user_question') {
+      // oxlint-disable-next-line react/set-state-in-effect
       setQuestionIndex(0);
       setQuestionAnswers([]);
       setSelectedOption(0);
@@ -205,8 +208,8 @@ export function usePendingUserInput({
 
     if (nextIndex >= totalQuestions) {
       // All questions answered - submit
-      if (pendingInput?.id) {
-        respondToUserInput(pendingInput.id, {
+      if (pendingInputId) {
+        respondToUserInput(pendingInputId, {
           answers: newAnswers,
         });
       }
@@ -225,7 +228,7 @@ export function usePendingUserInput({
     questionAnswers,
     questionIndex,
     totalQuestions,
-    pendingInput?.id,
+    pendingInputId,
     respondToUserInput,
   ]);
 
@@ -315,10 +318,10 @@ export function usePendingUserInput({
 
   // Resume the run after the user has reconnected the provider.
   const handleReauthComplete = useCallback(() => {
-    if (pendingInput?.id) {
-      respondToUserInput(pendingInput.id);
+    if (pendingInputId) {
+      respondToUserInput(pendingInputId);
     }
-  }, [pendingInput?.id, respondToUserInput]);
+  }, [pendingInputId, respondToUserInput]);
 
   // Check if we're currently awaiting a provider reconnection.
   const isReauthPending =

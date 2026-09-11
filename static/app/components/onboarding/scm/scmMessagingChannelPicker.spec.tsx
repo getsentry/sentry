@@ -83,10 +83,12 @@ function mockChannelValidate(valid: boolean, integrationId: string) {
 function renderPicker({
   eligibleIntegrations = [slackIntegration],
   existingSetup,
+  isContinuing = false,
   providerKey = 'slack',
 }: {
   eligibleIntegrations?: OrganizationIntegration[];
   existingSetup?: ScmMessagingSetup;
+  isContinuing?: boolean;
   providerKey?: ScmMessagingProviderKey;
 } = {}) {
   const onConfigured = jest.fn();
@@ -97,6 +99,7 @@ function renderPicker({
       providerKey={providerKey}
       onConfigured={onConfigured}
       existingSetup={existingSetup}
+      isContinuing={isContinuing}
     />,
     {organization}
   );
@@ -175,6 +178,16 @@ describe('ScmMessagingChannelPicker', () => {
       renderPicker({eligibleIntegrations: [slackIntegration]});
 
       expect(screen.getByRole('button', {name: 'Confirm and continue'})).toBeDisabled();
+    });
+
+    it('busies the submit button while isContinuing', () => {
+      mockChannels('10', [slackChannel]);
+      renderPicker({eligibleIntegrations: [slackIntegration], isContinuing: true});
+
+      expect(screen.getByRole('button', {name: 'Confirm and continue'})).toHaveAttribute(
+        'aria-busy',
+        'true'
+      );
     });
   });
 
@@ -314,13 +327,6 @@ describe('ScmMessagingChannelPicker', () => {
       expect(screen.getByLabelText('workspace')).toBeEnabled();
     });
 
-    it('disables the Workspace select when there is only one eligible integration', () => {
-      mockChannels('10', [slackChannel]);
-      renderPicker({eligibleIntegrations: [slackIntegration]});
-
-      expect(screen.getByLabelText('workspace')).toBeDisabled();
-    });
-
     it('writes the selected workspace integrationId on save', async () => {
       mockChannels('10', [slackChannel]);
       mockChannels('11', [slackChannel]);
@@ -367,6 +373,7 @@ describe('ScmMessagingChannelPicker', () => {
           eligibleIntegrations={[slackIntegration, slackIntegration2]}
           providerKey="slack"
           onConfigured={onConfigured}
+          isContinuing={false}
         />,
         {organization}
       );
@@ -381,6 +388,7 @@ describe('ScmMessagingChannelPicker', () => {
           eligibleIntegrations={[slackIntegration]}
           providerKey="slack"
           onConfigured={onConfigured}
+          isContinuing={false}
         />
       );
 
@@ -413,6 +421,7 @@ describe('ScmMessagingChannelPicker', () => {
           providerKey="slack"
           onConfigured={onConfigured}
           existingSetup={selectedSlackSetup}
+          isContinuing={false}
         />,
         {organization}
       );
@@ -431,6 +440,7 @@ describe('ScmMessagingChannelPicker', () => {
           providerKey="slack"
           onConfigured={onConfigured}
           existingSetup={selectedSlackSetup}
+          isContinuing={false}
         />
       );
 
@@ -452,33 +462,12 @@ describe('ScmMessagingChannelPicker', () => {
       );
     });
 
-    it('only shows the integrations it receives — eligibility is enforced upstream', () => {
-      // The row (via the resolved provider) is responsible for filtering to eligibleIntegrations
-      // before passing them to the picker. The picker renders whatever it receives.
-      const msteamsTeam = OrganizationIntegrationsFixture({
-        id: '41',
-        name: 'team-workspace',
-        provider: {
-          key: 'msteams',
-          slug: 'msteams',
-          name: 'Microsoft Teams',
-          canAdd: true,
-          canDisable: false,
-          features: [],
-          aspects: {},
-        },
-        configData: {installationType: 'team'},
-      });
+    it('hides the Workspace select and shows the channel control when there is one integration', () => {
+      mockChannels('10', [slackChannel]);
+      renderPicker({eligibleIntegrations: [slackIntegration]});
 
-      mockChannels('41', []);
-      // Only the eligible team integration is passed; the tenant was excluded by the row.
-      renderPicker({
-        eligibleIntegrations: [msteamsTeam],
-        providerKey: 'msteams',
-      });
-
-      expect(screen.getByLabelText('workspace')).toBeDisabled(); // only 1 workspace
-      expect(screen.getByText('team-workspace')).toBeInTheDocument();
+      expect(screen.queryByLabelText('workspace')).not.toBeInTheDocument();
+      expect(screen.getByLabelText('channel')).toBeInTheDocument();
     });
   });
 
@@ -494,6 +483,7 @@ describe('ScmMessagingChannelPicker', () => {
             providerKey="slack"
             onConfigured={jest.fn()}
             existingSetup={selectedSlackSetup}
+            isContinuing={false}
           />
         </QueryClientProvider>,
         {organization}
@@ -532,6 +522,7 @@ describe('ScmMessagingChannelPicker', () => {
             eligibleIntegrations={[slackIntegration]}
             providerKey="slack"
             onConfigured={jest.fn()}
+            isContinuing={false}
           />
         </QueryClientProvider>,
         {organization}

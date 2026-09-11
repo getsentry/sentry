@@ -2468,28 +2468,27 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deterministic % rollout of the per-org dynamic sampling pipeline, keyed on
-# organization id. A value of 0.0 disables the pipeline for every org; 1.0
-# enables it for every org. Intermediate values select a stable hash-based
-# subset so toggling the rate up and down does not reshuffle which orgs run.
+# Share of organizations the per-org dynamic sampling pipeline runs for, keyed on
+# organization id. 1.0 runs it for every org and is the default, so that the pipeline
+# works without any option set; 0.0 stops it for every org. Intermediate values select a
+# stable hash-based subset, so lowering and raising the rate does not reshuffle which
+# orgs run.
 register(
     "dynamic-sampling.per_org.rollout-rate",
     type=Float,
-    default=0.0,
+    default=1.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deterministic % rollout of serving the per-org pipeline's results, keyed on organization
-# id. Above 0.0, rule generation reads the project, transaction and recalibration sample
-# rates of the selected orgs from the per-org caches instead of the legacy ones. An org
-# only has per-org cache entries once dynamic-sampling.per_org.rollout-rate selects it too.
-# An org switches over as a whole:
-# until a pass has stored its project sample rates, rule generation serves all of its
-# values from the legacy caches, and from then on all of them from the per-org ones.
+# Share of organizations whose rules read the project, transaction and recalibration
+# sample rates from the per-org pipeline's caches, keyed on organization id. 1.0 serves
+# every org from them and is the default; 0.0 serves every org from the legacy caches. An
+# org only has per-org cache entries once dynamic-sampling.per_org.rollout-rate selects it
+# too, and a project without a stored per-org rate is sampled in full.
 register(
     "dynamic-sampling.per_org.serving-rollout-rate",
     type=Float,
-    default=0.0,
+    default=1.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 

@@ -833,11 +833,13 @@ export function ResultGrid({
   const requestSignal = useQueryString ? location : localRequest;
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     fetchData();
   }, [requestSignal, region]);
 
   useEffect(() => {
     if (useQueryString) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setQueryInput(request.query);
     }
   }, [useQueryString, request.query]);

@@ -45,9 +45,10 @@ class AiAutofixPrIterationFeedbackBatchCompletedEvent(analytics.Event):
     dropped_count: int
     automated_feedback_count: int
 
-    # Outcome, written when the iteration ends.
+    # Outcome, written when the iteration ends. See ``PrIterationOutcome`` for
+    # the values Sentry knows about.
     duration_ms: int
-    pushed_changes: bool
+    outcome: str
 
 
 analytics.register(AiAutofixPrIterationMissingPermissionsEvent)

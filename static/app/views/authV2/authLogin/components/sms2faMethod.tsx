@@ -32,6 +32,7 @@ export function Sms2FAMethod({
       return;
     }
 
+    // oxlint-disable-next-line react/set-state-in-effect
     setHasActivated(true);
     activate('sms');
   }, [activate, hasActivated, isActive]);

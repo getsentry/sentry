@@ -46,6 +46,8 @@ _Outcome = Literal[
     "decode_error",
     "json_error",
     "seer_reported_failure",
+    "no_alert_timeseries",
+    "alert_not_found",
     "empty_timeseries",
     "no_data",
     "missing_anomaly_type",
@@ -268,16 +270,24 @@ def get_anomaly_data_from_seer(
         return None
 
     if not results.get("success"):
-        detailed_error_message = results.get("message", "<unknown>")
+        detailed_error_message = str(results.get("message") or "<unknown>")
         # We want Sentry to group them by error message.
         msg = f"Error when hitting Seer detect anomalies endpoint: {detailed_error_message}"
         value = context["cur_window"]["value"]
         extra_data["value"] = value
         extra_data["value_str"] = str(value)  # Explicit string to catch NaN/Inf, just in case
+        if detailed_error_message == "No timeseries data found for alert":
+            failure_outcome: _Outcome = "no_alert_timeseries"
+        elif detailed_error_message.startswith(
+            "Alert with id "
+        ) and detailed_error_message.endswith(" not found"):
+            failure_outcome = "alert_not_found"
+        else:
+            failure_outcome = "seer_reported_failure"
         _log_and_emit(
             logger.warning,
             msg,
-            outcome="seer_reported_failure",
+            outcome=failure_outcome,
             dataset=dataset,
             extra=extra_data,
         )

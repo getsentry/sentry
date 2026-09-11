@@ -8,10 +8,10 @@ type Props = {
   type?: undefined | 'error' | 'warning';
 };
 
-export const KeyValueTable = styled('dl')<{noMargin?: boolean}>`
+export const KeyValueTable = styled('dl')<{margin?: boolean}>`
   display: grid;
   grid-template-columns: 50% 50%;
-  ${p => (p.noMargin ? 'margin-bottom: 0;' : null)}
+  ${p => (p.margin ? null : 'margin-bottom: 0;')}
 `;
 
 export function KeyValueTableRow({keyName, value, type}: Props) {

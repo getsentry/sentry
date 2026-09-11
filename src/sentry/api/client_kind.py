@@ -194,6 +194,10 @@ def set_client_kind_attributes(request: Request) -> None:
     client_host = get_client_host(request)
     user_agent = get_user_agent(request)
 
+    # Stored to be available for the access log.
+    request._request.client_kind = client_kind
+    request._request.client_host = client_host
+
     _record_attribution_span(request, client_kind, client_host, user_agent)
 
     # `_test` suffix while this is a POC, to keep it out of the way of a

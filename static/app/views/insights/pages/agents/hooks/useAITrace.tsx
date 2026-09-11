@@ -58,6 +58,7 @@ export function useAITrace(traceSlug: string, timestamp?: number): UseAITraceRes
 
   useEffect(() => {
     if (trace.status !== 'success' || !trace.data) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setError(trace.status === 'error');
       setIsLoading(trace.status === 'pending');
       return;

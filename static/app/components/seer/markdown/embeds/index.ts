@@ -24,6 +24,7 @@ import {SavedQuery} from './components/savedQuery';
 import {SpansQuery} from './components/spansQuery';
 import {Timestamp} from './components/timestamp';
 import {Trace} from './components/trace';
+import {TraceWaterfall} from './components/traceWaterfall';
 import {User} from './components/user';
 import {SeerEmbedRegistry} from './registry';
 
@@ -56,6 +57,7 @@ const embeds = [
   SpansQuery,
   Timestamp,
   Trace,
+  TraceWaterfall,
   User,
 ];
 for (const embed of embeds) {
