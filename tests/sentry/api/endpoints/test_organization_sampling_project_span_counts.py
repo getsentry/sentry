@@ -1,203 +1,122 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+from typing import Any
 
-import pytest
-from django.urls import reverse
-
-from sentry.snuba.metrics import SpanMRI
-from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
-from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.models.project import Project
+from sentry.testutils.cases import APITestCase, SnubaTestCase, SpanTestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import cell_silo_test
 
-pytestmark = [pytest.mark.sentry_metrics]
 
-
-@freeze_time(MetricsEnhancedPerformanceTestCase.MOCK_DATETIME)
 @cell_silo_test
-class OrganizationSamplingProjectSpanCountsTest(MetricsEnhancedPerformanceTestCase):
+class OrganizationSamplingProjectSpanCountsTest(APITestCase, SnubaTestCase, SpanTestCase):
+    endpoint = "sentry-api-0-organization-sampling-root-counts"
+
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
-        self.org = self.create_organization(owner=self.user)
-        self.project_1 = self.create_project(organization=self.org, name="project_1")
-        self.project_2 = self.create_project(organization=self.org, name="project_2")
-        self.project_3 = self.create_project(organization=self.org, name="project_3")
-        self.project_4 = self.create_project(organization=self.org, name="project_4")
-        self.url = reverse(
-            "sentry-api-0-organization-sampling-root-counts",
-            kwargs={"organization_id_or_slug": self.org.slug},
+        self.root = self.create_project(organization=self.organization, teams=[self.team])
+        self.other = self.create_project(organization=self.organization, teams=[self.team])
+
+    def store_span(
+        self,
+        project: Project,
+        root: Project | None = None,
+        sample_rate: float | None = None,
+        start_ts: datetime | None = None,
+        environment: str | None = None,
+    ) -> None:
+        sentry_tags: dict[str, str] = {}
+        if root is not None:
+            sentry_tags["dsc.project_id"] = str(root.id)
+        if environment is not None:
+            sentry_tags["environment"] = environment
+        measurements = (
+            {"server_sample_rate": {"value": sample_rate}} if sample_rate is not None else None
+        )
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": sentry_tags},
+                    organization=self.organization,
+                    project=project,
+                    start_ts=start_ts or before_now(minutes=15),
+                    measurements=measurements,
+                )
+            ]
         )
 
-        metric_data = (
-            (self.project_1.id, self.project_2.id, 12),
-            (self.project_1.id, self.project_3.id, 13),
-            (self.project_2.id, self.project_1.id, 21),
-        )
+    def get_counts(self, **params: str) -> dict[str, Any]:
+        with self.feature("organizations:dynamic-sampling-custom"):
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"statsPeriod": "24h", **params}
+            )
+        return response.data
 
-        hour_ago = self.MOCK_DATETIME - timedelta(hours=1)
-        days_ago = self.MOCK_DATETIME - timedelta(days=5)
-        fifty_days_ago = self.MOCK_DATETIME - timedelta(days=50)
-
-        for project_source_id, target_project_id, span_count in metric_data:
-            self.store_metric(
-                org_id=self.org.id,
-                value=span_count,
-                project_id=int(project_source_id),
-                mri=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-                tags={"target_project_id": str(target_project_id)},
-                timestamp=int(hour_ago.timestamp()),
-            )
-            self.store_metric(
-                org_id=self.org.id,
-                value=span_count,
-                project_id=int(project_source_id),
-                mri=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-                tags={"target_project_id": str(target_project_id)},
-                timestamp=int(days_ago.timestamp()),
-            )
-            self.store_metric(
-                org_id=self.org.id,
-                value=span_count,
-                project_id=int(project_source_id),
-                mri=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-                tags={"target_project_id": str(target_project_id)},
-                timestamp=int(fifty_days_ago.timestamp()),
-            )
+    @staticmethod
+    def row(root: Project, project: Project, totals: float) -> dict[str, Any]:
+        return {
+            "by": {"project": root.slug, "target_project_id": str(project.id)},
+            "totals": totals,
+        }
 
     def test_feature_flag_required(self) -> None:
-        response = self.client.get(self.url)
-        assert response.status_code == 404
+        self.get_error_response(self.organization.slug, status_code=404)
 
-    @django_db_all
-    def test_get_span_counts_without_permission(self) -> None:
-        user = self.create_user()
-        self.login_as(user)
+    def test_without_permission(self) -> None:
+        self.login_as(self.create_user())
 
         with self.feature("organizations:dynamic-sampling-custom"):
-            response = self.client.get(
-                self.url,
-                data={"statsPeriod": "24h"},
+            self.get_error_response(
+                self.organization.slug, qs_params={"statsPeriod": "24h"}, status_code=403
             )
 
-        assert response.status_code == 403
+    def test_counts_received_spans_by_root_and_owning_project(self) -> None:
+        self.store_span(self.root, root=self.root)
+        # Sampled at 1/2, so it stands for 2 received spans.
+        self.store_span(self.root, root=self.root, sample_rate=0.5)
+        self.store_span(self.other, root=self.root)
+        self.store_span(self.other, root=self.other)
 
-    @django_db_all
-    def test_get_span_counts_with_ingested_data_24h(self) -> None:
-        """Test span counts endpoint with actual ingested metrics data"""
-        with self.feature("organizations:dynamic-sampling-custom"):
-            response = self.client.get(
-                self.url,
-                data={"statsPeriod": "24h"},
-            )
+        data = self.get_counts()
 
-        assert response.status_code == 200
-        data = response.data  # type: ignore[attr-defined]
-        span_counts = sorted(data["data"][0], key=lambda x: x["by"]["target_project_id"])
+        assert data["data"] == [
+            [
+                self.row(self.root, self.root, 3),
+                self.row(self.root, self.other, 1),
+                self.row(self.other, self.other, 1),
+            ]
+        ]
+        assert data["end"] - data["start"] == timedelta(days=1)
 
-        assert span_counts[0]["by"]["project"] == self.project_2.name
-        assert span_counts[0]["by"]["target_project_id"] == str(self.project_1.id)
-        assert span_counts[0]["totals"] == 21.0
+    def test_span_without_dsc_project_counts_under_its_own_project(self) -> None:
+        self.store_span(self.other)
+        self.store_span(self.other, root=self.other)
 
-        assert span_counts[1]["by"]["project"] == self.project_1.name
-        assert span_counts[1]["by"]["target_project_id"] == str(self.project_2.id)
-        assert span_counts[1]["totals"] == 12.0
+        data = self.get_counts()
 
-        assert span_counts[2]["by"]["project"] == self.project_1.name
-        assert span_counts[2]["by"]["target_project_id"] == str(self.project_3.id)
-        assert span_counts[2]["totals"] == 13.0
+        assert data["data"] == [[self.row(self.other, self.other, 2)]]
 
-        assert data["end"] == MetricsEnhancedPerformanceTestCase.MOCK_DATETIME
-        assert (data["end"] - data["start"]) == timedelta(days=1)
+    def test_stats_period_selects_spans_by_time(self) -> None:
+        self.store_span(self.root, root=self.root, start_ts=before_now(days=5))
+        self.store_span(self.root, root=self.root)
 
-    @django_db_all
-    def test_get_span_counts_with_ingested_data_30d(self) -> None:
-        with self.feature("organizations:dynamic-sampling-custom"):
-            response = self.client.get(
-                self.url,
-                data={"statsPeriod": "30d"},
-            )
+        assert self.get_counts(statsPeriod="24h")["data"] == [[self.row(self.root, self.root, 1)]]
 
-        assert response.status_code == 200
-        data = response.data  # type: ignore[attr-defined]
-        span_counts = sorted(data["data"][0], key=lambda x: x["by"]["target_project_id"])
+        data = self.get_counts(statsPeriod="30d")
+        assert data["data"] == [[self.row(self.root, self.root, 2)]]
+        assert data["end"] - data["start"] == timedelta(days=30)
 
-        assert span_counts[0]["by"]["project"] == self.project_2.name
-        assert span_counts[0]["by"]["target_project_id"] == str(self.project_1.id)
-        assert span_counts[0]["totals"] == 21.0 * 2
+    def test_environment_filters_spans(self) -> None:
+        self.create_environment(project=self.root, name="prod")
+        self.store_span(self.root, root=self.root, environment="prod")
+        self.store_span(self.root, root=self.root, environment="dev")
 
-        assert span_counts[1]["by"]["project"] == self.project_1.name
-        assert span_counts[1]["by"]["target_project_id"] == str(self.project_2.id)
-        assert span_counts[1]["totals"] == 12.0 * 2
+        data = self.get_counts(environment="prod")
 
-        assert span_counts[2]["by"]["project"] == self.project_1.name
-        assert span_counts[2]["by"]["target_project_id"] == str(self.project_3.id)
-        assert span_counts[2]["totals"] == 13.0 * 2
+        assert data["data"] == [[self.row(self.root, self.root, 1)]]
 
-        assert data["end"] == MetricsEnhancedPerformanceTestCase.MOCK_DATETIME
-        assert (data["end"] - data["start"]) == timedelta(days=30)
+    def test_no_spans(self) -> None:
+        data = self.get_counts()
 
-    @django_db_all
-    def test_get_span_counts_with_many_projects(self) -> None:
-        # Create 200 projects with incrementing span counts
-        projects = []
-        days_ago = self.MOCK_DATETIME - timedelta(days=5)
-        for i in range(200):
-            project = self.create_project(organization=self.org, name=f"gen_project_{i}")
-            projects.append(project)
-
-            self.store_metric(
-                org_id=self.org.id,
-                value=i,
-                project_id=int(project.id),
-                mri=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-                tags={"target_project_id": str(self.project_1.id)},
-                timestamp=int(days_ago.timestamp()),
-            )
-
-        with self.feature("organizations:dynamic-sampling-custom"):
-            response = self.client.get(
-                self.url,
-                data={"statsPeriod": "30d"},
-            )
-
-        assert response.status_code == 200
-        data = response.data  # type: ignore[attr-defined]
-        span_counts = sorted(data["data"][0], key=lambda x: x["totals"], reverse=True)
-
-        # Verify we get all 200 projects back
-        assert len(span_counts) >= 200
-
-
-@freeze_time(MetricsEnhancedPerformanceTestCase.MOCK_DATETIME)
-@cell_silo_test
-class OrganizationSamplingProjectSpanCountsNoMetricsTest(MetricsEnhancedPerformanceTestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.login_as(user=self.user)
-        self.org = self.create_organization(owner=self.user)
-        self.project_1 = self.create_project(organization=self.org, name="project_1")
-        self.project_2 = self.create_project(organization=self.org, name="project_2")
-        self.project_3 = self.create_project(organization=self.org, name="project_3")
-        self.project_4 = self.create_project(organization=self.org, name="project_4")
-        self.url = reverse(
-            "sentry-api-0-organization-sampling-root-counts",
-            kwargs={"organization_id_or_slug": self.org.slug},
-        )
-
-    @django_db_all
-    def test_get_span_counts_with_ingested_data_30d(self) -> None:
-        with self.feature("organizations:dynamic-sampling-custom"):
-            response = self.client.get(
-                self.url,
-                data={"statsPeriod": "30d"},
-            )
-
-        assert response.status_code == 200
-
-        data = response.data  # type: ignore[attr-defined]
-        assert data["data"] == []
-        assert data["meta"] == []
-
-        assert data["end"] is None
-        assert data["start"] is None
-        assert data["intervals"] == []
+        assert data["data"] == [[]]
+        assert data["end"] - data["start"] == timedelta(days=1)

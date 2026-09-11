@@ -9,24 +9,15 @@ from sentry.api.bases import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ObjectStatus
+from sentry.dynamic_sampling.per_org.queries import get_eap_span_counts_by_root_project
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.data import (
-    MetricsAPIQueryResultsTransformer,
-    MQLQuery,
-    run_queries,
-)
-from sentry.sentry_metrics.querying.types import QueryOrder, QueryType
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.sentry_metrics.utils import STRING_NOT_FOUND, resolve_weak
-from sentry.snuba.metrics import SpanMRI
-from sentry.snuba.referrer import Referrer
-from sentry.utils.dates import parse_stats_period
 
 
 @cell_silo_endpoint
 class OrganizationSamplingProjectSpanCountsEndpoint(OrganizationEndpoint):
-    """Endpoint for retrieving project span counts in all orgs."""
+    """Received span counts of an organization, grouped by the project that started
+    the trace and the project that owns the span."""
 
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (OrganizationPermission,)
@@ -35,7 +26,10 @@ class OrganizationSamplingProjectSpanCountsEndpoint(OrganizationEndpoint):
     }
 
     def get(self, request: Request, organization: Organization) -> Response:
-        self._check_feature(request, organization)
+        if not features.has(
+            "organizations:dynamic-sampling-custom", organization, actor=request.user
+        ):
+            raise ResourceDoesNotExist
 
         start, end = get_date_range_from_params(request.GET)
         # We are purposely not filtering on team membership, as all users should be able to see the span counts
@@ -44,42 +38,25 @@ class OrganizationSamplingProjectSpanCountsEndpoint(OrganizationEndpoint):
         projects = list(
             Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
         )
+        slugs_by_id = {project.id: project.slug for project in projects}
 
-        transformer = MetricsAPIQueryResultsTransformer()
-
-        # Try to resolve the `target_project_id` tag first, as otherwise the query will
-        # fail to resolve the column and raise a validation error.
-        # When the tag is not present, we can simply return with an empty result set, as this
-        # means that there are no spans ingested yet.
-        if resolve_weak(UseCaseID.SPANS, organization.id, "target_project_id") == STRING_NOT_FOUND:
-            results = transformer.transform([])
-            return Response(status=200, data=results)
-
-        mql = f"sum({SpanMRI.COUNT_PER_ROOT_PROJECT.value}) by (project,target_project_id)"
-        query = MQLQuery(mql=mql, order=QueryOrder.DESC, limit=10000)
-        results = run_queries(
-            mql_queries=[query],
+        span_counts = get_eap_span_counts_by_root_project(
+            organization,
+            projects,
             start=start,
             end=end,
-            interval=self._interval_from_request(request),
-            organization=organization,
-            projects=projects,
             environments=self.get_environments(request, organization),
-            referrer=Referrer.DYNAMIC_SAMPLING_SETTINGS_GET_SPAN_COUNTS.value,
-            query_type=QueryType.TOTALS,
-        ).apply_transformer(transformer)
+        )
+        rows = [
+            {
+                "by": {
+                    "project": slugs_by_id[span_count.root_project_id],
+                    "target_project_id": str(span_count.project_id),
+                },
+                "totals": span_count.count,
+            }
+            for span_count in span_counts
+            if span_count.root_project_id in slugs_by_id and span_count.project_id in slugs_by_id
+        ]
 
-        return Response(status=200, data=results)
-
-    def _check_feature(self, request: Request, organization: Organization) -> None:
-        if not features.has(
-            "organizations:dynamic-sampling-custom", organization, actor=request.user
-        ):
-            raise ResourceDoesNotExist
-
-    def _interval_from_request(self, request: Request) -> int:
-        """
-        Extracts the interval of the query from the request payload.
-        """
-        interval = parse_stats_period(request.GET.get("interval", "1h"))
-        return int(3600 if interval is None else interval.total_seconds())
+        return Response(status=200, data={"data": [rows], "start": start, "end": end})

@@ -15,6 +15,7 @@ from sentry.dynamic_sampling.tasks.common import (
     ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
     OrganizationDataVolume,
 )
+from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
@@ -40,6 +41,7 @@ class DynamicSamplingQueryFilters(StrEnum):
 
 class DynamicSamplingQueryFields(StrEnum):
     DSC_PROJECT_ID = "sentry.dsc.project_id"
+    PROJECT_ID = "project.id"
     DSC_TRANSACTION = "sentry.dsc.transaction"
     COUNT = "count()"
     COUNT_SAMPLE = "count_sample()"
@@ -62,6 +64,15 @@ class ProjectTransactionCounts:
     project_id: int
     org_id: int
     transaction_counts: list[tuple[str, float]]
+
+
+@dataclass(order=True)
+class RootProjectSpanCount:
+    """Spans received by ``project_id`` from traces that started in ``root_project_id``."""
+
+    root_project_id: int
+    project_id: int
+    count: float
 
 
 def _get_aggregate_int(row: Mapping[str, Any], column: str) -> int:
@@ -242,6 +253,63 @@ def get_eap_project_volumes(
         )
 
     return project_volumes
+
+
+def get_eap_span_counts_by_root_project(
+    organization: Organization,
+    projects: Sequence[Project],
+    start: datetime,
+    end: datetime,
+    environments: Sequence[Environment] = (),
+) -> list[RootProjectSpanCount]:
+    """Received span counts of every (root project, owning project) pair in the window.
+
+    Spans of every kind count, not only segments. A span without a DSC project id
+    belongs to a trace that carried no sampling context, so its own project stands in
+    as the root project.
+    """
+    counts: defaultdict[tuple[int, int], float] = defaultdict(float)
+
+    for row in run_eap_spans_table_query_in_chunks(
+        {
+            "params": SnubaParams(
+                start=start,
+                end=end,
+                projects=list(projects),
+                environments=list(environments),
+                organization=organization,
+            ),
+            "query_string": "",
+            "selected_columns": [
+                DynamicSamplingQueryFields.DSC_PROJECT_ID,
+                DynamicSamplingQueryFields.PROJECT_ID,
+                DynamicSamplingQueryFields.COUNT,
+            ],
+            "orderby": [
+                DynamicSamplingQueryFields.DSC_PROJECT_ID,
+                DynamicSamplingQueryFields.PROJECT_ID,
+            ],
+            "referrer": Referrer.DYNAMIC_SAMPLING_SETTINGS_GET_SPAN_COUNTS.value,
+            "config": SearchResolverConfig(
+                auto_fields=True,
+                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY,
+            ),
+            "sampling_mode": SAMPLING_MODE_HIGHEST_ACCURACY,
+        }
+    ):
+        count = _get_aggregate_float(row, DynamicSamplingQueryFields.COUNT)
+        if count <= 0:
+            continue
+
+        project_id = _get_aggregate_int(row, DynamicSamplingQueryFields.PROJECT_ID)
+        dsc_project_id = row.get(DynamicSamplingQueryFields.DSC_PROJECT_ID)
+        root_project_id = project_id if dsc_project_id is None else int(dsc_project_id)
+        counts[(root_project_id, project_id)] += count
+
+    return [
+        RootProjectSpanCount(root_project_id=root_project_id, project_id=project_id, count=count)
+        for (root_project_id, project_id), count in sorted(counts.items())
+    ]
 
 
 def get_eap_transaction_volumes(
