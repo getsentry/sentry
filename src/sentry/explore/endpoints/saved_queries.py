@@ -137,22 +137,25 @@ def build_combined_queryset(
 
     # TODO: add the actual order by logic Explore implements
 
-    # Rows with equal sort keys need a deterministic tiebreaker.
-    # id is not enough with two different types of queries, so we also use query type
-
     if len(order_by) == 0:
         order_by.append("lower_name")
 
+    # Rows with equal sort keys need a deterministic tiebreaker.
+    # id is not enough with two different types of queries, so we also use query type
     order_by.append("-id")
     order_by.append("query_type")
 
     # Both sides of a UNION must project the same columns in the same order
     columns = ["id", "query_type"]
     for column in order_by:
-        if isinstance(column, OrderBy):
+        if isinstance(column, str):
+            name = column.removeprefix("-")
+        elif isinstance(column.expression, F):
+            # Ordering by an expression is only possible if the union projects the
+            # column it names, so the term has to resolve back to a plain field.
             name = column.expression.name
         else:
-            name = column[1:] if column.startswith("-") else column
+            raise TypeError(f"Unsupported order_by term: {column!r}")
         if name not in columns:
             columns.append(name)
 
