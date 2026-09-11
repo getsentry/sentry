@@ -3,7 +3,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
-from django.db import router, transaction
+from django.db import connections, router, transaction
+from django.test.utils import CaptureQueriesContext
 
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.hybridcloud.models.outbox import CellOutbox, OutboxFlushError, outbox_context
@@ -287,6 +288,151 @@ class TestPublishActionFromContext(TestCase):
 
 
 class TestPublishActionsFromContextBulk(TestCase):
+    def test_rejects_more_than_5000_actions(self) -> None:
+        action = (ViewAction(), self.project, self.group.id, None)
+
+        with pytest.raises(ValueError, match="cannot publish more than 5000 actions at once"):
+            publish_actions_from_context_bulk([action] * 5_001)
+
+    def test_reserve_object_identifiers_for_bulk_create(self) -> None:
+        with self.assertNumQueries(1):
+            identifiers = GroupActionLogOutbox.reserve_object_identifiers_for_bulk_create(3)
+
+        assert len(identifiers) == 3
+        assert len(set(identifiers)) == 3
+
+    def test_reserve_object_identifiers_for_bulk_create_empty(self) -> None:
+        with self.assertNumQueries(0):
+            assert GroupActionLogOutbox.reserve_object_identifiers_for_bulk_create(0) == []
+
+    def test_reserve_object_identifiers_for_bulk_create_rejects_negative_count(self) -> None:
+        with (
+            self.assertNumQueries(0),
+            pytest.raises(
+                ValueError,
+                match="bulk identifier reservation count must be between 0 and 10,000",
+            ),
+        ):
+            GroupActionLogOutbox.reserve_object_identifiers_for_bulk_create(-1)
+
+    def test_reserve_object_identifiers_for_bulk_create_rejects_above_maximum(self) -> None:
+        with (
+            self.assertNumQueries(0),
+            pytest.raises(
+                ValueError,
+                match="bulk identifier reservation count must be between 0 and 10,000",
+            ),
+        ):
+            GroupActionLogOutbox.reserve_object_identifiers_for_bulk_create(10_001)
+
+    def test_bulk_inserts_outboxes(self) -> None:
+        from sentry.issues.action_log import action_context_scope, publish_actions_from_context_bulk
+
+        using = router.db_for_write(GroupActionLogOutbox)
+        table = GroupActionLogOutbox._meta.db_table
+        with (
+            self.feature("projects:issue-action-log-write-to-db"),
+            action_context_scope(source="web"),
+            outbox_context(flush=False),
+            patch("sentry.hybridcloud.models.outbox.metrics.incr") as metrics_incr,
+            CaptureQueriesContext(connections[using]) as queries,
+        ):
+            publish_actions_from_context_bulk(
+                [
+                    (ViewAction(), self.group.project, self.group.id, None),
+                    (ResolveAction(), self.group.project, self.group.id, None),
+                ],
+            )
+
+        sql = [query["sql"] for query in queries.captured_queries]
+        sequence_queries = [
+            query for query in sql if "nextval" in query and "generate_series" in query
+        ]
+        insert_queries = [
+            query
+            for query in sql
+            if f'INSERT INTO "{table}"' in query and '"force_async_derived"' in query
+        ]
+        assert len(sequence_queries) == 1
+        assert len(insert_queries) == 1
+
+        outboxes = list(
+            GroupActionLogOutbox.objects.filter(
+                category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+            ).order_by("id")
+        )
+        assert len(outboxes) == 2
+        assert len({outbox.object_identifier for outbox in outboxes}) == 2
+        metrics_incr.assert_any_call(
+            "outbox.saved",
+            2,
+            tags={
+                "category": "GROUP_ACTION_LOG_EVENT",
+                "silo": "region",
+                "type": "GroupActionLogOutbox",
+            },
+        )
+
+    def test_schedules_one_drain(self) -> None:
+        from sentry.issues.action_log import action_context_scope, publish_actions_from_context_bulk
+
+        project = self.group.project
+        group_id = self.group.id
+        with self.feature("projects:issue-action-log-write-to-db"):
+            with (
+                action_context_scope(source="web"),
+                patch("sentry.hybridcloud.models.outbox.transaction.on_commit") as on_commit,
+            ):
+                publish_actions_from_context_bulk(
+                    [
+                        (ViewAction(), project, group_id, None),
+                        (ResolveAction(), project, group_id, None),
+                    ],
+                )
+
+        on_commit.assert_called_once()
+
+    def test_schedules_one_drain_per_shard(self) -> None:
+        from sentry.issues.action_log import action_context_scope, publish_actions_from_context_bulk
+
+        other_group = self.create_group(project=self.group.project)
+        project = self.group.project
+        group_id = self.group.id
+        with self.feature("projects:issue-action-log-write-to-db"):
+            with (
+                action_context_scope(source="web"),
+                patch("sentry.hybridcloud.models.outbox.transaction.on_commit") as on_commit,
+            ):
+                publish_actions_from_context_bulk(
+                    [
+                        (ViewAction(), project, group_id, None),
+                        (ResolveAction(), project, group_id, None),
+                        (ViewAction(), project, other_group.id, None),
+                    ],
+                )
+
+        assert on_commit.call_count == 2
+
+    def test_flush_false_does_not_schedule_drain(self) -> None:
+        from sentry.issues.action_log import action_context_scope, publish_actions_from_context_bulk
+
+        project = self.group.project
+        group_id = self.group.id
+        with self.feature("projects:issue-action-log-write-to-db"):
+            with (
+                action_context_scope(source="web"),
+                outbox_context(flush=False),
+                patch("sentry.hybridcloud.models.outbox.transaction.on_commit") as on_commit,
+            ):
+                publish_actions_from_context_bulk(
+                    [
+                        (ViewAction(), project, group_id, None),
+                        (ResolveAction(), project, group_id, None),
+                    ],
+                )
+
+        on_commit.assert_not_called()
+
     def test_multiple_writes(self) -> None:
         from sentry.issues.action_log import action_context_scope, publish_actions_from_context_bulk
 
@@ -535,24 +681,24 @@ class TestGroupActionLogOutboxRecovery(TestCase):
                 group_id=group.id,
                 project=group.project,
             )
+            dedicated_outbox = GroupActionLogOutbox.objects.get(shard_identifier=group.id)
+            CellOutbox(
+                shard_scope=dedicated_outbox.shard_scope,
+                shard_identifier=dedicated_outbox.shard_identifier,
+                category=dedicated_outbox.category,
+                object_identifier=CellOutbox.next_object_identifier(),
+                payload=dedicated_outbox.payload,
+            ).save()
+            dedicated_outbox.delete()
 
     def _seed_dedicated_outbox(self, action: GroupAction, group: Group) -> None:
-        # Recovery ships before the producer cutover, so seed the dedicated table
-        # from the payload produced by the existing shared route.
-        self._publish_shared_outbox(action, group)
-        shared_outbox = CellOutbox.objects.get(
-            category=OutboxCategory.GROUP_ACTION_LOG_EVENT,
-            shard_identifier=group.id,
-        )
-        with outbox_context(flush=False):
-            GroupActionLogOutbox(
-                shard_scope=shared_outbox.shard_scope,
-                shard_identifier=shared_outbox.shard_identifier,
-                category=shared_outbox.category,
-                object_identifier=GroupActionLogOutbox.next_object_identifier(),
-                payload=shared_outbox.payload,
-            ).save()
-        shared_outbox.delete()
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_context(flush=False):
+            publish_action(
+                action,
+                source=ActionSource.API,
+                group_id=group.id,
+                project=group.project,
+            )
 
     def test_shared_scheduler_does_not_drain_dedicated_outbox(self) -> None:
         other_group = self.create_group(project=self.group.project)
@@ -658,7 +804,7 @@ class TestPublishActionWrite(TestCase):
         assert entry.date_added is not None
 
     @patch("sentry.utils.metrics.timer")
-    def test_shared_outbox_is_default(self, mock_timer: MagicMock) -> None:
+    def test_uses_dedicated_outbox(self, mock_timer: MagicMock) -> None:
         with self.feature("projects:issue-action-log-write-to-db"), outbox_context(flush=False):
             publish_action(
                 ViewAction(),
@@ -667,62 +813,22 @@ class TestPublishActionWrite(TestCase):
                 project=self.group.project,
             )
 
-        assert (
-            CellOutbox.objects.filter(category=OutboxCategory.GROUP_ACTION_LOG_EVENT).count() == 1
-        )
-        assert not GroupActionLogOutbox.objects.exists()
+        assert GroupActionLogOutbox.objects.count() == 1
+        assert not CellOutbox.objects.filter(
+            category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+        ).exists()
         mock_timer.assert_any_call(
             "issues.action_log.enqueue.duration",
             tags={
                 "action": "view",
                 "source": "api",
-                "route": "shared",
-                "derived_strategy": "inline",
-            },
-        )
-
-    @patch("sentry.options.rollout.in_rollout_group", return_value=True)
-    @patch("sentry.utils.metrics.incr")
-    @patch("sentry.utils.metrics.timer")
-    def test_dedicated_outbox_rollout_routes_one_write(
-        self,
-        mock_timer: MagicMock,
-        mock_incr: MagicMock,
-        mock_in_rollout_group: MagicMock,
-    ) -> None:
-        with (
-            self.feature("projects:issue-action-log-write-to-db"),
-            outbox_context(flush=False),
-        ):
-            publish_action(
-                ViewAction(),
-                source=ActionSource.API,
-                group_id=self.group.id,
-                project=self.group.project,
-                force_async_derived=True,
-            )
-
-        assert not CellOutbox.objects.filter(
-            category=OutboxCategory.GROUP_ACTION_LOG_EVENT
-        ).exists()
-        assert GroupActionLogOutbox.objects.count() == 1
-        mock_in_rollout_group.assert_called_once_with(
-            "issues.action_log.dedicated_outbox_rollout_rate", str(self.group.id)
-        )
-        mock_incr.assert_any_call("issues.action_log.outbox_write", tags={"route": "dedicated"})
-        mock_timer.assert_called_once_with(
-            "issues.action_log.enqueue.duration",
-            tags={
-                "action": "view",
-                "source": "api",
                 "route": "dedicated",
-                "derived_strategy": "async",
+                "derived_strategy": "inline",
             },
         )
 
     def test_dedicated_outbox_flushes_on_commit(self) -> None:
         with (
-            self.options({"issues.action_log.dedicated_outbox_rollout_rate": 1.0}),
             self.feature("projects:issue-action-log-write-to-db"),
             self.captureOnCommitCallbacks(execute=True),
         ):
@@ -770,38 +876,13 @@ class TestPublishActionWrite(TestCase):
     def test_rolled_back_transaction_does_not_persist(self) -> None:
         with self.feature("projects:issue-action-log-write-to-db"):
             try:
-                with transaction.atomic(using=router.db_for_write(CellOutbox)):
-                    publish_action(
-                        ViewAction(),
-                        source=ActionSource.API,
-                        group_id=self.group.id,
-                        project=self.group.project,
-                        actor=GroupActionActor.user(self.user.id),
-                    )
-                    assert CellOutbox.objects.filter(
-                        category=OutboxCategory.GROUP_ACTION_LOG_EVENT
-                    ).exists()
-                    raise IntentionalRollback()
-            except IntentionalRollback:
-                pass
-
-        assert not CellOutbox.objects.filter(
-            category=OutboxCategory.GROUP_ACTION_LOG_EVENT
-        ).exists()
-        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 0
-
-    def test_dedicated_outbox_rolled_back_transaction_does_not_persist(self) -> None:
-        with (
-            self.options({"issues.action_log.dedicated_outbox_rollout_rate": 1.0}),
-            self.feature("projects:issue-action-log-write-to-db"),
-        ):
-            try:
                 with transaction.atomic(using=router.db_for_write(GroupActionLogOutbox)):
                     publish_action(
                         ViewAction(),
                         source=ActionSource.API,
                         group_id=self.group.id,
                         project=self.group.project,
+                        actor=GroupActionActor.user(self.user.id),
                     )
                     assert GroupActionLogOutbox.objects.exists()
                     raise IntentionalRollback()
@@ -814,7 +895,7 @@ class TestPublishActionWrite(TestCase):
     def test_savepoint_rollback_discards_only_inner(self) -> None:
         with self.feature("projects:issue-action-log-write-to-db"):
             with outbox_runner():
-                with transaction.atomic(using=router.db_for_write(CellOutbox)):
+                with transaction.atomic(using=router.db_for_write(GroupActionLogOutbox)):
                     publish_action(
                         ViewAction(),
                         source=ActionSource.API,
@@ -823,7 +904,7 @@ class TestPublishActionWrite(TestCase):
                         actor=GroupActionActor.user(self.user.id),
                     )
                     try:
-                        with transaction.atomic(using=router.db_for_write(CellOutbox)):
+                        with transaction.atomic(using=router.db_for_write(GroupActionLogOutbox)):
                             publish_action(
                                 ResolveAction(),
                                 source=ActionSource.API,
@@ -850,9 +931,7 @@ class TestPublishActionWrite(TestCase):
                     actor=GroupActionActor.user(self.user.id),
                 )
 
-            assert CellOutbox.objects.filter(
-                category=OutboxCategory.GROUP_ACTION_LOG_EVENT
-            ).exists()
+            assert GroupActionLogOutbox.objects.exists()
             assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 0
 
             with outbox_runner():
@@ -862,7 +941,6 @@ class TestPublishActionWrite(TestCase):
 
     def test_bulk_publish_creates_one_dedicated_row_per_action(self) -> None:
         with (
-            self.options({"issues.action_log.dedicated_outbox_rollout_rate": 1.0}),
             self.feature("projects:issue-action-log-write-to-db"),
             action_context_scope(source=ActionSource.API),
             outbox_context(flush=False),

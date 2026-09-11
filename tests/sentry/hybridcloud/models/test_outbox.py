@@ -318,6 +318,22 @@ class CellOutboxTest(TestCase):
         )
         mock_drain_shard.assert_called_once_with()
 
+    def test_schedule_drain_on_commit(self) -> None:
+        outbox = Organization(id=10).outbox_for_update()
+        using = router.db_for_write(CellOutbox)
+
+        with (
+            patch("sentry.hybridcloud.models.outbox.transaction.on_commit") as on_commit,
+            patch.object(outbox, "_drain_shard_with_metrics") as drain_shard,
+            outbox_context(transaction.atomic(using=using)),
+        ):
+            outbox.schedule_drain_on_commit()
+
+        on_commit.assert_called_once()
+        callback = on_commit.call_args.args[0]
+        callback()
+        drain_shard.assert_called_once_with()
+
     def test_creating_org_outboxes(self) -> None:
         with outbox_context(flush=False):
             Organization(id=10).outbox_for_update().save()
