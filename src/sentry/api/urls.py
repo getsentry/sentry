@@ -36,9 +36,6 @@ from sentry.api.endpoints.organization_releases import (
     OrganizationReleasesEndpoint,
     OrganizationReleasesStatsEndpoint,
 )
-from sentry.api.endpoints.organization_sampling_admin_metrics import (
-    OrganizationDynamicSamplingAdminMetricsEndpoint,
-)
 from sentry.api.endpoints.organization_sampling_effective_sample_rate import (
     OrganizationSamplingEffectiveSampleRateEndpoint,
 )
@@ -1759,11 +1756,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/sampling/effective-sample-rate/$",
         OrganizationSamplingEffectiveSampleRateEndpoint.as_view(),
         name="sentry-api-0-organization-sampling-effective-sample-rate",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/sampling/admin-metrics/$",
-        OrganizationDynamicSamplingAdminMetricsEndpoint.as_view(),
-        name="sentry-api-0-organization-sampling-admin-metrics",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/sdk-updates/$",

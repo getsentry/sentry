@@ -17,7 +17,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.per_org.queries import get_eap_organization_volume
-from sentry.dynamic_sampling.tasks.common import get_effective_sample_rate, get_organization_volume
+from sentry.dynamic_sampling.tasks.common import get_effective_sample_rate
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
@@ -26,21 +26,15 @@ SAMPLE_RATE_WINDOW = timedelta(hours=24)
 
 class OrganizationSamplingEffectiveSampleRateResponse(TypedDict):
     effectiveSampleRate: float | None
-    eapEffectiveSampleRate: float | None
 
 
 @cell_silo_endpoint
 class OrganizationSamplingEffectiveSampleRateEndpoint(OrganizationEndpoint):
     """Return the organization's effective sample rate over the last 24h.
 
-    The effective sample rate is computed as indexed / total. It is returned from two sources,
-    which do not have to agree:
-    - effectiveSampleRate comes from the generic metrics counters, where total is the number of
-      received segments and indexed is the number of segments with a keep decision. It measures
-      the sampling decision alone.
-    - eapEffectiveSampleRate comes from EAP, where total is the extrapolated number of received
-      segments and indexed is the number of stored segments. Segments that dynamic sampling kept
-      but that a quota or a pipeline drop removed later lower this rate.
+    The rate is stored / received, computed from EAP: received is the extrapolated number of
+    segments and stored is the number of segments kept. Segments that dynamic sampling kept but
+    that a quota or a pipeline drop removed later lower this rate.
     """
 
     owner = ApiOwner.TELEMETRY_EXPERIENCE
@@ -72,17 +66,8 @@ class OrganizationSamplingEffectiveSampleRateEndpoint(OrganizationEndpoint):
         projects = list(
             Project.objects.filter(organization_id=organization.id, status=ObjectStatus.ACTIVE)
         )
-        eap_volume = get_eap_organization_volume(
+        volume = get_eap_organization_volume(
             organization, projects, time_interval=SAMPLE_RATE_WINDOW
         )
-        generic_metrics_volume = get_organization_volume(
-            organization.id, time_interval=SAMPLE_RATE_WINDOW
-        )
 
-        return Response(
-            status=200,
-            data={
-                "effectiveSampleRate": get_effective_sample_rate(generic_metrics_volume),
-                "eapEffectiveSampleRate": get_effective_sample_rate(eap_volume),
-            },
-        )
+        return Response(status=200, data={"effectiveSampleRate": get_effective_sample_rate(volume)})
