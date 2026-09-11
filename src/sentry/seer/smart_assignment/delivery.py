@@ -6,6 +6,7 @@ from uuid import UUID
 
 from django.utils import timezone
 
+from sentry import options
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.organizations.services.organization import organization_service
@@ -128,7 +129,27 @@ def _validate_resolve_verdict(
             users = user_service.get_many_by_email(
                 emails=[value], organization_id=organization_id, is_verified=False
             )
-            resolved.append(users[0].id if users else None)
+            if users:
+                resolved.append(users[0].id)
+                continue
+            fuzzy_matching_enabled = options.get(
+                "seer.smart_assignment.fuzzy_user_matching.enabled"
+            )
+            fuzzy_user_id = user_service.resolve_fuzzy_user(
+                organization_id=organization_id,
+                email=value,
+                name=candidate.name,
+            )
+            # Shadow mode logs the proposed user for review while leaving this candidate
+            # unresolved, so scoring and assignment continue to see the pre-fuzzy result.
+            logger.info(
+                "smart_assignment.delivery.fuzzy_user_resolution",
+                extra={
+                    **log_extra,
+                    "user_id": fuzzy_user_id,
+                },
+            )
+            resolved.append(fuzzy_user_id if fuzzy_matching_enabled else None)
             continue
 
         if candidate.identifier_kind == "username":
