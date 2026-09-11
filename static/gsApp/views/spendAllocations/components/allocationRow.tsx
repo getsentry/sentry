@@ -1,8 +1,10 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
+import {Table} from '@sentry/scraps/table';
 
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -11,7 +13,7 @@ import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import type {BigNumUnits} from 'getsentry/views/spendAllocations/utils';
 import {bigNumFormatter} from 'getsentry/views/spendAllocations/utils';
 
-import {Cell, Centered, Divider, HalvedWithDivider} from './styles';
+import {Centered, Divider, HalvedWithDivider} from './styles';
 import type {SpendAllocation} from './types';
 
 type AllocationRowProps = {
@@ -32,10 +34,10 @@ export function AllocationRow({
   const theme = useTheme();
 
   return (
-    <tr data-test-id="allocation-row">
-      <Cell>{allocation.targetSlug}</Cell>
-      <Cell />
-      <Cell>
+    <Table.Row data-test-id="allocation-row">
+      <AllocationCell columnKey="project">{allocation.targetSlug}</AllocationCell>
+      <AllocationCell columnKey="allocated-label" />
+      <AllocationCell columnKey="allocated-values">
         <HalvedWithDivider>
           {allocation.costPerItem === 0 && (
             <Centered>
@@ -66,9 +68,9 @@ export function AllocationRow({
             </InfoText>
           </Centered>
         </HalvedWithDivider>
-      </Cell>
-      <Cell />
-      <Cell>
+      </AllocationCell>
+      <AllocationCell columnKey="consumed-label" />
+      <AllocationCell columnKey="consumed-values">
         <HalvedWithDivider>
           {allocation.costPerItem === 0 && (
             <Centered>
@@ -108,8 +110,8 @@ export function AllocationRow({
             </InfoText>
           </Centered>
         </HalvedWithDivider>
-      </Cell>
-      <Cell textAlign="right">
+      </AllocationCell>
+      <AllocationCell columnKey="actions" style={{textAlign: 'right'}}>
         {allocation.targetType !== 'Organization' && (
           <Button
             aria-label={t('Edit')}
@@ -139,7 +141,11 @@ export function AllocationRow({
             data-test-id="delete"
           />
         )}
-      </Cell>
-    </tr>
+      </AllocationCell>
+    </Table.Row>
   );
 }
+
+const AllocationCell = styled(Table.Cell)`
+  padding: ${p => p.theme.space.xl};
+`;

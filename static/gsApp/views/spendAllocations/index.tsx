@@ -364,7 +364,11 @@ export function SpendAllocationsRoot({subscription}: Props) {
         action={
           !isLoading &&
           orgEnabledFlag && (
-            <Flex gap="md">
+            <Flex
+              direction={{zero: 'column', md: 'row'}}
+              flex={{zero: '1 0 100%', md: '0 1 auto'}}
+              gap="md"
+            >
               {subscription.canSelfServe && hasBillingPerms && (
                 <LinkButton
                   aria-label={t('Manage Subscription')}
@@ -374,16 +378,19 @@ export function SpendAllocationsRoot({subscription}: Props) {
                   {t('Manage Subscription')}
                 </LinkButton>
               )}
-              <Button
-                aria-label={t('New Allocation')}
-                variant="primary"
-                size="sm"
-                data-test-id="new-allocation"
-                icon={<IconAdd size="xs" />}
-                onClick={openForm()}
-              >
-                {t('New Allocation')}
-              </Button>
+              <Container width={{zero: '100%', md: 'auto'}}>
+                <Button
+                  aria-label={t('New Allocation')}
+                  variant="primary"
+                  size="sm"
+                  data-test-id="new-allocation"
+                  icon={<IconAdd size="xs" />}
+                  onClick={openForm()}
+                  style={{width: '100%'}}
+                >
+                  {t('New Allocation')}
+                </Button>
+              </Container>
             </Flex>
           )
         }
@@ -410,10 +417,11 @@ export function SpendAllocationsRoot({subscription}: Props) {
       )}
       {canViewSpendAllocation && (
         <Grid
-          columns={{zero: 'repeat(3, 1fr)', '4xl': 'repeat(5, 1fr)'}}
-          areas={{zero: '"bb bb dd"', '4xl': '"bb bb dd . ."'}}
+          columns={{zero: '1fr', md: 'repeat(3, 1fr)', '4xl': 'repeat(5, 1fr)'}}
+          areas={{zero: '"bb" "dd"', md: '"bb bb dd"', '4xl': '"bb bb dd . ."'}}
           gap="xl"
           margin="xl 0"
+          width="100%"
           data-test-id="subhead-actions"
         >
           <StyledButtonBar>
@@ -501,22 +509,25 @@ export function SpendAllocationsRoot({subscription}: Props) {
           </Fragment>
         )}
       {!isLoading && orgEnabledFlag && canViewSpendAllocation && (
-        <Confirm
-          onConfirm={() => {
-            disableSpendAllocations();
-          }}
-          renderMessage={confirmDisableContent}
-        >
-          <Button
-            aria-label={t('Disable Spend Allocations')}
-            size="sm"
-            variant="danger"
-            data-test-id="disable"
-            disabled={!orgEnabledFlag}
+        <Container width={{zero: '100%', md: 'fit-content'}}>
+          <Confirm
+            onConfirm={() => {
+              disableSpendAllocations();
+            }}
+            renderMessage={confirmDisableContent}
           >
-            {t('Disable Spend Allocations')}
-          </Button>
-        </Confirm>
+            <Button
+              aria-label={t('Disable Spend Allocations')}
+              size="sm"
+              variant="danger"
+              data-test-id="disable"
+              disabled={!orgEnabledFlag}
+              style={{width: '100%'}}
+            >
+              {t('Disable Spend Allocations')}
+            </Button>
+          </Confirm>
+        </Container>
       )}
     </SubscriptionPageContainer>
   );
@@ -527,6 +538,7 @@ export default withSubscription(SpendAllocationsRoot);
 const DropdownDataCategory = styled(CompactSelect)`
   grid-column: auto / span 1;
   grid-area: dd;
+  width: 100%;
 
   button[aria-haspopup='listbox'] {
     width: 100%;
