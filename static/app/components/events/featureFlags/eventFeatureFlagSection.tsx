@@ -1,11 +1,10 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
@@ -34,7 +33,6 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -57,10 +55,9 @@ type EventFeatureFlagSectionProps = {
 
 function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSectionProps) {
   const organization = useOrganization();
-  const theme = useTheme();
-  const isXsScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
+  const isXsContainer = useResponsivePropValue({zero: true, sm: false});
 
-  const feedbackButton = isXsScreen ? null : (
+  const feedbackButton = isXsContainer ? null : (
     <FeedbackButton
       variant="secondary"
       aria-label={t('Give feedback on the feature flag section')}
@@ -263,7 +260,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   );
 
   const shouldUseTwoColumns =
-    !isXsScreen && truncatedItems.length > NUM_PREVIEW_FLAGS / 2;
+    !isXsContainer && truncatedItems.length > NUM_PREVIEW_FLAGS / 2;
   const columnOne = shouldUseTwoColumns
     ? truncatedItems.slice(0, NUM_PREVIEW_FLAGS / 2)
     : truncatedItems;
@@ -323,7 +320,7 @@ const ValueWrapper = styled('div')`
   grid-template-columns: 1fr 1fr 0.5fr;
   justify-items: start;
 
-  @media (max-width: ${p => p.theme.breakpoints.xs}) {
+  @container (max-width: ${p => p.theme.container.sm}) {
     grid-template-columns: 1fr 0.5fr;
     grid-template-rows: auto auto;
 

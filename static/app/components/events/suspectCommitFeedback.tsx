@@ -37,14 +37,14 @@ export function SuspectCommitFeedback({
 
   if (feedbackSubmitted) {
     return (
-      <FeedbackContainer>
+      <Flex display={{zero: 'none', sm: 'flex'}} align="center" gap="xs">
         <ThankYouText>{t('Thanks!')}</ThankYouText>
-      </FeedbackContainer>
+      </Flex>
     );
   }
 
   return (
-    <FeedbackContainer>
+    <Flex display={{zero: 'none', sm: 'flex'}} align="center" gap="xs">
       <FeedbackText>{t('Is this correct?')}</FeedbackText>
       <Flex gap="2xs">
         <Button
@@ -60,20 +60,9 @@ export function SuspectCommitFeedback({
           aria-label={t('No, this suspect commit is incorrect')}
         />
       </Flex>
-    </FeedbackContainer>
+    </Flex>
   );
 }
-
-const FeedbackContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-
-  @media (max-width: ${p => p.theme.breakpoints.xs}) {
-    display: none;
-  }
-`;
 
 const FeedbackText = styled('span')`
   font-size: ${p => p.theme.font.size.md};

@@ -204,7 +204,7 @@ const Header = styled('div')`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${p => p.theme.space.xl};
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     display: block;
   }
 `;
@@ -245,7 +245,7 @@ const TextWithQuestionTooltip = styled('div')`
 `;
 
 const Hash = styled('span')`
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     display: block;
     white-space: nowrap;
     overflow: hidden;

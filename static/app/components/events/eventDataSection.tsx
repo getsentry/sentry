@@ -148,7 +148,7 @@ const SectionHeader = styled('div')`
     font-weight: ${p => p.theme.font.weight.sans.regular};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+  @container (min-width: ${p => p.theme.container['4xl']}) {
     & > small {
       margin-left: ${p => p.theme.space.md};
       display: inline-block;

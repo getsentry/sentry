@@ -113,7 +113,7 @@ export function ReplayClipPreviewPlayer({
 const PlayerContainer = styled(FluidHeight)`
   position: relative;
   max-height: ${REPLAY_LOADING_HEIGHT + 16}px;
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     min-height: ${REPLAY_LOADING_HEIGHT + 16}px;
   }
   overflow: unset;
