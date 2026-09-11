@@ -207,7 +207,7 @@
     "react-select": "4.3.1",
     "react-textarea-autosize": "8.5.7",
     "reflux": "0.4.1",
-    "rehype-expressive-code": "^0.41.2",
+    "rehype-expressive-code": "^0.44.2",
     "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1",
     "remark-mdx-frontmatter": "^5.2.0",
