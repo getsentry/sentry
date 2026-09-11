@@ -3,7 +3,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
-import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
+import {PrIterationPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
@@ -25,11 +25,7 @@ function InstallationPermissionsButton({installationUrl}: {installationUrl?: str
       size="xs"
       onClick={() =>
         openModal(deps => (
-          <AutofixGithubAppPermissionsModal
-            {...deps}
-            installationUrl={installationUrl}
-            variant="pr_iteration"
-          />
+          <PrIterationPermissionsModal {...deps} installationUrl={installationUrl} />
         ))
       }
     >
