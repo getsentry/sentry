@@ -18,8 +18,10 @@ export const Row = styled('div', {
     `}
 
   /* Empty spacers must not consume a flex line. A wide _if function is
-     max-width 100%, so even a few pixels of leading/trailing free text wrap
-     onto their own row. Last-child still grows to fill leftover space. */
+     max-width 100%, so even a few pixels of leading free text wrap onto
+     their own row. Last-child still grows to fill leftover space.
+     Mid-expression empty gaps keep a small hit target so deleting an
+     operator does not leave an unclickable seam between tokens. */
   ${p =>
     p.collapsed &&
     css`
@@ -29,6 +31,12 @@ export const Row = styled('div', {
       flex-shrink: 0;
       flex-basis: 0;
       overflow: visible;
+
+      &:not(:first-child):not(:last-child) {
+        width: 9px;
+        min-width: 9px;
+        flex-basis: 9px;
+      }
     `}
 
   &:last-child {

@@ -266,23 +266,29 @@ export function ArgumentGridRow(props: FlexProps) {
       position="relative"
       height="100%"
       flex="0 1 auto"
-      maxWidth="fit-content"
+      minWidth="0"
+      maxWidth="100%"
       {...props}
     />
   );
 }
 
 const StyledArgumentGridCell = styled(Flex)`
+  min-width: 0;
+  max-width: 100%;
+
   ${UnstyledInput} {
     max-width: 130px;
     min-width: 0;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  /* The expandable equation/filter field sets data-expanded while focused. Lift
-     the cap so long arguments are fully readable; stay truncated when collapsed. */
+  /* Expanded bars: grow into the remaining args column (beside the function
+     name), not the full chip width. */
   [data-expanded='true'] & ${UnstyledInput} {
-    max-width: none;
+    max-width: 100%;
   }
 `;
 

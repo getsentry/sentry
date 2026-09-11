@@ -128,6 +128,8 @@ const Wrapper = styled(Input.withComponent('div'))<{state: 'valid' | 'invalid'}>
   padding: 0;
   height: auto;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   position: relative;
   font-size: ${p => p.theme.font.size.md};
   cursor: text;

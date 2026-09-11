@@ -656,9 +656,10 @@ const GridCell = styled('div', {
   width: 100%;
 
   input {
-    /* Collapsed empty spacers between tokens stay zero-width so they do not wrap.
-     * The empty trailing field still needs the same horizontal inset as
-     * SearchQueryBuilder so the placeholder lines up with the aggregate filter. */
+    /* Collapsed empty spacers stay zero-width/padding so they do not wrap.
+     * Mid-expression hit targets come from the Row collapsed mid-gap width in
+     * styles.tsx. Trailing empty fields with a placeholder keep horizontal
+     * inset so it lines up with the aggregate filter. */
     padding: 0 ${p => (p.collapsed && !p.showPlaceholder ? 0 : p.theme.space.xs)};
     min-width: ${p => (p.collapsed && !p.showPlaceholder ? 0 : '9px')};
     width: 100%;

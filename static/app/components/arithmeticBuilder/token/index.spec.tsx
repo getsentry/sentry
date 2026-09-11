@@ -9,6 +9,7 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import type {ArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/action';
 import {useArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/action';
@@ -1762,6 +1763,45 @@ describe('token', () => {
   });
 
   describe('ArithmeticTokenOperator', () => {
+    it('keeps mid-expression empty free text clickable after deleting an operator', async () => {
+      render(<Tokens expression="avg(span.duration)+sum(span.duration)" />);
+
+      expect(screen.getByRole('gridcell', {name: 'Delete +'})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('gridcell', {name: 'Delete +'}));
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('gridcell', {name: 'Delete +'})
+        ).not.toBeInTheDocument();
+      });
+
+      // Free text: leading spacer, gap between functions, trailing field.
+      // Leading/mid empty spacers can be zero-width in jsdom's layout stub, so
+      // include hidden nodes when collecting them.
+      const freeTextInputs = screen.getAllByRole('combobox', {
+        name: 'Add a term',
+        hidden: true,
+      });
+      expect(freeTextInputs).toHaveLength(3);
+
+      const middleFreeTextRow = freeTextInputs[1]!.closest('[role="row"]') as HTMLElement;
+      const middleRules = getEmotionRules(middleFreeTextRow).join(' ');
+      // Collapsed mid gaps must keep a hit target (leading stays 0 to avoid wrap).
+      // getComputedStyle is stubbed in tests, so assert the emotion rules instead.
+      expect(middleRules).toMatch(/:not\(:first-child\):not\(:last-child\)/);
+      expect(middleRules).toMatch(/min-width:\s*9px/);
+
+      // Click the mid gap (regression: a zero-width spacer made this impossible),
+      // then restore the operator through that free-text input.
+      await userEvent.click(freeTextInputs[1]!);
+      expect(freeTextInputs[1]).toHaveFocus();
+      await userEvent.type(freeTextInputs[1]!, '+', {skipClick: true});
+      await userEvent.keyboard('{Escape}');
+
+      expect(
+        await screen.findByRole('gridcell', {name: 'Delete +', hidden: true})
+      ).toBeInTheDocument();
+    });
+
     it('renders addition operator', async () => {
       const dispatch = jest.fn();
       render(<Tokens expression="+" dispatch={dispatch} />);

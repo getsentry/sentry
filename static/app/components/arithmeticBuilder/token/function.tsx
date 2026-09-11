@@ -106,9 +106,9 @@ export function ArithmeticTokenFunction({
       aria-invalid={false}
       state="valid"
     >
-      <FunctionGridCell {...gridCellProps} onMouseDown={onFunctionNameMouseDown}>
+      <FunctionNameCell {...gridCellProps} onMouseDown={onFunctionNameMouseDown}>
         {token.function}
-      </FunctionGridCell>
+      </FunctionNameCell>
       {/* Function tokens are keyed by position (`func:0`), so deleting an earlier
           function reuses this component for the next one. Remount the arguments
           grid when the token identity changes so we don't keep the previous
@@ -120,9 +120,9 @@ export function ArithmeticTokenFunction({
         state={state}
         token={token}
       />
-      <BaseGridCell {...gridCellProps}>
+      <FunctionChromeCell {...gridCellProps}>
         <DeleteButton token={token} label={t('Remove function %s', token.text)} />
-      </BaseGridCell>
+      </FunctionChromeCell>
     </FunctionWrapper>
   );
 }
@@ -270,12 +270,15 @@ function ArgumentsGridList({
     ref,
   });
 
+  // Shrink to fit beside the function name; do not grow to the full chip width
+  // (that painted long filters over the name).
   return (
     <Flex
       justify="start"
       wrap="wrap"
       flexGrow={0}
       flexShrink={1}
+      minWidth="0"
       height="100%"
       position="relative"
       {...gridProps}
@@ -732,9 +735,15 @@ const BaseGridCell = styled('div')`
   position: relative;
   height: 100%;
   min-height: 22px;
+  min-width: 0;
 `;
 
-const FunctionGridCell = styled(BaseGridCell)`
+/* Name + delete must not shrink so long arguments cannot cover them. */
+const FunctionChromeCell = styled(BaseGridCell)`
+  flex-shrink: 0;
+`;
+
+const FunctionNameCell = styled(FunctionChromeCell)`
   color: ${p => p.theme.colors.green500};
   padding-left: ${p => p.theme.space.xs};
 `;

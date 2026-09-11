@@ -234,6 +234,8 @@ function GridList({showPlaceholder, ...props}: GridListProps) {
 const TokenGridWrapper = styled('div')`
   box-sizing: border-box;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: 100%;
   /* Match SearchQueryBuilder so equation and aggregate filter rows share height.
    * +1px accounts for the border; keep horizontal padding so empty-field clicks
