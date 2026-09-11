@@ -3,7 +3,8 @@ from unittest.mock import MagicMock, patch
 
 from PIL import Image, PngImagePlugin
 
-from sentry.preprod.snapshots.image_diff.types import DiffResult
+from sentry.preprod.snapshots.image_diff.compare import get_comparison_size
+from sentry.preprod.snapshots.image_diff.types import DiffResult, ImageSize
 from sentry.preprod.snapshots.manifest import (
     ChunkAssignment,
     ChunkCandidate,
@@ -570,7 +571,11 @@ def test_plan_and_chunk_result_parse_without_sibling_fields() -> None:
     assert result.sibling_images == {}
 
 
-def _sibling(artifact_id: int, images: dict[str, ComparisonImageResult]) -> SiblingComparison:
+def _sibling(
+    artifact_id: int,
+    images: dict[str, ComparisonImageResult],
+    snapshot_manifest: SnapshotManifest | None = None,
+) -> SiblingComparison:
     manifest = ComparisonManifest(
         head_artifact_id=artifact_id,
         base_artifact_id=0,
@@ -579,7 +584,21 @@ def _sibling(artifact_id: int, images: dict[str, ComparisonImageResult]) -> Sibl
         ),
         images=images,
     )
-    return SiblingComparison(artifact_id, f"key/{artifact_id}/comparison.json", manifest)
+    if snapshot_manifest is None:
+        snapshot_manifest = SnapshotManifest(
+            images={
+                name: ImageMetadata(
+                    content_hash=image.head_hash,
+                    width=image.after_width if image.after_width is not None else 10,
+                    height=image.after_height if image.after_height is not None else 10,
+                )
+                for name, image in images.items()
+                if image.head_hash
+            }
+        )
+    return SiblingComparison(
+        artifact_id, f"key/{artifact_id}/comparison.json", manifest, snapshot_manifest
+    )
 
 
 def _manifest(
@@ -675,18 +694,20 @@ def test_build_comparison_plan_sibling_pixel_count_uses_larger_dimensions() -> N
     assert candidates[("base", "changed.png")].pixel_count == 100
 
 
-def test_build_comparison_plan_sibling_pixel_count_falls_back_to_head_dimensions() -> None:
-    head = _manifest({"changed.png": ("c-head", 10, 10)})
-    base = _manifest({"changed.png": ("c-base", 10, 10)})
+def test_build_comparison_plan_sibling_added_uses_snapshot_manifest_dimensions() -> None:
+    head = _manifest({"added.png": ("add-head", 10, 10)})
+    base = _manifest({})
     sibling = _sibling(
         7,
-        {"changed.png": ComparisonImageResult(status="added", head_hash="c-sib")},
+        {"added.png": ComparisonImageResult(status="added", head_hash="add-sib")},
+        snapshot_manifest=_manifest({"added.png": ("add-sib", 40, 30)}),
     )
     plan = _build_comparison_plan(head, base, 1, 2, sibling=sibling)
     sibling_candidates = {
         c.name: c for chunk in plan.chunks for c in chunk.candidates if c.kind == "sibling"
     }
-    assert sibling_candidates["changed.png"].pixel_count == 100
+    expected = get_comparison_size(ImageSize(10, 10), ImageSize(40, 30)).pixel_count
+    assert sibling_candidates["added.png"].pixel_count == expected
 
 
 def test_build_comparison_plan_records_sibling_without_candidates_when_disabled() -> None:

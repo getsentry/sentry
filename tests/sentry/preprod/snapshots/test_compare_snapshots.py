@@ -1003,7 +1003,13 @@ class CompareSnapshotsOrchestratorTest(TestCase):
                 )
             },
         )
-        sibling = SiblingComparison(77, "sib/comparison.json", sibling_manifest)
+        sibling_snapshot_manifest = SnapshotManifest(
+            images={"changed.png": ImageMetadata(content_hash="hsib", width=100, height=100)},
+            diff_threshold=None,
+        )
+        sibling = SiblingComparison(
+            77, "sib/comparison.json", sibling_manifest, sibling_snapshot_manifest
+        )
 
         with (
             self.options({"preprod.snapshots.auto-approve-sibling-diffs.enabled": True}),
@@ -1088,7 +1094,13 @@ class CompareSnapshotsOrchestratorTest(TestCase):
                 )
             },
         )
-        sibling = SiblingComparison(77, "sib/comparison.json", sibling_manifest)
+        sibling_snapshot_manifest = SnapshotManifest(
+            images={"changed.png": ImageMetadata(content_hash="hsib", width=100, height=100)},
+            diff_threshold=None,
+        )
+        sibling = SiblingComparison(
+            77, "sib/comparison.json", sibling_manifest, sibling_snapshot_manifest
+        )
 
         with (
             self.options({"preprod.snapshots.auto-approve-sibling-diffs.enabled": False}),
@@ -2094,7 +2106,13 @@ class EndToEndFanoutTest(TestCase):
             ),
             images={"added.png": ComparisonImageResult(status="added", head_hash="sib1")},
         )
-        sibling = SiblingComparison(777, sibling_comparison_key, sibling_manifest)
+        sibling_snapshot_manifest = SnapshotManifest(
+            images={"added.png": ImageMetadata(content_hash="sib1", width=10, height=10)},
+            diff_threshold=None,
+        )
+        sibling = SiblingComparison(
+            777, sibling_comparison_key, sibling_manifest, sibling_snapshot_manifest
+        )
 
         stored = {
             "head_manifest": orjson.dumps(head_manifest.dict()),
@@ -2229,7 +2247,13 @@ class EndToEndFanoutTest(TestCase):
             ),
             images={"added.png": ComparisonImageResult(status="added", head_hash="ha1")},
         )
-        sibling = SiblingComparison(777, sibling_comparison_key, sibling_manifest)
+        sibling_snapshot_manifest = SnapshotManifest(
+            images={"added.png": ImageMetadata(content_hash="ha1", width=10, height=10)},
+            diff_threshold=None,
+        )
+        sibling = SiblingComparison(
+            777, sibling_comparison_key, sibling_manifest, sibling_snapshot_manifest
+        )
 
         stored = {
             "head_manifest": orjson.dumps(head_manifest.dict()),

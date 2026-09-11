@@ -389,6 +389,7 @@ class SiblingComparison(NamedTuple):
     artifact_id: int
     comparison_key: str
     manifest: ComparisonManifest
+    snapshot_manifest: SnapshotManifest
 
 
 def _find_approved_sibling(
@@ -424,6 +425,7 @@ def _find_approved_sibling(
             head_snapshot_metrics__preprod_artifact=approved_sibling,
             state=PreprodSnapshotComparison.State.SUCCESS,
         )
+        .select_related("head_snapshot_metrics")
         .order_by("-date_updated")
         .first()
     )
@@ -446,7 +448,27 @@ def _find_approved_sibling(
             },
         )
         return None
-    return SiblingComparison(approved_sibling.id, comparison_key, manifest)
+
+    snapshot_manifest_key = (sibling_comparison.head_snapshot_metrics.extras or {}).get(
+        "manifest_key"
+    )
+    if not snapshot_manifest_key:
+        return None
+
+    try:
+        snapshot_manifest = _get_json(session, snapshot_manifest_key, SnapshotManifest)
+    except Exception:
+        logger.exception(
+            "auto_approve: failed to load sibling snapshot manifest",
+            extra={
+                "head_artifact_id": head_artifact.id,
+                "sibling_artifact_id": approved_sibling.id,
+                "manifest_key": snapshot_manifest_key,
+            },
+        )
+        return None
+
+    return SiblingComparison(approved_sibling.id, comparison_key, manifest, snapshot_manifest)
 
 
 def _try_auto_approve_snapshot(
@@ -628,6 +650,9 @@ def _build_comparison_plan(
 
     # Diff hash-differing images against the approved sibling so finalize can auto-approve.
     if sibling is not None and diff_sibling_images:
+        sibling_meta_by_hash = {
+            m.content_hash: m for m in sibling.snapshot_manifest.images.values()
+        }
         sibling_candidate_names = (
             {c.name for c in eligible} | set(added) | {n for n, _ in renamed_pairs}
         )
@@ -641,11 +666,10 @@ def _build_comparison_plan(
                 continue
             head_meta = head_meta_by_hash[head_hash]
             head_size = ImageSize(head_meta.width, head_meta.height)
-            sibling_size = (
-                ImageSize(sibling_image.after_width, sibling_image.after_height)
-                if sibling_image.after_width is not None and sibling_image.after_height is not None
-                else head_size
-            )
+            sibling_meta = sibling_meta_by_hash.get(sibling_hash)
+            if sibling_meta is None:
+                continue
+            sibling_size = ImageSize(sibling_meta.width, sibling_meta.height)
             pixel_count = get_comparison_size(head_size, sibling_size).pixel_count
             if pixel_count > MAX_DIFF_PIXELS:
                 continue

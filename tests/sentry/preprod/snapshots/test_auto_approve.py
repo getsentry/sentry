@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import orjson
 
@@ -11,6 +11,8 @@ from sentry.preprod.snapshots.manifest import (
     ComparisonManifest,
     ComparisonPlan,
     ComparisonSummary,
+    ImageMetadata,
+    SnapshotManifest,
 )
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.tasks import (
@@ -211,6 +213,7 @@ class TryAutoApproveSnapshotTest(TestCase):
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
+        self._object_store: dict[str, bytes] = {}
 
     def _create_approved_sibling(
         self,
@@ -230,9 +233,13 @@ class TryAutoApproveSnapshotTest(TestCase):
             app_id=app_id,
             build_configuration=build_configuration,
         )
+        snapshot_manifest_key = (
+            f"{self.organization.id}/{self.project.id}/{artifact.id}/snapshot_manifest.json"
+        )
         head_metrics = PreprodSnapshotMetrics.objects.create(
             preprod_artifact=artifact,
             image_count=10,
+            extras={"manifest_key": snapshot_manifest_key},
         )
         base_artifact = self.create_preprod_artifact(
             project=self.project,
@@ -242,6 +249,13 @@ class TryAutoApproveSnapshotTest(TestCase):
             preprod_artifact=base_artifact,
             image_count=10,
         )
+        snapshot_manifest = SnapshotManifest(
+            images={
+                name: ImageMetadata(content_hash=image.head_hash or name, width=10, height=10)
+                for name, image in comparison_images.items()
+            },
+        )
+        self._object_store[snapshot_manifest_key] = orjson.dumps(snapshot_manifest.dict())
         comparison_key = f"{self.organization.id}/{self.project.id}/{artifact.id}/{base_artifact.id}/comparison.json"
         PreprodSnapshotComparison.objects.create(
             head_snapshot_metrics=head_metrics,
@@ -338,7 +352,9 @@ class TryAutoApproveSnapshotTest(TestCase):
             extras={"auto_approval": True, "prev_approved_artifact_id": human_sibling.id}
         )
         head_artifact = self._create_head_artifact()
-        session = _mock_session_with_manifests({human_key: human_json, auto_key: auto_json})
+        session = _mock_session_with_manifests(
+            {human_key: human_json, auto_key: auto_json, **self._object_store}
+        )
 
         sibling = _find_approved_sibling(head_artifact, session)
 
@@ -346,7 +362,9 @@ class TryAutoApproveSnapshotTest(TestCase):
         assert sibling.artifact_id == human_sibling.id
         assert sibling.comparison_key == human_key
         assert set(sibling.manifest.images) == {"screen1.png"}
-        session.get.assert_called_once_with(human_key)
+        assert set(sibling.snapshot_manifest.images) == {"screen1.png"}
+        assert call(human_key) in session.get.call_args_list
+        assert call(auto_key) not in session.get.call_args_list
 
     def test_find_approved_sibling_returns_none_without_pr(self):
         cc = self.create_commit_comparison(organization=self.organization, pr_number=None)
@@ -354,6 +372,21 @@ class TryAutoApproveSnapshotTest(TestCase):
             project=self.project, commit_comparison=cc, app_id="com.example.app"
         )
         assert _find_approved_sibling(head_artifact, MagicMock()) is None
+
+    def test_find_approved_sibling_returns_none_without_snapshot_manifest_key(self):
+        images = {
+            "screen1.png": ComparisonImageResult(
+                status="changed", head_hash="abc", base_hash="old1"
+            ),
+        }
+        sibling, comp_key, comp_json = self._create_approved_sibling(
+            pr_number=42, comparison_images=images
+        )
+        PreprodSnapshotMetrics.objects.filter(preprod_artifact=sibling).update(extras={})
+        head_artifact = self._create_head_artifact()
+        session = _mock_session_with_manifests({comp_key: comp_json})
+
+        assert _find_approved_sibling(head_artifact, session) is None
 
     @patch("sentry.analytics.record")
     def test_auto_approves_when_fingerprints_match(self, mock_analytics):
@@ -894,12 +927,15 @@ class TryAutoApproveSnapshotTest(TestCase):
 
         head_artifact = self._create_head_artifact()
 
-        session = _mock_session_with_manifests({human_key: human_json, auto_key: auto_json})
+        session = _mock_session_with_manifests(
+            {human_key: human_json, auto_key: auto_json, **self._object_store}
+        )
         sibling = _find_approved_sibling(head_artifact, session)
 
         assert sibling is not None
         assert sibling.artifact_id == human_sibling.id
-        session.get.assert_called_once_with(human_key)
+        assert call(human_key) in session.get.call_args_list
+        assert call(auto_key) not in session.get.call_args_list
 
     def test_sibling_selection_keeps_human_approval_with_other_extras(self):
         images = {
@@ -916,9 +952,9 @@ class TryAutoApproveSnapshotTest(TestCase):
 
         head_artifact = self._create_head_artifact()
 
-        session = _mock_session_with_manifests({comp_key: comp_json})
+        session = _mock_session_with_manifests({comp_key: comp_json, **self._object_store})
         result = _find_approved_sibling(head_artifact, session)
 
         assert result is not None
         assert result.artifact_id == sibling.id
-        session.get.assert_called_once_with(comp_key)
+        assert call(comp_key) in session.get.call_args_list
