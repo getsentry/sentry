@@ -10,7 +10,7 @@ from drf_spectacular.plumbing import build_basic_type
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import Direction
 
-from sentry.apidocs.spectacular_ports import resolve_type_hint
+from sentry.apidocs.spectacular_ports import resolve_type_hint, resolve_type_hint_lenient
 
 
 class TokenAuthExtension(OpenApiAuthenticationExtension):
@@ -74,7 +74,7 @@ class SentryInlineResponseSerializerExtension(OpenApiSerializerExtension):
         return self.target.__name__
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> Any:
-        return resolve_type_hint(self.target.typeSchema)
+        return resolve_type_hint_lenient(self.target.typeSchema, self.target.__name__)
 
 
 class RestrictedJsonFieldExtension(OpenApiSerializerFieldExtension):

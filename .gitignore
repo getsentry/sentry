@@ -40,6 +40,7 @@ node_modules
 /tests/apidocs/openapi-deprecated.json
 /tests/sentry/utils/appleconnect/*.json
 /tests/apidocs/openapi-spectacular.json
+/tests/apidocs/openapi-internal.json
 /fixtures/integrations/*/data/**
 /wheelhouse
 /test_cli/
