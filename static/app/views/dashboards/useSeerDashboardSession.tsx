@@ -166,18 +166,7 @@ export function useSeerDashboardSession({
       completedAtRef.current = null;
       const errorMessage = t('Failed to send message');
       try {
-        if (!seerRunId && dashboard) {
-          // No session exists yet and an initial dashboard is provided, start a new Seer session
-          const runId = await startDashboardEditSession(
-            organization.slug,
-            message,
-            dashboard
-          );
-          if (!runId) {
-            throw new Error('Failed to start dashboard editing session');
-          }
-          setInternalRunId(runId);
-        } else {
+        if (seerRunId) {
           const queryKey = makeSeerExplorerQueryKey(organization.slug, seerRunId);
 
           if (
@@ -210,6 +199,17 @@ export function useSeerDashboardSession({
             });
           }
           queryClient.invalidateQueries({queryKey});
+        } else if (dashboard) {
+          // No session exists yet and an initial dashboard is provided, start a new Seer session
+          const runId = await startDashboardEditSession(
+            organization.slug,
+            message,
+            dashboard
+          );
+          if (!runId) {
+            throw new Error('Failed to start dashboard editing session');
+          }
+          setInternalRunId(runId);
         }
       } catch {
         setIsUpdating(false);
