@@ -331,6 +331,9 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 is_interactive=True,
                 enable_bash_tools=override_bash_mode_enabled,
                 enable_coding=enable_coding,
+                # A run that can open pull requests has to read them back — status,
+                # reviews, failed CI — to iterate on what it opened.
+                enable_pr_context_tools=enable_coding,
                 enable_code_mode_tools=enable_code_mode_tools,
                 reasoning_effort="medium",
             )

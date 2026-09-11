@@ -22,6 +22,7 @@ from sentry.notifications.platform.slack.renderers.seer_agent_write_approval imp
 )
 from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
+    SeerAgentPullRequests,
     SeerAgentResponse,
     SeerAgentWriteApproval,
     SeerAutofixCodeChange,
@@ -427,3 +428,36 @@ class SeerAgentWriteApprovalSlackRendererTest(TestCase):
         assert [reject_button.text.text, approve_button.text.text] == ["Reject", "Approve"]
         assert reject_button.value == "link_clicked"
         assert approve_button.value == "link_clicked"
+
+
+class SeerSlackRendererAgentPullRequestsTest(TestCase):
+    def test_render_agent_pull_requests_links_each_pull_request(self) -> None:
+        data = SeerAgentPullRequests(
+            run_id=12345,
+            organization_id=self.organization.id,
+            pull_requests=[
+                {
+                    "repo_name": "acme/web",
+                    "pr_number": 482,
+                    "pr_url": "https://gh/acme/web/pull/482",
+                },
+                {"repo_name": "acme/api", "pr_number": 7, "pr_url": "https://gh/acme/api/pull/7"},
+            ],
+        )
+
+        renderable = SeerSlackRenderer.render(
+            data=data, rendered_template=NotificationRenderedTemplate(subject="x", body=[])
+        )
+
+        assert renderable["text"] == "Seer has summoned your pull request"
+        blocks = renderable["blocks"]
+        assert len(blocks) == 2
+        assert isinstance(blocks[0], SectionBlock)
+        assert isinstance(blocks[1], SectionBlock)
+        assert isinstance(blocks[1].text, MarkdownTextObject)
+        assert blocks[1].text.text == (
+            "Seer opened <https://gh/acme/web/pull/482|acme/web#482>\n"
+            "Seer opened <https://gh/acme/api/pull/7|acme/api#7>"
+        )
+        # Links, not buttons: nothing here posts an action back to Sentry.
+        assert not any(isinstance(block, ActionsBlock) for block in blocks)
