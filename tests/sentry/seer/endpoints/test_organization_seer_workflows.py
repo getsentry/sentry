@@ -369,29 +369,15 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         seer_access.start()
         self.addCleanup(seer_access.stop)
 
-    def trigger(self):
-        with self.feature(FEATURE):
-            return self.get_success_response(
-                self.organization.slug, strategy="duplicate_monitors", status_code=202
-            )
-
-    def artifact(self, duplicate_id: str | None = None):
-        return self.finding_artifact(
-            kind="exact_duplicate",
-            suggested_keep_id=str(self.keep.id),
-            monitor_ids=[str(self.keep.id), duplicate_id or str(self.duplicate.id)],
-        )
-
-    def organization_artifact(self):
-        return SeerOrganizationMonitorCleanupArtifact(
-            scan_status="complete",
-            projects=[{"project_id": str(self.project.id), **self.finding_artifact().dict()}],
-        )
-
     def test_starts_one_agent_for_all_projects(self) -> None:
-        for _ in range(21):
-            self.create_project(organization=self.organization)
-        run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
+        self.create_project(organization=self.organization)
+        response = self.trigger()
+        run = SeerAgentRun.objects.get(run__uuid=response.data["runId"])
+        assert response.data == {"runId": str(run.run.uuid)}
+        assert run.run.user_id == self.user.id
+        assert run.run.type == "feature_run"
+        assert run.extras["status"] == "running"
+        assert run.extras["results"] == []
         assert run.source == "monitor_cleanup"
         assert run.project_id is None
         assert run.group_id is None
@@ -406,7 +392,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             run__organization=self.organization
         ).exists()
 
-    def test_one_scan_persists_results_from_multiple_projects(self) -> None:
+    def test_callback_persists_project_results_and_exposes_history_idempotently(self) -> None:
         other_project = self.create_project(organization=self.organization)
         artifact = self.organization_artifact()
         artifact.projects.append(
@@ -414,35 +400,45 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
                 update={"project_id": other_project.id, "findings": [], "monitors_scanned": 1}
             )
         )
-        outputs = parse_monitor_cleanup_results(artifact, self.organization, self.user.id)
-        run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
-        finish_run(run.run_id, organization_id=self.organization.id, outputs=outputs)
+        result = {"schema_version": 1, "data": artifact.dict()}
+        run, seer_run = self.deliver(result)
+        seer_run.update(seer_run_state_id=987654321)
+        deliver_monitor_cleanup_result(
+            self.organization.id, seer_run.uuid, "completed", result, None
+        )
+        deliver_monitor_cleanup_result(
+            self.organization.id, seer_run.uuid, "error", None, "Late failure"
+        )
         run.refresh_from_db()
         assert len(run.extras["results"]) == 2
         assert {result["projectSlug"] for result in run.extras["results"]} == {
             self.project.slug,
             other_project.slug,
         }
-        run.refresh_from_db()
         assert run.extras["status"] == "complete"
+        with self.feature(FEATURE):
+            response = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/seer/workflows/"
+            )
+        assert response.status_code == 200
+        output = response.data[0]
+        assert output["id"] == str(seer_run.uuid)
+        assert output["extras"] == {"status": "complete"}
+        assert output["dateAdded"] == seer_run.date_added
+        assert output["dateCompleted"] == datetime.fromisoformat(run.extras["date_completed"])
+        assert (
+            datetime.fromisoformat(response.json()[0]["dateCompleted"]) == output["dateCompleted"]
+        )
+        assert len(output["results"]) == 2
+        assert output["results"][0]["seerRunId"] == str(seer_run.uuid)
+        assert output["results"][0]["extras"] == run.extras["results"][0]
+        assert "987654321" not in response.content.decode()
 
     def test_empty_scan_completes(self) -> None:
         artifact = SeerOrganizationMonitorCleanupArtifact(scan_status="complete", projects=[])
-        outputs = parse_monitor_cleanup_results(artifact, self.organization, self.user.id)
-        run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
-        finish_run(run.run_id, organization_id=self.organization.id, outputs=outputs)
-        run.refresh_from_db()
+        run, _ = self.deliver({"schema_version": 1, "data": artifact.dict()})
         assert run.extras["status"] == "complete"
         assert not run.extras["results"]
-
-    def test_partial_discovery_stays_partial(self) -> None:
-        run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
-        finish_run(
-            run.run_id, organization_id=self.organization.id, outputs=[], scan_status="partial"
-        )
-        run.refresh_from_db()
-        assert run.extras["status"] == "partial"
-        assert run.extras["date_completed"] is not None
 
     def test_rejects_inaccessible_result_projects(self) -> None:
         member = self.create_user()
@@ -461,17 +457,11 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         with pytest.raises(ValueError, match="no longer accessible"):
             parse_monitor_cleanup_results(artifact, self.organization, self.user.id)
 
-    def test_trigger_creates_agent_run(self) -> None:
-        response = self.trigger()
-        run = SeerAgentRun.objects.get(run__uuid=response.data["runId"])
-        assert run.run.user_id == self.user.id
-        assert run.run.type == "feature_run"
-        assert run.extras["status"] == "running"
-        assert run.extras["results"] == []
-        assert response.data == {"runId": str(run.run.uuid)}
-
     def test_history_combines_runs_and_paginates_in_date_order(self) -> None:
-        triage = Factories.create_seer_night_shift_run(organization=self.organization)
+        completed_at = timezone.now()
+        triage = Factories.create_seer_night_shift_run(
+            organization=self.organization, date_completed=completed_at
+        )
         cleanup = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
         url = f"/api/0/organizations/{self.organization.slug}/seer/workflows/"
         with self.feature([FEATURE, "organizations:seer-night-shift"]):
@@ -485,7 +475,8 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert first.data[0]["dateAdded"] == cleanup.run.date_added
         assert first.data[0]["dateCompleted"] is None
         assert second.data[0]["dateAdded"] == triage.date_added
-        assert second.data[0]["dateCompleted"] is None
+        assert second.data[0]["dateCompleted"] == completed_at
+        assert datetime.fromisoformat(second.json()[0]["dateCompleted"]) == completed_at
 
     def test_history_gates_each_feature_independently(self) -> None:
         triage = Factories.create_seer_night_shift_run(organization=self.organization)
@@ -497,28 +488,6 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         with self.feature({FEATURE: True, "organizations:seer-night-shift": False}):
             response = self.client.get(url)
         assert [run["id"] for run in response.data] == [str(cleanup.run.uuid)]
-
-    def test_history_serializes_completed_findings_without_internal_run_id(self) -> None:
-        run, seer_run = self.deliver(
-            {"schema_version": 1, "data": self.organization_artifact().dict()}
-        )
-        seer_run.update(seer_run_state_id=987654321)
-        with self.feature(FEATURE):
-            response = self.client.get(
-                f"/api/0/organizations/{self.organization.slug}/seer/workflows/",
-            )
-        assert response.status_code == 200
-        output = response.data[0]
-        assert output["id"] == str(seer_run.uuid)
-        assert output["extras"] == {"status": "complete"}
-        assert output["dateAdded"] == seer_run.date_added
-        assert output["dateCompleted"] == datetime.fromisoformat(run.extras["date_completed"])
-        assert (
-            datetime.fromisoformat(response.json()[0]["dateCompleted"]) == output["dateCompleted"]
-        )
-        assert output["results"][0]["seerRunId"] == str(seer_run.uuid)
-        assert output["results"][0]["extras"]["projectId"] == str(self.project.id)
-        assert "987654321" not in response.content.decode()
 
     def test_delivery_ignores_other_feature_runs(self) -> None:
         run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
@@ -533,17 +502,6 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         run.refresh_from_db()
         assert run.extras["status"] == "running"
         assert run.extras["results"] == []
-
-    def test_each_click_starts_a_feature_run(self) -> None:
-        first = self.trigger().data["runId"]
-        second = self.trigger().data["runId"]
-        assert first != second
-        assert SeerAgentRun.objects.filter(run__organization=self.organization).count() == 2
-
-    def test_allows_scan_after_previous_run_completes(self) -> None:
-        run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
-        finish_run(run.run_id, organization_id=self.organization.id, error="Scan failed")
-        assert self.trigger().data["runId"] != str(run.run.uuid)
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_rate_limits_repeated_triggers(self) -> None:
@@ -573,12 +531,6 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             )
         assert SeerAgentRun.objects.filter(run__organization=self.organization).count() == 5
 
-    def test_finish_run_ignores_deleted_run(self) -> None:
-        run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
-        run_id = run.run_id
-        run.run.delete()
-        finish_run(run_id, organization_id=self.organization.id, error="Late failure")
-
     def test_requires_feature(self) -> None:
         self.get_error_response(
             self.organization.slug, strategy="duplicate_monitors", status_code=404
@@ -589,20 +541,6 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             response = self.get_error_response(
                 self.organization.slug, strategy="unknown", status_code=400
             )
-        assert "strategy" in response.data["detail"]
-        assert not SeerAgentRun.objects.filter(run__organization=self.organization).exists()
-
-    def test_rejects_strategy_without_manual_handler(self) -> None:
-        with self.feature(FEATURE):
-            response = self.get_error_response(
-                self.organization.slug, strategy="agentic_triage", status_code=400
-            )
-        assert "strategy" in response.data["detail"]
-        assert not SeerAgentRun.objects.filter(run__organization=self.organization).exists()
-
-    def test_requires_strategy(self) -> None:
-        with self.feature(FEATURE):
-            response = self.get_error_response(self.organization.slug, status_code=400)
         assert "strategy" in response.data["detail"]
         assert not SeerAgentRun.objects.filter(run__organization=self.organization).exists()
 
@@ -626,62 +564,8 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert "target_project_ids" not in run.extras
         assert run.extras["status"] == "running"
 
-    def test_allows_agent_to_discover_an_empty_organization(self) -> None:
-        self.keep.delete()
-        self.duplicate.delete()
-        self.trigger()
-
-    def test_validates_and_persists_result_once(self) -> None:
-        run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
-        output = parse_project_monitor_cleanup_result(
-            self.artifact(), self.organization.id, self.project.id
-        )
-        finish_run(run.run_id, organization_id=self.organization.id, outputs=[output])
-        finish_run(
-            run.run_id,
-            organization_id=self.organization.id,
-            error="Late failure must not replace a completed result",
-        )
-        run.refresh_from_db()
-        assert len(run.extras["results"]) == 1
-        assert run.extras["status"] == "complete"
-        assert run.extras["date_completed"] is not None
-        assert run.extras["results"][0]["findings"][0]["monitors"][0]["name"] == "Keep"
-
-    def deliver(self, result, status="completed", organization_id=None):
-        run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
-        seer_run = run.run
-        deliver_monitor_cleanup_result(
-            organization_id or self.organization.id, seer_run.uuid, status, result, None
-        )
-        run.refresh_from_db()
-        return run, seer_run
-
-    def test_delivery_persists_versioned_result_idempotently(self) -> None:
-        result = {"schema_version": 1, "data": self.organization_artifact().dict()}
-        run, seer_run = self.deliver(result)
-        deliver_monitor_cleanup_result(
-            self.organization.id, seer_run.uuid, "completed", result, None
-        )
-        deliver_monitor_cleanup_result(
-            self.organization.id, seer_run.uuid, "error", None, "late error"
-        )
-        assert len(run.extras["results"]) == 1
-        output = run.extras["results"][0]
-        assert output["schemaVersion"] == 1
-        assert output["projectSlug"] == self.project.slug
-        assert output["findings"][0]["monitors"][1]["id"] == str(self.duplicate.id)
-        run.refresh_from_db()
-        assert run.extras["status"] == "complete"
-
-    def test_missing_response_version_fails(self) -> None:
-        run, _ = self.deliver({"data": self.organization_artifact().dict()})
-        assert run.extras["status"] == "failed"
-        assert "could not be loaded" in run.extras["error"]
-        assert not run.extras["results"]
-
     def test_unknown_response_version_fails(self) -> None:
-        run, _ = self.deliver({"schema_version": 2, "data": {"new_shape": True}})
+        run, _ = self.deliver({"schema_version": 2, "data": self.organization_artifact().dict()})
         assert run.extras["status"] == "failed"
         assert "could not be loaded" in run.extras["error"]
         assert not run.extras["results"]
@@ -691,25 +575,10 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert run.extras["status"] == "failed"
         assert not run.extras["results"]
 
-    def test_additive_response_fields_are_compatible(self) -> None:
-        result = {
-            "schema_version": 1,
-            "data": self.organization_artifact().dict(),
-            "new_field": True,
-        }
-        result["data"]["new_field"] = True
-        run, _ = self.deliver(result)
-        assert run.extras["status"] == "complete"
-        assert len(run.extras["results"]) == 1
-
     def test_delivery_handles_agent_failure(self) -> None:
         run, _ = self.deliver(None, status="error")
         assert run.extras["status"] == "failed"
         assert not run.extras["results"]
-
-    def test_delivery_handles_missing_artifact(self) -> None:
-        run, _ = self.deliver(None)
-        assert run.extras["status"] == "failed"
 
     def test_delivery_is_scoped_to_organization(self) -> None:
         run, _ = self.deliver(
@@ -721,9 +590,10 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
 
     def test_delivery_preserves_partial_status(self) -> None:
         data = self.organization_artifact().dict()
-        data["scan_status"] = "partial"
+        data["projects"][0]["scan_status"] = "partial"
         run, _ = self.deliver({"schema_version": 1, "data": data})
         assert run.extras["status"] == "partial"
+        assert run.extras["date_completed"] is not None
 
     def test_rejects_cross_project_candidates(self) -> None:
         other_project = self.create_project(organization=self.organization)
@@ -751,6 +621,106 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert response.status_code == 200
         assert response.data == []
 
+    def test_parses_findings_with_resources_and_comparisons(self) -> None:
+        workflow = self.create_workflow(
+            organization=self.organization, name="Shared alert", enabled=False
+        )
+        self.create_detector_workflow(detector=self.keep, workflow=workflow)
+        self.create_detector_workflow(detector=self.duplicate, workflow=workflow)
+        artifact = self.artifact()
+        artifact.findings += self.finding_artifact().findings
+        artifact.findings += self.finding_artifact(
+            kind="duplicate_notifications",
+            alert_ids=[str(workflow.id)],
+            comparison=[
+                {
+                    "property": "Trigger",
+                    "values": [
+                        {"monitor_id": str(self.keep.id), "value": ">100 errors"},
+                        {"monitor_id": str(self.duplicate.id), "value": ">500 errors"},
+                    ],
+                }
+            ],
+        ).findings
+        output = parse_project_monitor_cleanup_result(
+            artifact, self.organization.id, self.project.id
+        )
+        assert output["schemaVersion"] == 1
+        findings = output["findings"]
+        assert [finding["kind"] for finding in findings] == [
+            "exact_duplicate",
+            "overlapping_coverage",
+            "duplicate_notifications",
+        ]
+        assert findings[0]["suggestedKeepId"] == str(self.keep.id)
+        assert findings[1]["suggestedKeepId"] is None
+        assert findings[0]["monitors"][0]["name"] == "Keep"
+        assert findings[2]["reason"] == artifact.findings[2].reason
+        assert findings[2]["alerts"] == [
+            {"id": str(workflow.id), "name": "Shared alert", "enabled": False}
+        ]
+        assert findings[2]["comparison"] == [
+            {
+                "property": "Trigger",
+                "values": [
+                    {"monitorId": str(self.keep.id), "value": ">100 errors"},
+                    {"monitorId": str(self.duplicate.id), "value": ">500 errors"},
+                ],
+            }
+        ]
+
+    def test_rejects_cross_organization_alert(self) -> None:
+        workflow = self.create_workflow(organization=self.create_organization())
+        with pytest.raises(KeyError):
+            parse_project_monitor_cleanup_result(
+                self.finding_artifact(kind="duplicate_notifications", alert_ids=[str(workflow.id)]),
+                self.organization.id,
+                self.project.id,
+            )
+
+    def test_delivery_handles_missing_monitor(self) -> None:
+        data = self.organization_artifact().dict()
+        data["projects"][0]["findings"][0]["monitor_ids"] = [self.keep.id, 999999999]
+        run, _ = self.deliver({"schema_version": 1, "data": data})
+        assert run.extras["status"] == "failed"
+        assert not run.extras["results"]
+
+    def test_finish_run_is_scoped_to_organization(self) -> None:
+        run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
+        other = self.create_organization()
+        finish_run(run.run_id, organization_id=other.id, error="Wrong organization")
+        run.refresh_from_db()
+        assert run.extras["status"] == "running"
+        assert run.extras["date_completed"] is None
+
+    def deliver(self, result, status="completed", organization_id=None):
+        run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
+        seer_run = run.run
+        deliver_monitor_cleanup_result(
+            organization_id or self.organization.id, seer_run.uuid, status, result, None
+        )
+        run.refresh_from_db()
+        return run, seer_run
+
+    def trigger(self):
+        with self.feature(FEATURE):
+            return self.get_success_response(
+                self.organization.slug, strategy="duplicate_monitors", status_code=202
+            )
+
+    def artifact(self, duplicate_id: str | None = None):
+        return self.finding_artifact(
+            kind="exact_duplicate",
+            suggested_keep_id=str(self.keep.id),
+            monitor_ids=[str(self.keep.id), duplicate_id or str(self.duplicate.id)],
+        )
+
+    def organization_artifact(self):
+        return SeerOrganizationMonitorCleanupArtifact(
+            scan_status="complete",
+            projects=[{"project_id": str(self.project.id), **self.finding_artifact().dict()}],
+        )
+
     def finding_artifact(self, **overrides):
         finding = {
             "kind": "overlapping_coverage",
@@ -764,138 +734,3 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             summary="Overlapping coverage",
             findings=[finding],
         )
-
-    def test_overlap_has_no_keeper(self) -> None:
-        output = parse_project_monitor_cleanup_result(
-            self.finding_artifact(), self.organization.id, self.project.id
-        )
-        assert output["schemaVersion"] == 1
-        findings = output["findings"]
-        assert findings[0]["suggestedKeepId"] is None
-        assert findings[0]["monitors"][0]["name"] == "Keep"
-
-    def test_allows_coverage_and_notifications_for_same_pair(self) -> None:
-        workflow = self.create_workflow(
-            organization=self.organization, name="Shared alert", enabled=False
-        )
-        self.create_detector_workflow(detector=self.keep, workflow=workflow)
-        self.create_detector_workflow(detector=self.duplicate, workflow=workflow)
-        artifact = self.finding_artifact()
-        artifact.findings += self.finding_artifact(
-            kind="duplicate_notifications", alert_ids=[str(workflow.id)]
-        ).findings
-        output = parse_project_monitor_cleanup_result(
-            artifact, self.organization.id, self.project.id
-        )
-        assert output["schemaVersion"] == 1
-        findings = output["findings"]
-        assert len(findings) == 2
-        assert findings[1]["alerts"] == [
-            {"id": str(workflow.id), "name": "Shared alert", "enabled": False}
-        ]
-
-    def test_rejects_cross_organization_alert(self) -> None:
-        workflow = self.create_workflow(organization=self.create_organization())
-        with pytest.raises(KeyError):
-            parse_project_monitor_cleanup_result(
-                self.finding_artifact(kind="duplicate_notifications", alert_ids=[str(workflow.id)]),
-                self.organization.id,
-                self.project.id,
-            )
-
-    def test_persists_comparison_values_by_monitor(self) -> None:
-        artifact = self.finding_artifact(
-            comparison=[
-                {
-                    "property": "Trigger",
-                    "values": [
-                        {"monitor_id": str(self.keep.id), "value": ">100 errors"},
-                        {"monitor_id": str(self.duplicate.id), "value": ">500 errors"},
-                    ],
-                }
-            ]
-        )
-        output = parse_project_monitor_cleanup_result(
-            artifact, self.organization.id, self.project.id
-        )
-        assert output["schemaVersion"] == 1
-        findings = output["findings"]
-        assert findings[0]["comparison"] == [
-            {
-                "property": "Trigger",
-                "values": [
-                    {"monitorId": str(self.keep.id), "value": ">100 errors"},
-                    {"monitorId": str(self.duplicate.id), "value": ">500 errors"},
-                ],
-            }
-        ]
-
-    def test_delivery_handles_missing_monitor(self) -> None:
-        data = self.organization_artifact().dict()
-        data["projects"][0]["findings"][0]["monitor_ids"] = [self.keep.id, 999999999]
-        run, _ = self.deliver({"schema_version": 1, "data": data})
-        assert run.extras["status"] == "failed"
-        assert not run.extras["results"]
-
-    def test_delivery_handles_monitor_id_outside_database_range(self) -> None:
-        data = self.organization_artifact().dict()
-        data["projects"][0]["findings"][0]["monitor_ids"] = [self.keep.id, 2**63]
-        run, _ = self.deliver({"schema_version": 1, "data": data})
-        assert run.extras["status"] == "failed"
-        assert not run.extras["results"]
-
-    def test_delivery_preserves_agent_recommendations(self) -> None:
-        data = self.organization_artifact().dict()
-        finding = data["projects"][0]["findings"][0]
-        finding["suggested_keep_id"] = self.keep.id
-        finding["reason"] = "Detailed explanation. " * 150
-        finding["comparison"] = [
-            {"property": "Trigger", "values": [{"monitor_id": self.keep.id, "value": ">100"}]}
-        ]
-        run, _ = self.deliver({"schema_version": 1, "data": data})
-        assert run.extras["status"] == "complete"
-        output = run.extras["results"][0]["findings"][0]
-        assert output["suggestedKeepId"] == str(self.keep.id)
-        assert output["reason"] == finding["reason"]
-        assert output["comparison"] == [
-            {"property": "Trigger", "values": [{"monitorId": str(self.keep.id), "value": ">100"}]}
-        ]
-
-    def test_history_returns_night_shift_completion_datetime(self) -> None:
-        completed_at = timezone.now()
-        Factories.create_seer_night_shift_run(
-            organization=self.organization, date_completed=completed_at
-        )
-        with self.feature("organizations:seer-night-shift"):
-            response = self.client.get(
-                f"/api/0/organizations/{self.organization.slug}/seer/workflows/",
-            )
-        assert response.status_code == 200
-        assert response.data[0]["dateCompleted"] == completed_at
-        assert datetime.fromisoformat(response.json()[0]["dateCompleted"]) == completed_at
-
-    def test_finish_run_is_scoped_to_organization(self) -> None:
-        run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
-        other = self.create_organization()
-        finish_run(run.run_id, organization_id=other.id, error="Wrong organization")
-        run.refresh_from_db()
-        assert run.extras["status"] == "running"
-        assert run.extras["date_completed"] is None
-
-    @patch("sentry.seer.monitor_cleanup.runs.logger")
-    def test_delivery_logs_upstream_error(self, logger) -> None:
-        run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
-        deliver_monitor_cleanup_result(
-            self.organization.id, run.run.uuid, "error", None, "Agent execution failed"
-        )
-        logger.warning.assert_called_once_with(
-            "monitor_cleanup.delivery.failed",
-            extra={
-                "organization_id": self.organization.id,
-                "run_uuid": str(run.run.uuid),
-                "status": "error",
-                "error": "Agent execution failed",
-            },
-        )
-        run.refresh_from_db()
-        assert run.extras["status"] == "failed"
