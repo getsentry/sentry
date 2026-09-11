@@ -262,6 +262,23 @@ describe('ReleaseHeader', () => {
       );
     });
 
+    it('does not corrupt the path when a sibling version extends the current one', () => {
+      const release = ReleaseFixture({
+        version: '1.0',
+        projects: [project],
+        currentProjectMeta: {
+          ...ReleaseFixture().currentProjectMeta,
+          nextReleaseVersion: '1.0.1',
+        },
+      });
+      renderHeader({release});
+
+      expect(screen.getByRole('button', {name: 'Newer'})).toHaveAttribute(
+        'href',
+        `/organizations/${organization.slug}/releases/1.0.1/?project=${project.id}`
+      );
+    });
+
     it('disables a direction with no neighbouring release', () => {
       const release = ReleaseFixture({
         projects: [project],

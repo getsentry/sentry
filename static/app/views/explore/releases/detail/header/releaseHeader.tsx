@@ -69,14 +69,25 @@ export function ReleaseHeader({
    * sub-page (e.g. Files Changed) lands on the same sub-page of the neighbour.
    */
   function makeSiblingReleaseTarget(toRelease: string | null) {
-    return toRelease
-      ? {
-          pathname: location.pathname
-            .replace(encodeURIComponent(version), encodeURIComponent(toRelease))
-            .replace(version, encodeURIComponent(toRelease)),
-          query: {...location.query, activeRepo: undefined},
-        }
-      : undefined;
+    if (!toRelease) {
+      return;
+    }
+
+    // Substitute exactly once. Running an encoded pass and then a raw pass lets
+    // the second match the old version inside the version the first just
+    // inserted, so 1.0 -> 1.0.1 would land on 1.0.1.1.
+    const encodedVersion = encodeURIComponent(version);
+    const currentVersionInPath = location.pathname.includes(encodedVersion)
+      ? encodedVersion
+      : version;
+
+    return {
+      pathname: location.pathname.replace(
+        currentVersionInPath,
+        encodeURIComponent(toRelease)
+      ),
+      query: {...location.query, activeRepo: undefined},
+    };
   }
 
   function trackPaginationClick(direction: 'older' | 'newer') {
