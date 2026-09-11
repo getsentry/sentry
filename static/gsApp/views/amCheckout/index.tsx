@@ -686,18 +686,12 @@ function AMCheckout(props: Props) {
         width="100%"
         maxWidth={{zero: '100%', '2xl': '26rem'}}
         position={{zero: 'static', '2xl': 'sticky'}}
-        right={{zero: 'auto', '2xl': '0'}}
         top={{zero: 'auto', '2xl': '6.25rem'}}
         borderTop={{zero: 'primary', '2xl': 'none'}}
         padding={{zero: '0 2xl', '2xl': '0 2xl 3xl 3xl'}}
         background={{zero: 'secondary', '2xl': 'primary'}}
       >
-        <Stack
-          flex={1}
-          position="relative"
-          gap="xl"
-          padding={{zero: '2xl 0', '2xl': '0'}}
-        >
+        <Stack gap="xl" padding={{zero: '2xl 0', '2xl': '0'}}>
           <Cart
             {...overviewProps}
             referrer={referrer}
