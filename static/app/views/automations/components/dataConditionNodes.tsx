@@ -254,6 +254,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('De-escalation'),
       dataCondition: IssuePriorityDeescalating,
       details: IssuePriorityDeescalating,
+      defaultComparison: Priority.HIGH,
       validate: undefined,
     },
   ],
