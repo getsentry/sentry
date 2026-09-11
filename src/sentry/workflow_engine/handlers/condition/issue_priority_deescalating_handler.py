@@ -38,9 +38,7 @@ class IssuePriorityDeescalatingConditionHandler(DataConditionHandler[WorkflowEve
         highest_seen_priority = open_period.data.get("highest_seen_priority", current_priority)
 
         if comparison is True:
-            return (
-                current_priority < highest_seen_priority or group.status == GroupStatus.RESOLVED
-            )
+            return current_priority < highest_seen_priority or group.status == GroupStatus.RESOLVED
 
         return comparison <= highest_seen_priority and (
             current_priority < comparison or group.status == GroupStatus.RESOLVED
