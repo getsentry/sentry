@@ -48,6 +48,10 @@ interface JsonFormAdapterSelect extends JsonFormAdapterBase {
   type: 'select' | 'choice';
   choices?: readonly JsonFormAdapterChoice[];
   /**
+   * When true, allows entering values that are not in `choices`.
+   */
+  creatable?: boolean;
+  /**
    * Field names that must have values before prefetched options can be fetched.
    */
   dependsOn?: string[];
@@ -163,7 +167,7 @@ export type FieldValue<T extends JsonFormAdapterFieldConfig> =
       : T extends JsonFormAdapterNumber
         ? number
         : T extends JsonFormAdapterSelect
-          ? JsonFormAdapterChoiceValue | null
+          ? JsonFormAdapterChoiceValue | JsonFormAdapterChoiceValue[] | null
           : T extends JsonFormAdapterChoiceMapper
             ? Record<string, Record<string, unknown>>
             : T extends JsonFormAdapterTable

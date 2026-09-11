@@ -81,7 +81,7 @@ class ReactAuthTest(AcceptanceTestCase):
     def select_organization_sso(self, organization_slug: str) -> None:
         self.locate_organization_sso(organization_slug)
         self.browser.wait_until(
-            xpath="//*[contains(normalize-space(.), 'Requires sign in with Dummy')]"
+            xpath="//*[contains(normalize-space(.), 'Members sign in with Dummy')]"
         )
 
     def leave_organization_sso(self) -> None:
@@ -311,7 +311,7 @@ class ReactAuthTest(AcceptanceTestCase):
             f"return window.location.pathname === '/auth/login/{organization.slug}/'"
         )
         self.browser.wait_until(
-            xpath="//*[contains(normalize-space(.), 'Requires sign in with Dummy')]"
+            xpath="//*[contains(normalize-space(.), 'Members sign in with Dummy')]"
         )
 
     def test_password_login_uses_organization_without_sso(self) -> None:
@@ -354,7 +354,7 @@ class ReactAuthTest(AcceptanceTestCase):
             f"return window.location.pathname === '/auth/login/{sso_organization.slug}/'"
         )
         self.browser.wait_until(
-            xpath="//*[contains(normalize-space(.), 'Requires sign in with Dummy')]"
+            xpath="//*[contains(normalize-space(.), 'Members sign in with Dummy')]"
         )
 
         # SSO authentication returns to the protected organization destination.
@@ -386,7 +386,7 @@ class ReactAuthTest(AcceptanceTestCase):
         # The current session cannot access the selected organization until SSO completes, so
         # the login page keeps the organization in focus and offers no alternative auth method.
         self.browser.wait_until(
-            xpath="//*[contains(normalize-space(.), 'Requires sign in with Dummy')]"
+            xpath="//*[contains(normalize-space(.), 'Members sign in with Dummy')]"
         )
         assert not self.browser.element_exists('[aria-label="Email"]')
         assert not self.browser.element_exists('[aria-label="Password"]')

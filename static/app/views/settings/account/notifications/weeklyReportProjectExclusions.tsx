@@ -85,6 +85,7 @@ export function WeeklyReportProjectExclusions({
   const organization = organizations.find(({id}) => id === orgId);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setCurrentPage(0);
   }, [organization?.id]);
 

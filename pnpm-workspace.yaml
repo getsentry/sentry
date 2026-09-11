@@ -1,4 +1,4 @@
 packages:
   - api-docs
-  - static/eslint/eslintPluginScraps
-  - static/eslint/eslintPluginSentry
+  - static/oxlint/eslintPluginScraps
+  - static/oxlint/eslintPluginSentry

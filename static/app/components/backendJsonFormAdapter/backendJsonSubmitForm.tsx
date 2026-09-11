@@ -393,16 +393,17 @@ export function BackendJsonSubmitForm({
                         );
                         const customQueryOptions = customAsyncQueryOptions?.[field.name];
                         const defaultAsyncQueryOptions = ((debouncedInput: string) => {
-                          const requestQuery =
-                            field.prefetch && !field.updatesForm ? '' : debouncedInput;
+                          const shouldUseStaticOptions =
+                            !field.prefetch && !debouncedInput;
                           return queryOptions({
                             queryKey: [
                               'backend-json-async-select',
                               field.name,
                               field.url,
-                              requestQuery,
+                              debouncedInput,
                               dynamicQueryValues,
                               prefetchReady,
+                              shouldUseStaticOptions ? staticOptions : null,
                               JSON.stringify(onAsyncOptionsFetchedRef),
                             ],
                             queryFn: async (): Promise<
@@ -411,7 +412,7 @@ export function BackendJsonSubmitForm({
                               if (field.prefetch && !prefetchReady) {
                                 return staticOptions;
                               }
-                              if (!requestQuery && !field.prefetch) {
+                              if (shouldUseStaticOptions) {
                                 return staticOptions;
                               }
                               const response = await API_CLIENT.requestPromise(
@@ -419,7 +420,7 @@ export function BackendJsonSubmitForm({
                                 {
                                   query: buildAsyncSelectQuery(
                                     field.name,
-                                    requestQuery,
+                                    debouncedInput,
                                     dynamicQueryValues
                                   ),
                                 }

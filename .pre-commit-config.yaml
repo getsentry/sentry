@@ -59,19 +59,6 @@ repos:
         entry: '(^# *mypy: *ignore-errors|^# *type: *ignore|\bno_type_check\b|ignore\[import-untyped\])'
         language: pygrep
         types: [python]
-      - id: check-response-annotation-matches-schema
-        name: check @extend_schema response T matches Response[T] annotation
-        entry: .venv/bin/python src/sentry/apidocs/_check_response_annotation_matches_schema.py
-        language: system
-        pass_filenames: true
-        files: ^src/sentry/.*endpoints/.*\.py$
-        require_serial: false
-      - id: check-schema-omissions
-        name: check schema omissions have a stated reason
-        language: system
-        entry: .venv/bin/python src/sentry/apidocs/_check_schema_omissions.py
-        files: ^src/sentry/.*\.py$
-        pass_filenames: false
       - id: sort-mypy-weaklist
         name: sort mypy weaklist
         entry: python3 -m tools.mypy_helpers.sort_weaklist
@@ -101,14 +88,14 @@ repos:
       # need an easy way to keep versions in sync. Furthermore some repositories
       # are either not on pre-commit mirrors or are missing some tagged versions.
       # pre-commit-managed nodeenv environments also do not work out of the box because
-      # additional_dependencies does not install a flattened dependency tree which is needed by,
-      # for example, our eslint setup.
+      # additional_dependencies does not install a flattened dependency tree which is needed by
+      # our JavaScript tooling.
 
-      - id: eslint
-        name: eslint
+      - id: oxlint
+        name: oxlint
         language: system
         files: \.(ts|js|tsx|jsx|mjs)$
-        entry: env SENTRY_PRECOMMIT=true ./node_modules/.bin/eslint --quiet --fix
+        entry: env SENTRY_PRECOMMIT=true ./node_modules/.bin/oxlint --quiet --fix --no-error-on-unmatched-pattern
 
       - id: stylelint
         name: stylelint

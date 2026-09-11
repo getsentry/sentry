@@ -1,9 +1,11 @@
 from collections.abc import Generator
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
+from django.db.models import Model
+from django.db.models.query import QuerySet
 from django.utils import timezone as django_timezone
 
 from sentry.issues.action_log.publish import publish_action
@@ -23,7 +25,8 @@ from sentry.issues.derived.promote import (
     PromotionFailed,
     PromotionResult,
     _generation_cache,
-    _read_live_generated_at,
+    _LiveState,
+    _read_live_state,
     build_and_promote_batch,
     build_and_promote_derived_data,
     promote_to_live,
@@ -58,12 +61,12 @@ def _hide_first_row_read() -> Generator[None]:
     """
     seen = iter([True])
 
-    def hide_once(group_id: int) -> datetime | None:
+    def hide_once(group_id: int) -> _LiveState | None:
         if next(seen, False):
             return None
-        return _read_live_generated_at(group_id)
+        return _read_live_state(group_id)
 
-    with patch("sentry.issues.derived.promote._read_live_generated_at", hide_once):
+    with patch("sentry.issues.derived.promote._read_live_state", hide_once):
         yield
 
 
@@ -145,6 +148,52 @@ class PromoteToLiveTest(TestCase):
         # promote must not regress the cursor.
         assert promote_to_live(candidate) is PromotionResult.CURSOR_BEHIND
 
+    def test_promote_ignores_known_invalid_log_id(self) -> None:
+        group = self.create_group()
+        invalid_log_id = 99999
+        self.create_group_derived_data(
+            group,
+            cursor_date=django_timezone.now(),
+            cursor_id=invalid_log_id,
+            data={},
+            pipeline_hash=PIPELINE.pipeline_hash,
+        )
+        candidate = GroupDerivedData(
+            group_id=group.id,
+            generated_at=django_timezone.now(),
+            cursor_date=EPOCH,
+            cursor_id=0,
+            data={},
+            pipeline_hash=PIPELINE.pipeline_hash,
+        )
+
+        assert (
+            promote_to_live(candidate, known_invalid_log_id=invalid_log_id)
+            is PromotionResult.PROMOTED
+        )
+
+    def test_promote_does_not_ignore_different_invalid_log_id(self) -> None:
+        group = self.create_group()
+        self.create_group_derived_data(
+            group,
+            cursor_date=django_timezone.now(),
+            cursor_id=99999,
+            data={},
+            pipeline_hash=PIPELINE.pipeline_hash,
+        )
+        candidate = GroupDerivedData(
+            group_id=group.id,
+            generated_at=django_timezone.now(),
+            cursor_date=EPOCH,
+            cursor_id=0,
+            data={},
+            pipeline_hash=PIPELINE.pipeline_hash,
+        )
+
+        assert (
+            promote_to_live(candidate, known_invalid_log_id=99998) is PromotionResult.CURSOR_BEHIND
+        )
+
     def test_promote_superseded_by_newer_generation(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
@@ -217,6 +266,51 @@ class PromoteToLiveTest(TestCase):
 
         with _hide_first_row_read():
             assert promote_to_live(candidate) is PromotionResult.RACE_LOST
+
+    def test_promote_update_path_race_returns_race_lost_when_cursor_not_ahead(self) -> None:
+        """Straddling a concurrent create on the UPDATE path is RACE_LOST, not CURSOR_BEHIND.
+
+        The initial UPDATE can miss because the row isn't yet visible while
+        the follow-up SELECT sees the just-committed row with the same
+        cursor. That row would have satisfied the UPDATE guard, so retry.
+        """
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+
+        gen_time = django_timezone.now()
+        candidate = GroupDerivedData(
+            group_id=group.id,
+            generated_at=gen_time,
+            cursor_date=EPOCH,
+            cursor_id=0,
+            data={},
+            pipeline_hash=PIPELINE.pipeline_hash,
+        )
+        processing._drain_log(candidate, PIPELINE, time_limit=timedelta(minutes=5), persist=False)
+
+        # Seed a row a same-cursor, older-generation writer would have
+        # produced. Forcing the first UPDATE to return 0 simulates the
+        # row being invisible when the UPDATE ran but visible to the
+        # follow-up SELECT.
+        GroupDerivedData.objects.filter(group_id=group.id).update(
+            generated_at=gen_time - timedelta(seconds=10),
+            cursor_date=candidate.cursor_date,
+            cursor_id=candidate.cursor_id,
+        )
+
+        real_update = QuerySet.update
+        blinded = 0
+
+        def blind_first_update(self: QuerySet[Model], **kwargs: object) -> int:
+            nonlocal blinded
+            if self.model is GroupDerivedData and blinded == 0:
+                blinded += 1
+                return 0
+            return real_update(self, **kwargs)
+
+        with patch.object(QuerySet, "update", blind_first_update):
+            assert promote_to_live(candidate) is PromotionResult.RACE_LOST
+        assert blinded == 1
 
     def test_promote_returns_group_missing_when_group_deleted(self) -> None:
         candidate = GroupDerivedData(
@@ -339,7 +433,7 @@ class PromoteToLiveTest(TestCase):
         derived = GroupDerivedData.objects.get(group_id=group.id)
         assert derived.pipeline_hash == PIPELINE.pipeline_hash
 
-    def test_build_and_promote_cursor_behind_orphaned_cursor(self) -> None:
+    def test_build_and_promote_replaces_orphaned_cursor(self) -> None:
         group = self.create_group()
 
         # Create a live row with a cursor pointing past any existing entries.
@@ -351,12 +445,12 @@ class PromoteToLiveTest(TestCase):
             pipeline_hash=PIPELINE.pipeline_hash,
         )
 
-        # build_and_promote drains nothing (no entries), gets CURSOR_BEHIND
-        # because the candidate's EPOCH cursor is behind the live row's.
-        # With no entries to catch up on, the log was modified and the
-        # replay is incomplete — give up.
-        with pytest.raises(PromotionFailed):
-            build_and_promote_derived_data(group.id, time_limit=timedelta(minutes=5))
+        build_and_promote_derived_data(group.id, time_limit=timedelta(minutes=5))
+
+        live = GroupDerivedData.objects.get(group_id=group.id)
+        assert live.cursor_date == EPOCH
+        assert live.cursor_id == 0
+        assert live.generated_at is not None
 
     def test_build_and_promote_logs_when_live_cursor_orphaned(self) -> None:
         group = self.create_group()
@@ -371,8 +465,7 @@ class PromoteToLiveTest(TestCase):
         )
 
         with patch("sentry.issues.derived.promote.logger") as mock_logger:
-            with pytest.raises(PromotionFailed):
-                build_and_promote_derived_data(group.id, time_limit=timedelta(minutes=5))
+            build_and_promote_derived_data(group.id, time_limit=timedelta(minutes=5))
 
         orphan_calls = [
             call
@@ -451,11 +544,13 @@ class PromoteToLiveTest(TestCase):
         real_promote = promote_to_live
         attempts = []
 
-        def flaky_promote(candidate: GroupDerivedData) -> PromotionResult:
+        def flaky_promote(
+            candidate: GroupDerivedData, *, known_invalid_log_id: int | None = None
+        ) -> PromotionResult:
             attempts.append(candidate)
             if len(attempts) == 1:
                 return PromotionResult.RACE_LOST
-            return real_promote(candidate)
+            return real_promote(candidate, known_invalid_log_id=known_invalid_log_id)
 
         with patch("sentry.issues.derived.promote.promote_to_live", side_effect=flaky_promote):
             build_and_promote_derived_data(group.id, time_limit=timedelta(minutes=5))
@@ -470,7 +565,9 @@ class PromoteToLiveTest(TestCase):
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
-        def missing_then_real(candidate: GroupDerivedData) -> PromotionResult:
+        def missing_then_real(
+            candidate: GroupDerivedData, *, known_invalid_log_id: int | None = None
+        ) -> PromotionResult:
             return PromotionResult.GROUP_MISSING
 
         with patch("sentry.issues.derived.promote.promote_to_live", side_effect=missing_then_real):
@@ -570,12 +667,13 @@ class PromoteToLiveTest(TestCase):
 
     def test_build_and_promote_batch_logs_group_id_on_promotion_failed(self) -> None:
         group = self.create_group()
+        entry = self.create_group_action_log_entry(group)
 
-        # Cursor ahead of anything a fresh candidate could replay, forcing failure.
+        # A valid cursor with a future date remains ahead and forces failure.
         self.create_group_derived_data(
             group,
-            cursor_date=django_timezone.now(),
-            cursor_id=99999,
+            cursor_date=django_timezone.now() + timedelta(hours=1),
+            cursor_id=entry.id,
             data={},
             pipeline_hash=PIPELINE.pipeline_hash,
         )

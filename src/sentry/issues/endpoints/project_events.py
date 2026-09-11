@@ -12,7 +12,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
-from sentry.api.serializers.models.event import SimpleEventSerializerResponse
+from sentry.api.serializers.models.event import (
+    FULL_PAYLOAD_MAX_PER_PAGE,
+    SimpleEventSerializerResponse,
+)
 from sentry.api.utils import get_date_range_from_params
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.event_examples import EventExamples
@@ -43,6 +46,14 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             }
         }
     )
+
+    def get_per_page(
+        self, request: Request, default_per_page: int | None = None, max_per_page: int | None = None
+    ) -> int:
+        per_page = super().get_per_page(request, default_per_page, max_per_page)
+        if request.GET.get("full") in ("1", "true"):
+            return min(per_page, FULL_PAYLOAD_MAX_PER_PAGE)
+        return per_page
 
     @extend_schema(
         operation_id="listProjectEvents",

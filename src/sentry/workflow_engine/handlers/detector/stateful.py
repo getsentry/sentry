@@ -17,9 +17,9 @@ from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.utils import metrics, redis
 from sentry.workflow_engine.handlers.detector.base import (
-    BaseDetectorHandler,
     DataPacketEvaluationType,
     DataPacketType,
+    DetectorHandler,
     DetectorOccurrence,
     EventData,
     GroupedDetectorEvaluationResult,
@@ -312,7 +312,7 @@ DetectorThresholds = dict[DetectorPriorityLevel, int]
 
 
 class StatefulDetectorHandler(
-    BaseDetectorHandler[DataPacketType, DataPacketEvaluationType],
+    DetectorHandler[DataPacketType, DataPacketEvaluationType],
     abc.ABC,
 ):
     """
@@ -340,6 +340,16 @@ class StatefulDetectorHandler(
         Configure default thresholds at the detector level.
         """
         return {}
+
+    @abc.abstractmethod
+    def extract_dedupe_value(self, data_packet: DataPacket[DataPacketType]) -> int:
+        """
+        Extracts the de-duplication value from a passed data packet. This duplication
+        value is used to determine if we've already processed data to this point or not.
+
+        This is normally a timestamp, but could be any sortable value; (e.g. a sequence number, timestamp, etc).
+        """
+        pass
 
     def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
         """
@@ -410,9 +420,7 @@ class StatefulDetectorHandler(
 
         return base
 
-    def evaluate_impl(
-        self, data_packet: DataPacket[DataPacketType]
-    ) -> GroupedDetectorEvaluationResult:
+    def evaluate(self, data_packet: DataPacket[DataPacketType]) -> GroupedDetectorEvaluationResult:
         dedupe_value = self.extract_dedupe_value(data_packet)
         group_data_values = self._extract_value_from_packet(data_packet)
         state = self.state_manager.get_state_data(list(group_data_values.keys()))

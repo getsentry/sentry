@@ -6,11 +6,11 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
+import {ResultGrid} from 'sentry/components/resultGrid';
 import {IconEdit, IconStack} from 'sentry/icons';
 
 import {EditAdminOptionModal} from 'admin/components/editAdminOptionModal';
 import {PageHeader} from 'admin/components/pageHeader';
-import {ResultGrid} from 'admin/components/resultGrid';
 
 export interface SerializedOption {
   fieldType: 'bool' | 'rate';
@@ -97,7 +97,6 @@ export function Options() {
         inPanel
         path="/_admin/options/"
         endpoint="/_admin/options/"
-        method="GET"
         columns={[
           <th key="name">Option Name</th>,
           <th key="value" style={{textAlign: 'right'}}>

@@ -66,22 +66,23 @@ const config: KnipConfig = {
         // helper files for stories - it's fine that they are only used in tests
         '!static/app/**/__stories__/*.{js,ts,tsx}!',
         '!static/app/stories/**/*.{js,ts,tsx}!',
-        // eslint plugins are separate workspace packages
-        '!static/eslint/**/*.ts!',
+        // Oxlint JS plugins are separate workspace packages
+        '!static/oxlint/**/*.ts!',
       ],
       ignoreDependencies: [
         'core-js',
         'tslib', // subdependency of many packages, declare the latest version
         'odiff-bin', // raw binary consumed by Python backend, not a JS import
-        'run-on-changed', // CLI used by the eslint CI job (.github/workflows/frontend.yml), not a JS import
         '@swc-contrib/mut-cjs-exports', // used in jest config
+        // Loaded dynamically from the import/resolver setting in oxlint.config.ts.
+        'eslint-import-resolver-typescript',
         'zrender', // used in echarts
       ],
       // Knip's Less compiler expects the extension in `project`; styles are handled by Rspack,
       // so do not report them as unused files.
       ignoreFiles: ['static/**/*.less'],
     },
-    'static/eslint/eslintPluginSentry': {
+    'static/oxlint/eslintPluginSentry': {
       // RuleTester resolves these cross-file fixtures by filename.
       ignoreFiles: ['fixtures/**/*.{ts,tsx}'],
     },

@@ -15,7 +15,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.conditional_get import ConditionalGetResponseMixin
-from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -31,7 +30,6 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.action_log import (
     action_context_scope,
     resolve_action_actor,
@@ -45,7 +43,6 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix_agent import (
-    AutofixStep,
     NoSeerQuotaException,
     get_autofix_agent_state,
     get_autofix_run_state,
@@ -75,6 +72,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
     try_enqueue_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_extra
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.types import (
     AutofixHandoffResponse,
     AutofixPostResponse,
@@ -239,11 +237,6 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
             404: RESPONSE_NOT_FOUND,
         },
         examples=AutofixExamples.AUTOFIX_POST_RESPONSE,
-    )
-    @deprecated(
-        CELL_API_DEPRECATION_DATE,
-        suggested_api="sentry-api-0-organization-group-group-autofix",
-        url_names=["sentry-api-0-group-autofix"],
     )
     def post(
         self, request: Request, group: Group
@@ -547,11 +540,6 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
             404: RESPONSE_NOT_FOUND,
         },
         examples=AutofixExamples.AUTOFIX_GET_RESPONSE,
-    )
-    @deprecated(
-        CELL_API_DEPRECATION_DATE,
-        suggested_api="sentry-api-0-organization-group-group-autofix",
-        url_names=["sentry-api-0-group-autofix"],
     )
     def get(self, request: Request, group: Group) -> Response[AutofixStateResponse]:
         """

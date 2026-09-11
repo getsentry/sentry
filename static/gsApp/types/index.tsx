@@ -517,7 +517,8 @@ export type Invoice = InvoiceBase & {
     | {
         id: string;
         isDeleted: boolean;
-        slug: string;
+        // Null when the organization row is gone and nothing denormalized its slug.
+        slug: string | null;
         name?: string;
       };
   defaultTaxName: string | null;
@@ -530,7 +531,6 @@ export type Invoice = InvoiceBase & {
     address: string[];
     name: string;
   };
-  stripeInvoiceID: string | null;
 };
 
 type BaseInvoiceItem = {

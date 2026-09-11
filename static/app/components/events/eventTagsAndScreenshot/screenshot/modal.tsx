@@ -13,7 +13,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewer';
 import {webmMimeTypes} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import {VideoViewer} from 'sentry/components/events/attachmentViewers/videoViewer';
-import {KeyValueData} from 'sentry/components/keyValueData';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {t, tct} from 'sentry/locale';
 import type {EventAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -118,7 +118,7 @@ export function ScreenshotModal({
               eventId={currentEventAttachment.event_id}
             />
           </AttachmentComponentWrapper>
-          <KeyValueData.Card
+          <KeyValueTableCard
             title={currentEventAttachment.name}
             contentItems={[
               {
