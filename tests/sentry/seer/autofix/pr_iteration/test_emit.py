@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 from django.utils import timezone
 
 from sentry.analytics.events.pr_iteration_events import (
+    AiAutofixPrIterationFeedbackBatchBlockedEvent,
     AiAutofixPrIterationFeedbackBatchCompletedEvent,
 )
 from sentry.seer.agent.client_models import MemoryBlock, Message, SeerRunState
@@ -18,13 +19,13 @@ from sentry.seer.autofix.pr_iteration.emit import (
     complete_pr_iteration_details,
     discard_pr_iteration_details,
     outcome_for_failed_run,
+    outcome_for_pause,
+    record_pr_iteration_blocked,
     record_pr_iteration_counts,
     trigger_pr_iteration_details,
 )
-from sentry.seer.autofix.pr_iteration.logs import (
-    LogCtxIteration,
-    PrIterationLogContext,
-)
+from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.pause import PauseReason
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
@@ -340,3 +341,216 @@ class PrIterationDetailsTest(TestCase):
         state.failure_reason = "out_of_credits"
 
         assert outcome_for_failed_run(state) == "out_of_credits"
+
+    def test_a_pause_is_recorded_under_its_reason(self) -> None:
+        assert (
+            outcome_for_pause(self.log_ctx, PauseReason.USER_STOP)
+            == PrIterationOutcome.PAUSED_USER_STOP.value
+        )
+        assert (
+            outcome_for_pause(self.log_ctx, PauseReason.RUN_ERRORED)
+            == PrIterationOutcome.PAUSED_RUN_ERRORED.value
+        )
+
+    def test_every_pause_reason_has_an_outcome(self) -> None:
+        """The two lists drift apart in ``pause``; this is what notices."""
+        logger = MagicMock()
+        log_ctx = PrIterationLogContext(
+            logger,
+            run_state=_run_state(),
+            iteration=LogCtxIteration.UNTRIGGERED,
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
+
+        for reason in PauseReason:
+            assert outcome_for_pause(log_ctx, reason) != PrIterationOutcome.PAUSED.value
+
+        assert not logger.error.called
+
+    def test_a_pause_reason_added_since_is_recorded_as_a_plain_pause(self) -> None:
+        """A batch dropped for a reason with no outcome here is still a batch dropped."""
+        logger = MagicMock()
+        log_ctx = PrIterationLogContext(
+            logger,
+            run_state=_run_state(),
+            iteration=LogCtxIteration.UNTRIGGERED,
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
+
+        assert outcome_for_pause(log_ctx, "out_of_credits") == PrIterationOutcome.PAUSED.value
+        assert logger.error.call_args.args[0] == "autofix.pr_iteration.details.unknown_pause_reason"
+        assert logger.error.call_args.kwargs["extra"]["pause_reason"] == "out_of_credits"
+
+    def test_a_pause_that_names_no_reason_is_still_recorded(self) -> None:
+        """A marker written before reasons existed is still a batch we dropped."""
+        assert outcome_for_pause(self.log_ctx, None) == PrIterationOutcome.PAUSED.value
+
+
+class RecordPrIterationBlockedTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=RUN_ID
+        )
+        self.log_ctx = PrIterationLogContext(
+            MagicMock(),
+            iteration=LogCtxIteration.UNTRIGGERED,
+            run_state=_run_state(),
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
+
+    def _open(self) -> None:
+        bootstrap_iteration(
+            logger=self.log_ctx.logger,
+            run_state=_run_state(),
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
+
+    def _trigger(self) -> int:
+        iteration_id = trigger_pr_iteration_details(
+            log_ctx=self.log_ctx,
+            run_id=RUN_ID,
+            organization_id=self.organization.id,
+            trigger_source="feedback",
+        )
+        assert iteration_id is not None
+        record_pr_iteration_counts(
+            log_ctx=self.log_ctx,
+            run_id=RUN_ID,
+            organization_id=self.organization.id,
+            iteration_id=iteration_id,
+            referrer="github_pr_comment",
+            feedback_count=2,
+            queued_count=3,
+            dropped_count=1,
+            automated_feedback_count=1,
+        )
+        return iteration_id
+
+    def _record(self, outcome: str = PrIterationOutcome.MISSING_PERMISSIONS.value) -> None:
+        record_pr_iteration_blocked(
+            log_ctx=self.log_ctx,
+            run_state=_run_state(),
+            run_id=RUN_ID,
+            organization_id=self.organization.id,
+            outcome=outcome,
+        )
+
+    def _blocked_event(
+        self, iteration_id: int, outcome: str
+    ) -> AiAutofixPrIterationFeedbackBatchBlockedEvent:
+        return AiAutofixPrIterationFeedbackBatchBlockedEvent(
+            iteration_id=iteration_id,
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id=self.group.id,
+            run_id=RUN_ID,
+            iteration_index=0,
+            duration_ms=0,
+            outcome=outcome,
+        )
+
+    @freeze_time("2024-01-01 00:00:00")
+    def test_records_the_outcome_without_claiming_the_row(self) -> None:
+        self._open()
+        (row,) = open_iterations(self.seer_run)
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._record()
+
+        assert_last_analytics_event(
+            mock_record,
+            self._blocked_event(row.id, PrIterationOutcome.MISSING_PERMISSIONS.value),
+        )
+        # The row survives: the batch still owes its completion once the block
+        # clears and it actually reaches the agent.
+        assert len(open_iterations(self.seer_run)) == 1
+
+    @freeze_time("2024-01-01 00:00:00")
+    def test_leaves_the_drains_fields_on_the_row(self) -> None:
+        """A blocked batch reports what it is, not a run that reported nothing.
+
+        The row can already hold the drain's fields, from a batch blocked on a
+        re-check after one drain claimed it. They stay on the row for the
+        completed event.
+        """
+        self._open()
+        (row,) = open_iterations(self.seer_run)
+        update_iteration(row, referrer="github_pr_comment", feedback_count=2)
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._record()
+
+        assert_last_analytics_event(
+            mock_record,
+            self._blocked_event(row.id, PrIterationOutcome.MISSING_PERMISSIONS.value),
+        )
+        assert row.data["referrer"] == "github_pr_comment"
+
+    @freeze_time("2024-01-01 00:00:00")
+    def test_records_each_outcome_once_per_iteration(self) -> None:
+        self._open()
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._record()
+            self._record()
+            self._record(outcome="something_else")
+
+        (row,) = open_iterations(self.seer_run)
+        assert [call.args[0] for call in mock_record.call_args_list] == [
+            self._blocked_event(row.id, PrIterationOutcome.MISSING_PERMISSIONS.value),
+            self._blocked_event(row.id, "something_else"),
+        ]
+        assert row.data["blocked_outcomes"] == ["missing_permissions", "something_else"]
+
+    @freeze_time("2024-01-01 00:00:00")
+    def test_the_next_iteration_records_the_outcome_again(self) -> None:
+        self._open()
+        self._record()
+        first_id = self._trigger()
+
+        self._open()
+        with patch("sentry.analytics.record") as mock_record:
+            self._record()
+
+        second = next(row for row in open_iterations(self.seer_run) if row.id != first_id)
+        assert_last_analytics_event(
+            mock_record,
+            self._blocked_event(second.id, PrIterationOutcome.MISSING_PERMISSIONS.value),
+        )
+
+    def test_a_completion_ignores_the_recorded_outcomes(self) -> None:
+        self._open()
+        self._record()
+        iteration_id = self._trigger()
+
+        with patch("sentry.analytics.record") as mock_record:
+            complete_pr_iteration_details(
+                log_ctx=self.log_ctx,
+                run_state=_run_state(blocks=[_iteration_block(iteration_id)]),
+                organization_id=self.organization.id,
+                outcome=PrIterationOutcome.ALREADY_PUSHED.value,
+            )
+
+        # The bookkeeping key is not a field, so it neither reaches the event
+        # nor stops it being built.
+        assert mock_record.call_args.args[0].outcome == PrIterationOutcome.ALREADY_PUSHED.value
+        assert not open_iterations(self.seer_run)
+
+    def test_no_row_records_nothing(self) -> None:
+        with patch("sentry.analytics.record") as mock_record:
+            self._record()
+
+        assert not mock_record.called
+
+    def test_no_seer_run_records_nothing(self) -> None:
+        self.seer_run.delete()
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._record()
+
+        assert not mock_record.called

@@ -23,7 +23,11 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
 from sentry.seer.autofix.pr_iteration.details_store import open_iterations
-from sentry.seer.autofix.pr_iteration.emit import bootstrap_iteration
+from sentry.seer.autofix.pr_iteration.emit import (
+    BLOCKED_OUTCOMES_DATA_KEY,
+    PrIterationOutcome,
+    bootstrap_iteration,
+)
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     ConsumeTask,
@@ -1065,8 +1069,16 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_pop: MagicMock,
         mock_trigger: MagicMock,
     ) -> None:
-        self.create_seer_run(
+        mock_fetch.return_value = self._state()
+        seer_run = self.create_seer_run(
             organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
+        # The row the batch is recorded against: callers open it before queuing.
+        bootstrap_iteration(
+            logger=MagicMock(),
+            run_state=self._state(),
+            organization_id=self.organization.id,
+            group_id=self.group.id,
         )
         try_enqueue_autofix_feedback(
             log_ctx=PrIterationLogContext(
@@ -1086,16 +1098,27 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         with record_run_extras(SeerRun.objects.get(seer_run_state_id=67890)) as extras:
             extras[PAUSED_EXTRA] = {"paused_at": "2024-01-01T00:00:00+00:00"}
 
-        with patch(f"{PAUSE_PATH}.metrics") as mock_metrics:
+        with (
+            patch(f"{PAUSE_PATH}.metrics") as mock_metrics,
+            patch("sentry.analytics.record") as mock_record,
+        ):
             self._call()
 
-        mock_fetch.assert_not_called()
         mock_pop.assert_not_called()
         mock_trigger.assert_not_called()
         assert peek_queued_autofix_feedback(67890) == []
         mock_metrics.incr.assert_any_call(
             "autofix.pr_iteration.paused.blocked", tags={"gate": "consume"}
         )
+        # The consume that wakes up after the pause records the dropped batch
+        # instead of leaving it silent, with the pause reason as the outcome.
+        blocked = mock_record.call_args.args[0]
+        assert blocked.type == "ai.autofix.pr_iteration.feedback_batch.blocked"
+        assert blocked.outcome == PrIterationOutcome.PAUSED_USER_STOP.value
+        (iteration,) = open_iterations(seer_run)
+        assert iteration.data[BLOCKED_OUTCOMES_DATA_KEY] == [
+            PrIterationOutcome.PAUSED_USER_STOP.value
+        ]
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
@@ -1839,6 +1862,49 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         mock_metrics.incr.assert_any_call(
             "autofix.pr_iteration.paused.blocked", tags={"gate": "trigger_consume"}
         )
+
+    def _pause(self, reason: PauseReason) -> None:
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
+        pause_pr_iteration(run_id=67890, organization_id=self.organization.id, reason=reason)
+        bootstrap_iteration(
+            logger=MagicMock(),
+            run_state=self._state(),
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_run_paused_by_an_error_records_that_reason(self, mock_apply: MagicMock) -> None:
+        self._pause(PauseReason.RUN_ERRORED)
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._trigger(bypass=True)
+
+        assert mock_record.call_args.args[0].outcome == "paused_run_errored"
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_run_someone_stopped_records_that_reason(self, mock_apply: MagicMock) -> None:
+        self._pause(PauseReason.USER_STOP)
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._trigger(bypass=True)
+
+        assert mock_record.call_args.args[0].outcome == "paused_user_stop"
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_paused_run_records_once_however_much_ci_lands(self, mock_apply: MagicMock) -> None:
+        self._pause(PauseReason.RUN_ERRORED)
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._trigger(bypass=True)
+            self._trigger(bypass=True)
+            self._trigger(bypass=True)
+
+        # Nothing drains a paused run, so every check suite on the PR arrives
+        # here. The batch is one batch however many of them there are.
+        assert mock_record.call_count == 1
 
     @patch(f"{TASK_PATH}.block_iteration_for_missing_permissions", return_value=True)
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
