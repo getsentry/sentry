@@ -47,7 +47,9 @@ class TestTriggerAutofixFeature(TestCase):
                     user_context="an upstream triage summary",
                     stopping_point=AutofixStoppingPoint.OPEN_PR,
                     step_args=RCAStepArgs(
-                        repo_pins={"owner/repo": {"sha": "abc123", "branch": "main"}}
+                        intelligence_level="high",
+                        reasoning_effort="low",
+                        repo_pins={"owner/repo": {"sha": "abc123", "branch": "main"}},
                     ),
                 ),
             )
@@ -73,9 +75,16 @@ class TestTriggerAutofixFeature(TestCase):
         assert payload["title"] == self.group.title
         assert payload["user_context"] == "an upstream triage summary"
         assert payload["stopping_point"] == AutofixStoppingPoint.OPEN_PR.value
+        # Retained while Seer continues to consume the legacy RCA payload shape.
+        assert payload["repo_pins"] == {"owner/repo": {"sha": "abc123", "branch": "main"}}
+        assert payload["tweaks"] == {
+            "intelligence_level": "high",
+            "reasoning_effort": "low",
+            "user_context": "an upstream triage summary",
+        }
         assert payload["step_args"] == {
-            "intelligence_level": "medium",
-            "reasoning_effort": "medium",
+            "intelligence_level": "high",
+            "reasoning_effort": "low",
             "repo_pins": {"owner/repo": {"sha": "abc123", "branch": "main"}},
         }
         # Seer persists this hook on the Explorer run so later PR iteration
