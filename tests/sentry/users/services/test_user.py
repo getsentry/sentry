@@ -108,3 +108,111 @@ class UserServiceTest(TestCase):
         # Test removing non-existent permission returns False
         removed = user_service.remove_permission(user_id=self.user.id, permission="superuser.write")
         assert removed is False
+
+
+@all_silo_test
+class ResolveFuzzyUserTest(TestCase):
+    def _member(self, *, email: str, name: str = "", username: str | None = None, **kwargs):
+        user = self.create_user(email=email, name=name, username=username or email, **kwargs)
+        self.create_member(user=user, organization=self.organization)
+        return user
+
+    def _resolve(self, **kwargs) -> int | None:
+        return user_service.resolve_fuzzy_user(organization_id=self.organization.id, **kwargs)
+
+    def test_exact_email(self) -> None:
+        dana = self._member(email="dana.reed@sentry.io", name="Dana Reed", username="dana")
+        assert self._resolve(email="dana.reed@sentry.io") == dana.id
+
+    def test_exact_unverified_email(self) -> None:
+        dana = self._member(email="dana.reed@sentry.io", name="Dana Reed", username="dana")
+        self.create_useremail(user=dana, email="dana.reed@gmail.com", is_verified=False)
+        assert self._resolve(email="dana.reed@gmail.com") == dana.id
+
+    def test_local_part_on_other_domain(self) -> None:
+        dana = self._member(email="dana.reed@sentry.io", name="Dana Reed", username="dana")
+        assert self._resolve(email="dana.reed@gmail.com") == dana.id
+
+    def test_normalized_local_part(self) -> None:
+        dana = self._member(email="dana.reed@sentry.io", name="Dana Reed", username="dana")
+        assert self._resolve(email="dana_reed@gmail.com") == dana.id
+
+    def test_does_not_allow_separators_inside_a_chunk(self) -> None:
+        self._member(email="d.a.n.a@sentry.io", name="Other", username="other")
+        assert self._resolve(email="dana@gmail.com") is None
+
+    def test_name_from_dotted_local_part(self) -> None:
+        dana = self._member(email="other@sentry.io", name="Dana Reed", username="dreed")
+        assert self._resolve(email="dana.reed@gmail.com") == dana.id
+
+    def test_explicit_name(self) -> None:
+        dana = self._member(email="other@sentry.io", name="Dana Reed", username="dreed")
+        assert self._resolve(name="Dana Reed") == dana.id
+
+    def test_name_allows_middle_name(self) -> None:
+        john = self._member(email="other@sentry.io", name="John Grant Smith", username="jsmith")
+        assert self._resolve(name="John Smith") == john.id
+
+    def test_middle_initial_is_optional(self) -> None:
+        john = self._member(email="other@sentry.io", name="John Smith", username="jsmith")
+        assert self._resolve(name="John G Smith") == john.id
+
+    def test_middle_initial_does_not_match_another_initial(self) -> None:
+        self._member(email="other@sentry.io", name="John Q Smith", username="jsmith")
+        assert self._resolve(name="John G Smith") is None
+
+    def test_github_noreply(self) -> None:
+        dana = self._member(email="dana.reed@sentry.io", name="Dana Reed", username="dana")
+        assert self._resolve(email="12345+dana@users.noreply.github.com") == dana.id
+
+    def test_github_noreply_without_plus(self) -> None:
+        dana = self._member(email="dana.reed@sentry.io", name="Dana Reed", username="dana")
+        assert self._resolve(email="dana@users.noreply.github.com") == dana.id
+
+    def test_username_variant_from_email(self) -> None:
+        dana = self._member(email="other@sentry.io", name="Other", username="dana-reed")
+        assert self._resolve(email="dana.reed@gmail.com") == dana.id
+
+    def test_ambiguous_local_part(self) -> None:
+        self._member(email="alice@sentry.io", name="Alice One", username="alice1")
+        self._member(email="alice@contractor.io", name="Alice Two", username="alice2")
+        assert self._resolve(email="alice@gmail.com") is None
+
+    def test_ambiguous_name(self) -> None:
+        self._member(email="j1@sentry.io", name="John Smith", username="jsmith1")
+        self._member(email="j2@sentry.io", name="John Smith", username="jsmith2")
+        assert self._resolve(name="John Smith") is None
+
+    def test_exact_email_does_not_break_ambiguous_local_part(self) -> None:
+        self._member(email="alice@gmail.com", name="Alice Gmail", username="alice-gmail")
+        self._member(email="alice@sentry.io", name="Alice Work", username="alice-work")
+        assert self._resolve(email="alice@gmail.com") is None
+
+    def test_name_and_local_part_disagree(self) -> None:
+        self._member(email="dana.reed@sentry.io", name="Dana Reed", username="dana")
+        self._member(email="other@sentry.io", name="Sam Okafor", username="sam")
+        assert self._resolve(email="sam@gmail.com", name="Dana Reed") is None
+
+    def test_outside_org_is_ignored(self) -> None:
+        outsider = self.create_user(
+            email="dana.reed@sentry.io", name="Dana Reed", username="dana-out"
+        )
+        self.create_member(user=outsider, organization=self.create_organization())
+        assert self._resolve(email="dana.reed@gmail.com") is None
+
+    def test_inactive_user_is_ignored(self) -> None:
+        self._member(
+            email="dana.reed@sentry.io", name="Dana Reed", username="dana", is_active=False
+        )
+        assert self._resolve(email="dana.reed@gmail.com") is None
+
+    def test_short_local_part_matches(self) -> None:
+        abe = self._member(email="ab@sentry.io", name="Abe", username="abe")
+        assert self._resolve(email="ab@gmail.com") == abe.id
+
+    def test_no_hints(self) -> None:
+        assert self._resolve() is None
+
+    def test_unknown_person(self) -> None:
+        self._member(email="dana.reed@sentry.io", name="Dana Reed", username="dana")
+        assert self._resolve(email="nobody@gmail.com") is None
