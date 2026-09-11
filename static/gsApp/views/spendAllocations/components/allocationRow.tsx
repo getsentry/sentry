@@ -1,9 +1,9 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Table} from '@sentry/scraps/table';
 
 import {IconDelete, IconEdit} from 'sentry/icons';
@@ -34,7 +34,7 @@ export function AllocationRow({
   const theme = useTheme();
 
   return (
-    <Table.Row data-test-id="allocation-row">
+    <Table.Row>
       <AllocationCell columnKey="project">{allocation.targetSlug}</AllocationCell>
       <AllocationCell columnKey="allocated-label" />
       <AllocationCell columnKey="allocated-values">
@@ -111,41 +111,43 @@ export function AllocationRow({
           </Centered>
         </HalvedWithDivider>
       </AllocationCell>
-      <AllocationCell columnKey="actions" style={{textAlign: 'right'}}>
-        {allocation.targetType !== 'Organization' && (
-          <Button
-            aria-label={t('Edit')}
-            icon={<IconEdit />}
-            size="xs"
-            onClick={openForm}
-            style={
-              editHovered
-                ? {color: theme.colors.gray300, marginRight: theme.space.md}
-                : {marginRight: theme.space.md}
-            }
-            onMouseEnter={() => setEditHovered(true)}
-            onMouseLeave={() => setEditHovered(false)}
-            data-test-id="edit"
-          />
-        )}
-        {allocation.targetType !== 'Organization' && (
-          <Button
-            aria-label={t('Delete')}
-            icon={<IconDelete />}
-            size="xs"
-            onClick={deleteAction}
-            variant="danger"
-            style={deleteHovered ? {color: theme.colors.red500} : {}}
-            onMouseEnter={() => setDeleteHovered(true)}
-            onMouseLeave={() => setDeleteHovered(false)}
-            data-test-id="delete"
-          />
-        )}
+      <AllocationCell columnKey="actions">
+        <Flex justify="end" gap="md">
+          {allocation.targetType !== 'Organization' && (
+            <Button
+              aria-label={t('Edit')}
+              icon={<IconEdit />}
+              size="xs"
+              onClick={openForm}
+              style={editHovered ? {color: theme.colors.gray300} : {}}
+              onMouseEnter={() => setEditHovered(true)}
+              onMouseLeave={() => setEditHovered(false)}
+              data-test-id="edit"
+            />
+          )}
+          {allocation.targetType !== 'Organization' && (
+            <Button
+              aria-label={t('Delete')}
+              icon={<IconDelete />}
+              size="xs"
+              onClick={deleteAction}
+              variant="danger"
+              style={deleteHovered ? {color: theme.colors.red500} : {}}
+              onMouseEnter={() => setDeleteHovered(true)}
+              onMouseLeave={() => setDeleteHovered(false)}
+              data-test-id="delete"
+            />
+          )}
+        </Flex>
       </AllocationCell>
     </Table.Row>
   );
 }
 
-const AllocationCell = styled(Table.Cell)`
-  padding: ${p => p.theme.space.xl};
-`;
+function AllocationCell({children, ...props}: React.ComponentProps<typeof Table.Cell>) {
+  return (
+    <Table.Cell {...props}>
+      <Container padding="xl">{children}</Container>
+    </Table.Cell>
+  );
+}

@@ -55,7 +55,7 @@ export function ProjectAllocationsTable({
   }, [spendAllocations, selectedMetric]);
 
   return (
-    <AllocationsTable columns={COLUMNS} data-test-id="allocations-table">
+    <AllocationsTable aria-label={t('Project allocations')} columns={COLUMNS}>
       <Table.Head>
         <Table.Row>
           <HeaderCell columnKey="project">{t('Project')}</HeaderCell>

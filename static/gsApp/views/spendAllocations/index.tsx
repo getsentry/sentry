@@ -378,12 +378,11 @@ export function SpendAllocationsRoot({subscription}: Props) {
                   {t('Manage Subscription')}
                 </LinkButton>
               )}
-              <Container width={{zero: '100%', md: 'auto'}}>
+              <Container width={{zero: '100%', md: 'fit-content'}}>
                 <Button
                   aria-label={t('New Allocation')}
                   variant="primary"
                   size="sm"
-                  data-test-id="new-allocation"
                   icon={<IconAdd size="xs" />}
                   onClick={openForm()}
                   style={{width: '100%'}}
@@ -422,7 +421,6 @@ export function SpendAllocationsRoot({subscription}: Props) {
           gap="xl"
           margin="xl 0"
           width="100%"
-          data-test-id="subhead-actions"
         >
           <StyledButtonBar>
             <Stack align="center" column="2 / 5">
@@ -520,7 +518,6 @@ export function SpendAllocationsRoot({subscription}: Props) {
               aria-label={t('Disable Spend Allocations')}
               size="sm"
               variant="danger"
-              data-test-id="disable"
               disabled={!orgEnabledFlag}
               style={{width: '100%'}}
             >
