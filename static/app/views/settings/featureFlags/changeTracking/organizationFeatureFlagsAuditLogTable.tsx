@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
-import {parseAsString, useQueryStates} from 'nuqs';
+import {createParser, parseAsString, useQueryStates} from 'nuqs';
 
 import type {ColumnKey} from 'sentry/components/featureFlags/featureFlagsLogTable';
 import {FeatureFlagsLogTable} from 'sentry/components/featureFlags/featureFlagsLogTable';
@@ -20,11 +20,19 @@ const BASE_COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
   {key: 'createdAt', name: t('Date')},
 ];
 
+// The default has to cover a blank `?sort=` as well as an absent key, which is
+// what the previous `decodeScalar(value, '-created_at')` did. A plain
+// `withDefault` only fills in an absent key, leaving `''` to be stripped below.
+const parseAsSortKey = createParser({
+  parse: (value: string) => value || null,
+  serialize: (value: string) => value,
+}).withDefault('-created_at');
+
 const auditLogParsers = {
   cursor: parseAsString.withDefault(''),
   end: parseAsString.withDefault(''),
   flag: parseAsString.withDefault(''),
-  sort: parseAsString.withDefault('-created_at'),
+  sort: parseAsSortKey,
   start: parseAsString.withDefault(''),
   statsPeriod: parseAsString.withDefault(''),
   utc: parseAsString.withDefault(''),

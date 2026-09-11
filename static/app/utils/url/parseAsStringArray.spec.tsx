@@ -23,6 +23,14 @@ describe('parseAsStringArray', () => {
     expect(result.current[0]).toEqual(['1']);
   });
 
+  // `decodeList` treated a blank value as no value at all. Without this, a
+  // filter sends an empty id to the API instead of applying no filter.
+  it('treats a present-but-empty param as no value', () => {
+    const {result} = renderParam({project: ''});
+
+    expect(result.current[0]).toEqual([]);
+  });
+
   // Sentry encodes list params as repeated keys, so this is the case that rules
   // out nuqs' parseAsArrayOf, which splits one delimited value instead.
   it('reads every value of a repeated key', () => {
