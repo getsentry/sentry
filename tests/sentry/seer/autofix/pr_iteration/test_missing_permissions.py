@@ -8,12 +8,17 @@ from sentry.analytics.events.pr_iteration_events import (
     AiAutofixPrIterationMissingPermissionsEvent,
 )
 from sentry.integrations.services.integration import RpcIntegration
+from sentry.integrations.utils.github_permission_tiers import (
+    AUTOFIX_PULL_REQUESTS_TIER,
+    PR_ITERATION_TIER,
+    get_missing_permission_tiers,
+)
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
 from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.missing_permissions import (
     MISSING_PERMISSIONS_EXTRA,
-    _scopes_tag,
+    _tiers_tag,
     block_iteration_for_missing_permissions,
     get_missing_permissions_marker,
     post_missing_permissions_comment,
@@ -30,21 +35,41 @@ RUN_ID = 1
 INTEGRATION_ID = 42
 
 
+# Install holding everything up to and including Autofix; only the PR iteration
+# tier is missing, which is the shape the PR-iteration gate expects to see.
+_ONLY_PR_ITERATION_MISSING = {
+    "administration": "read",
+    "issues": "write",
+    "metadata": "read",
+    "repository_hooks": "write",
+    "pull_requests": "write",
+    "checks": "write",
+    "statuses": "write",
+    "contents": "write",
+}
+# Holds through Seer Code Review but not Autofix, so both Autofix and PR
+# iteration tiers are missing -- more than the gate expects.
+_MISSING_AUTOFIX_AND_PR_ITERATION = {
+    k: v for k, v in _ONLY_PR_ITERATION_MISSING.items() if k != "contents"
+}
+
+
 def _perms(
     integration_id: int = INTEGRATION_ID,
     repository_id: int = 123,
-    missing_scopes: list[str] | None = None,
+    permissions: dict[str, str] | None = None,
 ) -> MissingGithubPermissions:
+    perms = permissions if permissions is not None else _ONLY_PR_ITERATION_MISSING
     return MissingGithubPermissions(
         integration=RpcIntegration(
             id=integration_id,
             provider="github",
             external_id=str(integration_id),
             name="octocat",
-            metadata={},
+            metadata={"permissions": perms},
             status=0,
         ),
-        missing_scopes=missing_scopes if missing_scopes is not None else ["contents"],
+        missing_tiers=get_missing_permission_tiers(perms),
         repository_id=repository_id,
     )
 
@@ -150,7 +175,7 @@ class BlockIterationForMissingPermissionsTest(TestCase):
     def test_skips_the_queue_once_the_marker_is_set(self, mock_get_perms, mock_delay) -> None:
         mock_get_perms.return_value = {REPO_NAME: _perms()}
         self.seer_run.update(
-            extras={MISSING_PERMISSIONS_EXTRA: {REPO_NAME: {"missing_scopes": ["contents"]}}}
+            extras={MISSING_PERMISSIONS_EXTRA: {REPO_NAME: {"missing_tiers": ["pr_iteration"]}}}
         )
 
         assert self._run(_state(getsentry__sentry=7)) is True
@@ -209,21 +234,61 @@ class PostMissingPermissionsCommentTest(TestCase):
         actions.create_pull_request_comment.assert_called_once()
         _, pr_number, body = actions.create_pull_request_comment.call_args[0]
         assert pr_number == "7"
-        assert "additional GitHub permissions" in body
+        assert "additional GitHub App permissions" in body
         assert f"/settings/installations/{INTEGRATION_ID}/permissions/update" in body
         assert self.mock_make_scm.call_args[0] == (self.organization.id, 123)
+
+    def test_comment_body_is_generic_and_lists_no_features(self, mock_get_perms) -> None:
+        mock_get_perms.return_value = {REPO_NAME: _perms()}
+        actions = self._stub_scm()
+
+        self._post()
+
+        _, _, body = actions.create_pull_request_comment.call_args[0]
+        assert body.startswith("⚠️ Sentry needs additional GitHub App permissions")
+        assert f"/settings/installations/{INTEGRATION_ID}/permissions/update" in body
+        # The copy no longer enumerates the missing feature tiers.
+        assert "following features" not in body
+        assert "Seer Autofix" not in body
+
+    def test_warns_when_more_than_the_pr_iteration_tier_is_missing(self, mock_get_perms) -> None:
+        mock_get_perms.return_value = {
+            REPO_NAME: _perms(permissions=_MISSING_AUTOFIX_AND_PR_ITERATION)
+        }
+        actions = self._stub_scm()
+
+        with self.assertLogs(MODULE, level="ERROR") as logs:
+            self._post()
+
+        actions.create_pull_request_comment.assert_called_once()
+        unexpected = [
+            r
+            for r in logs.records
+            if r.msg == "autofix.pr_iteration.missing_permissions.unexpected_missing_tiers"
+        ]
+        assert len(unexpected) == 1
+        assert unexpected[0].__dict__["missing_tiers"] == ["pr_iteration", "autofix_pull_requests"]
+
+    def test_no_warning_when_only_the_pr_iteration_tier_is_missing(self, mock_get_perms) -> None:
+        mock_get_perms.return_value = {REPO_NAME: _perms(permissions=_ONLY_PR_ITERATION_MISSING)}
+        actions = self._stub_scm()
+
+        with self.assertNoLogs(MODULE, level="ERROR"):
+            self._post()
+
+        actions.create_pull_request_comment.assert_called_once()
 
         self.seer_run.refresh_from_db()
         marker = get_missing_permissions_marker(self.seer_run, REPO_NAME)
         assert marker is not None
-        assert marker["missing_scopes"] == ["contents"]
+        assert marker["missing_tiers"] == ["pr_iteration"]
         assert marker["pr_id"] == 4242
 
     def test_stays_silent_once_marked(self, mock_get_perms) -> None:
         mock_get_perms.return_value = {REPO_NAME: _perms()}
         actions = self._stub_scm()
         self.seer_run.update(
-            extras={MISSING_PERMISSIONS_EXTRA: {REPO_NAME: {"missing_scopes": ["contents"]}}}
+            extras={MISSING_PERMISSIONS_EXTRA: {REPO_NAME: {"missing_tiers": ["pr_iteration"]}}}
         )
 
         with patch("sentry.analytics.record") as mock_record:
@@ -280,7 +345,9 @@ class PostMissingPermissionsCommentTest(TestCase):
         actions = self._stub_scm()
 
         def _mark(run: SeerRun) -> None:
-            run.extras = {MISSING_PERMISSIONS_EXTRA: {REPO_NAME: {"missing_scopes": ["contents"]}}}
+            run.extras = {
+                MISSING_PERMISSIONS_EXTRA: {REPO_NAME: {"missing_tiers": ["pr_iteration"]}}
+            }
 
         with patch.object(SeerRun, "refresh_from_db", autospec=True, side_effect=_mark):
             self._post()
@@ -339,19 +406,25 @@ class PostMissingPermissionsCommentTest(TestCase):
         actions.create_pull_request_comment.assert_not_called()
 
 
-class ScopesTagTest(TestCase):
+class TiersTagTest(TestCase):
     def test_sorts_and_dedupes_for_a_stable_series(self) -> None:
-        assert _scopes_tag(["pull_requests", "contents"]) == "contents-pull_requests"
-        assert _scopes_tag(["contents", "pull_requests"]) == "contents-pull_requests"
-        assert _scopes_tag(["contents", "contents"]) == "contents"
+        assert (
+            _tiers_tag([PR_ITERATION_TIER, AUTOFIX_PULL_REQUESTS_TIER])
+            == "autofix_pull_requests-pr_iteration"
+        )
+        assert (
+            _tiers_tag([AUTOFIX_PULL_REQUESTS_TIER, PR_ITERATION_TIER])
+            == "autofix_pull_requests-pr_iteration"
+        )
+        assert _tiers_tag([PR_ITERATION_TIER, PR_ITERATION_TIER]) == "pr_iteration"
 
     def test_avoids_the_dogstatsd_tag_separator(self) -> None:
         # dogstatsd joins the tag list with "," on the wire, so a comma in a
         # value would split into bogus tags.
-        assert "," not in _scopes_tag(["contents", "checks", "actions"])
+        assert "," not in _tiers_tag([PR_ITERATION_TIER, AUTOFIX_PULL_REQUESTS_TIER])
 
     def test_empty(self) -> None:
-        assert _scopes_tag([]) == "none"
+        assert _tiers_tag([]) == "none"
 
 
 @patch(f"{MODULE}.metrics.incr")
@@ -364,12 +437,12 @@ class MissingPermissionsMetricsTest(TestCase):
             organization=self.organization, seer_run_state_id=RUN_ID, user_id=self.user.id
         )
 
-    def test_blocked_tag_unions_scopes_across_repos(
+    def test_blocked_tag_unions_tiers_across_repos(
         self, mock_get_perms, _mock_delay, mock_incr
     ) -> None:
         mock_get_perms.return_value = {
-            REPO_NAME: _perms(1, missing_scopes=["pull_requests", "contents"]),
-            OTHER_REPO_NAME: _perms(2, missing_scopes=["contents", "checks"]),
+            REPO_NAME: _perms(1, permissions=_MISSING_AUTOFIX_AND_PR_ITERATION),
+            OTHER_REPO_NAME: _perms(2, permissions=_ONLY_PR_ITERATION_MISSING),
         }
 
         state = _state(getsentry__sentry=7, getsentry__seer=9)
@@ -382,7 +455,7 @@ class MissingPermissionsMetricsTest(TestCase):
 
         blocked = [c for c in mock_incr.call_args_list if c[0][0].endswith(".blocked")]
         assert len(blocked) == 1
-        assert blocked[0][1]["tags"] == {"missing_scopes": "checks-contents-pull_requests"}
+        assert blocked[0][1]["tags"] == {"missing_tiers": "autofix_pull_requests-pr_iteration"}
 
 
 @patch(f"{MODULE}.metrics.incr")
@@ -396,7 +469,7 @@ class CommentedMetricTagTest(TestCase):
 
     def test_commented_tag_is_per_repo(self, mock_get_perms, mock_incr) -> None:
         mock_get_perms.return_value = {
-            REPO_NAME: _perms(missing_scopes=["pull_requests", "contents"])
+            REPO_NAME: _perms(permissions=_MISSING_AUTOFIX_AND_PR_ITERATION)
         }
         _patch_scm(self)
 
@@ -412,4 +485,4 @@ class CommentedMetricTagTest(TestCase):
 
         commented = [c for c in mock_incr.call_args_list if c[0][0].endswith(".commented")]
         assert len(commented) == 1
-        assert commented[0][1]["tags"] == {"missing_scopes": "contents-pull_requests"}
+        assert commented[0][1]["tags"] == {"missing_tiers": "autofix_pull_requests-pr_iteration"}
