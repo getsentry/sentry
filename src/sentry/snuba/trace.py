@@ -44,6 +44,7 @@ from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.uptime.eap_utils import get_columns_for_uptime_result
 from sentry.utils.numbers import base32_encode
+from sentry.utils.snuba import bulk_snuba_queries
 from sentry.utils.snuba_rpc import table_rpc
 from sentry.utils.tracing import set_span_data, start_span, trace
 
@@ -346,16 +347,22 @@ def _errors_query(
     )
 
 
+def _process_errors_query(
+    errors_query: DiscoverQueryBuilder, snuba_result: Mapping[str, Any]
+) -> list[dict[str, Any]]:
+    error_data = errors_query.process_results(snuba_result)["data"]
+    for event in error_data:
+        event["event_type"] = "error"
+    return error_data
+
+
 @trace
 def _run_errors_query(
     errors_query: DiscoverQueryBuilder,
     referrer: str = Referrer.API_TRACE_VIEW_GET_EVENTS.value,
 ) -> list[dict[str, Any]]:
-    result = errors_query.run_query(referrer)
-    error_data = errors_query.process_results(result)["data"]
-    for event in error_data:
-        event["event_type"] = "error"
-    return error_data
+    snuba_result = errors_query.run_query(referrer)
+    return _process_errors_query(errors_query, snuba_result)
 
 
 def _run_errors_query_eap(
@@ -477,12 +484,9 @@ def _perf_issues_query(
     return occurrence_query
 
 
-@trace
-def _run_perf_issues_query(
-    occurrence_query: DiscoverQueryBuilder,
-    referrer: str = Referrer.API_TRACE_VIEW_GET_EVENTS.value,
+def _process_perf_issues_query(
+    occurrence_query: DiscoverQueryBuilder, snuba_result: Mapping[str, Any]
 ) -> list[TraceIssueOccurrenceData]:
-    snuba_result = occurrence_query.run_query(referrer)
     occurrence_data = occurrence_query.process_results(snuba_result)["data"]
 
     occurrence_ids = defaultdict(list)
@@ -509,6 +513,15 @@ def _run_perf_issues_query(
 
 
 @trace
+def _run_perf_issues_query(
+    occurrence_query: DiscoverQueryBuilder,
+    referrer: str = Referrer.API_TRACE_VIEW_GET_EVENTS.value,
+) -> list[TraceIssueOccurrenceData]:
+    snuba_result = occurrence_query.run_query(referrer)
+    return _process_perf_issues_query(occurrence_query, snuba_result)
+
+
+@trace
 def get_issues_by_span_for_traces(
     snuba_params: SnubaParams,
     trace_ids: Sequence[str],
@@ -531,12 +544,13 @@ def get_issues_by_span_for_traces(
     if not unique_trace_ids:
         return {}
 
-    errors_data = _run_errors_query(
-        _errors_query(snuba_params, unique_trace_ids, None), referrer=referrer
+    errors_query = _errors_query(snuba_params, unique_trace_ids, None)
+    occurrence_query = _perf_issues_query(snuba_params, unique_trace_ids, organization)
+    errors_result, occurrence_result = bulk_snuba_queries(
+        [errors_query.get_snql_query(), occurrence_query.get_snql_query()], referrer=referrer
     )
-    occurrence_data = _run_perf_issues_query(
-        _perf_issues_query(snuba_params, unique_trace_ids, organization), referrer=referrer
-    )
+    errors_data = _process_errors_query(errors_query, errors_result)
+    occurrence_data = _process_perf_issues_query(occurrence_query, occurrence_result)
 
     group_cache: dict[int, Group] = {}
     issues_by_span: dict[str, dict[str, list[SerializedIssue]]] = {}

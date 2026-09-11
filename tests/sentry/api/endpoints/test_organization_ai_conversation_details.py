@@ -986,11 +986,18 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             "end": (now + timedelta(hours=1)).isoformat(),
         }
 
-        response = self.do_request(conversation_id, query)
+        with patch(
+            "sentry.snuba.trace.bulk_snuba_queries",
+            return_value=[{"data": []}, {"data": []}],
+        ) as mock_bulk_snuba_queries:
+            response = self.do_request(conversation_id, query)
+
         assert response.status_code == 200
         assert len(response.data["spans"]) == 1
         assert response.data["spans"][0]["errors"] == []
         assert response.data["spans"][0]["occurrences"] == []
+        mock_bulk_snuba_queries.assert_called_once()
+        assert len(mock_bulk_snuba_queries.call_args.args[0]) == 2
 
     def test_links_error_issue_to_span(self) -> None:
         now = before_now(days=10).replace(microsecond=0)
