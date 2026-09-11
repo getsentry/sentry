@@ -27,7 +27,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.replays.permissions import has_replay_permission
-from sentry.replays.usecases.replay_counts import get_replay_counts
+from sentry.replays.usecases.replay_counts import MAX_REPLAY_COUNT, get_replay_counts
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -46,6 +46,7 @@ class ReplayCountQueryParamsValidator(serializers.Serializer):
         default=Dataset.Discover.value,
     )
     returnIds = serializers.BooleanField(default=False)
+    limit = serializers.IntegerField(required=False, min_value=1, max_value=MAX_REPLAY_COUNT)
 
 
 @cell_silo_endpoint
@@ -86,6 +87,7 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
             VisibilityParams.QUERY,
             ReplayParams.DATA_SOURCE,
             ReplayParams.RETURN_IDS,
+            ReplayParams.ID_LIMIT,
         ],
         responses={
             200: inline_sentry_response_serializer("ReplayCounts", dict[int, int]),
@@ -124,6 +126,7 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
                 query_params["query"],
                 query_params["data_source"],
                 return_ids=query_params["returnIds"],
+                limit=query_params.get("limit"),
             )
         except (InvalidSearchQuery, ValueError) as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
