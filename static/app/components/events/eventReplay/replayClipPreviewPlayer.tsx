@@ -89,7 +89,13 @@ export function ReplayClipPreviewPlayer({
         }
 
         return (
-          <PlayerContainer data-test-id="player-container">
+          <FluidHeight
+            data-test-id="player-container"
+            position="relative"
+            maxHeight={`${REPLAY_LOADING_HEIGHT + 16}px`}
+            minHeight={{xl: `${REPLAY_LOADING_HEIGHT + 16}px`}}
+            overflow="visible"
+          >
             <ReplayPlayerPluginsContextProvider>
               <ReplayReaderProvider replay={replay}>
                 <ReplayPlayerStateContextProvider>
@@ -103,21 +109,12 @@ export function ReplayClipPreviewPlayer({
                 </ReplayPlayerStateContextProvider>
               </ReplayReaderProvider>
             </ReplayPlayerPluginsContextProvider>
-          </PlayerContainer>
+          </FluidHeight>
         );
       }}
     </ReplayLoadingState>
   );
 }
-
-const PlayerContainer = styled(FluidHeight)`
-  position: relative;
-  max-height: ${REPLAY_LOADING_HEIGHT + 16}px;
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    min-height: ${REPLAY_LOADING_HEIGHT + 16}px;
-  }
-  overflow: unset;
-`;
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
   height: ${REPLAY_LOADING_HEIGHT}px;

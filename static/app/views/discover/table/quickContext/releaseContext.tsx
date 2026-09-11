@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {AvatarList} from '@sentry/scraps/avatar';
+import {Stack} from '@sentry/scraps/layout';
 
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
-import {DataSection} from 'sentry/components/events/styles';
 import {Panel} from 'sentry/components/panels/panel';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconNot} from 'sentry/icons';
@@ -137,11 +137,11 @@ export function ReleaseContext(props: BaseContextProps) {
         <ContextHeader>
           <ContextTitle>{t('Last Commit')}</ContextTitle>
         </ContextHeader>
-        <DataSection>
+        <Stack>
           <Panel>
             <QuickContextCommitRow commit={data.lastCommit} />
           </Panel>
-        </DataSection>
+        </Stack>
       </ReleaseContextContainer>
     );
 
@@ -197,9 +197,6 @@ const ReleaseContextContainer = styled(ContextContainer)`
     margin: 0;
     border: none;
     box-shadow: none;
-  }
-  ${DataSection} {
-    padding: 0;
   }
   & + & {
     margin-top: ${p => p.theme.space.xl};

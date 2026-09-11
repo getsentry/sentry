@@ -62,7 +62,7 @@ export const EventDrawerContainer = styled('div')`
   --event-navigator-box-shadow: none;
   --event-navigator-border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
+  @container (min-width: ${p => p.theme.container['3xl']}) {
     --event-drawer-header-height: ${PRIMARY_HEADER_HEIGHT}px;
   }
 `;
