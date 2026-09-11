@@ -60,7 +60,7 @@ class SnapshotStorage:
             try:
                 session.delete(key)
             except RequestError as e:
-                if e.status != 404:
+                if e.status != 404 and error is None:
                     error = e
         if error is not None:
             raise error

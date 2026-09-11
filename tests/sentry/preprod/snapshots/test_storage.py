@@ -67,13 +67,25 @@ def test_delete_ignores_missing(sessions) -> None:
     legacy.delete.assert_called_once_with("k")
 
 
-def test_delete_raises_non_404_after_trying_both(sessions) -> None:
+def test_delete_raises_first_non_404_after_trying_both(sessions) -> None:
     primary, legacy = sessions
-    primary.delete.side_effect = RequestError("boom", 500, "")
+    primary.delete.side_effect = RequestError("primary", 500, "")
+    legacy.delete.side_effect = RequestError("legacy", 503, "")
     storage = SnapshotStorage(primary, [legacy])
-    with pytest.raises(RequestError):
+    with pytest.raises(RequestError, match="primary"):
         storage.delete("k")
     legacy.delete.assert_called_once_with("k")
+
+
+@patch("sentry.preprod.snapshots.storage.metrics")
+def test_fallback_records_metric(mock_metrics, sessions) -> None:
+    primary, legacy = sessions
+    primary.get.return_value = None
+    legacy.get.return_value = None
+    SnapshotStorage(primary, [legacy]).get("k")
+    mock_metrics.incr.assert_called_once_with(
+        "preprod.snapshot_storage.legacy_fallback", tags={"op": "get", "found": "false"}
+    )
 
 
 @patch("sentry.preprod.snapshots.storage.get_session")
