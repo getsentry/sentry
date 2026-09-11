@@ -14,10 +14,9 @@ own failures: a caller records what it can and carries on regardless.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import fields
 from enum import StrEnum
-
-from django.utils import timezone
 
 from sentry import analytics
 from sentry.analytics.events.pr_iteration_events import (
@@ -35,7 +34,7 @@ from sentry.seer.autofix.pr_iteration.details_store import (
     untriggered_iteration,
     update_iteration,
 )
-from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.models.run import SeerRun, SeerRunPrIteration
 
 
@@ -85,47 +84,80 @@ def _claim_untriggered(seer_run: SeerRun) -> SeerRunPrIteration | None:
     return iteration
 
 
-def open_pr_iteration_details(
-    *,
-    log_ctx: PrIterationLogContext,
-    run_state: SeerRunState,
-    organization_id: int,
-    group_id: int,
-) -> None:
-    """Open a row for the iteration this feedback starts.
+def _open_iteration(
+    seer_run: SeerRun, *, run_state: SeerRunState, organization_id: int, group_id: int
+) -> str | None:
+    """Open the row this feedback lands in. Returns a reason when it could not.
 
     The run metadata is resolved once here and carried until the iteration ends.
     """
+    project_id = (
+        Group.objects.filter(id=group_id, project__organization_id=organization_id)
+        .values_list("project_id", flat=True)
+        .first()
+    )
+    if project_id is None:
+        return "group_not_found"
+
+    opened = add_iteration(
+        seer_run,
+        {
+            "organization_id": organization_id,
+            "project_id": project_id,
+            "group_id": group_id,
+            "run_id": run_state.run_id,
+        },
+    )
+    return None if opened is not None else "open_raced"
+
+
+def bootstrap_iteration(
+    *,
+    logger: logging.Logger,
+    run_state: SeerRunState,
+    organization_id: int,
+    group_id: int | None,
+    create: bool = True,
+) -> PrIterationLogContext:
+    """The untriggered iteration this work belongs to, opened if needed, named in logs.
+
+    create = false is for the green check suite / missing permissions tasks where we're receiving an event for an existing
+    waiting iteration and we don't have any feedback to add, so we don't want to create a new row if it doesn't already exist
+    """
+    reason: str | None = None
     try:
         seer_run = _seer_run(run_id=run_state.run_id, organization_id=organization_id)
         if seer_run is None:
-            log_ctx.error(
-                "autofix.pr_iteration.details.unresolved", exc_info=False, reason="no_seer_run"
-            )
-            return
-
-        project_id = (
-            Group.objects.filter(id=group_id, project__organization_id=organization_id)
-            .values_list("project_id", flat=True)
-            .first()
-        )
-        if project_id is None:
-            log_ctx.error(
-                "autofix.pr_iteration.details.unresolved", exc_info=False, reason="group_not_found"
-            )
-            return
-
-        add_iteration(
-            seer_run,
-            {
-                "organization_id": organization_id,
-                "project_id": project_id,
-                "group_id": group_id,
-                "run_id": run_state.run_id,
-            },
-        )
+            reason = "no_seer_run"
+        elif untriggered_iteration(seer_run) is None:
+            if not create:
+                reason = "no_waiting_iteration"
+            elif group_id is None:
+                # The row records the group the iteration belongs to, so there is
+                # nothing coherent to open without one.
+                reason = "group_not_found"
+            else:
+                reason = _open_iteration(
+                    seer_run,
+                    run_state=run_state,
+                    organization_id=organization_id,
+                    group_id=group_id,
+                )
     except Exception:
-        log_ctx.error("autofix.pr_iteration.details.open_failed")
+        reason = "open_failed"
+
+    # Reads back the row just settled above, so the context reflects what is
+    # actually in the table rather than what this call believes it wrote.
+    log_ctx = PrIterationLogContext.for_run(
+        logger,
+        run_state,
+        organization_id,
+        group_id,
+        iteration=LogCtxIteration.UNTRIGGERED,
+    )
+    if reason is not None:
+        log_ctx.error("autofix.pr_iteration.details.unresolved", exc_info=False, reason=reason)
+    return log_ctx
 
 
 def trigger_pr_iteration_details(
@@ -219,12 +251,10 @@ def _build_event(
     """The event for a finished iteration. None when its row is incomplete."""
     known = {f.name for f in fields(AiAutofixPrIterationFeedbackBatchCompletedEvent)}
     payload = {key: value for key, value in iteration.data.items() if key in known}
-    duration_ms = int((timezone.now() - iteration.date_added).total_seconds() * 1000)
     try:
         return AiAutofixPrIterationFeedbackBatchCompletedEvent(
             iteration_id=iteration.id,
             iteration_index=iteration_index,
-            duration_ms=duration_ms,
             outcome=outcome,
             **payload,
         )
@@ -232,7 +262,6 @@ def _build_event(
         written = payload.keys() | {
             "iteration_id",
             "iteration_index",
-            "duration_ms",
             "outcome",
         }
         log_ctx.error(

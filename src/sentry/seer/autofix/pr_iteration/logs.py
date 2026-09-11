@@ -40,16 +40,10 @@ from sentry.seer.autofix.pr_iteration.current_iteration import (
 class LogCtxIteration(Enum):
     """Which of a run's two iterations a context's lines are about.
 
-    Required at construction and deliberately without a default: which row a
-    line belongs to is a property of the flow doing the logging, and the two are
-    easy to confuse, so every context says which one it means.
+    Required at construction and deliberately without a default, we're always logging in
+    context of either iteration
 
-    ``TRIGGERED`` is the latest iteration the agent is or was working on, read
-    straight off the run state already in hand. ``UNTRIGGERED`` is the row
-    waiting for the next drain, which is what the queue and trigger of a fresh
-    piece of feedback are about; resolving it costs one indexed query, and the
-    row only exists once the feedback has opened it, so construct with it at a
-    point where that has already happened.
+    see src/sentry/seer/autofix/pr_iteration/current_iteration.py for context
     """
 
     TRIGGERED = "triggered"

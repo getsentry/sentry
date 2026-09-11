@@ -22,7 +22,7 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
 from sentry.seer.autofix.pr_iteration.details_store import open_iterations
-from sentry.seer.autofix.pr_iteration.emit import open_pr_iteration_details
+from sentry.seer.autofix.pr_iteration.emit import bootstrap_iteration
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     ConsumeTask,
@@ -1599,14 +1599,8 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         assert mock_trigger.call_args.kwargs["commit_author"] is None
 
     def _open_iteration_row(self) -> None:
-        open_pr_iteration_details(
-            log_ctx=PrIterationLogContext(
-                MagicMock(),
-                iteration=LogCtxIteration.TRIGGERED,
-                run_state=self._state(),
-                organization_id=self.organization.id,
-                group_id=self.group.id,
-            ),
+        bootstrap_iteration(
+            logger=MagicMock(),
             run_state=self._state(),
             organization_id=self.organization.id,
             group_id=self.group.id,

@@ -65,6 +65,7 @@ from sentry.seer.autofix.pr_iteration.details_store import (
     remove_iterations_before,
 )
 from sentry.seer.autofix.pr_iteration.emit import (
+    bootstrap_iteration,
     discard_pr_iteration_details,
     record_pr_iteration_counts,
     trigger_pr_iteration_details,
@@ -181,18 +182,6 @@ def trigger_consume_pr_iteration_feedback(
     delay: int | None = None,
     triggered_by: str = "feedback",
 ) -> None:
-    # The feedback reaching here was just enqueued into the waiting row, so the
-    # trigger lines below are about that row -- the same one the matching
-    # ``feedback.queue`` line was filed under, not the last triggered iteration.
-    group_id = run_state.metadata.get("group_id") if run_state.metadata else None
-    log_ctx = PrIterationLogContext.for_run(
-        log_ctx.logger,
-        run_state,
-        organization_id,
-        group_id,
-        iteration=LogCtxIteration.UNTRIGGERED,
-    )
-
     if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
         record_pause_blocked("trigger_consume")
         log_ctx.info(
@@ -342,8 +331,14 @@ def comment_on_missing_permissions(
         pr_id=pr_id,
         integration_id=integration_id,
         queued_repository_id=repository_id,
-        log_ctx=PrIterationLogContext.for_run(
-            logger, state, organization_id, group_id, iteration=LogCtxIteration.TRIGGERED
+        # The iteration this comment is about is the one the gate blocked, which
+        # is still waiting in the queue -- never claimed, so never triggered.
+        log_ctx=bootstrap_iteration(
+            logger=logger,
+            run_state=state,
+            organization_id=organization_id,
+            group_id=group_id,
+            create=False,
         ),
     )
 
@@ -1216,8 +1211,11 @@ def trigger_pr_iteration_from_comment(
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
-    log_ctx = PrIterationLogContext.for_run(
-        logger, agent_state, organization_id, group_id, iteration=LogCtxIteration.TRIGGERED
+    log_ctx = bootstrap_iteration(
+        logger=logger,
+        run_state=agent_state,
+        organization_id=organization_id,
+        group_id=group_id,
     )
     try_enqueue_autofix_feedback(
         log_ctx=log_ctx,
@@ -1654,8 +1652,11 @@ def trigger_pr_iteration_from_review(
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
-    log_ctx = PrIterationLogContext.for_run(
-        logger, agent_state, organization_id, group_id, iteration=LogCtxIteration.TRIGGERED
+    log_ctx = bootstrap_iteration(
+        logger=logger,
+        run_state=agent_state,
+        organization_id=organization_id,
+        group_id=group_id,
     )
     for feedback_obj in feedback_items:
         try_enqueue_autofix_feedback(

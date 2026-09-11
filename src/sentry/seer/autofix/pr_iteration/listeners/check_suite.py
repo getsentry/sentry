@@ -24,12 +24,13 @@ from sentry.seer.autofix.pr_iteration.constants import (
     FAILING_CHECK_SUITE_FLAGS,
     GREEN_CHECK_SUITE_FLAGS,
 )
+from sentry.seer.autofix.pr_iteration.emit import bootstrap_iteration
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
     MissingCheckSuiteAutofixRun,
 )
-from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.queue import (
     peek_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
@@ -143,12 +144,14 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
             return None
 
         run_state = resolved.autofix_run.run_state
-        log_ctx = PrIterationLogContext.for_run(
-            logger,
-            run_state,
-            resolved.organization.id,
-            resolved.autofix_run.group_id,
-            iteration=LogCtxIteration.TRIGGERED,
+        # A green suite carries no feedback of its own: it pre-empts an iteration
+        # some earlier feedback already deferred, so the row must already exist.
+        log_ctx = bootstrap_iteration(
+            logger=logger,
+            run_state=run_state,
+            organization_id=resolved.organization.id,
+            group_id=resolved.autofix_run.group_id,
+            create=False,
         )
         # Peek the queue for parked check-suite feedback on this head, then
         # ``should_defer_pr_iteration`` (GitHub sweep) only if something is
@@ -218,12 +221,11 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
     feedback = Feedback(source=source)
     # One identity for both decisions below, so the queue line and the trigger
     # line of a single check suite are found by the same search.
-    log_ctx = PrIterationLogContext.for_run(
-        logger,
-        agent_state,
-        organization_id,
-        autofix_run.group_id,
-        iteration=LogCtxIteration.TRIGGERED,
+    log_ctx = bootstrap_iteration(
+        logger=logger,
+        run_state=agent_state,
+        organization_id=organization_id,
+        group_id=autofix_run.group_id,
     )
 
     # Report failures here rather than only in the SCM event stream so they

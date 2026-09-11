@@ -6,9 +6,8 @@ from pydantic import BaseModel, ValidationError
 
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.pr_iteration.emit import open_pr_iteration_details
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
-from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.utils.redis import load_redis_script, redis_clusters
 
 logger = logging.getLogger(__name__)
@@ -58,27 +57,7 @@ def try_enqueue_autofix_feedback(
         with redis.pipeline() as pipe:
             pipe.rpush(key, item.json())
             pipe.expire(key, _QUEUE_TTL_SECONDS)
-            queue_length, _ = pipe.execute()
-
-        # Landing on an empty queue starts an iteration; later feedback joins the
-        # one already open, which is why the buffer is opened only here.
-        if queue_length == 1:
-            open_pr_iteration_details(
-                log_ctx=log_ctx,
-                run_state=run_state,
-                organization_id=organization_id,
-                group_id=group_id,
-            )
-
-        # Rebuilt now the row this item opened (or joined) exists, so the line
-        # below is filed under that row rather than the last triggered one.
-        log_ctx = PrIterationLogContext.for_run(
-            log_ctx.logger,
-            run_state,
-            organization_id,
-            group_id,
-            iteration=LogCtxIteration.UNTRIGGERED,
-        )
+            pipe.execute()
 
     # One log name for both branches, emitted after the push so ``queued`` means
     # the feedback is actually in Redis: ``outcome`` says which way it went and
