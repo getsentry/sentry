@@ -89,6 +89,7 @@ class UsecaseId(Enum):
     DEBUG_FILES = "debug_files"
     PROFILE_ATTACHMENTS = "profile_attachments"
     PREPROD = "preprod"
+    SNAPSHOTS = "snapshots"
 
     def create(self) -> ObjectstoreClientUsecase:
         match self:
@@ -109,6 +110,11 @@ class UsecaseId(Enum):
                     expiration_policy=TimeToLive(timedelta(days=default_attachment_retention())),
                 )
             case UsecaseId.PREPROD:
+                return ObjectstoreClientUsecase(
+                    self.value,
+                    expiration_policy=TimeToIdle(timedelta(days=30)),
+                )
+            case UsecaseId.SNAPSHOTS:
                 return ObjectstoreClientUsecase(
                     self.value,
                     expiration_policy=TimeToIdle(timedelta(days=30)),
