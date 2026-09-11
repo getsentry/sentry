@@ -19,8 +19,8 @@ from sentry.seer.models.night_shift import (
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunPullRequest
 from sentry.seer.monitor_cleanup.constants import FEATURE
 from sentry.seer.monitor_cleanup.results import (
-    load_monitor_cleanup_results,
-    load_project_monitor_cleanup_result,
+    parse_monitor_cleanup_results,
+    parse_project_monitor_cleanup_result,
 )
 from sentry.seer.monitor_cleanup.runs import (
     create_monitor_cleanup_run,
@@ -421,7 +421,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
                 update={"project_id": other_project.id, "findings": [], "monitors_scanned": 1}
             )
         )
-        outputs = load_monitor_cleanup_results(artifact, self.organization, self.user.id)
+        outputs = parse_monitor_cleanup_results(artifact, self.organization, self.user.id)
         run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
         finish_run(run.run_id, organization_id=self.organization.id, outputs=outputs)
         run.refresh_from_db()
@@ -435,7 +435,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
 
     def test_empty_scan_completes(self) -> None:
         artifact = OrganizationMonitorCleanupArtifact(scan_status="complete", projects=[])
-        outputs = load_monitor_cleanup_results(artifact, self.organization, self.user.id)
+        outputs = parse_monitor_cleanup_results(artifact, self.organization, self.user.id)
         run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
         finish_run(run.run_id, organization_id=self.organization.id, outputs=outputs)
         run.refresh_from_db()
@@ -457,14 +457,16 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         self.organization.flags.allow_joinleave = False
         self.organization.save()
         with pytest.raises(ValueError, match="no longer accessible"):
-            load_monitor_cleanup_results(self.organization_artifact(), self.organization, member.id)
+            parse_monitor_cleanup_results(
+                self.organization_artifact(), self.organization, member.id
+            )
 
     def test_rejects_foreign_result_projects(self) -> None:
         artifact = self.organization_artifact()
         foreign = self.create_project(organization=self.create_organization())
         artifact.projects[0].project_id = foreign.id
         with pytest.raises(ValueError, match="no longer accessible"):
-            load_monitor_cleanup_results(artifact, self.organization, self.user.id)
+            parse_monitor_cleanup_results(artifact, self.organization, self.user.id)
 
     def test_trigger_creates_agent_run(self) -> None:
         response = self.trigger()
@@ -704,7 +706,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
 
     def test_validates_and_persists_result_once(self) -> None:
         run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
-        output = load_project_monitor_cleanup_result(
+        output = parse_project_monitor_cleanup_result(
             self.artifact(), self.organization.id, self.project.id
         )
         finish_run(run.run_id, organization_id=self.organization.id, outputs=[output])
@@ -801,13 +803,13 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         other_project = self.create_project(organization=self.organization)
         other = self.create_detector(project=other_project, type="metric_issue")
         with pytest.raises(KeyError):
-            load_project_monitor_cleanup_result(
+            parse_project_monitor_cleanup_result(
                 self.artifact(str(other.id)), self.organization.id, self.project.id
             )
 
     def test_history_does_not_expose_inaccessible_projects(self) -> None:
         run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
-        outputs = load_monitor_cleanup_results(
+        outputs = parse_monitor_cleanup_results(
             self.organization_artifact(), self.organization, self.user.id
         )
         finish_run(run.run_id, organization_id=self.organization.id, outputs=outputs)
@@ -838,7 +840,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         )
 
     def test_overlap_has_no_keeper(self) -> None:
-        output = load_project_monitor_cleanup_result(
+        output = parse_project_monitor_cleanup_result(
             self.finding_artifact(), self.organization.id, self.project.id
         )
         assert output["schemaVersion"] == 1
@@ -856,7 +858,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         artifact.findings += self.finding_artifact(
             kind="duplicate_notifications", alert_ids=[str(workflow.id)]
         ).findings
-        output = load_project_monitor_cleanup_result(
+        output = parse_project_monitor_cleanup_result(
             artifact, self.organization.id, self.project.id
         )
         assert output["schemaVersion"] == 1
@@ -869,7 +871,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
     def test_rejects_cross_organization_alert(self) -> None:
         workflow = self.create_workflow(organization=self.create_organization())
         with pytest.raises(KeyError):
-            load_project_monitor_cleanup_result(
+            parse_project_monitor_cleanup_result(
                 self.finding_artifact(kind="duplicate_notifications", alert_ids=[str(workflow.id)]),
                 self.organization.id,
                 self.project.id,
@@ -887,7 +889,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
                 }
             ]
         )
-        output = load_project_monitor_cleanup_result(
+        output = parse_project_monitor_cleanup_result(
             artifact, self.organization.id, self.project.id
         )
         assert output["schemaVersion"] == 1

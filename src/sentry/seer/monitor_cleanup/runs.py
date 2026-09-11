@@ -19,7 +19,7 @@ from sentry.seer.agent.types import FeatureRunStatus
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.seer.monitor_cleanup.constants import FEATURE, FEATURE_ID
-from sentry.seer.monitor_cleanup.results import load_monitor_cleanup_results
+from sentry.seer.monitor_cleanup.results import parse_monitor_cleanup_results
 from sentry.seer.monitor_cleanup.schemas import (
     RESPONSE_VERSION,
     MonitorCleanupOutput,
@@ -108,7 +108,7 @@ def deliver_monitor_cleanup_result(
         return
     try:
         response = MonitorCleanupResponseV1.parse_obj(result)
-        outputs = load_monitor_cleanup_results(
+        outputs = parse_monitor_cleanup_results(
             response.data, agent_run.run.organization, agent_run.run.user_id
         )
     except Exception:

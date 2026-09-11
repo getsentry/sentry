@@ -18,10 +18,10 @@ from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
 
 
-def load_monitor_cleanup_results(
+def parse_monitor_cleanup_results(
     artifact: OrganizationMonitorCleanupArtifact, organization: Organization, user_id: int
 ) -> list[MonitorCleanupOutput]:
-    """Load accessible projects and resources into results without modifying them."""
+    """Parse Seer findings into stored results, resolving resource IDs with read-only lookups."""
     project_ids = [project.project_id for project in artifact.projects]
     projects = {
         project.id: project
@@ -38,13 +38,13 @@ def load_monitor_cleanup_results(
     outputs: list[MonitorCleanupOutput] = []
     for project_artifact in artifact.projects:
         project = projects[project_artifact.project_id]
-        output = load_project_monitor_cleanup_result(project_artifact, organization.id, project.id)
+        output = parse_project_monitor_cleanup_result(project_artifact, organization.id, project.id)
         output["projectSlug"] = project.slug
         outputs.append(output)
     return outputs
 
 
-def load_project_monitor_cleanup_result(
+def parse_project_monitor_cleanup_result(
     artifact: MonitorCleanupArtifact, organization_id: int, project_id: int
 ) -> MonitorCleanupOutput:
     findings = artifact.findings
