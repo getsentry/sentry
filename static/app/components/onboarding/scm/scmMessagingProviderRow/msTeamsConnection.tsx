@@ -81,6 +81,7 @@ function MsTeamsConnection({
                   });
                   trackAnalytics('onboarding.scm_messaging_msteams_handoff_started', {
                     organization,
+                    provider: 'msteams',
                   });
                 }
                 setIsWaiting(true);

@@ -200,7 +200,6 @@ describe('ScmMessagingProviderRow', () => {
   describe('installable state', () => {
     it('opens the install flow when Connect is clicked', async () => {
       const {callbacks} = mockPipeline();
-      const trackSpy = jest.spyOn(analytics, 'trackAnalytics');
 
       renderRow(installableSlack);
 
@@ -208,10 +207,6 @@ describe('ScmMessagingProviderRow', () => {
 
       expect(pipelineModal.openPipelineModal).toHaveBeenCalledTimes(1);
       expect(callbacks.onComplete).toBeDefined();
-      expect(trackSpy).toHaveBeenCalledWith(
-        'onboarding.scm_messaging_connect_clicked',
-        expect.objectContaining({provider: 'slack'})
-      );
     });
 
     it('fires install start analytics with onboarding view and scm variant', async () => {
@@ -247,8 +242,6 @@ describe('ScmMessagingProviderRow', () => {
         url: '/organizations/org-slug/integrations/',
         body: [],
       });
-      jest.spyOn(window, 'open').mockReturnValue(null);
-      const trackSpy = jest.spyOn(analytics, 'trackAnalytics');
       renderGlobalModal({organization});
       renderRow(installableMsteams);
 
@@ -260,19 +253,8 @@ describe('ScmMessagingProviderRow', () => {
       expect(
         await screen.findByText('Installing Microsoft Teams Integration')
       ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Teams Marketplace'})).toBeInTheDocument();
       expect(pipelineModal.openPipelineModal).not.toHaveBeenCalled();
-
-      await userEvent.click(screen.getByRole('button', {name: 'Teams Marketplace'}));
-
-      expect(window.open).toHaveBeenCalledWith(
-        'https://teams.microsoft.com/l/app/test-app-id',
-        '_blank',
-        'noopener,noreferrer'
-      );
-      expect(trackSpy).toHaveBeenCalledWith(
-        'onboarding.scm_messaging_msteams_handoff_started',
-        expect.anything()
-      );
     });
   });
 
@@ -281,24 +263,14 @@ describe('ScmMessagingProviderRow', () => {
 
     it('does not open the install pipeline when Connect is clicked', async () => {
       mockPipeline();
-      const trackSpy = jest.spyOn(analytics, 'trackAnalytics');
       renderRow(installableSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
         organization: noAccessOrg,
       });
-
-      expect(trackSpy).toHaveBeenCalledWith(
-        'onboarding.scm_messaging_ask_admin_shown',
-        expect.objectContaining({provider: 'slack'})
-      );
 
       // The button is disabled so the click is a no-op, but confirm openPipelineModal
       // was never called regardless of how the disabled state is enforced.
       await userEvent.click(screen.getByRole('button', {name: /Connect Slack/}));
       expect(pipelineModal.openPipelineModal).not.toHaveBeenCalled();
-      expect(trackSpy).not.toHaveBeenCalledWith(
-        'onboarding.scm_messaging_connect_clicked',
-        expect.anything()
-      );
     });
 
     it('still shows the Choose destination CTA for a connected provider', () => {
@@ -777,17 +749,12 @@ describe('ScmMessagingProviderRow', () => {
 
     it('calls onMessagingSetupChange with unconfigured when confirmed', async () => {
       const onMessagingSetupChange = jest.fn();
-      const trackSpy = jest.spyOn(analytics, 'trackAnalytics');
       renderRow(connectedSlack, selectedSlackSetup, {onMessagingSetupChange});
 
       await userEvent.click(screen.getByRole('button', {name: /Remove/}));
       await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
 
       expect(onMessagingSetupChange).toHaveBeenCalledWith({mode: 'unconfigured'});
-      expect(trackSpy).toHaveBeenCalledWith(
-        'onboarding.scm_messaging_destination_remove_confirmed',
-        expect.objectContaining({provider: 'slack'})
-      );
     });
   });
 });

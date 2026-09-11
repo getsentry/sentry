@@ -95,7 +95,6 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
-  'onboarding.scm_messaging_ask_admin_shown': ScmMessagingProviderParams;
   'onboarding.scm_messaging_channel_validation_failed': ScmMessagingProviderParams;
   'onboarding.scm_messaging_choose_destination_cancelled': ScmMessagingProviderParams;
   'onboarding.scm_messaging_choose_destination_clicked': ScmMessagingProviderParams;
@@ -113,7 +112,7 @@ export type OnboardingEventParameters = {
     // integration that can receive issue alerts.
     outcome: 'connected' | 'not_connected';
   };
-  'onboarding.scm_messaging_msteams_handoff_started': Record<string, unknown>;
+  'onboarding.scm_messaging_msteams_handoff_started': ScmMessagingProviderParams;
   'onboarding.scm_messaging_providers_retry_clicked': Record<string, unknown>;
   'onboarding.scm_messaging_step_viewed': Record<string, unknown>;
   'onboarding.scm_next_step_clicked': {
@@ -245,7 +244,6 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.scm_dsn_copied': 'Onboarding: SCM DSN Copied',
   'onboarding.scm_js_loader_npm_docs_shown':
     'Onboarding: SCM JS Loader Switch to npm Instructions',
-  'onboarding.scm_messaging_ask_admin_shown': 'Onboarding: SCM Messaging Ask Admin Shown',
   'onboarding.scm_messaging_channel_validation_failed':
     'Onboarding: SCM Messaging Channel Validation Failed',
   'onboarding.scm_messaging_choose_destination_cancelled':

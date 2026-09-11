@@ -1,4 +1,4 @@
-import {useCallback, useEffect} from 'react';
+import {useCallback} from 'react';
 import type {ReactNode} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -200,16 +200,6 @@ export function ScmMessagingProviderRow({
     isRefetchingIntegrations,
   });
 
-  const isInstallForbidden = visualState === 'install-forbidden';
-  useEffect(() => {
-    if (isInstallForbidden) {
-      trackAnalytics('onboarding.scm_messaging_ask_admin_shown', {
-        organization,
-        provider: resolvedProvider.providerKey,
-      });
-    }
-  }, [isInstallForbidden, organization, resolvedProvider.providerKey]);
-
   const handleConnect = useCallback(() => {
     if (resolvedProvider.providerKey === 'msteams') {
       openMsTeamsConnectionModal(resolvedProvider.provider, () => {
@@ -238,35 +228,25 @@ export function ScmMessagingProviderRow({
     onInstallComplete,
   ]);
 
+  const rowEventParams = {organization, provider: resolvedProvider.providerKey};
+
   const handleConnectClick = () => {
-    trackAnalytics('onboarding.scm_messaging_connect_clicked', {
-      organization,
-      provider: resolvedProvider.providerKey,
-    });
+    trackAnalytics('onboarding.scm_messaging_connect_clicked', rowEventParams);
     handleConnect();
   };
   const handleRetryInstall = () => {
-    trackAnalytics('onboarding.scm_messaging_install_retry_clicked', {
-      organization,
-      provider: resolvedProvider.providerKey,
-    });
+    trackAnalytics('onboarding.scm_messaging_install_retry_clicked', rowEventParams);
     handleConnect();
   };
 
   const activateRow = (mode: 'configuring' | 'removing') =>
     onActiveRowChange({providerKey: resolvedProvider.providerKey, mode});
   const handleChooseDestination = () => {
-    trackAnalytics('onboarding.scm_messaging_choose_destination_clicked', {
-      organization,
-      provider: resolvedProvider.providerKey,
-    });
+    trackAnalytics('onboarding.scm_messaging_choose_destination_clicked', rowEventParams);
     activateRow('configuring');
   };
   const handleEditDestination = () => {
-    trackAnalytics('onboarding.scm_messaging_destination_edit_clicked', {
-      organization,
-      provider: resolvedProvider.providerKey,
-    });
+    trackAnalytics('onboarding.scm_messaging_destination_edit_clicked', rowEventParams);
     activateRow('configuring');
   };
   const handleCancelConfiguring = () => {
@@ -276,23 +256,22 @@ export function ScmMessagingProviderRow({
       isConfigured
         ? 'onboarding.scm_messaging_destination_edit_cancelled'
         : 'onboarding.scm_messaging_choose_destination_cancelled',
-      {organization, provider: resolvedProvider.providerKey}
+      rowEventParams
     );
     onActiveRowChange(null);
   };
-  const handleStartRemoving = () => activateRow('removing');
   const handleCancelRemoving = () => {
-    trackAnalytics('onboarding.scm_messaging_destination_remove_cancelled', {
-      organization,
-      provider: resolvedProvider.providerKey,
-    });
+    trackAnalytics(
+      'onboarding.scm_messaging_destination_remove_cancelled',
+      rowEventParams
+    );
     onActiveRowChange(null);
   };
   const handleConfirmRemove = () => {
-    trackAnalytics('onboarding.scm_messaging_destination_remove_confirmed', {
-      organization,
-      provider: resolvedProvider.providerKey,
-    });
+    trackAnalytics(
+      'onboarding.scm_messaging_destination_remove_confirmed',
+      rowEventParams
+    );
     onMessagingSetupChange({mode: 'unconfigured'});
     onActiveRowChange(null);
   };
@@ -373,7 +352,7 @@ export function ScmMessagingProviderRow({
                 onConnect={handleConnectClick}
                 onChooseDestination={handleChooseDestination}
                 onEditDestination={handleEditDestination}
-                onStartRemoving={handleStartRemoving}
+                onStartRemoving={() => activateRow('removing')}
                 onCancelRemoving={handleCancelRemoving}
                 onConfirmRemove={handleConfirmRemove}
               />
