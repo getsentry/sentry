@@ -120,7 +120,7 @@ function ScheduledChanges({
       gap="xl"
       padding="xl 0"
       width="100%"
-      maxWidth="445px"
+      maxWidth={{zero: '100%', md: '445px'}}
       border="primary"
       radius="md"
     >
