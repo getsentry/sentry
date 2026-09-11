@@ -1,5 +1,4 @@
 import {Fragment, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -13,6 +12,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 
 import type {Subscription} from 'getsentry/types';
@@ -59,18 +59,23 @@ function AddGiftBudgetModal({
         budget => budget.id === activeBudgetId
       );
 
-      return api.requestPromise(`/customers/${organization.slug}/`, {
-        method: 'PUT',
-        data: {
-          freeReservedBudget: {
-            id: activeBudgetId,
-            freeBudget: value.giftAmount * 100,
-            categories: Object.keys(selectedBudget?.categories ?? []),
+      return api.requestPromise(
+        getApiUrl('/customers/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        {
+          method: 'PUT',
+          data: {
+            freeReservedBudget: {
+              id: activeBudgetId,
+              freeBudget: value.giftAmount * 100,
+              categories: Object.keys(selectedBudget?.categories ?? []),
+            },
+            ticketUrl: value.ticketUrl || null,
+            notes: value.notes,
           },
-          ticketUrl: value.ticketUrl || null,
-          notes: value.notes,
-        },
-      });
+        }
+      );
     },
     onSuccess: () => {
       addSuccessMessage('Added gifted budget amount.');
@@ -102,9 +107,14 @@ function AddGiftBudgetModal({
         )}
         <form.AppForm form={form}>
           {reservedBudgetOptions.map(budget => (
-            <BudgetCard
+            <Container
               key={budget.id}
-              isSelected={activeBudgetId === budget.id}
+              padding="xl"
+              margin="md 0"
+              border="primary"
+              radius="md"
+              background={activeBudgetId === budget.id ? 'secondary' : undefined}
+              cursor="pointer"
               onClick={() => setSelectedBudgetId(budget.id)}
             >
               <Flex justify="between" marginBottom="md">
@@ -150,7 +160,7 @@ function AddGiftBudgetModal({
                   )}
                 </form.AppField>
               )}
-            </BudgetCard>
+            </Container>
           ))}
           {reservedBudgetOptions.length === 0 && (
             <div>No reserved budgets available.</div>
@@ -180,7 +190,9 @@ function AddGiftBudgetModal({
             </form.AppField>
             <Flex gap="md" justify="end">
               <Button onClick={closeModal}>Cancel</Button>
-              <form.SubmitButton>Confirm</form.SubmitButton>
+              <Button type="submit" variant="primary">
+                Confirm
+              </Button>
             </Flex>
           </Stack>
         </form.AppForm>
@@ -196,12 +208,3 @@ export const addGiftBudgetAction = (opts: Options) => {
     closeEvents: 'escape-key',
   });
 };
-
-const BudgetCard = styled('div')<{isSelected: boolean}>`
-  padding: ${p => p.theme.space.xl};
-  margin: ${p => p.theme.space.md} 0;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  background-color: ${p => (p.isSelected ? p.theme.colors.surface200 : 'transparent')};
-  cursor: pointer;
-`;

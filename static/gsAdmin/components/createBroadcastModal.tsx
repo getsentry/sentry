@@ -11,6 +11,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
 import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
 import type {Broadcast} from 'sentry/types/system';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -29,7 +30,7 @@ export function CreateBroadcastModal({
   const updateBroadcast = useMutation({
     mutationFn: (data: Record<string, unknown>) => {
       return fetchMutation<Broadcast>({
-        url: '/broadcasts/',
+        url: getApiUrl('/broadcasts/'),
         method: 'POST',
         data,
       });
@@ -87,11 +88,13 @@ export function CreateBroadcastModal({
             dateExpires: moment().add(7, 'days').format('YYYY-MM-DDTHH:mm'),
           }}
           submitLabel="Save"
-          footer={({SubmitButton, disabled}) => (
+          footer={() => (
             <Footer>
               <Flex gap="md" justify="end">
                 <Button onClick={closeModal}>Cancel</Button>
-                <SubmitButton disabled={disabled}>Save</SubmitButton>
+                <Button type="submit" variant="primary">
+                  Save
+                </Button>
               </Flex>
             </Footer>
           )}

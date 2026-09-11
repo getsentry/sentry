@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
-import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -10,8 +9,10 @@ import {useModal} from '@sentry/scraps/modal';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
@@ -44,14 +45,17 @@ const clientSchema = z.object({
 });
 
 function ClientDetailsForm({clientDetails}: {clientDetails: ClientDetails}) {
-  const api = useApi();
   const mutation = useMutation({
     mutationFn: (data: z.infer<typeof clientSchema>) =>
-      api.requestPromise(`/_admin/instance-level-oauth/${clientDetails.clientID}/`, {
+      fetchMutation({
+        url: getApiUrl('/_admin/instance-level-oauth/$clientId/', {
+          path: {clientId: clientDetails.clientID ?? ''},
+        }),
         method: 'PUT',
         data,
       }),
     onSuccess: () => testableWindowLocation.reload(),
+    onError: () => addErrorMessage('Unable to update client settings.'),
   });
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -137,7 +141,9 @@ function ClientDetailsForm({clientDetails}: {clientDetails: ClientDetails}) {
         <p>
           <b>Date added:</b> {clientDetails.createdAt}
         </p>
-        <form.SubmitButton>Save Client Settings</form.SubmitButton>
+        <Button type="submit" variant="primary">
+          Save Client Settings
+        </Button>
       </Stack>
     </form.AppForm>
   );
@@ -156,7 +162,9 @@ export function InstanceLevelOAuthDetails() {
   const fetchClientData = useCallback(async () => {
     try {
       const response = await api.requestPromise(
-        `/_admin/instance-level-oauth/${params.clientID}/`,
+        getApiUrl('/_admin/instance-level-oauth/$clientId/', {
+          path: {clientId: params.clientID},
+        }),
         {}
       );
 
@@ -195,8 +203,8 @@ export function InstanceLevelOAuthDetails() {
             title={`Details For Instance Level OAuth Client: ${clientDetails.name}`}
           />
           <ClientDetailsForm clientDetails={clientDetails} />
-          <Flex justify="right">
-            <StyledButton
+          <Flex justify="right" padding="lg 0">
+            <Button
               size="sm"
               variant="danger"
               onClick={() =>
@@ -210,7 +218,7 @@ export function InstanceLevelOAuthDetails() {
               }
             >
               Delete client
-            </StyledButton>
+            </Button>
           </Flex>
         </Fragment>
       )}
@@ -218,8 +226,3 @@ export function InstanceLevelOAuthDetails() {
     </div>
   );
 }
-
-const StyledButton = styled(Button)`
-  margin-top: 20px;
-  margin-bottom: 15px;
-`;

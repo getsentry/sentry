@@ -48,7 +48,7 @@ export function MergeAccountsModal(props: Props) {
     try {
       const encodedUsername = encodeURIComponent(username);
       const data = await api.requestPromise(
-        `/users/${userId}/merge-accounts/?username=${encodedUsername}`
+        `${getApiUrl('/users/$userId/merge-accounts/', {path: {userId}})}?username=${encodedUsername}`
       );
       setApiQueryData(
         queryClient,
@@ -70,10 +70,13 @@ export function MergeAccountsModal(props: Props) {
     mutationFn: async () => {
       const userIds = selectedUserIds;
       addLoadingMessage();
-      await api.requestPromise(`/users/${userId}/merge-accounts/`, {
-        method: 'POST',
-        data: {users: userIds},
-      });
+      await api.requestPromise(
+        getApiUrl('/users/$userId/merge-accounts/', {path: {userId}}),
+        {
+          method: 'POST',
+          data: {users: userIds},
+        }
+      );
     },
     onSuccess: () => {
       clearIndicators();

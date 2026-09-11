@@ -1,18 +1,22 @@
 import {Fragment, useEffect} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
+import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
-import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {User} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 
 type Props = ModalRenderProps & {
   onSubmit: (user: User) => void;
@@ -20,8 +24,6 @@ type Props = ModalRenderProps & {
 };
 
 export function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}: Props) {
-  const api = useApi({persistInFlight: true});
-
   const {
     data: availablePermissions,
     isPending: availablePermissionsLoading,
@@ -59,17 +61,24 @@ export function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}:
       const removedPerms = permissions.filter(perm => !data[perm]);
 
       await Promise.all([
-        api.requestPromise(`/users/${user.id}/`, {
+        fetchMutation({
+          url: getApiUrl('/users/$userId/', {path: {userId: user.id}}),
           method: 'PUT',
           data: {isSuperuser: data.isSuperuser, isStaff: data.isStaff},
         }),
         ...addedPerms.map(perm =>
-          api.requestPromise(`/users/${user.id}/permissions/${perm}/`, {
+          fetchMutation({
+            url: getApiUrl('/users/$userId/permissions/$permissionName/', {
+              path: {userId: user.id, permissionName: perm},
+            }),
             method: 'POST',
           })
         ),
         ...removedPerms.map(perm =>
-          api.requestPromise(`/users/${user.id}/permissions/${perm}/`, {
+          fetchMutation({
+            url: getApiUrl('/users/$userId/permissions/$permissionName/', {
+              path: {userId: user.id, permissionName: perm},
+            }),
             method: 'DELETE',
           })
         ),
@@ -86,6 +95,7 @@ export function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}:
       onSubmit(newUser);
       closeModal();
     },
+    onError: () => addErrorMessage('Unable to update user permissions.'),
     onSettled: clearIndicators,
   });
 
@@ -159,7 +169,9 @@ export function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}:
                 )}
               </form.AppField>
             ))}
-            <form.SubmitButton>Save Changes</form.SubmitButton>
+            <Button type="submit" variant="primary">
+              Save Changes
+            </Button>
           </Stack>
         </form.AppForm>
       </Body>
