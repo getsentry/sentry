@@ -322,7 +322,7 @@ describe('ScmCreateProject', () => {
     // platform, and project-details sections are all present at once.
     expect(await screen.findByRole('heading', {name: 'Repository'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Platform'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Project name'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Project name'})).toBeInTheDocument();
 
     // Nothing is filled in yet, so the primary action stays disabled.
     expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
@@ -389,7 +389,7 @@ describe('ScmCreateProject', () => {
 
     const projectName = screen.getByPlaceholderText('project-name');
     expect(projectName).toHaveValue('python-django');
-    await userEvent.type(screen.getByLabelText('Select a Team'), '{keyDown}');
+    await userEvent.type(screen.getByLabelText('Team'), '{keyDown}');
     await userEvent.click(await screen.findByText('#selected-team'));
 
     await userEvent.click(screen.getByText('Django'));
@@ -437,10 +437,9 @@ describe('ScmCreateProject', () => {
       initialRouterConfig: returningRouterConfig,
     });
 
-    expect(
-      await screen.findByRole('heading', {name: 'Project name'})
-    ).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('project-name')).toHaveValue('my-restored-name');
+    expect(await screen.findByRole('textbox', {name: 'Project name'})).toHaveValue(
+      'my-restored-name'
+    );
   });
 
   it('re-derives a restored untouched name on a platform change', async () => {
@@ -539,6 +538,25 @@ describe('ScmCreateProject', () => {
       expect(router.location.pathname).toContain('/python/getting-started/');
     });
     expect(router.location.query.projectCreationVariant).toBe('scm');
+  });
+
+  it('creates the project on Enter in the project name field', async () => {
+    persistWizardSession();
+    const {createRequest} = mockProjectCreation('python', 'python');
+
+    render(<ScmCreateProject />, {
+      organization,
+      initialRouterConfig: returningRouterConfig,
+    });
+
+    await userEvent.type(
+      await screen.findByRole('textbox', {name: 'Project name'}),
+      '{Enter}'
+    );
+
+    await waitFor(() => {
+      expect(createRequest).toHaveBeenCalled();
+    });
   });
 
   it('forwards the selected products to getting-started as the product query', async () => {
