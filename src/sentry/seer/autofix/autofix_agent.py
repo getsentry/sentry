@@ -38,7 +38,7 @@ from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.feature.dispatch import (
-    AutofixFeatureTriggerArgs,
+    AutofixFeatureArgs,
     trigger_autofix_feature,
 )
 from sentry.seer.autofix.feature.models import RCAStepArgs, RepoPin, RepoPins
@@ -426,14 +426,14 @@ def _resolve_default_branch(
     return None
 
 
-def _build_base_shas_metadata(group: Group, referrer: AutofixReferrer) -> str | None:
+def _build_repo_pins(group: Group, referrer: AutofixReferrer) -> RepoPins | None:
     preference = read_preference_from_sentry_db(group.project)
     # Imported lazily to avoid a circular import: sentry.scm pulls in the
     # github/slack integrations, which import notifications templates that
     # import back into sentry.seer.autofix.
     from sentry.scm import factory as scm_factory
 
-    base_shas: dict[str, dict[str, str]] = {}
+    repo_pins: RepoPins | None = None
     for repo in preference.repositories:
         if repo.repository_id is None:
             continue
@@ -442,39 +442,31 @@ def _build_base_shas_metadata(group: Group, referrer: AutofixReferrer) -> str | 
         try:
             scm = scm_factory.new(group.organization.id, repo.repository_id, referrer.value)
             if repo.branch_name:
-                base_branch: str | None = repo.branch_name
+                branch: str | None = repo.branch_name
             elif isinstance(scm, GetRepositoryProtocol):
-                base_branch = scm.get_repository()["data"]["default_branch"]
+                branch = scm.get_repository()["data"]["default_branch"]
             else:
                 continue
-            if not base_branch:
+            if not branch:
                 continue
             if not isinstance(scm, GetBranchProtocol):
                 continue
-            base_sha = scm.get_branch(base_branch)["data"]["sha"]
+            sha = scm.get_branch(branch)["data"]["sha"]
         except Exception:
             logger.exception(
                 "autofix.base_shas.resolve_failed",
                 extra={"repo": full_name, "group_id": group.id},
             )
+            logger.exception(
+                "autofix.repo_pins.resolve_failed",
+                extra={"repo": full_name, "group_id": group.id},
+            )
             continue
 
-        if base_sha:
-            base_shas[full_name] = {"base_sha": base_sha, "base_branch": base_branch}
+        if sha:
+            repo_pins[full_name] = RepoPin(sha=sha, branch=branch, base_sha=sha, base_branch=branch)
 
-    if not base_shas:
-        return None
-    return json.dumps(base_shas)
-
-
-def _parse_repo_pins(repo_pins: str | None) -> RepoPins | None:
-    if repo_pins is None:
-        return None
-
-    return {
-        repo_name: RepoPin.parse_obj(repo_pin)
-        for repo_name, repo_pin in json.loads(repo_pins).items()
-    }
+    return repo_pins
 
 
 def trigger_autofix_agent(
@@ -529,17 +521,15 @@ def trigger_autofix_agent(
         "organizations:autofix-rca-in-seer", group.organization, actor=user
     )
     if step == AutofixStep.ROOT_CAUSE and run_id is None and use_seer_rca_feature:
-        args = AutofixFeatureTriggerArgs(
+        args = AutofixFeatureArgs(
             step=step,
             referrer=referrer,
+            step_args=RCAStepArgs(repo_pins=_build_repo_pins(group, referrer)),
             user_context=user_context,
             stopping_point=stopping_point,
             allow_free_cohort=allow_free_cohort,
             user=user,
             enable_bash_tools=enable_bash_tools,
-            step_args=RCAStepArgs(
-                repo_pins=_parse_repo_pins(_build_base_shas_metadata(group, referrer))
-            ),
         )
         feature_run = trigger_autofix_feature(group, args)
         feature_run_id = feature_run.seer_run_state_id
@@ -621,9 +611,12 @@ def trigger_autofix_agent(
         prompt_metadata["iteration_id"] = str(iteration_id)
 
     if step == AutofixStep.ROOT_CAUSE:
-        base_shas = _build_base_shas_metadata(group, referrer)
-        if base_shas:
-            prompt_metadata["base_shas"] = base_shas
+        repo_pins = _build_repo_pins(group, referrer)
+        if repo_pins:
+            repo_pins_str = json.dumps(repo_pins)
+            # Backwards compatibility, use repo_pins in future usages
+            prompt_metadata["base_shas"] = repo_pins_str
+            prompt_metadata["repo_pins"] = repo_pins_str
 
     artifact_key = step.value if config.artifact_schema else None
     artifact_schema = config.artifact_schema

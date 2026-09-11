@@ -36,10 +36,10 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
-class AutofixFeatureTriggerArgs:
+class AutofixFeatureArgs:
     step: AutofixStep
     referrer: AutofixReferrer
-    step_args: RCAStepArgs | None = None
+    step_args: RCAStepArgs
     user_context: str | None = None
     stopping_point: AutofixStoppingPoint | None = None
     allow_free_cohort: bool = False
@@ -50,11 +50,11 @@ class AutofixFeatureTriggerArgs:
 
 def trigger_autofix_feature(
     group: Group,
-    trigger: AutofixFeatureTriggerArgs,
+    args: AutofixFeatureArgs,
 ) -> SeerRun:
     # Free cohort orgs bypass quota only when called from night shift
     # (allow_free_cohort=True). Not exposed via the API.
-    skip_quota = trigger.allow_free_cohort and is_free_cohort_org(group.organization)
+    skip_quota = args.allow_free_cohort and is_free_cohort_org(group.organization)
     if not skip_quota:
         has_budget: bool = quotas.backend.check_seer_quota(
             org_id=group.organization.id,
@@ -66,12 +66,12 @@ def trigger_autofix_feature(
                 extra={
                     "group_id": group.id,
                     "organization_id": group.organization.id,
-                    "referrer": trigger.referrer.value,
+                    "referrer": args.referrer.value,
                 },
             )
             raise NoSeerQuotaException()
 
-    rca_step_args = trigger.step_args or RCAStepArgs()
+    rca_step_args = args.step_args or RCAStepArgs()
     payload = AutofixFeaturePayload(
         group_id=group.id,
         project_id=group.project_id,
@@ -83,39 +83,37 @@ def trigger_autofix_feature(
         tweaks=AutofixRCATweaks(
             intelligence_level=rca_step_args.intelligence_level,
             reasoning_effort=rca_step_args.reasoning_effort,
-            user_context=trigger.user_context,
+            user_context=args.user_context,
         ),
-        step=trigger.step,
-        user_context=trigger.user_context,
-        stopping_point=(
-            trigger.stopping_point.value if trigger.stopping_point is not None else None
-        ),
-        step_args=trigger.step_args,
+        step=args.step,
+        user_context=args.user_context,
+        stopping_point=(args.stopping_point.value if args.stopping_point is not None else None),
+        step_args=args.step_args,
     )
 
     client = SeerAgentClient(
         organization=group.organization,
         project=group.project,
         group=group,
-        user=trigger.user,
-        enable_bash_tools=trigger.enable_bash_tools,
+        user=args.user,
+        enable_bash_tools=args.enable_bash_tools,
     )
 
     extras: dict[str, Any] = {
-        "referrer": trigger.referrer.value,
+        "referrer": args.referrer.value,
     }
     # Store the stopping point here for delivery to use when advancing steps.
-    if trigger.stopping_point is not None:
-        extras["stopping_point"] = trigger.stopping_point.value
+    if args.stopping_point is not None:
+        extras["stopping_point"] = args.stopping_point.value
 
     run = client.start_feature_run(
         feature_id=FEATURE_ID,
         payload=payload.dict(),
         title=f"Autofix RCA — {payload.short_id}",
-        flush=trigger.flush,
+        flush=args.flush,
         extras=extras,
-        referrer=trigger.referrer.value,
-        user_org_context=collect_user_org_context(trigger.user, group.organization),
+        referrer=args.referrer.value,
+        user_org_context=collect_user_org_context(args.user, group.organization),
         proxy_headers=get_proxy_headers(),
         agent_run_options=AgentRunOptions(
             is_context_engine_enabled=False,
@@ -128,7 +126,7 @@ def trigger_autofix_feature(
             group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
         )
 
-    metrics.incr("autofix_feature.trigger", tags={"referrer": trigger.referrer.value})
+    metrics.incr("autofix_feature.trigger", tags={"referrer": args.referrer.value})
 
     logger.info(
         "autofix_feature.dispatch.started",
@@ -136,12 +134,12 @@ def trigger_autofix_feature(
             "group_id": group.id,
             "organization_id": group.organization.id,
             "run_id": run.seer_run_state_id,
-            "referrer": trigger.referrer.value,
-            "stopping_point": trigger.stopping_point,
-            "flush": trigger.flush,
-            "allow_free_cohort": trigger.allow_free_cohort,
-            "user_context": trigger.user_context,
-            "enable_bash_tools": trigger.enable_bash_tools,
+            "referrer": args.referrer.value,
+            "stopping_point": args.stopping_point,
+            "flush": args.flush,
+            "allow_free_cohort": args.allow_free_cohort,
+            "user_context": args.user_context,
+            "enable_bash_tools": args.enable_bash_tools,
         },
     )
 
