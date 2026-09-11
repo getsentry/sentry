@@ -9,15 +9,16 @@ The id rides the agent's memory-block metadata (``iteration_id``), which is how
 the completion hook knows which row the finished work belongs to.
 
 Nothing here may change what the product does. Every entry point swallows its
-own failures: a caller records what it can and carries on regardless.
+own failures: a caller records what it can and carries on regardless --
+``bootstrap_iteration`` excepted, since it runs before there is an identity to
+record under.
 """
 
 from __future__ import annotations
 
+import logging
 from dataclasses import fields
 from enum import StrEnum
-
-from django.utils import timezone
 
 from sentry import analytics
 from sentry.analytics.events.pr_iteration_events import (
@@ -25,19 +26,17 @@ from sentry.analytics.events.pr_iteration_events import (
 )
 from sentry.models.group import Group
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.autofix.autofix_agent import get_iterations, get_latest_iteration_index
+from sentry.seer.autofix.autofix_agent import get_latest_iteration_index
+from sentry.seer.autofix.pr_iteration.current_iteration import triggered_iteration_id
 from sentry.seer.autofix.pr_iteration.details_store import (
-    add_iteration,
     claim_iteration,
     get_iteration,
     remove_iteration,
     untriggered_iteration,
     update_iteration,
 )
-from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.models.run import SeerRun, SeerRunPrIteration
-
-ITERATION_ID_METADATA_KEY = "iteration_id"
 
 
 class PrIterationOutcome(StrEnum):
@@ -87,47 +86,60 @@ def _claim_untriggered(seer_run: SeerRun) -> SeerRunPrIteration | None:
     return iteration
 
 
-def open_pr_iteration_details(
+def bootstrap_iteration(
     *,
-    log_ctx: PrIterationLogContext,
+    logger: logging.Logger,
     run_state: SeerRunState,
     organization_id: int,
     group_id: int,
-) -> None:
-    """Open a row for the iteration this feedback starts.
+    create: bool = True,
+) -> PrIterationLogContext:
+    """The untriggered iteration this work belongs to, opened if needed, named in logs.
 
-    The run metadata is resolved once here and carried until the iteration ends.
+    create = false is for the green check suite / missing permissions tasks where we're receiving an event for an existing
+    waiting iteration and we don't have any feedback to add, so we don't want to create a new row if it doesn't already exist
+
+    Raises rather than logging a failure: the identity to log under is what this
+    returns, so anything that goes wrong goes to Sentry instead.
     """
-    try:
-        seer_run = _seer_run(run_id=run_state.run_id, organization_id=organization_id)
-        if seer_run is None:
-            log_ctx.error(
-                "autofix.pr_iteration.details.unresolved", exc_info=False, reason="no_seer_run"
-            )
-            return
+    seer_run = _seer_run(run_id=run_state.run_id, organization_id=organization_id)
+    if seer_run is None:
+        raise ValueError(f"No SeerRun for run {run_state.run_id} in organization {organization_id}")
 
+    if create:
         project_id = (
             Group.objects.filter(id=group_id, project__organization_id=organization_id)
             .values_list("project_id", flat=True)
             .first()
         )
         if project_id is None:
-            log_ctx.error(
-                "autofix.pr_iteration.details.unresolved", exc_info=False, reason="group_not_found"
-            )
-            return
+            raise ValueError(f"No group {group_id} in organization {organization_id}")
 
-        add_iteration(
-            seer_run,
-            {
-                "organization_id": organization_id,
-                "project_id": project_id,
-                "group_id": group_id,
-                "run_id": run_state.run_id,
+        # A partial unique constraint allows one waiting row for each run, so a
+        # racing opener gets the winner's row rather than a second one. The data
+        # stamps only a row opened here; one already waiting keeps its own.
+        SeerRunPrIteration.objects.get_or_create(
+            seer_run=seer_run,
+            triggered=False,
+            defaults={
+                "data": {
+                    "organization_id": organization_id,
+                    "project_id": project_id,
+                    "group_id": group_id,
+                    "run_id": run_state.run_id,
+                }
             },
         )
-    except Exception:
-        log_ctx.error("autofix.pr_iteration.details.open_failed")
+
+    # Reads back the row just settled above, so the context reflects what is
+    # actually in the table rather than what this call believes it wrote.
+    return PrIterationLogContext.for_run(
+        logger,
+        run_state,
+        organization_id,
+        group_id,
+        iteration=LogCtxIteration.UNTRIGGERED,
+    )
 
 
 def trigger_pr_iteration_details(
@@ -211,25 +223,6 @@ def discard_pr_iteration_details(
         log_ctx.error("autofix.pr_iteration.details.discard_failed")
 
 
-def state_iteration_id(log_ctx: PrIterationLogContext, run_state: SeerRunState) -> int | None:
-    """The id the run's latest iteration was started with."""
-    try:
-        iterations = get_iterations(run_state)
-    except Exception:
-        log_ctx.error("autofix.pr_iteration.details.get_iterations_failed")
-        return None
-
-    if not iterations or not iterations[-1].blocks:
-        return None
-
-    metadata = iterations[-1].blocks[0].message.metadata or {}
-    try:
-        # Prompt metadata is a string map; the id goes out stringified.
-        return int(metadata[ITERATION_ID_METADATA_KEY])
-    except (KeyError, TypeError, ValueError):
-        return None
-
-
 def _build_event(
     log_ctx: PrIterationLogContext,
     iteration: SeerRunPrIteration,
@@ -240,12 +233,10 @@ def _build_event(
     """The event for a finished iteration. None when its row is incomplete."""
     known = {f.name for f in fields(AiAutofixPrIterationFeedbackBatchCompletedEvent)}
     payload = {key: value for key, value in iteration.data.items() if key in known}
-    duration_ms = int((timezone.now() - iteration.date_added).total_seconds() * 1000)
     try:
         return AiAutofixPrIterationFeedbackBatchCompletedEvent(
             iteration_id=iteration.id,
             iteration_index=iteration_index,
-            duration_ms=duration_ms,
             outcome=outcome,
             **payload,
         )
@@ -253,7 +244,6 @@ def _build_event(
         written = payload.keys() | {
             "iteration_id",
             "iteration_index",
-            "duration_ms",
             "outcome",
         }
         log_ctx.error(
@@ -277,7 +267,7 @@ def complete_pr_iteration_details(
     The row goes however the batch ended: leaving it behind would let the next
     completion hook emit this batch under a later iteration's outcome.
     """
-    iteration_id = state_iteration_id(log_ctx, run_state)
+    iteration_id = triggered_iteration_id(run_state)
     if iteration_id is None:
         log_ctx.error(
             "autofix.pr_iteration.details.unresolved", exc_info=False, reason="no_iteration_id"
