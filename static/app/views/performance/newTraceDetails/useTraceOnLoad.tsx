@@ -101,6 +101,7 @@ export function useTraceOnLoad(
     }
 
     let cancel = false;
+    // oxlint-disable-next-line react/set-state-in-effect
     setStatus('pending');
 
     const expandOptions = {
@@ -183,6 +184,7 @@ export function useTraceIssuesOnLoad(
 
     let cancel = false;
 
+    // oxlint-disable-next-line react/set-state-in-effect
     setStatus('pending');
 
     const expandOptions = {

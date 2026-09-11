@@ -525,6 +525,9 @@ export function ProjectPageFilter({
     }, 0);
   };
 
+  // React Compiler could not prove this memoization is preserved; it bails out on
+  // code this callback depends on. Revisit once those bailouts are fixed.
+  // oxlint-disable-next-line react/preserve-manual-memoization
   const defaultMenuWidth = useMemo(() => computeMenuWidth(options), [options]);
 
   const canWrite = organization.access.includes('project:write');

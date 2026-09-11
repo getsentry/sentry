@@ -219,6 +219,7 @@ export function useSyncRepositories(
     const currentLastSync = query.data.configData?.last_sync as string | undefined;
     if (currentLastSync !== lastSyncBefore) {
       phaseTimerRef.current.cancel();
+      // oxlint-disable-next-line react/set-state-in-effect
       stopSyncing();
       addSuccessMessage(t('Repositories synced successfully'));
       onSyncedRef.current?.();

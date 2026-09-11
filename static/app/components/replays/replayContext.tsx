@@ -631,6 +631,7 @@ export function Provider({
 
   useEffect(() => {
     if (!isBuffering && buffer.target !== -1) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setBufferTime({target: -1, previous: -1});
     }
   }, [isBuffering, buffer.target]);

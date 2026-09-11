@@ -55,7 +55,9 @@ describe('spans query embed', () => {
     expect(screen.getByText('GET /api/5')).toBeInTheDocument();
     expect(screen.queryByText('GET /api/6')).not.toBeInTheDocument();
     expect(screen.getByText('Spans')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Slow HTTP spans'})).toHaveAttribute(
+    // The block's name is the collapse toggle; the link out is a separate target.
+    expect(screen.getByRole('button', {name: 'Slow HTTP spans'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'View Spans'})).toHaveAttribute(
       'href',
       expect.stringContaining('/explore/traces/')
     );
@@ -183,7 +185,7 @@ describe('spans query embed', () => {
       },
     });
 
-    const link = await screen.findByRole('link', {name: 'p95 by span op'});
+    const link = await screen.findByRole('link', {name: 'View Spans'});
     const {searchParams} = new URL(
       link.getAttribute('href')!,
       'https://sentry.io' // the href is relative; the base is only to parse it
@@ -254,7 +256,7 @@ describe('spans query embed', () => {
       },
     });
 
-    const link = await screen.findByRole('link', {name: 'p95 by span op'});
+    const link = await screen.findByRole('link', {name: 'View Spans'});
     const {searchParams} = new URL(link.getAttribute('href')!, 'https://sentry.io');
 
     // Explore would reject it anyway, so leave it off rather than ship a param

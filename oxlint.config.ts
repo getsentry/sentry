@@ -31,10 +31,32 @@ const restrictedThemeImportPattern = {
     "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
 };
 
+const CONVENTIONS_IMPORT_MESSAGE =
+  'Only @sentry/conventions/attributes/search imports are allowed in the frontend.';
+
+const restrictedConventionsImportPattern = {
+  group: [
+    '@sentry/conventions/**',
+    // Unignore the parent so that the search entry point can be allowed below.
+    // The attributes entry point itself is restricted by restrictedImportPaths.
+    '!@sentry/conventions/attributes',
+    '!@sentry/conventions/attributes/search',
+    '@sentry/conventions/attributes/search/**',
+  ],
+  message: CONVENTIONS_IMPORT_MESSAGE,
+};
+
+const restrictedImportPatterns = [
+  restrictedThemeImportPattern,
+  restrictedConventionsImportPattern,
+];
+
 const CSS_TYPES_MESSAGE =
   "Use the matching property from the CSS type exported by @sentry/scraps/cssTypes, for example CSS['width'].";
 
 const restrictedImportPaths = [
+  {name: '@sentry/conventions', message: CONVENTIONS_IMPORT_MESSAGE},
+  {name: '@sentry/conventions/attributes', message: CONVENTIONS_IMPORT_MESSAGE},
   {
     name: '@testing-library/react',
     message:
@@ -477,7 +499,7 @@ const config = defineConfig({
     'no-restricted-imports': [
       'error',
       {
-        patterns: [restrictedThemeImportPattern],
+        patterns: restrictedImportPatterns,
         paths: restrictedImportPaths,
       },
     ],
@@ -643,14 +665,14 @@ const config = defineConfig({
     ],
     'react/memo-dependencies': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/no-deriving-state-in-effects': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
-    'react/preserve-manual-memoization': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
-    'react/purity': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/preserve-manual-memoization': 'error',
+    'react/purity': 'error',
     'react/refs': 'error',
     'react/require-render-return': 'error',
-    'react/rule-suppression': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
-    'react/set-state-in-effect': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/rule-suppression': 'off',
+    'react/set-state-in-effect': 'error',
     'react/set-state-in-render': 'error',
-    'react/static-components': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/static-components': 'error',
     'react/syntax': 'error',
     'react/todo': 'off',
     'react/unsupported-syntax': 'error',
@@ -1483,7 +1505,7 @@ const config = defineConfig({
         'no-restricted-imports': [
           'error',
           {
-            patterns: [restrictedThemeImportPattern],
+            patterns: restrictedImportPatterns,
             paths: restrictedImportPaths.filter(({name}) => name !== '@sentry/browser'),
           },
         ],
@@ -1497,7 +1519,7 @@ const config = defineConfig({
           'error',
           {
             patterns: [
-              restrictedThemeImportPattern,
+              ...restrictedImportPatterns,
               // Chartcuterie renders server-side. Browser-only application
               // hooks and stores are unavailable in the rendering service.
               {
@@ -1683,6 +1705,7 @@ const config = defineConfig({
         'no-restricted-imports': [
           'error',
           {
+            patterns: [restrictedConventionsImportPattern],
             // Allow these implementations only through the public widgets in
             // the directory selected by this override.
             paths: restrictedImportPaths.filter(
@@ -1704,7 +1727,7 @@ const config = defineConfig({
           'error',
           {
             patterns: [
-              restrictedThemeImportPattern,
+              ...restrictedImportPatterns,
               {
                 group: ['csstype', 'csstype/*'],
                 message: CSS_TYPES_MESSAGE,
@@ -1722,6 +1745,7 @@ const config = defineConfig({
         'no-restricted-imports': [
           'error',
           {
+            patterns: [restrictedConventionsImportPattern],
             // Figma Code Connect is valid only in its generated integration files.
             paths: restrictedImportPaths.filter(
               ({name}) => name !== '@figma/code-connect'
@@ -1738,7 +1762,7 @@ const config = defineConfig({
         'no-restricted-imports': [
           'error',
           {
-            patterns: [restrictedThemeImportPattern],
+            patterns: restrictedImportPatterns,
             paths: [
               ...restrictedImportPaths,
               {
@@ -1799,7 +1823,7 @@ const config = defineConfig({
           'error',
           {
             patterns: [
-              restrictedThemeImportPattern,
+              ...restrictedImportPatterns,
               {
                 group: ['sentry/locale'],
                 message: 'Do not import locale into gsAdmin. No translations required.',

@@ -209,7 +209,7 @@ export function useScmProjectDetails({
         variant: 'scm',
       });
     }
-  }, [projectDetailsForm?.projectName, defaultName, organization]);
+  }, [projectDetailsForm, defaultName, organization]);
 
   const onTeamChange = useCallback(
     ({value}: {value: string}) => {

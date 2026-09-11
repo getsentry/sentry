@@ -286,6 +286,7 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
       focusOverride?.itemKey === item.key &&
       focusOverride.part === 'value'
     ) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsEditing(true);
       onActiveChange(true);
       dispatch({type: 'RESET_FOCUS_OVERRIDE'});

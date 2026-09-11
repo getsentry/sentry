@@ -83,8 +83,28 @@ interface SeerEmbedSchema {
   level: SeerEmbedLevel[];
   schema: z.ZodObject;
   examples?: SeerEmbedExample[];
-  featureFlag?: string;
+  /**
+   * Org feature(s) the widget is offered behind. Gates generation only: it
+   * reaches Python through `embed_widgets.generated.json` and decides which
+   * widgets the agent is told it may emit. Rendering never reads it, so an
+   * embed already present in a conversation renders whether or not the org
+   * holds the flag.
+   *
+   * A list is satisfied by any one of its flags — an entitlement spread across
+   * several plan flags is granted by whichever one the org's plan carries.
+   */
+  featureFlag?: string | string[];
 }
+
+/**
+ * Autofix is a Seer plan entitlement, and the two plan shapes grant it under
+ * different flags: seat-based plans and legacy usage-based ones. Matching the
+ * pair is the same test the frontend's `orgHasSeerAccess` makes.
+ */
+const SEER_PLAN_AUTOFIX_FEATURES = [
+  'organizations:seat-based-seer-enabled',
+  'organizations:seer-added',
+];
 
 export const SEER_EMBED_SCHEMAS = {
   timestamp: {
@@ -326,7 +346,7 @@ export const SEER_EMBED_SCHEMAS = {
     ],
   },
   autofix: {
-    featureFlag: 'organizations:seer-agent-autofix',
+    featureFlag: SEER_PLAN_AUTOFIX_FEATURES,
     description:
       'Render one step of a Seer Autofix run (root cause, solution, or code ' +
       'changes) as a collapsible block linking back to the issue. ' +
@@ -523,13 +543,40 @@ export const SEER_EMBED_SCHEMAS = {
   },
   trace: {
     description:
-      'The ONLY way to reference a Sentry trace (the trace waterfall view). ' +
+      'The ONLY way to reference a Sentry trace. Renders a compact link. ' +
+      'Use the 32-character trace ID. Provide `timestamp` when known so the ' +
+      'link opens on the right time range, and `spanId` to focus a span. ' +
+      'This never renders the waterfall itself — when the user wants to see the ' +
+      'trace, emit the separate `traceWaterfall` embed. ' +
+      'Never use a markdown link for trace references.',
+    level: ['inline'],
+    schema: z.object({
+      traceId: z.string().min(1),
+      timestamp: isoTimestampSchema.optional(),
+      spanId: z.string().min(1).optional(),
+    }),
+    examples: [
+      {
+        label: 'Trace',
+        data: {
+          traceId: 'a1b2c3d4e5f678901234567890abcdef',
+          timestamp: '2026-08-25T16:37:12Z',
+        },
+      },
+    ],
+  },
+  traceWaterfall: {
+    description:
+      'Render the live, interactive trace waterfall for one trace. ' +
+      'This is a large, data-heavy widget that loads the whole span tree, so only ' +
+      'emit it when the user actually wants to look at the trace — they asked to ' +
+      'see it, or the answer is about the shape or timing of the spans. Merely ' +
+      'citing a trace is the `trace` embed, which does NOT expand into a waterfall. ' +
       'Use the 32-character trace ID. Provide `timestamp` when known so the ' +
       'waterfall opens on the right time range, and `spanId` to focus a span. ' +
-      'Inline: renders a compact link. Block: renders the live trace waterfall. ' +
       'Do not duplicate the waterfall spans or duration details as text. ' +
-      'Never use a markdown link for trace references.',
-    level: ['inline', 'block'],
+      'Emit at most one per response.',
+    level: ['block'],
     schema: z.object({
       traceId: z.string().min(1),
       timestamp: isoTimestampSchema.optional(),
@@ -538,7 +585,6 @@ export const SEER_EMBED_SCHEMAS = {
     examples: [
       {
         label: 'Trace waterfall',
-        level: 'block',
         data: {
           traceId: 'a1b2c3d4e5f678901234567890abcdef',
           timestamp: '2026-08-25T16:37:12Z',
@@ -1014,7 +1060,7 @@ export const SEER_EMBED_SCHEMAS = {
     ],
   },
   autofixRef: {
-    featureFlag: 'organizations:seer-agent-autofix',
+    featureFlag: SEER_PLAN_AUTOFIX_FEATURES,
     description:
       'Render a live view of one Seer Autofix step (root cause, solution, code ' +
       'changes, or PR iteration) that fetches and updates itself in the browser. ' +
@@ -1074,7 +1120,7 @@ export function seerEmbedsToJsonSchemas(): Array<{
   level: SeerEmbedLevel[];
   name: string;
   examples?: Array<{data: Record<string, unknown>; label: string}>;
-  featureFlag?: string;
+  featureFlag?: string | string[];
 }> {
   return Object.entries(SEER_EMBED_SCHEMAS).map(([name, entry]) => {
     const def: SeerEmbedSchema = entry;

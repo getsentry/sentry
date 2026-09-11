@@ -282,9 +282,7 @@ describe('Seer log embed', () => {
     expect(await screen.findByText('Payment provider timed out')).toBeInTheDocument();
     // Without the resolved project the link scopes Explore to My Projects and
     // can miss the row the card just loaded.
-    const href = screen
-      .getByRole('link', {name: `Log ${LOG_ID.slice(0, 8)}`})
-      .getAttribute('href');
+    const href = screen.getByRole('link', {name: 'View Log'}).getAttribute('href');
     expect(href).toContain(`project=${PROJECT_ID}`);
   });
 

@@ -605,6 +605,7 @@ export function SentryAppExternalForm({
 
     dependentFetchVersionRef.current += 1;
     currentFormValuesRef.current = nextInitialValues;
+    // oxlint-disable-next-line react/set-state-in-effect
     setFieldGroups(nextFieldGroups);
     setDynamicFieldValues(
       getTriggerFieldValues(nextInitialValues, nextTriggerFieldNames)

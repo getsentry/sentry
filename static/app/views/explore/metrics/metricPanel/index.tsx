@@ -141,6 +141,7 @@ export function MetricPanel({
 
   useEffect(() => {
     if (isVisualizeEquation(visualize)) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setTitle(
         visualize.internalExpression ??
           unresolveExpression(visualize.expression.text, referenceMap)

@@ -157,6 +157,9 @@ export function Chart({
       return 1;
     }
     return getIngestionDelayBucketCount(bucketSize, lastBucketTimestamp);
+    // React Compiler treats one of these dependencies as mutated later in the
+    // component, so it cannot prove the memoization is preserved.
+    // oxlint-disable-next-line react/preserve-manual-memoization
   }, [bucketSize, lastBucketTimestamp]);
 
   // TODO: Support bar charts
