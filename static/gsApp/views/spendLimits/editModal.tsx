@@ -1,5 +1,4 @@
-import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
+import {useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -172,143 +171,127 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
 
   return (
     <form.AppForm form={form}>
-      <Fragment>
-        <OffsetBody>
-          <Container padding="2xl">
-            <form.AppField name="budgetMode">
-              {modeField => {
-                const onDemandBudgets = getOnDemandBudgets({
-                  budgetMode: modeField.state.value,
-                  sharedMaxBudget: form.getFieldValue('sharedMaxBudget'),
-                  budgets: form.getFieldValue('budgets'),
-                });
-                return (
-                  <SpendLimitSettings
-                    organization={organization}
-                    subscription={subscription}
-                    header={
-                      <Heading as="h2" size="xl">
-                        {tct('Set your [budgetTerm] limit', {
-                          budgetTerm: displayBudgetName(subscription.planDetails),
-                        })}
-                      </Heading>
-                    }
-                    activePlan={subscription.planDetails}
-                    onDemandBudgets={onDemandBudgets}
-                    currentReserved={currentReserved}
-                    addOns={subscription.addOns ?? {}}
-                    onUpdate={({onDemandBudgets: nextBudget}) =>
-                      handleBudgetUpdate(nextBudget)
-                    }
-                    usesFormFieldLayout
-                    renderBudgetModeSettings={() => (
-                      <modeField.Layout.Stack label={t('Spending limit type')}>
-                        <modeField.Base<HTMLDivElement>>
-                          {(baseProps, {indicator}) => (
-                            <Grid
-                              columns="minmax(0, 1fr) auto"
-                              gap="sm"
-                              align="center"
-                              flexGrow={1}
-                              minWidth="0"
-                            >
-                              <Container {...baseProps} role="radiogroup" width="100%">
-                                <BudgetModeSettings
-                                  activePlan={subscription.planDetails}
-                                  onDemandBudgets={onDemandBudgets}
-                                  onUpdate={({onDemandBudgets: nextBudget}) => {
-                                    modeField.handleChange(nextBudget.budgetMode);
-                                    handleBudgetUpdate(nextBudget);
-                                  }}
-                                />
-                              </Container>
-                              {indicator}
-                            </Grid>
-                          )}
-                        </modeField.Base>
-                      </modeField.Layout.Stack>
+      <form.AppField name="budgetMode">
+        {modeField => {
+          const onDemandBudgets = getOnDemandBudgets({
+            budgetMode: modeField.state.value,
+            sharedMaxBudget: form.getFieldValue('sharedMaxBudget'),
+            budgets: form.getFieldValue('budgets'),
+          });
+          return (
+            <SpendLimitSettings
+              organization={organization}
+              subscription={subscription}
+              header={
+                <Heading as="h2" size="xl">
+                  {tct('Set your [budgetTerm] limit', {
+                    budgetTerm: displayBudgetName(subscription.planDetails),
+                  })}
+                </Heading>
+              }
+              activePlan={subscription.planDetails}
+              onDemandBudgets={onDemandBudgets}
+              currentReserved={currentReserved}
+              addOns={subscription.addOns ?? {}}
+              onUpdate={({onDemandBudgets: nextBudget}) => handleBudgetUpdate(nextBudget)}
+              usesFormFieldLayout
+              renderBudgetModeSettings={() => (
+                <modeField.Layout.Stack label={t('Spending limit type')}>
+                  <modeField.Base<HTMLDivElement>>
+                    {(baseProps, {indicator}) => (
+                      <Grid
+                        columns="minmax(0, 1fr) auto"
+                        gap="sm"
+                        align="center"
+                        flexGrow={1}
+                        minWidth="0"
+                      >
+                        <Container {...baseProps} role="radiogroup" width="100%">
+                          <BudgetModeSettings
+                            activePlan={subscription.planDetails}
+                            onDemandBudgets={onDemandBudgets}
+                            onUpdate={({onDemandBudgets: nextBudget}) => {
+                              modeField.handleChange(nextBudget.budgetMode);
+                              handleBudgetUpdate(nextBudget);
+                            }}
+                          />
+                        </Container>
+                        {indicator}
+                      </Grid>
                     )}
-                    renderSpendLimitInput={props => {
-                      if (props.category === null) {
-                        return (
-                          <form.AppField name="sharedMaxBudget">
-                            {field => (
-                              <Stack gap="lg" paddingTop="xl">
-                                <Heading as="h2" size="lg">
-                                  {t('Monthly spending limit')}
-                                </Heading>
-                                <Container width="100%">
-                                  <field.Base<HTMLInputElement>>
-                                    {(baseProps, {indicator}) => (
-                                      <SpendLimitInput
-                                        {...props}
-                                        currentSpendingLimit={field.state.value}
-                                        fieldProps={baseProps}
-                                        indicator={indicator}
-                                        onUpdate={({newData}) =>
-                                          field.handleChange(newData.sharedMaxBudget ?? 0)
-                                        }
-                                      />
-                                    )}
-                                  </field.Base>
-                                </Container>
-                                <field.Meta.HintText>
-                                  {t(
-                                    'Charges are applied at the end of your usage cycle, and your limit can be adjusted at anytime.'
-                                  )}
-                                </field.Meta.HintText>
-                              </Stack>
+                  </modeField.Base>
+                </modeField.Layout.Stack>
+              )}
+              renderSpendLimitInput={props => {
+                if (props.category === null) {
+                  return (
+                    <form.AppField name="sharedMaxBudget">
+                      {field => (
+                        <Stack gap="lg" paddingTop="xl">
+                          <Heading as="h2" size="lg">
+                            {t('Monthly spending limit')}
+                          </Heading>
+                          <Container width="100%">
+                            <field.Base<HTMLInputElement>>
+                              {(baseProps, {indicator}) => (
+                                <SpendLimitInput
+                                  {...props}
+                                  currentSpendingLimit={field.state.value}
+                                  fieldProps={baseProps}
+                                  indicator={indicator}
+                                  onUpdate={({newData}) =>
+                                    field.handleChange(newData.sharedMaxBudget ?? 0)
+                                  }
+                                />
+                              )}
+                            </field.Base>
+                          </Container>
+                          <field.Meta.HintText>
+                            {t(
+                              'Charges are applied at the end of your usage cycle, and your limit can be adjusted at anytime.'
                             )}
-                          </form.AppField>
-                        );
-                      }
+                          </field.Meta.HintText>
+                        </Stack>
+                      )}
+                    </form.AppField>
+                  );
+                }
 
-                      const category = props.category;
-                      return (
-                        <form.AppField name={`budgets.${category}`}>
-                          {field => (
-                            <Container width="100%">
-                              <field.Base<HTMLInputElement>>
-                                {(baseProps, {indicator}) => (
-                                  <SpendLimitInput
-                                    {...props}
-                                    currentSpendingLimit={field.state.value ?? 0}
-                                    fieldProps={baseProps}
-                                    indicator={indicator}
-                                    onUpdate={({newData}) =>
-                                      field.handleChange(newData[category] ?? 0)
-                                    }
-                                  />
-                                )}
-                              </field.Base>
-                            </Container>
+                const category = props.category;
+                return (
+                  <form.AppField name={`budgets.${category}`}>
+                    {field => (
+                      <Container width="100%">
+                        <field.Base<HTMLInputElement>>
+                          {(baseProps, {indicator}) => (
+                            <SpendLimitInput
+                              {...props}
+                              currentSpendingLimit={field.state.value ?? 0}
+                              fieldProps={baseProps}
+                              indicator={indicator}
+                              onUpdate={({newData}) =>
+                                field.handleChange(newData[category] ?? 0)
+                              }
+                            />
                           )}
-                        </form.AppField>
-                      );
-                    }}
-                  />
+                        </field.Base>
+                      </Container>
+                    )}
+                  </form.AppField>
                 );
               }}
-            </form.AppField>
-          </Container>
-        </OffsetBody>
-        <Footer>
-          <Flex justify="end" gap="md">
-            <Button onClick={closeModal}>{t('Cancel')}</Button>
-            <form.SubmitButton>{t('Save')}</form.SubmitButton>
-          </Flex>
-        </Footer>
-      </Fragment>
+            />
+          );
+        }}
+      </form.AppField>
+      <Footer>
+        <Flex justify="end" gap="md">
+          <Button onClick={closeModal}>{t('Cancel')}</Button>
+          <form.SubmitButton>{t('Save')}</form.SubmitButton>
+        </Flex>
+      </Footer>
     </form.AppForm>
   );
 }
-
-const OffsetBody = styled('div')`
-  margin: -${p => p.theme.space['2xl']} -${p => p.theme.space['3xl']};
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    margin: -${p => p.theme.space['2xl']};
-  }
-`;
 
 export default SpendLimitsEditModal;
