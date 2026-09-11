@@ -28,14 +28,27 @@ describe('MemberListHeader', () => {
     canTrial: false,
     plan: 'am1_f',
   });
-  SubscriptionStore.set(organization.slug, sub);
 
   beforeEach(() => {
+    SubscriptionStore.set(organization.slug, sub);
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
       query: {tier: 'upsell'},
       body: BillingConfigFixture(PlanTier.AM2),
     });
+  });
+
+  it('does not show a separate loader while the subscription loads', async () => {
+    SubscriptionStore.init();
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      body: sub,
+    });
+
+    render(<MemberListHeader organization={organization} members={[enabledMember]} />);
+
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(await screen.findByText('Members')).toBeInTheDocument();
   });
 
   it('show upgrade if disabled member', async () => {
