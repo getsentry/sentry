@@ -119,6 +119,7 @@ function ScheduledChanges({
       data-test-id="scheduled-changes"
       gap="xl"
       padding="xl 0"
+      width="100%"
       maxWidth="445px"
       border="primary"
       radius="md"
