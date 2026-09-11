@@ -4,6 +4,7 @@ from django.contrib.sessions.backends.signed_cookies import SessionStore
 
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import no_silo_test
@@ -364,36 +365,47 @@ class ReactAuthTest(AcceptanceTestCase):
         self.wait_for_authenticated_organization(sso_organization.slug)
 
     @with_feature("organizations:authv2-rollout")
-    def test_switch_to_sso_required_organization(self) -> None:
+    def test_switch_to_sso_required_organization_from_picker(self) -> None:
         user = self.create_login_user("org-a")
         password_organization = self.organization
-        sso_organization = self.create_organization(owner=user, slug="org-b")
+        sso_organization = self.create_organization(
+            owner=user, name="SSO Organization", slug="org-b"
+        )
+        member = OrganizationMember.objects.get(organization=sso_organization, user_id=user.id)
+        member.flags["sso:linked"] = True
+        member.save()
         auth_provider = self.create_auth_provider(
             organization_id=sso_organization.id, provider="dummy"
         )
         self.create_auth_identity(auth_provider=auth_provider, user_id=user.id, ident=user.email)
 
-        # The user first authenticates into an organization that accepts password login.
-        self.submit_credentials(user.email, PASSWORD)
-        self.wait_for_authenticated_organization(password_organization.slug)
+        with self.options({"system.url-prefix": self.browser.live_server_url}):
+            # The user starts in an organization that does not require SSO.
+            self.login_as(user)
+            self.browser.get(f"/organizations/{password_organization.slug}/issues/")
+            self.wait_for_authenticated_organization(password_organization.slug)
 
-        # Navigating to an organization that requires SSO starts an organization-scoped login.
-        self.browser.get(f"/organizations/{sso_organization.slug}/issues/")
-        self.browser.wait_until_script_execution(
-            f"return window.location.pathname === '/auth/login/{sso_organization.slug}/'"
-        )
+            # Select the SSO-protected organization from the organization picker.
+            self.browser.click_when_visible('[aria-label="Toggle organization menu"]')
+            self.browser.move_to('[data-test-id="switch-organization"]')
+            self.browser.click_when_visible(f'[data-test-id="{sso_organization.id}"]')
 
-        # The current session cannot access the selected organization until SSO completes, so
-        # the login page keeps the organization in focus and offers no alternative auth method.
-        self.browser.wait_until(
-            xpath="//*[contains(normalize-space(.), 'Members sign in with Dummy')]"
-        )
-        assert not self.browser.element_exists('[aria-label="Email"]')
-        assert not self.browser.element_exists('[aria-label="Password"]')
-        assert not self.browser.element_exists('[aria-label="Clear organization login context"]')
+            # The SSO modal opens for the selected organization.
+            self.browser.wait_until(xpath="//h4[normalize-space(.)='Authenticate With SSO']")
+            self.browser.wait_until(
+                xpath="//*[contains(normalize-space(.), 'Members sign in with Dummy')]"
+            )
+            self.browser.wait_until(xpath="//button[normalize-space(.)='SSO']")
+            assert not self.browser.element_exists('[aria-label="Email"]')
+            assert not self.browser.element_exists('[aria-label="Password"]')
 
-        # SSO authenticates the linked identity and returns the user to the protected org.
-        self.browser.click_when_visible(xpath="//button[normalize-space(.)='SSO']")
-        self.browser.wait_until('input[name="email"]')
-        self.complete_dummy_sso(user.email)
-        self.wait_for_authenticated_organization(sso_organization.slug)
+            # The protected destination remains mounted after the modal is ready.
+            self.browser.wait_until_script_execution(
+                f"return window.location.pathname === '/organizations/{sso_organization.slug}/issues/'"
+            )
+
+            # SSO authenticates the linked identity and returns to the protected org.
+            self.browser.click_when_visible(xpath="//button[normalize-space(.)='SSO']")
+            self.browser.wait_until('input[name="email"]')
+            self.complete_dummy_sso(user.email)
+            self.wait_for_authenticated_organization(sso_organization.slug)
