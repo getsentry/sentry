@@ -677,7 +677,9 @@ function AMCheckout(props: Props) {
         paddingTop={{zero: '0', '2xl': 'md'}}
       >
         {renderPartnerAlert()}
-        <CheckoutStepsContainer>{renderSteps()}</CheckoutStepsContainer>
+        <CheckoutStepsContainer data-test-id="checkout-steps">
+          {renderSteps()}
+        </CheckoutStepsContainer>
       </Stack>
       <Stack
         as="aside"
