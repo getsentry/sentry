@@ -42,6 +42,7 @@ class MeasureDelaySecondsTest(OrganizationEventsEndpointTestBase):
         delay = self._measure_delay_seconds()
         # Upper bound is intentionally loose to reduce flakiness.
         # ingested_at timestamp is inserted by snuba and we can't inject it in test.
+        assert delay is not None
         assert 42.5 <= delay < 50
 
     def test_returns_measured_value_multiple_spans(self) -> None:
