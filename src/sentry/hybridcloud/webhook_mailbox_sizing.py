@@ -173,10 +173,15 @@ def _record_and_read_window(counter_key: str) -> int | None:
         pipe = redis.redis_clusters.get(settings.SENTRY_RATE_LIMIT_REDIS_CLUSTER).pipeline()
         pipe.incr(current_key)
         pipe.expire(current_key, SHARD_TTL_SECONDS)
-        pipe.mget(older_keys)
-        current, _, older = pipe.execute()
+        # One GET per shard, as redis cluster does not support pipelining MGET
+        for key in older_keys:
+            pipe.get(key)
+        results = pipe.execute(raise_on_error=True)
+        assert len(results) == 2 + len(older_keys)
+
+        current, older = results[0], results[2:]
         return int(current) + sum(int(count) for count in older if count is not None)
-    except (*REDIS_ERRORS, TypeError, ValueError, IndexError):
+    except (*REDIS_ERRORS, AssertionError, TypeError, ValueError, IndexError):
         logger.exception(
             "hybridcloud.webhook_mailbox_sizing.unavailable",
             extra={"counter_key": counter_key},
