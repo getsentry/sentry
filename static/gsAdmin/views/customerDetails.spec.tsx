@@ -2667,6 +2667,47 @@ describe('Customer Details', () => {
       expect(screen.queryByText('Delete Billing Metric History')).not.toBeInTheDocument();
     });
   });
+
+  describe('performs detector health check', () => {
+    it('calls the health check endpoint', async () => {
+      setUpMocks(organization);
+
+      const healthCheckMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/health-check/`,
+        method: 'POST',
+        body: {
+          organization: {},
+          projects: null,
+        },
+      });
+
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${organization.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization,
+      });
+
+      await openCustomerActions();
+
+      await userEvent.click(screen.getByText('Perform Detector Health Check'));
+
+      renderGlobalModal();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+      await waitFor(() =>
+        expect(healthCheckMock).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/detectors/health-check/`,
+          expect.objectContaining({
+            method: 'POST',
+            data: {},
+          })
+        )
+      );
+    });
+  });
 });
 
 describe('Gift Categories Availability', () => {

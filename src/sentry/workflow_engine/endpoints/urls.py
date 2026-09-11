@@ -7,6 +7,7 @@ from .organization_data_condition_index import OrganizationDataConditionIndexEnd
 from .organization_detector_anomaly_data import OrganizationDetectorAnomalyDataEndpoint
 from .organization_detector_count import OrganizationDetectorCountEndpoint
 from .organization_detector_details import OrganizationDetectorDetailsEndpoint
+from .organization_detector_health_check import OrganizationDetectorHealthCheckEndpoint
 from .organization_detector_index import OrganizationDetectorIndexEndpoint
 from .organization_detector_types import OrganizationDetectorTypeIndexEndpoint
 from .organization_incident_groupopenperiod_index import (
@@ -35,6 +36,11 @@ organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/workflows/$",
         OrganizationWorkflowIndexEndpoint.as_view(),
         name="sentry-api-0-organization-workflow-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/detectors/health-check/$",
+        OrganizationDetectorHealthCheckEndpoint.as_view(),
+        name="sentry-api-0-organization-detector-health-check",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/detectors/$",

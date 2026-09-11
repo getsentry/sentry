@@ -68,6 +68,7 @@ import {SuspendAccountAction} from 'admin/components/suspendAccountAction';
 import {openToggleConsolePlatformsModal} from 'admin/components/toggleConsolePlatformsModal';
 import {toggleSpendAllocationModal} from 'admin/components/toggleSpendAllocationModal';
 import {TrialSubscriptionAction} from 'admin/components/trialSubscriptionAction';
+import {useDetectorHealthCheck} from 'admin/views/useDetectorHealthCheck';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {BilledDataCategoryInfo, BillingConfig, Subscription} from 'getsentry/types';
 import {
@@ -136,6 +137,8 @@ export function CustomerDetails() {
     isError: isErrorBillingConfig,
     isPending: isPendingBillingConfig,
   } = useApiQuery<BillingConfig>(BILLING_CONFIG_QUERY_KEY, {staleTime: Infinity});
+
+  const detectorHealthCheck = useDetectorHealthCheck({orgSlug: orgId});
 
   const onUpdateMutation = useMutation({
     mutationFn: (params: Record<string, any>) =>
@@ -887,6 +890,15 @@ export function CustomerDetails() {
               ),
             },
             onAction: params => onUpdateMutation.mutate({...params}),
+          },
+          {
+            key: 'performDetectorHealthCheck',
+            name: 'Perform Detector Health Check',
+            help: 'Verify that all sentry-managed detectors exist for this customer, and create them if not.',
+            confirmModalOpts: {
+              showAuditFields: true,
+            },
+            onAction: _params => detectorHealthCheck.mutate(),
           },
         ]}
         sections={[
