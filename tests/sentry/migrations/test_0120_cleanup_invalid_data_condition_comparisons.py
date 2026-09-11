@@ -27,15 +27,15 @@ class CleanupInvalidDataConditionComparisonsTest(TestMigrations):
                 comparison=75,
                 condition_result=True,
             )
-            for comparison in (50, 75):
+            for threshold in (50, 75):
                 DataCondition.objects.create(
                     condition_group_id=ambiguous_group.id,
                     type="issue_priority_greater_or_equal",
-                    comparison=comparison,
+                    comparison=threshold,
                     condition_result=True,
                 )
 
-            values = {
+            values: dict[str, tuple[str, object, int]] = {
                 "seen-string": ("event_seen_count", "2", default_group.id),
                 "seen-boolean": ("event_seen_count", True, default_group.id),
                 "detector-string": ("event_created_by_detector", "42", default_group.id),
