@@ -1105,6 +1105,25 @@ export const STRUCTURED_SEER_EMBED_SCHEMAS = {
       status: z.enum(['pending', 'approved', 'rejected']),
     }),
   },
+  /**
+   * Published by Seer's pull request lib when the agent opens or updates a PR from
+   * the run's own edits. Structured-only so the agent is never told to write the
+   * tag itself: the card follows the run's `repo_pr_states`, which the host that
+   * polls the run supplies, and the body only pins the PR the push targets when
+   * one already exists.
+   */
+  pullRequestRef: {
+    description:
+      'Follow the pull request Seer is opening or updating for a repository from the run state.',
+    level: ['block'],
+    schema: z.object({
+      repoName: z.string().min(1),
+      runId: z.union([z.string(), z.number()]).optional(),
+      prNumber: z.number().optional(),
+      prUrl: z.string().optional(),
+      title: z.string().optional(),
+    }),
+  },
 } as const satisfies Record<string, SeerEmbedSchema>;
 
 export const ALL_SEER_EMBED_SCHEMAS = {
