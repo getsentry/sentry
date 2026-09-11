@@ -57,12 +57,8 @@ REDIS_ERRORS = (
     RedisClusterConfigError,
     ClusterDownException,
 )
-"""Every root `rediscluster` raises from, not just the one it shares with `redis`.
-
-The client hangs its exceptions off two unrelated bases: the reply errors subclass
-`redis.RedisError`, while `RedisClusterException` and the three beside it subclass
-`Exception` directly. Naming only the shared base is what let the client's own "mget
-is blocked in cluster mode" through a guard written to catch exactly that failure.
+"""Previously we only handled RedisError but that left these "redis cluster" exceptions
+uncaught in the mailbox sizing function
 """
 
 
@@ -72,10 +68,8 @@ def mailbox_bucket_count(mailbox: MailboxName) -> int:
     Counts this payload against the window, so call it once per payload queued. A
     strictly ordered provider is not counted: nothing would read the result.
 
-    Every caller reaches this while building the argument that queues a webhook, so
-    anything raised here is raised before the `WebhookPayload` row is written and costs
-    us the payload rather than the split. No width this returns is worth that, so the
-    sizing runs under a guard rather than propagating -- see `_fallback_bucket_count`.
+    if we don't catch any exception in the _count_for_payloads line we'll fail to enqueue
+    a webhook payload when we could've just fallen back to the default max buckets value
     """
     if not _tolerates_reordering(mailbox.provider):
         return STRICT_BUCKET_COUNT
@@ -87,16 +81,11 @@ def mailbox_bucket_count(mailbox: MailboxName) -> int:
 
 
 def _fallback_bucket_count(mailbox: MailboxName) -> int:
-    """The width for a `mailbox` whose sizing raised: the cap, the same answer an
-    unreadable window gets, for the same reason.
-
-    Reached only by a bug or by a failure outside the narrower guard -- Redis not
-    answering is handled where it happens, and sizes to the cap without coming here.
-    """
     metrics.incr(
         "hybridcloud.webhook_mailbox_sizing.failed",
         tags={"provider": mailbox.provider},
     )
+    # _count_for_payloads falls back to this anyways so we can do the same here
     return _max_buckets()
 
 
