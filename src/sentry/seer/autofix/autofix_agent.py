@@ -433,7 +433,7 @@ def _build_repo_pins(group: Group, referrer: AutofixReferrer) -> RepoPins | None
     # import back into sentry.seer.autofix.
     from sentry.scm import factory as scm_factory
 
-    repo_pins: RepoPins = {}
+    repo_pins: RepoPins | None = None
     for repo in preference.repositories:
         if repo.repository_id is None:
             continue
@@ -454,6 +454,10 @@ def _build_repo_pins(group: Group, referrer: AutofixReferrer) -> RepoPins | None
             sha = scm.get_branch(branch)["data"]["sha"]
         except Exception:
             logger.exception(
+                "autofix.base_shas.resolve_failed",
+                extra={"repo": full_name, "group_id": group.id},
+            )
+            logger.exception(
                 "autofix.repo_pins.resolve_failed",
                 extra={"repo": full_name, "group_id": group.id},
             )
@@ -462,7 +466,7 @@ def _build_repo_pins(group: Group, referrer: AutofixReferrer) -> RepoPins | None
         if sha:
             repo_pins[full_name] = RepoPin(sha=sha, branch=branch, base_sha=sha, base_branch=branch)
 
-    return repo_pins or None
+    return repo_pins
 
 
 def trigger_autofix_agent(
@@ -611,9 +615,7 @@ def trigger_autofix_agent(
     if step == AutofixStep.ROOT_CAUSE:
         repo_pins = _build_repo_pins(group, referrer)
         if repo_pins:
-            repo_pins_str = json.dumps(
-                {repository: repo_pin.dict() for repository, repo_pin in repo_pins.items()}
-            )
+            repo_pins_str = json.dumps(repo_pins)
             # Backwards compatibility, use repo_pins in future usages
             prompt_metadata["base_shas"] = repo_pins_str
             prompt_metadata["repo_pins"] = repo_pins_str
