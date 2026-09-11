@@ -8,7 +8,6 @@ from typing import Any
 import orjson
 import requests as requests_
 import sentry_sdk
-from django.urls import reverse
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -23,8 +22,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.client import ApiClient
 from sentry.api.helpers.group_index import update_groups
-from sentry.auth.access import from_member
-from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.integrations.messaging.metrics import (
     MessageInteractionFailureReason,
     MessagingInteractionEvent,
@@ -32,10 +29,8 @@ from sentry.integrations.messaging.metrics import (
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.analytics import (
-    SlackIntegrationApproveMemberInvitation,
     SlackIntegrationAssign,
     SlackIntegrationChartUnfurlAction,
-    SlackIntegrationRejectMemberInvitation,
     SlackIntegrationStatus,
 )
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
@@ -45,18 +40,18 @@ from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
+from sentry.integrations.slack.tasks.member_approval import process_member_approval
 from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
 from sentry.integrations.slack.webhooks.actions.seer_agent import (
     SEER_AGENT_WRITE_APPROVAL_ACTIONS,
     handle_seer_agent_write_approval,
 )
-from sentry.integrations.types import ExternalProviderEnum, IntegrationProviderSlug
+from sentry.integrations.types import ExternalProviderEnum
 from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
 from sentry.locks import locks
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
-from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.rule import Rule
 from sentry.notifications.services import notifications_service
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
@@ -84,15 +79,10 @@ UNLINK_IDENTITY_MESSAGE = (
     "<{associate_url}|Unlink your identity now>. "
 )
 
-NO_ACCESS_MESSAGE = "You do not have access to the organization for the invitation."
-NO_PERMISSION_MESSAGE = "You do not have permission to approve member invitations."
 NO_IDENTITY_MESSAGE = "Identity not linked for user."
 ENABLE_SLACK_SUCCESS_MESSAGE = "Slack notifications have been enabled."
 
 DEFAULT_ERROR_MESSAGE = "Sentry can't perform that action right now on your behalf!"
-SUCCESS_MESSAGE = (
-    "{invite_type} request for {email} has been {verb}. <{url}|See Members and Requests>."
-)
 
 RESOLVE_OPTIONS = {
     "Immediately": "resolved",
@@ -840,7 +830,14 @@ class SlackActionEndpoint(Endpoint):
     def handle_member_approval(self, slack_request: SlackActionRequest, action: str) -> Response:
         identity_user = slack_request.get_identity_user()
 
-        response_url = slack_request.data["response_url"]
+        response_url = slack_request.response_url
+        if not response_url:
+            _logger.info(
+                "slack.action.member-approval-no-response-url",
+                extra={"integration_id": slack_request.integration.id},
+            )
+            return self.respond()
+
         webhook_client = WebhookClient(response_url)
 
         if not identity_user:
@@ -849,107 +846,15 @@ class SlackActionEndpoint(Endpoint):
             )
             return self.respond()
 
-        member_id = slack_request.callback_data["member_id"]
-
-        try:
-            member = OrganizationMember.objects.get_member_invite_query(member_id).get()
-        except OrganizationMember.DoesNotExist:
-            # member request is gone, likely someone else rejected it
-            member_email = slack_request.callback_data["member_email"]
-            webhook_client.send(
-                text=f"Member invitation for {member_email} no longer exists.",
-                response_type="in_channel",
-                replace_original=False,
-            )
-            return self.respond()
-
-        organization = member.organization
-
-        if not organization.has_access(identity_user):
-            webhook_client.send(
-                text=NO_ACCESS_MESSAGE,
-                response_type="in_channel",
-                replace_original=False,
-            )
-            return self.respond()
-
-        # row should exist because we have access
-        member_of_approver = OrganizationMember.objects.get(
-            user_id=identity_user.id, organization=organization
+        process_member_approval.apply_async(
+            kwargs={
+                "member_id": slack_request.callback_data["member_id"],
+                "member_email": slack_request.callback_data["member_email"],
+                "actor_id": identity_user.id,
+                "response_url": response_url,
+                "action": action,
+            }
         )
-        access = from_member(member_of_approver)
-        if not access.has_scope("member:admin"):
-            webhook_client.send(
-                text=NO_PERMISSION_MESSAGE, replace_original=False, response_type="in_channel"
-            )
-            return self.respond()
-
-        # validate the org options and check against allowed_roles
-        allowed_roles = member_of_approver.get_allowed_org_roles_to_invite()
-        try:
-            member.validate_invitation(identity_user, allowed_roles)
-        except UnableToAcceptMemberInvitationException as err:
-            webhook_client.send(text=str(err), replace_original=False, response_type="in_channel")
-            return self.respond()
-
-        original_status = InviteStatus(member.invite_status)
-        try:
-            if action == "approve_member":
-                member.approve_member_invitation(
-                    identity_user, referrer=IntegrationProviderSlug.SLACK.value
-                )
-            else:
-                member.reject_member_invitation(identity_user)
-        except Exception:
-            # shouldn't error but if it does, respond to the user
-            _logger.warning(
-                "slack.action.member-invitation-error",
-                extra={
-                    "organization_id": organization.id,
-                    "member_id": member.id,
-                },
-            )
-            webhook_client.send(
-                text=DEFAULT_ERROR_MESSAGE, replace_original=False, response_type="in_channel"
-            )
-            return self.respond()
-
-        if original_status == InviteStatus.REQUESTED_TO_BE_INVITED:
-            invite_type = "Invite"
-        else:
-            invite_type = "Join"
-
-        if action == "approve_member":
-            event = SlackIntegrationApproveMemberInvitation(
-                actor_id=identity_user.id,
-                organization_id=member.organization_id,
-                invitation_type=invite_type.lower(),
-                invited_member_id=member.id,
-            )
-            verb = "approved"
-        else:
-            event = SlackIntegrationRejectMemberInvitation(
-                actor_id=identity_user.id,
-                organization_id=member.organization_id,
-                invitation_type=invite_type.lower(),
-                invited_member_id=member.id,
-            )
-            verb = "rejected"
-
-        analytics.record(event)
-
-        manage_url = member.organization.absolute_url(
-            reverse("sentry-organization-members", args=[member.organization.slug])
-        )
-
-        message = SUCCESS_MESSAGE.format(
-            email=member.email,
-            invite_type=invite_type,
-            url=manage_url,
-            verb=verb,
-        )
-
-        webhook_client.send(text=message, replace_original=False, response_type="in_channel")
         return self.respond()
 
     def handle_link_identity(self, slack_request: SlackActionRequest) -> Response:
