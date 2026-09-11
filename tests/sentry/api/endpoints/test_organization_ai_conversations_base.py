@@ -28,6 +28,9 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         tokens=None,
         input_tokens=None,
         output_tokens=None,
+        cache_read_tokens=None,
+        cache_write_tokens=None,
+        reasoning_tokens=None,
         cost=None,
         trace_id=None,
         agent_name=None,
@@ -60,6 +63,9 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             tokens: Token count (gen_ai.usage.total_tokens)
             input_tokens: Input token count (gen_ai.usage.input_tokens)
             output_tokens: Output token count (gen_ai.usage.output_tokens)
+            cache_read_tokens: Cache-read input token count
+            cache_write_tokens: Cache-creation input token count
+            reasoning_tokens: Reasoning output token count
             cost: Cost (gen_ai.cost.total_tokens)
             trace_id: The trace ID for the span
             agent_name: The gen_ai.agent.name attribute
@@ -94,6 +100,12 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             span_data["gen_ai.usage.input_tokens"] = input_tokens
         if output_tokens is not None:
             span_data["gen_ai.usage.output_tokens"] = output_tokens
+        if cache_read_tokens is not None:
+            span_data["gen_ai.usage.cache_read.input_tokens"] = cache_read_tokens
+        if cache_write_tokens is not None:
+            span_data["gen_ai.usage.cache_creation.input_tokens"] = cache_write_tokens
+        if reasoning_tokens is not None:
+            span_data["gen_ai.usage.reasoning.output_tokens"] = reasoning_tokens
         if cost is not None:
             span_data["gen_ai.cost.total_tokens"] = cost
         if agent_name is not None:

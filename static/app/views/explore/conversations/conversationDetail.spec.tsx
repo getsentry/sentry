@@ -205,6 +205,55 @@ describe('ConversationDetailPage summary errors', () => {
     });
   });
 
+  it('falls back to reported total tokens when the breakdown is unavailable', async () => {
+    mockApis(null, [
+      spanFixture({
+        span_id: 'span-total-only',
+        'span.name': 'total-only turn',
+        'precise.start_ts': 1000,
+        'precise.finish_ts': 1000.5,
+        'gen_ai.request.messages': JSON.stringify([{role: 'user', content: 'Hello'}]),
+        'gen_ai.response.text': 'Hi',
+        'gen_ai.usage.total_tokens': 150,
+      }),
+    ]);
+    renderPage();
+
+    expect(await screen.findByText('150')).toBeInTheDocument();
+  });
+
+  it('shows the Junior-style token breakdown in the summary tooltip', async () => {
+    mockApis(null, [
+      spanFixture({
+        span_id: 'span-tokens',
+        'span.name': 'tokenized turn',
+        'precise.start_ts': 1000,
+        'precise.finish_ts': 1000.5,
+        'gen_ai.request.messages': JSON.stringify([{role: 'user', content: 'Hello'}]),
+        'gen_ai.response.text': 'Hi',
+        // This provider reports input exclusive of cache tokens.
+        'gen_ai.usage.input_tokens': 100,
+        'gen_ai.usage.output_tokens': 50,
+        'gen_ai.usage.input_tokens.cached': 20,
+        'gen_ai.usage.input_tokens.cache_write': 30,
+        'gen_ai.usage.output_tokens.reasoning': 10,
+        'gen_ai.usage.total_tokens': 200,
+      }),
+    ]);
+    renderPage();
+
+    const tokenCount = await screen.findByText('200');
+    expect(tokenCount).not.toHaveAttribute('title');
+    await userEvent.hover(tokenCount.parentElement!);
+
+    expect(await screen.findByText('Input')).toBeInTheDocument();
+    expect(screen.getByText('100')).toBeInTheDocument();
+    expect(screen.getByText('50')).toBeInTheDocument();
+    expect(screen.getByText('Cached')).toBeInTheDocument();
+    expect(screen.getByText('Cache Write')).toBeInTheDocument();
+    expect(screen.getByText('Reasoning')).toBeInTheDocument();
+  });
+
   it('renders the fire icon in the summary when a span errored', async () => {
     mockApis(null, [
       ...CONVERSATION_BODY,
