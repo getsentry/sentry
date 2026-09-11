@@ -218,10 +218,20 @@ export function ScmMessaging({
         isIntegrationActive(integration) &&
         isEligibleForIssueAlerts(integration)
     );
+    trackAnalytics('onboarding.scm_messaging_install_returned', {
+      organization,
+      provider: providerKey,
+      outcome: connected ? 'connected' : 'not_connected',
+    });
     // Drop exclusive if the install never surfaced a usable integration.
     if (result.isLoadingError || !connected) {
       setActiveRow(null);
     }
+  };
+
+  const handleRetryProviders = () => {
+    trackAnalytics('onboarding.scm_messaging_providers_retry_clicked', {organization});
+    retry();
   };
 
   const hasValidationAlert = !!validation.staleReason || validation.isError;
@@ -343,7 +353,9 @@ export function ScmMessaging({
                 <Alert
                   variant="warning"
                   trailingItems={
-                    <Alert.Button onClick={retry}>{t('Retry')}</Alert.Button>
+                    <Alert.Button onClick={handleRetryProviders}>
+                      {t('Retry')}
+                    </Alert.Button>
                   }
                 >
                   {t('Failed to load integrations.')}

@@ -7,6 +7,7 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import type {OrganizationIntegration} from 'sentry/types/integrations';
+import * as analytics from 'sentry/utils/analytics';
 
 import type {ScmMessagingProviderKey} from './messagingProviders';
 import {ScmMessagingChannelPicker} from './scmMessagingChannelPicker';
@@ -219,6 +220,28 @@ describe('ScmMessagingChannelPicker', () => {
         channelId: channelUrl,
         channelName: channelUrl,
       });
+    });
+
+    it('reports a typed channel the provider rejects', async () => {
+      mockChannels('20', [discordChannel]);
+      mockChannelValidate(false, '20');
+      const trackSpy = jest.spyOn(analytics, 'trackAnalytics');
+      renderPicker({
+        eligibleIntegrations: [discordIntegration],
+        providerKey: 'discord',
+      });
+
+      await selectEvent.create(screen.getByLabelText('channel'), '999', {
+        createOptionText: '999',
+      });
+
+      await waitFor(() =>
+        expect(trackSpy).toHaveBeenCalledWith(
+          'onboarding.scm_messaging_channel_validation_failed',
+          expect.objectContaining({provider: 'discord'})
+        )
+      );
+      expect(screen.getByRole('button', {name: 'Confirm and continue'})).toBeDisabled();
     });
   });
 

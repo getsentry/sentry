@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect} from 'react';
 import type {ReactNode} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -25,6 +25,7 @@ import type {
   IntegrationWithConfig,
   OrganizationIntegration,
 } from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -199,6 +200,16 @@ export function ScmMessagingProviderRow({
     isRefetchingIntegrations,
   });
 
+  const isInstallForbidden = visualState === 'install-forbidden';
+  useEffect(() => {
+    if (isInstallForbidden) {
+      trackAnalytics('onboarding.scm_messaging_ask_admin_shown', {
+        organization,
+        provider: resolvedProvider.providerKey,
+      });
+    }
+  }, [isInstallForbidden, organization, resolvedProvider.providerKey]);
+
   const handleConnect = useCallback(() => {
     if (resolvedProvider.providerKey === 'msteams') {
       openMsTeamsConnectionModal(resolvedProvider.provider, () => {
@@ -227,11 +238,61 @@ export function ScmMessagingProviderRow({
     onInstallComplete,
   ]);
 
+  const handleConnectClick = () => {
+    trackAnalytics('onboarding.scm_messaging_connect_clicked', {
+      organization,
+      provider: resolvedProvider.providerKey,
+    });
+    handleConnect();
+  };
+  const handleRetryInstall = () => {
+    trackAnalytics('onboarding.scm_messaging_install_retry_clicked', {
+      organization,
+      provider: resolvedProvider.providerKey,
+    });
+    handleConnect();
+  };
+
   const activateRow = (mode: 'configuring' | 'removing') =>
     onActiveRowChange({providerKey: resolvedProvider.providerKey, mode});
-  const handleCancelConfiguring = () => onActiveRowChange(null);
-  const handleCancelRemoving = () => onActiveRowChange(null);
+  const handleChooseDestination = () => {
+    trackAnalytics('onboarding.scm_messaging_choose_destination_clicked', {
+      organization,
+      provider: resolvedProvider.providerKey,
+    });
+    activateRow('configuring');
+  };
+  const handleEditDestination = () => {
+    trackAnalytics('onboarding.scm_messaging_destination_edit_clicked', {
+      organization,
+      provider: resolvedProvider.providerKey,
+    });
+    activateRow('configuring');
+  };
+  const handleCancelConfiguring = () => {
+    // The same Cancel closes a first-time pick and an edit of a staged
+    // destination; only the latter restores a previous choice.
+    trackAnalytics(
+      isConfigured
+        ? 'onboarding.scm_messaging_destination_edit_cancelled'
+        : 'onboarding.scm_messaging_choose_destination_cancelled',
+      {organization, provider: resolvedProvider.providerKey}
+    );
+    onActiveRowChange(null);
+  };
+  const handleStartRemoving = () => activateRow('removing');
+  const handleCancelRemoving = () => {
+    trackAnalytics('onboarding.scm_messaging_destination_remove_cancelled', {
+      organization,
+      provider: resolvedProvider.providerKey,
+    });
+    onActiveRowChange(null);
+  };
   const handleConfirmRemove = () => {
+    trackAnalytics('onboarding.scm_messaging_destination_remove_confirmed', {
+      organization,
+      provider: resolvedProvider.providerKey,
+    });
     onMessagingSetupChange({mode: 'unconfigured'});
     onActiveRowChange(null);
   };
@@ -254,7 +315,7 @@ export function ScmMessagingProviderRow({
             <Alert
               variant="danger"
               trailingItems={
-                <Alert.Button onClick={handleConnect}>{t('Try again')}</Alert.Button>
+                <Alert.Button onClick={handleRetryInstall}>{t('Try again')}</Alert.Button>
               }
             >
               {errorMessage || t('Installation failed. Please try again.')}
@@ -309,10 +370,10 @@ export function ScmMessagingProviderRow({
               <RowActions
                 visualState={visualState}
                 resolvedProvider={resolvedProvider}
-                onConnect={handleConnect}
-                onChooseDestination={() => activateRow('configuring')}
-                onEditDestination={() => activateRow('configuring')}
-                onStartRemoving={() => activateRow('removing')}
+                onConnect={handleConnectClick}
+                onChooseDestination={handleChooseDestination}
+                onEditDestination={handleEditDestination}
+                onStartRemoving={handleStartRemoving}
                 onCancelRemoving={handleCancelRemoving}
                 onConfirmRemove={handleConfirmRemove}
               />

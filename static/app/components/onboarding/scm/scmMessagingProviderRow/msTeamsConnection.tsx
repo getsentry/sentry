@@ -13,6 +13,7 @@ import {isIntegrationActive} from 'sentry/components/onboarding/scm/useScmMessag
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {IntegrationProvider} from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -76,6 +77,9 @@ function MsTeamsConnection({
                     view: MessagingIntegrationAnalyticsView.ONBOARDING,
                     variant: 'scm',
                     already_installed: false,
+                    organization,
+                  });
+                  trackAnalytics('onboarding.scm_messaging_msteams_handoff_started', {
                     organization,
                   });
                 }
