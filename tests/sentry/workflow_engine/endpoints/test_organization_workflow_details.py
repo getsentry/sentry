@@ -86,6 +86,74 @@ class OrganizationWorkflowIndexGetTest(OrganizationWorkflowDetailsBaseTest):
 
 
 @cell_silo_test
+class OrganizationWorkflowProjectScopeTest(APITestCase):
+    endpoint = "sentry-api-0-organization-workflow-project-scope"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+
+    def test_project_scope(self) -> None:
+        workflow = self.create_workflow(organization_id=self.organization.id)
+        other_project = self.create_project(organization=self.organization)
+        for _ in range(2):
+            detector = self.create_detector(project=self.project, type=MetricIssue.slug)
+            self.create_detector_workflow(workflow=workflow, detector=detector)
+        other_detector = self.create_detector(project=other_project)
+        self.create_detector_workflow(workflow=workflow, detector=other_detector)
+
+        response = self.get_success_response(self.organization.slug, workflow.id)
+
+        assert response.data == {
+            "projectIds": [
+                str(project_id) for project_id in sorted([self.project.id, other_project.id])
+            ],
+            "includesAllProjects": False,
+        }
+
+    def test_unattached_workflow(self) -> None:
+        workflow = self.create_workflow(organization_id=self.organization.id)
+
+        response = self.get_success_response(self.organization.slug, workflow.id)
+
+        assert response.data == {
+            "projectIds": [],
+            "includesAllProjects": False,
+        }
+
+    def test_workflow_in_another_organization_is_not_found(self) -> None:
+        other_organization = self.create_organization()
+        workflow = self.create_workflow(organization_id=other_organization.id)
+
+        self.get_error_response(self.organization.slug, workflow.id, status_code=404)
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_all_projects_workflow(self) -> None:
+        workflow = self.create_workflow(organization_id=self.organization.id)
+        detector = ensure_default_all_projects_detector(self.organization.id)
+        self.create_detector_workflow(workflow=workflow, detector=detector)
+
+        response = self.get_success_response(self.organization.slug, workflow.id)
+
+        assert response.data == {
+            "projectIds": [],
+            "includesAllProjects": True,
+        }
+
+    def test_all_projects_workflow_without_feature(self) -> None:
+        workflow = self.create_workflow(organization_id=self.organization.id)
+        detector = ensure_default_all_projects_detector(self.organization.id)
+        self.create_detector_workflow(workflow=workflow, detector=detector)
+
+        self.get_error_response(self.organization.slug, workflow.id, status_code=403)
+
+    def test_only_get_is_supported(self) -> None:
+        workflow = self.create_workflow(organization_id=self.organization.id)
+
+        self.get_error_response(self.organization.slug, workflow.id, method="post", status_code=405)
+
+
+@cell_silo_test
 class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWorkflowTest):
     method = "PUT"
 
@@ -1727,6 +1795,46 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert not Workflow.objects_for_deletion.filter(id=self.workflow.id).exists()
         assert not Rule.objects.filter(id=rule.id).exists()
         assert not AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()
+
+
+@cell_silo_test
+class OrganizationWorkflowProjectScopeProjectAccessTest(APITestCase, ProjectAccessTestMixin):
+    endpoint = "sentry-api-0-organization-workflow-project-scope"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.setup_project_access_test_data()
+        self.login_as(self.limited_user)
+
+    def test_cannot_access_workflow_from_inaccessible_project(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            self.other_workflow.id,
+            status_code=403,
+        )
+
+    def test_can_access_workflow_from_accessible_project(self) -> None:
+        response = self.get_success_response(self.organization.slug, self.user_workflow.id)
+
+        assert response.data == {
+            "projectIds": [str(self.user_project.id)],
+            "includesAllProjects": False,
+        }
+
+    def test_scope_includes_all_projects_for_accessible_workflow(self) -> None:
+        mixed_workflow = self.create_workflow(organization_id=self.organization.id)
+        self.create_detector_workflow(workflow=mixed_workflow, detector=self.user_detector)
+        self.create_detector_workflow(workflow=mixed_workflow, detector=self.other_detector)
+
+        response = self.get_success_response(self.organization.slug, mixed_workflow.id)
+
+        assert response.data == {
+            "projectIds": [
+                str(project_id)
+                for project_id in sorted([self.user_project.id, self.other_project.id])
+            ],
+            "includesAllProjects": False,
+        }
 
 
 @cell_silo_test
