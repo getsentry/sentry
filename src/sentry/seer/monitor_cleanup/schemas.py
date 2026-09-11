@@ -7,47 +7,45 @@ from pydantic import BaseModel, Field
 
 RESPONSE_VERSION: Literal[1] = 1
 
-# Incoming Seer payload: BaseModel validates the response before we load its resources.
 
-
-class MonitorPropertyValue(BaseModel):
+class SeerMonitorPropertyValue(BaseModel):
     monitor_id: int
     value: str
 
 
-class MonitorPropertyComparison(BaseModel):
+class SeerMonitorPropertyComparison(BaseModel):
     property: str
-    values: list[MonitorPropertyValue]
+    values: list[SeerMonitorPropertyValue]
 
 
-class MonitorFinding(BaseModel):
+class SeerMonitorFinding(BaseModel):
     kind: Literal["exact_duplicate", "overlapping_coverage", "duplicate_notifications"]
     monitor_ids: list[int]
     suggested_keep_id: int | None = None
     alert_ids: list[int] = Field(default_factory=list)
     reason: str
-    comparison: list[MonitorPropertyComparison] = Field(default_factory=list)
+    comparison: list[SeerMonitorPropertyComparison] = Field(default_factory=list)
 
 
-class MonitorCleanupArtifact(BaseModel):
+class SeerMonitorCleanupArtifact(BaseModel):
     scan_status: Literal["complete", "partial"]
     monitors_scanned: int
     summary: str
-    findings: list[MonitorFinding]
+    findings: list[SeerMonitorFinding]
 
 
-class ProjectMonitorCleanupArtifact(MonitorCleanupArtifact):
+class SeerProjectMonitorCleanupArtifact(SeerMonitorCleanupArtifact):
     project_id: int
 
 
-class OrganizationMonitorCleanupArtifact(BaseModel):
+class SeerOrganizationMonitorCleanupArtifact(BaseModel):
     scan_status: Literal["complete", "partial"]
-    projects: list[ProjectMonitorCleanupArtifact]
+    projects: list[SeerProjectMonitorCleanupArtifact]
 
 
-class MonitorCleanupResponseV1(BaseModel):
+class SeerMonitorCleanupResponseV1(BaseModel):
     schema_version: Literal[1]
-    data: OrganizationMonitorCleanupArtifact
+    data: SeerOrganizationMonitorCleanupArtifact
 
 
 # Sentry-built results and run extras: TypedDict describes the JSON stored on SeerAgentRun.

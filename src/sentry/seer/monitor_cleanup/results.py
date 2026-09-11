@@ -5,21 +5,21 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.monitor_cleanup.schemas import (
-    MonitorCleanupArtifact,
     MonitorCleanupComparison,
     MonitorCleanupComparisonValue,
     MonitorCleanupFinding,
     MonitorCleanupOutput,
     MonitorCleanupResource,
-    MonitorFinding,
-    OrganizationMonitorCleanupArtifact,
+    SeerMonitorCleanupArtifact,
+    SeerMonitorFinding,
+    SeerOrganizationMonitorCleanupArtifact,
 )
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
 
 
 def parse_monitor_cleanup_results(
-    artifact: OrganizationMonitorCleanupArtifact, organization: Organization, user_id: int
+    artifact: SeerOrganizationMonitorCleanupArtifact, organization: Organization, user_id: int
 ) -> list[MonitorCleanupOutput]:
     """Parse Seer findings into stored results, resolving resource IDs with read-only lookups."""
     project_ids = [project.project_id for project in artifact.projects]
@@ -45,7 +45,7 @@ def parse_monitor_cleanup_results(
 
 
 def parse_project_monitor_cleanup_result(
-    artifact: MonitorCleanupArtifact, organization_id: int, project_id: int
+    artifact: SeerMonitorCleanupArtifact, organization_id: int, project_id: int
 ) -> MonitorCleanupOutput:
     findings = artifact.findings
     ids = {monitor_id for finding in findings for monitor_id in finding.monitor_ids}
@@ -82,7 +82,7 @@ def _serialize_resource(resource: Detector | Workflow) -> MonitorCleanupResource
 
 
 def _serialize_finding(
-    finding: MonitorFinding,
+    finding: SeerMonitorFinding,
     monitors: Mapping[int, MonitorCleanupResource],
     alerts: Mapping[int, MonitorCleanupResource],
 ) -> MonitorCleanupFinding:

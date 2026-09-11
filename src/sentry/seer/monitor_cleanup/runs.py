@@ -23,8 +23,8 @@ from sentry.seer.monitor_cleanup.results import parse_monitor_cleanup_results
 from sentry.seer.monitor_cleanup.schemas import (
     RESPONSE_VERSION,
     MonitorCleanupOutput,
-    MonitorCleanupResponseV1,
     MonitorCleanupRunExtras,
+    SeerMonitorCleanupResponseV1,
 )
 from sentry.tasks.seer import monitor_cleanup as monitor_cleanup_tasks
 from sentry.users.models.user import User
@@ -107,7 +107,7 @@ def deliver_monitor_cleanup_result(
         )
         return
     try:
-        response = MonitorCleanupResponseV1.parse_obj(result)
+        response = SeerMonitorCleanupResponseV1.parse_obj(result)
         outputs = parse_monitor_cleanup_results(
             response.data, agent_run.run.organization, agent_run.run.user_id
         )

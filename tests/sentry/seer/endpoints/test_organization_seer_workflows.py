@@ -28,8 +28,8 @@ from sentry.seer.monitor_cleanup.runs import (
     finish_run,
 )
 from sentry.seer.monitor_cleanup.schemas import (
-    MonitorCleanupArtifact,
-    OrganizationMonitorCleanupArtifact,
+    SeerMonitorCleanupArtifact,
+    SeerOrganizationMonitorCleanupArtifact,
 )
 from sentry.tasks.seer.monitor_cleanup import expire_run
 from sentry.testutils.cases import APITestCase
@@ -390,7 +390,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         )
 
     def organization_artifact(self):
-        return OrganizationMonitorCleanupArtifact(
+        return SeerOrganizationMonitorCleanupArtifact(
             scan_status="complete",
             projects=[{"project_id": str(self.project.id), **self.finding_artifact().dict()}],
         )
@@ -434,7 +434,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert run.extras["status"] == "complete"
 
     def test_empty_scan_completes(self) -> None:
-        artifact = OrganizationMonitorCleanupArtifact(scan_status="complete", projects=[])
+        artifact = SeerOrganizationMonitorCleanupArtifact(scan_status="complete", projects=[])
         outputs = parse_monitor_cleanup_results(artifact, self.organization, self.user.id)
         run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
         finish_run(run.run_id, organization_id=self.organization.id, outputs=outputs)
@@ -832,7 +832,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             "reason": "Queries overlap but thresholds differ.",
             **overrides,
         }
-        return MonitorCleanupArtifact(
+        return SeerMonitorCleanupArtifact(
             scan_status="complete",
             monitors_scanned=2,
             summary="Overlapping coverage",
