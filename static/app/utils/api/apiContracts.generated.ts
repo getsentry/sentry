@@ -1272,6 +1272,7 @@ export type ConfigValidator = {
     | 'W-SU'
     | 'WET'
     | 'Zulu'
+    | 'localtime'
     | '';
 };
 
@@ -2172,8 +2173,8 @@ export type DetectorCountResponse = {
 
 export type DiscoverSavedQuery = {
   name: string;
-  aggregations?: unknown[][] | null;
-  conditions?: unknown[][] | null;
+  aggregations?: Array<unknown[]> | null;
+  conditions?: Array<unknown[]> | null;
   display?: string | null;
   end?: string | null;
   environment?: string[] | null;
@@ -3163,7 +3164,7 @@ export type GroupDetailsResponse = {
     serviceType: string;
     webUrl: string;
   }>;
-  stats?: Record<string, number[][]>;
+  stats?: Record<string, Array<number[]>>;
   tags?: Array<Record<string, unknown>>;
   userCount?: number;
 };
@@ -4070,7 +4071,7 @@ export type ListAvailableActionResponse = Array<{
 
 export type ListClientKeysResponse = Array<{
   browserSdk: {
-    choices: string[][];
+    choices: Array<string[]>;
   };
   browserSdkVersion: string;
   dateCreated: string | null;
@@ -4606,7 +4607,7 @@ export type ListOrganizationAIConversationsResponse = Array<{
 
 export type ListOrganizationClientKeysResponse = Array<{
   browserSdk: {
-    choices: string[][];
+    choices: Array<string[]>;
   };
   browserSdkVersion: string;
   dateCreated: string | null;
@@ -5722,7 +5723,7 @@ export type ListTracesResponse = {
       sliceStart: number;
       sliceWidth: number;
       start: number;
-      components?: number[][];
+      components?: Array<number[]>;
     }>;
     duration: number;
     end: number;
@@ -7946,7 +7947,7 @@ export type ProjectFilterResponse = Array<{
 /** This represents a Sentry Project Client Key. */
 export type ProjectKey = {
   browserSdk: {
-    choices: string[][];
+    choices: Array<string[]>;
   };
   browserSdkVersion: string;
   dateCreated: string | null;
@@ -8151,7 +8152,7 @@ export type ProjectReleaseResponse = {
 
 export type ProjectReleaseStats = {
   statTotals: Record<string, unknown>;
-  stats: number[][];
+  stats: Array<number[]>;
   usersBreakdown: Array<{
     crashFreeSessions: number | null;
     crashFreeUsers: number | null;
@@ -8243,7 +8244,7 @@ export type ProjectSnapshotStatusCheckRulesResponse = {
   };
 };
 
-export type ProjectStats = number[][];
+export type ProjectStats = Array<number[]>;
 
 export type ProjectSummary = {
   access: string[];
@@ -8394,7 +8395,7 @@ export type ProjectWithTeam = {
 
 export type PromptsActivity = {
   feature: string;
-  status: 'snoozed' | 'dismissed' | 'visible';
+  status: 'dismissed' | 'visible' | 'snoozed';
 };
 
 export type PromptsActivityResponse = {
@@ -8911,10 +8912,10 @@ export type SentryAppParser = {
 };
 
 export type SentryAppStats = {
-  installStats: number[][];
+  installStats: Array<number[]>;
   totalInstalls: number;
   totalUninstalls: number;
-  uninstallStats: number[][];
+  uninstallStats: Array<number[]>;
 };
 
 /**
@@ -9900,7 +9901,7 @@ export type UptimeAlertList = Array<{
   body: string | null;
   downtimeThreshold: number;
   environment: string | null;
-  headers: string[][];
+  headers: Array<string[]>;
   id: string;
   intervalSeconds: number;
   method: string;
@@ -9927,7 +9928,7 @@ export type UptimeDetector = {
   body: string | null;
   downtimeThreshold: number;
   environment: string | null;
-  headers: string[][];
+  headers: Array<string[]>;
   id: string;
   intervalSeconds: number;
   method: string;
@@ -11038,7 +11039,7 @@ export type ApiMapping = {
         shareId: string | null;
         shortId: string;
         stats: {
-          '24h'?: number[][];
+          '24h'?: Array<number[]>;
         };
         status: 'resolved' | 'unresolved' | 'ignored';
         statusDetails: Record<string, unknown>;
