@@ -8,12 +8,7 @@ export const mcp: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      content: getInstallContent(
-        tct(
-          'To enable MCP monitoring, you need to install the Sentry SDK with a minimum version of [code:9.44.0].',
-          {code: <code />}
-        )
-      ),
+      content: getInstallContent(t('Add the Sentry Deno SDK as a dependency:')),
     },
   ],
   configure: params => [
@@ -70,8 +65,21 @@ const server = Sentry.wrapMcpServerWithSentry(new McpServer({
         {
           type: 'text',
           text: t(
-            'Verify that MCP monitoring is working correctly by triggering some MCP server interactions in your application.'
+            'Register a tool on the wrapped server and call it. The tool call creates a span, which you can find in Sentry.'
           ),
+        },
+        {
+          type: 'code',
+          language: 'typescript',
+          code: `import { z } from "npm:zod";
+
+server.tool(
+  "roll_dice",
+  { sides: z.number() },
+  ({ sides }) => ({
+    content: [{ type: "text", text: String(1 + Math.floor(Math.random() * sides)) }],
+  }),
+);`,
         },
       ],
     },
