@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
+import {Grid} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {archiveRelease, restoreRelease} from 'sentry/actionCreators/release';
@@ -8,7 +9,6 @@ import {Client} from 'sentry/api';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {TextOverflow} from 'sentry/components/textOverflow';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseMeta} from 'sentry/types/release';
@@ -83,16 +83,16 @@ export function useReleaseMenuItems({
           <ProjectBadge key={project.slug} project={project} avatarSize={18} />
         ))}
         {numberOfCollapsedProjects > 0 && (
-          <span>
-            <Tooltip
-              title={releaseMeta.projects
-                .slice(maxVisibleProjects)
-                .map(p => p.slug)
-                .join(', ')}
-            >
-              + {tn('%s other project', '%s other projects', numberOfCollapsedProjects)}
-            </Tooltip>
-          </span>
+          // Tooltip wraps non-element children in its own span, so it needs no
+          // container of its own here.
+          <Tooltip
+            title={releaseMeta.projects
+              .slice(maxVisibleProjects)
+              .map(p => p.slug)
+              .join(', ')}
+          >
+            + {tn('%s other project', '%s other projects', numberOfCollapsedProjects)}
+          </Tooltip>
         )}
       </Fragment>
     );
@@ -100,9 +100,9 @@ export function useReleaseMenuItems({
 
   function getModalHeader(title: React.ReactNode) {
     return (
-      <ModalHeaderContainer>
-        <TextOverflow>{title}</TextOverflow>
-      </ModalHeaderContainer>
+      <Heading as="h4" ellipsis>
+        {title}
+      </Heading>
     );
   }
 
@@ -110,9 +110,9 @@ export function useReleaseMenuItems({
     return (
       <Fragment>
         {message}
-
-        <ProjectsWrapper>{getProjectList()}</ProjectsWrapper>
-
+        <Grid gap="xs" padding="xl 0 xl xl">
+          {getProjectList()}
+        </Grid>
         {t('Are you sure you want to do this?')}
       </Fragment>
     );
@@ -173,17 +173,3 @@ export function useReleaseMenuItems({
     statusItem,
   ];
 }
-
-const ProjectsWrapper = styled('div')`
-  margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space.xl} ${p => p.theme.space.xl};
-  display: grid;
-  gap: ${p => p.theme.space.xs};
-  img {
-    border: none !important;
-    box-shadow: none !important;
-  }
-`;
-
-const ModalHeaderContainer = styled('h4')`
-  max-width: 100%;
-`;

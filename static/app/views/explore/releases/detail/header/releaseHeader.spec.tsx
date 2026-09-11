@@ -175,9 +175,10 @@ describe('ReleaseHeader', () => {
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'Archive'}));
 
       expect(await screen.findByText('Archive Release 1.2.0')).toBeInTheDocument();
-      expect(screen.getAllByTestId('badge-display-name')).toHaveLength(1);
+      const modal = screen.getByRole('dialog');
+      expect(within(modal).getByText(project.slug)).toBeInTheDocument();
 
-      await userEvent.click(screen.getByTestId('confirm-button'));
+      await userEvent.click(within(modal).getByRole('button', {name: 'Archive'}));
 
       expect(mockUpdate).toHaveBeenCalledWith(
         expect.anything(),
@@ -212,7 +213,9 @@ describe('ReleaseHeader', () => {
 
       expect(await screen.findByText('Restore Release 1.2.0')).toBeInTheDocument();
 
-      await userEvent.click(screen.getByTestId('confirm-button'));
+      await userEvent.click(
+        within(screen.getByRole('dialog')).getByRole('button', {name: 'Restore'})
+      );
 
       expect(mockUpdate).toHaveBeenCalledWith(
         expect.anything(),
