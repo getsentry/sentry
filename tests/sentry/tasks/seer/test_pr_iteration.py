@@ -1768,6 +1768,25 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
             "autofix.pr_iteration.paused.blocked", tags={"gate": "trigger_consume"}
         )
 
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_gate_still_names_who_asked(self, mock_apply: MagicMock) -> None:
+        """``trigger_source`` is the only producer field, so a gate carries it too."""
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
+        pause_pr_iteration(
+            run_id=67890,
+            organization_id=self.organization.id,
+            reason=PauseReason.USER_STOP,
+        )
+
+        self._trigger(bypass=True)
+
+        mock_apply.assert_not_called()
+        (_, kwargs) = self.log.info.call_args
+        assert kwargs["extra"]["reason"] == "paused"
+        assert kwargs["extra"]["trigger_source"] == ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER
+
     @patch(f"{TASK_PATH}.block_iteration_for_missing_permissions", return_value=True)
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_missing_permissions_skips_scheduling(
