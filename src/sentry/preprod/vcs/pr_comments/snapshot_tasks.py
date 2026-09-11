@@ -56,8 +56,8 @@ def get_snapshot_pr_comment_reporting_criteria(project: Project) -> SnapshotChan
 
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_snapshot_pr_comment",
-    namespace=preprod_tasks,
-    alias_namespace=preprod_snapshots_tasks,
+    namespace=preprod_snapshots_tasks,
+    alias_namespace=preprod_tasks,
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=60),
@@ -234,8 +234,8 @@ def create_preprod_snapshot_pr_comment_task(
 
 @instrumented_task(
     name="sentry.preprod.tasks.post_snapshot_pr_comment",
-    namespace=preprod_tasks,
-    alias_namespace=preprod_snapshots_tasks,
+    namespace=preprod_snapshots_tasks,
+    alias_namespace=preprod_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=4, on=(ApiError, ConnectionError, TimeoutError)),
