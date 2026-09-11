@@ -84,15 +84,7 @@ def get_guarded_project_sample_rate(organization: Organization, project: Project
     if is_recently_added(model=project) or is_recently_added(model=organization):
         return 1.0
 
-    # When using the boosted project sample rate, we want to fall back to the blended sample rate in case there are
-    # any issues.
-    sample_rate = get_project_sample_rate(
-        org_id=organization.id,
-        project_id=project.id,
-        error_sample_rate_fallback=sample_rate,
-    )
-
-    return float(sample_rate)
+    return get_project_sample_rate(org_id=organization.id, project_id=project.id)
 
 
 def _get_rules_of_enabled_biases(

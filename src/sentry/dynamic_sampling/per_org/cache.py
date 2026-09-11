@@ -8,7 +8,6 @@ import orjson
 import sentry_sdk
 
 from sentry.dynamic_sampling.models.common import RebalancedItem
-from sentry.dynamic_sampling.per_org.gate import is_org_in_serving_rollout
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import are_equal_with_epsilon, sample_rate_to_float
 from sentry.dynamic_sampling.tasks.constants import (
@@ -43,9 +42,6 @@ def write_caches(config: BaseDynamicSamplingConfiguration) -> None:
         org_id, config.results.rebalanced_transactions
     )
     if not (wrote_recalibration_factor or wrote_project_rates or wrote_transaction_rates):
-        return
-
-    if not is_org_in_serving_rollout(org_id):
         return
 
     schedule_invalidate_project_config(organization_id=org_id, trigger="dynamic_sampling_per_org")
@@ -141,9 +137,6 @@ def delete_adjusted_factor(org_id: int) -> None:
 def set_project_sample_rates(org_id: int, rebalanced_projects: Iterable[RebalancedItem]) -> bool:
     """Store the balanced per-project sample rates this pipeline computed.
 
-    Mirrors the layout of the legacy ``prioritise_projects`` hash, so that both pipelines
-    are readable the same way and one can replace the other for a single organization.
-
     Only rates that moved are written. Most projects keep the same rate from one pass to
     the next, and a project with no volume keeps it forever. The expiry is always renewed,
     so that a project whose rate never moves does not fall out of the cache and back to the
@@ -196,8 +189,8 @@ def set_transaction_sample_rates(
 ) -> bool:
     """Store the balanced per-transaction sample rates of an organization's projects.
 
-    Each stored value has the same shape as the legacy ``pri_tran`` entry: the named rates
-    followed by the rate that applies to every transaction without one.
+    Each stored value is the named rates followed by the rate that applies to every
+    transaction without one.
 
     Returns whether anything was written, which is what makes the organization's rules
     worth republishing.

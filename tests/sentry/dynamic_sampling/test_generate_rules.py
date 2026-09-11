@@ -108,11 +108,7 @@ def test_generate_rules_return_only_always_allowed_rules_if_sample_rate_is_100_a
     get_blended_sample_rate.return_value = 1.0
 
     # We also enable the recalibration to show it's not generated as part of the rules.
-    redis_client = get_redis_client_for_ds()
-    redis_client.set(
-        f"ds::o:{default_old_project.organization.id}:rate_rebalance_factor2",
-        0.5,
-    )
+    set_adjusted_factor(default_old_project.organization.id, 0.5)
 
     assert generate_rules(default_old_project) == [
         {

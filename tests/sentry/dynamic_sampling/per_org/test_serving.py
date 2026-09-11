@@ -15,24 +15,9 @@ from sentry.dynamic_sampling.per_org.serving import (
 )
 from sentry.dynamic_sampling.per_org.telemetry import SERVING_SOURCE_METRIC
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.tasks.helpers import recalibrate_orgs as legacy_recalibration_cache
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
-    generate_boost_low_volume_projects_cache_key,
-)
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
-    set_transactions_resampling_rates,
-)
-from sentry.testutils.helpers.options import override_options
 
 ORG_ID = 4711
 PROJECT_ID = 1234
-
-SERVING_ON = {"dynamic-sampling.per_org.serving-rollout-rate": 1.0}
-SERVING_OFF = {"dynamic-sampling.per_org.serving-rollout-rate": 0.0}
-SERVING_BY_ORG_ID = {
-    "dynamic-sampling.per_org.serving-rollout-rate": 0.0,
-    "dynamic-sampling.per_org.serving-org-ids": [ORG_ID],
-}
 
 
 @pytest.fixture(autouse=True)
@@ -42,8 +27,6 @@ def clean_redis() -> Iterator[None]:
         per_org_cache.generate_project_sample_rates_cache_key(ORG_ID),
         per_org_cache.generate_transaction_sample_rates_cache_key(ORG_ID, PROJECT_ID),
         per_org_cache.generate_recalibrate_orgs_cache_key(ORG_ID),
-        legacy_recalibration_cache.generate_recalibrate_orgs_cache_key(ORG_ID),
-        generate_boost_low_volume_projects_cache_key(ORG_ID),
     ]
     redis.delete(*keys)
     yield
@@ -65,13 +48,7 @@ def emitted_sources() -> Iterator[list[tuple[str, str]]]:
         yield sources
 
 
-def store_legacy_project_sample_rate(sample_rate: float) -> None:
-    get_redis_client_for_ds().hset(
-        generate_boost_low_volume_projects_cache_key(ORG_ID), str(PROJECT_ID), sample_rate
-    )
-
-
-def store_per_org_project_sample_rate(sample_rate: float, project_id: int = PROJECT_ID) -> None:
+def store_project_sample_rate(sample_rate: float, project_id: int = PROJECT_ID) -> None:
     per_org_cache.set_project_sample_rates(
         ORG_ID, [RebalancedItem(id=project_id, count=10, new_sample_rate=sample_rate)]
     )
@@ -79,94 +56,35 @@ def store_per_org_project_sample_rate(sample_rate: float, project_id: int = PROJ
 
 @pytest.mark.django_db
 class TestGetProjectSampleRate:
-    @override_options(SERVING_OFF)
-    def test_serves_the_legacy_cache_outside_the_rollout(
-        self, emitted_sources: list[tuple[str, str]]
-    ) -> None:
-        store_legacy_project_sample_rate(0.2)
-        store_per_org_project_sample_rate(0.8)
+    def test_serves_the_stored_rate(self, emitted_sources: list[tuple[str, str]]) -> None:
+        store_project_sample_rate(0.8)
 
-        assert get_project_sample_rate(ORG_ID, PROJECT_ID, error_sample_rate_fallback=1.0) == 0.2
-        assert emitted_sources == [("project_sample_rate", "legacy")]
-
-    @override_options(SERVING_ON)
-    def test_serves_the_per_org_cache_inside_the_rollout(
-        self, emitted_sources: list[tuple[str, str]]
-    ) -> None:
-        store_legacy_project_sample_rate(0.2)
-        store_per_org_project_sample_rate(0.8)
-
-        assert get_project_sample_rate(ORG_ID, PROJECT_ID, error_sample_rate_fallback=1.0) == 0.8
+        assert get_project_sample_rate(ORG_ID, PROJECT_ID) == 0.8
         assert emitted_sources == [("project_sample_rate", "per_org")]
 
-    @override_options(SERVING_ON)
     def test_an_org_without_stored_rates_is_sampled_in_full(
         self, emitted_sources: list[tuple[str, str]]
     ) -> None:
-        # The legacy cache is never borrowed, no matter how cold the per-org caches are.
-        store_legacy_project_sample_rate(0.2)
-
-        assert get_project_sample_rate(ORG_ID, PROJECT_ID, error_sample_rate_fallback=0.5) == 1.0
+        assert get_project_sample_rate(ORG_ID, PROJECT_ID) == 1.0
         assert emitted_sources == [("project_sample_rate", "per_org_no_data")]
 
-    @override_options(SERVING_ON)
     def test_a_project_the_pass_has_not_reached_is_sampled_in_full(
         self, emitted_sources: list[tuple[str, str]]
     ) -> None:
-        store_legacy_project_sample_rate(0.2)
         # This project was created after the pass, so it has no stored rate yet.
-        store_per_org_project_sample_rate(0.8, project_id=PROJECT_ID + 1)
+        store_project_sample_rate(0.8, project_id=PROJECT_ID + 1)
 
-        assert get_project_sample_rate(ORG_ID, PROJECT_ID, error_sample_rate_fallback=0.5) == 1.0
+        assert get_project_sample_rate(ORG_ID, PROJECT_ID) == 1.0
         assert emitted_sources == [("project_sample_rate", "per_org_no_data")]
-
-    @override_options({**SERVING_ON, "dynamic-sampling.per_org.killswitch": True})
-    def test_the_killswitch_serves_the_legacy_cache(
-        self, emitted_sources: list[tuple[str, str]]
-    ) -> None:
-        store_legacy_project_sample_rate(0.2)
-        store_per_org_project_sample_rate(0.8)
-
-        assert get_project_sample_rate(ORG_ID, PROJECT_ID, error_sample_rate_fallback=1.0) == 0.2
-        assert emitted_sources == [("project_sample_rate", "legacy")]
 
 
 @pytest.mark.django_db
 class TestGetTransactionSampleRates:
-    def store_legacy_rates(self) -> None:
-        set_transactions_resampling_rates(
-            org_id=ORG_ID,
-            proj_id=PROJECT_ID,
-            named_rates=[RebalancedItem(id="/legacy", count=10, new_sample_rate=0.1)],
-            default_rate=0.2,
-            ttl_ms=60_000,
-        )
-
-    def store_per_org_rates(self) -> None:
+    def test_serves_the_stored_rates(self, emitted_sources: list[tuple[str, str]]) -> None:
         per_org_cache.set_transaction_sample_rates(
             ORG_ID,
             {PROJECT_ID: ([RebalancedItem(id="/per_org", count=10, new_sample_rate=0.3)], 0.4)},
         )
-
-    @override_options(SERVING_OFF)
-    def test_serves_the_legacy_cache_outside_the_rollout(
-        self, emitted_sources: list[tuple[str, str]]
-    ) -> None:
-        self.store_legacy_rates()
-        self.store_per_org_rates()
-
-        assert get_transaction_sample_rates(ORG_ID, PROJECT_ID, default_rate=1.0) == (
-            {"/legacy": 0.1},
-            0.2,
-        )
-        assert emitted_sources == [("transaction_sample_rates", "legacy")]
-
-    @override_options(SERVING_ON)
-    def test_serves_the_per_org_cache_inside_the_rollout(
-        self, emitted_sources: list[tuple[str, str]]
-    ) -> None:
-        self.store_legacy_rates()
-        self.store_per_org_rates()
 
         assert get_transaction_sample_rates(ORG_ID, PROJECT_ID, default_rate=1.0) == (
             {"/per_org": 0.3},
@@ -174,22 +92,15 @@ class TestGetTransactionSampleRates:
         )
         assert emitted_sources == [("transaction_sample_rates", "per_org")]
 
-    @override_options(SERVING_ON)
-    def test_a_project_without_stored_rates_never_reads_the_legacy_cache(
+    def test_a_project_without_stored_rates_keeps_the_default_rate(
         self, emitted_sources: list[tuple[str, str]]
     ) -> None:
-        self.store_legacy_rates()
-
-        # The pass balanced no transaction for this project, so it has no per-transaction
-        # rules. Borrowing the legacy ones would mix two budgets.
         assert get_transaction_sample_rates(ORG_ID, PROJECT_ID, default_rate=1.0) == ({}, 1.0)
         assert emitted_sources == [("transaction_sample_rates", "per_org")]
 
-    @override_options(SERVING_ON)
     def test_a_project_balanced_without_named_rates_keeps_its_implicit_rate(
         self, emitted_sources: list[tuple[str, str]]
     ) -> None:
-        self.store_legacy_rates()
         per_org_cache.set_transaction_sample_rates(ORG_ID, {PROJECT_ID: ([], 0.5)})
 
         assert get_transaction_sample_rates(ORG_ID, PROJECT_ID, default_rate=1.0) == ({}, 0.5)
@@ -198,92 +109,16 @@ class TestGetTransactionSampleRates:
 
 @pytest.mark.django_db
 class TestGetRecalibrationFactor:
-    @override_options(SERVING_ON)
-    def test_serves_the_per_org_factor_inside_the_serving_rollout(
-        self, emitted_sources: list[tuple[str, str]]
-    ) -> None:
-        legacy_recalibration_cache.set_guarded_adjusted_factor(ORG_ID, 2.0)
+    def test_serves_the_stored_factor(self, emitted_sources: list[tuple[str, str]]) -> None:
         per_org_cache.set_adjusted_factor(ORG_ID, 3.0)
 
         assert get_recalibration_factor(ORG_ID) == 3.0
+        assert get_previous_recalibration_factor(ORG_ID) == 3.0
         assert emitted_sources == [("recalibration_factor", "per_org")]
 
-    @override_options(SERVING_OFF)
-    def test_serves_the_legacy_factor_outside_the_serving_rollout(
-        self, emitted_sources: list[tuple[str, str]]
-    ) -> None:
-        legacy_recalibration_cache.set_guarded_adjusted_factor(ORG_ID, 2.0)
-        per_org_cache.set_adjusted_factor(ORG_ID, 3.0)
-
-        assert get_recalibration_factor(ORG_ID) == 2.0
-        assert emitted_sources == [("recalibration_factor", "legacy")]
-
-    @override_options(SERVING_BY_ORG_ID)
-    def test_a_listed_org_serves_the_per_org_factor_at_a_rate_of_zero(
-        self, emitted_sources: list[tuple[str, str]]
-    ) -> None:
-        legacy_recalibration_cache.set_guarded_adjusted_factor(ORG_ID, 2.0)
-        per_org_cache.set_adjusted_factor(ORG_ID, 3.0)
-
-        assert get_recalibration_factor(ORG_ID) == 3.0
-        assert emitted_sources == [("recalibration_factor", "per_org")]
-
-    @override_options(SERVING_BY_ORG_ID)
-    def test_an_unlisted_org_serves_the_legacy_factor(
-        self, emitted_sources: list[tuple[str, str]]
-    ) -> None:
-        other_org_id = ORG_ID + 1
-        legacy_recalibration_cache.set_guarded_adjusted_factor(other_org_id, 2.0)
-
-        assert get_recalibration_factor(other_org_id) == 2.0
-        assert emitted_sources == [("recalibration_factor", "legacy")]
-
-    @override_options(SERVING_ON)
-    def test_a_missing_factor_on_both_sides_is_the_identity_factor(
+    def test_a_missing_factor_is_the_identity_factor(
         self, emitted_sources: list[tuple[str, str]]
     ) -> None:
         assert get_recalibration_factor(ORG_ID) == 1.0
+        assert get_previous_recalibration_factor(ORG_ID) == 1.0
         assert emitted_sources == [("recalibration_factor", "per_org")]
-
-
-@pytest.mark.django_db
-class TestRecalibrationFactorCarryOver:
-    """The pipeline that takes over serving continues from the factor it was handed.
-
-    Both caches expire after the same short TTL, and each pipeline stops writing as soon as
-    the other one serves. So a factor is only ever in both caches right after a switch.
-    """
-
-    @override_options(SERVING_ON)
-    def test_the_per_org_pipeline_carries_the_legacy_factor_over(self) -> None:
-        legacy_recalibration_cache.set_guarded_adjusted_factor(ORG_ID, 2.0)
-
-        assert get_recalibration_factor(ORG_ID) == 2.0
-        assert get_previous_recalibration_factor(ORG_ID) == 2.0
-
-    @override_options(SERVING_OFF)
-    def test_the_legacy_pipeline_carries_the_per_org_factor_over(self) -> None:
-        per_org_cache.set_adjusted_factor(ORG_ID, 3.0)
-
-        assert get_recalibration_factor(ORG_ID) == 3.0
-        assert get_previous_recalibration_factor(ORG_ID) == 3.0
-
-    @override_options(SERVING_ON)
-    def test_the_per_org_factor_wins_once_it_is_written(self) -> None:
-        legacy_recalibration_cache.set_guarded_adjusted_factor(ORG_ID, 2.0)
-        per_org_cache.set_adjusted_factor(ORG_ID, 3.0)
-
-        assert get_previous_recalibration_factor(ORG_ID) == 3.0
-
-    @override_options(SERVING_OFF)
-    def test_the_legacy_factor_wins_once_it_is_written(self) -> None:
-        legacy_recalibration_cache.set_guarded_adjusted_factor(ORG_ID, 2.0)
-        per_org_cache.set_adjusted_factor(ORG_ID, 3.0)
-
-        assert get_previous_recalibration_factor(ORG_ID) == 2.0
-
-    @override_options({**SERVING_ON, "dynamic-sampling.per_org.killswitch": True})
-    def test_the_killswitch_carries_the_per_org_factor_over(self) -> None:
-        per_org_cache.set_adjusted_factor(ORG_ID, 3.0)
-
-        assert get_recalibration_factor(ORG_ID) == 3.0

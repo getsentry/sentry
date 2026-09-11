@@ -36,20 +36,18 @@ class ServedValue(StrEnum):
 
 
 class ServingSource(StrEnum):
-    """Which pipeline supplied a value that rule generation served."""
+    """Whether the per-org caches held a value that rule generation served."""
 
-    # The organization is not in the serving rollout.
-    LEGACY = "legacy"
     PER_ORG = "per_org"
-    # The organization is in the serving rollout, but no pass has stored a value for it.
+    # No pass has stored a value for the organization yet.
     PER_ORG_NO_DATA = "per_org_no_data"
 
 
 def emit_serving_source(value: ServedValue, source: ServingSource) -> None:
-    """Record which pipeline supplied a value that rule generation served.
+    """Record whether the per-org caches held a value that rule generation served.
 
     Sampled like the rest of the per-org metrics: this runs on every rule generation, and
-    the legacy-to-per-org ratio survives sampling because both sides are sampled alike.
+    the served-to-missing ratio survives sampling because both sides are sampled alike.
     """
     metrics.incr(
         SERVING_SOURCE_METRIC,

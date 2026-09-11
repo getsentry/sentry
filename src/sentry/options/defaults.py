@@ -2487,11 +2487,8 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Share of organizations whose rules read the project, transaction and recalibration
-# sample rates from the per-org pipeline's caches, keyed on organization id. 1.0 serves
-# every org from them and is the default; 0.0 serves every org from the legacy caches. An
-# org only has per-org cache entries once dynamic-sampling.per_org.rollout-rate selects it
-# too, and a project without a stored per-org rate is sampled in full.
+# Nothing reads this option any more. It stays registered until the options automator
+# has unset it, since the automator can only unset a registered option.
 register(
     "dynamic-sampling.per_org.serving-rollout-rate",
     type=Float,
@@ -2499,9 +2496,8 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Organizations rule generation serves from the per-org caches, whatever
-# dynamic-sampling.per_org.serving-rollout-rate selects. Names a single org to pilot
-# before a rate group exists.
+# Nothing reads this option any more. It stays registered until the options automator
+# has unset it, since the automator can only unset a registered option.
 register(
     "dynamic-sampling.per_org.serving-org-ids",
     type=Sequence,
