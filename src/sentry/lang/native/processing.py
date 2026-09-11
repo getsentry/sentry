@@ -242,7 +242,7 @@ def _merge_system_info(data, system_info):
         setdefault_path(data, "contexts", "device", "model", value=device_model)
 
 
-def _merge_full_response(data, response, *, selected_thread=None, preserve_thread=False):
+def _merge_full_response(data, response, *, selected_thread=None):
     data["platform"] = "native"
     # Specifically for Unreal events: Do not overwrite the level as it has already been set in Relay when merging the context.
     if response.get("crashed") is not None and data.get("level") is None:
@@ -254,15 +254,12 @@ def _merge_full_response(data, response, *, selected_thread=None, preserve_threa
     os = get_os_from_event(data)
 
     images: list[dict[str, Any]] = []
-    if preserve_thread and selected_thread is None:
-        images.extend(get_path(data, "debug_meta", "images", default=[]))
     set_path(data, "debug_meta", "images", value=images)
 
     for complete_image in response["modules"]:
         image: dict[str, Any] = {}
         _merge_image(image, complete_image, os, data)
-        if not preserve_thread or selected_thread is not None or image not in images:
-            images.append(image)
+        images.append(image)
 
     # Extract the crash reason and infos
     data_exception = get_path(data, "exception", "values", 0)
@@ -281,7 +278,9 @@ def _merge_full_response(data, response, *, selected_thread=None, preserve_threa
     if response.get("crash_reason"):
         data_exception["type"] = response["crash_reason"]
 
-    original_threads = get_path(data, "threads", "values", default=[]) if preserve_thread else []
+    original_threads = (
+        get_path(data, "threads", "values", default=[]) if selected_thread is not None else []
+    )
     event_thread_id = _minidump_thread_id(data_exception.get("thread_id"))
     original_thread = next(
         (
@@ -304,14 +303,13 @@ def _merge_full_response(data, response, *, selected_thread=None, preserve_threa
 
     for complete_stacktrace in response["stacktraces"]:
         is_requesting = complete_stacktrace.get("is_requesting")
-        is_selected = complete_stacktrace is selected_thread if preserve_thread else is_requesting
+        is_selected = (
+            complete_stacktrace is selected_thread if selected_thread is not None else is_requesting
+        )
         thread_id = complete_stacktrace.get("thread_id")
         thread_name = complete_stacktrace.get("thread_name")
 
-        is_event_thread = (
-            event_thread_id is not None and _minidump_thread_id(thread_id) == event_thread_id
-        )
-        data_thread = dict(original_thread) if preserve_thread and is_event_thread else {}
+        data_thread = dict(original_thread) if is_selected else {}
         data_thread["id"] = thread_id
         if thread_name:
             data_thread["name"] = thread_name
@@ -326,7 +324,7 @@ def _merge_full_response(data, response, *, selected_thread=None, preserve_threa
         if is_selected:
             data_exception["thread_id"] = thread_id
             data_thread.pop("stacktrace", None)
-            if preserve_thread:
+            if selected_thread is not None:
                 data_exception["stacktrace"] = {}
             data_stacktrace = data_exception.setdefault("stacktrace", {})
             data_stacktrace["frames"] = []
@@ -341,15 +339,6 @@ def _merge_full_response(data, response, *, selected_thread=None, preserve_threa
             _merge_frame(new_frame, complete_frame)
             data_stacktrace["frames"].append(new_frame)
 
-    if (
-        preserve_thread
-        and original_thread
-        and not any(
-            _minidump_thread_id(thread.get("id")) == event_thread_id for thread in data_threads
-        )
-    ):
-        data_threads.append(dict(original_thread))
-
 
 def _minidump_thread_id(value: Any) -> int | None:
     if isinstance(value, str) and len(value) <= 20 and value.isascii() and value.isdecimal():
@@ -361,22 +350,14 @@ def _minidump_thread_id(value: Any) -> int | None:
 
 def _select_minidump_thread(data: Any, response: Any) -> dict[str, Any] | None:
     thread_id = _minidump_thread_id(get_path(data, "exception", "values", 0, "thread_id"))
-    matches = [
-        thread
-        for thread in response["stacktraces"]
-        if thread_id is not None and _minidump_thread_id(thread.get("thread_id")) == thread_id
-    ]
-    if len(matches) == 1 and matches[0].get("frames"):
-        return matches[0]
-
-    data.setdefault("errors", []).append(
-        {
-            "type": EventErrorType.INVALID_DATA,
-            "name": "exception.values.0.thread_id",
-            "reason": "The event thread must identify one minidump thread with a usable stack.",
-        }
+    return next(
+        (
+            thread
+            for thread in response["stacktraces"]
+            if thread_id is not None and _minidump_thread_id(thread.get("thread_id")) == thread_id
+        ),
+        None,
     )
-    return None
 
 
 def process_minidump(symbolicator: Symbolicator, data: Any) -> Any:
@@ -399,11 +380,8 @@ def process_minidump(symbolicator: Symbolicator, data: Any) -> Any:
     response = symbolicator.process_minidump(data.get("platform"), minidump, rewrite_first_module)
 
     if _handle_response_status(data, response):
-        preserve_thread = get_path(data, "exception", "values", 0, "thread_id") is not None
-        selected_thread = _select_minidump_thread(data, response) if preserve_thread else None
-        _merge_full_response(
-            data, response, selected_thread=selected_thread, preserve_thread=preserve_thread
-        )
+        selected_thread = _select_minidump_thread(data, response)
+        _merge_full_response(data, response, selected_thread=selected_thread)
 
         # Emit Apple symbol stats
         apple_symbol_stats = response.get("apple_symbol_stats")
