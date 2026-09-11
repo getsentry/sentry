@@ -684,9 +684,9 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
     () =>
       platforms
         .filter(
-          ({id}) =>
+          ({id, hidden}) =>
             project.platform === id ||
-            isPlatformAllowed({isSelfHosted, organization, platform: id})
+            (!hidden && isPlatformAllowed({isSelfHosted, organization, platform: id}))
         )
         .map(({id, name}) => ({
           value: id,
