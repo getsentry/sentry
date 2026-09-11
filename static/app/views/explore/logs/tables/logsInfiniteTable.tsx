@@ -2,10 +2,10 @@ import {
   Fragment,
   useCallback,
   useEffect,
+  useEffectEvent,
   useMemo,
   useRef,
   useState,
-  type RefObject,
 } from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -173,7 +173,6 @@ export function LogsInfiniteTable({
   );
 
   const baseData = localOnlyItemFilters?.filteredItems ?? originalData;
-  const baseDataLength = useBox(baseData.length);
 
   const sortBys = useQueryParamsSortBys();
   const hasInjectedErrorRows =
@@ -214,8 +213,7 @@ export function LogsInfiniteTable({
       withEvent = baseData || [];
     } else {
       withEvent = [...baseData];
-      const newSelectedIndex =
-        pseudoRowIndex === -2 ? baseDataLength.current : pseudoRowIndex;
+      const newSelectedIndex = pseudoRowIndex === -2 ? baseData.length : pseudoRowIndex;
       withEvent.splice(
         newSelectedIndex,
         0,
@@ -237,7 +235,6 @@ export function LogsInfiniteTable({
     isPending,
     isError,
     pseudoRowIndex,
-    baseDataLength,
     hasInjectedErrorRows,
     injectedErrorRows,
   ]);
@@ -359,28 +356,28 @@ export function LogsInfiniteTable({
     [virtualizer]
   );
 
+  // The -2 sentinel means the pseudo row sits after every loaded row. Reading the
+  // row count from an effect event keeps it out of the effect deps, so scrolling
+  // does not repeat each time the infinite table loads another page.
+  const scrollToPseudoRow = useEffectEvent(() => {
+    const scrollToIndex = pseudoRowIndex === -2 ? baseData.length : pseudoRowIndex;
+    virtualizer.scrollToIndex(scrollToIndex, {
+      behavior: 'smooth',
+      align: 'center',
+    });
+  });
+
   useEffect(() => {
     if (
-      pseudoRowIndex !== -1 &&
-      tableBodyRef?.current &&
-      !additionalData?.scrollToDisabled
+      pseudoRowIndex === -1 ||
+      !tableBodyRef?.current ||
+      additionalData?.scrollToDisabled
     ) {
-      setTimeout(() => {
-        const scrollToIndex =
-          pseudoRowIndex === -2 ? baseDataLength.current : pseudoRowIndex;
-        virtualizer.scrollToIndex(scrollToIndex, {
-          behavior: 'smooth',
-          align: 'center',
-        });
-      }, 100);
+      return;
     }
-  }, [
-    pseudoRowIndex,
-    virtualizer,
-    tableBodyRef,
-    baseDataLength,
-    additionalData?.scrollToDisabled,
-  ]);
+    const timeoutId = setTimeout(() => scrollToPseudoRow(), 100);
+    return () => clearTimeout(timeoutId);
+  }, [pseudoRowIndex, virtualizer, tableBodyRef, additionalData?.scrollToDisabled]);
 
   const hasReplay = !!embeddedOptions?.replay;
 
@@ -953,10 +950,4 @@ function BackToTopButton({
       <IconArrow size="md" />
     </Button>
   );
-}
-
-function useBox<T>(value: T): RefObject<T> {
-  const box = useRef(value);
-  box.current = value;
-  return box;
 }
