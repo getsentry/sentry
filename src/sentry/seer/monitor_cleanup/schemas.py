@@ -7,6 +7,8 @@ from pydantic import BaseModel, Field
 
 RESPONSE_VERSION: Literal[1] = 1
 
+# Incoming Seer payload: BaseModel validates the response before we load its resources.
+
 
 class MonitorPropertyValue(BaseModel):
     monitor_id: int
@@ -46,6 +48,9 @@ class OrganizationMonitorCleanupArtifact(BaseModel):
 class MonitorCleanupResponseV1(BaseModel):
     schema_version: Literal[1]
     data: OrganizationMonitorCleanupArtifact
+
+
+# Sentry-built results and run extras: TypedDict describes the JSON stored on SeerAgentRun.
 
 
 class MonitorCleanupOutput(TypedDict):
@@ -95,6 +100,9 @@ class MonitorCleanupRunExtras(TypedDict):
     response_schema_version: Literal[1]
     project_ids: list[str]
     results: list[MonitorCleanupOutput]
+
+
+# Workflow API responses: datetimes are rendered as ISO strings by DRF.
 
 
 class MonitorCleanupRunResponse(TypedDict):

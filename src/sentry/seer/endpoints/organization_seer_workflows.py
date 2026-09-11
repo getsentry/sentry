@@ -142,9 +142,7 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
         if ratelimits.is_limited(
             f"seer-workflow:{organization.id}:{strategy}", limit=5, window=3600
         ):
-            raise Throttled(
-                detail="This organization has reached the limit of five scans per hour."
-            )
+            raise Throttled(detail="This organization has reached its scan limit. Try again later.")
         run = create_monitor_cleanup_run(request, organization)
         return Response(
             {

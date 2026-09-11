@@ -3,8 +3,7 @@ import logging
 from django.utils import timezone
 
 from sentry.seer.models.run import SeerAgentRun
-from sentry.seer.monitor_cleanup import FEATURE_ID
-from sentry.seer.monitor_cleanup.runs import RUN_TIMEOUT, finish_run
+from sentry.seer.monitor_cleanup import FEATURE_ID, runs
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 
@@ -14,11 +13,11 @@ logger = logging.getLogger(__name__)
 def schedule_timeout(run_id: int, organization_id: int) -> None:
     try:
         expire_run.apply_async(
-            args=[run_id, organization_id], countdown=int(RUN_TIMEOUT.total_seconds())
+            args=[run_id, organization_id], countdown=int(runs.RUN_TIMEOUT.total_seconds())
         )
     except Exception:
         logger.exception("monitor_cleanup.timeout_enqueue_failed", extra={"run_id": run_id})
-        finish_run(
+        runs.finish_run(
             run_id,
             organization_id=organization_id,
             error="Could not schedule this scan's timeout. Start a new run to try again.",
@@ -36,10 +35,10 @@ def expire_run(run_id: int, organization_id: int) -> None:
         run__organization_id=organization_id,
         source=FEATURE_ID,
         extras__status="running",
-        run__date_added__lte=timezone.now() - RUN_TIMEOUT,
+        run__date_added__lte=timezone.now() - runs.RUN_TIMEOUT,
     ).first()
     if agent_run is not None:
-        finish_run(
+        runs.finish_run(
             run_id,
             organization_id=organization_id,
             error="The scan timed out. Start a new run to try again.",

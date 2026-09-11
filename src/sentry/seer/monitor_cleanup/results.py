@@ -18,9 +18,10 @@ from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
 
 
-def prepare_monitor_cleanup_results(
+def load_monitor_cleanup_results(
     artifact: OrganizationMonitorCleanupArtifact, organization: Organization, user_id: int
 ) -> list[MonitorCleanupOutput]:
+    """Load accessible projects and resources into results without modifying them."""
     project_ids = [project.project_id for project in artifact.projects]
     projects = {
         project.id: project
@@ -37,13 +38,13 @@ def prepare_monitor_cleanup_results(
     outputs: list[MonitorCleanupOutput] = []
     for project_artifact in artifact.projects:
         project = projects[project_artifact.project_id]
-        output = format_monitor_cleanup_results(project_artifact, organization.id, project.id)
+        output = load_project_monitor_cleanup_result(project_artifact, organization.id, project.id)
         output["projectSlug"] = project.slug
         outputs.append(output)
     return outputs
 
 
-def format_monitor_cleanup_results(
+def load_project_monitor_cleanup_result(
     artifact: MonitorCleanupArtifact, organization_id: int, project_id: int
 ) -> MonitorCleanupOutput:
     findings = artifact.findings
@@ -72,7 +73,7 @@ def format_monitor_cleanup_results(
         "projectId": str(project_id),
         "scan": {"status": artifact.scan_status, "monitorsScanned": artifact.monitors_scanned},
         "summary": artifact.summary,
-        "findings": [_format_finding(finding, monitors, alerts) for finding in findings],
+        "findings": [_serialize_finding(finding, monitors, alerts) for finding in findings],
     }
 
 
@@ -80,7 +81,7 @@ def _serialize_resource(resource: Detector | Workflow) -> MonitorCleanupResource
     return {"id": str(resource.id), "name": resource.name, "enabled": resource.enabled}
 
 
-def _format_finding(
+def _serialize_finding(
     finding: MonitorFinding,
     monitors: Mapping[int, MonitorCleanupResource],
     alerts: Mapping[int, MonitorCleanupResource],

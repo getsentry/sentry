@@ -3,7 +3,8 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 from datetime import timedelta
-from typing import Any, Literal
+from functools import partial
+from typing import Any, Literal, cast
 from uuid import UUID
 
 from django.db import router, transaction
@@ -18,13 +19,16 @@ from sentry.seer.agent.types import FeatureRunStatus
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.seer.monitor_cleanup import FEATURE, FEATURE_ID
-from sentry.seer.monitor_cleanup.results import prepare_monitor_cleanup_results
+from sentry.seer.monitor_cleanup.results import load_monitor_cleanup_results
 from sentry.seer.monitor_cleanup.schemas import (
     RESPONSE_VERSION,
     MonitorCleanupOutput,
     MonitorCleanupResponseV1,
     MonitorCleanupRunExtras,
 )
+from sentry.tasks.seer import monitor_cleanup as monitor_cleanup_tasks
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
 TERMINAL = {"complete", "partial", "failed"}
@@ -37,7 +41,7 @@ def create_monitor_cleanup_run(request: Request, organization: Organization) -> 
     if not request.user.is_authenticated:
         raise PermissionDenied("Sign in to run a monitor scan.")
     try:
-        client = SeerAgentClient(organization=organization, user=request.user)
+        client = SeerAgentClient(organization=organization, user=cast(User | RpcUser, request.user))
     except SeerPermissionError as error:
         raise PermissionDenied(str(error)) from error
     extras: MonitorCleanupRunExtras = {
@@ -55,7 +59,10 @@ def create_monitor_cleanup_run(request: Request, organization: Organization) -> 
         flush=False,
         extras=dict(extras),
         referrer=FEATURE_ID,
-        on_run_created=_schedule_run_timeout,
+        on_run_created=lambda run: transaction.on_commit(
+            partial(monitor_cleanup_tasks.schedule_timeout, run.id, run.organization_id),
+            using=router.db_for_write(SeerRun),
+        ),
     )
 
 
@@ -101,7 +108,7 @@ def deliver_monitor_cleanup_result(
         return
     try:
         response = MonitorCleanupResponseV1.parse_obj(result)
-        outputs = prepare_monitor_cleanup_results(
+        outputs = load_monitor_cleanup_results(
             response.data, agent_run.run.organization, agent_run.run.user_id
         )
     except Exception:
@@ -153,14 +160,4 @@ def finish_run(
             "status": extras["status"],
             "error": error,
         },
-    )
-
-
-def _schedule_run_timeout(run: SeerRun) -> None:
-    # The timeout task calls finish_run, so import it after this module is initialized.
-    from sentry.tasks.seer.monitor_cleanup import schedule_timeout
-
-    transaction.on_commit(
-        lambda: schedule_timeout(run.id, run.organization_id),
-        using=router.db_for_write(SeerRun),
     )
