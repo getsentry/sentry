@@ -53,7 +53,7 @@ export default Storybook.story('Investigations — Hypotheses', story => {
         failed all read the same way to someone scanning the row, so the status line
         carries the distinction rather than the border.
       </p>
-      <Storybook.Demo direction="column" align="stretch">
+      <Storybook.Demo direction="column" align="stretch" maxHeight="none">
         <HypothesisList hypotheses={InvestigationHypothesesFixture()} />
       </Storybook.Demo>
       <p>
@@ -65,14 +65,14 @@ export default Storybook.story('Investigations — Hypotheses', story => {
         The heading over the steps moves with them, from "Evidence to check" to "Evidence
         checked".
       </p>
-      <Storybook.Demo direction="column" align="stretch">
+      <Storybook.Demo direction="column" align="stretch" maxHeight="none">
         <HypothesisList hypotheses={inFlightHypotheses()} />
       </Storybook.Demo>
       <p>
         A failure is the one in-flight state that gets a colour, because it is the only
         one that has stopped. The hypothesis says why, and so does each check that broke.
       </p>
-      <Storybook.Demo direction="column" align="stretch">
+      <Storybook.Demo direction="column" align="stretch" maxHeight="none">
         <HypothesisList
           hypotheses={[
             InvestigationHypothesisFixture({
@@ -126,7 +126,7 @@ export default Storybook.story('Investigations — Hypotheses', story => {
         accent; choosing the same decision twice clears it and hands the hypothesis back
         to the agent's verdict.
       </p>
-      <Storybook.Demo direction="column" align="stretch">
+      <Storybook.Demo direction="column" align="stretch" maxHeight="none">
         <InvestigationFixtureApi
           organizationSlug="hypotheses-story"
           details={[InvestigationDetailFixture({id: 'investigation-1', blocks: []})]}
@@ -147,7 +147,7 @@ export default Storybook.story('Investigations — Hypotheses', story => {
         rows above do — and the overflow menu disappears, which is what a read-only
         surface wants.
       </p>
-      <Storybook.Demo direction="column" align="stretch">
+      <Storybook.Demo direction="column" align="stretch" maxHeight="none">
         <HypothesisList
           hypotheses={InvestigationHypothesesFixture()}
           primaryHypothesisId="hypothesis-1"

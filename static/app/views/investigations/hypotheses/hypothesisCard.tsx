@@ -90,7 +90,7 @@ export function HypothesisCard({
         ) : null}
       </Flex>
 
-      <Stack gap="xs">
+      <Stack gap="sm">
         <Heading as="h3" size="md">
           {hypothesis.statement}
         </Heading>
@@ -129,8 +129,14 @@ function VerificationStepRow({step}: {step: InvestigationVerificationStep}) {
   // wins when both are present.
   const detail =
     step.result || step.error?.message || getVerificationStepStatusLabel(step.status);
+  // A step that has produced something can be opened for how the agent got
+  // there. One that has not is a bare row — there is no finding to unpack yet,
+  // and a chevron would promise one.
+  const hasRun = Boolean(step.result) || Boolean(step.error);
   const summary = (
-    <Stack gap="2xs">
+    // A full flex-basis, because the chevron's button grows too — without this
+    // the two split the row and the text wraps in half the width it has.
+    <Stack gap="2xs" flex="1 1 100%" minWidth="0">
       <Text size="sm">{step.title}</Text>
       <Text size="xs" variant={failed ? 'danger' : 'muted'} density="comfortable">
         {detail}
@@ -138,22 +144,30 @@ function VerificationStepRow({step}: {step: InvestigationVerificationStep}) {
     </Stack>
   );
 
-  // A step that has produced something can be opened for how the agent got
-  // there. One that has not is a bare row — there is no finding to unpack yet,
-  // and a chevron would promise one.
-  const hasRun = Boolean(step.result) || Boolean(step.error);
-
   return (
     <Container
       as="li"
       border={failed ? 'danger' : 'primary'}
       radius="sm"
-      padding="md lg"
+      // A Disclosure brings its own row padding; doubling it pushes the text
+      // away from the edge the other rows sit against.
+      padding={hasRun ? 'xs' : 'md lg'}
       background="primary"
     >
       {hasRun ? (
         <Disclosure size="xs">
-          <Disclosure.Title>{summary}</Disclosure.Title>
+          {/*
+           * The summary goes in `leadingItems`, not as the title's children:
+           * children land inside a Button, which is one line tall and centres
+           * what it holds. From the leading slot the summary lays out normally
+           * and, taking the row's spare width, pushes the chevron to the edge.
+           */}
+          <Disclosure.Title
+            leadingItems={summary}
+            // The summary sits outside the button, so the toggle would
+            // otherwise announce as an unnamed chevron.
+            aria-label={t('Show how %s was checked', step.title)}
+          />
           <Disclosure.Content>
             <Stack gap="sm">
               <Stack gap="2xs">

@@ -57,7 +57,7 @@ type HypothesisStatusDisplay = {
  * steps, since that is the only place the distinction exists. Only the running
  * state is coloured — the rest are staging posts, not outcomes.
  */
-export function getHypothesisStatusDisplay(
+function getHypothesisStatusDisplay(
   hypothesis: InvestigationHypothesis
 ): HypothesisStatusDisplay {
   const status = hypothesis.effectiveStatus;
