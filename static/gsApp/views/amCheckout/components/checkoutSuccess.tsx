@@ -601,7 +601,7 @@ export function CheckoutSuccess({
           <Text variant="muted" size="lg" align={{zero: 'center', '3xl': 'left'}}>
             {contentDescription}
           </Text>
-          <Flex gap="sm">
+          <Flex gap="sm" direction={{zero: 'column', md: 'row'}}>
             <LinkButton
               variant="primary"
               aria-label={t('View your subscription')}
