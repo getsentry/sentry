@@ -7,8 +7,8 @@ from sentry.testutils.silo import cell_silo_test
 @cell_silo_test
 class CellCacheVersionBackfillKeynameTest(TestMigrations):
     app = "hybridcloud"
-    migrate_from = "0036_controlcacheversion_backfill_keyname"
-    migrate_to = "0037_cellcacheversion_backfill_keyname"
+    migrate_from = "0037_create_outbox_backfill_watermark"
+    migrate_to = "0038_cellcacheversion_backfill_keyname"
 
     def setup_before_migration(self, apps: StateApps) -> None:
         CellCacheVersion = apps.get_model("hybridcloud", "CellCacheVersion")
