@@ -1783,7 +1783,7 @@ describe('token', () => {
       });
       expect(freeTextInputs).toHaveLength(3);
 
-      const middleFreeTextRow = freeTextInputs[1]!.closest('[role="row"]') as HTMLElement;
+      const middleFreeTextRow = freeTextInputs[1]!.closest('[role="row"]')!;
       const middleRules = getEmotionRules(middleFreeTextRow).join(' ');
       // Collapsed mid gaps must keep a hit target (leading stays 0 to avoid wrap).
       // getComputedStyle is stubbed in tests, so assert the emotion rules instead.
