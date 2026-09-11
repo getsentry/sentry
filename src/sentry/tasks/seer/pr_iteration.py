@@ -330,7 +330,8 @@ def comment_on_missing_permissions(
     # it and could hand the identity over in the task args instead.
     try:
         state = fetch_run_status(run_id, organization)
-    except (SeerApiError, ValueError):
+    except (SeerApiError, ValueError) as e:
+        sentry_sdk.capture_exception(e)
         logger.warning(
             "autofix.pr_iteration.missing_permissions.run_state_not_found",
             extra={"run_id": run_id, "organization_id": organization_id},
@@ -401,7 +402,8 @@ def consume_queued_autofix_feedback(
 
         try:
             state = fetch_run_status(run_id, organization)
-        except (SeerApiError, ValueError):
+        except (SeerApiError, ValueError) as e:
+            sentry_sdk.capture_exception(e)
             logger.warning(
                 "autofix.pr_iteration.consume_feedback.run_state_not_found",
                 extra={"run_id": run_id, "organization_id": organization_id},
