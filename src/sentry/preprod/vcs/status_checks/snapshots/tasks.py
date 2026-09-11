@@ -50,8 +50,8 @@ APPROVE_SNAPSHOT_ACTION_IDENTIFIER = "approve_snapshots"
 
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_snapshot_status_check",
-    namespace=preprod_tasks,
-    alias_namespace=preprod_snapshots_tasks,
+    namespace=preprod_snapshots_tasks,
+    alias_namespace=preprod_tasks,
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=60),
@@ -363,8 +363,8 @@ def _compute_snapshot_status(
 
 @instrumented_task(
     name="sentry.preprod.tasks.post_snapshot_status_check",
-    namespace=preprod_tasks,
-    alias_namespace=preprod_snapshots_tasks,
+    namespace=preprod_snapshots_tasks,
+    alias_namespace=preprod_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=4, on=(ApiError, ConnectionError, TimeoutError)),

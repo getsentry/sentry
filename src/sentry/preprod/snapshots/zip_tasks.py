@@ -109,8 +109,8 @@ def _upload_archive_multipart(session: Session, key: str, tmp: IO[bytes]) -> Non
 
 @instrumented_task(
     name="sentry.preprod.tasks.build_snapshot_images_zip",
-    namespace=preprod_tasks,
-    alias_namespace=preprod_snapshots_tasks,
+    namespace=preprod_snapshots_tasks,
+    alias_namespace=preprod_tasks,
     silo_mode=SiloMode.CELL,
     processing_deadline_duration=900,
 )
