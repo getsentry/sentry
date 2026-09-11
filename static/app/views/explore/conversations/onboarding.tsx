@@ -219,7 +219,7 @@ function ConversationOnboardingPanel({
                     {t('Preview Conversations')}
                   </Heading>
                   <Arcade
-                    src="https://demo.arcade.software/oV2kLNiavNzbDHX12Bib?embed"
+                    src="https://demo.arcade.software/aEDAYP7ebTJvWKABSBdc?embed"
                     loading="lazy"
                     allowFullScreen
                   />
