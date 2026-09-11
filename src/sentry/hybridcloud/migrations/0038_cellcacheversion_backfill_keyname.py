@@ -34,7 +34,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("hybridcloud", "0036_controlcacheversion_backfill_keyname"),
+        ("hybridcloud", "0037_create_outbox_backfill_watermark"),
     ]
 
     operations = [
