@@ -1,10 +1,4 @@
-import pytest
-
-from sentry.seer.autofix.pr_iteration.bot_identity import (
-    OTHER_BOT_SLUG,
-    bot_slug,
-    bot_slugs_for_feedback,
-)
+from sentry.seer.autofix.pr_iteration.bot_identity import bot_logins_for_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
@@ -12,28 +6,6 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
-
-
-@pytest.mark.parametrize(
-    "login,expected",
-    [
-        ("seer-by-sentry[bot]", "seer"),
-        ("seer-dev-testing[bot]", "seer"),
-        ("seer[bot]", "seer"),
-        ("coderabbitai[bot]", "coderabbit"),
-        ("CodeRabbitAI[bot]", "coderabbit"),
-        ("cursor[bot]", "cursor"),
-        ("some-new-reviewer[bot]", OTHER_BOT_SLUG),
-        (None, OTHER_BOT_SLUG),
-        ("", OTHER_BOT_SLUG),
-    ],
-)
-def test_a_bot_login_maps_to_its_slug(login: str | None, expected: str) -> None:
-    assert bot_slug(login, author_is_bot=True) == expected
-
-
-def test_a_human_author_gets_no_slug() -> None:
-    assert bot_slug("some-person", author_is_bot=False) is None
 
 
 def _review_body(login: str | None, *, author_is_bot: bool) -> GithubPrReviewBodyFeedbackSource:
@@ -58,31 +30,35 @@ def _pr_comment(login: str) -> GithubPrCommentFeedbackSource:
     )
 
 
-def test_the_slugs_are_sorted_and_deduped() -> None:
+def test_the_logins_are_sorted_and_deduped() -> None:
     sources = [
         _review_body("coderabbitai[bot]", author_is_bot=True),
         _review_comment("coderabbitai[bot]", author_is_bot=True),
         _review_body("seer-by-sentry[bot]", author_is_bot=True),
     ]
 
-    assert bot_slugs_for_feedback(sources) == ["coderabbit", "seer"]
+    assert bot_logins_for_feedback(sources) == ["coderabbitai[bot]", "seer-by-sentry[bot]"]
 
 
-def test_a_human_review_contributes_no_slug() -> None:
+def test_a_bot_review_without_a_login_records_nothing() -> None:
+    assert bot_logins_for_feedback([_review_body(None, author_is_bot=True)]) == []
+
+
+def test_a_human_review_contributes_no_login() -> None:
     sources = [
         _review_body("some-person", author_is_bot=False),
         _review_comment("some-person", author_is_bot=False),
     ]
 
-    assert bot_slugs_for_feedback(sources) == []
+    assert bot_logins_for_feedback(sources) == []
 
 
 def test_a_top_level_comment_is_classified_by_its_login() -> None:
-    assert bot_slugs_for_feedback([_pr_comment("cursor[bot]")]) == ["cursor"]
-    assert bot_slugs_for_feedback([_pr_comment("some-person")]) == []
+    assert bot_logins_for_feedback([_pr_comment("cursor[bot]")]) == ["cursor[bot]"]
+    assert bot_logins_for_feedback([_pr_comment("some-person")]) == []
 
 
-def test_check_suite_feedback_is_ci_and_contributes_no_slug() -> None:
+def test_check_suite_feedback_is_ci_and_contributes_no_login() -> None:
     source = CheckSuiteFeedbackSource(
         event={
             "check_suite": {
@@ -95,10 +71,10 @@ def test_check_suite_feedback_is_ci_and_contributes_no_slug() -> None:
         }
     )
 
-    assert bot_slugs_for_feedback([source]) == []
+    assert bot_logins_for_feedback([source]) == []
 
 
-def test_ui_feedback_contributes_no_slug() -> None:
+def test_ui_feedback_contributes_no_login() -> None:
     source = UserUIFeedbackSource(user_id=1, user_feedback="fix it")
 
-    assert bot_slugs_for_feedback([source]) == []
+    assert bot_logins_for_feedback([source]) == []

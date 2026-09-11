@@ -1736,12 +1736,12 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         self._call()
 
         (row,) = open_iterations(seer_run)
-        assert row.data["feedback_bot_slugs"] == ["coderabbit", "seer"]
+        assert row.data["feedback_bot_logins"] == ["coderabbitai[bot]", "seer-by-sentry[bot]"]
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
-    def test_a_dropped_bot_review_contributes_no_slug(
+    def test_a_dropped_bot_review_contributes_no_login(
         self,
         mock_fetch: MagicMock,
         mock_pop: MagicMock,
@@ -1767,12 +1767,12 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         (row,) = open_iterations(seer_run)
         assert row.data["dropped_count"] == 1
-        assert row.data["feedback_bot_slugs"] == ["coderabbit"]
+        assert row.data["feedback_bot_logins"] == ["coderabbitai[bot]"]
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
-    def test_a_deduped_bot_review_contributes_no_slug(
+    def test_a_deduped_bot_review_contributes_no_login(
         self,
         mock_fetch: MagicMock,
         mock_pop: MagicMock,
@@ -1791,7 +1791,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         (row,) = open_iterations(seer_run)
         assert row.data["dropped_count"] == 1
-        assert row.data["feedback_bot_slugs"] == ["coderabbit"]
+        assert row.data["feedback_bot_logins"] == ["coderabbitai[bot]"]
 
 
 class TriggerConsumePrIterationFeedbackTest(TestCase):

@@ -52,7 +52,7 @@ class AiAutofixPrIterationFeedbackBatchCompletedEvent(analytics.Event):
     outcome: str
 
     # Review bots behind the feedback the drain consumed, sorted and deduped.
-    feedback_bot_slugs: list[str] = field(default_factory=list)
+    feedback_bot_logins: list[str] = field(default_factory=list)
 
     # Commit SHAs this iteration pushed. Empty unless the outcome is already_pushed.
     head_shas: list[str] = field(default_factory=list)

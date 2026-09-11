@@ -136,7 +136,7 @@ class PrIterationDetailsTest(TestCase):
                 queued_count=3,
                 dropped_count=1,
                 automated_feedback_count=1,
-                feedback_bot_slugs=["coderabbit"],
+                feedback_bot_logins=["coderabbitai[bot]"],
             )
         return iteration_id
 
@@ -181,7 +181,7 @@ class PrIterationDetailsTest(TestCase):
         assert row.data["queued_count"] == 3
         assert row.data["dropped_count"] == 1
         assert row.data["automated_feedback_count"] == 1
-        assert row.data["feedback_bot_slugs"] == ["coderabbit"]
+        assert row.data["feedback_bot_logins"] == ["coderabbitai[bot]"]
 
     def test_a_pushed_iteration_records_the_commit_it_pushed(self) -> None:
         self._open()
@@ -283,7 +283,7 @@ class PrIterationDetailsTest(TestCase):
                 queued_count=3,
                 dropped_count=1,
                 automated_feedback_count=1,
-                feedback_bot_slugs=["coderabbit"],
+                feedback_bot_logins=["coderabbitai[bot]"],
                 head_shas=[],
                 duration_ms=0,
                 outcome="already_pushed",
@@ -445,7 +445,7 @@ class PrIterationDetailsTest(TestCase):
                 queued_count=3,
                 dropped_count=1,
                 automated_feedback_count=1,
-                feedback_bot_slugs=["coderabbit"],
+                feedback_bot_logins=["coderabbitai[bot]"],
                 head_shas=[],
                 duration_ms=0,
                 outcome="no_code_changes",
