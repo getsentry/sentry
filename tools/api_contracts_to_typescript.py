@@ -41,6 +41,9 @@ PUBLISH_STATUS_EXTENSION = "x-sentry-publish-status"
 
 IDENTIFIER = re.compile(r"^[A-Za-z_$][A-Za-z0-9_$]*$")
 PATH_PARAM = re.compile(r"\{([^}]+)\}")
+SIMPLE_ARRAY_ITEM = re.compile(r"^[A-Za-z_$][A-Za-z0-9_$]*(?:\[\])*$")
+# Match strings first so number-like text inside them is never rewritten.
+JSON_ZERO_FRACTION = re.compile(r'("(?:[^"\\]|\\.)*")|(-?\d+)\.0(?=[eE,\s}\]]|$)')
 
 # ``{route: {METHOD: operation}}``
 Operations = dict[str, dict[str, Mapping[str, Any]]]
@@ -65,6 +68,12 @@ def load_known_routes(known_urls_source: str) -> set[str]:
 
 def ts_string(value: str) -> str:
     return json.dumps(value)
+
+
+def ts_json(value: Any, *, indent: int | None = None) -> str:
+    """Render JSON as TypeScript without redundant zero fractions, preserving -0."""
+    body = json.dumps(value, indent=indent, ensure_ascii=False)
+    return JSON_ZERO_FRACTION.sub(lambda match: match[1] or match[2], body)
 
 
 def ts_key(name: str) -> str:
@@ -110,8 +119,13 @@ class TypeScriptEmitter:
                 return self._nullable(" | ".join(dict.fromkeys(parts)), schema)
 
         if "enum" in schema:
-            literals = [("null" if v is None else json.dumps(v)) for v in schema["enum"]]
-            return self._nullable(" | ".join(dict.fromkeys(literals)), schema)
+            # Choices may originate in a set. Sort serialized literals so mixed
+            # JSON types remain distinct (e.g. true, 1, and "1").
+            literals = sorted(
+                {ts_json(value) for value in schema["enum"]},
+                key=lambda literal: (literal == "null", literal),
+            )
+            return self._nullable(" | ".join(literals), schema)
 
         schema_type = schema.get("type")
         if isinstance(schema_type, list):
@@ -131,7 +145,7 @@ class TypeScriptEmitter:
             item = self.schema_to_ts(schema.get("items", {}), indent)
             # `T[]` for simple element types, `Array<T>` otherwise, to match the
             # repo's typescript/array-type lint setting.
-            array = f"{item}[]" if IDENTIFIER.match(item) else f"Array<{item}>"
+            array = f"{item}[]" if SIMPLE_ARRAY_ITEM.fullmatch(item) else f"Array<{item}>"
             return self._nullable(array, schema)
         if schema_type == "object" or "properties" in schema:
             return self._nullable(self._object_to_ts(schema, indent), schema)
@@ -298,7 +312,7 @@ def render_examples(operations: Operations) -> str:
                 continue
             method_lines.append(f"    {method}: {{")
             for name, value in examples.items():
-                body = json.dumps(value, indent=2, ensure_ascii=False)
+                body = ts_json(value, indent=2)
                 body = "\n".join(
                     ("      " + line) if i else line for i, line in enumerate(body.splitlines())
                 )

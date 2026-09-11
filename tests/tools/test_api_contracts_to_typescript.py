@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from itertools import permutations
 from typing import Any
 
 import pytest
@@ -68,6 +69,30 @@ COMPONENTS: dict[str, Any] = {
         ({"type": "array", "items": {"$ref": "#/components/schemas/Team"}}, "Team[]"),
         ({"type": "array", "items": {"type": "string", "nullable": True}}, "Array<string | null>"),
         (
+            {"type": "array", "items": {"type": "array", "items": {"type": "number"}}},
+            "number[][]",
+        ),
+        (
+            {
+                "type": "array",
+                "items": {"type": "array", "items": {"type": "number"}},
+                "nullable": True,
+            },
+            "number[][] | null",
+        ),
+        (
+            {
+                "type": "array",
+                "items": {
+                    "anyOf": [
+                        {"type": "string"},
+                        {"type": "array", "items": {"type": "number"}},
+                    ]
+                },
+            },
+            "Array<string | number[]>",
+        ),
+        (
             {
                 "type": "array",
                 "items": {"type": "object", "properties": {"id": {"type": "string"}}},
@@ -93,6 +118,18 @@ COMPONENTS: dict[str, Any] = {
 )
 def test_schema_to_ts(schema: dict[str, Any], expected: str) -> None:
     assert TypeScriptEmitter(COMPONENTS).schema_to_ts(schema) == expected
+
+
+def test_enum_order_is_stable_without_coercing_json_literal_types() -> None:
+    emitter = TypeScriptEmitter({})
+    for values in permutations(["1", 1, True, False, None, 0.5]):
+        assert emitter.schema_to_ts({"enum": values, "nullable": True}) == (
+            '"1" | 0.5 | 1 | false | true | null'
+        )
+
+
+def test_enum_numeric_literals_have_no_zero_fractions() -> None:
+    assert TypeScriptEmitter({}).schema_to_ts({"enum": [1.0, 1, -0.0, 0.25]}) == ("-0 | 0.25 | 1")
 
 
 def test_object_properties_required_first_then_sorted_with_quoted_keys() -> None:
@@ -211,3 +248,42 @@ def test_render_examples_keys_by_route_method_and_name() -> None:
     # POST has a schema but no example, so it is left out entirely.
     assert "POST" not in out
     assert out.rstrip().endswith("} satisfies ApiExamples;")
+
+
+def test_render_examples_numeric_literals_preserve_values_and_strings() -> None:
+    out = render_examples(
+        {
+            "/example/": {
+                "GET": {
+                    "responses": {
+                        "200": {
+                            "content": {
+                                "application/json": {
+                                    "schema": {"type": "object"},
+                                    "examples": {
+                                        "numbers": {
+                                            "value": {
+                                                "values": [0.0, 1.0, -2.0, -0.0, 0.25, 1e20],
+                                                "nested": {"number": 3.0},
+                                                "text": '0.0 and "1.0" and \\2.0',
+                                                "flag": True,
+                                                "missing": None,
+                                            }
+                                        }
+                                    },
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    )
+    assert (
+        '"values": [\n          0,\n          1,\n          -2,\n          -0,\n          0.25,\n          1e+20\n        ]'
+        in out
+    )
+    assert '"number": 3\n' in out
+    assert r'"text": "0.0 and \"1.0\" and \\2.0"' in out
+    assert '"flag": true' in out
+    assert '"missing": null' in out
