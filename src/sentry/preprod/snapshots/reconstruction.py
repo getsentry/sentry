@@ -5,12 +5,13 @@ from dataclasses import dataclass
 from typing import NamedTuple
 
 import orjson
-from objectstore_client import RequestError, Session
+from objectstore_client import RequestError
 from pydantic import ValidationError
 
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.categorize import categorize_image_sets
 from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+from sentry.preprod.snapshots.storage import SnapshotStorage
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 MAX_CHAIN_DEPTH = 50
@@ -63,7 +64,7 @@ def _manifest_key(artifact: PreprodArtifact) -> str | None:
     return (metrics.extras or {}).get("manifest_key")
 
 
-def _read_manifest_by_key(session: Session, key: str) -> _ManifestRead:
+def _read_manifest_by_key(session: SnapshotStorage, key: str) -> _ManifestRead:
     """Fetch and parse a manifest. Pure objectstore I/O — no ORM access, so this is safe to
     run from a worker thread (see _fetch_manifests)."""
     try:
@@ -134,7 +135,7 @@ def _collect_chain(base_artifact: PreprodArtifact) -> tuple[list[PreprodArtifact
 
 
 def _fetch_manifests(
-    session: Session, artifacts: list[PreprodArtifact]
+    session: SnapshotStorage, artifacts: list[PreprodArtifact]
 ) -> dict[int, _ManifestRead]:
     """Read each artifact's manifest, fanning the objectstore gets across a thread pool.
 
@@ -167,7 +168,7 @@ def _fetch_manifests(
 
 
 def reconstruct_base_manifest(
-    base_artifact: PreprodArtifact, session: Session
+    base_artifact: PreprodArtifact, session: SnapshotStorage
 ) -> ReconstructionResult:
     """Reconstruct the complete manifest for base_artifact by folding the ancestry chain.
 

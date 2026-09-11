@@ -6,7 +6,6 @@ import zstandard
 from django.urls import reverse
 
 from sentry.models.commitcomparison import CommitComparison
-from sentry.objectstore import UsecaseId
 from sentry.preprod.analytics import PreprodArtifactApiGetSnapshotDetailsEvent
 from sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base import (
     LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS,
@@ -449,7 +448,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         response = self._post_selective()
         assert response.status_code == 200
 
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.compare_snapshots")
     def test_base_upload_triggers_comparison_for_waiting_head(
         self, mock_compare_snapshots, mock_get_session
@@ -535,7 +534,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             }
         )
 
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.compare_snapshots")
     def test_selective_base_is_matched_for_comparison(
         self, mock_compare_snapshots, mock_get_session
@@ -668,7 +667,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         mock_session.get.return_value = mock_result
         return mock_session
 
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
     def test_get_snapshot_details(self, mock_get_session):
         artifact, _, manifest_key, manifest_json, images = self._create_artifact_with_manifest()
         mock_get_session.return_value = self._create_mock_session(manifest_json)
@@ -686,7 +685,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert response.data["images"][0]["image_file_name"] == "img1"
         assert response.data["images"][1]["key"] == "img2"
 
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
     def test_get_snapshot_details_uses_precomputed_head_images(self, mock_get_session):
         images = {
             "img1": {
@@ -726,7 +725,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert [img["key"] for img in response.data["images"]] == ["img1", "img2"]
         mock_session.head.assert_called_once_with(manifest_key)
 
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
     def test_get_snapshot_details_returns_canvas_theme(self, mock_get_session):
         images = {
             "img1": {
@@ -754,7 +753,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert themes == {"img1": "dark", "img2": "light"}
 
     @patch("sentry.analytics.record")
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
     def test_get_snapshot_details_records_web_client(self, mock_get_session, mock_record):
         artifact, _, _, manifest_json, _ = self._create_artifact_with_manifest()
         mock_get_session.return_value = self._create_mock_session(manifest_json)
@@ -774,7 +773,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         )
 
     @patch("sentry.analytics.record")
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
     def test_get_snapshot_details_records_mcp_client(self, mock_get_session, mock_record):
         artifact, _, _, manifest_json, _ = self._create_artifact_with_manifest()
         mock_get_session.return_value = self._create_mock_session(manifest_json)
@@ -797,7 +796,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
             ),
         )
 
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
     def test_get_snapshot_details_with_vcs_info(self, mock_get_session):
         commit_comparison = CommitComparison.objects.create(
             organization_id=self.org.id,
@@ -825,7 +824,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert vcs_info["head_ref"] == "chore/cleanup"
         assert vcs_info["pr_number"] == 123
 
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
     def test_get_snapshot_details_returns_all_images(self, mock_get_session):
         images = {
             f"img{i:03d}": {
@@ -848,7 +847,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert response.data["images"][0]["key"] == "img000"
         assert response.data["images"][9]["key"] == "img009"
 
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
     def test_get_snapshot_diff_omits_images(self, mock_get_session):
         from sentry.preprod.snapshots.manifest import (
             ComparisonImageResult,
@@ -1000,7 +999,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
 
         assert response.status_code == 404
 
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
     def test_get_snapshot_objectstore_error(self, mock_get_session):
         artifact, _, _, _, _ = self._create_artifact_with_manifest()
         mock_session = MagicMock()
@@ -1041,7 +1040,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
 
         assert response.status_code == 404
 
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
     def test_get_snapshot_flat_fields_solo_no_approval(self, mock_get_session):
         artifact, _, _, manifest_json, _ = self._create_artifact_with_manifest()
         mock_get_session.return_value = self._create_mock_session(manifest_json)
@@ -1056,7 +1055,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert response.data["approvers"] == []
         assert response.data["comparison_type"] == "solo"
 
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
     def test_get_snapshot_flat_fields_pending_comparison(self, mock_get_session):
         artifact, snapshot_metrics, _, manifest_json, _ = self._create_artifact_with_manifest(
             commit_comparison=CommitComparison.objects.create(
@@ -1091,7 +1090,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert response.status_code == 200
         assert response.data["comparison_state"] == "pending"
 
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
     def test_get_snapshot_flat_fields_with_approval(self, mock_get_session):
         artifact, _, _, manifest_json, _ = self._create_artifact_with_manifest()
         self.create_preprod_comparison_approval(
@@ -1109,7 +1108,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert len(response.data["approvers"]) == 1
         assert response.data["approvers"][0]["source"] == "sentry"
 
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
     def test_get_snapshot_flat_fields_auto_approved(self, mock_get_session):
         artifact, _, _, manifest_json, _ = self._create_artifact_with_manifest()
         self.create_preprod_comparison_approval(
@@ -1125,7 +1124,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert response.status_code == 200
         assert response.data["approval_status"] == "auto_approved"
 
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
     def test_get_snapshot_flat_fields_waiting_for_base(self, mock_get_session):
         artifact, _, _, manifest_json, _ = self._create_artifact_with_manifest(
             commit_comparison=CommitComparison.objects.create(
@@ -1203,7 +1202,7 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
         }
 
     @patch(
-        "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base.get_session"
+        "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base.get_snapshot_storage"
     )
     def test_get_latest_base_snapshot_scoped_by_project_slug(self, mock_get_session):
         artifact, manifest_key, manifest_json = self._create_base_snapshot()
@@ -1219,10 +1218,10 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
         assert response.data["project_slug"] == "sausage"
         assert response.data["image_count"] == 1
         assert response.data["images"][0]["image_file_name"] == "components/button.png"
-        mock_get_session.assert_called_once_with(UsecaseId.PREPROD, self.project)
+        mock_get_session.assert_called_once_with(self.project)
 
     @patch(
-        "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base.get_session"
+        "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base.get_snapshot_storage"
     )
     def test_get_latest_base_snapshot_scoped_by_project_param_slug(self, mock_get_session):
         artifact, _, manifest_json = self._create_base_snapshot()
@@ -1236,10 +1235,10 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
         assert response.status_code == 200
         assert response.data["head_artifact_id"] == str(artifact.id)
         assert response.data["project_slug"] == "sausage"
-        mock_get_session.assert_called_once_with(UsecaseId.PREPROD, self.project)
+        mock_get_session.assert_called_once_with(self.project)
 
     @patch(
-        "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base.get_session"
+        "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base.get_snapshot_storage"
     )
     def test_get_latest_base_snapshot_scoped_by_project_param_id(self, mock_get_session):
         artifact, _, manifest_json = self._create_base_snapshot()
@@ -1253,10 +1252,10 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
         assert response.status_code == 200
         assert response.data["head_artifact_id"] == str(artifact.id)
         assert response.data["project_slug"] == "sausage"
-        mock_get_session.assert_called_once_with(UsecaseId.PREPROD, self.project)
+        mock_get_session.assert_called_once_with(self.project)
 
     @patch(
-        "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base.get_session"
+        "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base.get_snapshot_storage"
     )
     def test_get_latest_base_snapshot_project_slug_takes_precedence_over_project(
         self, mock_get_session
@@ -1278,7 +1277,7 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
         assert response.status_code == 200
         assert response.data["head_artifact_id"] == str(artifact.id)
         assert response.data["project_slug"] == "other-project"
-        mock_get_session.assert_called_once_with(UsecaseId.PREPROD, other_project)
+        mock_get_session.assert_called_once_with(other_project)
 
     def test_get_latest_base_snapshot_rejects_all_project_id_sentinel(self):
         response = self.client.get(
@@ -1577,7 +1576,7 @@ class PreprodSnapshotGoldenResponseTest(APITestCase):
         )
 
     @patch("sentry.analytics.record")
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
     def test_golden_solo(self, mock_get_session, mock_record):
         head_images = self._head_images()
         artifact, _ = self._create_artifact(image_count=len(head_images))
@@ -1601,7 +1600,7 @@ class PreprodSnapshotGoldenResponseTest(APITestCase):
         )
 
     @patch("sentry.analytics.record")
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
     def test_golden_solo_precomputed_head_images(self, mock_get_session, mock_record):
         head_images = self._head_images()
         artifact, metrics = self._create_artifact(image_count=len(head_images))
@@ -1622,7 +1621,7 @@ class PreprodSnapshotGoldenResponseTest(APITestCase):
         )
 
     @patch("sentry.analytics.record")
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
     def test_golden_diff_precomputed_head_images(self, mock_get_session, mock_record):
         head_artifact, _ = self._setup_diff(mock_get_session, use_precomputed_head=True)
 
@@ -1675,7 +1674,7 @@ class PreprodSnapshotGoldenResponseTest(APITestCase):
         return head_artifact, base_artifact
 
     @patch("sentry.analytics.record")
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
     def test_golden_diff(self, mock_get_session, mock_record):
         head_artifact, _ = self._setup_diff(mock_get_session)
 
@@ -1692,7 +1691,7 @@ class PreprodSnapshotGoldenResponseTest(APITestCase):
         )
 
     @patch("sentry.analytics.record")
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
     def test_golden_diff_compact(self, mock_get_session, mock_record):
         head_artifact, _ = self._setup_diff(mock_get_session)
 
@@ -1709,7 +1708,7 @@ class PreprodSnapshotGoldenResponseTest(APITestCase):
         )
 
     @patch("sentry.analytics.record")
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
     def test_comparison_manifest_missing_base_artifact_id_degrades(
         self, mock_get_session, mock_record
     ):
