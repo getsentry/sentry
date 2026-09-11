@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Generator
-from typing import Any, TypedDict
+from typing import Any, TypedDict, Unpack
 from unittest.mock import MagicMock, Mock, patch
 
+import pytest
 from django.http.request import HttpHeaders
 from django.test import RequestFactory, override_settings
 from requests import Response
@@ -12,6 +13,8 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.api.endpoints.integration_proxy import (
     IntegrationProxyFailureMetricType,
+    IntegrationProxyRequestValidationException,
+    IntegrationProxyRequestValidator,
     IntegrationProxySuccessMetricType,
     InternalIntegrationProxyEndpoint,
 )
@@ -37,7 +40,7 @@ from sentry.silo.util import (
     encode_subnet_signature,
 )
 from sentry.testutils.asserts import assert_count_of_metric, assert_failure_metric
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import metrics
 
@@ -48,6 +51,30 @@ class SiloHttpHeaders(TypedDict, total=False):
     HTTP_X_SENTRY_SUBNET_BASE_URL: str
     HTTP_X_SENTRY_SUBNET_PATH: str
     HTTP_X_SENTRY_SUBNET_TIMEOUT: str
+    HTTP_X_SENTRY_SUBNET_KEYID: str
+
+
+def create_request_headers(
+    secret: str,
+    signature_path: str,
+    integration_id: int | None = None,
+    request_body=b"",
+    base_url="https://example.com/api",
+):
+    signature = encode_subnet_signature(
+        secret=secret,
+        base_url=base_url,
+        path=signature_path,
+        identifier=str(integration_id),
+        request_body=request_body,
+    )
+
+    return SiloHttpHeaders(
+        HTTP_X_SENTRY_SUBNET_BASE_URL=base_url,
+        HTTP_X_SENTRY_SUBNET_SIGNATURE=signature,
+        HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION=str(integration_id),
+        HTTP_X_SENTRY_SUBNET_PATH=signature_path,
+    )
 
 
 def test_ensure_http_headers_match() -> None:
@@ -80,8 +107,6 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
     def setUp(self) -> None:
         self.factory = RequestFactory()
         self.proxy_path = "chat.postMessage"
-        self.endpoint_cls = InternalIntegrationProxyEndpoint()
-        self.endpoint_cls.proxy_path = self.proxy_path
         self.path = f"{PROXY_BASE_PATH}/"
         self.integration = self.create_integration(
             self.organization, external_id="example:1", provider="example"
@@ -90,8 +115,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             integration_id=self.integration.id
         )
 
-        self.valid_header_kwargs = self.create_request_headers(
-            integration_id=self.org_integration.id, signature_path=self.proxy_path
+        self.valid_header_kwargs = create_request_headers(
+            self.secret, integration_id=self.org_integration.id, signature_path=self.proxy_path
         )
         self.valid_request = self.factory.get(self.path, **self.valid_header_kwargs)
 
@@ -133,39 +158,25 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         mock_metrics: MagicMock,
         tags: Tags | None = None,
     ):
-        metric_name = "proxy_failure"
-        kwargs: dict[str, Any] = {
-            "sample_rate": 1.0,
-            "tags": {"failure_type": failure_type, **(tags or {})},
-        }
-        self.assert_metric_count(
-            metric_name=metric_name,
-            count=count,
-            mock_metrics=mock_metrics,
-            kwargs_to_match=kwargs,
+        metric_name = "hybrid_cloud.integration_proxy.proxy_failure"
+        expected_tags = {"failure_type": failure_type, **(tags or {})}
+
+        # Filter on the failure_type tag, since a single validation pass can emit more than
+        # one proxy_failure metric (a specific reason plus the wrapping category).
+        matching_mock_calls = [
+            call
+            for call in mock_metrics.call_args_list
+            if call.args[0] == metric_name and call.kwargs.get("tags") == expected_tags
+        ]
+        logged_metrics = [
+            (call.args[0], call.kwargs.get("tags")) for call in mock_metrics.call_args_list
+        ]
+        assert len(matching_mock_calls) == count, (
+            f"Expected {count} {failure_type} metric(s), found {len(matching_mock_calls)} in {logged_metrics}"
         )
 
-    def create_request_headers(
-        self,
-        signature_path,
-        integration_id: int | None = None,
-        request_body=b"",
-        base_url="https://example.com/api",
-    ):
-        signature = encode_subnet_signature(
-            secret=self.secret,
-            base_url=base_url,
-            path=signature_path,
-            identifier=str(integration_id),
-            request_body=request_body,
-        )
-
-        return SiloHttpHeaders(
-            HTTP_X_SENTRY_SUBNET_BASE_URL=base_url,
-            HTTP_X_SENTRY_SUBNET_SIGNATURE=signature,
-            HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION=str(integration_id),
-            HTTP_X_SENTRY_SUBNET_PATH=signature_path,
-        )
+        for call in matching_mock_calls:
+            assert call.kwargs["sample_rate"] == 1.0
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(ExampleIntegration, "get_client")
@@ -175,7 +186,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
     ) -> None:
         signature_path = f"/{self.proxy_path}"
-        headers = self.create_request_headers(
+        headers = create_request_headers(
+            self.secret,
             signature_path=signature_path,
             integration_id=self.org_integration.id,
         )
@@ -231,7 +243,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
     ) -> None:
         signature_path = f"/{self.proxy_path}"
-        headers = self.create_request_headers(
+        headers = create_request_headers(
+            self.secret,
             signature_path=signature_path,
             integration_id=self.org_integration.id,
         )
@@ -264,7 +277,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
     ) -> None:
         signature_path = f"/{self.proxy_path}"
-        headers = self.create_request_headers(
+        headers = create_request_headers(
+            self.secret,
             signature_path=signature_path,
             integration_id=self.org_integration.id,
         )
@@ -296,7 +310,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
     ) -> None:
         signature_path = f"/{self.proxy_path}"
-        headers = self.create_request_headers(
+        headers = create_request_headers(
+            self.secret,
             signature_path=signature_path,
             integration_id=self.org_integration.id,
             base_url="https://foobar.example.com/api",
@@ -358,7 +373,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         mock_record_event: MagicMock,
     ) -> None:
         signature_path = f"/{self.proxy_path}"
-        headers = self.create_request_headers(
+        headers = create_request_headers(
+            self.secret,
             signature_path=signature_path,
             integration_id=None,
         )
@@ -384,7 +400,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert proxy_response.get(PROXY_SIGNATURE_HEADER) is None
 
         self.assert_failure_metric_count(
-            failure_type=IntegrationProxyFailureMetricType.INVALID_REQUEST,
+            failure_type=IntegrationProxyFailureMetricType.INVALID_ORG_INTEGRATION_HEADERS,
             count=1,
             mock_metrics=mock_metrics,
         )
@@ -394,90 +410,61 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 1)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.FAILURE, 1)
 
-    @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
-    def test__validate_sender(self) -> None:
-        # Missing header data
-        header_kwargs = SiloHttpHeaders()
-        request = self.factory.get(self.path, **header_kwargs)
-        assert not self.endpoint_cls._validate_sender(request)
-
-        # Bad header data
-        header_kwargs = SiloHttpHeaders(
-            HTTP_X_SENTRY_SUBNET_SIGNATURE="data",
-            HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION="present",
-        )
-        request = self.factory.get(self.path, **header_kwargs)
-        assert not self.endpoint_cls._validate_sender(request)
-
-        # Success
-        assert self.endpoint_cls._validate_sender(self.valid_request)
-
-    @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
-    def test__validate_request(self) -> None:
-        request = self.factory.get(self.path)
-        assert not self.endpoint_cls._validate_request(request)
-
-    @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
-    def test__validate_header_data(self) -> None:
-        self.org_integration.update(status=ObjectStatus.DISABLED)
-        header_kwargs = SiloHttpHeaders(
-            HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION=str(self.org_integration.id),
-        )
-        request = self.factory.get(self.path, **header_kwargs)
-        assert not self.endpoint_cls._validate_request(request)
-
-    @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
-    def test__validate_organization_integration(self) -> None:
-        header_kwargs = SiloHttpHeaders(
-            HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION="None",
-        )
-        request = self.factory.get(self.path, **header_kwargs)
-        assert not self.endpoint_cls._validate_request(request)
-
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch.object(OrganizationIntegration, "integration", None)
+    @patch.object(ExampleIntegration, "get_client")
+    @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
     @patch.object(metrics, "incr")
-    @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
-    def test__invalid_integration(self, mock_metrics):
-        self.org_integration.update(status=ObjectStatus.ACTIVE)
-        self.integration.update(status=ObjectStatus.DISABLED)
-        header_kwargs = SiloHttpHeaders(
-            HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION=str(self.org_integration.id),
+    def test_proxy_request_with_unresolvable_integration(
+        self,
+        mock_metrics: MagicMock,
+        mock_client: MagicMock,
+        mock_get_client: MagicMock,
+        mock_record_event: MagicMock,
+    ) -> None:
+        """
+        The organization integration's foreign key is non-null in the database, but guard against
+        it resolving to nothing anyway rather than blowing up on a missing installation.
+        """
+        signature_path = f"/{self.proxy_path}"
+        headers = create_request_headers(
+            self.secret,
+            signature_path=signature_path,
+            integration_id=self.org_integration.id,
         )
-        request = self.factory.get(self.path, **header_kwargs)
-        assert not self.endpoint_cls._validate_request(request)
+
+        mock_client.base_url = "https://example.com/api"
+        mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
+        mock_client.request = MagicMock()
+        mock_get_client.return_value = mock_client
+
+        proxy_response = self.client.get(self.path, **headers)
+
+        assert proxy_response.status_code == 400
+        assert mock_client.request.call_count == 0
+        assert proxy_response.get(PROXY_SIGNATURE_HEADER) is None
+
         self.assert_failure_metric_count(
             failure_type=IntegrationProxyFailureMetricType.INVALID_INTEGRATION,
             count=1,
             mock_metrics=mock_metrics,
         )
-
-    @patch.object(metrics, "incr")
-    @patch.object(Integration, "get_installation")
-    @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
-    def test_invalid_client(self, mock_get_installation, mock_metrics):
-        header_kwargs = SiloHttpHeaders(
-            HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION=str(self.org_integration.id),
+        self.assert_metric_count(
+            metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
+            count=0,
+            mock_metrics=mock_metrics,
         )
-        self.integration.update(status=ObjectStatus.ACTIVE)
-        mock_get_installation().get_client = MagicMock(return_value=ApiClient())
-        request = self.factory.get(self.path, **header_kwargs)
-        assert not self.endpoint_cls._validate_request(request)
-        self.assert_failure_metric_count(
-            failure_type=IntegrationProxyFailureMetricType.INVALID_CLIENT,
-            count=1,
+        self.assert_metric_count(
+            metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
+            count=0,
             mock_metrics=mock_metrics,
         )
 
-    @patch.object(Integration, "get_installation")
-    @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
-    def test_successful_response(self, mock_get_installation):
-        header_kwargs = SiloHttpHeaders(
-            HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION=str(self.org_integration.id),
-        )
-        mock_get_installation().get_client = MagicMock(
-            return_value=IntegrationProxyClient(org_integration_id=self.org_integration.id)
-        )
-        request = self.factory.get(self.path, **header_kwargs)
-        assert self.endpoint_cls._validate_request(request)
+        # SLO assertions
+        # SHOULD_PROXY (failure)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 1)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.FAILURE, 1)
 
     def raise_exception(self, exc_type: type[Exception], *args, **kwargs):
         raise exc_type(*args)
@@ -490,8 +477,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
     ) -> None:
         signature_path = f"/{self.proxy_path}"
-        headers = self.create_request_headers(
-            signature_path=signature_path, integration_id=self.org_integration.id
+        headers = create_request_headers(
+            self.secret, signature_path=signature_path, integration_id=self.org_integration.id
         )
         mock_client.base_url = "https://example.com/api"
         mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
@@ -530,8 +517,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
     ) -> None:
         signature_path = f"/{self.proxy_path}"
-        headers = self.create_request_headers(
-            signature_path=signature_path, integration_id=self.org_integration.id
+        headers = create_request_headers(
+            self.secret, signature_path=signature_path, integration_id=self.org_integration.id
         )
         mock_client.base_url = "https://example.com/api"
         mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
@@ -573,8 +560,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
     ) -> None:
         signature_path = f"/{self.proxy_path}"
-        headers = self.create_request_headers(
-            signature_path=signature_path, integration_id=self.org_integration.id
+        headers = create_request_headers(
+            self.secret, signature_path=signature_path, integration_id=self.org_integration.id
         )
         mock_client.base_url = "https://example.com/api"
         mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
@@ -615,8 +602,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
     ) -> None:
         signature_path = f"/{self.proxy_path}"
-        headers = self.create_request_headers(
-            signature_path=signature_path, integration_id=self.org_integration.id
+        headers = create_request_headers(
+            self.secret, signature_path=signature_path, integration_id=self.org_integration.id
         )
         mock_client.base_url = "https://example.com/api"
         mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
@@ -657,8 +644,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
     ) -> None:
         signature_path = f"/{self.proxy_path}"
-        headers = self.create_request_headers(
-            signature_path=signature_path, integration_id=self.org_integration.id
+        headers = create_request_headers(
+            self.secret, signature_path=signature_path, integration_id=self.org_integration.id
         )
         mock_client.base_url = "https://example.com/api"
         mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
@@ -699,8 +686,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
     ) -> None:
         signature_path = f"/{self.proxy_path}"
-        headers = self.create_request_headers(
-            signature_path=signature_path, integration_id=self.org_integration.id
+        headers = create_request_headers(
+            self.secret, signature_path=signature_path, integration_id=self.org_integration.id
         )
         mock_client.base_url = "https://example.com/api"
         mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
@@ -744,8 +731,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         mock_record_event: MagicMock,
     ) -> None:
         signature_path = f"/{self.proxy_path}"
-        headers = self.create_request_headers(
-            signature_path=signature_path, integration_id=self.org_integration.id
+        headers = create_request_headers(
+            self.secret, signature_path=signature_path, integration_id=self.org_integration.id
         )
         mock_client.base_url = "https://example.com/api"
         mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
@@ -790,7 +777,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
     ) -> None:
         signature_path = f"/{self.proxy_path}"
-        headers = self.create_request_headers(
+        headers = create_request_headers(
+            self.secret,
             signature_path=signature_path,
             integration_id=self.org_integration.id,
         )
@@ -830,7 +818,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
     ) -> None:
         signature_path = f"/{self.proxy_path}"
-        headers = self.create_request_headers(
+        headers = create_request_headers(
+            self.secret,
             signature_path=signature_path,
             integration_id=self.org_integration.id,
         )
@@ -867,7 +856,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
     ) -> None:
         signature_path = f"/{self.proxy_path}"
-        headers = self.create_request_headers(
+        headers = create_request_headers(
+            self.secret,
             signature_path=signature_path,
             integration_id=self.org_integration.id,
         )
@@ -904,7 +894,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         from requests.exceptions import ChunkedEncodingError
 
         signature_path = f"/{self.proxy_path}"
-        headers = self.create_request_headers(
+        headers = create_request_headers(
+            self.secret,
             signature_path=signature_path,
             integration_id=self.org_integration.id,
         )
@@ -942,7 +933,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
     ) -> None:
         signature_path = f"/{self.proxy_path}"
-        headers = self.create_request_headers(
+        headers = create_request_headers(
+            self.secret,
             signature_path=signature_path,
             integration_id=self.org_integration.id,
         )
@@ -968,3 +960,195 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
 
         assert proxy_response.status_code == 200
         assert b"".join(proxy_response.streaming_content) == b""
+
+
+@control_silo_test
+class IntegrationProxyRequestValidatorTest(TestCase):
+    secret = SENTRY_SUBNET_SECRET
+
+    def setUp(self) -> None:
+        self.factory = RequestFactory()
+        self.proxy_path = "chat.postMessage"
+        self.path = f"{PROXY_BASE_PATH}/"
+        self.integration = self.create_integration(
+            self.organization, external_id="example:1", provider="example"
+        )
+        self.org_integration = OrganizationIntegration.objects.get(
+            integration_id=self.integration.id
+        )
+
+    def build_request(self, **extra_headers: Unpack[SiloHttpHeaders]):
+        """
+        Build a request with a valid subnet signature over the default proxy path, letting
+        individual tests override single headers to exercise each validation failure.
+        """
+        header_kwargs = create_request_headers(
+            self.secret, signature_path=self.proxy_path, integration_id=self.org_integration.id
+        )
+        header_kwargs.update(extra_headers)
+        return self.factory.get(self.path, **header_kwargs)
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(ExampleIntegration, "get_client")
+    @patch.object(metrics, "incr")
+    def test_valid_request(self, mock_metrics: MagicMock, mock_get_client: MagicMock) -> None:
+        proxy_client = IntegrationProxyClient(org_integration_id=self.org_integration.id)
+        mock_get_client.return_value = proxy_client
+
+        validator = IntegrationProxyRequestValidator(self.build_request())
+
+        assert validator.integration == self.integration
+        assert validator.organization_integration == self.org_integration
+        assert isinstance(validator.integration_installation, ExampleIntegration)
+        assert validator.client is proxy_client
+
+        assert validator.proxy_path == self.proxy_path
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(ExampleIntegration, "get_client")
+    def test_strips_leading_slashes_from_proxy_path(self, mock_get_client: MagicMock) -> None:
+        mock_get_client.return_value = IntegrationProxyClient(
+            org_integration_id=self.org_integration.id
+        )
+        request = self.build_request(HTTP_X_SENTRY_SUBNET_PATH=f"/{self.proxy_path}")
+        validator = IntegrationProxyRequestValidator(request)
+
+        assert validator.proxy_path == self.proxy_path
+        # The signature is verified against the trimmed path, so it still checks out.
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CELL)
+    @patch.object(metrics, "incr")
+    def test_incorrect_silo_mode(self, mock_metrics: MagicMock) -> None:
+        with pytest.raises(
+            IntegrationProxyRequestValidationException,
+            match=IntegrationProxyFailureMetricType.INVALID_MODE.value,
+        ) as cm:
+            IntegrationProxyRequestValidator(self.build_request())
+
+        assert cm.value.failure_type == IntegrationProxyFailureMetricType.INVALID_MODE
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(metrics, "incr")
+    def test_missing_sender_headers(self, mock_metrics: MagicMock) -> None:
+        request = self.factory.get(self.path, **SiloHttpHeaders())
+        with pytest.raises(
+            IntegrationProxyRequestValidationException,
+            match=IntegrationProxyFailureMetricType.INVALID_SENDER_HEADERS.value,
+        ) as cm:
+            IntegrationProxyRequestValidator(request)
+
+        assert cm.value.failure_type == IntegrationProxyFailureMetricType.INVALID_SENDER_HEADERS
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(metrics, "incr")
+    def test_non_decimal_org_integration_header(self, mock_metrics: MagicMock) -> None:
+        header_kwargs = create_request_headers(
+            self.secret, signature_path=self.proxy_path, integration_id=None
+        )
+        with pytest.raises(
+            IntegrationProxyRequestValidationException,
+            match=IntegrationProxyFailureMetricType.INVALID_ORG_INTEGRATION_HEADERS.value,
+        ) as cm:
+            IntegrationProxyRequestValidator(self.factory.get(self.path, **header_kwargs))
+
+        assert (
+            cm.value.failure_type
+            == IntegrationProxyFailureMetricType.INVALID_ORG_INTEGRATION_HEADERS
+        )
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(metrics, "incr")
+    def test_inactive_org_integration(self, mock_metrics: MagicMock) -> None:
+        self.org_integration.update(status=ObjectStatus.DISABLED)
+        with pytest.raises(
+            IntegrationProxyRequestValidationException,
+            match=IntegrationProxyFailureMetricType.INVALID_ORG_INTEGRATION.value,
+        ) as cm:
+            IntegrationProxyRequestValidator(self.build_request())
+
+        assert cm.value.failure_type == IntegrationProxyFailureMetricType.INVALID_ORG_INTEGRATION
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(metrics, "incr")
+    def test_inactive_integration(self, mock_metrics: MagicMock) -> None:
+        self.integration.update(status=ObjectStatus.DISABLED)
+        with pytest.raises(
+            IntegrationProxyRequestValidationException,
+            match=IntegrationProxyFailureMetricType.INVALID_INTEGRATION.value,
+        ) as cm:
+            IntegrationProxyRequestValidator(self.build_request())
+
+        assert cm.value.failure_type == IntegrationProxyFailureMetricType.INVALID_INTEGRATION
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(OrganizationIntegration, "integration", None)
+    @patch.object(metrics, "incr")
+    def test_unresolvable_integration(self, mock_metrics: MagicMock) -> None:
+        with pytest.raises(
+            IntegrationProxyRequestValidationException,
+            match=IntegrationProxyFailureMetricType.INVALID_INTEGRATION.value,
+        ) as cm:
+            IntegrationProxyRequestValidator(self.build_request())
+
+        assert cm.value.failure_type == IntegrationProxyFailureMetricType.INVALID_INTEGRATION
+        assert cm.value.integration_context["integration_id"] is None
+        assert cm.value.integration_context["organization_id"] == self.organization.id
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(Integration, "get_installation")
+    @patch.object(metrics, "incr")
+    def test_non_proxy_client(
+        self, mock_metrics: MagicMock, mock_get_installation: MagicMock
+    ) -> None:
+        mock_get_installation().get_client = MagicMock(return_value=ApiClient())
+        with pytest.raises(
+            IntegrationProxyRequestValidationException,
+            match=IntegrationProxyFailureMetricType.INVALID_CLIENT.value,
+        ) as cm:
+            IntegrationProxyRequestValidator(self.build_request())
+
+        assert cm.value.failure_type == IntegrationProxyFailureMetricType.INVALID_CLIENT
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(Integration, "get_installation")
+    def test_uses_keyring_client_when_keyid_present(self, mock_get_installation: MagicMock) -> None:
+        keyring_client = IntegrationProxyClient(org_integration_id=self.org_integration.id)
+        mock_installation = mock_get_installation.return_value
+        mock_installation.get_keyring_client = MagicMock(return_value=keyring_client)
+        mock_installation.get_client = MagicMock(return_value=ApiClient())
+
+        request = self.build_request(HTTP_X_SENTRY_SUBNET_KEYID="12345")
+        validator = IntegrationProxyRequestValidator(request)
+
+        mock_installation.get_keyring_client.assert_called_once_with("12345")
+        assert mock_installation.get_client.call_count == 0
+        assert validator.client is keyring_client
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(Integration, "get_installation")
+    def test_validates_once_during_construction(self, mock_get_installation: MagicMock) -> None:
+        mock_get_installation.return_value.get_client = MagicMock(
+            return_value=IntegrationProxyClient(org_integration_id=self.org_integration.id)
+        )
+        validator = IntegrationProxyRequestValidator(self.build_request())
+
+        # Validation already ran in the constructor; the getters just read what it resolved.
+        assert validator.integration == self.integration
+        assert validator.organization_integration == self.org_integration
+        assert validator.client is not None
+
+        assert mock_get_installation.call_count == 1
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    def test_exception_integration_context_empty_when_invalid_request_is_made(self) -> None:
+        request = self.build_request(HTTP_X_SENTRY_SUBNET_SIGNATURE="not-the-real-signature")
+        with pytest.raises(
+            IntegrationProxyRequestValidationException,
+            match=IntegrationProxyFailureMetricType.INVALID_SENDER_SIGNATURE.value,
+        ) as cm:
+            IntegrationProxyRequestValidator(request)
+
+        assert cm.value.failure_type == IntegrationProxyFailureMetricType.INVALID_SENDER_SIGNATURE
+
+        assert cm.value.integration_context["integration_id"] is None
+        assert cm.value.integration_context["organization_id"] is None
