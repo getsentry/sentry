@@ -267,7 +267,7 @@ class PostMissingPermissionsCommentTest(TestCase):
             if r.msg == "autofix.pr_iteration.missing_permissions.unexpected_missing_tiers"
         ]
         assert len(unexpected) == 1
-        assert unexpected[0].missing_tiers == ["pr_iteration", "autofix_pull_requests"]
+        assert unexpected[0].__dict__["missing_tiers"] == ["pr_iteration", "autofix_pull_requests"]
 
     def test_no_warning_when_only_the_pr_iteration_tier_is_missing(self, mock_get_perms) -> None:
         mock_get_perms.return_value = {REPO_NAME: _perms(permissions=_ONLY_PR_ITERATION_MISSING)}

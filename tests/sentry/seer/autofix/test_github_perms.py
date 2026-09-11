@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.github_permission_tiers import PR_ITERATION_TIER
 from sentry.integrations.utils.github_permissions import GITHUB_APP_REQUIRED_PERMISSIONS
@@ -24,6 +25,7 @@ from sentry.seer.autofix.github_perms import (
     get_missing_permissions_by_repo,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.utils import json
 
 REPO_NAME = "getsentry/sentry"
@@ -201,6 +203,29 @@ class GetMissingPermissionsByRepoTest(TestCase):
         Repository.objects.filter(id=self.repo.id).update(integration_id=self.integration.id + 1000)
 
         self._assert_warns(self.organization, REPO_NAME, "integration_not_found")
+
+    def test_warns_when_the_install_permissions_are_unknown(self) -> None:
+        # Token refresh stores whatever GitHub returned, so None is a real state
+        # and means "we never learned what this install holds".
+        with assume_test_silo_mode_of(Integration):
+            self.integration.update(metadata={"permissions": None})
+
+        self._assert_warns(self.organization, REPO_NAME, "permissions_unknown")
+
+    def test_warns_when_the_metadata_has_no_permissions_at_all(self) -> None:
+        with assume_test_silo_mode_of(Integration):
+            self.integration.update(metadata={})
+
+        self._assert_warns(self.organization, REPO_NAME, "permissions_unknown")
+
+    def test_known_empty_permissions_are_reported_missing_not_unknown(self) -> None:
+        # Unlike None, {} says we checked and the install holds nothing.
+        with assume_test_silo_mode_of(Integration):
+            self.integration.update(metadata={"permissions": {}})
+
+        missing = get_missing_permissions_by_repo(self.organization, [REPO_NAME])
+
+        assert "pr_iteration" in [tier.key for tier in missing[REPO_NAME].missing_tiers]
 
     def test_quiet_when_every_repo_resolves(self) -> None:
         with self.assertNoLogs(LOGGER_NAME, level="WARNING"):
