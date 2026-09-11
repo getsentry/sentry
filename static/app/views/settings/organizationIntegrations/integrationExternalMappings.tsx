@@ -2,13 +2,13 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconAdd, IconArrow, IconDelete} from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
@@ -177,7 +177,7 @@ export function IntegrationExternalMappings(props: Props) {
         />
       </Confirm>
     ) : (
-      <QuestionTooltip
+      <InfoTip
         title={t('This %s mapping suggestion was generated from a CODEOWNERS file', type)}
         size="sm"
       />

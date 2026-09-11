@@ -114,6 +114,7 @@ export function AppSizeInsightsSidebarRow({
 
   useEffect(() => {
     if (!isExpanded) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setCurrentPage(0);
     }
   }, [isExpanded]);
@@ -386,7 +387,7 @@ function OptimizableImageFileRow({
             {file.path}
           </Text>
           {hasMetadata && (
-            <Tooltip title={tooltipContent} isHoverable skipWrapper>
+            <Tooltip title={tooltipContent} skipWrapper>
               <Flex align="center" flexShrink={0}>
                 <IconFlag size="xs" variant="muted" />
               </Flex>

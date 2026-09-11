@@ -1,0 +1,109 @@
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import {SCM_MESSAGING_PROVIDER_DESCRIPTIONS} from 'sentry/components/onboarding/scm/messagingProviders';
+import type {ScmMessagingSetup} from 'sentry/components/onboarding/scm/scmMessagingSetup';
+import type {ScmMessagingResolvedProvider} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
+import {t} from 'sentry/locale';
+
+import type {RowVisualState} from './types';
+
+export function RowSubtitle({
+  visualState,
+  resolvedProvider,
+  messagingSetup,
+}: {
+  messagingSetup: ScmMessagingSetup;
+  resolvedProvider: ScmMessagingResolvedProvider;
+  visualState: RowVisualState;
+}) {
+  if (
+    visualState === 'installable' ||
+    visualState === 'loading' ||
+    visualState === 'installing' ||
+    visualState === 'choose-destination'
+  ) {
+    return (
+      <Text variant="muted" size="sm">
+        {SCM_MESSAGING_PROVIDER_DESCRIPTIONS[resolvedProvider.providerKey]}
+      </Text>
+    );
+  }
+
+  if (visualState === 'install-forbidden') {
+    return (
+      <Stack gap="2xs">
+        <Text variant="muted" size="sm">
+          {SCM_MESSAGING_PROVIDER_DESCRIPTIONS[resolvedProvider.providerKey]}
+        </Text>
+        <Text variant="muted" size="sm">
+          {t('Ask an organization admin to connect %s.', resolvedProvider.provider.name)}
+        </Text>
+      </Stack>
+    );
+  }
+
+  if (visualState === 'permission-limited') {
+    const permissionLimitedMessage =
+      resolvedProvider.providerKey === 'msteams'
+        ? t(
+            'This Microsoft Teams workspace uses a tenant-level connection and cannot receive issue alerts directly. Reinstall with a team-level connection to enable destinations.'
+          )
+        : t(
+            'This integration does not have the required permissions to receive issue alerts.'
+          );
+
+    return (
+      <Stack gap="2xs">
+        <Text size="sm">{resolvedProvider.permissionLimitedIntegration?.name}</Text>
+        <Text variant="muted" size="sm">
+          {permissionLimitedMessage}
+        </Text>
+      </Stack>
+    );
+  }
+
+  if (visualState === 'configuring') {
+    if (resolvedProvider.eligibleIntegrations.length === 1) {
+      return (
+        <Flex gap="2xs" align="center">
+          <Text variant="muted" size="sm">
+            {t('Connected to')}
+          </Text>
+          <Text size="sm">{resolvedProvider.eligibleIntegrations[0]!.name}</Text>
+        </Flex>
+      );
+    }
+    return (
+      <Text variant="muted" size="sm">
+        {t('Choose where to send your alerts')}
+      </Text>
+    );
+  }
+
+  if (visualState === 'configured' && messagingSetup.mode === 'selected') {
+    const workspaceName = resolvedProvider.eligibleIntegrations.find(
+      i => i.id === messagingSetup.integrationId
+    )?.name;
+
+    return (
+      <Flex gap="xs" align="center">
+        <Text size="sm">{messagingSetup.channelName}</Text>
+        <Text variant="muted" size="sm" aria-hidden>
+          {t('in')}
+        </Text>
+        <Text size="sm">{workspaceName}</Text>
+      </Flex>
+    );
+  }
+
+  if (visualState === 'removing' && messagingSetup.mode === 'selected') {
+    return (
+      <Text variant="muted" size="sm">
+        {t('You can reconnect at any time')}
+      </Text>
+    );
+  }
+
+  return null;
+}

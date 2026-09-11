@@ -1,21 +1,37 @@
 import logging
+from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.ai_monitoring.conversation_titles import fetch_conversation_title
+from sentry.ai_monitoring.utils import (
+    ConversationProject,
+    get_conversation_url,
+    serialize_conversation_project,
+)
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.ai_conversation_examples import AIConversationExamples
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
+from sentry.apidocs.response_types import DetailResponse
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.types import SearchResolverConfig
@@ -36,6 +52,22 @@ MAX_RETENTION_DAYS = 30
 MAX_PARENT_REPAIR_DEPTH = 5
 
 _WIDENING_STEPS = [timedelta(days=7), timedelta(days=14), timedelta(days=MAX_RETENTION_DAYS)]
+
+AI_CONVERSATION_ID_PARAM = OpenApiParameter(
+    name="conversation_id",
+    location="path",
+    required=True,
+    type=str,
+    description="Conversation ID recorded in `gen_ai.conversation.id`.",
+)
+
+AI_CONVERSATION_DETAILS_PER_PAGE_PARAM = OpenApiParameter(
+    name="per_page",
+    location="query",
+    required=False,
+    type=int,
+    description="Number of spans to return per page. Defaults to 100; maximum is 1,000.",
+)
 
 PARENT_SPAN_ATTRIBUTES = [
     "span_id",
@@ -94,18 +126,53 @@ class AIConversationDetailsResponse(TypedDict):
 
     conversationId: str
     title: str | None
+    projects: list[ConversationProject]
+    webUrl: str
     spans: list[dict[str, Any]]
 
 
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
-    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
-    def get(self, request: Request, organization: Organization, conversation_id: str) -> Response:
-        if not features.has("organizations:gen-ai-conversations", organization, actor=request.user):
-            return Response(status=404)
+    @extend_schema(
+        operation_id="retrieveOrganizationAIConversation",
+        summary="Retrieve an Organization's AI Conversation",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            AI_CONVERSATION_ID_PARAM,
+            OrganizationParams.PROJECT,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            CursorQueryParam,
+            AI_CONVERSATION_DETAILS_PER_PAGE_PARAM,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "RetrieveOrganizationAIConversationResponse", AIConversationDetailsResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=AIConversationExamples.RETRIEVE_AI_CONVERSATION,
+    )
+    def get(
+        self, request: Request, organization: Organization, conversation_id: str
+    ) -> Response[AIConversationDetailsResponse] | Response[DetailResponse] | Response[None]:
+        """Return spans recorded for one AI conversation in start-time order.
 
+        **Experimental:** This API is under active development and may change.
+
+        Message, tool, and response attributes contain their recorded string values.
+        Without an explicit range, Sentry widens the search across available retention.
+        A missing conversation returns an empty `spans` list.
+        """
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -117,15 +184,15 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
 
         if has_explicit_range:
             if snuba_params.start and snuba_params.start < max_retention_cutoff:
-                return Response(
-                    {"detail": f"start time cannot be older than {MAX_RETENTION_DAYS} days"},
-                    status=400,
+                error = DetailResponse(
+                    detail=f"start time cannot be older than {MAX_RETENTION_DAYS} days"
                 )
+                return Response(error, status=400)
             if snuba_params.end and snuba_params.end < max_retention_cutoff:
-                return Response(
-                    {"detail": f"end time cannot be older than {MAX_RETENTION_DAYS} days"},
-                    status=400,
+                error = DetailResponse(
+                    detail=f"end time cannot be older than {MAX_RETENTION_DAYS} days"
                 )
+                return Response(error, status=400)
 
         with handle_query_errors():
             if has_explicit_range:
@@ -141,9 +208,19 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             def on_results(spans: list[SpanRow]) -> AIConversationDetailsResponse:
                 self._repair_parent_links(spans, resolved_params, conversation_id)
                 self._annotate_issues(spans, resolved_params, organization)
+                # Treat conversations as single-project for now. Multi-project conversations are
+                # an edge case, so this response exposes only one of their projects.
+                project_id = next(
+                    (value for span in spans if isinstance(value := span.get("project.id"), int)),
+                    None,
+                )
+                projects_by_id = {project.id: project for project in resolved_params.projects}
+                project = projects_by_id.get(project_id)
                 return {
                     "conversationId": conversation_id,
                     "title": self._resolve_title(conversation_id, spans, organization),
+                    "projects": [serialize_conversation_project(project)] if project else [],
+                    "webUrl": get_conversation_url(organization, conversation_id, project_id),
                     "spans": spans,
                 }
 
@@ -300,10 +377,14 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             return {}
 
         requested_keys = set(parent_keys)
+        parent_ids_by_trace: defaultdict[str, list[str]] = defaultdict(list)
+        for trace_id, span_id in sorted(requested_keys):
+            parent_ids_by_trace[trace_id].append(span_id)
+
         query_string = " OR ".join(
             f"({build_escaped_term_filter('trace', [trace_id])} "
-            f"{build_escaped_term_filter('span_id', [span_id])})"
-            for trace_id, span_id in sorted(requested_keys)
+            f"{build_escaped_term_filter('span_id', span_ids)})"
+            for trace_id, span_ids in parent_ids_by_trace.items()
         )
         result = Spans.run_table_query(
             params=snuba_params,
@@ -313,7 +394,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             offset=0,
             limit=len(requested_keys),
             referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,
-            config=SearchResolverConfig(auto_fields=True),
+            config=SearchResolverConfig(auto_fields=False),
             sampling_mode="HIGHEST_ACCURACY",
         )
 
@@ -349,13 +430,15 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             ):
                 pending[child_key] = (span, parent_key, {child_key})
 
-        cache: dict[SpanKey, SpanRow] = {}
+        cache = {key: span for span in spans if (key := self._span_key(span)) is not None}
         fetched_keys: set[SpanKey] = set()
         for depth in range(1, MAX_PARENT_REPAIR_DEPTH + 1):
             if not pending:
                 break
 
-            missing_keys = {parent_key for _, parent_key, _ in pending.values()} - fetched_keys
+            missing_keys = (
+                {parent_key for _, parent_key, _ in pending.values()} - cache.keys() - fetched_keys
+            )
             fetched_keys.update(missing_keys)
             try:
                 cache.update(self._fetch_parent_spans(snuba_params, missing_keys))

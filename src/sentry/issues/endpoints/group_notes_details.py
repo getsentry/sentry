@@ -6,7 +6,6 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -23,7 +22,13 @@ from sentry.issues.action_log import (
     publish_action,
     resolve_action_source,
 )
+from sentry.issues.action_log.read_metrics import (
+    ActivityReadResult,
+    activity_read_endpoint,
+    record_activity_read,
+)
 from sentry.issues.action_log.types import CommentDeleteAction, CommentEditAction
+from sentry.issues.derived.gate import should_serve_action_log_activity
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
@@ -80,9 +85,15 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             group_id=group.id,
             idempotency_key=activity_action_idempotency_key(note),
         ).first()
-        if original_comment_log_action is None and features.has(
-            "projects:issue-action-log-activity", group.project, actor=request.user
-        ):
+        endpoint = activity_read_endpoint(request)
+        serve_from_log = should_serve_action_log_activity(
+            group.project, request.user, endpoint=endpoint
+        )
+        if serve_from_log:
+            # The log is authoritative for existence whether or not the entry is
+            # there: a missing one means the comment is already gone.
+            record_activity_read(endpoint, ActivityReadResult.GAL)
+        if original_comment_log_action is None and serve_from_log:
             raise ResourceDoesNotExist
 
         webhook_data = {
@@ -164,9 +175,13 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
                 group_id=group.id,
                 idempotency_key=activity_action_idempotency_key(note),
             ).first()
-            if original_comment_log_action is None and features.has(
-                "projects:issue-action-log-activity", group.project, actor=request.user
-            ):
+            endpoint = activity_read_endpoint(request)
+            serve_from_log = should_serve_action_log_activity(
+                group.project, request.user, endpoint=endpoint
+            )
+            if serve_from_log:
+                record_activity_read(endpoint, ActivityReadResult.GAL)
+            if original_comment_log_action is None and serve_from_log:
                 raise ResourceDoesNotExist
 
             # Would be nice to have a last_modified timestamp we could bump here
@@ -208,23 +223,20 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
                 sender="put",
             )
 
-            if features.has(
-                "projects:issue-action-log-activity", group.project, actor=request.user
-            ):
+            if serve_from_log:
                 if original_comment_log_action is not None:
                     # editing a note doesn't update its COMMENT entry (instead it
                     # appends a separate COMMENT_EDIT entry), so patch in the fresh
-                    # text we just published to GALE; the Activity is used only for
-                    # the id below.
+                    # text we just published to GALE. The serializer resolves `id`
+                    # back to the Activity id from the entry's comment_id, matching
+                    # the flag-off contract so clients can edit/delete via note_id.
                     original_comment_log_action.data = {
                         **original_comment_log_action.data,
                         "text": payload.get("text"),
                     }
-                    serialized = serialize(original_comment_log_action, request.user)
-                    # Return the Activity id as `id`, matching the flag-off
-                    # contract so clients can edit/delete via note_id.
-                    serialized["id"] = str(note.id)
-                    return Response(serialized, status=200)
+                    return Response(
+                        serialize(original_comment_log_action, request.user), status=200
+                    )
 
             return Response(serialize(note, request.user), status=200)
 

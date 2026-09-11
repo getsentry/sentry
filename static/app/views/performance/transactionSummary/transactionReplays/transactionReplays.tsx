@@ -98,6 +98,7 @@ function ReplaysContent({
   const location = useLocation();
 
   if (!eventView.query) {
+    // oxlint-disable-next-line react/immutability
     eventView.query = String(location.query.query ?? '');
   }
   const playlistQuery = usePlaylistQuery('transactionReplays', eventView);

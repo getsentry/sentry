@@ -327,7 +327,7 @@ describe('CustomerOverview', () => {
       },
     });
 
-    const mockOnAction = jest.fn();
+    const mockOnAction = jest.fn().mockResolvedValue(undefined);
 
     render(
       <CustomerOverview
@@ -403,7 +403,7 @@ describe('CustomerOverview', () => {
       sponsoredType: 'XX',
     });
 
-    const mockOnAction = jest.fn();
+    const mockOnAction = jest.fn().mockResolvedValue(undefined);
 
     render(
       <CustomerOverview
@@ -509,6 +509,142 @@ describe('CustomerOverview', () => {
     expect(screen.getByText('Seer:')).toBeInTheDocument();
     expect(screen.queryByText('Performance Units:')).not.toBeInTheDocument();
     expect(screen.queryByText('Transactions:')).not.toBeInTheDocument();
+  });
+
+  it('disables non-Seer product trial start on enterprise plans', async () => {
+    const organization = OrganizationFixture();
+    const enterpriseSubscription = InvoicedSubscriptionFixture({
+      organization,
+      plan: 'am3_business_ent_auf',
+      productTrials: [
+        {
+          category: DataCategory.REPLAYS,
+          isStarted: true,
+          reasonCode: 1001,
+          startDate: moment().utc().subtract(20, 'days').format(),
+          endDate: moment().utc().subtract(10, 'days').format(),
+        },
+      ],
+    });
+
+    render(
+      <CustomerOverview
+        customer={enterpriseSubscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    const productTrialsHeading = screen.getByRole('heading', {
+      name: 'Product Trials',
+    });
+    const productTrialsList = productTrialsHeading.nextElementSibling;
+    expect(productTrialsList).toBeInTheDocument();
+    if (!productTrialsList || !(productTrialsList instanceof HTMLElement)) {
+      throw new Error('Product trials list not found or not an HTMLElement');
+    }
+
+    const getTrialButtons = (label: string) => {
+      const termElement = within(productTrialsList).getByText(label);
+      const definition = termElement.nextElementSibling;
+      expect(definition).toBeInTheDocument();
+      if (!definition || !(definition instanceof HTMLElement)) {
+        throw new Error(`${label} definition not found or not an HTMLElement`);
+      }
+
+      return {
+        allowTrialButton: within(definition).getByRole('button', {name: 'Allow Trial'}),
+        startTrialButton: within(definition).getByRole('button', {name: 'Start Trial'}),
+        stopTrialButton: within(definition).getByRole('button', {name: 'Stop Trial'}),
+        extendTrialButton: within(definition).getByRole('button', {
+          name: 'Extend Trial',
+        }),
+      };
+    };
+
+    const spansButtons = getTrialButtons('Spans:');
+    expect(spansButtons.startTrialButton).toBeDisabled();
+    expect(spansButtons.stopTrialButton).toBeDisabled();
+    expect(spansButtons.extendTrialButton).toBeDisabled();
+
+    await userEvent.hover(spansButtons.startTrialButton);
+    expect(
+      await screen.findByText(
+        'Starting a trial for this product is disabled for enterprise plans. Use gifts as needed to add reserved volume.'
+      )
+    ).toBeInTheDocument();
+
+    // Allow Trial is unaffected by the enterprise non-Seer start block: it stays
+    // enabled once a trial has been used, regardless of plan.
+    const replaysButtons = getTrialButtons('Replays:');
+    expect(replaysButtons.startTrialButton).toBeDisabled();
+    expect(replaysButtons.allowTrialButton).toBeEnabled();
+
+    const seerButtons = getTrialButtons('Seer:');
+    expect(seerButtons.startTrialButton).toBeEnabled();
+    expect(seerButtons.stopTrialButton).toBeDisabled();
+    expect(seerButtons.extendTrialButton).toBeDisabled();
+  });
+
+  it('keeps stop/extend available for an in-flight non-Seer trial on enterprise plans', async () => {
+    const organization = OrganizationFixture();
+    const enterpriseSubscription = InvoicedSubscriptionFixture({
+      organization,
+      plan: 'am3_business_ent_auf',
+    });
+    enterpriseSubscription.productTrials = [
+      {
+        category: DataCategory.SPANS,
+        isStarted: true,
+        reasonCode: 1001,
+        startDate: moment().utc().subtract(2, 'days').format(),
+        endDate: moment().utc().add(12, 'days').format(),
+      },
+    ];
+
+    render(
+      <CustomerOverview
+        customer={enterpriseSubscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    const productTrialsHeading = screen.getByRole('heading', {
+      name: 'Product Trials',
+    });
+    const productTrialsList = productTrialsHeading.nextElementSibling;
+    expect(productTrialsList).toBeInTheDocument();
+    if (!productTrialsList || !(productTrialsList instanceof HTMLElement)) {
+      throw new Error('Product trials list not found or not an HTMLElement');
+    }
+
+    const spansTerm = within(productTrialsList).getByText('Spans:');
+    const spansDefinition = spansTerm.nextElementSibling;
+    expect(spansDefinition).toBeInTheDocument();
+    if (!spansDefinition || !(spansDefinition instanceof HTMLElement)) {
+      throw new Error('Spans definition not found or not an HTMLElement');
+    }
+
+    // The enterprise gate only blocks starting/allowing a trial. An operator must
+    // still be able to wind down or extend a trial that is already running.
+    expect(
+      within(spansDefinition).getByRole('button', {name: 'Stop Trial'})
+    ).toBeEnabled();
+    expect(
+      within(spansDefinition).getByRole('button', {name: 'Extend Trial'})
+    ).toBeEnabled();
+
+    const startTrialButton = within(spansDefinition).getByRole('button', {
+      name: 'Start Trial',
+    });
+    expect(startTrialButton).toBeDisabled();
+    await userEvent.hover(startTrialButton);
+    expect(
+      await screen.findByText(
+        'Starting a trial for this product is disabled for enterprise plans. Use gifts as needed to add reserved volume.'
+      )
+    ).toBeInTheDocument();
   });
 
   it('renders SIZE_ANALYSIS admin-only product trials (GA, no feature flag required)', () => {
@@ -722,7 +858,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 0.75},
+      body: {eapEffectiveSampleRate: 0.75},
     });
 
     render(
@@ -752,7 +888,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 1},
+      body: {eapEffectiveSampleRate: 1},
     });
 
     render(
@@ -783,7 +919,7 @@ describe('CustomerOverview', () => {
     // Simulates floating-point imprecision: 0.600001 * 100 !== 0.6 * 100
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 0.600001},
+      body: {eapEffectiveSampleRate: 0.600001},
     });
 
     render(
@@ -813,7 +949,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 0.54},
+      body: {eapEffectiveSampleRate: 0.58},
     });
 
     render(
@@ -823,7 +959,7 @@ describe('CustomerOverview', () => {
         organization={organization}
       />
     );
-    await screen.findByText('54.00% instead of 60.00% (~6.00%)');
+    await screen.findByText('58.00% instead of 60.00% (~2.00%)');
   });
 
   it('renders decimal sample rates preserving trailing zeros', async () => {
@@ -837,7 +973,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 0.501},
+      body: {eapEffectiveSampleRate: 0.502},
     });
 
     render(
@@ -847,7 +983,7 @@ describe('CustomerOverview', () => {
         organization={organization}
       />
     );
-    await screen.findByText('50.10% instead of 60.00% (~9.90%)');
+    await screen.findByText('50.20% instead of 60.00% (~9.80%)');
   });
 
   it('renders n/a when effective sample rate is missing', async () => {
@@ -861,7 +997,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: null},
+      body: {eapEffectiveSampleRate: null},
     });
 
     render(
@@ -875,6 +1011,40 @@ describe('CustomerOverview', () => {
     await waitFor(() => {
       const term = screen.getByText('Sample Rate (24h):');
       expect(term.nextElementSibling).toHaveTextContent('n/a');
+    });
+  });
+
+  it('renders the sample rate row while the request is pending', async () => {
+    const organization = OrganizationFixture({
+      features: ['dynamic-sampling'],
+      desiredSampleRate: 0.75,
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
+      body: {eapEffectiveSampleRate: 0.75},
+      asyncDelay: 1,
+    });
+
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByText('Sample Rate (24h):').nextElementSibling).toHaveTextContent(
+      'Loading...'
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Sample Rate (24h):').nextElementSibling).toHaveTextContent(
+        '75.00%'
+      );
     });
   });
 

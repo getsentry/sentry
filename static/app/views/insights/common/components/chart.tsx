@@ -20,7 +20,7 @@ import type {FormatterOptions} from 'sentry/components/charts/components/tooltip
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
-import {lineSeries} from 'sentry/components/charts/series/lineSeries';
+import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {isChartHovered} from 'sentry/components/charts/utils';
@@ -156,6 +156,9 @@ export function Chart({
       return 1;
     }
     return getIngestionDelayBucketCount(bucketSize, lastBucketTimestamp);
+    // React Compiler treats one of these dependencies as mutated later in the
+    // component, so it cannot prove the memoization is preserved.
+    // oxlint-disable-next-line react/preserve-manual-memoization
   }, [bucketSize, lastBucketTimestamp]);
 
   // TODO: Support bar charts
@@ -324,7 +327,7 @@ export function Chart({
           legend={legend}
           series={[
             ...series.map(({seriesName, data: seriesData, ...options}) =>
-              lineSeries({
+              createLineSeries({
                 ...options,
                 name: seriesName,
                 data: seriesData?.map(({value, name}) => [name, value]),
@@ -334,7 +337,7 @@ export function Chart({
               })
             ),
             ...incompleteSeries.map(({seriesName, data: seriesData, ...options}) =>
-              lineSeries({
+              createLineSeries({
                 ...options,
                 name: seriesName,
                 data: seriesData?.map(({value, name}) => [name, value]),
@@ -344,7 +347,7 @@ export function Chart({
               })
             ),
             ...(releaseSeries ?? []).map(({seriesName, data: seriesData, ...options}) =>
-              lineSeries({
+              createLineSeries({
                 ...options,
                 name: seriesName,
                 data: seriesData?.map(({value, name}) => [name, value]),
@@ -422,6 +425,7 @@ export function Chart({
     // add top-padding to the chart in full screen so that the legend
     // and graph do not overlap
     if (renderingContext?.isFullscreen) {
+      // oxlint-disable-next-line react/immutability
       grid = {...grid, top: '20px'};
     }
 

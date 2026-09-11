@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {vec2} from 'gl-matrix';
 
+import type {CSS} from '@sentry/scraps/cssTypes';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {useCanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
@@ -63,15 +65,20 @@ function FlamegraphZoomViewMinimap({
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
+  // FlamegraphCanvas reassigns physicalSpace on the same instance, so the canvas
+  // identity is not a usable dependency. Reading the rect out here keeps the memo
+  // keyed on the value that actually changes.
+  const miniMapPhysicalSpace = flamegraphMiniMapCanvas?.physicalSpace;
+
   const miniMapConfigSpaceBorderSize = useMemo(() => {
-    if (!flamegraphMiniMapView || !flamegraphMiniMapCanvas?.physicalSpace) {
+    if (!flamegraphMiniMapView || !miniMapPhysicalSpace) {
       return 0;
     }
     // compute 10px in physical space to configSpace
     return new Rect(0, 0, 10, 0).transformRect(
-      flamegraphMiniMapView.toConfigSpace(flamegraphMiniMapCanvas.physicalSpace)
+      flamegraphMiniMapView.toConfigSpace(miniMapPhysicalSpace)
     ).width;
-  }, [flamegraphMiniMapView, flamegraphMiniMapCanvas?.physicalSpace]);
+  }, [flamegraphMiniMapView, miniMapPhysicalSpace]);
 
   const flamegraphMiniMapRenderer = useMemo(() => {
     if (!flamegraphMiniMapCanvasRef) {
@@ -429,7 +436,7 @@ function FlamegraphZoomViewMinimap({
   );
 }
 
-const Canvas = styled('canvas')<{cursor?: React.CSSProperties['cursor']}>`
+const Canvas = styled('canvas')<{cursor?: CSS['cursor']}>`
   width: 100%;
   height: 100%;
   position: absolute;

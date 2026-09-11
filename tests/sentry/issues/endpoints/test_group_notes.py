@@ -11,7 +11,7 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.silo.base import SiloMode
 from sentry.tasks.merge import merge_groups
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -105,7 +105,7 @@ class GroupNoteTest(APITestCase):
         assert response.data[3]["id"] == str(note3.id)
         assert response.data[3]["data"]["text"] == note3.data["text"]
 
-    @with_feature("projects:issue-action-log-activity")
+    @action_log_activity_enabled()
     def test_reads_from_gale(self) -> None:
         group = self.group
 
@@ -130,7 +130,7 @@ class GroupNoteTest(APITestCase):
         assert response.data[0]["data"]["text"] == "hello world"
         assert response.data[0]["data"]["comment_id"] == 123
 
-    @with_feature("projects:issue-action-log-activity")
+    @action_log_activity_enabled()
     def test_reads_from_gale_with_edits(self) -> None:
         group = self.group
 
@@ -207,7 +207,7 @@ class GroupNoteCreateTest(APITestCase):
         response = self.client.post(url, format="json", data={"text": "hello world"})
         assert response.status_code == 400, response.content
 
-    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
+    @action_log_activity_enabled()
     def test_returns_gale(self) -> None:
         group = self.group
 

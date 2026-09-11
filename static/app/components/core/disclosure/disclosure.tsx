@@ -10,7 +10,6 @@ import {useDisclosureState, type DisclosureState} from '@react-stately/disclosur
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack, type StackProps} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
 
 import {IconChevron} from 'sentry/icons';
 
@@ -200,9 +199,7 @@ function Content({children, ...props}: DisclosureContentProps) {
       width="100%"
       {...props}
     >
-      <Text as="div" size={context.size}>
-        {children}
-      </Text>
+      {children}
     </AlignedContainer>
   );
 }

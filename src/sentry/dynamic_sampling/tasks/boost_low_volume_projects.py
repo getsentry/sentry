@@ -38,14 +38,12 @@ from sentry.dynamic_sampling.rules.utils import (
 )
 from sentry.dynamic_sampling.tasks.common import (
     MEASURE_CONFIGS,
-    GetActiveOrgs,
     are_equal_with_epsilon,
     sample_rate_to_float,
 )
 from sentry.dynamic_sampling.tasks.constants import (
     CHUNK_SIZE,
     DEFAULT_REDIS_CACHE_KEY_TTL,
-    MAX_PROJECTS_PER_QUERY,
     MAX_TRANSACTIONS_PER_PROJECT,
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
@@ -53,9 +51,8 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 )
 from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
-from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
+from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.dynamic_sampling.utils import has_dynamic_sampling, is_project_mode_sampling
-from sentry.models.options import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics import indexer
@@ -79,68 +76,6 @@ ProjectVolumes = tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
 
 # the same as ProjectVolumes, but with the organization ID added
 OrgProjectVolumes = tuple[OrganizationId, ProjectId, int, DecisionKeepCount, DecisionDropCount]
-
-
-@metrics.wraps("dynamic_sampling.filter_project_mode_orgs")
-def _without_project_mode_orgs(org_ids: list[int]) -> list[int]:
-    """
-    Drop the organizations that sample per project. Their rates come from
-    project options, so the rebalancing task must not overwrite them.
-    """
-    modes_per_org = OrganizationOption.objects.get_value_bulk_id(org_ids, "sentry:sampling_mode")
-    return sorted(
-        org_id for org_id, mode in modes_per_org.items() if mode != DynamicSamplingMode.PROJECT
-    )
-
-
-@instrumented_task(
-    name="sentry.dynamic_sampling.tasks.boost_low_volume_projects",
-    namespace=telemetry_experience_tasks,
-    processing_deadline_duration=20 * 60 + 5,
-    retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.CELL,
-)
-@dynamic_sampling_task
-def boost_low_volume_projects() -> None:
-    """
-    Task to adjusts the sample rates of all projects in all active organizations.
-    """
-    for orgs in GetActiveOrgs(
-        max_projects=MAX_PROJECTS_PER_QUERY,
-        granularity=Granularity(60),
-        measure=SamplingMeasure.SEGMENTS,
-    ):
-        _process_orgs_for_boost(_without_project_mode_orgs(orgs), SamplingMeasure.SEGMENTS)
-
-
-def _process_orgs_for_boost(
-    org_ids: list[int],
-    measure: SamplingMeasure,
-) -> None:
-    """
-    Process organizations for boost_low_volume_projects.
-
-    Dispatches to the per-org task for each org with project volume data.
-    """
-    if not org_ids:
-        return
-
-    metrics.incr(
-        "dynamic_sampling.boost_low_volume_projects.orgs_processed",
-        amount=len(org_ids),
-        tags={"measure": str(measure.value)},
-    )
-
-    for org_id, projects in fetch_projects_with_total_root_transaction_count_and_rates(
-        org_ids=org_ids, measure=measure
-    ).items():
-        boost_low_volume_projects_of_org.apply_async(
-            kwargs={
-                "org_id": org_id,
-                "projects_with_tx_count_and_rates": projects,
-            },
-            headers={"sentry-propagate-traces": False},
-        )
 
 
 @instrumented_task(
@@ -174,54 +109,6 @@ def boost_low_volume_projects_of_org_with_query(org_id: OrganizationId) -> None:
     )
     if rebalanced_projects is not None:
         store_rebalanced_projects(org_id, rebalanced_projects)
-
-
-@instrumented_task(
-    name="sentry.dynamic_sampling.boost_low_volume_projects_of_org",
-    namespace=telemetry_experience_tasks,
-    processing_deadline_duration=3 * 60 + 5,
-    retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.CELL,
-)
-@dynamic_sampling_task
-def boost_low_volume_projects_of_org(
-    org_id: OrganizationId,
-    projects_with_tx_count_and_rates: Sequence[ProjectVolumes],
-) -> None:
-    """
-    Task to adjust the sample rates of the projects of a single organization specified by an
-    organization ID. Transaction counts and rates have to be provided.
-    """
-
-    try:
-        rebalanced_projects = calculate_sample_rates_of_projects(
-            org_id, projects_with_tx_count_and_rates
-        )
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        raise
-
-    logger.info(
-        "boost_low_volume_projects_of_org",
-        extra={
-            "traceparent": sentry_sdk.get_traceparent(),
-            "baggage": sentry_sdk.get_baggage(),
-            "org_id": org_id,
-        },
-    )
-    if rebalanced_projects is not None:
-        store_rebalanced_projects(org_id, rebalanced_projects)
-        metrics.incr(
-            "dynamic_sampling.boost_low_volume_projects_of_org.success",
-            tags={"type": "rebalanced"},
-            sample_rate=1,
-        )
-    else:
-        metrics.incr(
-            "dynamic_sampling.boost_low_volume_projects_of_org.success",
-            tags={"type": "not_rebalanced"},
-            sample_rate=1,
-        )
 
 
 @metrics.wraps("dynamic_sampling.fetch_projects_with_total_root_transaction_count_and_rates")

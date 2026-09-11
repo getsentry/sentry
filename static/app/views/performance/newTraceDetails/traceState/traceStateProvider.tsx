@@ -1,5 +1,5 @@
 import type React from 'react';
-import {createContext, useContext, useLayoutEffect, useMemo} from 'react';
+import {createContext, useContext, useLayoutEffect, useState} from 'react';
 import * as qs from 'query-string';
 
 import {
@@ -52,19 +52,28 @@ export function useTraceStateEmitter(): DispatchingReducerEmitter<typeof TraceRe
 interface TraceStateProviderProps {
   children: React.ReactNode;
   initialPreferences: TracePreferencesState;
+  /**
+   * Embedded waterfalls set this so the host page's `?search=` does not seed the embed's
+   * search box. Paired with `disableUrlSync` on `TraceWaterfall`, which stops the write side.
+   */
+  disableUrlSync?: boolean;
   preferencesStorageKey?: string;
 }
 
 export function TraceStateProvider(props: TraceStateProviderProps): React.ReactNode {
-  const initialQuery = useMemo((): string | undefined => {
+  // We only want to decode on load, hence the lazy initializer.
+  const [initialQuery] = useState((): string | undefined => {
+    if (props.disableUrlSync) {
+      return undefined;
+    }
+
     const query = qs.parse(location.search);
 
     if (typeof query.search === 'string') {
       return query.search;
     }
     return undefined;
-    // We only want to decode on load
-  }, []);
+  });
 
   const [traceState, traceDispatch, traceStateEmitter] = useDispatchingReducer(
     TraceReducer,

@@ -141,6 +141,7 @@ export function Table({
       trackAnalytics('performance_views.landing.table.seen', {
         organization,
       });
+      // oxlint-disable-next-line react/set-state-in-effect
       setTableMetricSet(true);
     }
   }, [organization, tableMetricSet]);
@@ -473,7 +474,7 @@ export function Table({
   ): React.ReactNode {
     const label = title.title || column.name;
     const content = title.tooltip ? (
-      <Tooltip isHoverable title={title.tooltip} showUnderline>
+      <Tooltip title={title.tooltip} showUnderline>
         {label}
       </Tooltip>
     ) : (

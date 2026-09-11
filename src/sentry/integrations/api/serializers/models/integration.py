@@ -8,6 +8,7 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.rpc.service import RpcException
 from sentry.integrations.base import IntegrationProvider
 from sentry.integrations.constants import SlackScope
 from sentry.integrations.models.integration import Integration
@@ -17,7 +18,9 @@ from sentry.integrations.services.integration import (
     RpcOrganizationIntegration,
     integration_service,
 )
+from sentry.integrations.types import IntegrationIssueConfigField
 from sentry.integrations.utils.github_permissions import get_missing_github_app_permissions
+from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -112,7 +115,7 @@ class IntegrationSerializer(Serializer):
 
 class IntegrationConfigSerializerResponse(IntegrationSerializerResponse, total=False):
     configOrganization: Sequence[Any]
-    createIssueConfig: list[dict[str, Any]]
+    createIssueConfig: list[IntegrationIssueConfigField]
 
 
 class IntegrationConfigSerializer(IntegrationSerializer):
@@ -128,6 +131,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
         attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
         include_config: bool = True,
+        organization: RpcOrganization | None = None,
         **kwargs: Any,
     ) -> IntegrationConfigSerializerResponse:
         base = super().serialize(obj, attrs, user)
@@ -139,45 +143,62 @@ class IntegrationConfigSerializer(IntegrationSerializer):
             return {**base, "configOrganization": []}
 
         try:
-            install = obj.get_installation(organization_id=self.organization_id)
+            installation = obj.get_installation(organization_id=self.organization_id)
         except NotImplementedError:
             # The integration may not implement a Installed Integration object
             # representation.
             return {**base, "configOrganization": []}
 
-        config_organization = install.get_organization_config()
+        if organization is not None:
+            installation.organization = organization
 
-        # Query param "action" only attached in TicketRuleForm modal.
+        # TicketRuleModal only needs the ticket-creation form for this request.
         if self.params.get("action") == "create":
             return {
                 **base,
-                "configOrganization": config_organization,
+                "configOrganization": [],
                 # This method comes from IssueBasicIntegration within the integration's installation class
-                "createIssueConfig": install.get_create_issue_config(  # type: ignore[attr-defined]
-                    None, user, params=self.params
+                "createIssueConfig": installation.get_create_issue_config(  # type: ignore[attr-defined]
+                    None,
+                    user,
+                    params=self.params,
                 ),
             }
 
-        return {**base, "configOrganization": config_organization}
+        return {**base, "configOrganization": installation.get_organization_config()}
 
 
 @register(OrganizationIntegration)
 class OrganizationIntegrationSerializer(Serializer):
     def __init__(self, params: Mapping[str, Any] | None = None) -> None:
-        self.params = params
+        self.params = params or {}
 
     def get_attrs(
         self,
         item_list: Sequence[RpcOrganizationIntegration],
         user: User | RpcUser | AnonymousUser,
+        include_config: bool = True,
         **kwargs: Any,
     ) -> MutableMapping[RpcOrganizationIntegration, MutableMapping[str, Any]]:
         integrations = integration_service.get_integrations(
             integration_ids=[item.integration_id for item in item_list]
         )
         integrations_by_id: dict[int, RpcIntegration] = {i.id: i for i in integrations}
+        organizations: dict[int, RpcOrganization | None] = {}
+        if include_config:
+            for organization_id in {item.organization_id for item in item_list}:
+                try:
+                    organizations[organization_id] = organization_service.get(id=organization_id)
+                except RpcException:
+                    # Fall back to per-installation lookups and their existing error handling.
+                    # A failed prefetch must not prevent unrelated integrations from rendering.
+                    continue
         return {
-            item: {"integration": integrations_by_id[item.integration_id]} for item in item_list
+            item: {
+                "integration": integrations_by_id[item.integration_id],
+                "organization": organizations.get(item.organization_id),
+            }
+            for item in item_list
         }
 
     def serialize(
@@ -193,13 +214,25 @@ class OrganizationIntegrationSerializer(Serializer):
         # integration installation config object which very well may be making
         # API request for config options.
         integration: RpcIntegration = attrs.get("integration")  # type: ignore[assignment]
+        organization: RpcOrganization | None = attrs.get("organization")
         integration_config = serialize(
             objects=integration,
             user=user,
             serializer=IntegrationConfigSerializer(obj.organization_id, params=self.params),
             include_config=include_config,
+            organization=organization,
         )
         serialized_integration: MutableMapping[str, Any] = {**integration_config}
+
+        organization_integration_fields = {
+            "externalId": integration.external_id,
+            "organizationId": obj.organization_id,
+            "organizationIntegrationStatus": obj.get_status_display(),
+            "gracePeriodEnd": obj.grace_period_end,
+        }
+        if self.params.get("action") == "create":
+            serialized_integration.update({"configData": None, **organization_integration_fields})
+            return serialized_integration
 
         dynamic_display_information = None
         config_data = None
@@ -211,6 +244,8 @@ class OrganizationIntegrationSerializer(Serializer):
             config_data = obj.config if include_config else None
         else:
             try:
+                if organization is not None:
+                    installation.organization = organization
                 installation.org_integration = obj
                 config_data = installation.get_config_data() if include_config else None  # type: ignore[assignment]
                 dynamic_display_information = installation.get_dynamic_display_information()
@@ -230,10 +265,7 @@ class OrganizationIntegrationSerializer(Serializer):
         serialized_integration.update(
             {
                 "configData": config_data,
-                "externalId": integration.external_id,
-                "organizationId": obj.organization_id,
-                "organizationIntegrationStatus": obj.get_status_display(),
-                "gracePeriodEnd": obj.grace_period_end,
+                **organization_integration_fields,
             }
         )
 
@@ -255,6 +287,38 @@ class IntegrationProviderResponse(TypedDict):
 
 
 class IntegrationProviderSerializer(Serializer[IntegrationProviderResponse]):
+    def get_attrs(
+        self,
+        item_list: Sequence[IntegrationProvider],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> MutableMapping[IntegrationProvider, MutableMapping[str, Any]]:
+        organization = kwargs["organization"]
+
+        # Only providers that disallow a second installation need to know whether one
+        # already exists, so restrict the lookup to those keys (and skip it entirely
+        # when there are none).
+        keys = [
+            provider.key
+            for provider in item_list
+            if provider.can_add and not provider.allow_multiple
+        ]
+        installed_provider_keys: set[str] = set()
+        if keys:
+            installed_provider_keys = {
+                integration.provider
+                for integration in integration_service.get_integrations(
+                    organization_id=organization.id,
+                    providers=keys,
+                    status=ObjectStatus.ACTIVE,
+                )
+            }
+
+        return {
+            provider: {"has_existing_integration": provider.key in installed_provider_keys}
+            for provider in item_list
+        }
+
     def serialize(
         self,
         obj: IntegrationProvider,
@@ -262,19 +326,12 @@ class IntegrationProviderSerializer(Serializer[IntegrationProviderResponse]):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> IntegrationProviderResponse:
-        organization = kwargs.pop("organization")
         metadata: Any = obj.metadata
         metadata = metadata and metadata.asdict() or None
 
         can_add = obj.can_add
-        if can_add and not obj.allow_multiple:
-            existing = integration_service.get_integrations(
-                organization_id=organization.id,
-                providers=[obj.key],
-                status=ObjectStatus.ACTIVE,
-            )
-            if existing:
-                can_add = False
+        if can_add and not obj.allow_multiple and attrs["has_existing_integration"]:
+            can_add = False
 
         return {
             "key": obj.key,

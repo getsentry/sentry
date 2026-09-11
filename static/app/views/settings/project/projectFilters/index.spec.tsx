@@ -101,6 +101,7 @@ describe('ProjectFilters', () => {
   }
 
   beforeEach(() => {
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1600);
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({

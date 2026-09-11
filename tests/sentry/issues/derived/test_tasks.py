@@ -1,10 +1,13 @@
 from collections.abc import Sequence
 from datetime import datetime, timezone
-from unittest.mock import call, patch
+from types import SimpleNamespace
+from typing import Any
+from unittest.mock import MagicMock, call, patch
 
 from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import ActionSource, GroupActionActor, ViewAction
 from sentry.issues.derived.check import CheckId, CheckTimeout
+from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.issues.derived.processing import PIPELINE, GroupLogTimeout, process_group_log
 from sentry.issues.derived.tasks import (
     BATCH_RETRIGGER_TIMEOUT,
@@ -16,11 +19,13 @@ from sentry.issues.derived.tasks import (
     regenerate_stale_derived_data_batch,
 )
 from sentry.issues.derived.tasks_util import (
+    SpawnState,
     _pick_random_fresh_group_ranges,
     group_id_ranges_for_hash,
 )
 from sentry.issues.models.groupderiveddata import GroupDerivedData
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
+from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -234,6 +239,89 @@ class GenerateProjectDerivedDataPaginationTest(DerivedDataTaskTestBase):
         )
         mock_project_delay.assert_not_called()
 
+    @patch("taskbroker_client.state.current_task")
+    def test_selfchain_skips_self_schedule_when_marked_during_work(
+        self, mock_current_task: MagicMock
+    ) -> None:
+        # Entry guard passes; a concurrent delivery marks before we self-schedule the next page.
+        groups = self.create_unprocessed_groups(3)
+        group_ids = sorted(group.id for group in groups)
+        mock_current_task.return_value = SimpleNamespace(id="proj-act-race")
+
+        def mark_during_chunk(
+            chunk_group_ids: Sequence[int], batch_size: int
+        ) -> list[tuple[int, int]]:
+            mark_spawned("generate_project_derived_data", "proj-act-race")
+            return [(chunk_group_ids[0], chunk_group_ids[-1] + 1)]
+
+        with (
+            override_options(
+                {
+                    "issues.derived.project-batch-size": 2,
+                    "issues.derived.project-max-tasks": 1,
+                }
+            ),
+            patch(
+                "sentry.issues.derived.tasks._chunk_group_ids_into_ranges",
+                side_effect=mark_during_chunk,
+            ),
+            patch.object(generate_project_derived_data_batch, "delay") as mock_batch_delay,
+            patch.object(generate_project_derived_data, "apply_async") as mock_project_delay,
+        ):
+            generate_project_derived_data(project_id=self.project.id)
+
+        mock_batch_delay.assert_called_once_with(
+            project_id=self.project.id,
+            group_id_start=group_ids[0],
+            group_id_end=group_ids[1] + 1,
+            stale_only=False,
+        )
+        mock_project_delay.assert_not_called()
+
+    @patch("taskbroker_client.state.current_task")
+    def test_selfchain_marks_after_self_schedule(self, mock_current_task: MagicMock) -> None:
+        groups = self.create_unprocessed_groups(3)
+        group_ids = sorted(group.id for group in groups)
+        mock_current_task.return_value = SimpleNamespace(id="proj-act-mark")
+
+        with (
+            override_options(
+                {
+                    "issues.derived.project-batch-size": 2,
+                    "issues.derived.project-max-tasks": 1,
+                }
+            ),
+            patch.object(generate_project_derived_data_batch, "delay"),
+            patch.object(generate_project_derived_data, "apply_async") as mock_project_delay,
+        ):
+            generate_project_derived_data(project_id=self.project.id)
+
+        mock_project_delay.assert_called_once()
+        assert already_spawned("generate_project_derived_data", "proj-act-mark") is True
+        call_kwargs: dict[str, Any] = mock_project_delay.call_args.kwargs["kwargs"]
+        assert group_ids[1] == call_kwargs["cursor_group_id"]
+
+
+class SpawnStateTest(TestCase):
+    def test_roundtrip(self) -> None:
+        spawn = SpawnState(SimpleNamespace(id="act-spawn-state"), "merge_groups")
+        assert spawn.task_key == "merge_groups"
+        assert spawn.activation_id == "act-spawn-state"
+        assert spawn.already_spawned() is False
+
+        spawn.mark_spawned()
+
+        assert spawn.already_spawned() is True
+        assert already_spawned(spawn.task_key, "act-spawn-state") is True
+
+    def test_noop_without_activation(self) -> None:
+        spawn = SpawnState(None, "merge_groups")
+        assert spawn.task_key == "merge_groups"
+        assert spawn.activation_id is None
+        assert spawn.already_spawned() is False
+        spawn.mark_spawned()
+        assert already_spawned(spawn.task_key, "act-none") is False
+
 
 @with_feature("projects:issue-action-log-write-to-db")
 class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
@@ -442,6 +530,7 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
                 }
             ),
             patch.object(regenerate_stale_derived_data_batch, "delay") as mock_delay,
+            patch.object(check_fresh_derived_data_batch, "delay") as mock_check,
         ):
             heal_stale_derived_data()
 
@@ -451,6 +540,45 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
             (c.kwargs["group_id_start"], c.kwargs["group_id_end"])
             for c in mock_delay.call_args_list
         ] == [(group_ids[0], group_ids[1]), (group_ids[1], group_ids[2])]
+        # Budget fully consumed by heal work, so no consistency checks fire.
+        mock_check.assert_not_called()
+
+    def test_schedules_checks_with_leftover_heal_budget(self) -> None:
+        groups = self.create_unprocessed_groups(4)
+        group_ids = sorted(g.id for g in groups)
+        for gid in group_ids:
+            process_group_log(gid)
+
+        stale = self._pick_stale_hash()
+        # One stale row leaves heal budget free for checks on the fresh rows.
+        GroupDerivedData.objects.filter(group_id=group_ids[0]).update(pipeline_hash=stale)
+
+        with (
+            override_options(
+                {
+                    "issues.derived.heal-batch-size": 1,
+                    "issues.derived.heal-max-tasks": 3,
+                    "issues.derived.check-task-count": 5,
+                }
+            ),
+            patch("sentry.issues.derived.tasks_util.random.randint", return_value=group_ids[1]),
+            patch.object(regenerate_stale_derived_data_batch, "delay") as mock_regenerate,
+            patch.object(check_fresh_derived_data_batch, "delay") as mock_check,
+        ):
+            heal_stale_derived_data()
+
+        mock_regenerate.assert_called_once_with(
+            stale_pipeline_hashes=[stale],
+            target_hash=stale,
+            group_id_start=group_ids[0],
+            group_id_end=group_ids[0] + 1,
+        )
+        # Remaining budget is 2, so checks are capped there even though
+        # check-task-count is higher.
+        assert mock_check.call_args_list == [
+            call(group_id_start=group_ids[1], group_id_end=group_ids[1] + 1),
+            call(group_id_start=group_ids[2], group_id_end=group_ids[2] + 1),
+        ]
 
 
 @with_feature("projects:issue-action-log-write-to-db")
@@ -545,6 +673,96 @@ class CheckFreshDerivedDataBatchTest(DerivedDataTaskTestBase):
             sample_rate=1.0,
             tags={"result": "no_result"},
         )
+
+    def test_records_status_inconsistency_for_backfilled_project(self) -> None:
+        group = self.create_unprocessed_groups(1)[0]
+        process_group_log(group.id)
+        group.update(status=GroupStatus.IGNORED)
+        self.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
+        GroupDerivedData.objects.filter(group_id=group.id).update(
+            data={"status": "open"},
+        )
+
+        with patch("sentry.issues.derived.check.metrics.incr") as mock_incr:
+            check_fresh_derived_data_batch(
+                group_id_start=group.id,
+                group_id_end=group.id + 1,
+            )
+
+        assert (
+            call(
+                "issues.status_reconciliation.checked",
+                sample_rate=1.0,
+                tags={
+                    "result": "diverged",
+                    "derived_status": "open",
+                    "actual_status": "closed",
+                    "source": "batch_check",
+                },
+            )
+            in mock_incr.call_args_list
+        )
+
+    def test_skips_status_check_when_not_derived_should_be_correct(self) -> None:
+        group = self.create_unprocessed_groups(1)[0]
+        process_group_log(group.id)
+        group.update(status=GroupStatus.IGNORED)
+        GroupDerivedData.objects.filter(group_id=group.id).update(data={"status": "open"})
+
+        with patch("sentry.issues.derived.check.record_status_consistency") as mock_record_status:
+            check_fresh_derived_data_batch(
+                group_id_start=group.id,
+                group_id_end=group.id + 1,
+            )
+
+        mock_record_status.assert_not_called()
+
+    @override_options({"issues.derived.status-consistency-check-enabled": False})
+    def test_skips_status_check_when_option_disabled(self) -> None:
+        group = self.create_unprocessed_groups(1)[0]
+        process_group_log(group.id)
+        group.update(status=GroupStatus.IGNORED)
+        self.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
+        GroupDerivedData.objects.filter(group_id=group.id).update(data={"status": "open"})
+
+        with patch("sentry.issues.derived.check.record_status_consistency") as mock_record_status:
+            check_fresh_derived_data_batch(
+                group_id_start=group.id,
+                group_id_end=group.id + 1,
+            )
+
+        mock_record_status.assert_not_called()
+
+    def test_status_check_runs_before_derived_check_timeout(self) -> None:
+        group = self.create_unprocessed_groups(1)[0]
+        derived = process_group_log(group.id)
+        assert derived.pipeline_hash is not None
+        group.update(status=GroupStatus.IGNORED)
+        self.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
+        GroupDerivedData.objects.filter(group_id=group.id).update(data={"status": "open"})
+        check_id = CheckId(
+            "invocation-id",
+            group.id,
+            derived.generated_at,
+            derived.cursor_date,
+            derived.cursor_id,
+            derived.pipeline_hash,
+        )
+
+        with (
+            patch(
+                "sentry.issues.derived.check.check_derived_data",
+                side_effect=CheckTimeout(check_id),
+            ),
+            patch.object(check_fresh_derived_data_batch, "delay"),
+            patch("sentry.issues.derived.check.record_status_consistency") as mock_record_status,
+        ):
+            check_fresh_derived_data_batch(
+                group_id_start=group.id,
+                group_id_end=group.id + 1,
+            )
+
+        mock_record_status.assert_called_once()
 
 
 @with_feature("projects:issue-action-log-write-to-db")

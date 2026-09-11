@@ -111,8 +111,8 @@ function ScmPlatformFeaturesAdapter({
     setSelectedPlatform,
     selectedFeatures,
     setSelectedFeatures,
-    createdProjectSlug,
-    setCreatedProjectSlug,
+    createdProject,
+    setCreatedProject,
   } = useOnboardingContext();
 
   return (
@@ -120,11 +120,11 @@ function ScmPlatformFeaturesAdapter({
       selectedRepository={selectedRepository}
       selectedPlatform={selectedPlatform}
       selectedFeatures={selectedFeatures}
-      createdProjectSlug={createdProjectSlug}
+      createdProject={createdProject}
       deferProjectCreation={deferProjectCreation}
       onPlatformChange={setSelectedPlatform}
       onFeaturesChange={setSelectedFeatures}
-      onProjectCreated={setCreatedProjectSlug}
+      onCreatedProjectChange={setCreatedProject}
       onComplete={onComplete}
       genBackButton={genBackButton}
     />
@@ -139,8 +139,16 @@ function ScmPlatformFeaturesTreatmentAdapter(props: StepProps) {
   return <ScmPlatformFeaturesAdapter {...props} deferProjectCreation />;
 }
 
-function ScmMessagingAdapter({genBackButton}: StepProps) {
-  const {messagingSetup, selectedPlatform, setMessagingSetup} = useOnboardingContext();
+function ScmMessagingAdapter({genBackButton, onComplete}: StepProps) {
+  const {
+    createdProject,
+    messagingSetup,
+    selectedFeatures,
+    selectedPlatform,
+    selectedRepository,
+    setCreatedProject,
+    setMessagingSetup,
+  } = useOnboardingContext();
 
   // Type-narrowing only. `isInvalidMessagingStep` below redirects away from
   // this step before it renders without a platform, so this is unreachable —
@@ -151,9 +159,14 @@ function ScmMessagingAdapter({genBackButton}: StepProps) {
 
   return (
     <ScmMessaging
+      createdProject={createdProject}
       messagingSetup={messagingSetup}
+      onCreatedProjectChange={setCreatedProject}
       onMessagingSetupChange={setMessagingSetup}
+      onComplete={onComplete}
+      selectedFeatures={selectedFeatures}
       selectedPlatform={selectedPlatform}
+      selectedRepository={selectedRepository}
       genBackButton={genBackButton}
     />
   );
@@ -288,7 +301,7 @@ export function OnboardingWithoutContext() {
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
   const selectedProjectSlug =
-    onboardingContext.createdProjectSlug ?? onboardingContext.selectedPlatform?.key;
+    onboardingContext.createdProject?.slug ?? onboardingContext.selectedPlatform?.key;
 
   // Only report experiment exposure for genuine new-org onboarding. Existing
   // orgs can land on /onboarding via stale links, which would
@@ -642,10 +655,9 @@ const OnboardingContainer = styled('div')<{
 
 const Header = styled(Grid)`
   background: ${p => p.theme.tokens.background.primary};
-  padding-left: ${p => p.theme.space['3xl']};
-  padding-right: ${p => p.theme.space['3xl']};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space['3xl']};
   position: sticky;
-  height: 80px;
+  min-height: 60px;
   align-items: center;
   top: 0;
   z-index: 100;
@@ -653,7 +665,7 @@ const Header = styled(Grid)`
 `;
 
 const LogoSvg = styled(LogoSentry)`
-  height: 30px;
+  height: 24px;
   color: ${p => p.theme.tokens.content.primary};
 `;
 

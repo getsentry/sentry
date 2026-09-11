@@ -7,6 +7,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import type {NavigateOptions} from 'react-router-dom';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {defined} from 'sentry/utils/defined';
@@ -36,7 +37,7 @@ interface QueryParamsContextValue {
   managedFields: Set<string>;
   queryParams: ReadableQueryParams;
   setManagedFields: (managedFields: Set<string>) => void;
-  setQueryParams: (queryParams: WritableQueryParams) => void;
+  setQueryParams: (queryParams: WritableQueryParams, options?: NavigateOptions) => void;
 }
 
 const QueryParamsContext = createContext<QueryParamsContextValue | undefined>(undefined);
@@ -55,7 +56,7 @@ interface QueryParamsContextProps {
   children: ReactNode;
   isUsingDefaultFields: boolean;
   queryParams: ReadableQueryParams;
-  setQueryParams: (queryParams: WritableQueryParams) => void;
+  setQueryParams: (queryParams: WritableQueryParams, options?: NavigateOptions) => void;
   shouldManageFields: boolean;
 }
 
@@ -76,6 +77,7 @@ export function QueryParamsContextProvider({
   // 2. some code intentionally wipes the fields
   useEffect(() => {
     if (isUsingDefaultFields) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setManagedFields(new Set());
     }
   }, [isUsingDefaultFields]);
@@ -106,7 +108,7 @@ export function useSetQueryParams() {
   } = useQueryParamsContext();
 
   return useCallback(
-    (writableQueryParams: WritableQueryParams) => {
+    (writableQueryParams: WritableQueryParams, options?: NavigateOptions) => {
       const {updatedFields, updatedManagedFields} = deriveUpdatedManagedFields(
         managedFields,
         readableQueryParams,
@@ -130,7 +132,11 @@ export function useSetQueryParams() {
         writableQueryParams.breakdownCursor = null;
       }
 
-      setQueryParams(writableQueryParams);
+      if (options) {
+        setQueryParams(writableQueryParams, options);
+      } else {
+        setQueryParams(writableQueryParams);
+      }
     },
     [managedFields, setManagedFields, readableQueryParams, setQueryParams]
   );
@@ -235,8 +241,8 @@ export function useSetQueryParamsFields() {
   const setQueryParams = useSetQueryParams();
 
   return useCallback(
-    (fields: string[]) => {
-      setQueryParams({fields});
+    (fields: string[], options?: NavigateOptions) => {
+      setQueryParams({fields}, options);
     },
     [setQueryParams]
   );
