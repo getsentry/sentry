@@ -16,6 +16,7 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import SeerRunState
+from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER_SLUG
 from sentry.utils import metrics
 
 PR_CLOSED_METRIC = "autofix.pr_iteration.pr_closed"
@@ -48,7 +49,9 @@ def iteration_prs_any_closed(organization: Organization, state: SeerRunState) ->
         repo, _resolution = Repository.objects.resolve_active(
             organization_id=organization.id,
             name=repo_name,
-            normalized_provider=None,
+            # Narrowed to GitHub: PR iteration runs nowhere else, and an
+            # unnarrowed name that repeats across providers reads as ambiguous.
+            normalized_provider=PR_ITERATION_PROVIDER_SLUG,
         )
         if repo is None:
             continue
