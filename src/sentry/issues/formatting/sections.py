@@ -109,6 +109,7 @@ def exceptions_section(model: EventObject, limits: Limits) -> Section | None:
 
     return Section(
         title="Exception",
+        repeating=True,
         groups=tuple(groups),
         max_group_chars=limits.max_exceptions_chars,
     )
@@ -267,7 +268,7 @@ def threads_section(model: EventObject, limits: Limits) -> Section | None:
 
     if not groups:
         return None
-    return Section(title="Threads", groups=tuple(groups))
+    return Section(title="Threads", repeating=True, groups=tuple(groups))
 
 
 def spans_section(model: EventObject, limits: Limits) -> Section | None:
@@ -321,6 +322,7 @@ def contexts_section(model: EventObject, limits: Limits) -> Section | None:
         return None
     return Section(
         title="Contexts",
+        repeating=True,
         groups=tuple(groups),
         max_chars=limits.max_contexts_chars,
     )
