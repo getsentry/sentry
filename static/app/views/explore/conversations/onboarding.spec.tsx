@@ -60,7 +60,7 @@ describe('ConversationOnboarding', () => {
     jest.clearAllMocks();
   });
 
-  it('defaults to the agent tab and copies the displayed prompt', async () => {
+  it('copies the full prompt and lets users expand its preview', async () => {
     const {organization, project} = setupProject('node');
     const prompt = getAgentSetupPrompt({
       organizationSlug: organization.slug,
@@ -73,13 +73,14 @@ describe('ConversationOnboarding', () => {
     expect(
       await screen.findByRole('tab', {name: 'For your agent', selected: true})
     ).toBeInTheDocument();
-    expect(screen.getByRole('code')).toHaveTextContent(prompt, {
-      normalizeWhitespace: false,
-    });
+    expect(screen.getByText(prompt, {collapseWhitespace: false})).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Copy prompt'}));
-
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(prompt);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show More'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Show Less'}));
+    expect(screen.getByRole('button', {name: 'Show More'})).toBeInTheDocument();
   });
 
   it('updates the prompt when the selected project changes', async () => {

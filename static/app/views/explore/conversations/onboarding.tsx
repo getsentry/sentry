@@ -6,7 +6,6 @@ import {PlatformIcon} from 'platformicons';
 import replayOnboardingImg from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
 
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
 import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -14,6 +13,7 @@ import {Separator} from '@sentry/scraps/separator';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Prose, Text} from '@sentry/scraps/text';
 
+import {ClippedBox} from 'sentry/components/clippedBox';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
@@ -175,6 +175,71 @@ function ConversationStepRenderer({
   );
 }
 
+function AgentSetupInstructions({
+  project,
+  prompt,
+  onDismiss,
+}: {
+  onDismiss: () => void;
+  project: Project;
+  prompt: string;
+}) {
+  const {copy} = useCopyToClipboard();
+
+  return (
+    <Stack gap="xl" align="start" paddingTop="md">
+      <Text>
+        {t(
+          'Give this prompt to your coding agent to set up agent tracing for this project.'
+        )}
+      </Text>
+      <Container width="100%" border="primary" radius="md" padding="lg">
+        {containerProps => (
+          <ClippedBox
+            {...containerProps}
+            clipHeight={150}
+            defaultClipped
+            collapsible
+            buttonProps={{variant: 'secondary', size: 'xs'}}
+          >
+            <Text
+              as="div"
+              size="sm"
+              monospace
+              wrap="pre-wrap"
+              wordBreak="break-word"
+              density="comfortable"
+            >
+              {prompt}
+            </Text>
+          </ClippedBox>
+        )}
+      </Container>
+      <Button
+        size="md"
+        variant="primary"
+        icon={<IconCopy />}
+        analyticsEventKey="onboarding.ai_prompt_copied"
+        analyticsEventName="Onboarding: AI Prompt Copied"
+        analyticsParams={{
+          platform: project.platform ?? 'unknown',
+          product: 'conversations',
+          source: 'prompt',
+        }}
+        onClick={() => {
+          copy(prompt, {
+            successMessage: t('Copied setup prompt to clipboard'),
+          });
+        }}
+      >
+        {t('Copy prompt')}
+      </Button>
+      <ConversationWaitingIndicator project={project} onDismiss={onDismiss} />
+      <PulseSpacer />
+    </Stack>
+  );
+}
+
 function ConversationOnboardingPanel({
   project,
   children,
@@ -187,7 +252,6 @@ function ConversationOnboardingPanel({
   dsn?: string;
 }) {
   const organization = useOrganization();
-  const {copy} = useCopyToClipboard();
   const prompt = dsn
     ? getAgentSetupPrompt({organizationSlug: organization.slug, project, dsn})
     : undefined;
@@ -258,43 +322,11 @@ function ConversationOnboardingPanel({
                     <TabPanels>
                       <TabPanels.Item key="agent">
                         {prompt && (
-                          <Stack gap="xl" paddingTop="md">
-                            <Stack gap="md">
-                              <Text>
-                                {t(
-                                  'Give this prompt to your coding agent to set up agent tracing for this project.'
-                                )}
-                              </Text>
-                              <CodeBlock hideCopyButton wrapMode="wrap">
-                                {prompt}
-                              </CodeBlock>
-                            </Stack>
-                            <Flex>
-                              <Button
-                                variant="primary"
-                                icon={<IconCopy />}
-                                analyticsEventKey="onboarding.ai_prompt_copied"
-                                analyticsEventName="Onboarding: AI Prompt Copied"
-                                analyticsParams={{
-                                  platform: project.platform ?? 'unknown',
-                                  product: 'conversations',
-                                  source: 'prompt',
-                                }}
-                                onClick={() => {
-                                  copy(prompt, {
-                                    successMessage: t('Copied setup prompt to clipboard'),
-                                  });
-                                }}
-                              >
-                                {t('Copy prompt')}
-                              </Button>
-                            </Flex>
-                            <ConversationWaitingIndicator
-                              project={project}
-                              onDismiss={onDismiss}
-                            />
-                            <PulseSpacer />
-                          </Stack>
+                          <AgentSetupInstructions
+                            project={project}
+                            prompt={prompt}
+                            onDismiss={onDismiss}
+                          />
                         )}
                       </TabPanels.Item>
                       <TabPanels.Item key="human">
@@ -798,7 +830,6 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   display: flex;
   align-items: center;
   position: relative;
-  padding: 0 ${p => p.theme.space.md};
   z-index: 10;
   gap: ${p => p.theme.space.md};
   flex-grow: 1;
