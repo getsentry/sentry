@@ -1028,6 +1028,19 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             resource = self.create_sentry_app(
                 name=f"matrix-{uuid4()}", organization=self.org, published=True
             )
+        elif name == "sentry_app_installation":
+            resource = self.create_sentry_app_installation(
+                organization=self.org,
+                slug=self._resource("sentry_app").slug,
+                user=self.owner,
+            )
+        elif name == "platform_external_issue":
+            resource = self.create_platform_external_issue(
+                group=self._resource("group"),
+                service_type="sentry-app",
+                display_name="Matrix#1",
+                web_url="https://example.com/issues/1",
+            )
         elif name == "mutable_sentry_app":
             resource = self.create_sentry_app(
                 name=f"matrix-mutable-{uuid4()}",
@@ -1132,6 +1145,16 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 else self._resource("sentry_app")
             )
             return str(sentry_app.id)
+        if placeholder == "uuid" and endpoint.endpoint_name in {
+            "SentryAppInstallationExternalRequestsEndpoint",
+            "SentryAppInstallationExternalIssueActionsEndpoint",
+        }:
+            return str(self._resource("sentry_app_installation").uuid)
+        if (
+            placeholder == "external_issue_id"
+            and endpoint.endpoint_name == "GroupExternalIssueDetailsEndpoint"
+        ):
+            return str(self._resource("platform_external_issue").id)
         if placeholder == "hook_id":
             return str(self._resource("service_hook").id)
         if placeholder == "workflow_id":
@@ -1252,6 +1275,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             return {"externalIssue": self._resource("external_issue")["id"]}
         if endpoint.endpoint_name == "GroupIntegrationDetailsEndpoint":
             return {"action": "link"}
+        if endpoint.endpoint_name == "SentryAppInstallationExternalRequestsEndpoint":
+            return {"uri": "/options", "projectId": self.project.id}
         if (
             endpoint.endpoint_name == "ProjectSymbolSourcesEndpoint"
             and isinstance(endpoint, PublicMutationEndpoint)
@@ -1490,6 +1515,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
 
     def _mutation_payload(self, endpoint: PublicMutationEndpoint) -> dict[str, Any]:
         key = (endpoint.endpoint_name, endpoint.method)
+        if key == ("SentryAppInstallationExternalIssueActionsEndpoint", "POST"):
+            return {"groupId": self._resource("group").id, "action": "link", "uri": "/link"}
         payloads: dict[tuple[str, str], dict[str, Any]] = {
             ("DataForwardingDetailsEndpoint", "PUT"): {
                 "provider": "segment",
@@ -1911,6 +1938,11 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 "sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state",
                 return_value=None,
             )
+        elif endpoint.endpoint_name == "SentryAppInstallationExternalRequestsEndpoint":
+            downstream_scope = patch(
+                "sentry.sentry_apps.external_requests.select_requester.SelectRequester.run",
+                return_value={"choices": [["1", "Matrix issue"]]},
+            )
         elif endpoint.endpoint_name == "OrganizationTraceItemAttributesEndpoint":
             downstream_scope = patch(
                 "sentry.api.endpoints.organization_trace_item_attributes."
@@ -2027,14 +2059,22 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             if endpoint.silo_mode is not None
             else nullcontext()
         )
-        downstream_scope: Any = (
-            patch(
+        if endpoint.endpoint_name == "GroupAutofixEndpoint":
+            downstream_scope: Any = patch(
                 "sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent",
                 return_value=SimpleNamespace(seer_run_state_id=1, uuid=uuid4()),
             )
-            if endpoint.endpoint_name == "GroupAutofixEndpoint"
-            else nullcontext()
-        )
+        elif endpoint.endpoint_name == "SentryAppInstallationExternalIssueActionsEndpoint":
+            downstream_scope = patch(
+                "sentry.sentry_apps.external_requests.issue_link_requester.IssueLinkRequester.run",
+                return_value={
+                    "project": "Matrix",
+                    "identifier": "1",
+                    "webUrl": "https://example.com/issues/1",
+                },
+            )
+        else:
+            downstream_scope = nullcontext()
         with silo_scope, downstream_scope, self.feature(self._feature_flags(endpoint)):
             # The session control proves the fixture can execute the operation. Roll it
             # back before replaying the same mutation with each matrix credential.
