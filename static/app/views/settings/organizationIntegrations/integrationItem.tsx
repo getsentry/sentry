@@ -16,6 +16,9 @@ type Props = {
 };
 
 export function IntegrationItem({integration, requiresUpgrade}: Props) {
+  const displayName =
+    integration.provider.key === 'gcp' ? integration.provider.name : integration.name;
+
   return (
     <Flex align="center">
       <div>
@@ -24,7 +27,7 @@ export function IntegrationItem({integration, requiresUpgrade}: Props) {
       <Stack align={undefined} justify="center" paddingLeft="md" minWidth={0}>
         <Flex align="center" gap="xs">
           <Text size="md" bold>
-            {integration.name}
+            {displayName}
           </Text>
           {requiresUpgrade && (
             <Tooltip
