@@ -441,9 +441,10 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
       tokens.cacheWrite += cacheWrite;
       tokens.reasoning +=
         getNumberAttr(node, SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS) ?? 0;
+      const componentTotal = (input ?? 0) + (output ?? 0);
       tokens.total +=
-        input !== undefined || output !== undefined
-          ? (input ?? 0) + (output ?? 0)
+        componentTotal > 0
+          ? componentTotal
           : (getNumberAttr(node, SpanFields.GEN_AI_USAGE_TOTAL_TOKENS) ?? 0);
       totalCost += getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS) ?? 0;
     } else if (getIsExecuteToolSpan(opType)) {

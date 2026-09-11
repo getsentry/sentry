@@ -205,6 +205,23 @@ describe('ConversationDetailPage summary errors', () => {
     });
   });
 
+  it('falls back to reported total tokens when the breakdown is unavailable', async () => {
+    mockApis(null, [
+      spanFixture({
+        span_id: 'span-total-only',
+        'span.name': 'total-only turn',
+        'precise.start_ts': 1000,
+        'precise.finish_ts': 1000.5,
+        'gen_ai.request.messages': JSON.stringify([{role: 'user', content: 'Hello'}]),
+        'gen_ai.response.text': 'Hi',
+        'gen_ai.usage.total_tokens': 150,
+      }),
+    ]);
+    renderPage();
+
+    expect(await screen.findByText('150')).toBeInTheDocument();
+  });
+
   it('shows the Junior-style token breakdown in the summary tooltip', async () => {
     mockApis(null, [
       spanFixture({
