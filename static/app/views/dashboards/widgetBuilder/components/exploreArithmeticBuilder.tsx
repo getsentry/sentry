@@ -1,16 +1,9 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 
-import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
-import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import {stripEquationPrefix} from 'sentry/utils/discover/fields';
-import {
-  ALLOWED_EXPLORE_EQUATION_AGGREGATES,
-  FieldKind,
-  getFieldDefinition,
-} from 'sentry/utils/fields';
 import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
-import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
+import {ExploreEquationArithmeticBuilder} from 'sentry/views/explore/components/exploreEquationArithmeticBuilder';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 
 type Props = {
@@ -37,33 +30,6 @@ export function ExploreArithmeticBuilder({equation, onUpdate}: Props) {
     'boolean'
   );
 
-  const functionArguments: FunctionArgument[] = useMemo(() => {
-    return [
-      ...Object.entries(numberTags).map(([key, tag]) => {
-        return {
-          kind: FieldKind.MEASUREMENT,
-          name: key,
-          label: tag.name,
-        };
-      }),
-      ...Object.entries(stringTags).map(([key, tag]) => {
-        return {
-          kind: FieldKind.TAG,
-          name: key,
-          label: tag.name,
-        };
-      }),
-    ];
-  }, [numberTags, stringTags]);
-
-  const getSpanFieldDefinition = useCallback(
-    (key: string) => {
-      const tag = numberTags[key] ?? stringTags[key];
-      return getFieldDefinition(key, 'span', tag?.kind);
-    },
-    [numberTags, stringTags]
-  );
-
   const handleExpressionChange = useCallback(
     (newExpression: Expression) => {
       onUpdate(stripEquationPrefix(newExpression.text));
@@ -71,20 +37,14 @@ export function ExploreArithmeticBuilder({equation, onUpdate}: Props) {
     [onUpdate]
   );
 
-  const getSuggestedAttribute = useExploreSuggestedAttribute({
-    numberAttributes: numberTags,
-    stringAttributes: stringTags,
-    booleanAttributes: booleanTags,
-  });
-
   return (
-    <ArithmeticBuilder
-      aggregations={ALLOWED_EXPLORE_EQUATION_AGGREGATES}
-      functionArguments={functionArguments}
-      getFieldDefinition={getSpanFieldDefinition}
+    <ExploreEquationArithmeticBuilder
       expression={expression}
       setExpression={handleExpressionChange}
-      getSuggestedKey={getSuggestedAttribute}
+      traceItemType={traceItemType}
+      numberTags={numberTags}
+      stringTags={stringTags}
+      booleanTags={booleanTags}
     />
   );
 }

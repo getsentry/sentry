@@ -12,9 +12,7 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
-import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -33,11 +31,11 @@ import {
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   AggregationKey,
-  FieldKind,
   getFieldDefinition,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ExploreEquationArithmeticBuilder} from 'sentry/views/explore/components/exploreEquationArithmeticBuilder';
 import {
   TraceItemSearchQueryBuilder,
   type TraceItemSearchQueryBuilderProps,
@@ -54,7 +52,6 @@ import {
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
-import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
@@ -785,33 +782,6 @@ function EquationSelector({
 }: VisualizeSelectorProps) {
   const expression = stripEquationPrefix(visualize.yAxis);
 
-  const functionArguments: FunctionArgument[] = useMemo(() => {
-    return [
-      ...Object.entries(numberTags).map(([key, tag]) => {
-        return {
-          kind: FieldKind.MEASUREMENT,
-          name: key,
-          label: tag.name,
-        };
-      }),
-      ...Object.entries(stringTags).map(([key, tag]) => {
-        return {
-          kind: FieldKind.TAG,
-          name: key,
-          label: tag.name,
-        };
-      }),
-    ];
-  }, [numberTags, stringTags]);
-
-  const getSpanFieldDefinition = useCallback(
-    (key: string) => {
-      const tag = numberTags[key] ?? stringTags[key];
-      return getFieldDefinition(key, 'span', tag?.kind);
-    },
-    [numberTags, stringTags]
-  );
-
   const handleExpressionChange = useCallback(
     (newExpression: Expression) => {
       onChange(visualize.replace({yAxis: `${EQUATION_PREFIX}${newExpression.text}`}));
@@ -819,21 +789,15 @@ function EquationSelector({
     [onChange, visualize]
   );
 
-  const getSuggestedAttribute = useExploreSuggestedAttribute({
-    numberAttributes: numberTags,
-    stringAttributes: stringTags,
-    booleanAttributes: booleanTags,
-  });
-
   return (
-    <ArithmeticBuilder
+    <ExploreEquationArithmeticBuilder
       data-test-id="editor-visualize-equation"
-      aggregations={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
-      functionArguments={functionArguments}
-      getFieldDefinition={getSpanFieldDefinition}
       expression={expression}
       setExpression={handleExpressionChange}
-      getSuggestedKey={getSuggestedAttribute}
+      traceItemType={TraceItemDataset.SPANS}
+      numberTags={numberTags}
+      stringTags={stringTags}
+      booleanTags={booleanTags}
     />
   );
 }
