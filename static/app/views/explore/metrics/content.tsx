@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 
-import {FeatureBadge} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
@@ -121,7 +120,6 @@ function MetricsHeader() {
         ) : (
           title || METRICS_TITLE
         )}
-        <FeatureBadge type="new" />
         {titleTooltip}
       </TopBar.Slot>
       <TopBar.Slot name="feedback">

@@ -186,7 +186,7 @@ function AMCheckout(props: Props) {
         );
       });
     },
-    [subscription?.planDetails?.billingInterval]
+    [subscription.planDetails.billingInterval]
   );
 
   /**
@@ -242,7 +242,7 @@ function AMCheckout(props: Props) {
     [
       subscription.plan,
       subscription.planDetails.name,
-      subscription.planDetails?.billingInterval,
+      subscription.planDetails.billingInterval,
       getBusinessPlan,
       shouldDefaultToBusiness,
     ]
@@ -257,7 +257,7 @@ function AMCheckout(props: Props) {
         subscription.planDetails.billingInterval === initialPlan.billingInterval
       );
     },
-    [subscription?.planDetails]
+    [subscription.planDetails]
   );
 
   const getValidData = useCallback(

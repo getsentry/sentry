@@ -3,6 +3,7 @@ from django.urls import reverse
 from sentry.discover.models import (
     DiscoverSavedQuery,
     DiscoverSavedQueryLastVisited,
+    DiscoverSavedQueryStarred,
     DiscoverSavedQueryTypes,
 )
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
@@ -332,6 +333,49 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
 
         assert response.status_code == 200
         assert response.data[0]["lastVisited"] is None
+
+    def test_get_starred_query_serializes_starred_and_position(self) -> None:
+        test_query = DiscoverSavedQuery.objects.get(organization=self.org, name="Test query")
+
+        DiscoverSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=test_query,
+            position=3,
+            starred=True,
+        )
+
+        with self.feature([self.feature_name, self.migrate_feature_name]):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data[0]["starred"] is True
+        assert response.data[0]["position"] == 3
+
+    def test_get_unstarred_query_serializes_false_and_null_position(self) -> None:
+        with self.feature([self.feature_name, self.migrate_feature_name]):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data[0]["starred"] is False
+        assert response.data[0]["position"] is None
+        other_org = self.create_organization(owner=self.user)
+        test_query = DiscoverSavedQuery.objects.get(organization=self.org, name="Test query")
+
+        DiscoverSavedQueryStarred.objects.create(
+            organization=other_org,
+            user_id=self.user.id,
+            discover_saved_query=test_query,
+            position=1,
+            starred=True,
+        )
+
+        with self.feature([self.feature_name, self.migrate_feature_name]):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data[0]["starred"] is False
+        assert response.data[0]["position"] is None
 
     def test_get_sortby_myqueries(self) -> None:
         uhoh_user = self.create_user(username="uhoh")

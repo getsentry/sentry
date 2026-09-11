@@ -80,6 +80,8 @@ class OrganizationInvestigationOrchestrationCommandsEndpoint(OrganizationInvesti
                 "accepted": True,
                 "duplicate": accepted.duplicate,
                 "workflowVersion": accepted.workflow_version,
+                "commandStatus": accepted.status,
+                "commandError": accepted.error,
                 "projection": accepted.projection,
             },
             status=status.HTTP_200_OK,

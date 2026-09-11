@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
 from typing import Any
 
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
@@ -13,12 +12,6 @@ GCP_MCP_URLS: tuple[str, ...] = (
     "https://monitoring.googleapis.com/mcp",
     "https://cloudtrace.googleapis.com/mcp",
 )
-
-GCP_SERVICE_LABELS: Mapping[str, str] = {
-    "logging": "Cloud Logging",
-    "monitoring": "Cloud Monitoring",
-    "cloudtrace": "Cloud Trace",
-}
 
 # Connection statuses returned by Seer's GCP verification endpoint. Mirrors
 # ConnectionStatus in seer/automation/agent/mcp/gcp_verification.py.
@@ -66,23 +59,3 @@ def parse_customer_sa_email(value: Any) -> str:
             f"Service account email must be at most {MAX_CUSTOMER_SA_EMAIL_LENGTH} characters."
         )
     return email
-
-
-def resolve_project_error_detail(project: Mapping[str, Any]) -> str | None:
-    existing = project.get("error_detail")
-    if existing:
-        return str(existing)
-
-    failed = [
-        service for service in project.get("services", []) if service.get("status") != "connected"
-    ]
-    if not failed:
-        return None
-
-    return "; ".join(
-        "{label}: {detail}".format(
-            label=GCP_SERVICE_LABELS.get(service.get("service", ""), service.get("service", "")),
-            detail=service.get("error_detail") or "Unknown error",
-        )
-        for service in failed
-    )

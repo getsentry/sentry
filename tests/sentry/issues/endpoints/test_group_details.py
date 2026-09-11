@@ -201,9 +201,22 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["id"] == note_id
         assert response.data["data"]["text"] == "edited"
 
+        # ... the feed folds the appended COMMENT_EDIT back into the comment ...
+        response = self.client.get(details_url, format="json")
+        assert response.status_code == 200, response.content
+        notes = [item for item in response.data["activity"] if item["type"] == "note"]
+        assert len(notes) == 1
+        assert notes[0]["id"] == note_id
+        assert notes[0]["data"]["text"] == "edited"
+
         # ... and delete
         response = self.client.delete(f"{comments_url}{note_id}/", format="json")
         assert response.status_code == 204, response.status_code
+
+        # ... after which the COMMENT_DELETE drops the comment from the feed
+        response = self.client.get(details_url, format="json")
+        assert response.status_code == 200, response.content
+        assert [item for item in response.data["activity"] if item["type"] == "note"] == []
 
     @action_log_activity_enabled()
     def test_group_action_log_served_when_enabled(self) -> None:
@@ -1103,8 +1116,41 @@ class GroupUpdateTest(APITestCase):
 
 
 class GroupDeleteTest(APITestCase):
+    def test_delete_as_member_respects_organization_setting(self) -> None:
+        group = self.create_group()
+        member = self.create_user()
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(user=member)
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/"
+
+        self.organization.update_option("sentry:events_member_admin", False)
+        response = self.client.delete(url)
+
+        assert response.status_code == 403, response.content
+        assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
+
+        self.organization.update_option("sentry:events_member_admin", True)
+        response = self.client.delete(url)
+
+        assert response.status_code == 202, response.content
+        assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
+
+    def test_delete_with_write_only_token(self) -> None:
+        group = self.create_group()
+        token = self.create_user_auth_token(user=self.user, scope_list=["event:write"])
+
+        response = self.client.delete(
+            f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+
+        assert response.status_code == 403
+        assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
+
     def test_delete_deferred(self) -> None:
-        self.login_as(user=self.user)
+        token = self.create_user_auth_token(user=self.user, scope_list=["event:admin"])
 
         group = self.create_group()
         hash = "x" * 32
@@ -1112,7 +1158,7 @@ class GroupDeleteTest(APITestCase):
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
-        response = self.client.delete(url, format="json")
+        response = self.client.delete(url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
         assert response.status_code == 202, response.content
 
         # Deletion was deferred, so it should still exist

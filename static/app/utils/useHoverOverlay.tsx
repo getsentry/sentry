@@ -496,6 +496,7 @@ function useHoverOverlay({
     }
 
     commitStatus('warming');
+    // oxlint-disable-next-line react/immutability
     openTimerRef.current = window.setTimeout(() => {
       commitStatus('open');
       warmUpGroup(group, selfTokenRef.current);
@@ -515,6 +516,7 @@ function useHoverOverlay({
     }
 
     commitStatus('cooling');
+    // oxlint-disable-next-line react/immutability
     hideTimerRef.current = window.setTimeout(() => {
       commitStatus('idle');
       startGroupCoolDown(group);
@@ -641,6 +643,7 @@ function useHoverOverlay({
 
   useEffect(() => {
     if (showOnlyOnOverflow && !isOverflowing) {
+      // oxlint-disable-next-line react/set-state-in-effect
       reset();
     }
   }, [showOnlyOnOverflow, isOverflowing, reset]);

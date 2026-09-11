@@ -392,6 +392,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       // something smarter.
       delete locationQuery._allp;
       navigate({...window.location, query: locationQuery}, {replace: true});
+      // oxlint-disable-next-line react/set-state-in-effect
       setAllProjectChanged(true);
     }
   }, [group?.project.id, allProjectChanged, navigate]);

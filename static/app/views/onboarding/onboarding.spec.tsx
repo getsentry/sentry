@@ -672,9 +672,7 @@ describe('Onboarding', () => {
     it('navigates from welcome to scm-connect', async () => {
       const {router} = renderOnboarding('welcome');
 
-      await userEvent.click(
-        await screen.findByRole('button', {name: /Set up manually instead/})
-      );
+      await userEvent.click(await screen.findByRole('button', {name: /Set up manually/}));
 
       // Wait for scm-connect to render and its queries to resolve so the
       // mounted-effect fetches hit the mocked endpoints before afterEach
@@ -692,9 +690,10 @@ describe('Onboarding', () => {
       expect(
         await screen.findByText('npx @sentry/agent-plugin install')
       ).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {name: /Set up manually instead/})
-      ).toBeInTheDocument();
+      expect(screen.getByText('Recommended')).toBeInTheDocument();
+      expect(screen.getByText('Claude Code, Codex, Cursor, & Grok')).toBeInTheDocument();
+      expect(screen.getByText(/org slug: org-slug/)).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Set up manually/})).toBeInTheDocument();
       expect(screen.queryByTestId('onboarding-welcome-start')).not.toBeInTheDocument();
       expect(screen.queryByText('Error monitoring')).not.toBeInTheDocument();
       expect(
@@ -722,7 +721,7 @@ describe('Onboarding', () => {
 
       expect(await screen.findByText('Agent Connected')).toBeInTheDocument();
       expect(
-        screen.queryByRole('button', {name: /Set up manually instead/})
+        screen.queryByRole('button', {name: /Set up manually/})
       ).not.toBeInTheDocument();
       expect(screen.queryByText('or')).not.toBeInTheDocument();
       expect(
@@ -752,7 +751,10 @@ describe('Onboarding', () => {
         JSON.stringify({
           selectedPlatform: nextJsPlatform,
           selectedFeatures: [ProductSolution.ERROR_MONITORING],
-          createdProjectSlug: 'javascript-nextjs',
+          createdProject: {
+            slug: 'javascript-nextjs',
+            messagingSelection: undefined,
+          },
           messagingSetup: selectedMessagingSetup,
           agentSetupProjectBaseline: {
             organizationId: scmOrganization.id,
@@ -789,9 +791,7 @@ describe('Onboarding', () => {
     it('fires scm_welcome_continue_clicked on browser setup click and not the legacy event', async () => {
       renderOnboarding('welcome');
 
-      await userEvent.click(
-        await screen.findByRole('button', {name: /Set up manually instead/})
-      );
+      await userEvent.click(await screen.findByRole('button', {name: /Set up manually/}));
 
       expect(trackAnalytics).toHaveBeenCalledWith(
         'onboarding.scm_welcome_continue_clicked',
@@ -1135,7 +1135,10 @@ describe('Onboarding', () => {
           JSON.stringify({
             selectedPlatform: nextJsPlatform,
             selectedFeatures: [ProductSolution.ERROR_MONITORING],
-            createdProjectSlug: nextJsProject.slug,
+            createdProject: {
+              slug: nextJsProject.slug,
+              messagingSelection: undefined,
+            },
           })
         );
 
@@ -1188,6 +1191,10 @@ describe('Onboarding', () => {
       const initialContext = {
         selectedPlatform: nextJsPlatform,
         selectedFeatures: [ProductSolution.ERROR_MONITORING],
+        createdProject: {
+          slug: nextJsProject.slug,
+          messagingSelection: undefined,
+        },
         messagingSetup: selectedMessagingSetup,
       };
 
@@ -1219,8 +1226,8 @@ describe('Onboarding', () => {
       const stored = JSON.parse(sessionStorage.getItem('onboarding') ?? '{}');
       expect(stored.selectedPlatform).toBeDefined();
       expect(stored.selectedFeatures).toBeDefined();
-      // createdProjectSlug should be cleared so the user can re-create
-      expect(stored.createdProjectSlug).toBeUndefined();
+      // createdProject should be cleared so the user can re-create
+      expect(stored.createdProject).toBeUndefined();
       expect(stored.messagingSetup).toEqual(initialContext.messagingSetup);
     });
 
@@ -1311,7 +1318,10 @@ describe('Onboarding', () => {
         }),
         selectedPlatform: nextJsPlatform,
         selectedFeatures: [ProductSolution.ERROR_MONITORING],
-        createdProjectSlug: 'javascript-nextjs',
+        createdProject: {
+          slug: 'javascript-nextjs',
+          messagingSelection: undefined,
+        },
         messagingSetup: selectedMessagingSetup,
       };
 
@@ -1334,7 +1344,7 @@ describe('Onboarding', () => {
       // Derived state should be cleared
       expect(stored.selectedPlatform).toBeUndefined();
       expect(stored.selectedFeatures).toBeUndefined();
-      expect(stored.createdProjectSlug).toBeUndefined();
+      expect(stored.createdProject).toBeUndefined();
       // Integration and repo should be preserved
       expect(stored.selectedIntegration).toBeDefined();
       expect(stored.selectedRepository).toBeDefined();

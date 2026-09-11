@@ -288,6 +288,7 @@ export function UsageTotalsTable({
         outcomeToBarColor={outcomeToBarColor}
       />
 
+      {/* oxlint-disable-next-line react/static-components */}
       <OutcomeTable>
         <OutcomeRow
           name={t('Accepted')}

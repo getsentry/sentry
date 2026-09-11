@@ -678,6 +678,17 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
     runAction(data);
   };
 
+  const isEnterprisePlan = !!customer.planDetails?.isEnterprise;
+  // Every Seer product trial (whether triggered via a plan category or the
+  // Seer/Legacy Seer add-on) resolves to one of these billed categories, so a
+  // single category check covers both entry points.
+  const isSeerProductTrial = (category: DataCategory) =>
+    [
+      DataCategory.SEER_USER,
+      DataCategory.SEER_AUTOFIX,
+      DataCategory.SEER_SCANNER,
+    ].includes(category);
+
   const getTrialManagementActions = (
     category: DataCategory,
     apiName: string,
@@ -697,6 +708,11 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
       moment(activeProductTrial?.endDate).add(1, 'day').diff(moment(), 'days') < 1;
     const hasUsedProductTrial =
       hasActiveProductTrial || categoryHasUsedProductTrial(category);
+    // Enterprise plans: only Seer product trials can be started from _admin.
+    // Allow Trial and Stop/Extend stay available for any in-flight non-Seer trial.
+    const blockEnterpriseNonSeerStart = isEnterprisePlan && !isSeerProductTrial(category);
+    const enterpriseNonSeerStartTooltip =
+      'Starting a trial for this product is disabled for enterprise plans. Use gifts as needed to add reserved volume.';
 
     const handleExtendTrial = () => {
       if (!activeProductTrial) {
@@ -757,13 +773,19 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             <Button
               size="xs"
               onClick={() => updateCustomerStatus(`startTrial${formattedApiName}`)}
-              disabled={hasActiveProductTrial || hasUsedProductTrial}
+              disabled={
+                blockEnterpriseNonSeerStart ||
+                hasActiveProductTrial ||
+                hasUsedProductTrial
+              }
               tooltipProps={{
-                title: hasActiveProductTrial
-                  ? `A product trial is currently active for ${formattedTrialName}`
-                  : hasUsedProductTrial
-                    ? `No product trial is available for ${formattedTrialName}`
-                    : `Start the 14-day ${formattedTrialName} product trial`,
+                title: blockEnterpriseNonSeerStart
+                  ? enterpriseNonSeerStartTooltip
+                  : hasActiveProductTrial
+                    ? `A product trial is currently active for ${formattedTrialName}`
+                    : hasUsedProductTrial
+                      ? `No product trial is available for ${formattedTrialName}`
+                      : `Start the 14-day ${formattedTrialName} product trial`,
               }}
             >
               Start Trial

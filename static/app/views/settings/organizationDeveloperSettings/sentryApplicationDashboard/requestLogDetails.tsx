@@ -1,5 +1,4 @@
 import {Fragment, useCallback} from 'react';
-import styled from '@emotion/styled';
 
 import {CodeBlock} from '@sentry/scraps/code';
 import {DrawerBody, DrawerHeader, useDrawer} from '@sentry/scraps/drawer';
@@ -8,10 +7,14 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DateTime} from 'sentry/components/dateTime';
-import type {KeyValueDataContentProps} from 'sentry/components/keyValueData';
-import {KeyValueData} from 'sentry/components/keyValueData';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
+import {
+  KeyValueTableCard,
+  KeyValueTableCardPanel,
+  KeyValueTableCardTitle,
+  type KeyValueTableDataRowProps,
+} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {SentryAppWebhookRequest} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -28,19 +31,19 @@ function BodySection({title, body}: {body: string; title: string}) {
   const {parsed, raw, maybeTruncated} = decodeWebhookBody(body);
 
   return (
-    <BodyCardPanel>
-      <KeyValueData.Title>
+    <KeyValueTableCardPanel block>
+      <KeyValueTableCardTitle>
         {title}
         {maybeTruncated && (
           <Text variant="muted" size="xs">{` (${t('truncated')})`}</Text>
         )}
-      </KeyValueData.Title>
+      </KeyValueTableCardTitle>
       {parsed === null ? (
         <CodeBlock>{raw}</CodeBlock>
       ) : (
         <JsonEventData data={parsed} showCopyButton />
       )}
-    </BodyCardPanel>
+    </KeyValueTableCardPanel>
   );
 }
 
@@ -54,7 +57,7 @@ function RequestLogDetails({request, isInternal, organization}: RequestLogDetail
   const {request_body, request_headers, response_body} = request;
   const timeFormat = shouldUse24Hours() ? 'MMM D, YYYY HH:mm:ss z' : 'll LTS z';
 
-  const summaryItems: KeyValueDataContentProps[] = [
+  const summaryItems: KeyValueTableDataRowProps[] = [
     {
       item: {
         key: 'date',
@@ -152,7 +155,7 @@ function RequestLogDetails({request, isInternal, organization}: RequestLogDetail
       : []),
   ];
 
-  const headerItems: KeyValueDataContentProps[] = Object.entries(
+  const headerItems: KeyValueTableDataRowProps[] = Object.entries(
     request_headers ?? {}
   ).map(([name, value]) => ({
     item: {key: name, subject: name, value},
@@ -168,10 +171,10 @@ function RequestLogDetails({request, isInternal, organization}: RequestLogDetail
       </DrawerHeader>
       <DrawerBody>
         <Stack gap="xl">
-          <KeyValueData.Card title={t('Summary')} contentItems={summaryItems} />
+          <KeyValueTableCard title={t('Summary')} contentItems={summaryItems} />
 
           {headerItems.length > 0 && (
-            <KeyValueData.Card title={t('Request Headers')} contentItems={headerItems} />
+            <KeyValueTableCard title={t('Request Headers')} contentItems={headerItems} />
           )}
 
           {request_body && <BodySection title={t('Request Body')} body={request_body} />}
@@ -214,11 +217,3 @@ export function useRequestLogDetailsDrawer({
     [isInternal, openDrawer, organization]
   );
 }
-
-const BodyCardPanel = styled(KeyValueData.CardPanel)`
-  display: block;
-
-  pre {
-    margin: 0;
-  }
-`;

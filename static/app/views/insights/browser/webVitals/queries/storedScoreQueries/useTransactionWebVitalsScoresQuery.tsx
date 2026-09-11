@@ -45,6 +45,7 @@ export const useTransactionWebVitalsScoresQuery = ({
 
   if (sort !== undefined) {
     if (sort.field === 'avg(measurements.score.total)') {
+      // oxlint-disable-next-line react/immutability
       sort.field = 'performance_score(measurements.score.total)';
     }
   }
