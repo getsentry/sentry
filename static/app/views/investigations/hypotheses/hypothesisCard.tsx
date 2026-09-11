@@ -1,0 +1,233 @@
+import styled from '@emotion/styled';
+
+import {Disclosure} from '@sentry/scraps/disclosure';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import {IconEllipsis} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {
+  getEvidenceSectionLabel,
+  getHypothesisCardBorder,
+  getVerificationStepStatusLabel,
+  HypothesisStatus,
+} from 'sentry/views/investigations/hypotheses/hypothesisStatus';
+import type {
+  InvestigationHypothesis,
+  InvestigationVerificationStep,
+} from 'sentry/views/investigations/types';
+
+type HypothesisCardProps = {
+  hypothesis: InvestigationHypothesis;
+  /**
+   * Menu items for the card's overflow menu. The card does not own commands —
+   * the surface rendering it decides which of accept, reject, steer, and retry
+   * apply, and supplies them here. No menu renders when this is empty.
+   */
+  actions?: MenuItemProps[];
+  className?: string;
+  /**
+   * Whether this is the hypothesis the report leads with
+   * (`report.primaryHypothesisId`). It lifts off the page so the conclusion is
+   * findable without reading every card. The border says where a hypothesis
+   * landed; this says which one the report is built around.
+   */
+  isPrimary?: boolean;
+};
+
+/**
+ * One hypothesis in an agentic investigation: what the agent proposed, where it
+ * landed, and the checks it ran to get there.
+ *
+ * The card is presentational and self-contained so it can appear in the
+ * investigation detail view, in a monitor alert drawer, or anywhere else a run
+ * is summarized. It sizes to its container rather than to the viewport.
+ */
+export function HypothesisCard({
+  actions,
+  className,
+  hypothesis,
+  isPrimary = false,
+}: HypothesisCardProps) {
+  const steps = [...(hypothesis.verificationSteps ?? [])].sort(
+    (a, b) => a.order - b.order
+  );
+
+  return (
+    <Card
+      as="li"
+      className={className}
+      gap="lg"
+      padding="xl"
+      radius="md"
+      background="primary"
+      data-border={getHypothesisCardBorder(hypothesis.effectiveStatus)}
+      data-primary={isPrimary}
+      data-test-id="investigation-hypothesis"
+    >
+      <Flex justify="between" align="start" gap="sm">
+        <Stack gap="xs">
+          <Text size="xs" variant="muted">
+            {/* `order` is zero-based in the projection; people count from one. */}
+            {t('Hypothesis %s', hypothesis.order + 1)}
+          </Text>
+          <HypothesisStatus hypothesis={hypothesis} />
+        </Stack>
+        {actions?.length ? (
+          <DropdownMenu
+            position="bottom-end"
+            usePortal
+            triggerProps={{
+              size: 'xs',
+              variant: 'transparent',
+              showChevron: false,
+              icon: <IconEllipsis size="xs" />,
+              'aria-label': t('Actions for %s', hypothesis.statement),
+            }}
+            items={actions}
+          />
+        ) : null}
+      </Flex>
+
+      <Stack gap="sm">
+        <Heading as="h3" size="md">
+          {hypothesis.statement}
+        </Heading>
+        {hypothesis.rationale ? (
+          <Text size="sm" density="comfortable">
+            {hypothesis.rationale}
+          </Text>
+        ) : null}
+      </Stack>
+
+      {hypothesis.error ? (
+        <Text size="sm" variant="danger">
+          {hypothesis.error.message}
+        </Text>
+      ) : null}
+
+      {steps.length > 0 ? (
+        <Stack gap="sm">
+          <Text size="sm" bold>
+            {getEvidenceSectionLabel(steps)}
+          </Text>
+          <EvidenceList as="ul" gap="sm" padding="0">
+            {steps.map(step => (
+              <VerificationStepRow key={step.id} step={step} />
+            ))}
+          </EvidenceList>
+        </Stack>
+      ) : null}
+    </Card>
+  );
+}
+
+function VerificationStepRow({step}: {step: InvestigationVerificationStep}) {
+  const failed = step.status === 'failed';
+  // A step's own error is more specific than the generic failure label, so it
+  // wins when both are present.
+  const detail =
+    step.result || step.error?.message || getVerificationStepStatusLabel(step.status);
+  // A step that has produced something can be opened for how the agent got
+  // there. One that has not is a bare row — there is no finding to unpack yet,
+  // and a chevron would promise one.
+  const hasRun = Boolean(step.result) || Boolean(step.error);
+  const summary = (
+    // A full flex-basis, because the chevron's button grows too — without this
+    // the two split the row and the text wraps in half the width it has.
+    <Stack gap="2xs" flex="1 1 100%" minWidth="0">
+      <Text size="sm">{step.title}</Text>
+      <Text size="xs" variant={failed ? 'danger' : 'muted'} density="comfortable">
+        {detail}
+      </Text>
+    </Stack>
+  );
+
+  return (
+    <Container
+      as="li"
+      border={failed ? 'danger' : 'primary'}
+      radius="sm"
+      // A Disclosure brings its own row padding; doubling it pushes the text
+      // away from the edge the other rows sit against.
+      padding={hasRun ? 'xs' : 'md lg'}
+      background="primary"
+    >
+      {hasRun ? (
+        <Disclosure size="xs">
+          {/*
+           * The summary goes in `leadingItems`, not as the title's children:
+           * children land inside a Button, which is one line tall and centres
+           * what it holds. From the leading slot the summary lays out normally
+           * and, taking the row's spare width, pushes the chevron to the edge.
+           */}
+          <Disclosure.Title
+            leadingItems={summary}
+            // The summary sits outside the button, so the toggle would
+            // otherwise announce as an unnamed chevron.
+            aria-label={t('Show how %s was checked', step.title)}
+          />
+          <Disclosure.Content>
+            <Stack gap="sm">
+              <Stack gap="2xs">
+                <Text size="xs" variant="muted" bold>
+                  {t('Objective')}
+                </Text>
+                <Text size="xs" density="comfortable">
+                  {step.objective}
+                </Text>
+              </Stack>
+              <Stack gap="2xs">
+                <Text size="xs" variant="muted" bold>
+                  {t('Method')}
+                </Text>
+                <Text size="xs" density="comfortable">
+                  {step.method}
+                </Text>
+              </Stack>
+            </Stack>
+          </Disclosure.Content>
+        </Disclosure>
+      ) : (
+        summary
+      )}
+    </Container>
+  );
+}
+
+/**
+ * The card border carries the verdict, which is why it is CSS rather than the
+ * `border` prop: `getBorder` only ever emits `1px solid`, and a hypothesis that
+ * has not been established needs a broken edge. The colors still come from
+ * border tokens.
+ *
+ * Both variants are driven by data attributes because `Stack` forwards props it
+ * does not recognize to the DOM, where a bare `isPrimary` would land as an
+ * unknown attribute.
+ */
+const Card = styled(Stack)`
+  list-style: none;
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+
+  /* The explanation that stands. */
+  &[data-border='accent'] {
+    border-color: ${p => p.theme.tokens.border.accent.vibrant};
+  }
+
+  /* Not the answer: still running, ruled out, inconclusive, or failed. Dashed
+   * rather than dotted because a dotted hairline all but disappears at this
+   * border color. */
+  &[data-border='dashed'] {
+    border-style: dashed;
+  }
+
+  &[data-primary='true'] {
+    box-shadow: ${p => p.theme.shadow.low};
+  }
+`;
+
+// `ul` markers would otherwise sit in the card's padding next to each step.
+const EvidenceList = styled(Stack)`
+  list-style: none;
+`;

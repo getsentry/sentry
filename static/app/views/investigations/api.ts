@@ -15,6 +15,9 @@ import type {
   InvestigationDetail,
   InvestigationExecutionDetail,
   InvestigationListItem,
+  InvestigationOrchestration,
+  InvestigationOrchestrationCommandResponse,
+  InvestigationOrchestrationCommandVariables,
   InvestigationTitleGeneration,
   MetricOpenPeriodInvestigationSource,
 } from 'sentry/views/investigations/types';
@@ -95,6 +98,82 @@ export function investigationTitleGenerationQueryOptions(
       staleTime: 0,
     }
   );
+}
+
+/**
+ * The live state of an agentic run: phase, broad scan, hypotheses, and report
+ * progress. Seer overwrites the whole projection on every orchestration event,
+ * so there is nothing to merge — the newest response wins outright.
+ *
+ * `staleTime: 0` because a running workflow changes constantly. Callers that
+ * render a run in progress should add a `refetchInterval` and drop it once
+ * `status` reaches a terminal value, as `InvestigationHypotheses` does.
+ */
+export function investigationOrchestrationQueryOptions(
+  organizationSlug: string,
+  investigationId: string
+) {
+  return apiOptions.as<InvestigationOrchestration>()(
+    '/organizations/$organizationIdOrSlug/investigations/$investigationId/orchestration/',
+    {
+      path: {
+        organizationIdOrSlug: organizationSlug,
+        investigationId,
+      },
+      staleTime: 0,
+    }
+  );
+}
+
+/**
+ * Send a viewer command — accept/reject a hypothesis, steer, retry, cancel — to
+ * a running workflow.
+ *
+ * The response carries the post-command projection, so it is written straight
+ * into the orchestration cache instead of triggering another fetch.
+ */
+export function useInvestigationOrchestrationCommandMutation(
+  organizationSlug: string,
+  investigationId: string,
+  options?: MutationOptions<
+    InvestigationOrchestrationCommandResponse,
+    InvestigationOrchestrationCommandVariables
+  >
+) {
+  const queryClient = useQueryClient();
+  const orchestrationOptions = investigationOrchestrationQueryOptions(
+    organizationSlug,
+    investigationId
+  );
+
+  return useMutation({
+    ...options,
+    mutationFn: ({command, expectedWorkflowVersion, requestId}) =>
+      fetchMutation<InvestigationOrchestrationCommandResponse>({
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/investigations/$investigationId/orchestration/commands/',
+          {
+            path: {
+              organizationIdOrSlug: organizationSlug,
+              investigationId,
+            },
+          }
+        ),
+        method: 'POST',
+        data: {requestId, expectedWorkflowVersion, command},
+      }),
+    onSuccess: async (response, variables, onMutateResult, context) => {
+      queryClient.setQueryData(orchestrationOptions.queryKey, current =>
+        current ? {...current, json: response.projection} : current
+      );
+      await options?.onSuccess?.(response, variables, onMutateResult, context);
+    },
+    onError: async (error, variables, onMutateResult, context) => {
+      // A rejected command usually means the projection moved on beneath us.
+      await queryClient.invalidateQueries({queryKey: orchestrationOptions.queryKey});
+      await options?.onError?.(error, variables, onMutateResult, context);
+    },
+  });
 }
 
 export function investigationCandidatesQueryOptions({

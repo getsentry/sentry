@@ -24,6 +24,9 @@ const productionEntryPoints = [
   'static/app/chartcuterie/**/*.{js,ts,tsx}',
   // TODO: Remove when the autofixRef embed consumes it (#122099)
   'static/app/components/seer/autofixChatContext.tsx',
+  // Pulls in the whole hypotheses/ directory.
+  // TODO: Remove when an investigation surface renders it (#124086)
+  'static/app/views/investigations/hypotheses/investigationHypotheses.tsx',
   'static/app/components/brandPageLayout/**/*.{ts,tsx}',
   // React authentication routes are discovered dynamically by the frontend route registry
   'static/app/views/authV2/authLogin/**/*.{ts,tsx}',

@@ -18,7 +18,10 @@ import {
 import type {
   InvestigationDetail,
   InvestigationExecutionDetail,
+  InvestigationHypothesis,
   InvestigationListItem,
+  InvestigationOrchestration,
+  InvestigationOrchestrationCommand,
   InvestigationTitleGeneration,
 } from 'sentry/views/investigations/types';
 
@@ -33,6 +36,8 @@ type InvestigationFixtureApiProps = {
   list?: InvestigationListItem[];
   mode?: FixtureApiMode;
   openMembership?: boolean;
+  /** Agentic run state, keyed by investigation id. */
+  orchestration?: Record<string, InvestigationOrchestration>;
   pageLinks?: string;
   titleGenerations?: Record<string, InvestigationTitleGeneration>;
 };
@@ -69,6 +74,7 @@ export function InvestigationFixtureApi({
   list = [],
   mode = 'success',
   openMembership = true,
+  orchestration = {},
   pageLinks,
   titleGenerations = {},
 }: InvestigationFixtureApiProps) {
@@ -95,6 +101,7 @@ export function InvestigationFixtureApi({
       list,
       mode,
       openMembership,
+      orchestration,
       pageLinks,
       titleGenerations,
     })
@@ -214,6 +221,7 @@ type FixtureState = {
   details: Map<string, InvestigationDetail>;
   executions: Map<string, InvestigationExecutionDetail>;
   list: InvestigationListItem[];
+  orchestration: Map<string, InvestigationOrchestration>;
   titleGenerations: Map<string, InvestigationTitleGeneration>;
   pageLinks?: string;
 };
@@ -238,6 +246,12 @@ function createFixtureState(config: FixtureApiConfig): FixtureState {
     ]),
     details,
     list,
+    orchestration: new Map(
+      Object.entries(config.orchestration ?? {}).map(([key, run]) => [
+        key,
+        cloneFixture(run),
+      ])
+    ),
     pageLinks: config.pageLinks,
     executions: new Map(
       Object.entries(config.executions ?? {}).map(([key, execution]) => [
@@ -349,6 +363,40 @@ function handleFixtureRequest(
     };
     setFixtureDetail(state, duplicate);
     return {body: cloneFixture(duplicate)};
+  }
+
+  if (parts[1] === 'orchestration' && parts.length === 2 && method === 'GET') {
+    return {body: cloneFixture(getFixtureOrchestration(state, investigationId))};
+  }
+
+  if (
+    parts[1] === 'orchestration' &&
+    parts[2] === 'commands' &&
+    parts.length === 3 &&
+    method === 'POST'
+  ) {
+    const run = getFixtureOrchestration(state, investigationId);
+    const command = data.command as InvestigationOrchestrationCommand;
+    // Seer would apply the command and push a new projection; the fixture
+    // applies it inline so a story stays interactive.
+    const updated: InvestigationOrchestration = {
+      ...run,
+      workflowVersion: run.workflowVersion + 1,
+      hypotheses: run.hypotheses.map(hypothesis =>
+        applyFixtureCommandToHypothesis(hypothesis, command)
+      ),
+    };
+    state.orchestration.set(investigationId, updated);
+    return {
+      body: {
+        accepted: true,
+        duplicate: false,
+        requestId: getDataString(data, 'requestId') ?? 'fixture-request',
+        runId: run.runId,
+        workflowVersion: updated.workflowVersion,
+        projection: cloneFixture(updated),
+      },
+    };
   }
 
   if (parts[1] === 'title-generation' && method === 'GET') {
@@ -551,6 +599,62 @@ function getFixtureDetail(state: FixtureState, investigationId: string) {
   const generatedDetail = InvestigationDetailFixture({...listItem, blocks: []});
   state.details.set(investigationId, generatedDetail);
   return generatedDetail;
+}
+
+function getFixtureOrchestration(state: FixtureState, investigationId: string) {
+  const run = state.orchestration.get(investigationId);
+  if (!run) {
+    // The real endpoint 404s for an investigation with no agentic run behind
+    // it, so a story that forgot to supply one should say so loudly.
+    throw new Error(`No fixture orchestration run for investigation: ${investigationId}`);
+  }
+  return run;
+}
+
+function applyFixtureCommandToHypothesis(
+  hypothesis: InvestigationHypothesis,
+  command: InvestigationOrchestrationCommand
+): InvestigationHypothesis {
+  if (
+    command.type === 'set_hypothesis_disposition' &&
+    command.hypothesisId === hypothesis.id
+  ) {
+    if (command.disposition === null) {
+      // Clearing hands the hypothesis back to whatever the agent concluded.
+      return {
+        ...hypothesis,
+        decisionSource: 'agent',
+        effectiveStatus: hypothesis.agentVerdict?.verdict ?? 'inconclusive',
+      };
+    }
+    return {
+      ...hypothesis,
+      decisionSource: 'user',
+      effectiveStatus: command.disposition,
+    };
+  }
+
+  if (
+    command.type === 'retry' &&
+    command.target === 'hypothesis' &&
+    command.targetId === hypothesis.id
+  ) {
+    return {
+      ...hypothesis,
+      status: 'running',
+      effectiveStatus: 'investigating',
+      decisionSource: 'none',
+      confidence: null,
+      agentVerdict: null,
+      verificationSteps: hypothesis.verificationSteps.map(step => ({
+        ...step,
+        status: 'queued',
+        result: null,
+      })),
+    };
+  }
+
+  return hypothesis;
 }
 
 function setFixtureDetail(state: FixtureState, detail: InvestigationDetail) {
