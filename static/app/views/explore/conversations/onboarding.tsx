@@ -59,10 +59,10 @@ import {
   AGENT_INTEGRATION_ICONS,
   AGENT_INTEGRATION_LABELS,
   AgentIntegration,
-  CLOUDFLARE_AGENT_INTEGRATIONS,
   DEPLOYMENT_TARGET_ICONS,
   DEPLOYMENT_TARGET_LABELS,
   DeploymentTarget,
+  getIntegrationDeploymentTarget,
   NODE_AGENT_INTEGRATIONS,
   PHP_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
@@ -108,6 +108,7 @@ function useConversationSpanWaiter(project: Project) {
 
   useEffect(() => {
     if (hasEvents && shouldRefetch) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setShouldRefetch(false);
     }
   }, [hasEvents, shouldRefetch]);
@@ -204,7 +205,7 @@ function ConversationOnboardingPanel({
                     </li>
                   </BulletList>
                 </HeaderText>
-                <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}}>
+                <Container display={{zero: 'none', xl: 'block'}}>
                   <Image src={replayOnboardingImg} alt="" height="120px" width="auto" />
                 </Container>
               </Flex>
@@ -218,7 +219,7 @@ function ConversationOnboardingPanel({
                     {t('Preview Conversations')}
                   </Heading>
                   <Arcade
-                    src="https://demo.arcade.software/oV2kLNiavNzbDHX12Bib?embed"
+                    src="https://demo.arcade.software/aEDAYP7ebTJvWKABSBdc?embed"
                     loading="lazy"
                     allowFullScreen
                   />
@@ -429,23 +430,13 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
       }
     : {};
 
-  const selectedDeploymentTarget = useUrlPlatformOptions(deploymentTargetOptions)
-    .deploymentTarget as DeploymentTarget | undefined;
-  // Cloudflare Workers projects are pinned to the Cloudflare runtime; other Node
-  // projects follow the selector (defaulting to Node).
-  const deploymentTarget = isCloudflareWorkers
-    ? DeploymentTarget.CLOUDFLARE
-    : selectedDeploymentTarget;
-  const isCloudflareTarget =
-    isNodePlatform && deploymentTarget === DeploymentTarget.CLOUDFLARE;
-
+  // The SDK list is no longer filtered by runtime: Node projects see every
+  // Node/Cloudflare agent SDK, and the chosen SDK drives the runtime below.
   const integrations = isPythonPlatform
     ? PYTHON_AGENT_INTEGRATIONS
     : isPhpPlatform
       ? PHP_AGENT_INTEGRATIONS
-      : isCloudflareTarget
-        ? CLOUDFLARE_AGENT_INTEGRATIONS
-        : NODE_AGENT_INTEGRATIONS;
+      : NODE_AGENT_INTEGRATIONS;
 
   const platformOptions: BasePlatformOptions = {
     integration: {
@@ -472,6 +463,22 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   };
 
   const selectedPlatformOptions = useUrlPlatformOptions(platformOptions);
+
+  // A runtime-specific SDK (e.g. Workers AI -> Cloudflare, Mastra -> Node) pins
+  // the runtime and locks the selector; otherwise the user's dropdown choice
+  // wins (the selector defaults to Node). Cloudflare Workers projects stay
+  // pinned to Cloudflare regardless of the SDK.
+  const integrationDeploymentTarget = getIntegrationDeploymentTarget(
+    selectedPlatformOptions.integration
+  );
+  const selectedDeploymentTarget = selectedPlatformOptions.deploymentTarget as
+    | DeploymentTarget
+    | undefined;
+  const deploymentTarget = isCloudflareWorkers
+    ? DeploymentTarget.CLOUDFLARE
+    : (integrationDeploymentTarget ?? selectedDeploymentTarget);
+  const isCloudflareTarget =
+    isNodePlatform && deploymentTarget === DeploymentTarget.CLOUDFLARE;
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -526,15 +533,27 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
     selectedPlatformOptions.integration ?? AgentIntegration.VERCEL_AI;
   const jsPackageName = isCloudflareTarget ? '@sentry/cloudflare' : '@sentry/node';
 
+  // Eve only drains OpenTelemetry traces to Sentry - it doesn't run the Sentry
+  // SDK, so there's no `Sentry.setConversationId` / `Sentry.setUser` to call.
+  const isEve = selectedIntegration === AgentIntegration.EVE;
+  // Flue sets the conversation ID automatically, so the manual
+  // `Sentry.setConversationId` step is redundant. It still runs the Sentry SDK,
+  // so the `Sentry.setUser` step below stays.
+  const isFlue = selectedIntegration === AgentIntegration.FLUE;
+
   const steps: OnboardingStep[] = [
     ...(agentMonitoringDocs.install?.(docParams) || []),
     ...(agentMonitoringDocs.configure?.(docParams) || []),
-    getConversationIdStep(
-      selectedIntegration,
-      isPythonPlatform ? 'python' : isPhpPlatform ? 'php' : 'javascript',
-      jsPackageName
-    ),
-    ...(isPhpPlatform ? [] : [getSetUserStep(isPythonPlatform, jsPackageName)]),
+    ...(isEve || isFlue
+      ? []
+      : [
+          getConversationIdStep(
+            selectedIntegration,
+            isPythonPlatform ? 'python' : isPhpPlatform ? 'php' : 'javascript',
+            jsPackageName
+          ),
+        ]),
+    ...(isPhpPlatform || isEve ? [] : [getSetUserStep(isPythonPlatform, jsPackageName)]),
     ...(isPhpPlatform
       ? [getPhpConversationVerifyStep()]
       : agentMonitoringDocs.verify?.(docParams) || []),
@@ -550,6 +569,11 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
           <PlatformOptionDropdown
             platformOptions={platformOptions}
             connectors={{deploymentTarget: t('on')}}
+            lockedValues={
+              integrationDeploymentTarget
+                ? {deploymentTarget: integrationDeploymentTarget}
+                : undefined
+            }
           />
         </Flex>
         {introduction && <Prose>{introduction}</Prose>}

@@ -187,6 +187,41 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         assert "id" in response.data
         assert "not a valid integer id" in str(response.data["id"])
 
+    def test_filter_by_type_and_enabled(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={
+                "project": self.project.id,
+                "type": [ErrorGroupType.slug, IssueStreamGroupType.slug],
+                "enabled": "true",
+            },
+        )
+        assert {detector["id"] for detector in response.data} == {
+            str(self.error_detector.id),
+            str(self.issue_stream_detector.id),
+        }
+
+        self.issue_stream_detector.update(enabled=False)
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={
+                "project": self.project.id,
+                "type": IssueStreamGroupType.slug,
+                "enabled": "false",
+            },
+        )
+        assert [detector["id"] for detector in response.data] == [
+            str(self.issue_stream_detector.id)
+        ]
+
+    def test_invalid_enabled_filter(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"enabled": "sometimes"},
+            status_code=400,
+        )
+        assert "enabled" in response.data
+
     def test_invalid_sort_by(self) -> None:
         response = self.get_error_response(
             self.organization.slug,

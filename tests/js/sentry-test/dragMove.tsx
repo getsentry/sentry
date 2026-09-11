@@ -21,6 +21,12 @@ interface DragOptions {
   y?: number;
 }
 
+export function dragMove({button = 0, to, y = 0}: Omit<DragOptions, 'from' | 'release'>) {
+  act(() => {
+    dispatch(window, 'mousemove', to, y, button);
+  });
+}
+
 export function dragHandle(
   handle: HTMLElement,
   {button = 0, from, release = true, to, y = 0}: DragOptions

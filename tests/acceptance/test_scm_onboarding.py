@@ -48,12 +48,12 @@ class ScmOnboardingTest(AcceptanceTestCase):
     def start_onboarding(self) -> None:
         """Walk the welcome step through to scm-connect.
 
-        Getting started opens the agentic setup interstitial rather than
-        advancing, so reaching the browser flow takes a second click.
+        The welcome step opens directly on the agentic setup for orgs with the
+        feature, so the manual card is the only click needed to reach the
+        browser flow.
         """
         self.browser.get(f"/onboarding/{self.org.slug}/")
         self.browser.wait_until('[data-test-id="onboarding-step-welcome"]')
-        self.browser.click('[data-test-id="onboarding-welcome-start"]')
         self.browser.click('[data-test-id="onboarding-setup-in-browser"]')
         self.browser.wait_until('[data-test-id="onboarding-step-scm-connect"]')
 

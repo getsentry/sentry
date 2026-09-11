@@ -1,8 +1,10 @@
 import styled from '@emotion/styled';
 
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
+import {InfoTip} from '@sentry/scraps/info';
+
+import {getSpanHash} from 'sentry/components/events/interfaces/performance/utils';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
@@ -34,7 +36,7 @@ function addFingerprintInfo(
       t('Fingerprint rule'),
       <TextWithQuestionTooltip key="type">
         {variant.matched_rule}
-        <QuestionTooltip
+        <InfoTip
           size="xs"
           position="top"
           title={t('The server-side fingerprinting rule that produced the fingerprint.')}
@@ -86,7 +88,7 @@ export function GroupingVariant({
         t('Hash'),
         <TextWithQuestionTooltip key="hash">
           <Hash>{variant.hash}</Hash>
-          <QuestionTooltip
+          <InfoTip
             size="xs"
             position="top"
             title={t('Events with the same hash are grouped together')}
@@ -117,7 +119,7 @@ export function GroupingVariant({
         const spansToHashes = Object.fromEntries(
           event.entries
             .find((c): c is EntrySpans => c.type === 'spans')
-            ?.data?.map((span: RawSpanType) => [span.span_id, span.hash]) ?? []
+            ?.data?.map((span: RawSpanType) => [span.span_id, getSpanHash(span)]) ?? []
         );
 
         data.push(
@@ -179,7 +181,8 @@ export function GroupingVariant({
     <VariantWrapper>
       <Header>{renderTitle()}</Header>
 
-      <KeyValueList
+      <KeyValueTableDataList
+        margin
         data={data.map(d => ({
           key: d[0],
           subject: d[0],

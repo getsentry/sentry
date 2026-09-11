@@ -217,6 +217,7 @@ def deliver_smart_assignment_result(
     status: FeatureRunStatus,
     result: dict[str, Any] | None,
     error: str | None,
+    prompt_version: str | None = None,
 ) -> None:
     """Resolve a delivered smart_assignment verdict's ranked picks and record them.
 

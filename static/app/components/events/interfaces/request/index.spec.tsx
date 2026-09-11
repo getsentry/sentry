@@ -232,7 +232,7 @@ describe('Request entry', () => {
       ).toBeInTheDocument();
     });
 
-    it('should return a KeyValueList element when inferred Content-Type is x-www-form-urlencoded', () => {
+    it('should return a KeyValueTableDataList element when inferred Content-Type is x-www-form-urlencoded', () => {
       const data: EntryRequest['data'] = {
         apiTarget: null,
         query: [],

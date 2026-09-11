@@ -82,6 +82,23 @@ describe('ConfigureIntegration settings tab', () => {
     expect(screen.queryByText('github.com/sentry-demos')).not.toBeInTheDocument();
   });
 
+  it('links the configurations crumb to the provider configurations tab', async () => {
+    const integration = OrganizationIntegrationsFixture({
+      name: 'sentry-demos',
+      domainName: 'github.com/sentry-demos',
+      provider: {...githubProvider, key: 'github'},
+      configOrganization: [],
+    });
+    mockRequests(integration);
+
+    renderConfigure();
+
+    expect(await screen.findByRole('link', {name: 'Configurations'})).toHaveAttribute(
+      'href',
+      `/settings/${org.slug}/integrations/github/?tab=configurations`
+    );
+  });
+
   it('uses a full domain URL without adding another protocol', async () => {
     const integration = OrganizationIntegrationsFixture({
       name: 'Azure DevOps',
@@ -422,7 +439,7 @@ describe('ConfigureIntegration GCP re-verification', () => {
       ],
       configData: {
         customer_sa_email: CUSTOMER_SA,
-        projects: 'project-prod, project-staging',
+        projects: ['project-prod', 'project-staging'],
         connection_status: connectionStatus,
         project_statuses: [],
         last_verified_at: '2026-08-30T00:00:00+00:00',
@@ -530,7 +547,7 @@ describe('ConfigureIntegration GCP re-verification', () => {
     const {verifyRequest, setStoredConfig} = setup();
 
     // A sibling field was saved elsewhere, so what this render closed over is stale.
-    setStoredConfig({projects: 'project-prod, project-staging, project-new'});
+    setStoredConfig({projects: ['project-prod', 'project-staging', 'project-new']});
 
     await saveNewSaEmail('new-sa@my-project.iam.gserviceaccount.com');
 

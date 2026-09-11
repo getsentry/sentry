@@ -122,7 +122,6 @@ interface TracesTableProps {
   dashboardFilters?: DashboardFilters;
   frameless?: boolean;
   limit?: number;
-  linkToTraceView?: boolean;
   tableWidths?: number[];
 }
 
@@ -166,6 +165,7 @@ export function TracesTable({
 
   const pageLinks = tracesRequest?.data?.headers.Link;
   const tracesData = tracesRequest.data?.json?.data;
+  const hasTraces = Boolean(tracesData?.length);
 
   const spansRequest = useSpans(
     {
@@ -179,7 +179,7 @@ export function TracesTable({
         'sum(gen_ai.cost.total_tokens)',
       ],
       limit: tracesData?.length ?? 0,
-      enabled: Boolean(tracesData && tracesData.length > 0),
+      enabled: hasTraces,
       samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
       extrapolationMode: 'none',
     },
@@ -192,7 +192,7 @@ export function TracesTable({
       fields: ['trace', 'gen_ai.agent.name', 'gen_ai.function_id', 'timestamp'],
       sorts: [{field: 'timestamp', kind: 'asc'}],
       samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
-      enabled: Boolean(tracesData && tracesData.length > 0),
+      enabled: hasTraces,
     },
     Referrer.TRACES_TABLE
   );
@@ -217,7 +217,7 @@ export function TracesTable({
       search: `span.status:[internal_error,error] trace:[${tracesData?.map(span => `"${span.trace}"`).join(',')}] has:gen_ai.operation.name`,
       fields: ['trace', 'count(span.duration)'],
       limit: tracesData?.length ?? 0,
-      enabled: Boolean(tracesData && tracesData.length > 0),
+      enabled: hasTraces,
       samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
       extrapolationMode: 'none',
     },
@@ -307,7 +307,7 @@ export function TracesTable({
         bodyStyle: FRAMELESS_STYLES,
         resizable: true,
         scrollable: true,
-        height: '100%',
+        height: '100%' as const,
       }
     : {};
 

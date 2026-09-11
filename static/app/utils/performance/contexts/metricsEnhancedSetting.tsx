@@ -73,11 +73,9 @@ export function canUseMetricsData(organization: Organization) {
 export function MEPSettingProvider({
   children,
   location,
-  _hasMEPState,
   forceTransactions,
 }: {
   children: ReactNode;
-  _hasMEPState?: MEPState;
   forceTransactions?: boolean;
   location?: Location;
 }) {
@@ -98,8 +96,6 @@ export function MEPSettingProvider({
 
   const metricSettingFromParam =
     allowedStates.find(s => s === _metricSettingFromParam) ?? defaultMetricsState;
-
-  const isControlledMEP = _hasMEPState !== undefined;
 
   const [_metricSettingState, _setMetricSettingState] = useReducer(
     (_: MEPState, next: MEPState) => next,
@@ -131,7 +127,7 @@ export function MEPSettingProvider({
     AutoSampleState.UNSET
   );
 
-  const metricSettingState = isControlledMEP ? _hasMEPState : _metricSettingState;
+  const metricSettingState = _metricSettingState;
 
   const shouldQueryProvideMEPAutoParams =
     canUseMEP && metricSettingState === MEPState.AUTO;

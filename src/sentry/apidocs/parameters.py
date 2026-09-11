@@ -581,6 +581,14 @@ Prefix with `-` to sort in descending order.
         description="Filter by monitor type(s). Can be specified multiple times.",
     )
 
+    ENABLED = OpenApiParameter(
+        name="enabled",
+        location="query",
+        required=False,
+        type=bool,
+        description="Filter by whether monitors are enabled.",
+    )
+
 
 class WorkflowParams:
     WORKFLOW_ID = OpenApiParameter(
@@ -962,7 +970,7 @@ class EventParams:
         name="full",
         type=OpenApiTypes.BOOL,
         location=OpenApiParameter.QUERY,
-        description="Specify true to include the full event body, including the stacktrace, in the event payload.",
+        description="Specify true to include the full event body, including the stacktrace, in the event payload. When true, the page size is capped at 10.",
         required=False,
         default=False,
     )

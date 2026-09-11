@@ -128,6 +128,7 @@ function SidebarContent() {
         projectsForOnboarding.includes(project)
       );
       if (maybeProject) {
+        // oxlint-disable-next-line react/set-state-in-effect
         setCurrentProject(maybeProject);
         return;
       }

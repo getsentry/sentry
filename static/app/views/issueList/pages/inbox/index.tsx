@@ -25,7 +25,10 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {NotFound} from 'sentry/components/errors/notFound';
 import {EventMessage} from 'sentry/components/events/eventMessage';
-import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
+import {
+  partitionLinkedPullRequests,
+  useLinkedPullRequests,
+} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
 import {getPullRequestStatusLabel} from 'sentry/components/group/externalIssuesList/pullRequestStatusBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -47,7 +50,6 @@ import {useMembers} from 'sentry/utils/members/useMembers';
 import {parseActorString} from 'sentry/utils/parseActorString';
 import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {orgHasSeerAccess} from 'sentry/utils/seer/orgHasSeerAccess';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
@@ -154,7 +156,7 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
 
 export default function InboxPage() {
   const organization = useOrganization();
-  const hasIssueInbox = orgHasIssueInbox(organization);
+  const hasIssueInbox = organization.features.includes('issue-inbox');
 
   if (!hasIssueInbox || !orgHasSeerAccess(organization)) {
     return <NotFound />;
@@ -807,8 +809,10 @@ function InboxIssueCard({
               <SuggestedAvatarStack
                 size={18}
                 owners={suggestedAssignees}
-                tooltip={t(
-                  'Suggested assignees: %s',
+                tooltip={tn(
+                  'Suggested assignee: %2$s',
+                  'Suggested assignees: %2$s',
+                  suggestedAssignees.length,
                   suggestedAssignees.map(getActorLabel).join(', ')
                 )}
               />
@@ -831,7 +835,11 @@ const PULL_REQUEST_BADGE_VARIANTS = {
 
 function InboxPullRequestBadges({group}: {group: Group}) {
   const {data} = useLinkedPullRequests({group, includeChecksAndReview: false});
-  const pullRequests = data?.pullRequests.filter(
+  const {currentPullRequests} = partitionLinkedPullRequests(
+    data?.pullRequests ?? [],
+    data?.latestRegressionAt
+  );
+  const pullRequests = currentPullRequests.filter(
     pullRequest => pullRequest.status !== 'closed'
   );
 

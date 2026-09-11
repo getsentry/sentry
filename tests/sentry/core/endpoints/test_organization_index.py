@@ -37,7 +37,7 @@ from sentry.testutils.silo import (
     control_silo_test,
     create_test_cells,
 )
-from sentry.types.cell import Cell, Locality, RegionCategory
+from sentry.types.cell import Cell, Locality
 from sentry.users.models.authenticator import Authenticator
 from sentry.utils.slug import ORG_SLUG_PATTERN
 
@@ -289,14 +289,12 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
             Locality(
                 name="us",
                 cells=frozenset(["us", "us2"]),
-                category=RegionCategory.MULTI_TENANT,
                 new_org_cell="us2",
                 visible=True,
             ),
             Locality(
                 name="de",
                 cells=frozenset(["de"]),
-                category=RegionCategory.MULTI_TENANT,
                 new_org_cell="de",
                 visible=True,
             ),
@@ -339,16 +337,15 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
             Locality(
                 name="ja",
                 cells=frozenset(["ja"]),
-                category=RegionCategory.MULTI_TENANT,
                 new_org_cell="ja",
                 visible=False,
             ),
             Locality(
                 name="acme",
                 cells=frozenset(["acme"]),
-                category=RegionCategory.SINGLE_TENANT,
                 new_org_cell="acme",
                 visible=True,
+                signup_visible=False,
             ),
         ]
         with get_test_env_directory().swap_state(cells, localities):

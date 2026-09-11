@@ -1,7 +1,7 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Stack, type Responsive, useResponsivePropValue} from '@sentry/scraps/layout';
 import {SplitPanel} from '@sentry/scraps/splitPanel';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 
@@ -113,6 +113,10 @@ function ReplayLayoutBody({
   const isFocusAreaCollapsed = layout === LayoutKey.VIDEO_ONLY;
   const effectiveLayout = isFocusAreaCollapsed ? defaultLayout : layout;
   const isLeftRight = effectiveLayout === LayoutKey.SIDEBAR_LEFT;
+  const splitPanelOrientation: Responsive<'horizontal' | 'vertical'> = isLeftRight
+    ? {zero: 'vertical', xl: 'horizontal'}
+    : 'vertical';
+  const isHorizontal = useResponsivePropValue(splitPanelOrientation) === 'horizontal';
 
   if (layout === LayoutKey.NO_VIDEO) {
     return (
@@ -129,20 +133,20 @@ function ReplayLayoutBody({
       <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
         {hasSize ? (
           <SplitPanel
-            orientation={isLeftRight ? 'horizontal' : 'vertical'}
-            defaultSize={isLeftRight ? width * 0.5 : (height - DIVIDER_SIZE) * 0.5}
-            minSize={isLeftRight ? MIN_SIDEBAR_WIDTH : MIN_VIDEO_HEIGHT}
-            fillMinSize={isLeftRight ? MIN_CONTENT_WIDTH : MIN_CONTENT_HEIGHT}
+            orientation={splitPanelOrientation}
+            defaultSize={isHorizontal ? width * 0.5 : (height - DIVIDER_SIZE) * 0.5}
+            minSize={isHorizontal ? MIN_SIDEBAR_WIDTH : MIN_VIDEO_HEIGHT}
+            fillMinSize={isHorizontal ? MIN_CONTENT_WIDTH : MIN_CONTENT_HEIGHT}
             onResizeEnd={({direction}) =>
               trackAnalytics('replay.details-resized-panel', {
                 organization,
                 layout: effectiveLayout,
                 slide_motion:
                   direction === 'increase'
-                    ? isLeftRight
+                    ? isHorizontal
                       ? 'toRight'
                       : 'toBottom'
-                    : isLeftRight
+                    : isHorizontal
                       ? 'toLeft'
                       : 'toTop',
               })
@@ -152,8 +156,8 @@ function ReplayLayoutBody({
                 flex="1"
                 minHeight="0"
                 minWidth="0"
-                paddingRight={isLeftRight ? 'md' : undefined}
-                paddingBottom={isLeftRight ? undefined : 'md'}
+                paddingRight={isHorizontal ? 'md' : undefined}
+                paddingBottom={isHorizontal ? undefined : 'md'}
               >
                 <PanelContainer>{video}</PanelContainer>
               </Stack>
@@ -164,8 +168,8 @@ function ReplayLayoutBody({
                   flex="1"
                   minHeight="0"
                   minWidth="0"
-                  paddingLeft={isLeftRight ? 'md' : undefined}
-                  paddingTop={isLeftRight ? undefined : 'md'}
+                  paddingLeft={isHorizontal ? 'md' : undefined}
+                  paddingTop={isHorizontal ? undefined : 'md'}
                 >
                   {focusArea}
                 </Stack>

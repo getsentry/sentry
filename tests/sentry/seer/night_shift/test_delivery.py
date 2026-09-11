@@ -845,3 +845,82 @@ class TestDeliverNightShiftResult(TestCase):
             )
 
             assert mock_trigger.call_args.kwargs["user_context"] is None
+
+    def test_prompt_version_recorded_on_shard_and_result_rows(self) -> None:
+        """prompt_version is recorded on the shard and denormalized onto every verdict row."""
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        group = self.create_group(project=project)
+        run = self._create_night_shift_run(organization=org)
+
+        result = {
+            "verdicts": [
+                {"group_id": group.id, "action": TriageAction.SKIP.value, "reason": "not fixable"}
+            ]
+        }
+
+        with patch("sentry.seer.night_shift.delivery.trigger_autofix_agent"):
+            deliver_night_shift_result(
+                organization_id=org.id,
+                run_uuid=self._run_uuid(run),
+                status="completed",
+                result=result,
+                error=None,
+                prompt_version="2026-09-02.1",
+            )
+
+        redis = redis_clusters.get("default")
+        redis.delete(skip_cache_key(group.id))
+
+        shard = run.shards.get()
+        assert shard.extras["prompt_version"] == "2026-09-02.1"
+        result_row = SeerNightShiftRunResult.objects.get(run=run)
+        assert result_row.extras["prompt_version"] == "2026-09-02.1"
+
+    def test_prompt_version_recorded_on_error_delivery(self) -> None:
+        """Errored deliveries write no verdict rows, so prompt_version lands only on the shard."""
+        run = self._create_night_shift_run()
+
+        deliver_night_shift_result(
+            organization_id=run.organization_id,
+            run_uuid=self._run_uuid(run),
+            status="error",
+            result=None,
+            error="Seer exploded",
+            prompt_version="2026-09-02.1",
+        )
+
+        shard = run.shards.get()
+        assert shard.extras["prompt_version"] == "2026-09-02.1"
+        assert shard.extras["error_message"] == "Seer exploded"
+        assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
+
+    def test_absent_prompt_version_leaves_extras_clean(self) -> None:
+        """Deliveries without a prompt_version (older Seer) must not write the key."""
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        group = self.create_group(project=project)
+        run = self._create_night_shift_run(organization=org)
+
+        result = {
+            "verdicts": [
+                {"group_id": group.id, "action": TriageAction.SKIP.value, "reason": "not fixable"}
+            ]
+        }
+
+        with patch("sentry.seer.night_shift.delivery.trigger_autofix_agent"):
+            deliver_night_shift_result(
+                organization_id=org.id,
+                run_uuid=self._run_uuid(run),
+                status="completed",
+                result=result,
+                error=None,
+            )
+
+        redis = redis_clusters.get("default")
+        redis.delete(skip_cache_key(group.id))
+
+        shard = run.shards.get()
+        assert "prompt_version" not in shard.extras
+        result_row = SeerNightShiftRunResult.objects.get(run=run)
+        assert "prompt_version" not in result_row.extras

@@ -18,16 +18,13 @@ const SKIP_DELAY_WINDOW = 600;
 
 function Trigger({
   label,
-  isHoverable,
   onResetReady,
 }: {
   label: string;
-  isHoverable?: boolean;
   onResetReady?: (reset: () => void) => void;
 }) {
-  const {wrapTrigger, isOpen, snapClosed, reset} = useHoverOverlay({
+  const {wrapTrigger, isOpen, snapClosed, overlayProps, reset} = useHoverOverlay({
     skipWrapper: true,
-    isHoverable,
   });
 
   useEffect(() => {
@@ -38,7 +35,12 @@ function Trigger({
     <Fragment>
       {wrapTrigger(<button type="button">{label}</button>)}
       {isOpen && !snapClosed && (
-        <div role="tooltip" aria-label={label}>
+        <div
+          role="tooltip"
+          aria-label={label}
+          onMouseEnter={overlayProps.onMouseEnter}
+          onMouseLeave={overlayProps.onMouseLeave}
+        >
           Overlay
         </div>
       )}
@@ -123,6 +125,7 @@ describe('useHoverOverlay timing', () => {
     expect(screen.getByRole('tooltip')).toBeInTheDocument();
 
     unhover(a);
+    advance(CLOSE_DELAY);
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 
     advance(SKIP_DELAY_WINDOW - 1);
@@ -145,6 +148,9 @@ describe('useHoverOverlay timing', () => {
     hover(a);
     advance(OPEN_DELAY);
     unhover(a);
+
+    advance(CLOSE_DELAY);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 
     advance(SKIP_DELAY_WINDOW + 1);
 
@@ -175,8 +181,8 @@ describe('useHoverOverlay timing', () => {
     expect(screen.getByRole('tooltip')).toBeInTheDocument();
   });
 
-  it('holds a hoverable overlay open for CLOSE_DELAY after unhover', () => {
-    renderInGroup(<Trigger label="a" isHoverable />);
+  it('holds an overlay open for CLOSE_DELAY after trigger unhover', () => {
+    renderInGroup(<Trigger label="a" />);
     const a = screen.getByRole('button', {name: 'a'});
 
     hover(a);
@@ -191,8 +197,8 @@ describe('useHoverOverlay timing', () => {
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
-  it('re-entering during the cooling window keeps the tooltip open', () => {
-    renderInGroup(<Trigger label="a" isHoverable />);
+  it('moving from the trigger to the overlay keeps it open', () => {
+    renderInGroup(<Trigger label="a" />);
     const a = screen.getByRole('button', {name: 'a'});
 
     hover(a);
@@ -200,11 +206,15 @@ describe('useHoverOverlay timing', () => {
 
     unhover(a);
     advance(CLOSE_DELAY - 10);
-    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+    const tooltip = screen.getByRole('tooltip');
 
-    hover(a);
+    fireEvent.mouseEnter(tooltip);
     advance(CLOSE_DELAY);
     expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+    fireEvent.mouseLeave(tooltip);
+    advance(CLOSE_DELAY);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
   it('reset() while open starts the group cooldown so neighbors open instantly', () => {
@@ -253,7 +263,7 @@ describe('useHoverOverlay timing', () => {
     expect(screen.getByRole('tooltip')).toBeInTheDocument();
   });
 
-  it('snap-closes a non-hoverable sibling when a neighbor opens via warm-skip', () => {
+  it('snap-closes a sibling that is still in its cooling window', () => {
     renderInGroup(
       <Fragment>
         <Trigger label="a" />
@@ -265,33 +275,8 @@ describe('useHoverOverlay timing', () => {
 
     hover(a);
     advance(OPEN_DELAY);
-    expect(screen.getByRole('tooltip', {name: 'a'})).toBeInTheDocument();
 
-    // A goes idle (non-hoverable closes instantly). The consumer still has
-    // AnimatePresence exit animating — snapClosed is the signal to unmount it.
-    unhover(a);
-    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
-
-    // Within the warm window, hovering B should fire the snap signal on A.
-    hover(b);
-    expect(screen.queryByRole('tooltip', {name: 'a'})).not.toBeInTheDocument();
-    expect(screen.getByRole('tooltip', {name: 'b'})).toBeInTheDocument();
-  });
-
-  it('snap-closes a hoverable sibling that is still in its cooling window', () => {
-    renderInGroup(
-      <Fragment>
-        <Trigger label="a" isHoverable />
-        <Trigger label="b" />
-      </Fragment>
-    );
-    const a = screen.getByRole('button', {name: 'a'});
-    const b = screen.getByRole('button', {name: 'b'});
-
-    hover(a);
-    advance(OPEN_DELAY);
-
-    // A is hoverable — unhover puts it in cooling, not idle.
+    // Unhover puts A in cooling, not idle.
     unhover(a);
     expect(screen.getByRole('tooltip', {name: 'a'})).toBeInTheDocument();
 
@@ -304,7 +289,7 @@ describe('useHoverOverlay timing', () => {
   it("does not let a snap-closed cooling overlay's hide timer cool the group", () => {
     renderInGroup(
       <Fragment>
-        <Trigger label="a" isHoverable />
+        <Trigger label="a" />
         <Trigger label="b" />
         <Trigger label="c" />
       </Fragment>

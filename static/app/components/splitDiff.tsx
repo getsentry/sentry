@@ -1,11 +1,9 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Change} from 'diff';
-import {diffChars, diffLines, diffWords} from 'diff';
+import {diffLines, diffWords} from 'diff';
 
 import {Container} from '@sentry/scraps/layout';
-
-import {unreachable} from 'sentry/utils/unreachable';
 
 // @TODO(jonasbadalic): This used to be defined on the theme, but is component specific and lacks dark mode.
 export const DIFF_COLORS = {
@@ -19,7 +17,6 @@ type Props = {
   base: string;
   target: string;
   className?: string;
-  type?: 'lines' | 'words' | 'chars';
 };
 
 // this function splits the lines from diffLines into words that are diffed
@@ -48,25 +45,10 @@ function getDisplayData(
   return diffWords(leftText, rightText);
 }
 
-function SplitDiff({className, type = 'lines', base, target}: Props) {
+function SplitDiff({className, base, target}: Props) {
   // split one change that includes multiple lines into one change per line (for formatting)
   const groupedChanges = useMemo((): Change[][] => {
-    let diffResults: Change[] | undefined;
-    switch (type) {
-      case 'lines':
-        diffResults = diffLines(base, target, {newlineIsToken: true});
-        break;
-      case 'words':
-        diffResults = diffWords(base, target);
-        break;
-      case 'chars':
-        diffResults = diffChars(base, target);
-        break;
-      default:
-        unreachable(type);
-        break;
-    }
-    const results = diffResults ?? [];
+    const results = diffLines(base, target, {newlineIsToken: true});
 
     let currentLine: Change[] = [];
     const processedLines: Change[][] = [];
@@ -92,7 +74,7 @@ function SplitDiff({className, type = 'lines', base, target}: Props) {
       processedLines.push(currentLine);
     }
     return processedLines;
-  }, [base, target, type]);
+  }, [base, target]);
 
   const displayRows = useMemo(
     () =>

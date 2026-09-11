@@ -232,19 +232,18 @@ def generate_project_derived_data(
 
     from sentry import options
     from sentry.issues.derived.processing import PIPELINE
+    from sentry.issues.derived.tasks_util import SpawnState
     from sentry.models.group import Group
-    from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 
-    task_state = current_task()
-    activation_id = task_state.id if task_state else None
-    if activation_id and already_spawned(_GENERATE_PROJECT_TASK_KEY, activation_id):
+    spawn = SpawnState(current_task(), _GENERATE_PROJECT_TASK_KEY)
+    if spawn.already_spawned():
         logger.info(
             "generate_project_derived_data.duplicate_redelivery.skipped",
-            extra={"project_id": project_id, "activation_id": activation_id},
+            extra={"project_id": project_id, "activation_id": spawn.activation_id},
         )
         metrics.incr(
             "taskworker.selfchain.duplicate_skipped",
-            tags={"task": _GENERATE_PROJECT_TASK_KEY},
+            tags={"task": spawn.task_key},
         )
         return
 
@@ -282,16 +281,28 @@ def generate_project_derived_data(
         )
 
     if next_cursor_group_id is not None:
-        generate_project_derived_data.apply_async(
-            kwargs={
-                "project_id": project_id,
-                "cursor_group_id": next_cursor_group_id,
-                "stale_only": stale_only,
-            },
-            headers={"sentry-propagate-traces": False},
-        )
-        if activation_id:
-            mark_spawned(_GENERATE_PROJECT_TASK_KEY, activation_id)
+        # Check just before self-spawn and mark after: narrowest race window without going
+        # at-most-once. Still best-effort — concurrent deliveries can both pass this check and
+        # double-spawn; we only shrink the window so that is less likely.
+        if spawn.already_spawned():
+            logger.info(
+                "generate_project_derived_data.duplicate_redelivery.skipped_before_spawn",
+                extra={"project_id": project_id, "activation_id": spawn.activation_id},
+            )
+            metrics.incr(
+                "taskworker.selfchain.duplicate_skipped",
+                tags={"task": spawn.task_key},
+            )
+        else:
+            generate_project_derived_data.apply_async(
+                kwargs={
+                    "project_id": project_id,
+                    "cursor_group_id": next_cursor_group_id,
+                    "stale_only": stale_only,
+                },
+                headers={"sentry-propagate-traces": False},
+            )
+            spawn.mark_spawned()
 
     logger.info(
         "generate_project_derived_data.scheduled",
@@ -590,7 +601,13 @@ def check_fresh_derived_data_batch(
     )
     from taskbroker_client.state import current_task
 
-    from sentry.issues.derived.check import CheckInvalidated, CheckTimeout, check_derived_data
+    from sentry import options
+    from sentry.issues.derived.check import (
+        CheckInvalidated,
+        CheckTimeout,
+        check_derived_data,
+        record_batch_status_consistency,
+    )
     from sentry.issues.derived.processing import PIPELINE
     from sentry.issues.derived.tasks_util import _record_check_result, _resume_check_id
     from sentry.issues.models.groupderiveddata import GroupDerivedData
@@ -618,14 +635,20 @@ def check_fresh_derived_data_batch(
         resume_pipeline_hash,
     )
 
+    status_check_enabled = options.get("issues.derived.status-consistency-check-enabled")
+    project_should_check: dict[int, bool] = {}
     derived_rows = GroupDerivedData.objects.filter(
         pipeline_hash=PIPELINE.pipeline_hash,
         group_id__gte=group_id_start,
         group_id__lt=group_id_end,
     ).order_by("group_id")
+    if status_check_enabled:
+        derived_rows = derived_rows.select_related("group")
     start = time.monotonic()
     timeout_seconds = BATCH_RETRIGGER_TIMEOUT.total_seconds()
     for derived in derived_rows.iterator():
+        if status_check_enabled:
+            record_batch_status_consistency(derived, derived.group, project_should_check)
         remaining = timedelta(seconds=max(0, timeout_seconds - (time.monotonic() - start)))
         try:
             result = check_derived_data(

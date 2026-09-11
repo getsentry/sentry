@@ -2,18 +2,17 @@ import {Tag} from '@sentry/scraps/badge';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {DateTime} from 'sentry/components/dateTime';
-
-import {ResultGrid} from 'admin/components/resultGrid';
+import {ResultGrid} from 'sentry/components/resultGrid';
 
 type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
   orgId: string;
   region: string;
 };
 
-const getRow = (orgId: string, region: string, row: any) => [
+const getRow = (region: string, row: any) => [
   <td key="name">
     {row.invoiceID ? (
-      <Link to={`/_admin/customers/${orgId}/invoices/${region}/${row.invoiceID}/`}>
+      <Link to={`/_admin/invoices/${region}/${row.invoiceID}/`}>
         <DateTime date={row.dateCreated} />
       </Link>
     ) : (
@@ -69,7 +68,7 @@ export function CustomerCharges({orgId, region, ...props}: Props) {
           Amount
         </th>,
       ]}
-      columnsForRow={row => getRow(orgId, region, row)}
+      columnsForRow={row => getRow(region, row)}
       {...props}
     />
   );

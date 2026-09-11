@@ -27,7 +27,7 @@ from sentry.api.helpers.group_index import (
 from sentry.api.helpers.group_index.validators import GroupValidator
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse, GroupDetailsResponse
-from sentry.api.serializers.models.groupactionlogentry import serialize_first_seen_entry
+from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
     RESPONSE_BAD_REQUEST,
@@ -47,17 +47,17 @@ from sentry.issues.action_log import (
     resolve_action_actor,
     resolve_action_source,
 )
+from sentry.issues.action_log.read_metrics import activity_read_endpoint
 from sentry.issues.action_log.types import ViewAction
 from sentry.issues.constants import (
     ISSUE_VIEW_CACHE_KEY_TTL,
     cache_key_for_issue_view,
     get_issue_tsdb_group_model,
 )
-from sentry.issues.derived.check import check_status_consistency
+from sentry.issues.derived.check import record_status_consistency
 from sentry.issues.derived.gate import derived_should_be_correct
-from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.issues.endpoints.bases.group import GroupEndpoint, GroupPermission
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
-from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
@@ -88,10 +88,19 @@ def get_group_global_count(group: Group) -> str:
     return str(group.times_seen_with_pending)
 
 
+class GroupDetailsPermission(GroupPermission):
+    scope_map = {
+        **GroupPermission.scope_map,
+        # Preserve the organization's "Let Members Delete Events" restriction.
+        "DELETE": ["event:admin"],
+    }
+
+
 @extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class GroupDetailsEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
+    permission_classes = (GroupDetailsPermission,)
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
@@ -136,33 +145,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         if derived is None:
             return
 
-        inconsistency = check_status_consistency(group, derived)
-        if inconsistency is None:
-            metrics.incr(
-                "issues.status_reconciliation.checked",
-                sample_rate=1.0,
-                tags={"result": "aligned"},
-            )
-            return
-
-        metrics.incr(
-            "issues.status_reconciliation.checked",
-            sample_rate=1.0,
-            tags={
-                "result": "diverged",
-                "derived_status": inconsistency.derived.value,
-                "actual_status": inconsistency.actual.value,
-            },
-        )
-        logger.info(
-            "issues.status_reconciliation.diverged",
-            extra={
-                "group_id": group.id,
-                "project_id": group.project_id,
-                "derived_status": inconsistency.derived.value,
-                "actual_status": inconsistency.actual.value,
-            },
-        )
+        record_status_consistency(group, derived, source="read_path")
 
     @staticmethod
     def __group_hourly_daily_stats(
@@ -368,20 +351,12 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 }
             )
 
-            if features.has(
-                "projects:issue-action-log-activity", group.project, actor=request.user
-            ):
-                action_log = GroupActionLogEntry.objects.get_actions_for_group(group, 99)
-                if action_log:
-                    # swap action log data in under the activity name
-                    first_seen_entry = cast(dict[str, Any], serialize_first_seen_entry(group))
-                    data.update(
-                        {"activity": [*serialize(action_log, request.user), first_seen_entry]}
-                    )
-                else:
-                    logger.info(
-                        "group_details.groupactionlogentry.not_found", extra={"group_id": group.id}
-                    )
+            # swap action log data in under the activity name
+            activity_items = get_serialized_activity_items(
+                group, request.user, endpoint=activity_read_endpoint(request)
+            )
+            if activity_items is not None:
+                data.update({"activity": activity_items})
 
             if "stats" not in collapse:
                 hourly_stats, daily_stats = self.__group_hourly_daily_stats(group, environment_ids)

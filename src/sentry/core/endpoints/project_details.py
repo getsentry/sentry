@@ -6,7 +6,7 @@ from uuid import uuid4
 import orjson
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema, extend_schema_serializer
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -27,6 +27,7 @@ from sentry.api.serializers.rest_framework.list import EmptyListField
 from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.project_examples import ProjectExamples
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import (
     DetailResponse,
@@ -110,99 +111,107 @@ class ProjectMemberSerializer(serializers.Serializer):
     autofixAutomationTuning = serializers.ChoiceField(
         choices=[item.value for item in AutofixAutomationTuningSettings],
         required=False,
+        help_text="How aggressively Seer runs Autofix on new issues. Can be updated with **`project:read`** permission.",
     )
-    seerScannerAutomation = serializers.BooleanField(required=False)
+    seerScannerAutomation = serializers.BooleanField(
+        required=False,
+        help_text="Let Seer scan new issues automatically. Can be updated with **`project:read`** permission.",
+    )
     seerNightshiftTweaks = serializers.JSONField(required=False, allow_null=True)
     preprodSizeStatusChecksEnabled = serializers.BooleanField(
         help_text="Enable preprod size status checks. Can be updated with **`project:read`** permission.",
         required=False,
     )
-    preprodSizeStatusChecksRules = serializers.JSONField(required=False)
+    preprodSizeStatusChecksRules = serializers.JSONField(
+        required=False,
+        help_text="Rules controlling when preprod size status checks fail. Can be updated with **`project:read`** permission.",
+    )
     preprodSizePrCommentsEnabled = serializers.BooleanField(
         help_text="Enable preprod size PR comments. Can be updated with **`project:read`** permission.",
         required=False,
     )
-    preprodSizePrCommentsRules = serializers.JSONField(required=False)
-    preprodSnapshotStatusChecksEnabled = serializers.BooleanField(required=False)
-    preprodSnapshotStatusChecksFailOnAdded = serializers.BooleanField(required=False)
-    preprodSnapshotStatusChecksFailOnRemoved = serializers.BooleanField(required=False)
-    preprodSnapshotStatusChecksFailOnChanged = serializers.BooleanField(required=False)
-    preprodSnapshotStatusChecksFailOnRenamed = serializers.BooleanField(required=False)
-    preprodSizeEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
-    preprodDistributionEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
-    preprodDistributionPrCommentsEnabledByCustomer = serializers.BooleanField(
-        required=False, allow_null=True
+    preprodSizePrCommentsRules = serializers.JSONField(
+        required=False,
+        help_text="Rules controlling which preprod size changes are posted as PR comments. Can be updated with **`project:read`** permission.",
     )
-    preprodSnapshotPrCommentsEnabled = serializers.BooleanField(required=False, allow_null=True)
-    preprodSnapshotPrCommentsPostOnAdded = serializers.BooleanField(required=False, allow_null=True)
+    preprodSnapshotStatusChecksEnabled = serializers.BooleanField(
+        required=False,
+        help_text="Enable preprod snapshot status checks.",
+    )
+    preprodSnapshotStatusChecksFailOnAdded = serializers.BooleanField(
+        required=False,
+        help_text="Fail the preprod snapshot status check when snapshots are added.",
+    )
+    preprodSnapshotStatusChecksFailOnRemoved = serializers.BooleanField(
+        required=False,
+        help_text="Fail the preprod snapshot status check when snapshots are removed.",
+    )
+    preprodSnapshotStatusChecksFailOnChanged = serializers.BooleanField(
+        required=False,
+        help_text="Fail the preprod snapshot status check when snapshots change.",
+    )
+    preprodSnapshotStatusChecksFailOnRenamed = serializers.BooleanField(
+        required=False,
+        help_text="Fail the preprod snapshot status check when snapshots are renamed.",
+    )
+    preprodSizeEnabledByCustomer = serializers.BooleanField(
+        required=False,
+        allow_null=True,
+        help_text="Enable preprod size analysis. Can be updated with **`project:read`** permission.",
+    )
+    preprodDistributionEnabledByCustomer = serializers.BooleanField(
+        required=False,
+        allow_null=True,
+        help_text="Enable preprod build distribution. Can be updated with **`project:read`** permission.",
+    )
+    preprodDistributionPrCommentsEnabledByCustomer = serializers.BooleanField(
+        required=False,
+        allow_null=True,
+        help_text="Post preprod distribution updates as PR comments. Can be updated with **`project:read`** permission.",
+    )
+    preprodSnapshotPrCommentsEnabled = serializers.BooleanField(
+        required=False,
+        allow_null=True,
+        help_text="Post preprod snapshot changes as PR comments.",
+    )
+    preprodSnapshotPrCommentsPostOnAdded = serializers.BooleanField(
+        required=False,
+        allow_null=True,
+        help_text="Include added snapshots in preprod snapshot PR comments.",
+    )
     preprodSnapshotPrCommentsPostOnRemoved = serializers.BooleanField(
-        required=False, allow_null=True
+        required=False,
+        allow_null=True,
+        help_text="Include removed snapshots in preprod snapshot PR comments.",
     )
     preprodSnapshotPrCommentsPostOnChanged = serializers.BooleanField(
-        required=False, allow_null=True
+        required=False,
+        allow_null=True,
+        help_text="Include changed snapshots in preprod snapshot PR comments.",
     )
     preprodSnapshotPrCommentsPostOnRenamed = serializers.BooleanField(
-        required=False, allow_null=True
+        required=False,
+        allow_null=True,
+        help_text="Include renamed snapshots in preprod snapshot PR comments.",
     )
-    preprodSizeEnabledQuery = serializers.CharField(required=False, allow_null=True)
-    preprodDistributionEnabledQuery = serializers.CharField(required=False, allow_null=True)
+    preprodSizeEnabledQuery = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="Query selecting which preprod builds are size-analyzed. Can be updated with **`project:read`** permission.",
+    )
+    preprodDistributionEnabledQuery = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="Query selecting which preprod builds are distributed. Can be updated with **`project:read`** permission.",
+    )
 
 
-@extend_schema_serializer(
-    exclude_fields=[
-        "options",
-        "team",
-        "digestsMinDelay",
-        "digestsMaxDelay",
-        "securityToken",
-        "securityTokenHeader",
-        "verifySSL",
-        "defaultEnvironment",
-        "dataScrubber",
-        "dataScrubberDefaults",
-        "sensitiveFields",
-        "safeFields",
-        "storeCrashReports",
-        "relayPiiConfig",
-        "builtinSymbolSources",
-        "symbolSources",
-        "scrubIPAddresses",
-        "groupingConfig",
-        "groupingEnhancements",
-        "derivedGroupingEnhancements",
-        "fingerprintingRules",
-        "secondaryGroupingConfig",
-        "secondaryGroupingExpiry",
-        "scrapeJavaScript",
-        "allowedDomains",
-        "copy_from_project",
-        "targetSampleRate",
-        "dynamicSamplingBiases",
-        "tempestFetchScreenshots",
-        "autofixAutomationTuning",
-        "seerScannerAutomation",
-        "seerNightshiftTweaks",
-        "debugFilesRole",
-        "preprodSizeStatusChecksEnabled",
-        "preprodSizeStatusChecksRules",
-        "preprodSizePrCommentsEnabled",
-        "preprodSizePrCommentsRules",
-        "preprodSizeEnabledQuery",
-        "preprodDistributionEnabledQuery",
-        "preprodSizeEnabledByCustomer",
-        "preprodDistributionEnabledByCustomer",
-        "preprodSnapshotStatusChecksEnabled",
-        "preprodSnapshotStatusChecksFailOnAdded",
-        "preprodSnapshotStatusChecksFailOnRemoved",
-        "preprodSnapshotStatusChecksFailOnChanged",
-        "preprodSnapshotStatusChecksFailOnRenamed",
-        "preprodDistributionPrCommentsEnabledByCustomer",
-        "preprodSnapshotPrCommentsEnabled",
-        "preprodSnapshotPrCommentsPostOnAdded",
-        "preprodSnapshotPrCommentsPostOnRemoved",
-        "preprodSnapshotPrCommentsPostOnChanged",
-        "preprodSnapshotPrCommentsPostOnRenamed",
-    ]
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "options": "Legacy writer for raw project option keys, kept for backward compatibility; "
+        "the typed fields on this serializer are the public surface.",
+        "seerNightshiftTweaks": "Experimental Seer internals with no stable shape.",
+    }
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
     name = serializers.CharField(
@@ -254,48 +263,148 @@ E.g. `{'user': ['id', 'email']}`""",
         help_text="""A list of strings with tag keys to highlight on this project's issues.
 E.g. `['release', 'environment']`""",
     )
-    # TODO: Add help_text to all the fields for public documentation, then remove them from 'exclude_fields'
-    team = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
-    digestsMinDelay = serializers.IntegerField(min_value=60, max_value=3600)
-    digestsMaxDelay = serializers.IntegerField(min_value=60, max_value=3600)
+    digestsMinDelay = serializers.IntegerField(
+        min_value=60,
+        max_value=3600,
+        help_text="Minimum time in seconds to wait before sending an issue digest email.",
+    )
+    digestsMaxDelay = serializers.IntegerField(
+        min_value=60,
+        max_value=3600,
+        help_text="Maximum time in seconds to wait before sending an issue digest email.",
+    )
     securityToken = serializers.RegexField(
-        r"^[-a-zA-Z0-9+/=\s]+$", max_length=255, allow_blank=True
+        r"^[-a-zA-Z0-9+/=\s]+$",
+        max_length=255,
+        allow_blank=True,
+        help_text="Token sent with security reports (CSP, Expect-CT, HPKP) so Sentry can verify their origin.",
     )
     securityTokenHeader = serializers.RegexField(
-        r"^[a-zA-Z0-9_\-]+$", max_length=64, allow_blank=True
+        r"^[a-zA-Z0-9_\-]+$",
+        max_length=64,
+        allow_blank=True,
+        help_text="Name of the header carrying the security token on inbound security reports.",
     )
-    verifySSL = serializers.BooleanField(required=False)
+    verifySSL = serializers.BooleanField(
+        required=False,
+        help_text="Verify SSL certificates when delivering outbound webhooks and service hooks.",
+    )
 
-    defaultEnvironment = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    dataScrubber = serializers.BooleanField(required=False)
-    dataScrubberDefaults = serializers.BooleanField(required=False)
-    sensitiveFields = ListField(child=serializers.CharField(), required=False)
-    safeFields = ListField(child=serializers.CharField(), required=False)
+    defaultEnvironment = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="Environment selected by default when viewing this project.",
+    )
+    dataScrubber = serializers.BooleanField(
+        required=False,
+        help_text="Remove known sensitive values from events before storing them.",
+    )
+    dataScrubberDefaults = serializers.BooleanField(
+        required=False,
+        help_text="Also scrub Sentry's built-in list of sensitive field names.",
+    )
+    sensitiveFields = ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="Additional field names to scrub from events, beyond the defaults.",
+    )
+    safeFields = ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="Field names to exempt from scrubbing, including the built-in defaults.",
+    )
     storeCrashReports = serializers.IntegerField(
-        min_value=-1, max_value=STORE_CRASH_REPORTS_MAX, required=False, allow_null=True
+        min_value=-1,
+        max_value=STORE_CRASH_REPORTS_MAX,
+        required=False,
+        allow_null=True,
+        help_text="Number of native crash report files to store per issue. Use `-1` for unlimited or `0` to store none.",
     )
-    relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    builtinSymbolSources = ListField(child=serializers.CharField(), required=False)
-    symbolSources = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    scrubIPAddresses = serializers.BooleanField(required=False)
-    groupingConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    groupingEnhancements = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    fingerprintingRules = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    relayPiiConfig = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Advanced data scrubbing rules, as a JSON string, applied before events are stored.",
+    )
+    builtinSymbolSources = ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="Identifiers of Sentry-hosted symbol sources to use when symbolicating events.",
+    )
+    symbolSources = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Custom symbol sources, as a JSON string, to use when symbolicating events.",
+    )
+    scrubIPAddresses = serializers.BooleanField(
+        required=False,
+        help_text="Discard client IP addresses rather than storing them on events.",
+    )
+    groupingConfig = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Identifier of the grouping algorithm used to assign events to issues.",
+    )
+    groupingEnhancements = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Grouping enhancement rules, as a newline-delimited config string, adjusting which stack frames contribute to an issue.",
+    )
+    fingerprintingRules = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Fingerprinting rules, as a newline-delimited config string, controlling how events are grouped into issues.",
+    )
     secondaryGroupingConfig = serializers.CharField(
-        required=False, allow_blank=True, allow_null=True
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Grouping algorithm run alongside the primary one during a grouping migration.",
     )
-    secondaryGroupingExpiry = serializers.IntegerField(min_value=1, required=False, allow_null=True)
-    scrapeJavaScript = serializers.BooleanField(required=False)
+    secondaryGroupingExpiry = serializers.IntegerField(
+        min_value=1,
+        required=False,
+        allow_null=True,
+        help_text="Unix timestamp after which the secondary grouping algorithm stops running.",
+    )
+    scrapeJavaScript = serializers.BooleanField(
+        required=False,
+        help_text="Allow Sentry to fetch source files and source maps from your servers.",
+    )
     enableAutoReleaseCreation = serializers.BooleanField(
         required=False,
         help_text="Automatically create releases from ingested events. When disabled, releases must be created manually (e.g. via the Sentry CLI).",
     )
-    allowedDomains = EmptyListField(child=OriginField(allow_blank=True), required=False)
+    allowedDomains = EmptyListField(
+        child=OriginField(allow_blank=True),
+        required=False,
+        help_text="Origins permitted to send events to this project. Use `*` to allow any.",
+    )
 
-    copy_from_project = serializers.IntegerField(required=False)
-    targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
-    dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
-    tempestFetchScreenshots = serializers.BooleanField(required=False)
+    copy_from_project = serializers.IntegerField(
+        required=False,
+        help_text="ID of a project whose settings, teams, and keys should be copied into this one.",
+    )
+    targetSampleRate = serializers.FloatField(
+        required=False,
+        min_value=0,
+        max_value=1,
+        help_text="Target proportion of transactions to retain, from `0` to `1`. Requires manual dynamic sampling mode.",
+    )
+    dynamicSamplingBiases = DynamicSamplingBiasSerializer(
+        required=False,
+        many=True,
+        help_text="Per-bias toggles adjusting which transactions dynamic sampling favors retaining.",
+    )
+    tempestFetchScreenshots = serializers.BooleanField(
+        required=False,
+        help_text="Fetch screenshots attached to console crash reports. Requires the Tempest feature.",
+    )
     scmSourceContextEnabled = serializers.BooleanField(
         required=False,
         help_text="Enable on-demand source context fetching from SCM integrations for stack traces.",
