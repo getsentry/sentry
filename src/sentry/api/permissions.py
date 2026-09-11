@@ -284,7 +284,6 @@ class SentryPermission(ScopedPermission):
                     organization=organization,
                     request=request,
                     after_login_redirect=after_login_redirect,
-                    include_organization_slug=True,
                 )
 
             if self.is_not_2fa_compliant(request, organization):
