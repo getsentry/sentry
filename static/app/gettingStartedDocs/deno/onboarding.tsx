@@ -13,7 +13,8 @@ const ENTRY_POINT_FILENAME = 'main.ts';
 const getEntryPointSnippet = () => `
 import "./${INSTRUMENT_FILENAME}";
 
-// All other imports below
+// Every other import of your app goes below this line
+
 Deno.serve((_req) => new Response("Hello World!"));`;
 
 const getAutoInstrumentationSnippet = () =>

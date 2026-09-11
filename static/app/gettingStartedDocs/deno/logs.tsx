@@ -11,15 +11,7 @@ export const logs: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       content: [
-        ...getInstallContent(
-          tct(
-            'Add the Sentry SDK as a dependency. The minimum version of [packageName] that supports logs is [code:9.41.0].',
-            {
-              code: <code />,
-              packageName: <code>@sentry/deno</code>,
-            }
-          )
-        ),
+        ...getInstallContent(t('Add the Sentry Deno SDK as a dependency:')),
         getMigrationContent(),
       ],
     },
