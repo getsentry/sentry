@@ -390,21 +390,6 @@ def consume_queued_autofix_feedback(
     )
 
     with lock.acquire():
-        # A task with a countdown can start after the pause.
-        if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
-            record_pause_blocked("consume")
-            clear_queued_autofix_feedback(run_id)
-            logger.info(
-                "autofix.pr_iteration.consume_feedback.skipped",
-                extra={
-                    "run_id": run_id,
-                    "organization_id": organization_id,
-                    "trigger_id": trigger_id,
-                    "reason": "paused",
-                },
-            )
-            return
-
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:
@@ -425,6 +410,27 @@ def consume_queued_autofix_feedback(
 
         group_id = state.metadata.get("group_id") if state.metadata else None
         log_ctx = PrIterationLogContext.for_run(logger, state, organization_id, group_id)
+
+        # A task with a countdown can start after the pause.
+        if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
+            record_pause_blocked("consume")
+            record_pr_iteration_blocked(
+                log_ctx=log_ctx,
+                run_state=state,
+                run_id=run_id,
+                organization_id=organization_id,
+                outcome=outcome_for_pause(
+                    log_ctx, get_pause_reason(run_id=run_id, organization_id=organization_id)
+                ),
+            )
+            clear_queued_autofix_feedback(run_id)
+            log_ctx.info(
+                "autofix.pr_iteration.consume_feedback.skipped",
+                trigger_id=trigger_id,
+                reason="paused",
+            )
+            return
+
         task_state = current_task()
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.started",
