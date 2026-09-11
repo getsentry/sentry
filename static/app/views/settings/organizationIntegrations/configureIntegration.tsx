@@ -559,8 +559,6 @@ function IntegrationNavigationHeader({
   const organization = useOrganization();
   const {providerKey} = useParams<{providerKey: string}>();
   const externalUrl = getIntegrationExternalUrl(integration);
-  const displayName =
-    integration.provider.key === 'gcp' ? integration.provider.name : integration.name;
   const configurationsHref = `/settings/${organization.slug}/integrations/${providerKey}/?tab=configurations`;
 
   return (
@@ -576,12 +574,12 @@ function IntegrationNavigationHeader({
               <Text>
                 {textProps => (
                   <ExternalLink {...textProps} href={externalUrl}>
-                    {displayName}
+                    {integration.name}
                   </ExternalLink>
                 )}
               </Text>
             ) : (
-              <Text>{displayName}</Text>
+              <Text>{integration.name}</Text>
             )}
           </Flex>
         }

@@ -21,34 +21,6 @@ describe('InstalledIntegration', () => {
     trackIntegrationAnalytics: jest.fn(),
   };
 
-  it('shows the provider name for an existing GCP integration', () => {
-    const provider = GitHubIntegrationProviderFixture({
-      key: 'gcp',
-      slug: 'gcp',
-      name: 'Google Cloud Platform for Seer',
-    });
-    const integration = OrganizationIntegrationsFixture({
-      name: 'Google Cloud Platform',
-      provider: {
-        ...OrganizationIntegrationsFixture().provider,
-        key: 'gcp',
-        slug: 'gcp',
-        name: provider.name,
-      },
-    });
-
-    render(
-      <InstalledIntegration
-        {...defaultProps}
-        integration={integration}
-        provider={provider}
-      />
-    );
-
-    expect(screen.getByText('Google Cloud Platform for Seer')).toBeInTheDocument();
-    expect(screen.queryByText('Google Cloud Platform')).not.toBeInTheDocument();
-  });
-
   it('shows the Configure button normally', () => {
     render(<InstalledIntegration {...defaultProps} />);
 
