@@ -6,7 +6,6 @@ import pytest
 from django.db import connection, router, transaction
 from django.utils import timezone as django_timezone
 
-from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
@@ -1250,16 +1249,12 @@ class DerivedDataTransactionTest(TestCase):
                     project=group.project,
                     actor=GroupActionActor.user(self.user.id),
                 )
-                assert GroupActionLogOutbox.objects.filter(
-                    category=OutboxCategory.GROUP_ACTION_LOG_EVENT
-                ).exists()
+                assert GroupActionLogOutbox.objects.exists()
                 raise _IntentionalRollback
         except _IntentionalRollback:
             pass
 
-        assert not GroupActionLogOutbox.objects.filter(
-            category=OutboxCategory.GROUP_ACTION_LOG_EVENT
-        ).exists()
+        assert not GroupActionLogOutbox.objects.exists()
         assert GroupActionLogEntry.objects.filter(group_id=group.id).count() == 0
         assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
 
