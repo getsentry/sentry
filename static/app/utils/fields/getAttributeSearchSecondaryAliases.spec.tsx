@@ -18,6 +18,7 @@ describe('ATTRIBUTE_SEARCH_SECONDARY_ALIASES', () => {
   });
 
   it('resolves internal and overlapping names to search-facing keys', () => {
+    expect(ATTRIBUTE_SEARCH_SECONDARY_ALIASES['sentry.release']?.alias).toBe('release');
     expect(ATTRIBUTE_SEARCH_SECONDARY_ALIASES['sentry.environment']?.alias).toBe(
       'environment'
     );
