@@ -1,3 +1,5 @@
+import {Container} from '@sentry/scraps/layout';
+
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -14,9 +16,11 @@ function DecideCheckout() {
   const organization = useOrganization();
 
   return (
-    <ErrorBoundary>
-      <AMCheckout organization={organization} location={location} navigate={navigate} />
-    </ErrorBoundary>
+    <Container containerType="inline-size">
+      <ErrorBoundary>
+        <AMCheckout organization={organization} location={location} navigate={navigate} />
+      </ErrorBoundary>
+    </Container>
   );
 }
 
