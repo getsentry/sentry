@@ -27,6 +27,11 @@ describe('ATTRIBUTE_SEARCH_SECONDARY_ALIASES', () => {
     );
   });
 
+  it('preserves alias types when they differ from their replacements', () => {
+    expect(ATTRIBUTE_SEARCH_SECONDARY_ALIASES['ai.texts']?.kind).toBe(FieldKind.ARRAY);
+    expect(ATTRIBUTE_SEARCH_SECONDARY_ALIASES['deviceMemory']?.kind).toBe(FieldKind.TAG);
+  });
+
   it('excludes template keys', () => {
     expect(getAttributeSearchDeprecationAliases('params.<key>')).not.toContain(
       'url.path.parameter.<key>'
