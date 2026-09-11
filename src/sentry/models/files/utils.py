@@ -22,7 +22,11 @@ ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)
 HALF_DAY = timedelta(hours=12)
 
 DEFAULT_BLOB_SIZE = 1024 * 1024  # one mb
-MAX_FILE_SIZE = 2**32  # 4GB is the maximum size/offset supported by `File/Blob/Index`
+# 4GB is the maximum size/offset supported by `File/Blob/Index`.
+# Keep this value in sync with `proxy_max_temp_file_size` in
+# `k8s/services/frontend/templates/sites-enabled/sentry.io`
+# in `getsentry/ops` to ensure that downloads work correctly.
+MAX_FILE_SIZE = 2**32
 
 
 class nooplogger:
