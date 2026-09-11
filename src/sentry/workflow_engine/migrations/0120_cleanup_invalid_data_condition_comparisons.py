@@ -1,5 +1,6 @@
 import logging
 from decimal import Decimal, InvalidOperation
+from typing import Any
 
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
@@ -55,7 +56,7 @@ def priority_integer(value: object) -> int | None:
     return comparison if comparison in PRIORITY_VALUES else None
 
 
-def get_replacement(condition, DataCondition) -> int | None:
+def get_replacement(condition: Any, DataCondition: Any) -> int | None:
     comparison = condition.comparison
     if condition.type == EVENT_SEEN_COUNT:
         return RESOLVED if comparison is True else positive_integer(comparison)
