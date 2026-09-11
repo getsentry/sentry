@@ -25,7 +25,7 @@ from sentry.analytics.events.pr_iteration_events import (
 )
 from sentry.models.group import Group
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.autofix.autofix_agent import Iteration, get_iterations
+from sentry.seer.autofix.autofix_agent import Iteration, get_iterations, iteration_repos
 from sentry.seer.autofix.pr_iteration.details_store import (
     add_iteration,
     claim_iteration,
@@ -238,12 +238,9 @@ def _iteration_id(iteration: Iteration) -> int | None:
 
 def _pushed_head_shas(iteration: Iteration, run_state: SeerRunState) -> list[str]:
     """The commit SHAs the latest iteration pushed, one for each repository."""
-    repos = {
-        patch.repo_name for block in iteration.blocks for patch in (block.merged_file_patches or [])
-    }
     shas = {
         pr_state.commit_sha
-        for repo in repos
+        for repo in iteration_repos(iteration)
         if (pr_state := run_state.repo_pr_states.get(repo)) and pr_state.commit_sha
     }
     return sorted(shas)

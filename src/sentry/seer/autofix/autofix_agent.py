@@ -338,6 +338,13 @@ def get_iterations(state: SeerRunState) -> list[Iteration]:
     return iterations
 
 
+def iteration_repos(iteration: Iteration) -> set[str]:
+    """The repositories this iteration changed."""
+    return {
+        patch.repo_name for block in iteration.blocks for patch in (block.merged_file_patches or [])
+    }
+
+
 def get_latest_iteration_index(state: SeerRunState) -> int:
     try:
         iterations = get_iterations(state)

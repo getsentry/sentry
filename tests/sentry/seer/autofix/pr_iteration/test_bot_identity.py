@@ -44,6 +44,10 @@ def test_a_bot_review_without_a_login_records_nothing() -> None:
     assert bot_logins_for_feedback([_review_body(None, author_is_bot=True)]) == []
 
 
+def test_a_bot_without_the_suffix_is_recorded_from_its_flag() -> None:
+    assert bot_logins_for_feedback([_review_body("Copilot", author_is_bot=True)]) == ["Copilot"]
+
+
 def test_a_human_review_contributes_no_login() -> None:
     sources = [
         _review_body("some-person", author_is_bot=False),
