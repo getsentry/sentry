@@ -11,6 +11,7 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
+    BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
@@ -46,6 +47,9 @@ class Rule(Model):
 
     project = FlexibleForeignKey("sentry.Project")
     environment_id = BoundedPositiveIntegerField(null=True)
+    # Shadow column for the in-progress widening of `environment_id` to int8; swapped
+    # into `environment_id` once backfilled. Nothing reads or writes it yet.
+    new_environment_id = BoundedBigIntegerField(null=True)
     label = models.CharField(max_length=256)
     # `data` contain all the specifics of the rule - conditions, actions, frequency, etc.
     data = LegacyTextJSONField(default=dict)
@@ -83,6 +87,12 @@ class Rule(Model):
                     | models.Q(owner_user_id__isnull=True, owner_team__isnull=True)
                 ),
                 name="rule_owner_user_or_team_check",
+            ),
+            # Keep this a standalone CheckConstraint, not a positive field type:
+            # switching would take the ACCESS EXCLUSIVE lock this one avoids.
+            models.CheckConstraint(
+                condition=models.Q(new_environment_id__gte=0),
+                name="rule_new_environment_id_check",
             ),
         )
 
