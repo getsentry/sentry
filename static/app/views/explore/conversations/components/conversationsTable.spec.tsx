@@ -157,6 +157,18 @@ describe('ConversationsTable', () => {
     expect(screen.getAllByText('execute_query').length).toBeGreaterThan(0);
   });
 
+  it('stretches the conversation column to fill available space', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: 'A conversation'}]);
+
+    renderTable();
+
+    await screen.findByText('A conversation');
+
+    expect(screen.getByTestId('grid-editable').style.gridTemplateColumns).toContain(
+      `minmax(${COL_WIDTH_MINIMUM}px, 1fr)`
+    );
+  });
+
   it('keeps the tools column at full width when a conversation has tools', async () => {
     mockConversations([
       {...BASE_CONVERSATION, title: 'With tools', toolNames: ['execute_query']},
@@ -187,7 +199,10 @@ describe('ConversationsTable', () => {
   });
 
   it('restores a persisted column width', async () => {
-    localStorage.setItem(COLUMN_WIDTHS_STORAGE_KEY, JSON.stringify({tools: 400}));
+    localStorage.setItem(
+      COLUMN_WIDTHS_STORAGE_KEY,
+      JSON.stringify({conversation: 300, tools: 400})
+    );
     mockConversations([
       {...BASE_CONVERSATION, title: 'With tools', toolNames: ['execute_query']},
     ]);
@@ -197,8 +212,10 @@ describe('ConversationsTable', () => {
     await screen.findByText('With tools');
 
     const template = screen.getByTestId('grid-editable').style.gridTemplateColumns;
+    expect(template).toContain('300px');
     expect(template).toContain('400px');
     expect(template).not.toContain('220px');
+    expect(template).not.toContain('1fr');
   });
 
   it('keeps a persisted tools width when no conversation has tools', async () => {
@@ -231,6 +248,26 @@ describe('ConversationsTable', () => {
     await waitFor(() => {
       const stored = localStorage.getItem(COLUMN_WIDTHS_STORAGE_KEY);
       expect(stored && JSON.parse(stored)).toEqual({tools: 300});
+    });
+  });
+
+  it('restores the flexible conversation column after resetting its resize handle', async () => {
+    localStorage.setItem(COLUMN_WIDTHS_STORAGE_KEY, JSON.stringify({conversation: 300}));
+    mockConversations([{...BASE_CONVERSATION, title: 'A conversation'}]);
+
+    renderTable();
+
+    await screen.findByText('A conversation');
+
+    // Double-clicking the resize handle resets the column to
+    // COL_WIDTH_UNDEFINED, which should restore the flexible track rather
+    // than leaving the column stuck at a fixed width.
+    await userEvent.dblClick(screen.getByRole('separator', {name: 'Conversation'}));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-editable').style.gridTemplateColumns).toContain(
+        `minmax(${COL_WIDTH_MINIMUM}px, 1fr)`
+      );
     });
   });
 
