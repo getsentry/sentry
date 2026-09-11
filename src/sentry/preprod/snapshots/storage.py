@@ -7,12 +7,10 @@ from objectstore_client.multipart import MultipartUpload
 
 from sentry.models.project import Project
 from sentry.objectstore import UsecaseId, get_session
+from sentry.utils import metrics
 
 
 class SnapshotStorage:
-    """Writes go to the snapshots usecase; reads fall back to the legacy preprod
-    usecase for objects uploaded by CLIs that predate the usecase split."""
-
     def __init__(self, primary: Session, legacy: Session) -> None:
         self._primary = primary
         self._legacy = legacy
@@ -21,13 +19,21 @@ class SnapshotStorage:
         response = self._primary.get(key)
         if response is None:
             response = self._legacy.get(key)
+            self._record_fallback("get", response is not None)
         return response
 
     def head(self, key: str) -> Metadata | None:
         metadata = self._primary.head(key)
         if metadata is None:
             metadata = self._legacy.head(key)
+            self._record_fallback("head", metadata is not None)
         return metadata
+
+    def _record_fallback(self, op: str, found: bool) -> None:
+        metrics.incr(
+            "preprod.snapshot_storage.legacy_fallback",
+            tags={"op": op, "found": str(found).lower()},
+        )
 
     def put(self, contents: bytes | IO[bytes], *, key: str, content_type: str | None = None) -> str:
         return self._primary.put(contents, key=key, content_type=content_type)
@@ -40,12 +46,15 @@ class SnapshotStorage:
         )
 
     def delete(self, key: str) -> None:
+        error: RequestError | None = None
         for session in (self._primary, self._legacy):
             try:
                 session.delete(key)
             except RequestError as e:
                 if e.status != 404:
-                    raise
+                    error = e
+        if error is not None:
+            raise error
 
 
 def get_snapshot_storage(project: Project | int, *, org: int | None = None) -> SnapshotStorage:

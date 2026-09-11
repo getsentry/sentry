@@ -109,12 +109,7 @@ class UsecaseId(Enum):
                     self.value,
                     expiration_policy=TimeToLive(timedelta(days=default_attachment_retention())),
                 )
-            case UsecaseId.PREPROD:
-                return ObjectstoreClientUsecase(
-                    self.value,
-                    expiration_policy=TimeToIdle(timedelta(days=30)),
-                )
-            case UsecaseId.SNAPSHOTS:
+            case UsecaseId.PREPROD | UsecaseId.SNAPSHOTS:
                 return ObjectstoreClientUsecase(
                     self.value,
                     expiration_policy=TimeToIdle(timedelta(days=30)),
