@@ -225,7 +225,13 @@ def resolve_type_hint(hint) -> Any:
             #   - https://github.com/tfranzel/drf-spectacular/issues/925
             #   - https://github.com/OAI/OpenAPI-Specification/issues/1368.
             if len(args) > 2:
-                schema["anyOf"].append({"type": "object", "nullable": True})
+                null_schema: dict[str, Any] = {"type": "object", "nullable": True}
+                if is_internal_build():
+                    # Nullable objects also accept arbitrary dictionaries. Limit
+                    # this branch to null so it cannot bypass the other members'
+                    # contracts. Preserve the existing published schema.
+                    null_schema["enum"] = [None]
+                schema["anyOf"].append(null_schema)
             else:
                 schema["nullable"] = True
         return schema
