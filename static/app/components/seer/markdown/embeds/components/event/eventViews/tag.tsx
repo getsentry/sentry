@@ -107,9 +107,17 @@ export function EventTagView({
         Bare keys are container queries, and the block sets `containerType`, so
         this pairs up on the embed's own width rather than the viewport's --
         the embed has no idea how wide the page around it is.
+
+        One key is deliberately not half of a two-column grid: the log embed
+        draws its single attribute across the full width, and a lone card that
+        stopped halfway would be the same panel at two different sizes.
       */}
       <Grid
-        columns={{zero: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))'}}
+        columns={
+          singleTagKey
+            ? 'minmax(0, 1fr)'
+            : {zero: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))'}
+        }
         gap="md"
         align="start"
       >
