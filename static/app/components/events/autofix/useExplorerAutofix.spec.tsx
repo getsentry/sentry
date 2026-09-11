@@ -1251,3 +1251,109 @@ describe('useExplorerAutofix - codingAgentErrors', () => {
     expect(result.current.codingAgentErrors.map(e => e.message)).toEqual(['a', 'c']);
   });
 });
+
+describe('useExplorerAutofix - startStep errors', () => {
+  const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
+  const existingRun = {
+    run_id: 42,
+    blocks: [
+      {
+        id: 'block-1',
+        message: {
+          role: 'assistant',
+          content: 'Here is the root cause',
+          metadata: {step: 'root_cause'},
+        },
+        timestamp: '2026-01-01T00:00:00Z',
+        loading: false,
+      },
+    ],
+    status: 'completed' as const,
+    updated_at: '2026-01-01T00:00:00Z',
+  };
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('keeps the existing run and shows an error message when a step fails', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: existingRun},
+    });
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      statusCode: 400,
+      body: {detail: 'Something went wrong'},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await waitFor(() => expect(result.current.runState?.run_id).toBe(42));
+
+    await expect(
+      act(() => result.current.startStep('pr_iteration', {runId: 42}))
+    ).rejects.toThrow();
+
+    expect(addErrorMessage).toHaveBeenCalledWith('Something went wrong');
+    expect(result.current.runState).toEqual(existingRun);
+  });
+
+  it('does not surface a serializer validation error', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: existingRun},
+    });
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      statusCode: 400,
+      body: {userContext: ['Ensure this field has no more than 1000 characters.']},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await waitFor(() => expect(result.current.runState?.run_id).toBe(42));
+
+    await expect(
+      act(() =>
+        result.current.startStep('pr_iteration', {
+          runId: 42,
+          userContext: 'x'.repeat(1001),
+        })
+      )
+    ).rejects.toThrow();
+
+    expect(addErrorMessage).toHaveBeenCalledWith('An error occurred');
+    expect(result.current.runState).toEqual(existingRun);
+  });
+
+  it('falls back to the error state when a kickoff fails with no existing run', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      statusCode: 400,
+      body: {detail: 'Something went wrong'},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await expect(act(() => result.current.startStep('root_cause'))).rejects.toThrow();
+
+    await waitFor(() => expect(result.current.runState?.status).toBe('error'));
+    expect(result.current.runState?.blocks[0]?.message.content).toBe(
+      'Error: Something went wrong'
+    );
+    expect(addErrorMessage).not.toHaveBeenCalled();
+  });
+});

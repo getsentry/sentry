@@ -8,6 +8,7 @@ from scm.errors import ResourceNotFound
 from scm.types import ReviewComment
 
 from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
 from sentry.seer.agent.client_models import (
     AgentFilePatch,
     FilePatch,
@@ -76,6 +77,7 @@ from sentry.testutils.cases import TestCase
 TASK_PATH = "sentry.tasks.seer.pr_iteration"
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
 PAUSE_PATH = "sentry.seer.autofix.pr_iteration.pause"
+PR_STATE_PATH = "sentry.seer.autofix.pr_iteration.pr_state"
 
 
 class _CommentScmStub:
@@ -920,6 +922,70 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
     def _call(self) -> None:
         consume_queued_autofix_feedback(run_id=67890, organization_id=self.organization.id)
+
+    def _state_with_open_pr(self) -> SeerRunState:
+        state = self._state()
+        state.repo_pr_states = {
+            "owner/repo": RepoPRState(repo_name="owner/repo", pr_number=7, commit_sha="abc")
+        }
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="owner/repo",
+            provider="integrations:github",
+            external_id="1",
+        )
+        return state
+
+    @patch(f"{PR_STATE_PATH}.metrics.incr")
+    @patch(f"{TASK_PATH}.pause_pr_iteration")
+    @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request")
+    @patch(f"{PR_STATE_PATH}.make_scm")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_closed_pr_stops_the_iteration_before_it_starts(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+        mock_make_scm: MagicMock,
+        mock_get_pull_request: MagicMock,
+        mock_pause: MagicMock,
+        mock_incr: MagicMock,
+    ) -> None:
+        """The run is paused rather than left to re-check on every later trigger."""
+        mock_fetch.return_value = self._state_with_open_pr()
+        mock_get_pull_request.return_value = {"data": {"state": "closed"}}
+
+        self._call()
+
+        mock_trigger.assert_not_called()
+        mock_pop.assert_not_called()
+        assert mock_pause.call_args.kwargs["reason"] == PauseReason.PR_CLOSED
+        mock_incr.assert_any_call("autofix.pr_iteration.pr_closed", tags={"gate": "consume"})
+
+    @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request")
+    @patch(f"{PR_STATE_PATH}.make_scm")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_an_open_pr_still_iterates(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+        mock_make_scm: MagicMock,
+        mock_get_pull_request: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_with_open_pr()
+        mock_pop.return_value = [self._ui_queued()]
+        mock_get_pull_request.return_value = {"data": {"state": "open"}}
+
+        self._call()
+
+        mock_trigger.assert_called_once()
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")

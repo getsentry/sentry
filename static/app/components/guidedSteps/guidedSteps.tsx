@@ -120,6 +120,7 @@ function useGuidedStepsContentValue({
     }
     if (defined(initialStep)) {
       if (initialStep > totalSteps) {
+        // oxlint-disable-next-line react/set-state-in-effect
         handleSetCurrentStep(1);
       }
       return;

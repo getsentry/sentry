@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Literal
+from dataclasses import dataclass
+from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -15,53 +16,47 @@ from sentry.seer.agent.client_utils import (
     get_proxy_headers,
 )
 from sentry.seer.agent.on_completion_hook import extract_hook_definition
-from sentry.seer.autofix.autofix_agent import NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.feature.models import (
     FEATURE_ID,
-    AutofixRCAPayload,
+    AutofixFeaturePayload,
     AutofixRCATweaks,
-    RepoPin,
-    RepoPins,
+    RCAStepArgs,
 )
-from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint, is_free_cohort_org
 from sentry.seer.models.run import SeerRun
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
 
-def _parse_repo_pins(repo_pins: str | None) -> RepoPins | None:
-    if repo_pins is None:
-        return None
-
-    return {
-        repo_name: RepoPin.parse_obj(repo_pin)
-        for repo_name, repo_pin in json.loads(repo_pins).items()
-    }
+@dataclass(frozen=True)
+class AutofixFeatureArgs:
+    step: AutofixStep
+    referrer: AutofixReferrer
+    step_args: RCAStepArgs
+    user_context: str | None = None
+    stopping_point: AutofixStoppingPoint | None = None
+    allow_free_cohort: bool = False
+    user: User | RpcUser | AnonymousUser | None = None
+    enable_bash_tools: bool = False
+    flush: bool = True
 
 
 def trigger_autofix_feature(
     group: Group,
-    *,
-    referrer: AutofixReferrer,
-    # Not to be confused with user_org_context, this is free-form context added by the user to the rca run.
-    user_context: str | None = None,
-    stopping_point: AutofixStoppingPoint | None = None,
-    intelligence_level: Literal["low", "medium", "high"] = "medium",
-    reasoning_effort: Literal["low", "medium", "high"] | None = "medium",
-    flush: bool = True,
-    allow_free_cohort: bool = False,
-    user: User | RpcUser | AnonymousUser | None = None,
-    enable_bash_tools: bool = False,
-    repo_pins: str | None = None,
+    args: AutofixFeatureArgs,
 ) -> SeerRun:
+    # Avoid a circular import through the legacy Autofix dispatcher.
+    from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
+
     # Free cohort orgs bypass quota only when called from night shift
     # (allow_free_cohort=True). Not exposed via the API.
-    skip_quota = allow_free_cohort and is_free_cohort_org(group.organization)
+    skip_quota = args.allow_free_cohort and is_free_cohort_org(group.organization)
     if not skip_quota:
         has_budget: bool = quotas.backend.check_seer_quota(
             org_id=group.organization.id,
@@ -73,49 +68,54 @@ def trigger_autofix_feature(
                 extra={
                     "group_id": group.id,
                     "organization_id": group.organization.id,
-                    "referrer": referrer.value,
+                    "referrer": args.referrer.value,
                 },
             )
             raise NoSeerQuotaException()
 
-    payload = AutofixRCAPayload(
+    rca_step_args = args.step_args
+    payload = AutofixFeaturePayload(
         group_id=group.id,
         project_id=group.project_id,
         short_id=group.qualified_short_id or str(group.id),
         title=group.title or "Unknown error",
         culprit=group.culprit or "unknown",
         on_completion_hook=extract_hook_definition(AutofixOnCompletionHook, call_on_failure=True),
-        repo_pins=_parse_repo_pins(repo_pins),
+        repo_pins=rca_step_args.repo_pins,
         tweaks=AutofixRCATweaks(
-            intelligence_level=intelligence_level,
-            reasoning_effort=reasoning_effort,
-            user_context=user_context,
+            intelligence_level=rca_step_args.intelligence_level,
+            reasoning_effort=rca_step_args.reasoning_effort,
+            user_context=args.user_context,
         ),
+        step=args.step,
+        user_context=args.user_context,
+        stopping_point=(args.stopping_point.value if args.stopping_point is not None else None),
+        step_args=args.step_args,
     )
 
     client = SeerAgentClient(
         organization=group.organization,
         project=group.project,
         group=group,
-        user=user,
-        enable_bash_tools=enable_bash_tools,
+        user=args.user,
+        enable_bash_tools=args.enable_bash_tools,
     )
 
     extras: dict[str, Any] = {
-        "referrer": referrer.value,
+        "referrer": args.referrer.value,
     }
     # Store the stopping point here for delivery to use when advancing steps.
-    if stopping_point is not None:
-        extras["stopping_point"] = stopping_point.value
+    if args.stopping_point is not None:
+        extras["stopping_point"] = args.stopping_point.value
 
     run = client.start_feature_run(
         feature_id=FEATURE_ID,
         payload=payload.dict(),
         title=f"Autofix RCA — {payload.short_id}",
-        flush=flush,
+        flush=args.flush,
         extras=extras,
-        referrer=referrer.value,
-        user_org_context=collect_user_org_context(user, group.organization),
+        referrer=args.referrer.value,
+        user_org_context=collect_user_org_context(args.user, group.organization),
         proxy_headers=get_proxy_headers(),
         agent_run_options=AgentRunOptions(
             is_context_engine_enabled=False,
@@ -128,7 +128,7 @@ def trigger_autofix_feature(
             group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
         )
 
-    metrics.incr("autofix_feature.trigger", tags={"referrer": referrer.value})
+    metrics.incr("autofix_feature.trigger", tags={"referrer": args.referrer.value})
 
     logger.info(
         "autofix_feature.dispatch.started",
@@ -136,14 +136,12 @@ def trigger_autofix_feature(
             "group_id": group.id,
             "organization_id": group.organization.id,
             "run_id": run.seer_run_state_id,
-            "referrer": referrer.value,
-            "stopping_point": stopping_point,
-            "intelligence_level": intelligence_level,
-            "reasoning_effort": reasoning_effort,
-            "flush": flush,
-            "allow_free_cohort": allow_free_cohort,
-            "user_context": user_context,
-            "enable_bash_tools": enable_bash_tools,
+            "referrer": args.referrer.value,
+            "stopping_point": args.stopping_point,
+            "flush": args.flush,
+            "allow_free_cohort": args.allow_free_cohort,
+            "user_context": args.user_context,
+            "enable_bash_tools": args.enable_bash_tools,
         },
     )
 

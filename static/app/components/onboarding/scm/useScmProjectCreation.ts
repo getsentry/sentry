@@ -11,6 +11,7 @@ import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
@@ -181,6 +182,15 @@ export function useScmProjectCreation({
           messagingSelection: stagedSelection,
         });
 
+        // Recorded before the best-effort repository link: the project and its
+        // rules exist at this point whatever linking does.
+        trackAnalytics('onboarding.scm_project_created', {
+          organization,
+          platform: platform.key,
+          project_id: creation.project.id,
+          notification: creation.notificationRule ? 'integration' : 'email_only',
+        });
+
         if (selectedRepository?.id) {
           await linkProjectToRepository({
             orgSlug: organization.slug,
@@ -206,7 +216,7 @@ export function useScmProjectCreation({
       createProjectAndRules,
       createdProject,
       onCreatedProjectChange,
-      organization.slug,
+      organization,
       projects,
       selectedRepository,
       teams,

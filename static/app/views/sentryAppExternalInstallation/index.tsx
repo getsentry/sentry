@@ -135,6 +135,7 @@ function SentryAppExternalInstallationContent() {
     }
     if (organizations.length === 1) {
       // auto select the org if there is only one
+      // oxlint-disable-next-line react/set-state-in-effect
       onSelectOrg(organizations[0]!.slug);
     }
 

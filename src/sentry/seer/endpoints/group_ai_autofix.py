@@ -43,7 +43,6 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix_agent import (
-    NoSeerQuotaException,
     get_autofix_agent_state,
     get_autofix_run_state,
     trigger_autofix_agent,
@@ -56,6 +55,7 @@ from sentry.seer.autofix.coding_agent import (
 )
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.github_perms import (
     get_blocked_pr_iteration_permissions,
 )
@@ -98,6 +98,7 @@ SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
 PAUSED_PR_ITERATION_DETAIL = {
     PauseReason.USER_STOP: "Iteration was stopped for this pull request",
     PauseReason.RUN_ERRORED: "Seer can no longer iterate on this pull request",
+    PauseReason.PR_CLOSED: "This pull request is closed, so Seer stopped iterating on it",
 }
 
 
@@ -200,7 +201,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
 class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin, GroupAiEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
-        "GET": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     formatter_adapter = staticmethod(format_autofix)
     owner = ApiOwner.ML_AI
@@ -551,8 +552,6 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         - Root Cause Analysis
         - Proposed Solution
         - Generated code changes
-
-        This endpoint although documented is still experimental and the payload may change in the future.
         """
         try:
             state = get_autofix_agent_state(group.organization, group.id)

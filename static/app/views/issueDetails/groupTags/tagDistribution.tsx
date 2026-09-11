@@ -11,16 +11,56 @@ import {t, tct} from 'sentry/locale';
 import {percent} from 'sentry/utils';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
-export function TagDistribution({tag}: {tag: GroupTag}) {
-  const visibleTagValues = tag.topValues.slice(0, 3);
+/**
+ * How many values a panel draws before folding the rest into "Other". Not a
+ * prop: every breakdown -- issue tags, feature flags, Seer's event and log
+ * embeds -- should cut off at the same place.
+ */
+const MAX_VALUES = 3;
+
+interface TagDistributionValue {
+  count: number;
+  value: string;
+  /** Rendered in place of the raw value, e.g. a `Version` or a `DeviceName`. */
+  node?: React.ReactNode;
+}
+
+interface TagDistributionPanelProps {
+  /**
+   * The row tooltip, e.g. "12 of 40 tagged events". Built by the caller so each
+   * surface keeps its own copy as one whole sentence for translators.
+   */
+  formatCount: (count: number, total: number) => React.ReactNode;
+  title: string;
+  /**
+   * Everything the values were counted out of, including the ones the panel does
+   * not draw -- this is what gives the "Other" row a size.
+   */
+  totalValues: number;
+  /** Most common first; the panel draws the first few and folds away the rest. */
+  values: TagDistributionValue[];
+}
+
+/**
+ * How often each value of one key occurs, as a labelled bar per value. Purely
+ * presentational, and the one implementation of this shape: a tag on an issue
+ * and an attribute on a log come out looking the same because they render here.
+ */
+export function TagDistributionPanel({
+  formatCount,
+  title,
+  totalValues,
+  values,
+}: TagDistributionPanelProps) {
+  const visibleTagValues = values.slice(0, MAX_VALUES);
 
   const totalVisible = visibleTagValues.reduce((sum, value) => sum + value.count, 0);
-  const hasOther = totalVisible < tag.totalValues;
+  const hasOther = totalVisible < totalValues;
 
   const otherPercentage =
     100 -
     visibleTagValues.reduce(
-      (sum, value) => sum + Math.round(percent(value.count, tag.totalValues)),
+      (sum, value) => sum + Math.round(percent(value.count, totalValues)),
       0
     );
   const otherDisplayPercentage =
@@ -33,15 +73,15 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
   return (
     <TagPanel>
       <TagHeader data-underline-on-hover="true">
-        <Tooltip title={tag.key} showOnlyOnOverflow skipWrapper>
-          {tag.key}
+        <Tooltip title={title} showOnlyOnOverflow skipWrapper>
+          {title}
         </Tooltip>
       </TagHeader>
       <TagValueContent>
         {visibleTagValues.map((tagValue, tagValueIdx) => {
-          const percentage = Math.round(percent(tagValue.count, tag.totalValues));
+          const percentage = Math.round(percent(tagValue.count, totalValues));
           // Ensure no item shows 100% when there are multiple items
-          const hasMultipleItems = tag.topValues.length > 1 || hasOther;
+          const hasMultipleItems = values.length > 1 || hasOther;
           const cappedPercentage =
             hasMultipleItems && percentage >= 100 ? 99 : percentage;
           const displayPercentage =
@@ -51,29 +91,20 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
                 ? '>99%'
                 : `${cappedPercentage.toFixed(0)}%`;
 
-          let valueComponent: React.ReactNode = tagValue.value;
-          if (tagValue.value === '') {
-            valueComponent = <Text variant="muted">{t('(empty)')}</Text>;
-          } else {
-            if (tag.key === 'release') {
-              valueComponent = <Version version={tagValue.value} anchor={false} />;
-            } else if (tag.key === 'device') {
-              valueComponent = <DeviceName value={tagValue.value} />;
-            }
-          }
+          const valueComponent =
+            tagValue.node ??
+            (tagValue.value === '' ? (
+              <Text variant="muted">{t('(empty)')}</Text>
+            ) : (
+              tagValue.value
+            ));
 
           return (
             <TagValueRow key={tagValueIdx}>
               <Tooltip delay={300} title={valueComponent} skipWrapper>
                 <TagValue>{valueComponent}</TagValue>
               </Tooltip>
-              <Tooltip
-                title={tct('[count] of [total] tagged events', {
-                  count: tagValue.count.toLocaleString(),
-                  total: tag.totalValues.toLocaleString(),
-                })}
-                skipWrapper
-              >
+              <Tooltip title={formatCount(tagValue.count, totalValues)} skipWrapper>
                 <TooltipContainer>
                   <TagBarValue>{displayPercentage}</TagBarValue>
                   <TagBar percentage={percentage} />
@@ -86,10 +117,7 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
           <TagValueRow>
             <TagValue>{t('Other')}</TagValue>
             <Tooltip
-              title={tct('[count] of [total] tagged events', {
-                count: (tag.totalValues - totalVisible).toLocaleString(),
-                total: tag.totalValues.toLocaleString(),
-              })}
+              title={formatCount(totalValues - totalVisible, totalValues)}
               skipWrapper
             >
               <TooltipContainer>
@@ -101,6 +129,44 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
         )}
       </TagValueContent>
     </TagPanel>
+  );
+}
+
+/**
+ * Renders `release` and `device` values the way the rest of the product does.
+ * Returns nothing for every other key, and for a missing value, so the panel
+ * falls back to the raw string and to its own "(empty)" marker.
+ */
+function renderTagValue(tagKey: string, value: string): React.ReactNode {
+  if (value === '') {
+    return undefined;
+  }
+  if (tagKey === 'release') {
+    return <Version version={value} anchor={false} />;
+  }
+  if (tagKey === 'device') {
+    return <DeviceName value={value} />;
+  }
+  return undefined;
+}
+
+export function TagDistribution({tag}: {tag: GroupTag}) {
+  return (
+    <TagDistributionPanel
+      formatCount={(count, total) =>
+        tct('[count] of [total] tagged events', {
+          count: count.toLocaleString(),
+          total: total.toLocaleString(),
+        })
+      }
+      title={tag.key}
+      totalValues={tag.totalValues}
+      values={tag.topValues.map(topValue => ({
+        count: topValue.count,
+        value: topValue.value,
+        node: renderTagValue(tag.key, topValue.value),
+      }))}
+    />
   );
 }
 

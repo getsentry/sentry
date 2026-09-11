@@ -24,6 +24,7 @@ from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import Artifact
 from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
+from sentry.seer.autofix.analytics import record_autofix_event
 from sentry.seer.autofix.artifact_schemas import FixabilityAssessment, RootCauseArtifact
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
@@ -53,6 +54,10 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 )
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.pause import PauseReason, pause_pr_iteration
+from sentry.seer.autofix.pr_iteration.pr_state import (
+    iteration_prs_any_closed,
+    record_pr_closed,
+)
 from sentry.seer.autofix.pr_ready_for_review import (
     emit_pr_ready_for_review,
     format_pull_requests_payload,
@@ -599,7 +604,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 webhook_action_type = SeerActionType.PR_CREATED
                 webhook_payload["pull_requests"] = format_pull_requests_payload(state)
                 is_pr_created = True
-                analytics.record(
+                record_autofix_event(
                     AiAutofixPrCreatedCompletedEvent(
                         organization_id=organization.id,
                         project_id=group.project_id,
@@ -732,7 +737,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             )
             completed_event_cls = STEP_CONFIGS[current_step].completed_event
             if completed_event_cls is not None:
-                analytics.record(
+                record_autofix_event(
                     completed_event_cls(
                         organization_id=organization.id,
                         project_id=group.project_id,
@@ -1164,6 +1169,16 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 errored_repos=errored_repos,
             )
             return PrIterationOutcome.PR_CREATION_ERRORED
+
+        if iteration_prs_any_closed(group.organization, state):
+            record_pr_closed("push")
+            pause_pr_iteration(
+                run_id=run_id,
+                organization_id=group.organization.id,
+                reason=PauseReason.PR_CLOSED,
+            )
+            log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="pr_closed")
+            return PrIterationOutcome.PR_CLOSED
 
         pushed = cls._push_iteration_changes(
             log_ctx,

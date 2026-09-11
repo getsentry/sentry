@@ -14,6 +14,7 @@ import {
   type QueryEmbedColumn,
 } from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable';
 import {toPageFilters} from 'sentry/components/seer/markdown/embeds/components/queryEmbedParams';
+import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {markdownToPlainText} from 'sentry/utils/marked/marked';
@@ -29,7 +30,8 @@ import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {getConversationHref} from './conversation/conversationLink';
 import {
   combineAgentQuery,
-  ConversationsQueryLink,
+  getConversationsQueryHref,
+  getConversationsQueryTitle,
   type ConversationsQueryData,
 } from './conversationsQueryLink';
 
@@ -204,9 +206,12 @@ export default function ConversationsQueryBlock({data}: {data: ConversationsQuer
 
   return (
     <QueryEmbedCard
-      link={<ConversationsQueryLink data={data} />}
+      href={getConversationsQueryHref(data, organization)}
+      icon={IconChat}
+      linkLabel={t('View Conversations')}
       query={data.query}
       testId="seer-conversations-query-embed"
+      title={getConversationsQueryTitle(data)}
     >
       <QueryEmbedTable
         columns={COLUMNS}

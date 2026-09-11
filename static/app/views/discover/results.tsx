@@ -1307,6 +1307,7 @@ function SaveQueryButton({
   }, [eventView, savedQuery, yAxis]);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setQueryName('');
   }, [eventView.id]);
 

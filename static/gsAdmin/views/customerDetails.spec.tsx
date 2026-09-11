@@ -1330,12 +1330,8 @@ describe('Customer Details', () => {
 
   describe('recreate billing platform models', () => {
     const recreateOrg = OrganizationFixture();
-    const mockBillingAdminUser = UserFixture({
-      permissions: new Set(['billing.admin']),
-    });
 
     it('recreates billing platform models', async () => {
-      ConfigStore.set('user', mockBillingAdminUser);
       setUpMocks(recreateOrg, {isBillingAdmin: false});
 
       const updateMock = MockApiClient.addMockResponse({
@@ -1377,9 +1373,6 @@ describe('Customer Details', () => {
 
   describe('billing platform migration', () => {
     const migrationOrg = OrganizationFixture();
-    const mockBillingAdminUser = UserFixture({
-      permissions: new Set(['billing.admin']),
-    });
 
     async function openMigrationAction(name: string) {
       render(<CustomerDetails />, {
@@ -1413,7 +1406,6 @@ describe('Customer Details', () => {
     }
 
     it('migrates an org to the billing platform', async () => {
-      ConfigStore.set('user', mockBillingAdminUser);
       setUpMocks(migrationOrg, {hasMigratedToBillingPlatform: false});
 
       const migrateMock = MockApiClient.addMockResponse({
@@ -1435,7 +1427,6 @@ describe('Customer Details', () => {
     });
 
     it('unmigrates an org from the billing platform', async () => {
-      ConfigStore.set('user', mockBillingAdminUser);
       setUpMocks(migrationOrg, {hasMigratedToBillingPlatform: true});
 
       const unmigrateMock = MockApiClient.addMockResponse({

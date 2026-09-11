@@ -75,6 +75,7 @@ class PrIterationOutcome(StrEnum):
     ALREADY_PUSHED = "already_pushed"
     NO_CODE_CHANGES = "no_code_changes"
     NO_PULL_REQUEST = "no_pull_request"
+    PR_CLOSED = "pr_closed"
     PR_CREATION_ERRORED = "pr_creation_errored"
     PUSH_FAILED = "push_failed"
     TIMEOUT = "timeout"

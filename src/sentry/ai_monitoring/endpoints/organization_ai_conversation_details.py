@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from dataclasses import replace
 from datetime import datetime, timedelta
@@ -133,7 +134,7 @@ class AIConversationDetailsResponse(TypedDict):
 @extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
-    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+    publish_status = {"GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     @extend_schema(
@@ -165,8 +166,6 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         self, request: Request, organization: Organization, conversation_id: str
     ) -> Response[AIConversationDetailsResponse] | Response[DetailResponse] | Response[None]:
         """Return spans recorded for one AI conversation in start-time order.
-
-        **Experimental:** This API is under active development and may change.
 
         Message, tool, and response attributes contain their recorded string values.
         Without an explicit range, Sentry widens the search across available retention.
@@ -376,10 +375,14 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             return {}
 
         requested_keys = set(parent_keys)
+        parent_ids_by_trace: defaultdict[str, list[str]] = defaultdict(list)
+        for trace_id, span_id in sorted(requested_keys):
+            parent_ids_by_trace[trace_id].append(span_id)
+
         query_string = " OR ".join(
             f"({build_escaped_term_filter('trace', [trace_id])} "
-            f"{build_escaped_term_filter('span_id', [span_id])})"
-            for trace_id, span_id in sorted(requested_keys)
+            f"{build_escaped_term_filter('span_id', span_ids)})"
+            for trace_id, span_ids in parent_ids_by_trace.items()
         )
         result = Spans.run_table_query(
             params=snuba_params,
@@ -389,7 +392,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             offset=0,
             limit=len(requested_keys),
             referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,
-            config=SearchResolverConfig(auto_fields=True),
+            config=SearchResolverConfig(auto_fields=False),
             sampling_mode="HIGHEST_ACCURACY",
         )
 
@@ -425,13 +428,15 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             ):
                 pending[child_key] = (span, parent_key, {child_key})
 
-        cache: dict[SpanKey, SpanRow] = {}
+        cache = {key: span for span in spans if (key := self._span_key(span)) is not None}
         fetched_keys: set[SpanKey] = set()
         for depth in range(1, MAX_PARENT_REPAIR_DEPTH + 1):
             if not pending:
                 break
 
-            missing_keys = {parent_key for _, parent_key, _ in pending.values()} - fetched_keys
+            missing_keys = (
+                {parent_key for _, parent_key, _ in pending.values()} - cache.keys() - fetched_keys
+            )
             fetched_keys.update(missing_keys)
             try:
                 cache.update(self._fetch_parent_spans(snuba_params, missing_keys))

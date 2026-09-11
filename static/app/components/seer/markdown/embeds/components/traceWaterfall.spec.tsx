@@ -45,7 +45,9 @@ describe('traceWaterfall embed', () => {
         {timeout: 10_000}
       )
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Trace a1b2c3d4'})).toHaveAttribute(
+    // The block's name is the collapse toggle; the link out is a separate target.
+    expect(screen.getByRole('button', {name: 'Trace a1b2c3d4'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'View Trace'})).toHaveAttribute(
       'href',
       expect.stringContaining(`/explore/traces/trace/${traceId}/`)
     );

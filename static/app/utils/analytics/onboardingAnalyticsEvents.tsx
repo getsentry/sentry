@@ -1,3 +1,19 @@
+import type {ScmMessagingProviderKey} from 'sentry/components/onboarding/scm/messagingProviders';
+
+/**
+ * Where the created project's issue alerts go: the server-created email rule
+ * only, or that plus a messaging integration workflow.
+ */
+type ScmMessagingNotification = 'email_only' | 'integration';
+
+/**
+ * The only identifier the messaging-step interaction events carry. Workspace,
+ * integration, channel, team, and project identifiers or names are never sent.
+ */
+type ScmMessagingProviderParams = {
+  provider: ScmMessagingProviderKey;
+};
+
 export type OnboardingEventParameters = {
   'onboarding.ai_prompt_copied': {
     platform: string;
@@ -79,6 +95,26 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
+  'onboarding.scm_messaging_channel_validation_failed': ScmMessagingProviderParams;
+  'onboarding.scm_messaging_choose_destination_cancelled': ScmMessagingProviderParams;
+  'onboarding.scm_messaging_choose_destination_clicked': ScmMessagingProviderParams;
+  'onboarding.scm_messaging_completed': {
+    notification: ScmMessagingNotification;
+  };
+  'onboarding.scm_messaging_connect_clicked': ScmMessagingProviderParams;
+  'onboarding.scm_messaging_destination_edit_cancelled': ScmMessagingProviderParams;
+  'onboarding.scm_messaging_destination_edit_clicked': ScmMessagingProviderParams;
+  'onboarding.scm_messaging_destination_remove_cancelled': ScmMessagingProviderParams;
+  'onboarding.scm_messaging_destination_remove_confirmed': ScmMessagingProviderParams;
+  'onboarding.scm_messaging_install_retry_clicked': ScmMessagingProviderParams;
+  'onboarding.scm_messaging_install_returned': ScmMessagingProviderParams & {
+    // Whether the refetch after the install flow returned surfaced an active
+    // integration that can receive issue alerts.
+    outcome: 'connected' | 'not_connected';
+  };
+  'onboarding.scm_messaging_msteams_handoff_started': ScmMessagingProviderParams;
+  'onboarding.scm_messaging_providers_retry_clicked': Record<string, unknown>;
+  'onboarding.scm_messaging_step_viewed': Record<string, unknown>;
   'onboarding.scm_next_step_clicked': {
     newOrg: boolean;
     platform: string;
@@ -96,6 +132,11 @@ export type OnboardingEventParameters = {
   'onboarding.scm_platform_selected': {
     platform: string;
     source: 'detected' | 'manual';
+  };
+  'onboarding.scm_project_created': {
+    notification: ScmMessagingNotification;
+    platform: string;
+    project_id: string;
   };
   'onboarding.scm_select_framework_modal_rendered': {
     platform: string;
@@ -203,6 +244,31 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.scm_dsn_copied': 'Onboarding: SCM DSN Copied',
   'onboarding.scm_js_loader_npm_docs_shown':
     'Onboarding: SCM JS Loader Switch to npm Instructions',
+  'onboarding.scm_messaging_channel_validation_failed':
+    'Onboarding: SCM Messaging Channel Validation Failed',
+  'onboarding.scm_messaging_choose_destination_cancelled':
+    'Onboarding: SCM Messaging Choose Destination Cancelled',
+  'onboarding.scm_messaging_choose_destination_clicked':
+    'Onboarding: SCM Messaging Choose Destination Clicked',
+  'onboarding.scm_messaging_completed': 'Onboarding: SCM Messaging Completed',
+  'onboarding.scm_messaging_connect_clicked': 'Onboarding: SCM Messaging Connect Clicked',
+  'onboarding.scm_messaging_destination_edit_cancelled':
+    'Onboarding: SCM Messaging Destination Edit Cancelled',
+  'onboarding.scm_messaging_destination_edit_clicked':
+    'Onboarding: SCM Messaging Destination Edit Clicked',
+  'onboarding.scm_messaging_destination_remove_cancelled':
+    'Onboarding: SCM Messaging Destination Remove Cancelled',
+  'onboarding.scm_messaging_destination_remove_confirmed':
+    'Onboarding: SCM Messaging Destination Remove Confirmed',
+  'onboarding.scm_messaging_install_retry_clicked':
+    'Onboarding: SCM Messaging Install Retry Clicked',
+  'onboarding.scm_messaging_install_returned':
+    'Onboarding: SCM Messaging Install Returned',
+  'onboarding.scm_messaging_msteams_handoff_started':
+    'Onboarding: SCM Messaging MS Teams Handoff Started',
+  'onboarding.scm_messaging_providers_retry_clicked':
+    'Onboarding: SCM Messaging Providers Retry Clicked',
+  'onboarding.scm_messaging_step_viewed': 'Onboarding: SCM Messaging Step Viewed',
   'onboarding.scm_next_step_clicked': 'Onboarding: SCM Next Step Clicked',
   'onboarding.scm_select_framework_modal_rendered':
     'Onboarding: SCM Framework Modal Rendered',
@@ -219,6 +285,7 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.scm_platform_features_step_viewed':
     'Onboarding: SCM Platform Features Step Viewed',
   'onboarding.scm_platform_selected': 'Onboarding: SCM Platform Selected',
+  'onboarding.scm_project_created': 'Onboarding: SCM Project Created',
   'onboarding.scm_skip_detection_clicked': 'Onboarding: SCM Skip Detection Clicked',
   'onboarding.scm_setup_platform_later_clicked':
     'Onboarding: SCM Setup Platform Later Clicked',

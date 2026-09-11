@@ -166,6 +166,7 @@ export default function FeedbackListPage() {
   // Keep the selected feedback in sync with the route. CSS decides whether it replaces
   // the list or appears beside it based on the available container width.
   useLayoutEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setShowItemPreview(Boolean(feedbackId));
     if (feedbackId && isCompact) {
       window.scrollTo(0, 0);
@@ -173,6 +174,7 @@ export default function FeedbackListPage() {
   }, [feedbackId, isCompact]);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setSelectedItemIndex(null);
   }, [pageFilters, searchQuery]);
 
