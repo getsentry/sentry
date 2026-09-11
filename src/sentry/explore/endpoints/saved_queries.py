@@ -8,7 +8,6 @@ from django.db.models import (
     CharField,
     F,
     IntegerField,
-    OrderBy,
     QuerySet,
     Value,
     When,
@@ -132,30 +131,19 @@ def build_combined_queryset(
     discover_queryset: QuerySet[DiscoverSavedQuery],
     explore_queryset: QuerySet[ExploreSavedQuery],
 ) -> QuerySet[DiscoverSavedQuery, dict[str, Any]]:
-    """Build an ordered union of the two querysets.``"""
-    order_by: list[str | OrderBy] = []
+    """Build an ordered union of the two querysets."""
 
-    # TODO: add the actual order by logic Explore implements
+    # TODO: add the actual order by logic Explore implements.
 
-    if len(order_by) == 0:
-        order_by.append("lower_name")
+    # Rows with equal sort keys need a deterministic tiebreaker. id is not enough
+    # with two different types of queries, so we also use query type.
+    order_by = ["lower_name", "-id", "query_type"]
 
-    # Rows with equal sort keys need a deterministic tiebreaker.
-    # id is not enough with two different types of queries, so we also use query type
-    order_by.append("-id")
-    order_by.append("query_type")
-
-    # Both sides of a UNION must project the same columns in the same order
+    # Both sides of a UNION must project the same columns, including every column
+    # the ORDER BY names.
     columns = ["id", "query_type"]
     for column in order_by:
-        if isinstance(column, str):
-            name = column.removeprefix("-")
-        elif isinstance(column.expression, F):
-            # Ordering by an expression is only possible if the union projects the
-            # column it names, so the term has to resolve back to a plain field.
-            name = column.expression.name
-        else:
-            raise TypeError(f"Unsupported order_by term: {column!r}")
+        name = column.removeprefix("-")
         if name not in columns:
             columns.append(name)
 
