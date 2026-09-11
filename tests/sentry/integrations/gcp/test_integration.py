@@ -112,6 +112,9 @@ class GcpIntegrationTest(TestCase):
         assert isinstance(installation, GcpIntegration)
         return installation
 
+    def test_provider_name(self) -> None:
+        assert self.provider.name == "Google Cloud Platform for Seer"
+
     # -- Setup wizard: SA generation step --
 
     @patch("sentry.integrations.gcp.client.secrets.token_hex", return_value="abcdef123456")
