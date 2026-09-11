@@ -143,6 +143,7 @@ class TestConversationSortSerializer:
             "conversation.generationDuration",
             "conversation.errors",
             "conversation.llmCalls",
+            "conversation.messages",
             "conversation.toolCalls",
             "conversation.totalTokens",
             "conversation.inputTokens",
@@ -307,6 +308,13 @@ def test_alias_filter(alias: str) -> None:
     compiled = compile_conversation_query(f"{alias}:>0", resolver)
     _, having, _ = resolver.resolve_query(compiled)
     assert having is not None
+
+
+def test_messages_alias_matches_llm_calls() -> None:
+    resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
+    assert compile_conversation_query(
+        "conversation.messages:>0", resolver
+    ) == compile_conversation_query("conversation.llmCalls:>0", resolver)
 
 
 def test_group_filter_accepts_long_text() -> None:
