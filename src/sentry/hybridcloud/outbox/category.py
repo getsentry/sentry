@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, cast
 
 from sentry.hybridcloud.outbox.signals import process_cell_outbox, process_control_outbox
+from sentry.silo.base import SiloMode
+from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.db.models import BaseModel
@@ -13,6 +15,28 @@ if TYPE_CHECKING:
 
 _outbox_categories_for_scope: dict[int, set[OutboxCategory]] = {}
 _used_categories: set[OutboxCategory] = set()
+
+
+def _run_replication_handler(
+    category: OutboxCategory, direction: str, action: str, handler: Callable[[], None]
+) -> None:
+    tags = {
+        "silo": SiloMode.get_current_mode().value.lower(),
+        "category": category.name,
+        "direction": direction,
+        "action": action,
+    }
+    try:
+        with metrics.timer("hybridcloud.replication.handler.duration", tags=tags, sample_rate=1.0):
+            handler()
+    except Exception:
+        metrics.incr(
+            "hybridcloud.replication.processed", tags={**tags, "outcome": "error"}, sample_rate=1.0
+        )
+        raise
+    metrics.incr(
+        "hybridcloud.replication.processed", tags={**tags, "outcome": "success"}, sample_rate=1.0
+    )
 
 
 class OutboxCategory(IntEnum):
@@ -89,11 +113,24 @@ class OutboxCategory(IntEnum):
                 cast(Any, model), object_identifier, cell_name=None
             )
             if maybe_instance is None:
-                model.handle_async_deletion(
-                    identifier=object_identifier, shard_identifier=shard_identifier, payload=payload
+                _run_replication_handler(
+                    self,
+                    "cell_to_control",
+                    "delete",
+                    lambda: model.handle_async_deletion(
+                        identifier=object_identifier,
+                        shard_identifier=shard_identifier,
+                        payload=payload,
+                    ),
                 )
             else:
-                maybe_instance.handle_async_replication(shard_identifier=shard_identifier)
+                instance = maybe_instance
+                _run_replication_handler(
+                    self,
+                    "cell_to_control",
+                    "replicate",
+                    lambda: instance.handle_async_replication(shard_identifier=shard_identifier),
+                )
 
         process_cell_outbox.connect(receiver, weak=False, sender=self)
 
@@ -112,15 +149,26 @@ class OutboxCategory(IntEnum):
                 cast(Any, model), object_identifier, cell_name=cell_name
             )
             if maybe_instance is None:
-                model.handle_async_deletion(
-                    identifier=object_identifier,
-                    cell_name=cell_name,
-                    shard_identifier=shard_identifier,
-                    payload=payload,
+                _run_replication_handler(
+                    self,
+                    "control_to_cell",
+                    "delete",
+                    lambda: model.handle_async_deletion(
+                        identifier=object_identifier,
+                        cell_name=cell_name,
+                        shard_identifier=shard_identifier,
+                        payload=payload,
+                    ),
                 )
             else:
-                maybe_instance.handle_async_replication(
-                    shard_identifier=shard_identifier, cell_name=cell_name
+                instance = maybe_instance
+                _run_replication_handler(
+                    self,
+                    "control_to_cell",
+                    "replicate",
+                    lambda: instance.handle_async_replication(
+                        shard_identifier=shard_identifier, cell_name=cell_name
+                    ),
                 )
 
         process_control_outbox.connect(receiver, weak=False, sender=self)
