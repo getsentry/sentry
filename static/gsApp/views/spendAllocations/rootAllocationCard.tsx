@@ -50,8 +50,8 @@ export function RootAllocationCard({
     <Container margin="xl 0">
       {!rootAllocation && (
         <Card data-test-id="missing-root">
-          <Flex justify="between">
-            <Container marginRight="xl">
+          <Flex direction={{zero: 'column', md: 'row'}} justify="between" gap="xl">
+            <Container>
               {t(
                 'There is currently no organization-level allocation for this billing metric. '
               )}
@@ -69,11 +69,12 @@ export function RootAllocationCard({
                 )}
               </Text>
             </Container>
-            <Flex justify="center" align="center" area="bt" column="-auto / span 1">
+            <Flex justify="center" align="center" width={{zero: '100%', md: 'auto'}}>
               <Button
                 icon={<IconAdd />}
                 onClick={createRootAllocation}
                 disabled={rootAllocation}
+                style={{width: '100%'}}
               >
                 {t('Create Organization-Level Allocation')}
               </Button>

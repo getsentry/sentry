@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {InfoText} from '@sentry/scraps/info';
-import {Container} from '@sentry/scraps/layout';
+import {Table, type TableColumnConfig} from '@sentry/scraps/table';
 
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
@@ -10,7 +10,7 @@ import type {DataCategory} from 'sentry/types/core';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 
 import {AllocationRow} from './components/allocationRow';
-import {Cell, Centered, Divider, HalvedWithDivider} from './components/styles';
+import {Centered, Divider, HalvedWithDivider} from './components/styles';
 import type {SpendAllocation} from './components/types';
 import type {BigNumUnits} from './utils';
 import {midPeriod} from './utils';
@@ -27,6 +27,15 @@ type Props = {
   selectedMetric: DataCategory;
   spendAllocations?: SpendAllocation[];
 };
+
+const COLUMNS: TableColumnConfig[] = [
+  {key: 'project', width: 'minmax(160px, 1fr)'},
+  {key: 'allocated-label', width: 120},
+  {key: 'allocated-values', width: 180},
+  {key: 'consumed-label', width: 120},
+  {key: 'consumed-values', width: 180},
+  {key: 'actions', width: 100},
+];
 
 export function ProjectAllocationsTable({
   deleteSpendAllocation,
@@ -46,93 +55,86 @@ export function ProjectAllocationsTable({
   }, [spendAllocations, selectedMetric]);
 
   return (
-    <Container margin="xl 0">
-      <Table data-test-id="allocations-table">
-        <colgroup>
-          <col />
-          <col style={{width: '15%'}} />
-          <col style={{width: '15%'}} />
-          <col style={{width: '15%'}} />
-          <col style={{width: '15%'}} />
-          <col style={{width: '15%'}} />
-        </colgroup>
-        <tbody>
-          <tr>
-            <HeaderCell>{t('Project')}</HeaderCell>
-            <HeaderCell style={{textAlign: 'right'}}>
-              <InfoText
-                variant="inherit"
-                title={t(
-                  'Allocated events are guaranteed for your specified projects. If your project goes past its allocated amount, the extra events will consume the root allocation for the organization'
-                )}
-              >
-                {t('Allocated')}
-              </InfoText>
-            </HeaderCell>
-            <HeaderCell>
-              <HalvedWithDivider>
-                <Centered>{t('Spend')}</Centered>
-                <Centered>
-                  <Divider />
-                </Centered>
-                <Centered>{t('Events')}</Centered>
-              </HalvedWithDivider>
-            </HeaderCell>
-            <HeaderCell style={{textAlign: 'right'}}>
-              <InfoText
-                variant="inherit"
-                title={t('Consumed events indicate your usage per allocation')}
-              >
-                {t('Consumed')}
-              </InfoText>
-            </HeaderCell>
-            <HeaderCell>
-              <HalvedWithDivider>
-                <Centered>{t('Spend')}</Centered>
-                <Centered>
-                  <Divider />
-                </Centered>
-                <Centered>{t('Events')}</Centered>
-              </HalvedWithDivider>
-            </HeaderCell>
-            <HeaderCell />
-          </tr>
-          {filteredMetrics.map(a => (
-            <AllocationRow
-              key={a.id}
-              allocation={a}
-              deleteAction={deleteSpendAllocation(
-                selectedMetric,
-                a.targetId,
-                a.targetType,
-                midPeriod(a.period)
+    <AllocationsTable aria-label={t('Project allocations')} columns={COLUMNS}>
+      <Table.Head>
+        <Table.Row>
+          <HeaderCell columnKey="project">{t('Project')}</HeaderCell>
+          <HeaderCell columnKey="allocated-label" align="right">
+            <InfoText
+              variant="inherit"
+              title={t(
+                'Allocated events are guaranteed for your specified projects. If your project goes past its allocated amount, the extra events will consume the root allocation for the organization'
               )}
-              openForm={openForm(a)}
-              metricUnit={metricUnit}
-            />
-          ))}
-          {!filteredMetrics.length && (
-            <tr>
-              <Cell data-test-id="no-allocations">{t('No allocations set')}</Cell>
-            </tr>
-          )}
-        </tbody>
-      </Table>
-    </Container>
+            >
+              {t('Allocated')}
+            </InfoText>
+          </HeaderCell>
+          <HeaderCell columnKey="allocated-values">
+            <HalvedWithDivider margin="0">
+              <Centered>{t('Spend')}</Centered>
+              <Centered>
+                <Divider />
+              </Centered>
+              <Centered>{t('Events')}</Centered>
+            </HalvedWithDivider>
+          </HeaderCell>
+          <HeaderCell columnKey="consumed-label" align="right">
+            <InfoText
+              variant="inherit"
+              title={t('Consumed events indicate your usage per allocation')}
+            >
+              {t('Consumed')}
+            </InfoText>
+          </HeaderCell>
+          <HeaderCell columnKey="consumed-values">
+            <HalvedWithDivider margin="0">
+              <Centered>{t('Spend')}</Centered>
+              <Centered>
+                <Divider />
+              </Centered>
+              <Centered>{t('Events')}</Centered>
+            </HalvedWithDivider>
+          </HeaderCell>
+          <HeaderCell columnKey="actions" />
+        </Table.Row>
+      </Table.Head>
+      <Table.Body>
+        {filteredMetrics.map(a => (
+          <AllocationRow
+            key={a.id}
+            allocation={a}
+            deleteAction={deleteSpendAllocation(
+              selectedMetric,
+              a.targetId,
+              a.targetType,
+              midPeriod(a.period)
+            )}
+            openForm={openForm(a)}
+            metricUnit={metricUnit}
+          />
+        ))}
+        {!filteredMetrics.length && (
+          <Table.Status>{t('No allocations set')}</Table.Status>
+        )}
+      </Table.Body>
+    </AllocationsTable>
   );
 }
 
-const Table = styled('table')`
+const AllocationsTable = styled(Table)`
   background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
-  border-collapse: separate;
   border: 1px ${p => 'solid ' + p.theme.tokens.border.primary};
   box-shadow: ${p => p.theme.shadow.medium};
-  margin-bottom: ${p => p.theme.space.xl};
+  margin: ${p => p.theme.space.xl} 0;
   width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
 `;
 
-const HeaderCell = styled('th')`
+const HeaderCell = styled(Table.HeadCell)`
+  align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.sm};
   font-weight: 600;

@@ -669,14 +669,29 @@ function AMCheckout(props: Props) {
 
   const renderCheckoutContent = () => (
     <Fragment>
-      <CheckoutBody>
+      <Stack
+        align="start"
+        width="100%"
+        maxWidth={{zero: '100%', '2xl': '47.5rem'}}
+        padding="0 2xl 3xl"
+        paddingTop={{zero: '0', '2xl': 'md'}}
+      >
         {renderPartnerAlert()}
         <CheckoutStepsContainer data-test-id="checkout-steps">
           {renderSteps()}
         </CheckoutStepsContainer>
-      </CheckoutBody>
-      <SidePanel>
-        <OverviewContainer>
+      </Stack>
+      <Stack
+        as="aside"
+        width="100%"
+        maxWidth={{zero: '100%', '2xl': '26rem'}}
+        position={{zero: 'static', '2xl': 'sticky'}}
+        top={{zero: 'auto', '2xl': '6.25rem'}}
+        borderTop={{zero: 'primary', '2xl': 'none'}}
+        padding={{zero: '0 2xl', '2xl': '0 2xl 3xl 3xl'}}
+        background={{zero: 'secondary', '2xl': 'primary'}}
+      >
+        <Stack gap="xl" padding={{zero: '2xl 0', '2xl': '0'}}>
           <Cart
             {...overviewProps}
             referrer={referrer}
@@ -743,8 +758,8 @@ function AMCheckout(props: Props) {
               </Text>
             )}
           </Stack>
-        </OverviewContainer>
-      </SidePanel>
+        </Stack>
+      </Stack>
     </Fragment>
   );
 
@@ -785,7 +800,7 @@ function AMCheckout(props: Props) {
       </CheckoutHeader>
 
       <Flex
-        direction={{'screen:xs': 'column', 'screen:md': 'row'}}
+        direction={{zero: 'column', '2xl': 'row'}}
         gap="md 3xl"
         justify="between"
         width="100%"
@@ -820,57 +835,6 @@ const OrgSlug = styled('div')`
   text-wrap: nowrap;
   flex: 1;
   text-align: right;
-`;
-
-const CheckoutBody = styled('div')`
-  padding: 0 ${p => p.theme.space['2xl']} ${p => p.theme.space['3xl']}
-    ${p => p.theme.space['2xl']};
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    max-width: 47.5rem;
-    padding-top: ${p => p.theme.space.md};
-  }
-`;
-
-const SidePanel = styled('aside')`
-  width: 100%;
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  display: flex;
-  flex-direction: column;
-  padding: 0 ${p => p.theme.space['2xl']};
-  background-color: ${p => p.theme.tokens.background.secondary};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    position: sticky;
-    right: 0;
-    top: 6.25rem;
-    max-width: 26rem;
-    border-top: none;
-    padding-left: ${p => p.theme.space['3xl']};
-    background-color: ${p => p.theme.tokens.background.primary};
-    padding-bottom: ${p => p.theme.space['3xl']};
-  }
-`;
-
-/**
- * Hide overview at smaller screen sizes in old checkout
- * Bring overview to bottom at smaller screen sizes in new checkout
- * Cancel subscription button is always visible
- */
-const OverviewContainer = styled('div')`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  gap: ${p => p.theme.space.xl};
-  padding: ${p => p.theme.space['2xl']} 0;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: 0;
-  }
 `;
 
 const CheckoutStepsContainer = styled('div')`

@@ -1,8 +1,7 @@
-import {useState} from 'react';
-import {useTheme} from '@emotion/react';
-
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Table} from '@sentry/scraps/table';
 
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -11,7 +10,7 @@ import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import type {BigNumUnits} from 'getsentry/views/spendAllocations/utils';
 import {bigNumFormatter} from 'getsentry/views/spendAllocations/utils';
 
-import {Cell, Centered, Divider, HalvedWithDivider} from './styles';
+import {Centered, Divider, HalvedWithDivider} from './styles';
 import type {SpendAllocation} from './types';
 
 type AllocationRowProps = {
@@ -27,15 +26,11 @@ export function AllocationRow({
   metricUnit,
   openForm,
 }: AllocationRowProps) {
-  const [deleteHovered, setDeleteHovered] = useState(false);
-  const [editHovered, setEditHovered] = useState(false);
-  const theme = useTheme();
-
   return (
-    <tr data-test-id="allocation-row">
-      <Cell>{allocation.targetSlug}</Cell>
-      <Cell />
-      <Cell>
+    <Table.Row>
+      <AllocationCell columnKey="project">{allocation.targetSlug}</AllocationCell>
+      <AllocationCell columnKey="allocated-label" />
+      <AllocationCell columnKey="allocated-values">
         <HalvedWithDivider>
           {allocation.costPerItem === 0 && (
             <Centered>
@@ -66,9 +61,9 @@ export function AllocationRow({
             </InfoText>
           </Centered>
         </HalvedWithDivider>
-      </Cell>
-      <Cell />
-      <Cell>
+      </AllocationCell>
+      <AllocationCell columnKey="consumed-label" />
+      <AllocationCell columnKey="consumed-values">
         <HalvedWithDivider>
           {allocation.costPerItem === 0 && (
             <Centered>
@@ -108,38 +103,36 @@ export function AllocationRow({
             </InfoText>
           </Centered>
         </HalvedWithDivider>
-      </Cell>
-      <Cell textAlign="right">
-        {allocation.targetType !== 'Organization' && (
-          <Button
-            aria-label={t('Edit')}
-            icon={<IconEdit />}
-            size="xs"
-            onClick={openForm}
-            style={
-              editHovered
-                ? {color: theme.colors.gray300, marginRight: theme.space.md}
-                : {marginRight: theme.space.md}
-            }
-            onMouseEnter={() => setEditHovered(true)}
-            onMouseLeave={() => setEditHovered(false)}
-            data-test-id="edit"
-          />
-        )}
-        {allocation.targetType !== 'Organization' && (
-          <Button
-            aria-label={t('Delete')}
-            icon={<IconDelete />}
-            size="xs"
-            onClick={deleteAction}
-            variant="danger"
-            style={deleteHovered ? {color: theme.colors.red500} : {}}
-            onMouseEnter={() => setDeleteHovered(true)}
-            onMouseLeave={() => setDeleteHovered(false)}
-            data-test-id="delete"
-          />
-        )}
-      </Cell>
-    </tr>
+      </AllocationCell>
+      <AllocationCell columnKey="actions">
+        <Flex justify="end" gap="md">
+          {allocation.targetType !== 'Organization' && (
+            <Button
+              aria-label={t('Edit')}
+              icon={<IconEdit />}
+              size="xs"
+              onClick={openForm}
+            />
+          )}
+          {allocation.targetType !== 'Organization' && (
+            <Button
+              aria-label={t('Delete')}
+              icon={<IconDelete />}
+              size="xs"
+              onClick={deleteAction}
+              variant="danger"
+            />
+          )}
+        </Flex>
+      </AllocationCell>
+    </Table.Row>
+  );
+}
+
+function AllocationCell({children, ...props}: React.ComponentProps<typeof Table.Cell>) {
+  return (
+    <Table.Cell {...props}>
+      <Container padding="xl">{children}</Container>
+    </Table.Cell>
   );
 }

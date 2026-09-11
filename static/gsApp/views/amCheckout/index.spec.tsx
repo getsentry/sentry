@@ -23,7 +23,7 @@ async function assertCheckoutSteps({
   hasBillingCycleStep?: boolean;
   hasBillingInfoStep?: boolean;
 }) {
-  expect(await screen.findByTestId('checkout-steps')).toBeInTheDocument();
+  expect(await screen.findByText('Select a plan')).toBeInTheDocument();
   [
     'Select a plan',
     [PlanTier.AM1, PlanTier.AM2].includes(tier)
