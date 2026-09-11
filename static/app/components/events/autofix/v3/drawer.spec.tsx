@@ -7,7 +7,7 @@ import {AutofixWarnings} from 'sentry/components/events/autofix/v3/drawer';
 describe('AutofixWarnings', () => {
   const organization = OrganizationFixture();
 
-  it('deduplicates repo names', () => {
+  it('renders the generic missing-permissions banner without repo names', () => {
     render(
       <AutofixWarnings
         groupId="1"
@@ -18,24 +18,7 @@ describe('AutofixWarnings', () => {
           },
           {
             warning_type: 'github_app_permissions',
-            repo_name: 'getsentry/sentry',
-          },
-        ]}
-      />,
-      {organization}
-    );
-
-    expect(screen.getAllByText('getsentry/sentry')).toHaveLength(1);
-    expect(screen.getByText(/Seer can't fix the failing CI/)).toBeInTheDocument();
-  });
-
-  it('renders fallback copy when repo names are missing', () => {
-    render(
-      <AutofixWarnings
-        groupId="1"
-        warnings={[
-          {
-            warning_type: 'github_app_permissions',
+            repo_name: 'getsentry/seer',
           },
         ]}
       />,
@@ -44,9 +27,11 @@ describe('AutofixWarnings', () => {
 
     expect(
       screen.getByText(
-        "Seer can't fix the failing CI on your pull request because the configured GitHub App is missing permissions. Update the app."
+        'Seer needs more GitHub App permissions to keep fixing CI on your pull requests.'
       )
     ).toBeInTheDocument();
-    expect(screen.queryByText(/on your pull request in/)).not.toBeInTheDocument();
+    // The banner no longer enumerates the affected repositories.
+    expect(screen.queryByText('getsentry/sentry')).not.toBeInTheDocument();
+    expect(screen.queryByText('getsentry/seer')).not.toBeInTheDocument();
   });
 });

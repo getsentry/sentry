@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -21,7 +21,7 @@ import {useForceBashMode} from 'sentry/components/events/autofix/v3/useForceBash
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
@@ -176,7 +176,7 @@ function InstallationPermissionsButton({installationUrl}: {installationUrl?: str
           <AutofixGithubAppPermissionsModal
             {...deps}
             installationUrl={installationUrl}
-            description={t('Seer had trouble talking to GitHub while running Autofix.')}
+            variant="pr_iteration"
           />
         ))
       }
@@ -239,17 +239,6 @@ export function AutofixWarnings({
       <ConfigurationPermissionsButton />
     );
 
-  const repoNames = [
-    ...new Set(permissionWarnings.map(w => w.repo_name).filter(defined)),
-  ];
-
-  const repoNamesNode = repoNames.map((repoName, index) => (
-    <Fragment key={repoName}>
-      {index > 0 && ', '}
-      <code>{repoName}</code>
-    </Fragment>
-  ));
-
   return (
     <Stack gap="md" padding="md 2xl 0">
       <Alert
@@ -267,16 +256,9 @@ export function AutofixWarnings({
           </Flex>
         }
       >
-        {repoNames.length
-          ? tct(
-              "Seer can't fix the failing CI on your pull request because the configured GitHub App for [repoNames] is missing permissions. Update the app.",
-              {
-                repoNames: repoNamesNode,
-              }
-            )
-          : t(
-              "Seer can't fix the failing CI on your pull request because the configured GitHub App is missing permissions. Update the app."
-            )}
+        {t(
+          'Seer needs more GitHub App permissions to keep fixing CI on your pull requests.'
+        )}
       </Alert>
     </Stack>
   );
