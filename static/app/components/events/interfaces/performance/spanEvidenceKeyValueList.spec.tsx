@@ -25,7 +25,6 @@ describe('SpanEvidenceKeyValueList', () => {
       hash?: string;
     };
     type BuildEventOptions = {
-      isOccurrenceBased?: boolean;
       patternSize?: number;
     };
 
@@ -35,15 +34,9 @@ describe('SpanEvidenceKeyValueList', () => {
       // N+1 repeats a single query, while an MN+1 repeats a pattern of several - and the inclusion
       // of `patternSize` in MN+1 span evidence.
       offendingSpans: OffenderSpan[],
-      {isOccurrenceBased = true, patternSize}: BuildEventOptions = {}
+      {patternSize}: BuildEventOptions = {}
     ) {
-      const builder = new TransactionEventBuilder(
-        'a1',
-        '/dogpark',
-        undefined,
-        undefined,
-        isOccurrenceBased
-      );
+      const builder = new TransactionEventBuilder('a1', '/dogpark');
       builder.getEventFixture().projectID = '123';
 
       const parentSpan = new MockSpan({
@@ -75,26 +68,20 @@ describe('SpanEvidenceKeyValueList', () => {
       return event;
     }
 
-    it.each([
-      ['occurrence-based', true],
-      ['non-occurrence-based', false],
-    ])('renders relevant fields', (_label, isOccurrenceBased) => {
+    it('renders relevant fields', () => {
       // A plain N+1: the same query, run twice
-      const event = buildEvent(
-        [
-          {
-            op: 'db',
-            description: 'SELECT * FROM dogs WHERE id = 1121',
-            hash: 'dog_pack',
-          },
-          {
-            op: 'db',
-            description: 'SELECT * FROM dogs WHERE id = 1231',
-            hash: 'dog_pack',
-          },
-        ],
-        {isOccurrenceBased}
-      );
+      const event = buildEvent([
+        {
+          op: 'db',
+          description: 'SELECT * FROM dogs WHERE id = 1121',
+          hash: 'dog_pack',
+        },
+        {
+          op: 'db',
+          description: 'SELECT * FROM dogs WHERE id = 1231',
+          hash: 'dog_pack',
+        },
+      ]);
 
       render(<SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />);
 
@@ -456,6 +443,7 @@ describe('SpanEvidenceKeyValueList', () => {
         ...event.occurrence,
         subtitle: '/user/*/book/?book_id=*',
         evidenceData: {
+          ...event.occurrence?.evidenceData,
           pathParameters: ['123'],
         },
       } as EventTransaction['occurrence'];

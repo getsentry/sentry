@@ -441,6 +441,26 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   11003: IssueType.PREPROD_SIZE_ANALYSIS,
 };
 
+/**
+ * The inverse of `OCCURRENCE_TYPE_TO_ISSUE_TYPE` above, derived from it rather than maintained
+ * separately so the two can't drift. A few issue types have more than one occurrence type id (the
+ * same issue classified as either a regular or experimental version of the same grouptype, e.g.
+ * 1006 and 1906, which correspond to the backend's `PerformanceNPlusOneGroupType.type_id` and
+ * `PerformanceNPlusOneExperimentalGroupType.type_id`, respectively). Because of the way this is
+ * constructed, the last one mapped to a given issue type wins. That's arbitrary but harmless today
+ * (there's nowhere where we treat regular and experimental versions of the same grouptype
+ * differently, and in fact the experimental ones are currently unused), but if that ever changes,
+ * this shouldn't be relied upon to give the "right" answer.
+ *
+ * @internal used in tests
+ */
+export const ISSUE_TYPE_TO_OCCURRENCE_TYPE = Object.fromEntries(
+  Object.entries(OCCURRENCE_TYPE_TO_ISSUE_TYPE).map(([typeId, issueType]) => [
+    issueType,
+    Number(typeId), // Necessary because `Object.entries` stringifies keys
+  ])
+);
+
 const PERFORMANCE_REGRESSION_TYPE_IDS = new Set([1017, 1018, 2010, 2011]);
 
 export function getIssueTypeFromOccurrenceType(
