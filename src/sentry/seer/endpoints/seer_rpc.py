@@ -146,6 +146,7 @@ from sentry.seer.sentry_data_models import (
     OrganizationProjectDetail,
     OrganizationProjectsResponse,
     OrganizationSlugResponse,
+    ReferencedFixStatementsResponse,
     RefreshMonitoringProviderTokenErrorResponse,
     RefreshMonitoringProviderTokenSuccessResponse,
     SendSeerWebhookErrorResponse,
@@ -420,6 +421,16 @@ class SeerRpcServiceEndpoint(Endpoint):
 def get_organization_slug(*, org_id: int) -> OrganizationSlugResponse:
     org: Organization = Organization.objects.get(id=org_id)
     return OrganizationSlugResponse(slug=org.slug)
+
+
+def find_referenced_fix_statements(*, org_id: int, text: str) -> ReferencedFixStatementsResponse:
+    from sentry.utils.groupreference import find_fix_statements, find_referenced_groups
+
+    groups = find_referenced_groups(text, org_id)
+    return ReferencedFixStatementsResponse(
+        statements=find_fix_statements(text, org_id),
+        short_ids=sorted(g.qualified_short_id for g in groups if g.qualified_short_id),
+    )
 
 
 def deliver_investigation_event(
@@ -1030,6 +1041,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     #
     # Autofix
     "get_organization_slug": seer_rpc(get_organization_slug),
+    "find_referenced_fix_statements": seer_rpc(find_referenced_fix_statements),
     "get_organization_autofix_consent": seer_rpc(get_organization_autofix_consent),
     "get_error_event_details": seer_rpc(get_error_event_details),
     "get_profile_details": seer_rpc(get_profile_details),

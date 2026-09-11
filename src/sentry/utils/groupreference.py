@@ -9,15 +9,17 @@ if TYPE_CHECKING:
 
 _markdown_strip_re = re.compile(r"\[([^]]+)\]\([^)]+\)", re.I)
 
+_fix_keywords = r"(?:Fix|Fixes|Fixed|Close|Closes|Closed|Resolve|Resolves|Resolved)"
+
 _fixes_re = re.compile(
-    r"\b(?:Fix|Fixes|Fixed|Close|Closes|Closed|Resolve|Resolves|Resolved):?\s+([A-Za-z0-9_\-\s\,]+)\b",
+    rf"\b{_fix_keywords}:?\s+([A-Za-z0-9_\-\s\,]+)\b",
     re.I,
 )
 _short_id_re = re.compile(r"\b([A-Z0-9_-]+-[A-Z0-9]+)\b", re.I)
 
 # Matches fix keywords followed by a URL
 _fixes_url_re = re.compile(
-    r"\b(?:Fix|Fixes|Fixed|Close|Closes|Closed|Resolve|Resolves|Resolved):?\s+(https?://[^\s]+)",
+    rf"\b{_fix_keywords}:?\s+(https?://[^\s]+)",
     re.I,
 )
 # Extracts numeric group ID from /issues/{id} in URL path
@@ -102,3 +104,16 @@ def find_referenced_groups(text: str | None, org_id: int) -> set[Group]:
             results.add(group)
 
     return results
+
+
+def find_fix_statements(text: str | None, org_id: int) -> list[str]:
+    """Return each whole line of *text* that fixes a real Sentry issue in
+    *org_id*, so a caller can strip the line from a description verbatim.
+
+    Group detection is delegated to find_referenced_groups, line by line, so a
+    line listing several issues ("Fixes FOO-1, FOO-2") is one statement.
+    """
+    if not text:
+        return []
+
+    return [line for line in text.splitlines() if find_referenced_groups(line, org_id)]
