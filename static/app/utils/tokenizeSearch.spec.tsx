@@ -211,6 +211,65 @@ describe('utils/tokenizeSearch', () => {
         },
       },
       {
+        name: 'should not split a bracketed list on whitespace between items',
+        string: 'span.op:pageload transaction:[/issues/, /issues/:groupId/] python',
+        object: {
+          tokens: [
+            {type: TokenType.FILTER, key: 'span.op', value: 'pageload'},
+            {
+              type: TokenType.FILTER,
+              key: 'transaction',
+              value: '[/issues/, /issues/:groupId/]',
+            },
+            {type: TokenType.FREE_TEXT, value: 'python'},
+          ],
+        },
+      },
+      {
+        name: 'should not split a bracketed list of quoted items on whitespace',
+        string: 'sentry.segment.name:["/issues/", "/issues/:groupId/"]',
+        object: {
+          tokens: [
+            {
+              type: TokenType.FILTER,
+              key: 'sentry.segment.name',
+              value: '["/issues/", "/issues/:groupId/"]',
+            },
+          ],
+        },
+      },
+      {
+        name: 'should ignore a closing bracket inside a quoted list item',
+        string: 'key:["a ]", b] c',
+        object: {
+          tokens: [
+            {type: TokenType.FILTER, key: 'key', value: '["a ]", b]'},
+            {type: TokenType.FREE_TEXT, value: 'c'},
+          ],
+        },
+      },
+      {
+        name: 'should treat an unclosed bracket as plain text',
+        string: 'key:[a, b c',
+        object: {
+          tokens: [
+            {type: TokenType.FILTER, key: 'key', value: '[a,'},
+            {type: TokenType.FREE_TEXT, value: 'b'},
+            {type: TokenType.FREE_TEXT, value: 'c'},
+          ],
+        },
+      },
+      {
+        name: 'should not treat a bracket inside quotes as a list',
+        string: 'key:"[a, b" c',
+        object: {
+          tokens: [
+            {type: TokenType.FILTER, key: 'key', value: '[a, b'},
+            {type: TokenType.FREE_TEXT, value: 'c'},
+          ],
+        },
+      },
+      {
         name: 'should handle quoted filter keys containing colons',
         string: '"imaginary.attribute:made_up_key":asdf',
         object: {
@@ -300,6 +359,12 @@ describe('utils/tokenizeSearch', () => {
   });
 
   describe('QueryResults operations', () => {
+    it('round-trips a bracketed list with whitespace between items unchanged', () => {
+      const query =
+        'span.op:pageload sentry.segment.name:["/issues/", "/issues/:groupId/"]';
+      expect(new MutableSearch(query).formatString()).toBe(query);
+    });
+
     it('add tokens to query object', () => {
       const results = new MutableSearch([]);
 

@@ -605,6 +605,38 @@ export class MutableSearch {
 }
 
 /**
+ * Whether the unquoted `[` at `openIdx` is closed by an unquoted `]` later in
+ * the query. An unclosed bracket is plain text, not the start of a list, so
+ * the splitter must not swallow the rest of the query waiting for its `]`.
+ */
+function hasClosingBracket(queryChars: string[], openIdx: number): boolean {
+  let quoteType = '';
+  let quoteEnclosed = false;
+
+  for (let idx = openIdx + 1; idx < queryChars.length; idx++) {
+    const char = queryChars[idx]!;
+
+    if (
+      ["'", '"'].includes(char) &&
+      !isCharacterEscaped(queryChars, idx) &&
+      (!quoteEnclosed || quoteType === char)
+    ) {
+      quoteEnclosed = !quoteEnclosed;
+      if (quoteEnclosed) {
+        quoteType = char;
+      }
+      continue;
+    }
+
+    if (char === ']' && !quoteEnclosed) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Splits search strings into tokens for parsing by tokenizeSearch.
  *
  * Should stay in sync with src.sentry.search.utils:split_query_into_tokens
@@ -617,17 +649,34 @@ function splitSearchIntoTokens(query: string) {
   let endOfPrevWord = '';
   let quoteType = '';
   let quoteEnclosed = false;
+  // The search grammar allows whitespace between the items of a bracketed
+  // list, e.g. `key:[a, b]`, so a space inside brackets does not end the
+  // token. Only a bracket that is closed later counts; an unclosed `[` is
+  // ordinary text.
+  let bracketDepth = 0;
 
   for (let idx = 0; idx < queryChars.length; idx++) {
     const char = queryChars[idx]!;
     const nextChar = queryChars.length - 1 > idx ? queryChars[idx + 1]! : null;
     token += char;
 
+    if (!quoteEnclosed && char === '[' && hasClosingBracket(queryChars, idx)) {
+      bracketDepth++;
+    } else if (!quoteEnclosed && char === ']' && bracketDepth > 0) {
+      bracketDepth--;
+    }
+
     if (nextChar !== null && !isSpace(char) && isSpace(nextChar)) {
       endOfPrevWord = char;
     }
 
-    if (isSpace(char) && !quoteEnclosed && endOfPrevWord !== ':' && !isSpace(token)) {
+    if (
+      isSpace(char) &&
+      !quoteEnclosed &&
+      bracketDepth === 0 &&
+      endOfPrevWord !== ':' &&
+      !isSpace(token)
+    ) {
       tokens.push(token.trim());
       token = '';
     }
