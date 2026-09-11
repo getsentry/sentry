@@ -278,7 +278,7 @@ class DiscoverSavedQueryStarredManager(BaseManager["DiscoverSavedQueryStarred"])
         Returns:
             True if the query was unstarred, False if the query was already unstarred
         """
-        from sentry.explore.utils import shift_starred_positions_by_one
+        from sentry.explore.utils import shift_starred_positions
 
         with transaction.atomic(using=router.db_for_write(DiscoverSavedQueryStarred)):
             if not (starred_query := self.get_starred_query(organization, user_id, query)):
@@ -290,8 +290,8 @@ class DiscoverSavedQueryStarredManager(BaseManager["DiscoverSavedQueryStarred"])
             # A row unstarred via ``updated_starred_query`` holds no position and so left no
             # gap to close. Filtering on ``position__gt=None`` would raise, not match nothing.
             if deleted_position is not None:
-                shift_starred_positions_by_one(
-                    organization, user_id, from_position=deleted_position
+                shift_starred_positions(
+                    organization, user_id, from_position=deleted_position, delta=-1
                 )
             return True
 

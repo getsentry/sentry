@@ -10,6 +10,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {hasCreatedPullRequests} from 'sentry/components/events/autofix/pullRequests';
+import {AUTOFIX_USER_CONTEXT_MAX_LENGTH} from 'sentry/components/events/autofix/types';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {
   type PermissionsTarget,
@@ -464,6 +465,7 @@ function NextStepTemplate({
         <TextArea
           autosize
           rows={2}
+          maxLength={AUTOFIX_USER_CONTEXT_MAX_LENGTH}
           placeholder={placeholderPrompt}
           value={userContext}
           onChange={event => setUserContext(event.target.value)}
