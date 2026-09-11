@@ -38,7 +38,7 @@ describe('MemberListHeader', () => {
     });
   });
 
-  it('does not show a separate loader while the subscription loads', async () => {
+  it('does not render a loading indicator while waiting for the subscription', async () => {
     SubscriptionStore.init();
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
