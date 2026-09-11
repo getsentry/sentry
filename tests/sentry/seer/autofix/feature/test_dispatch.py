@@ -44,7 +44,7 @@ class TestTriggerAutofixFeature(TestCase):
                 AutofixFeatureArgs(
                     referrer=AutofixReferrer.NIGHT_SHIFT,
                     step=AutofixStep.ROOT_CAUSE,
-                    run_id=123,
+                    existing_run_id=123,
                     insert_index=4,
                     user_context="an upstream triage summary",
                     stopping_point=AutofixStoppingPoint.OPEN_PR,
@@ -80,7 +80,7 @@ class TestTriggerAutofixFeature(TestCase):
         assert payload["group_id"] == self.group.id
         assert payload["project_id"] == self.group.project_id
         assert payload["step"] == AutofixStep.ROOT_CAUSE
-        assert payload["run_id"] == 123
+        assert payload["existing_run_id"] == 123
         assert payload["insert_index"] == 4
         assert payload["short_id"] == (self.group.qualified_short_id or str(self.group.id))
         assert payload["title"] == self.group.title

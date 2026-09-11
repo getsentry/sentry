@@ -38,7 +38,7 @@ class AutofixFeatureArgs:
     step: AutofixStep
     referrer: AutofixReferrer
     step_args: RCAStepArgs
-    run_id: int | None = None
+    existing_run_id: int | None = None
     insert_index: int | None = None
     user_context: str | None = None
     stopping_point: AutofixStoppingPoint | None = None
@@ -82,7 +82,7 @@ def trigger_autofix_feature(
         culprit=group.culprit or "unknown",
         on_completion_hook=extract_hook_definition(AutofixOnCompletionHook, call_on_failure=True),
         step=args.step,
-        run_id=args.run_id,
+        existing_run_id=args.existing_run_id,
         insert_index=args.insert_index,
         user_context=args.user_context,
         stopping_point=(args.stopping_point.value if args.stopping_point is not None else None),
