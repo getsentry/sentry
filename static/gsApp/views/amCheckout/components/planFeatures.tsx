@@ -520,7 +520,7 @@ export function PlanFeatures({
   return (
     <Stack>
       <Stack background="secondary" padding="xl" radius="lg" border="primary" gap="xl">
-        <Grid columns={{'screen:xs': '1fr', 'screen:sm': 'repeat(2, 1fr)'}} gap="xl">
+        <Grid columns={{zero: '1fr', xl: 'repeat(2, 1fr)'}} gap="xl">
           <MonitoringAndDataFeatures planOptions={planOptions} activePlan={activePlan} />
           <ExpansionPackFeatures activePlan={activePlan} />
         </Grid>

@@ -591,16 +591,16 @@ export function CheckoutSuccess({
       align="center"
       justify="between"
       gap="3xl"
-      direction={{'screen:sm': 'column', 'screen:md': 'row'}}
+      direction={{zero: 'column', '3xl': 'row'}}
     >
-      <Stack align={{'screen:sm': 'center', 'screen:md': 'start'}} maxWidth="500px">
-        <Title size="2xl" as="h1" align="left">
+      <Stack align={{zero: 'center', '3xl': 'start'}} maxWidth="500px">
+        <Heading size="2xl" as="h1" align={{zero: 'center', '3xl': 'left'}}>
           {contentTitle}
-        </Title>
-        <Stack gap="2xl" align={{'screen:sm': 'center', 'screen:md': 'start'}}>
-          <Description variant="muted" size="lg" align="left">
+        </Heading>
+        <Stack gap="2xl" align={{zero: 'center', '3xl': 'start'}}>
+          <Text variant="muted" size="lg" align={{zero: 'center', '3xl': 'left'}}>
             {contentDescription}
-          </Description>
+          </Text>
           <Flex gap="sm">
             <LinkButton
               variant="primary"
@@ -640,18 +640,6 @@ export function CheckoutSuccess({
     </Flex>
   );
 }
-
-const Title = styled(Heading)`
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    text-align: center;
-  }
-`;
-
-const Description = styled(Text)`
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    text-align: center;
-  }
-`;
 
 const StyledGrid = styled(Grid)`
   & > :last-child {
