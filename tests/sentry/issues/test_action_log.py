@@ -288,6 +288,12 @@ class TestPublishActionFromContext(TestCase):
 
 
 class TestPublishActionsFromContextBulk(TestCase):
+    def test_rejects_more_than_5000_actions(self) -> None:
+        action = (ViewAction(), self.project, self.group.id, None)
+
+        with pytest.raises(ValueError, match="cannot publish more than 5000 actions at once"):
+            publish_actions_from_context_bulk([action] * 5_001)
+
     def test_reserve_object_identifiers_for_bulk_create(self) -> None:
         with self.assertNumQueries(1):
             identifiers = GroupActionLogOutbox.reserve_object_identifiers_for_bulk_create(3)

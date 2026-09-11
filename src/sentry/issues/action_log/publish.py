@@ -53,6 +53,7 @@ class ActionContext:
 
 
 _action_context: ContextVar[ActionContext | None] = ContextVar("action_context", default=None)
+_MAX_BULK_ACTIONS = 5_000
 
 
 @contextmanager
@@ -252,14 +253,16 @@ def publish_actions_from_context_bulk(
     force_async_derived: bool = False,
 ) -> None:
     """
-    Record multiple issue actions using the current ActionContext. See docstring for
-    publish_action_from_context. The distinction is that this is a function to publish
-    multiple GroupActions at once while scheduling at most one Outbox drain per shard.
+    Record up to 5,000 issue actions using the current ActionContext. See docstring for
+    publish_action_from_context. The distinction is that this publishes multiple GroupActions
+    at once while scheduling at most one Outbox drain per shard.
 
     Input is a sequence of tuples of (GroupAction, Project, GroupID, IdempotencyKey)
     """
     if len(actions) == 0:
         return
+    if len(actions) > _MAX_BULK_ACTIONS:
+        raise ValueError(f"cannot publish more than {_MAX_BULK_ACTIONS} actions at once")
 
     ctx = get_action_context()
     if ctx is None:
