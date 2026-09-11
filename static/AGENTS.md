@@ -105,3 +105,11 @@ Writing or editing frontend tests (`*.spec.tsx`, RTL, `MockApiClient`, routing/n
 ## Sentry SDK Instrumentation
 
 Before inventing a key for `Sentry.setTag`/`setContext`, or a span's `setAttribute`, check whether OTel or Sentry already has a standard name for it in `@sentry/conventions`. Reuse existing names so the same attribute remains queryable across producers such as SDKs and Relay.
+
+Find attribute name constants in `@sentry/conventions/attributes/search`, where they are prefixed with `SEARCH_`. Use `span.setAttribute` to attach the value with the existing convention name:
+
+```tsx
+import {SEARCH_USER_AGENT__ORIGINAL} from '@sentry/conventions/attributes/search';
+
+span.setAttribute(SEARCH_USER_AGENT__ORIGINAL, navigator.userAgent);
+```
