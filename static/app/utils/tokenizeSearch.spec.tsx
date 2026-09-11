@@ -260,6 +260,27 @@ describe('utils/tokenizeSearch', () => {
         },
       },
       {
+        name: 'should not let a later explicit tag key close an unclosed bracket',
+        string: 'key:[a, b tags[foo]:bar',
+        object: {
+          tokens: [
+            {type: TokenType.FILTER, key: 'key', value: '[a,'},
+            {type: TokenType.FREE_TEXT, value: 'b'},
+            {type: TokenType.FILTER, key: 'tags[foo]', value: 'bar'},
+          ],
+        },
+      },
+      {
+        name: 'should handle a nested list inside a bracketed list',
+        string: 'key:[[a, b], c] d',
+        object: {
+          tokens: [
+            {type: TokenType.FILTER, key: 'key', value: '[[a, b], c]'},
+            {type: TokenType.FREE_TEXT, value: 'd'},
+          ],
+        },
+      },
+      {
         name: 'should not treat a bracket inside quotes as a list',
         string: 'key:"[a, b" c',
         object: {

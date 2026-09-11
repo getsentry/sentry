@@ -605,13 +605,16 @@ export class MutableSearch {
 }
 
 /**
- * Whether the unquoted `[` at `openIdx` is closed by an unquoted `]` later in
- * the query. An unclosed bracket is plain text, not the start of a list, so
- * the splitter must not swallow the rest of the query waiting for its `]`.
+ * Whether the unquoted `[` at `openIdx` is closed by a matching unquoted `]`
+ * later in the query. An unclosed bracket is plain text, not the start of a
+ * list, so the splitter must not swallow the rest of the query waiting for its
+ * `]`. Nested pairs are matched, so the `]` of a later `tags[foo]` does not
+ * pass as the closer of an earlier stray `[`.
  */
 function hasClosingBracket(queryChars: string[], openIdx: number): boolean {
   let quoteType = '';
   let quoteEnclosed = false;
+  let depth = 1;
 
   for (let idx = openIdx + 1; idx < queryChars.length; idx++) {
     const char = queryChars[idx]!;
@@ -628,8 +631,17 @@ function hasClosingBracket(queryChars: string[], openIdx: number): boolean {
       continue;
     }
 
-    if (char === ']' && !quoteEnclosed) {
-      return true;
+    if (quoteEnclosed) {
+      continue;
+    }
+
+    if (char === '[') {
+      depth++;
+    } else if (char === ']') {
+      depth--;
+      if (depth === 0) {
+        return true;
+      }
     }
   }
 
