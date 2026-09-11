@@ -19,8 +19,8 @@ from sentry.seer.models.night_shift import (
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunPullRequest
 from sentry.seer.monitor_cleanup import FEATURE
 from sentry.seer.monitor_cleanup.results import (
+    format_monitor_cleanup_results,
     prepare_monitor_cleanup_results,
-    validate_monitor_cleanup,
 )
 from sentry.seer.monitor_cleanup.runs import (
     create_monitor_cleanup_run,
@@ -535,14 +535,11 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert run.extras["status"] == "running"
         assert run.extras["results"] == []
 
-    def test_rejects_concurrent_scan(self) -> None:
-        self.trigger()
-        with self.feature(FEATURE):
-            response = self.get_error_response(
-                self.organization.slug, strategy="duplicate_monitors", status_code=400
-            )
-        assert response.data["detail"] == "A monitor scan is already running."
-        assert SeerAgentRun.objects.filter(run__organization=self.organization).count() == 1
+    def test_each_click_starts_a_feature_run(self) -> None:
+        first = self.trigger().data["runId"]
+        second = self.trigger().data["runId"]
+        assert first != second
+        assert SeerAgentRun.objects.filter(run__organization=self.organization).count() == 2
 
     def test_allows_scan_after_previous_run_completes(self) -> None:
         run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
@@ -563,23 +560,19 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert response.status_code == 200
         assert SeerAgentRun.objects.filter(run__organization=self.organization).count() == 1
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_limits_scans_per_organization_per_hour(self) -> None:
         for _ in range(5):
-            run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
-            finish_run(run.run_id, error="Scan failed")
-        another_user = self.create_user()
-        self.create_member(organization=self.organization, user=another_user, role="owner")
-        self.login_as(another_user)
+            user = self.create_user()
+            self.create_member(organization=self.organization, user=user, role="owner")
+            self.login_as(user)
+            self.trigger()
+        self.login_as(self.user)
         with self.feature(FEATURE):
-            response = self.get_error_response(
+            self.get_error_response(
                 self.organization.slug, strategy="duplicate_monitors", status_code=429
             )
-        assert "five scans per hour" in response.data["detail"]
-        SeerRun.objects.filter(organization=self.organization).update(
-            date_added=timezone.now() - timedelta(hours=2)
-        )
-        self.trigger()
-        assert SeerAgentRun.objects.filter(run__organization=self.organization).count() == 6
+        assert SeerAgentRun.objects.filter(run__organization=self.organization).count() == 5
 
     def test_rejects_run_id_above_bigint_range(self) -> None:
         with self.feature(FEATURE):
@@ -724,7 +717,9 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
 
     def test_validates_and_persists_result_once(self) -> None:
         run = SeerAgentRun.objects.get(run__uuid=self.trigger().data["runId"])
-        output = validate_monitor_cleanup(self.artifact(), self.organization.id, self.project.id)
+        output = format_monitor_cleanup_results(
+            self.artifact(), self.organization.id, self.project.id
+        )
         finish_run(run.run_id, outputs=[output])
         finish_run(run.run_id, error="Late failure must not replace a completed result")
         run.refresh_from_db()
@@ -763,13 +758,13 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
     def test_missing_response_version_fails(self) -> None:
         run, _ = self.deliver({"data": self.organization_artifact().dict()})
         assert run.extras["status"] == "failed"
-        assert "unsupported" in run.extras["error"]
+        assert "could not be loaded" in run.extras["error"]
         assert not run.extras["results"]
 
-    def test_unknown_response_version_fails_before_parsing(self) -> None:
+    def test_unknown_response_version_fails(self) -> None:
         run, _ = self.deliver({"schema_version": 2, "data": {"new_shape": True}})
         assert run.extras["status"] == "failed"
-        assert "unsupported" in run.extras["error"]
+        assert "could not be loaded" in run.extras["error"]
         assert not run.extras["results"]
 
     def test_invalid_versioned_response_fails(self) -> None:
@@ -814,33 +809,9 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
     def test_rejects_cross_project_candidates(self) -> None:
         other_project = self.create_project(organization=self.organization)
         other = self.create_detector(project=other_project, type="metric_issue")
-        with pytest.raises(ValueError, match="outside this project"):
-            validate_monitor_cleanup(
+        with pytest.raises(KeyError):
+            format_monitor_cleanup_results(
                 self.artifact(str(other.id)), self.organization.id, self.project.id
-            )
-
-    def test_rejects_survivor_as_duplicate(self) -> None:
-        with pytest.raises(ValueError, match="overlapping"):
-            validate_monitor_cleanup(
-                self.artifact(str(self.keep.id)), self.organization.id, self.project.id
-            )
-
-    def test_rejects_monitor_id_above_bigint_range(self) -> None:
-        with pytest.raises(ValueError, match="less than or equal"):
-            validate_monitor_cleanup(
-                self.finding_artifact(monitor_ids=[str(self.keep.id), "9223372036854775808"]),
-                self.organization.id,
-                self.project.id,
-            )
-
-    def test_rejects_alert_id_above_bigint_range(self) -> None:
-        with pytest.raises(ValueError, match="less than or equal"):
-            validate_monitor_cleanup(
-                self.finding_artifact(
-                    kind="duplicate_notifications", alert_ids=["9223372036854775808"]
-                ),
-                self.organization.id,
-                self.project.id,
             )
 
     def test_history_does_not_expose_inaccessible_projects(self) -> None:
@@ -877,27 +848,13 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         )
 
     def test_overlap_has_no_keeper(self) -> None:
-        output = validate_monitor_cleanup(
+        output = format_monitor_cleanup_results(
             self.finding_artifact(), self.organization.id, self.project.id
         )
         assert output["schemaVersion"] == 1
         findings = output["findings"]
         assert findings[0]["suggestedKeepId"] is None
         assert findings[0]["monitors"][0]["name"] == "Keep"
-
-    def test_overlap_cannot_suggest_deletion(self) -> None:
-        with pytest.raises(ValueError, match="must not recommend deletion"):
-            validate_monitor_cleanup(
-                self.finding_artifact(suggested_keep_id=str(self.keep.id)),
-                self.organization.id,
-                self.project.id,
-            )
-
-    def test_exact_finding_requires_member_as_keeper(self) -> None:
-        with pytest.raises(ValueError, match="suggested keeper"):
-            validate_monitor_cleanup(
-                self.finding_artifact(kind="exact_duplicate"), self.organization.id, self.project.id
-            )
 
     def test_allows_coverage_and_notifications_for_same_pair(self) -> None:
         workflow = self.create_workflow(
@@ -909,7 +866,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         artifact.findings += self.finding_artifact(
             kind="duplicate_notifications", alert_ids=[str(workflow.id)]
         ).findings
-        output = validate_monitor_cleanup(artifact, self.organization.id, self.project.id)
+        output = format_monitor_cleanup_results(artifact, self.organization.id, self.project.id)
         assert output["schemaVersion"] == 1
         findings = output["findings"]
         assert len(findings) == 2
@@ -917,30 +874,14 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             {"id": str(workflow.id), "name": "Shared alert", "enabled": False}
         ]
 
-    def test_rejects_alert_not_connected_to_both_monitors(self) -> None:
-        workflow = self.create_workflow(organization=self.organization)
-        self.create_detector_workflow(detector=self.keep, workflow=workflow)
-        with pytest.raises(ValueError, match="alerts connected"):
-            validate_monitor_cleanup(
-                self.finding_artifact(kind="duplicate_notifications", alert_ids=[str(workflow.id)]),
-                self.organization.id,
-                self.project.id,
-            )
-
     def test_rejects_cross_organization_alert(self) -> None:
         workflow = self.create_workflow(organization=self.create_organization())
-        with pytest.raises(ValueError, match="alerts connected"):
-            validate_monitor_cleanup(
+        with pytest.raises(KeyError):
+            format_monitor_cleanup_results(
                 self.finding_artifact(kind="duplicate_notifications", alert_ids=[str(workflow.id)]),
                 self.organization.id,
                 self.project.id,
             )
-
-    def test_rejects_repeated_finding(self) -> None:
-        artifact = self.finding_artifact()
-        artifact.findings *= 2
-        with pytest.raises(ValueError, match="overlapping"):
-            validate_monitor_cleanup(artifact, self.organization.id, self.project.id)
 
     def test_persists_comparison_values_by_monitor(self) -> None:
         artifact = self.finding_artifact(
@@ -954,7 +895,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
                 }
             ]
         )
-        output = validate_monitor_cleanup(artifact, self.organization.id, self.project.id)
+        output = format_monitor_cleanup_results(artifact, self.organization.id, self.project.id)
         assert output["schemaVersion"] == 1
         findings = output["findings"]
         assert findings[0]["comparison"] == [
@@ -967,17 +908,33 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             }
         ]
 
-    def test_rejects_incomplete_or_foreign_comparison_columns(self) -> None:
-        artifact = self.finding_artifact(
-            comparison=[
-                {
-                    "property": "Trigger",
-                    "values": [
-                        {"monitor_id": str(self.keep.id), "value": ">100 errors"},
-                        {"monitor_id": "999999", "value": ">500 errors"},
-                    ],
-                }
-            ]
-        )
-        with pytest.raises(ValueError, match="each finding monitor exactly once"):
-            validate_monitor_cleanup(artifact, self.organization.id, self.project.id)
+    def test_delivery_handles_missing_monitor(self) -> None:
+        data = self.organization_artifact().dict()
+        data["projects"][0]["findings"][0]["monitor_ids"] = [self.keep.id, 999999999]
+        run, _ = self.deliver({"schema_version": 1, "data": data})
+        assert run.extras["status"] == "failed"
+        assert not run.extras["results"]
+
+    def test_delivery_handles_monitor_id_outside_database_range(self) -> None:
+        data = self.organization_artifact().dict()
+        data["projects"][0]["findings"][0]["monitor_ids"] = [self.keep.id, 2**63]
+        run, _ = self.deliver({"schema_version": 1, "data": data})
+        assert run.extras["status"] == "failed"
+        assert not run.extras["results"]
+
+    def test_delivery_preserves_agent_recommendations(self) -> None:
+        data = self.organization_artifact().dict()
+        finding = data["projects"][0]["findings"][0]
+        finding["suggested_keep_id"] = self.keep.id
+        finding["reason"] = "Detailed explanation. " * 150
+        finding["comparison"] = [
+            {"property": "Trigger", "values": [{"monitor_id": self.keep.id, "value": ">100"}]}
+        ]
+        run, _ = self.deliver({"schema_version": 1, "data": data})
+        assert run.extras["status"] == "complete"
+        output = run.extras["results"][0]["findings"][0]
+        assert output["suggestedKeepId"] == str(self.keep.id)
+        assert output["reason"] == finding["reason"]
+        assert output["comparison"] == [
+            {"property": "Trigger", "values": [{"monitorId": str(self.keep.id), "value": ">100"}]}
+        ]

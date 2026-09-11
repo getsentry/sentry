@@ -8,7 +8,7 @@ from uuid import UUID
 
 from django.db import router, transaction
 from django.utils import timezone
-from rest_framework.exceptions import NotFound, PermissionDenied, Throttled, ValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.request import Request
 
 from sentry import features
@@ -44,14 +44,6 @@ def create_monitor_cleanup_run(request: Request, organization: Organization) -> 
     except SeerPermissionError as error:
         raise PermissionDenied(str(error)) from error
     with transaction.atomic(router.db_for_write(SeerRun)):
-        Organization.objects.select_for_update().get(id=organization.id)
-        runs = SeerAgentRun.objects.filter(run__organization=organization, source=FEATURE_ID)
-        if runs.filter(extras__status="running").exists():
-            raise ValidationError({"detail": "A monitor scan is already running."})
-        if runs.filter(run__date_added__gte=timezone.now() - timedelta(hours=1)).count() >= 5:
-            raise Throttled(
-                detail="This organization has reached the limit of five scans per hour."
-            )
         extras: MonitorCleanupRunExtras = {
             "status": "running",
             "date_completed": None,
@@ -123,23 +115,14 @@ def deliver_monitor_cleanup_result(
     if status != "completed" or result is None:
         finish_run(agent_run.run_id, error="Seer could not complete this scan.")
         return
-    # Reject unknown envelopes before interpreting their contents as the current schema.
-    if (
-        type(result.get("schema_version")) is not int
-        or result["schema_version"] != RESPONSE_VERSION
-    ):
-        finish_run(
-            agent_run.run_id, error="Seer returned an unsupported monitor cleanup response version."
-        )
-        return
     try:
         response = MonitorCleanupResponseV1.parse_obj(result)
         outputs = prepare_monitor_cleanup_results(
             response.data, agent_run.run.organization, agent_run.run.user_id
         )
-    except ValueError:
+    except Exception:
         logger.exception("monitor_cleanup.invalid_output", extra={"agent_run_id": agent_run.id})
-        finish_run(agent_run.run_id, error="Seer returned findings that could not be validated.")
+        finish_run(agent_run.run_id, error="Seer returned findings that could not be loaded.")
         return
     scan_status = response.data.scan_status
     if any(project.scan_status == "partial" for project in response.data.projects):

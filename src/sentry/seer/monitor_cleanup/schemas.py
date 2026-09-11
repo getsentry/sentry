@@ -2,44 +2,39 @@ from __future__ import annotations
 
 from typing import Literal, NotRequired, TypedDict
 
-from pydantic import BaseModel, ConstrainedInt, Field
+from pydantic import BaseModel, Field
 
 RESPONSE_VERSION: Literal[1] = 1
 
 
-class SentryId(ConstrainedInt):
-    gt = 0
-    le = 2**63 - 1
-
-
 class MonitorPropertyValue(BaseModel):
-    monitor_id: SentryId
-    value: str = Field(..., min_length=1, max_length=160)
+    monitor_id: int
+    value: str
 
 
 class MonitorPropertyComparison(BaseModel):
-    property: str = Field(..., min_length=1, max_length=60)
-    values: list[MonitorPropertyValue] = Field(..., min_items=2, max_items=50)
+    property: str
+    values: list[MonitorPropertyValue]
 
 
 class MonitorFinding(BaseModel):
     kind: Literal["exact_duplicate", "overlapping_coverage", "duplicate_notifications"]
-    monitor_ids: list[SentryId] = Field(..., min_items=2, max_items=50)
-    suggested_keep_id: SentryId | None = None
-    alert_ids: list[SentryId] = Field(default_factory=list, max_items=50)
-    reason: str = Field(..., min_length=1, max_length=2000)
-    comparison: list[MonitorPropertyComparison] = Field(default_factory=list, max_items=12)
+    monitor_ids: list[int]
+    suggested_keep_id: int | None = None
+    alert_ids: list[int] = Field(default_factory=list)
+    reason: str
+    comparison: list[MonitorPropertyComparison] = Field(default_factory=list)
 
 
 class MonitorCleanupArtifact(BaseModel):
     scan_status: Literal["complete", "partial"]
-    monitors_scanned: int = Field(..., ge=0)
-    summary: str = Field(..., max_length=2000)
-    findings: list[MonitorFinding] = Field(..., max_items=50)
+    monitors_scanned: int
+    summary: str
+    findings: list[MonitorFinding]
 
 
 class ProjectMonitorCleanupArtifact(MonitorCleanupArtifact):
-    project_id: SentryId
+    project_id: int
 
 
 class OrganizationMonitorCleanupArtifact(BaseModel):

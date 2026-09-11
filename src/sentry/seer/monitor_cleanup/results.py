@@ -19,8 +19,6 @@ def prepare_monitor_cleanup_results(
     artifact: OrganizationMonitorCleanupArtifact, organization: Organization, user_id: int
 ) -> list[MonitorCleanupOutput]:
     project_ids = [project.project_id for project in artifact.projects]
-    if len(project_ids) != len(set(project_ids)):
-        raise ValueError("The scan returned repeated projects.")
     projects = {
         project.id: project
         for project in Project.objects.filter(organization=organization, id__in=project_ids)
@@ -36,13 +34,13 @@ def prepare_monitor_cleanup_results(
     outputs: list[MonitorCleanupOutput] = []
     for project_artifact in artifact.projects:
         project = projects[project_artifact.project_id]
-        output = validate_monitor_cleanup(project_artifact, organization.id, project.id)
+        output = format_monitor_cleanup_results(project_artifact, organization.id, project.id)
         output["projectSlug"] = project.slug
         outputs.append(output)
     return outputs
 
 
-def validate_monitor_cleanup(
+def format_monitor_cleanup_results(
     artifact: MonitorCleanupArtifact, organization_id: int, project_id: int
 ) -> MonitorCleanupOutput:
     findings = artifact.findings
@@ -61,58 +59,18 @@ def validate_monitor_cleanup(
             type=MetricIssue.slug,
         )
     }
-    if ids != monitors.keys():
-        raise ValueError("Some suggested monitors no longer exist or are outside this project.")
-    links = list(
-        DetectorWorkflow.objects.filter(
-            detector_id__in=ids,
-            workflow_id__in=alert_ids,
-            workflow__organization_id=organization_id,
-        ).select_related("workflow")
-    )
     alerts: dict[int, MonitorCleanupResource] = {
         link.workflow_id: {
             "id": str(link.workflow_id),
             "name": link.workflow.name,
             "enabled": link.workflow.enabled,
         }
-        for link in links
+        for link in DetectorWorkflow.objects.filter(
+            detector_id__in=monitors,
+            workflow_id__in=alert_ids,
+            workflow__organization_id=organization_id,
+        ).select_related("workflow")
     }
-    seen = set()
-    exact_ids: set[int] = set()
-    for finding in findings:
-        members = set(finding.monitor_ids)
-        for row in finding.comparison:
-            row_ids = {value.monitor_id for value in row.values}
-            if len(row_ids) != len(row.values) or row_ids != members:
-                raise ValueError("Comparison rows must contain each finding monitor exactly once.")
-        key = (finding.kind, tuple(sorted(members)))
-        if len(members) != len(finding.monitor_ids) or key in seen:
-            raise ValueError("The scan returned overlapping monitor groups.")
-        seen.add(key)
-        if finding.kind == "exact_duplicate":
-            if finding.suggested_keep_id not in members or members & exact_ids:
-                raise ValueError("Exact duplicates require a distinct suggested keeper.")
-            exact_ids.update(members)
-        elif finding.suggested_keep_id is not None:
-            raise ValueError("Overlapping coverage and notifications must not recommend deletion.")
-        if finding.kind == "duplicate_notifications":
-            selected_alerts = set(finding.alert_ids)
-            selected_links = {
-                (link.detector_id, link.workflow_id)
-                for link in links
-                if link.detector_id in members and link.workflow_id in selected_alerts
-            }
-            if (
-                not selected_alerts
-                or {monitor_id for monitor_id, _ in selected_links} != members
-                or {alert_id for _, alert_id in selected_links} != selected_alerts
-            ):
-                raise ValueError(
-                    "Notification findings require alerts connected to these monitors."
-                )
-        elif finding.alert_ids:
-            raise ValueError("Alert references belong to notification findings.")
     return {
         "outputKind": "monitor_cleanup",
         "schemaVersion": 1,

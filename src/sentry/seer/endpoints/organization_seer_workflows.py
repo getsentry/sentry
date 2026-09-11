@@ -8,7 +8,7 @@ from uuid import UUID
 from django.db.models import Value
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import NotFound, Throttled, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -24,6 +24,7 @@ from sentry.api.serializers.models.seer_night_shift_run import (  # noqa: F401 -
     SeerNightShiftRunSerializer,
 )
 from sentry.models.organization import Organization
+from sentry.ratelimits import backend as ratelimits
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.night_shift import SeerNightShiftRun
 from sentry.seer.models.run import SeerRun
@@ -158,6 +159,12 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
         strategy = serializer.validated_data["strategy"]
+        if ratelimits.is_limited(
+            f"seer-workflow:{organization.id}:{strategy}", limit=5, window=3600
+        ):
+            raise Throttled(
+                detail="This organization has reached the limit of five scans per hour."
+            )
         run = MANUAL_WORKFLOW_HANDLERS[strategy](request, organization)
         return Response(
             {
