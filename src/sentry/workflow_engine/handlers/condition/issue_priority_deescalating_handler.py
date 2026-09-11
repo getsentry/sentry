@@ -39,6 +39,11 @@ class IssuePriorityDeescalatingConditionHandler(DataConditionHandler[WorkflowEve
         # use this to determine if we've breached the comparison priority before
         highest_seen_priority = open_period.data.get("highest_seen_priority", current_priority)
 
+        # Preserve the current behavior for the automation builder's broken default.
+        # Remove this compatibility path after ISWF-3453 is complete.
+        if comparison is True:
+            return group.status == GroupStatus.RESOLVED
+
         return comparison <= highest_seen_priority and (
             current_priority < comparison or group.status == GroupStatus.RESOLVED
         )
