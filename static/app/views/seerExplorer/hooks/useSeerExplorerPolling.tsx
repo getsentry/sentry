@@ -84,8 +84,11 @@ export const useSeerExplorerPolling = ({runId}: {runId: SeerExplorerRunId | null
 
   // Reset error poll count when runId changes
   const prevRunIdRef = useRef(runId);
+  // oxlint-disable-next-line react/refs
   if (prevRunIdRef.current !== runId) {
+    // oxlint-disable-next-line react/refs
     prevRunIdRef.current = runId;
+    // oxlint-disable-next-line react/refs
     errorPollCountRef.current = 0;
   }
 
@@ -151,6 +154,7 @@ export const useSeerExplorerPolling = ({runId}: {runId: SeerExplorerRunId | null
     apiData?.session,
     isError,
     error?.status,
+    // oxlint-disable-next-line react/refs
     errorPollCountRef.current
   );
 

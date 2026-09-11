@@ -35,8 +35,11 @@ export function ReplayTableHeader({
   const listItemCheckboxState = useListItemCheckboxContext();
   const {countSelected, deselectAll, endpointOptionsRef, selectAll, selectedIds} =
     listItemCheckboxState;
+  // oxlint-disable-next-line react/refs
   const endpointOptions = endpointOptionsRef.current;
+  // oxlint-disable-next-line react/refs
   const rawQuery = endpointOptions?.query?.query;
+  // oxlint-disable-next-line react/refs
   const queryString = typeof rawQuery === 'string' ? rawQuery : undefined;
 
   const headerStyle: React.CSSProperties = stickyHeader
@@ -81,6 +84,7 @@ export function ReplayTableHeader({
                 />
               )}
               <DeleteReplays
+                // oxlint-disable-next-line react/refs
                 queryOptions={endpointOptionsRef.current}
                 replays={replays}
                 selectedIds={selectedIds}
@@ -100,8 +104,10 @@ export function ReplayTableHeader({
                 countSelected
               )}
               <a onClick={selectAll}>
+                {/* oxlint-disable-next-line react/refs */}
                 {queryString
                   ? tct('Select all replays that match: [queryString].', {
+                      // oxlint-disable-next-line react/refs
                       queryString: <var>{queryString}</var>,
                     })
                   : t('Select all replays.')}
@@ -114,8 +120,10 @@ export function ReplayTableHeader({
       <ListItemSelectedState selected="all">
         <SimpleTable.FullWidthRow>
           <Alert variant="info" system>
+            {/* oxlint-disable-next-line react/refs */}
             {queryString
               ? tct('Selected all replays matching: [queryString].', {
+                  // oxlint-disable-next-line react/refs
                   queryString: <var>{queryString}</var>,
                 })
               : countSelected > replays.length

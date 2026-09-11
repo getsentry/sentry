@@ -132,9 +132,12 @@ export function BaseField<T extends HTMLElement>(
 
   return (
     <Flex gap="sm" align="center">
+      {/* oxlint-disable-next-line react/refs */}
       {props.children(
         {
+          // oxlint-disable-next-line react/refs
           ref: mergeRefs(ref, props.ref),
+          // oxlint-disable-next-line react/refs
           disabled: !!props.disabled || autoSaveContext?.status === 'pending',
           'aria-invalid': !field.state.meta.isValid,
           'aria-describedby': hintTextId,
@@ -144,6 +147,7 @@ export function BaseField<T extends HTMLElement>(
         },
         {indicator}
       )}
+      {/* oxlint-disable-next-line react/refs */}
       <FieldMeta.Status disabled={props.disabled} />
     </Flex>
   );

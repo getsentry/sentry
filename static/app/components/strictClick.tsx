@@ -57,6 +57,7 @@ export function StrictClick<T extends HTMLElement>({onClick, children}: Props<T>
     return children;
   }
 
+  // oxlint-disable-next-line react/refs
   return cloneElement(children, {
     onMouseDown: handleMouseDown,
     onClick: handleMouseClick,

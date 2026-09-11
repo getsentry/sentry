@@ -38,6 +38,7 @@ export function useConversationScrollRestoration({
   // The scroll listener is attached once, so it reads the active tab from a ref
   // to always record against the tab that is currently visible.
   const activeTabRef = useRef(activeTab);
+  // oxlint-disable-next-line react/refs
   activeTabRef.current = activeTab;
 
   useEffect(() => {

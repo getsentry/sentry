@@ -42,6 +42,7 @@ export const useSeerExplorerDrawer = (options?: {onClose?: () => void}) => {
   }, [isDrawerOpen]);
 
   const onCloseCallbackRef = useRef(options?.onClose);
+  // oxlint-disable-next-line react/refs
   onCloseCallbackRef.current = options?.onClose;
 
   const onOpen = useCallback(() => {

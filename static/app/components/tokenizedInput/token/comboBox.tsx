@@ -351,7 +351,9 @@ function useUpdateOverlayPositionOnContentChange({
   // Keep a ref to the updateOverlayPosition function so that we can
   // access the latest value in the resize observer callback.
   const updateOverlayPositionRef = useRef(updateOverlayPosition);
+  // oxlint-disable-next-line react/refs
   if (updateOverlayPositionRef.current !== updateOverlayPosition) {
+    // oxlint-disable-next-line react/refs
     updateOverlayPositionRef.current = updateOverlayPosition;
   }
 

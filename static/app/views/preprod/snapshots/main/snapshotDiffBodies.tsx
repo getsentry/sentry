@@ -153,8 +153,10 @@ function ZoomPane({
   zoom: ReturnType<typeof useD3Zoom>;
 }) {
   return (
+    // oxlint-disable-next-line react/refs
     <ZoomViewport ref={zoom.containerRef}>
       <ImageSizer {...imageSizerProps(image)}>
+        {/* oxlint-disable-next-line react/refs */}
         <ZoomTransformLayer style={zoomTransformStyle(zoom.transform)}>
           {children}
         </ZoomTransformLayer>

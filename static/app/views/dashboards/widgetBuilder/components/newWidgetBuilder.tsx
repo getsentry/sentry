@@ -173,6 +173,7 @@ export function WidgetBuilderV2({
             <ContainerWithoutSidebar
               data-test-id="widget-builder-container"
               style={
+                // oxlint-disable-next-line react/refs
                 navigationElementRef.current
                   ? isMediumScreen
                     ? {

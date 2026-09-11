@@ -182,6 +182,7 @@ export function MonitorForm({
       transformData: transformMonitorFormData,
     })
   );
+  // oxlint-disable-next-line react/refs
   const {onFieldChange} = useFormEagerValidation(form.current);
 
   const {projects} = useProjects();
@@ -237,6 +238,7 @@ export function MonitorForm({
       requireChanges
       apiEndpoint={apiEndpoint}
       apiMethod={apiMethod}
+      // oxlint-disable-next-line react/refs
       model={form.current}
       onFieldChange={onFieldChange}
       initialData={

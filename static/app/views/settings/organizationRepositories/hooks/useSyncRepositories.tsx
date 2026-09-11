@@ -53,12 +53,15 @@ function usePhaseTimer(
 
   const timerRef = useRef<number | null>(null);
   const configRef = useRef(config);
+  // oxlint-disable-next-line react/refs
   configRef.current = config;
   const onTimeoutRef = useRef(onTimeout);
+  // oxlint-disable-next-line react/refs
   onTimeoutRef.current = onTimeout;
 
   // Stored in a ref to allow recursion without useCallback deps.
   const scheduleRef = useRef<(idx: number) => void>(() => {});
+  // oxlint-disable-next-line react/refs
   scheduleRef.current = (idx: number) => {
     const phase = configRef.current[idx];
     if (!phase) {
@@ -169,6 +172,7 @@ export function useSyncRepositories(
   const [isSyncing, setIsSyncing] = useState(false);
 
   const onSyncedRef = useRef(options?.onSynced);
+  // oxlint-disable-next-line react/refs
   onSyncedRef.current = options?.onSynced;
 
   function startSyncing() {
@@ -191,6 +195,7 @@ export function useSyncRepositories(
   });
 
   const phaseTimerRef = useRef(phaseTimer);
+  // oxlint-disable-next-line react/refs
   phaseTimerRef.current = phaseTimer;
 
   const query = useQuery({

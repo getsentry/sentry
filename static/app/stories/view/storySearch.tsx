@@ -158,6 +158,7 @@ function SearchInput(
       <InputGroup.LeadingItems disablePointerEvents>
         <IconSearch />
       </InputGroup.LeadingItems>
+      {/* oxlint-disable-next-line react/refs */}
       <InputGroup.Input ref={props.ref} nativeSize={nativeSize} {...nativeProps} />
       <InputGroup.TrailingItems>
         <Hotkey value="/" />

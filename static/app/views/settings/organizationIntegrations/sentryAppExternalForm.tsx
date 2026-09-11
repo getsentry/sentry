@@ -191,10 +191,13 @@ function getTriggerFieldValues(
 function useSerializedValueMemo<T>(value: T, serializedValue: string): T {
   const ref = useRef<{serializedValue: string; value: T} | null>(null);
 
+  // oxlint-disable-next-line react/refs
   if (ref.current?.serializedValue !== serializedValue) {
+    // oxlint-disable-next-line react/refs
     ref.current = {serializedValue, value};
   }
 
+  // oxlint-disable-next-line react/refs
   return ref.current.value;
 }
 

@@ -508,6 +508,7 @@ export function useChartXRangeSelection({
           zIndex: 1000,
         }}
       >
+        {/* oxlint-disable-next-line react/refs */}
         {actionMenuRenderer(callbackParams)}
       </div>,
       document.body

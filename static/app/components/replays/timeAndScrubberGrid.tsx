@@ -129,7 +129,9 @@ export function TimeAndScrubberGrid({
       >
         <PlayerScrubber showZoomIndicators={showZoom} />
 
+        {/* oxlint-disable-next-line react/refs */}
         {scrubberElemRef.current ? (
+          // oxlint-disable-next-line react/refs
           <TimelineTooltip container={scrubberElemRef.current} />
         ) : null}
       </ScrubberWrapper>

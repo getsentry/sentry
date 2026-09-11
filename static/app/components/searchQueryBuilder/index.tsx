@@ -309,6 +309,7 @@ function SearchQueryBuilderUI({
   const {wrapperRef, actionBarRef, size} = useSearchQueryBuilderLayout();
   const {skipNextSearchQueryBuilderAutoFocusRef} = useSearchQueryBuilderAI();
   const autoFocusOnMount = useRef(
+    // oxlint-disable-next-line react/refs
     Boolean(autoFocus) && !skipNextSearchQueryBuilderAutoFocusRef.current
   );
 
@@ -351,6 +352,7 @@ function SearchQueryBuilderUI({
           <PlainTextQueryInput label={label} />
         ) : (
           <TokenizedQueryGrid
+            // oxlint-disable-next-line react/refs
             autoFocus={autoFocusOnMount.current}
             label={label}
             actionBarWidth={actionBarWidth}
