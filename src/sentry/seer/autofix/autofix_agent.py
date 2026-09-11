@@ -520,7 +520,7 @@ def trigger_autofix_agent(
     use_seer_rca_feature = features.has(
         "organizations:autofix-rca-in-seer", group.organization, actor=user
     )
-    if step == AutofixStep.ROOT_CAUSE and use_seer_rca_feature:
+    if step == AutofixStep.ROOT_CAUSE and run_id is None and use_seer_rca_feature:
         args = AutofixFeatureArgs(
             step=step,
             referrer=referrer,
