@@ -125,10 +125,13 @@ def _retrigger_deferred_iteration(
 
 @scm_event_stream.listen_for(event_type="check_suite")
 def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
-    with sentry_sdk.isolation_scope(), start_span(
-        name="pr_iteration.check_suite_listener",
-        op="function",
-        transaction=True,
+    with (
+        sentry_sdk.isolation_scope(),
+        start_span(
+            name="pr_iteration.check_suite_listener",
+            op="function",
+            transaction=True,
+        ),
     ):
         return _handle_check_suite_event(check_suite_event)
 

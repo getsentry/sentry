@@ -127,7 +127,7 @@ def open_pr_iteration_details(
                 "run_id": run_state.run_id,
             },
         )
-        set_pr_iteration_attributes(iteration_id=iteration.id)
+        set_pr_iteration_attributes(iteration_id=iteration.id if iteration else None)
     except Exception:
         log_ctx.error("autofix.pr_iteration.details.open_failed")
 
