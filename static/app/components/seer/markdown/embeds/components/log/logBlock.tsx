@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {DateTime} from 'sentry/components/dateTime';
@@ -11,13 +11,15 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {LogAttributesView} from 'sentry/components/seer/markdown/embeds/components/log/logAttributesView';
 import {LogAttributeView} from 'sentry/components/seer/markdown/embeds/components/log/logAttributeView';
-import {LogLink} from 'sentry/components/seer/markdown/embeds/components/log/logLink';
+import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
+import {IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {toSplicedSorted} from 'sentry/utils/array/toSplicedSorted';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {getShortEventId} from 'sentry/utils/events';
 import type {TagVariant} from 'sentry/utils/theme/types';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -47,6 +49,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 
 import {
   getLogPageFilters,
+  getLogRowUrl,
   getLogTimestampMs,
   LOG_DETAILS_REFERRER,
   LOG_EMBED_REFERRER,
@@ -124,7 +127,11 @@ function toLogAttributes(
 
   return toSplicedSorted(
     details.attributes,
-    {name: OurLogKnownFieldKey.TIMESTAMP, type: 'str', value: details.timestamp},
+    {
+      name: OurLogKnownFieldKey.TIMESTAMP,
+      type: 'str',
+      value: details.timestamp,
+    },
     (a, b) => a.name.localeCompare(b.name)
   );
 }
@@ -222,6 +229,7 @@ function LogBlockContent({
 
 export default function LogBlock(props: LogData) {
   const {id, traceId, timestamp, attribute} = props;
+  const organization = useOrganization();
   const projectId = toProjectId(props.projectId);
   const theme = useTheme();
 
@@ -318,55 +326,50 @@ export default function LogBlock(props: LogData) {
   );
 
   return (
-    <Container
-      background="primary"
-      border="primary"
-      data-test-id="seer-log-embed"
-      padding="lg"
-      radius="md"
-      width="100%"
+    <SeerEmbedBlock
+      badge={
+        displayTimestampMs === null ? null : (
+          <Text size="sm" variant="muted">
+            <DateTime date={displayTimestampMs} />
+          </Text>
+        )
+      }
+      // The resolved identity, not the raw props: when Seer gave only an id,
+      // the link would otherwise scope Explore to My Projects and miss the very
+      // row this card just loaded.
+      href={getLogRowUrl({organization, ...identity})}
+      icon={IconList}
+      linkLabel={t('View Log')}
+      testId="seer-log-embed"
+      title={t('Log %s', getShortEventId(id))}
     >
-      <Stack gap="md">
-        <Flex align="center" gap="md" justify="between" wrap="wrap">
-          {/* The resolved identity, not the raw props: when Seer gave only an
-              id, the link would otherwise scope Explore to My Projects and miss
-              the very row this card just loaded. */}
-          <LogLink {...props} {...identity} />
-          {displayTimestampMs === null ? null : (
-            <Text size="sm" variant="muted">
-              <DateTime date={displayTimestampMs} />
-            </Text>
-          )}
+      {isPending ? (
+        <Flex justify="center" padding="md">
+          <LoadingIndicator mini />
         </Flex>
-
-        {isPending ? (
-          <Flex justify="center" padding="md">
-            <LoadingIndicator mini />
+      ) : isError ? (
+        <Text variant="danger">{t('Unable to load log details')}</Text>
+      ) : (
+        <Stack gap="lg">
+          <Flex align="baseline" gap="sm">
+            <Tag variant={severityTagVariant(level)}>{severityLevelToText(level)}</Tag>
+            <Text monospace size="sm">
+              {String(message ?? '')}
+            </Text>
           </Flex>
-        ) : isError ? (
-          <Text variant="danger">{t('Unable to load log details')}</Text>
-        ) : (
-          <Stack gap="lg">
-            <Flex align="baseline" gap="sm">
-              <Tag variant={severityTagVariant(level)}>{severityLevelToText(level)}</Tag>
-              <Text monospace size="sm">
-                {String(message ?? '')}
-              </Text>
-            </Flex>
-            <LogBlockContent
-              attribute={attribute}
-              attributes={attributes}
-              attributeTypes={attributeTypes}
-              attributeValues={attributeValues}
-              datetime={datetime}
-              identity={identity}
-              logColors={logColors}
-              projectSlug={project?.slug}
-              view={view}
-            />
-          </Stack>
-        )}
-      </Stack>
-    </Container>
+          <LogBlockContent
+            attribute={attribute}
+            attributes={attributes}
+            attributeTypes={attributeTypes}
+            attributeValues={attributeValues}
+            datetime={datetime}
+            identity={identity}
+            logColors={logColors}
+            projectSlug={project?.slug}
+            view={view}
+          />
+        </Stack>
+      )}
+    </SeerEmbedBlock>
   );
 }

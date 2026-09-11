@@ -15,13 +15,16 @@ import {
   eventRowKey,
   QueryEmbedTable,
 } from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable';
+import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {ErrorsQueryLink} from './errorsQueryLink';
+import {getErrorsQueryTitle} from './errorsQueryLink';
 import {
   buildErrorsChartQuery,
   buildErrorsEventView,
+  getErrorsQueryHref,
   hasNoGroupBy,
   resolveChartYAxes,
   type ErrorsQueryData,
@@ -57,6 +60,7 @@ function ErrorsQueryChart({
 }
 
 export default function ErrorsQueryBlock({data}: {data: ErrorsQueryData}) {
+  const organization = useOrganization();
   const eventView = buildErrorsEventView(data);
   const fields = eventView.getFields();
   const isAggregate = data.mode === 'aggregate';
@@ -74,9 +78,12 @@ export default function ErrorsQueryBlock({data}: {data: ErrorsQueryData}) {
   return (
     <QueryEmbedCard
       badge={<Tag variant="muted">{isAggregate ? t('Aggregate') : t('Events')}</Tag>}
-      link={<ErrorsQueryLink data={data} />}
+      href={getErrorsQueryHref(eventView, organization)}
+      icon={IconSearch}
+      linkLabel={t('View Errors')}
       query={data.query}
       testId={`seer-errors-query-${data.mode}-embed`}
+      title={getErrorsQueryTitle(data)}
     >
       <ErrorsQueryChart
         data={data}
