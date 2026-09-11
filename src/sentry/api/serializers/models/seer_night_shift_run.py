@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
+from datetime import datetime
 from typing import Any, TypedDict
 
 from django.db.models import Prefetch, prefetch_related_objects
@@ -62,7 +63,7 @@ class SeerNightShiftShardSerializer(Serializer[SeerNightShiftSeerRunResponse]):
 
 class SeerNightShiftRunResponse(TypedDict):
     id: str
-    dateAdded: str
+    dateAdded: datetime
     extras: dict[str, Any]
     errorMessage: str | None
     errorType: SeerNightShiftRunErrorType | None
@@ -71,7 +72,7 @@ class SeerNightShiftRunResponse(TypedDict):
     seerRuns: list[SeerNightShiftSeerRunResponse]
     triageStrategy: str
     strategy: str
-    dateCompleted: str | None
+    dateCompleted: datetime | None
 
 
 @register(SeerNightShiftRun)
@@ -181,8 +182,8 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
         pull_requests_by_result_id = attrs.get("pull_requests_by_result_id", {})
         return {
             "id": str(obj.id),
-            "dateAdded": obj.date_added.isoformat(),
-            "dateCompleted": obj.date_completed.isoformat() if obj.date_completed else None,
+            "dateAdded": obj.date_added,
+            "dateCompleted": obj.date_completed,
             "strategy": obj.workflow_config.strategy
             if obj.workflow_config
             else SeerWorkflowStrategy.AGENTIC_TRIAGE.value,

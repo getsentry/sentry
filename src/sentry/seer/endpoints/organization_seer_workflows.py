@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime
+from functools import partial
 from typing import Literal, TypedDict
-from uuid import UUID
 
-from django.db.models import Value
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db.models import QuerySet, Value
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import NotFound, Throttled, ValidationError
@@ -34,11 +35,6 @@ from sentry.seer.monitor_cleanup.results import serialize_monitor_cleanup_run
 from sentry.seer.monitor_cleanup.runs import create_monitor_cleanup_run
 from sentry.seer.monitor_cleanup.schemas import MonitorCleanupRunResponse
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils.numbers import validate_bigint
-
-MANUAL_WORKFLOW_HANDLERS = {
-    SeerWorkflowStrategy.DUPLICATE_MONITORS: create_monitor_cleanup_run,
-}
 
 
 class WorkflowHistoryEntry(TypedDict):
@@ -48,7 +44,7 @@ class WorkflowHistoryEntry(TypedDict):
 
 
 class WorkflowRunCreateSerializer(serializers.Serializer):
-    strategy = serializers.ChoiceField(choices=list(MANUAL_WORKFLOW_HANDLERS))
+    strategy = serializers.ChoiceField(choices=[SeerWorkflowStrategy.DUPLICATE_MONITORS])
 
 
 class WorkflowRunCreateResponse(TypedDict):
@@ -86,29 +82,28 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
         if not triage_enabled and not cleanup_enabled:
             raise NotFound
 
-        night_shift_runs = SeerNightShiftRun.objects.filter(organization_id=organization.id)
-        cleanup_runs = SeerRun.objects.filter(
-            organization_id=organization.id, agent__source=FEATURE_ID
-        )
-        if not triage_enabled:
-            night_shift_runs = night_shift_runs.none()
+        night_shift_runs = SeerNightShiftRun.objects.none()
+        if triage_enabled:
+            night_shift_runs = SeerNightShiftRun.objects.filter(organization=organization)
+        cleanup_runs = SeerRun.objects.none()
         if cleanup_enabled:
             projects = self.get_projects(request, organization, include_all_accessible=True)
-            cleanup_runs = cleanup_runs.filter(
-                agent__extras__project_ids__contained_by=[str(project.id) for project in projects]
+            cleanup_runs = SeerRun.objects.filter(
+                organization=organization,
+                agent__source=FEATURE_ID,
+                agent__extras__project_ids__contained_by=[str(project.id) for project in projects],
             )
-        else:
-            cleanup_runs = cleanup_runs.none()
+
         if run_id := request.GET.get("runId"):
-            if run_id.isdecimal() and len(run_id) <= 19 and validate_bigint(int(run_id)):
-                night_shift_runs = night_shift_runs.filter(id=run_id)
+            try:
+                cleanup_runs = cleanup_runs.filter(uuid=run_id)
+            except DjangoValidationError:
                 cleanup_runs = cleanup_runs.none()
-            else:
                 try:
-                    run_uuid = UUID(run_id)
-                except ValueError:
-                    raise ValidationError({"runId": "Enter a valid run ID."}) from None
-                cleanup_runs = cleanup_runs.filter(uuid=run_uuid)
+                    night_shift_runs = night_shift_runs.filter(id=run_id)
+                except (ValueError, AssertionError):
+                    raise ValidationError({"detail": "Enter a valid run ID."}) from None
+            else:
                 night_shift_runs = night_shift_runs.none()
 
         history = (
@@ -122,30 +117,16 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
             )
         )
 
-        def serialize_page(
-            entries: Sequence[WorkflowHistoryEntry],
-        ) -> list[SeerNightShiftRunResponse | MonitorCleanupRunResponse]:
-            triage = night_shift_runs.filter(
-                id__in=[entry["id"] for entry in entries if entry["run_kind"] == "night_shift"]
-            )
-            cleanup = cleanup_runs.filter(
-                id__in=[entry["id"] for entry in entries if entry["run_kind"] == "monitor_cleanup"]
-            ).select_related("agent")
-            results: dict[
-                tuple[str, int], SeerNightShiftRunResponse | MonitorCleanupRunResponse
-            ] = {
-                ("night_shift", int(result["id"])): result
-                for result in serialize(list(triage), request.user, SeerNightShiftRunSerializer())
-            }
-            for run in cleanup:
-                results[("monitor_cleanup", run.id)] = serialize_monitor_cleanup_run(run.agent)
-            return [results[(entry["run_kind"], entry["id"])] for entry in entries]
-
         return self.paginate(
             request=request,
             queryset=history,
             order_by=("-date_added", "-id", "run_kind"),
-            on_results=serialize_page,
+            on_results=partial(
+                serialize_workflow_page,
+                request=request,
+                night_shift_runs=night_shift_runs,
+                cleanup_runs=cleanup_runs,
+            ),
             paginator_cls=OffsetPaginator,
         )
 
@@ -165,7 +146,7 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
             raise Throttled(
                 detail="This organization has reached the limit of five scans per hour."
             )
-        run = MANUAL_WORKFLOW_HANDLERS[strategy](request, organization)
+        run = create_monitor_cleanup_run(request, organization)
         return Response(
             {
                 "runId": str(run.uuid),
@@ -173,3 +154,24 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
             },
             status=202,
         )
+
+
+def serialize_workflow_page(
+    entries: Sequence[WorkflowHistoryEntry],
+    request: Request,
+    night_shift_runs: QuerySet[SeerNightShiftRun],
+    cleanup_runs: QuerySet[SeerRun],
+) -> list[SeerNightShiftRunResponse | MonitorCleanupRunResponse]:
+    triage = night_shift_runs.filter(
+        id__in=[entry["id"] for entry in entries if entry["run_kind"] == "night_shift"],
+    )
+    cleanup = cleanup_runs.filter(
+        id__in=[entry["id"] for entry in entries if entry["run_kind"] == "monitor_cleanup"],
+    ).select_related("agent")
+    results: dict[tuple[str, int], SeerNightShiftRunResponse | MonitorCleanupRunResponse] = {
+        ("night_shift", int(result["id"])): result
+        for result in serialize(list(triage), request.user, SeerNightShiftRunSerializer())
+    }
+    for run in cleanup:
+        results[("monitor_cleanup", run.id)] = serialize_monitor_cleanup_run(run.agent)
+    return [results[(entry["run_kind"], entry["id"])] for entry in entries]

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Literal, NotRequired, TypedDict
 
 from pydantic import BaseModel, Field
@@ -98,8 +99,8 @@ class MonitorCleanupRunExtras(TypedDict):
 
 class MonitorCleanupRunResponse(TypedDict):
     id: str
-    dateAdded: str
-    dateCompleted: str | None
+    dateAdded: datetime
+    dateCompleted: datetime | None
     strategy: Literal["duplicate_monitors"]
     extras: MonitorCleanupRunStatus
     errorMessage: str | None

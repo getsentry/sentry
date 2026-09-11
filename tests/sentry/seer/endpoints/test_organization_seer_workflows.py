@@ -1,5 +1,6 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest.mock import patch
+from uuid import UUID
 
 import pytest
 from django.db import router, transaction
@@ -491,6 +492,10 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert [run["id"] for run in triage_detail.data] == [str(triage.id)]
         assert first.data[0]["extras"] == {"status": "running"}
         assert first.data[0]["results"] == []
+        assert first.data[0]["dateAdded"] == cleanup.run.date_added
+        assert first.data[0]["dateCompleted"] is None
+        assert second.data[0]["dateAdded"] == triage.date_added
+        assert second.data[0]["dateCompleted"] is None
 
     def test_history_gates_each_feature_independently(self) -> None:
         triage = Factories.create_seer_night_shift_run(organization=self.organization)
@@ -517,6 +522,11 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         output = response.data[0]
         assert output["id"] == str(seer_run.uuid)
         assert output["extras"] == {"status": "complete"}
+        assert output["dateAdded"] == seer_run.date_added
+        assert output["dateCompleted"] == datetime.fromisoformat(run.extras["date_completed"])
+        assert (
+            datetime.fromisoformat(response.json()[0]["dateCompleted"]) == output["dateCompleted"]
+        )
         assert output["results"][0]["seerRunId"] == str(seer_run.uuid)
         assert output["results"][0]["extras"]["projectId"] == str(self.project.id)
         assert "987654321" not in response.content.decode()
@@ -938,3 +948,37 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert output["comparison"] == [
             {"property": "Trigger", "values": [{"monitorId": str(self.keep.id), "value": ">100"}]}
         ]
+
+    def test_history_returns_night_shift_completion_datetime(self) -> None:
+        completed_at = timezone.now()
+        run = Factories.create_seer_night_shift_run(
+            organization=self.organization, date_completed=completed_at
+        )
+        with self.feature("organizations:seer-night-shift"):
+            response = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/seer/workflows/",
+                {"runId": str(run.id)},
+            )
+        assert response.status_code == 200
+        assert response.data[0]["dateCompleted"] == completed_at
+        assert datetime.fromisoformat(response.json()[0]["dateCompleted"]) == completed_at
+
+    def test_history_rejects_invalid_run_id(self) -> None:
+        with self.feature(FEATURE):
+            response = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/seer/workflows/",
+                {"runId": "not-a-run-id"},
+            )
+        assert response.status_code == 400
+        assert "detail" in response.data
+
+    def test_history_accepts_numeric_uuid(self) -> None:
+        run = SeerRun.objects.get(uuid=self.trigger().data["runId"])
+        run.update(uuid=UUID("12345678-1234-1234-1234-123456789012"))
+        with self.feature(FEATURE):
+            response = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/seer/workflows/",
+                {"runId": run.uuid.hex},
+            )
+        assert response.status_code == 200
+        assert response.data[0]["id"] == str(run.uuid)

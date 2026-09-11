@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sentry.auth import access
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.organization import Organization
@@ -107,8 +109,10 @@ def serialize_monitor_cleanup_run(agent_run: SeerAgentRun) -> MonitorCleanupRunR
     run_uuid = str(agent_run.run.uuid)
     return {
         "id": run_uuid,
-        "dateAdded": agent_run.run.date_added.isoformat(),
-        "dateCompleted": extras["date_completed"],
+        "dateAdded": agent_run.run.date_added,
+        "dateCompleted": datetime.fromisoformat(extras["date_completed"])
+        if extras["date_completed"] is not None
+        else None,
         "strategy": "duplicate_monitors",
         "extras": {"status": extras["status"]},
         "errorMessage": extras["error"],
