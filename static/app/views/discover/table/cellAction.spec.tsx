@@ -383,6 +383,37 @@ describe('Discover -> CellAction', () => {
       ).toBeInTheDocument();
     });
 
+    it('offers filter actions for null array cells', async () => {
+      // A null array field still supports a `has`/`!has` existence filter, so
+      // the add/exclude filter actions remain available for null values.
+      const arrayColumn: TableColumn<string> = {
+        key: 'tags[my.tags,array]',
+        name: 'tags[my.tags,array]',
+        type: 'array',
+        isSortable: false,
+        column: {kind: 'field', field: 'tags[my.tags,array]'},
+        width: undefined,
+      };
+      renderComponent({
+        eventView: view,
+        handleCellAction,
+        column: arrayColumn,
+        data: {
+          ...defaultData,
+          // @ts-expect-error TODO: Fix this type
+          'tags[my.tags,array]': null,
+        },
+      });
+      await openMenu();
+
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Add to filter'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+      ).toBeInTheDocument();
+    });
+
     it('show appropriate actions for string cells with null values', async () => {
       renderComponent({eventView: view, handleCellAction, columnIndex: 4});
       await openMenu();
