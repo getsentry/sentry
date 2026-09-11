@@ -49,8 +49,6 @@ def iteration_prs_any_closed(organization: Organization, state: SeerRunState) ->
         repo, _resolution = Repository.objects.resolve_active(
             organization_id=organization.id,
             name=repo_name,
-            # Narrowed to GitHub: PR iteration runs nowhere else, and an
-            # unnarrowed name that repeats across providers reads as ambiguous.
             normalized_provider=PR_ITERATION_PROVIDER_SLUG,
         )
         if repo is None:
