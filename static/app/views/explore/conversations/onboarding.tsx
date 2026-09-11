@@ -635,7 +635,7 @@ function UnsupportedPlatformOnboarding({
       <Prose>
         <Text as="p">
           {tct(
-            "Auto instrumentation isn't available for [platform] yet, but you can still get conversations working.",
+            "Auto instrumentation isn't available for [platform], but you can still get conversations working.",
             {
               platform: platformName,
             }
@@ -645,7 +645,15 @@ function UnsupportedPlatformOnboarding({
           {tct(
             '[link:Manually instrument] your agents using the Sentry SDK, or let an AI coding agent set it up for you.',
             {
-              link: <ExternalLink href={AI_INSTRUMENTATION_DOCS_LINKS.python} />,
+              link: (
+                <ExternalLink
+                  href={
+                    project.platform?.startsWith('javascript')
+                      ? 'https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module-browser/#manual-span-creation'
+                      : AI_INSTRUMENTATION_DOCS_LINKS.python
+                  }
+                />
+              ),
             }
           )}
         </Text>

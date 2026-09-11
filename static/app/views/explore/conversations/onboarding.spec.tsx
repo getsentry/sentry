@@ -65,6 +65,59 @@ describe('ConversationOnboarding deployment target', () => {
     ).toBeGreaterThan(0);
   });
 
+  it('shows the unsupported platform setup for a browser project', async () => {
+    const {organization} = setupProject('javascript');
+
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {integration: 'openai', deploymentTarget: 'cloudflare'},
+        },
+      },
+    });
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          /Auto instrumentation isn't available for Browser JavaScript,/
+        )
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /manually instrument/i})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module-browser/#manual-span-creation'
+    );
+    expect(
+      screen.getByRole('button', {name: 'Copy Prompt for AI Agent'})
+    ).toBeInTheDocument();
+  });
+
+  it('prefers a supported project over a selected browser project', async () => {
+    const {organization, project} = setupProject('javascript-nextjs');
+    const browserProject = ProjectFixture({
+      id: '100',
+      slug: 'browser-project',
+      platform: 'javascript',
+    });
+    ProjectsStore.loadInitialData([browserProject, project]);
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({projects: [Number(browserProject.id), Number(project.id)]}),
+      false
+    );
+
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(`Set up the Sentry SDK for ${project.slug}`)
+      )
+    ).toBeInTheDocument();
+  });
+
   it('pins Cloudflare projects to the Cloudflare runtime with no Node toggle', async () => {
     const {organization} = setupProject('node-cloudflare-workers');
 
