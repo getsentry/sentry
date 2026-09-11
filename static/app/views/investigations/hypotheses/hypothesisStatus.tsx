@@ -7,13 +7,14 @@ import type {
   InvestigationHypothesis,
   InvestigationHypothesisStatus,
   InvestigationOrchestrationWorkStatus,
+  InvestigationVerificationStep,
 } from 'sentry/views/investigations/types';
 
 type StatusVariant = 'success' | 'warning' | 'danger' | 'accent' | 'muted';
 
 /**
  * Statuses where the agent has reached a verdict. Confidence is only meaningful
- * once it has, so an in-flight hypothesis shows a bare label.
+ * once it has, so a hypothesis still in flight shows a bare label.
  */
 const SETTLED_STATUSES = new Set<string>([
   'supported',
@@ -23,15 +24,8 @@ const SETTLED_STATUSES = new Set<string>([
   'rejected',
 ]);
 
-/** Statuses where the agent is still working, so the dot keeps pulsing. */
-const IN_FLIGHT_STATUSES = new Set<string>(['pending', 'investigating']);
-
 function isHypothesisSettled(status: InvestigationHypothesisStatus): boolean {
   return SETTLED_STATUSES.has(status);
-}
-
-function isHypothesisInFlight(status: InvestigationHypothesisStatus): boolean {
-  return IN_FLIGHT_STATUSES.has(status);
 }
 
 /**
@@ -43,68 +37,78 @@ function humanize(status: string): string {
   return status.replaceAll('_', ' ').replace(/^./, character => character.toUpperCase());
 }
 
-function getHypothesisStatusLabel(hypothesis: InvestigationHypothesis): string {
-  // A decision the viewer made themselves reads differently from one the agent
-  // reached, even though both land in `effectiveStatus`.
-  if (hypothesis.decisionSource === 'user') {
-    if (hypothesis.effectiveStatus === 'accepted') {
-      return t('Accepted by you');
-    }
-    if (hypothesis.effectiveStatus === 'rejected') {
-      return t('Rejected by you');
-    }
-  }
-
-  switch (hypothesis.effectiveStatus) {
-    case 'pending':
-      return t('Pending');
-    case 'investigating':
-      return t('Investigating');
-    case 'supported':
-      return t('Supported');
-    case 'refuted':
-      return t('Refuted');
-    case 'inconclusive':
-      return t('Inconclusive');
-    case 'accepted':
-      return t('Accepted');
-    case 'rejected':
-      return t('Rejected');
-    case 'failed':
-      return t('Failed');
-    case 'cancelled':
-      return t('Cancelled');
-    default:
-      return humanize(hypothesis.effectiveStatus);
-  }
+function hasRun(step: InvestigationVerificationStep): boolean {
+  return Boolean(step.result) || Boolean(step.error);
 }
 
-function getHypothesisStatusVariant(
-  status: InvestigationHypothesisStatus
-): StatusVariant {
+type HypothesisStatusDisplay = {
+  /** Whether the agent is actively working, which is what keeps the dot moving. */
+  inFlight: boolean;
+  label: string;
+  variant: StatusVariant;
+};
+
+/**
+ * What the status line says, and in what colour.
+ *
+ * A hypothesis in flight is all one `effectiveStatus`, but it passes through
+ * several states worth naming: formed, having its checks planned, running them,
+ * and done checking but not yet judged. Those are read off the verification
+ * steps, since that is the only place the distinction exists. Only the running
+ * state is coloured — the rest are staging posts, not outcomes.
+ */
+export function getHypothesisStatusDisplay(
+  hypothesis: InvestigationHypothesis
+): HypothesisStatusDisplay {
+  const status = hypothesis.effectiveStatus;
+
+  // A decision the viewer made themselves reads differently from one the agent
+  // reached, even though both land in `effectiveStatus`.
+  if (hypothesis.decisionSource === 'user' && status === 'accepted') {
+    return {label: t('Accepted by you'), variant: 'success', inFlight: false};
+  }
+  if (hypothesis.decisionSource === 'user' && status === 'rejected') {
+    return {label: t('Rejected by you'), variant: 'muted', inFlight: false};
+  }
+
   switch (status) {
-    // A hypothesis the evidence backs, or one a person has endorsed.
     case 'supported':
+      return {label: t('Supported'), variant: 'success', inFlight: false};
     case 'accepted':
-      return 'success';
-    // Ruled out cleanly. This is a useful outcome rather than an error, so it
-    // reads as neutral instead of dangerous.
+      return {label: t('Accepted'), variant: 'success', inFlight: false};
+    // Ruled out cleanly. A useful outcome rather than an error, so it reads
+    // neutral instead of dangerous.
     case 'refuted':
+      return {label: t('Refuted'), variant: 'muted', inFlight: false};
     case 'rejected':
-      return 'muted';
+      return {label: t('Rejected'), variant: 'muted', inFlight: false};
     // Checked, but the evidence did not settle it either way.
     case 'inconclusive':
-      return 'warning';
-    case 'investigating':
-      return 'accent';
+      return {label: t('Inconclusive'), variant: 'warning', inFlight: false};
     case 'failed':
-      return 'danger';
-    case 'pending':
+      return {label: t('Failed'), variant: 'danger', inFlight: false};
     case 'cancelled':
-      return 'muted';
+      return {label: t('Cancelled'), variant: 'muted', inFlight: false};
+    case 'pending':
+    case 'investigating':
+      break;
     default:
-      return 'muted';
+      return {label: humanize(status), variant: 'muted', inFlight: false};
   }
+
+  const steps = hypothesis.verificationSteps;
+  if (steps.length === 0) {
+    // Proposed, with nothing planned to test it yet.
+    return {label: t('Formed'), variant: 'muted', inFlight: false};
+  }
+  if (steps.every(hasRun)) {
+    // Every check has produced something; the verdict is what is missing.
+    return {label: t('Evidence checked'), variant: 'muted', inFlight: false};
+  }
+  if (hypothesis.status === 'running') {
+    return {label: t('Checking'), variant: 'accent', inFlight: true};
+  }
+  return {label: t('Preparing checks'), variant: 'muted', inFlight: false};
 }
 
 /**
@@ -123,6 +127,11 @@ export function getHypothesisCardBorder(
   return status === 'supported' || status === 'accepted' ? 'accent' : 'dashed';
 }
 
+/** The heading above the steps, which depends on whether any have run yet. */
+export function getEvidenceSectionLabel(steps: InvestigationVerificationStep[]): string {
+  return steps.some(hasRun) ? t('Evidence checked') : t('Evidence to check');
+}
+
 /**
  * What a verification step says about itself while it has no result yet. A step
  * only carries a `result` once it has finished, so everything short of that
@@ -132,11 +141,12 @@ export function getVerificationStepStatusLabel(
   status: InvestigationOrchestrationWorkStatus
 ): string {
   switch (status) {
+    // Queued and running read the same from outside: the answer is not here
+    // yet. Only the states that need someone to act get their own line.
     case 'not_started':
     case 'queued':
-      return t('Queued.');
     case 'running':
-      return t('Checking…');
+      return t('Awaiting evidence');
     case 'blocked':
       return t('Blocked on an earlier step.');
     case 'reauth_required':
@@ -184,26 +194,26 @@ type HypothesisStatusProps = {
 
 /**
  * The dot-and-label line above a hypothesis statement, e.g.
- * "● Supported · 86% Confidence".
+ * "● Supported · 86% confidence".
  */
 export function HypothesisStatus({hypothesis}: HypothesisStatusProps) {
-  const status = hypothesis.effectiveStatus;
-  const variant = getHypothesisStatusVariant(status);
-  const label = getHypothesisStatusLabel(hypothesis);
+  const {inFlight, label, variant} = getHypothesisStatusDisplay(hypothesis);
   const confidence = getHypothesisConfidencePercent(hypothesis);
 
   return (
-    <Flex align="center" gap="xs">
+    // "Evidence checked" is both a status and the heading over the steps, so
+    // this needs to be addressable on its own.
+    <Flex align="center" gap="xs" data-test-id="hypothesis-status">
       <StatusIndicator
         variant={variant}
-        // Settled hypotheses pulse once and rest; only live work keeps moving.
-        animationIterationCount={isHypothesisInFlight(status) ? 'infinite' : 1}
+        // Only live work keeps moving; a staging post pulses once and rests.
+        animationIterationCount={inFlight ? 'infinite' : 1}
       />
       <Text size="sm" variant={variant} bold>
         {confidence === null
           ? label
-          : // Translators: e.g. "Supported · 86% Confidence"
-            t('%s · %s%% Confidence', label, confidence)}
+          : // Translators: e.g. "Supported · 86% confidence"
+            t('%s · %s%% confidence', label, confidence)}
       </Text>
     </Flex>
   );

@@ -44,8 +44,7 @@ export default Storybook.story('Investigations — Hypotheses', story => {
       <p>
         A card renders <code>effectiveStatus</code>, which already folds the agent verdict
         and any user disposition into the run status. Confidence only appears once the
-        agent has settled on a verdict, so work in progress shows a bare label and a
-        pulsing dot.
+        agent has settled on a verdict.
       </p>
       <p>
         The border carries the verdict, and only two ways: a solid accent edge on the
@@ -58,51 +57,27 @@ export default Storybook.story('Investigations — Hypotheses', story => {
         <HypothesisList hypotheses={InvestigationHypothesesFixture()} />
       </Storybook.Demo>
       <p>
-        Nothing has settled yet in these, so none of them carry confidence and the failed
-        hypothesis shows why it stopped.
+        A hypothesis in flight is all one <code>effectiveStatus</code>, but it passes
+        through several states worth naming: formed, having its checks planned, running
+        them, and done checking but not yet judged. Those are read off the verification
+        steps, since that is the only place the distinction exists. Only the running state
+        is coloured and keeps its dot moving — the rest are staging posts, not outcomes.
+        The heading over the steps moves with them, from "Evidence to check" to "Evidence
+        checked".
+      </p>
+      <Storybook.Demo direction="column" align="stretch">
+        <HypothesisList hypotheses={inFlightHypotheses()} />
+      </Storybook.Demo>
+      <p>
+        A failure is the one in-flight state that gets a colour, because it is the only
+        one that has stopped. The hypothesis says why, and so does each check that broke.
       </p>
       <Storybook.Demo direction="column" align="stretch">
         <HypothesisList
           hypotheses={[
             InvestigationHypothesisFixture({
-              id: 'pending',
-              order: 0,
-              statement: 'Queued behind the broad scan',
-              rationale: '',
-              status: 'queued',
-              effectiveStatus: 'pending',
-              confidence: null,
-              agentVerdict: null,
-              verificationSteps: [],
-            }),
-            InvestigationHypothesisFixture({
-              id: 'investigating',
-              order: 1,
-              statement: 'A slow dependency upgrade changed request timing',
-              rationale: 'Checking whether the regression tracks the deploy.',
-              status: 'running',
-              effectiveStatus: 'investigating',
-              confidence: null,
-              agentVerdict: null,
-              verificationSteps: [
-                InvestigationVerificationStepFixture({
-                  id: 'running-step',
-                  title: 'Compare timing across releases',
-                  status: 'running',
-                  result: null,
-                }),
-                InvestigationVerificationStepFixture({
-                  id: 'queued-step',
-                  order: 1,
-                  title: 'Inspect dependency spans',
-                  status: 'queued',
-                  result: null,
-                }),
-              ],
-            }),
-            InvestigationHypothesisFixture({
               id: 'failed',
-              order: 2,
+              order: 0,
               statement: 'A regional outage degraded the response',
               rationale: 'The investigator could not complete this check.',
               status: 'failed',
@@ -191,3 +166,81 @@ export default Storybook.story('Investigations — Hypotheses', story => {
     </Fragment>
   ));
 });
+
+/** The four states a hypothesis passes through before it is judged. */
+function inFlightHypotheses() {
+  return [
+    InvestigationHypothesisFixture({
+      id: 'formed',
+      order: 0,
+      statement: 'A slow dependency upgrade changed request timing',
+      rationale: 'Nothing has been planned to test this yet.',
+      status: 'queued',
+      effectiveStatus: 'pending',
+      confidence: null,
+      agentVerdict: null,
+      verificationSteps: [],
+    }),
+    InvestigationHypothesisFixture({
+      id: 'preparing',
+      order: 1,
+      statement: 'A cache warm-up left the first requests cold',
+      rationale: 'The checks are planned but none has started.',
+      status: 'queued',
+      effectiveStatus: 'investigating',
+      confidence: null,
+      agentVerdict: null,
+      verificationSteps: [
+        InvestigationVerificationStepFixture({
+          id: 'preparing-step',
+          title: 'Compare cold and warm cache windows',
+          status: 'queued',
+          result: null,
+        }),
+      ],
+    }),
+    InvestigationHypothesisFixture({
+      id: 'checking',
+      order: 2,
+      statement: 'A noisy neighbour saturated the shared pool',
+      rationale: 'One check is running; the rest are queued behind it.',
+      status: 'running',
+      effectiveStatus: 'investigating',
+      confidence: null,
+      agentVerdict: null,
+      verificationSteps: [
+        InvestigationVerificationStepFixture({
+          id: 'checking-step',
+          title: 'Compare pool saturation across tenants',
+          status: 'running',
+          result: null,
+        }),
+        InvestigationVerificationStepFixture({
+          id: 'checking-queued',
+          order: 1,
+          title: 'Inspect connection wait time',
+          status: 'queued',
+          result: null,
+        }),
+      ],
+    }),
+    InvestigationHypothesisFixture({
+      id: 'checked',
+      order: 3,
+      statement: 'A retry storm amplified the original delay',
+      rationale: 'Every check has reported; the verdict has not landed yet.',
+      status: 'running',
+      effectiveStatus: 'investigating',
+      confidence: null,
+      agentVerdict: null,
+      verificationSteps: [
+        InvestigationVerificationStepFixture({
+          id: 'checked-step',
+          title: 'Compare retry volume with latency',
+          status: 'completed',
+          result: 'Retries tripled while the p95 climbed.',
+        }),
+      ],
+    }),
+  ];
+}

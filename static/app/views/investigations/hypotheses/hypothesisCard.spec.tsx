@@ -38,7 +38,7 @@ describe('HypothesisCard', () => {
       />
     );
 
-    expect(screen.getByText('Supported · 86% Confidence')).toBeInTheDocument();
+    expect(screen.getByText('Supported · 86% confidence')).toBeInTheDocument();
   });
 
   it('falls back to the verdict confidence when the hypothesis omits it', () => {
@@ -59,22 +59,65 @@ describe('HypothesisCard', () => {
       />
     );
 
-    expect(screen.getByText('Inconclusive · 34% Confidence')).toBeInTheDocument();
+    expect(screen.getByText('Inconclusive · 34% confidence')).toBeInTheDocument();
   });
 
-  it('omits confidence while the hypothesis is still being investigated', () => {
+  it('omits confidence while the hypothesis is still in flight', () => {
     render(
       <HypothesisCard
         hypothesis={InvestigationHypothesisFixture({
           effectiveStatus: 'investigating',
           status: 'running',
           confidence: 0.4,
+          verificationSteps: [
+            InvestigationVerificationStepFixture({status: 'running', result: null}),
+          ],
         })}
       />
     );
 
-    expect(screen.getByText('Investigating')).toBeInTheDocument();
-    expect(screen.queryByText(/Confidence/)).not.toBeInTheDocument();
+    expect(screen.getByText('Checking')).toBeInTheDocument();
+    expect(screen.queryByText(/confidence/i)).not.toBeInTheDocument();
+  });
+
+  // A hypothesis in flight is one `effectiveStatus`, but it passes through
+  // several states worth naming. They are read off the verification steps,
+  // since that is the only place the distinction exists.
+  it.each([
+    ['no steps planned yet', 'Formed', [], 'queued'],
+    [
+      'steps planned but not started',
+      'Preparing checks',
+      [InvestigationVerificationStepFixture({status: 'queued', result: null})],
+      'queued',
+    ],
+    [
+      'steps running',
+      'Checking',
+      [InvestigationVerificationStepFixture({status: 'running', result: null})],
+      'running',
+    ],
+    [
+      'every step finished, no verdict',
+      'Evidence checked',
+      [InvestigationVerificationStepFixture({status: 'completed', result: 'Done.'})],
+      'running',
+    ],
+  ] as const)('reads %s as "%s"', (_name, label, verificationSteps, status) => {
+    render(
+      <HypothesisCard
+        hypothesis={InvestigationHypothesisFixture({
+          effectiveStatus: 'investigating',
+          status,
+          verificationSteps: [...verificationSteps],
+        })}
+      />
+    );
+
+    // Scoped, because "Evidence checked" is also the heading over the steps.
+    expect(
+      within(screen.getByTestId('hypothesis-status')).getByText(label)
+    ).toBeInTheDocument();
   });
 
   it('lists verification steps in order with their results', () => {
@@ -118,7 +161,7 @@ describe('HypothesisCard', () => {
       />
     );
 
-    expect(screen.getByText('Checking…')).toBeInTheDocument();
+    expect(screen.getByText('Awaiting evidence')).toBeInTheDocument();
   });
 
   it("prefers a failed step's error message over the generic failure label", () => {

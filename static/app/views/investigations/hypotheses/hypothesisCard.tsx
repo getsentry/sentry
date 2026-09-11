@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -7,6 +8,7 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
+  getEvidenceSectionLabel,
   getHypothesisCardBorder,
   getVerificationStepStatusLabel,
   HypothesisStatus,
@@ -108,7 +110,7 @@ export function HypothesisCard({
       {steps.length > 0 ? (
         <Stack gap="sm">
           <Text size="sm" bold>
-            {t('Evidence checked')}
+            {getEvidenceSectionLabel(steps)}
           </Text>
           <EvidenceList as="ul" gap="sm" padding="0">
             {steps.map(step => (
@@ -127,6 +129,19 @@ function VerificationStepRow({step}: {step: InvestigationVerificationStep}) {
   // wins when both are present.
   const detail =
     step.result || step.error?.message || getVerificationStepStatusLabel(step.status);
+  const summary = (
+    <Stack gap="2xs">
+      <Text size="sm">{step.title}</Text>
+      <Text size="xs" variant={failed ? 'danger' : 'muted'} density="comfortable">
+        {detail}
+      </Text>
+    </Stack>
+  );
+
+  // A step that has produced something can be opened for how the agent got
+  // there. One that has not is a bare row — there is no finding to unpack yet,
+  // and a chevron would promise one.
+  const hasRun = Boolean(step.result) || Boolean(step.error);
 
   return (
     <Container
@@ -136,12 +151,33 @@ function VerificationStepRow({step}: {step: InvestigationVerificationStep}) {
       padding="md lg"
       background="primary"
     >
-      <Stack gap="2xs">
-        <Text size="sm">{step.title}</Text>
-        <Text size="xs" variant={failed ? 'danger' : 'muted'} density="comfortable">
-          {detail}
-        </Text>
-      </Stack>
+      {hasRun ? (
+        <Disclosure size="xs">
+          <Disclosure.Title>{summary}</Disclosure.Title>
+          <Disclosure.Content>
+            <Stack gap="sm">
+              <Stack gap="2xs">
+                <Text size="xs" variant="muted" bold>
+                  {t('Objective')}
+                </Text>
+                <Text size="xs" density="comfortable">
+                  {step.objective}
+                </Text>
+              </Stack>
+              <Stack gap="2xs">
+                <Text size="xs" variant="muted" bold>
+                  {t('Method')}
+                </Text>
+                <Text size="xs" density="comfortable">
+                  {step.method}
+                </Text>
+              </Stack>
+            </Stack>
+          </Disclosure.Content>
+        </Disclosure>
+      ) : (
+        summary
+      )}
     </Container>
   );
 }

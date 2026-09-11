@@ -37,7 +37,7 @@ describe('InvestigationHypotheses', () => {
         name: 'Database or cache degradation delayed the response',
       })
     ).toBeInTheDocument();
-    expect(screen.getByText('Supported · 86% Confidence')).toBeInTheDocument();
+    expect(screen.getByText('Supported · 86% confidence')).toBeInTheDocument();
   });
 
   it('highlights the report primary hypothesis', async () => {
@@ -145,7 +145,8 @@ describe('InvestigationHypotheses', () => {
           ? {
               ...hypothesis,
               effectiveStatus: 'accepted' as const,
-              userDisposition: {disposition: 'accepted' as const, userId: 1},
+              // A viewer decision, which the card credits to them by name.
+              decisionSource: 'user' as const,
             }
           : hypothesis
       ),
@@ -175,6 +176,8 @@ describe('InvestigationHypotheses', () => {
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Accept'}));
 
     // No refetch is needed: the command response carries the new projection.
-    expect(await screen.findByText('Accepted · 86% Confidence')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Accepted by you · 86% confidence')
+    ).toBeInTheDocument();
   });
 });

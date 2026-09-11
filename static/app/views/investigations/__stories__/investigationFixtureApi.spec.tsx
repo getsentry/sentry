@@ -186,7 +186,7 @@ describe('InvestigationFixtureApi', () => {
           name: 'Database or cache degradation delayed the response',
         })
       ).toBeInTheDocument();
-      expect(screen.getByText('Supported · 86% Confidence')).toBeInTheDocument();
+      expect(screen.getByText('Supported · 86% confidence')).toBeInTheDocument();
       expect(
         screen.getByText('The delay begins before the document reaches the browser.')
       ).toBeInTheDocument();
@@ -205,7 +205,7 @@ describe('InvestigationFixtureApi', () => {
       // The command response carries the updated projection, so the card
       // changes without another read.
       expect(
-        await screen.findByText('Accepted by you · 91% Confidence')
+        await screen.findByText('Accepted by you · 91% confidence')
       ).toBeInTheDocument();
       // Accepting settles the hypothesis, so its edge picks up the accent.
       expect(screen.getAllByTestId('investigation-hypothesis')[1]).toHaveAttribute(
@@ -222,14 +222,14 @@ describe('InvestigationFixtureApi', () => {
       });
       await userEvent.click(trigger);
       await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Accept'}));
-      await screen.findByText('Accepted by you · 91% Confidence');
+      await screen.findByText('Accepted by you · 91% confidence');
 
       await userEvent.click(trigger);
       await userEvent.click(
         await screen.findByRole('menuitemradio', {name: 'Clear decision'})
       );
 
-      expect(await screen.findByText('Refuted · 91% Confidence')).toBeInTheDocument();
+      expect(await screen.findByText('Refuted · 91% confidence')).toBeInTheDocument();
       // Back to the agent's verdict, so the edge breaks again.
       expect(screen.getAllByTestId('investigation-hypothesis')[1]).toHaveAttribute(
         'data-border',
@@ -249,8 +249,8 @@ describe('InvestigationFixtureApi', () => {
         await screen.findByRole('menuitemradio', {name: 'Investigate again'})
       );
 
-      expect(await screen.findByText('Investigating')).toBeInTheDocument();
-      expect(screen.getAllByText('Queued.').length).toBeGreaterThan(0);
+      expect(await screen.findByText('Checking')).toBeInTheDocument();
+      expect(screen.getAllByText('Awaiting evidence').length).toBeGreaterThan(0);
     });
   });
 });
