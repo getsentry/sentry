@@ -85,7 +85,7 @@ export function useReleaseMenuItems({
         {numberOfCollapsedProjects > 0 && (
           <span>
             <Tooltip
-              title={release.projects
+              title={releaseMeta.projects
                 .slice(maxVisibleProjects)
                 .map(p => p.slug)
                 .join(', ')}
