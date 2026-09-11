@@ -6,11 +6,18 @@ from typing import IO, Literal
 from objectstore_client import Compression, GetResponse, Metadata, RequestError, Session
 from objectstore_client.multipart import MultipartUpload
 
+from sentry import options
 from sentry.models.project import Project
 from sentry.objectstore import UsecaseId, get_session
 from sentry.utils import metrics
 
 SNAPSHOT_USECASES = (UsecaseId.PREPROD, UsecaseId.SNAPSHOTS)
+
+
+def get_snapshot_usecase() -> UsecaseId:
+    if options.get("preprod.snapshots.snapshots-usecase.enabled"):
+        return UsecaseId.SNAPSHOTS
+    return UsecaseId.PREPROD
 
 
 class SnapshotStorage:
@@ -67,8 +74,8 @@ class SnapshotStorage:
 
 
 def get_snapshot_storage(project: Project | int, *, org: int | None = None) -> SnapshotStorage:
-    primary, *legacy = SNAPSHOT_USECASES
+    primary = get_snapshot_usecase()
     return SnapshotStorage(
         get_session(primary, project, org=org),
-        [get_session(u, project, org=org) for u in legacy],
+        [get_session(u, project, org=org) for u in SNAPSHOT_USECASES if u != primary],
     )
