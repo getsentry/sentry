@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {ATTRIBUTE_METADATA} from '@sentry/conventions';
 import * as Sentry from '@sentry/react';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -145,9 +146,14 @@ function getAISpanAttributes({
   }
 
   const inputTokens = attributes['gen_ai.usage.input_tokens'];
-  const cachedTokens =
-    attributes['gen_ai.usage.cache_read.input_tokens'] ??
-    attributes['gen_ai.usage.input_tokens.cached'];
+  const cachedTokens = getTokenAttribute(
+    attributes,
+    'gen_ai.usage.cache_read.input_tokens'
+  );
+  const cacheWriteTokens = getTokenAttribute(
+    attributes,
+    'gen_ai.usage.cache_creation.input_tokens'
+  );
   const outputTokens = attributes['gen_ai.usage.output_tokens'];
   const reasoningTokens =
     attributes['gen_ai.usage.reasoning.output_tokens'] ??
@@ -161,6 +167,7 @@ function getAISpanAttributes({
         <HighlightedTokenAttributes
           inputTokens={Number(inputTokens)}
           cachedTokens={Number(cachedTokens)}
+          cacheWriteTokens={Number(cacheWriteTokens)}
           outputTokens={Number(outputTokens)}
           reasoningTokens={Number(reasoningTokens)}
           totalTokens={Number(totalTokens)}
@@ -353,13 +360,29 @@ function HighlightedTools({
   );
 }
 
+function getTokenAttribute(
+  attributes: Record<string, string | number | boolean>,
+  key:
+    | 'gen_ai.usage.cache_creation.input_tokens'
+    | 'gen_ai.usage.cache_read.input_tokens'
+) {
+  for (const candidate of ATTRIBUTE_METADATA[key].keys) {
+    if (attributes[candidate] !== undefined) {
+      return attributes[candidate];
+    }
+  }
+  return;
+}
+
 function HighlightedTokenAttributes({
   inputTokens,
   cachedTokens,
+  cacheWriteTokens,
   outputTokens,
   reasoningTokens,
   totalTokens,
 }: {
+  cacheWriteTokens: number;
   cachedTokens: number;
   inputTokens: number;
   outputTokens: number;
@@ -369,6 +392,7 @@ function HighlightedTokenAttributes({
   const tokenArgs = {
     inputTokens,
     cachedTokens,
+    cacheWriteTokens,
     outputTokens,
     reasoningTokens,
     totalTokens,
@@ -377,9 +401,10 @@ function HighlightedTokenAttributes({
   const mismatch = hasTokenMismatch(tokenArgs);
 
   const hasCached = breakdown.cached > 0;
+  const hasCacheWrite = breakdown.cacheWrite > 0;
 
   const abbr = formatAbbreviatedNumber;
-  const tokenSummary = `${abbr(breakdown.netNewInput)} ${t('in')}${hasCached ? ` + ${abbr(breakdown.cached)} ${t('cached')}` : ''} + ${abbr(breakdown.output)} ${t('out')} = ${abbr(breakdown.total)} ${t('total')}`;
+  const tokenSummary = `${abbr(breakdown.netNewInput)} ${t('in')}${hasCached ? ` + ${abbr(breakdown.cached)} ${t('cached')}` : ''}${hasCacheWrite ? ` + ${abbr(breakdown.cacheWrite)} ${t('cache write')}` : ''} + ${abbr(breakdown.output)} ${t('out')} = ${abbr(breakdown.total)} ${t('total')}`;
 
   const breakdownTooltip = (
     <TokensTooltipTitle>
@@ -389,6 +414,12 @@ function HighlightedTokenAttributes({
         <Fragment>
           <span>{t('Cached')}</span>
           <span>{breakdown.cached.toLocaleString()}</span>
+        </Fragment>
+      )}
+      {hasCacheWrite && (
+        <Fragment>
+          <span>{t('Cache Write')}</span>
+          <span>{breakdown.cacheWrite.toLocaleString()}</span>
         </Fragment>
       )}
       <span>{t('Output')}</span>

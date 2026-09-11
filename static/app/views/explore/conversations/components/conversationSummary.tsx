@@ -2,6 +2,7 @@ import type React from 'react';
 import {Fragment, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {ATTRIBUTE_METADATA} from '@sentry/conventions';
 
 import {Tag} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';
@@ -279,7 +280,7 @@ export function ConversationSummary({
         />
         <Stat
           label={t('Tokens')}
-          value={<Count value={aggregates.totalTokens} />}
+          value={<TokenCount breakdown={aggregates.tokens} />}
           isLoading={isLoading}
         />
         <Stat
@@ -366,22 +367,53 @@ interface ConversationAggregates {
   llmCalls: number;
   /** When the conversation began, or null when no span carries a start time. */
   startTimestamp: number | null;
+  tokens: ConversationTokenBreakdown;
   toolCalls: number;
   toolNames: string[];
   totalCost: number;
-  totalTokens: number;
+}
+
+interface ConversationTokenBreakdown {
+  cacheWrite: number;
+  cached: number;
+  input: number;
+  output: number;
+  reasoning: number;
+  total: number;
 }
 
 function getGenAiOpType(node: AITraceSpanNode): string | undefined {
   return getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
 }
 
+function getNumberAttrByConvention(
+  node: AITraceSpanNode,
+  key:
+    | 'gen_ai.usage.cache_creation.input_tokens'
+    | 'gen_ai.usage.cache_read.input_tokens'
+): number | undefined {
+  for (const candidate of ATTRIBUTE_METADATA[key].keys) {
+    const value = getNumberAttr(node, candidate);
+    if (value !== undefined) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
 function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
   let llmCalls = 0;
   let toolCalls = 0;
   let errorCount = 0;
-  let totalTokens = 0;
   let totalCost = 0;
+  const tokens: ConversationTokenBreakdown = {
+    cacheWrite: 0,
+    cached: 0,
+    input: 0,
+    output: 0,
+    reasoning: 0,
+    total: 0,
+  };
   let startTimestamp: number | null = null;
   const toolNameSet = new Set<string>();
   const erroredToolNameSet = new Set<string>();
@@ -398,7 +430,23 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
 
     if (getIsAiGenerationSpan(opType)) {
       llmCalls++;
-      totalTokens += getNumberAttr(node, SpanFields.GEN_AI_USAGE_TOTAL_TOKENS) ?? 0;
+      const cached =
+        getNumberAttrByConvention(node, 'gen_ai.usage.cache_read.input_tokens') ?? 0;
+      const cacheWrite =
+        getNumberAttrByConvention(node, 'gen_ai.usage.cache_creation.input_tokens') ?? 0;
+      const input = getNumberAttr(node, SpanFields.GEN_AI_USAGE_INPUT_TOKENS);
+      const output = getNumberAttr(node, SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS);
+
+      tokens.input += Math.max(0, (input ?? 0) - cached - cacheWrite);
+      tokens.output += output ?? 0;
+      tokens.cached += cached;
+      tokens.cacheWrite += cacheWrite;
+      tokens.reasoning +=
+        getNumberAttr(node, SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS) ?? 0;
+      tokens.total +=
+        input !== undefined || output !== undefined
+          ? (input ?? 0) + (output ?? 0)
+          : (getNumberAttr(node, SpanFields.GEN_AI_USAGE_TOTAL_TOKENS) ?? 0);
       totalCost += getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS) ?? 0;
     } else if (getIsExecuteToolSpan(opType)) {
       toolCalls++;
@@ -429,7 +477,7 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
     errorCount,
     startTimestamp,
     erroredToolNames: erroredToolNameSet,
-    totalTokens,
+    tokens,
     totalCost,
     toolNames,
   };
@@ -503,7 +551,7 @@ export function ConversationAggregatesBar({
       />
       <AggregateItem
         label={t('Tokens')}
-        value={<Count value={aggregates.totalTokens} />}
+        value={<TokenCount breakdown={aggregates.tokens} />}
         isLoading={isLoading}
       />
       <AggregateItem
@@ -582,6 +630,34 @@ export function ConversationAggregatesBar({
   );
 }
 
+function TokenCount({breakdown}: {breakdown: ConversationTokenBreakdown}) {
+  const rows = [
+    {label: t('Input'), value: breakdown.input},
+    {label: t('Output'), value: breakdown.output},
+    {label: t('Cached'), value: breakdown.cached},
+    {label: t('Cache Write'), value: breakdown.cacheWrite},
+    {label: t('Reasoning'), value: breakdown.reasoning},
+    {label: t('Total'), value: breakdown.total},
+  ].filter(row => row.value > 0 || row.label === t('Total'));
+
+  return (
+    <Tooltip
+      title={
+        <TokenBreakdownGrid>
+          {rows.map(row => (
+            <Fragment key={row.label}>
+              <span>{row.label}</span>
+              <span>{row.value.toLocaleString()}</span>
+            </Fragment>
+          ))}
+        </TokenBreakdownGrid>
+      }
+    >
+      <Count value={breakdown.total} />
+    </Tooltip>
+  );
+}
+
 function AggregateItem({
   label,
   value,
@@ -622,6 +698,20 @@ function AggregateItem({
 
   return content;
 }
+
+const TokenBreakdownGrid = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${p => p.theme.space.xs};
+
+  > *:nth-child(odd) {
+    text-align: left;
+  }
+
+  > *:nth-child(even) {
+    text-align: right;
+  }
+`;
 
 const AggregateValue = styled(Text)<{isInteractive?: boolean}>`
   ${p =>

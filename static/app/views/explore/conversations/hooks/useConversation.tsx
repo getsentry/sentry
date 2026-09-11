@@ -60,6 +60,13 @@ interface ConversationApiSpan {
   'gen_ai.tool.input'?: string;
   'gen_ai.tool.name'?: string;
   'gen_ai.tool.output'?: string;
+  'gen_ai.usage.cache_creation.input_tokens'?: number;
+  'gen_ai.usage.cache_read.input_tokens'?: number;
+  'gen_ai.usage.input_tokens'?: number;
+  'gen_ai.usage.input_tokens.cache_write'?: number;
+  'gen_ai.usage.input_tokens.cached'?: number;
+  'gen_ai.usage.output_tokens'?: number;
+  'gen_ai.usage.reasoning.output_tokens'?: number;
   'gen_ai.usage.total_tokens'?: number;
   occurrences?: TraceTree.EAPOccurrence[];
   'span.description'?: string;
@@ -149,6 +156,18 @@ function createNodeFromApiSpan(
       'gen_ai.tool.call.result': apiSpan['gen_ai.tool.call.result'] ?? '',
       'gen_ai.tool.input': apiSpan['gen_ai.tool.input'] ?? '',
       'gen_ai.tool.output': apiSpan['gen_ai.tool.output'] ?? '',
+      [SpanFields.GEN_AI_USAGE_INPUT_TOKENS]: apiSpan['gen_ai.usage.input_tokens'] ?? 0,
+      [SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS]: apiSpan['gen_ai.usage.output_tokens'] ?? 0,
+      [SpanFields.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]:
+        apiSpan['gen_ai.usage.cache_read.input_tokens'] ??
+        apiSpan['gen_ai.usage.input_tokens.cached'] ??
+        0,
+      'gen_ai.usage.cache_creation.input_tokens':
+        apiSpan['gen_ai.usage.cache_creation.input_tokens'] ??
+        apiSpan['gen_ai.usage.input_tokens.cache_write'] ??
+        0,
+      [SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]:
+        apiSpan['gen_ai.usage.reasoning.output_tokens'] ?? 0,
       [SpanFields.GEN_AI_USAGE_TOTAL_TOKENS]: apiSpan['gen_ai.usage.total_tokens'] ?? 0,
       [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: apiSpan['gen_ai.cost.total_tokens'] ?? 0,
       [SpanFields.SPAN_STATUS]: apiSpan['span.status'],

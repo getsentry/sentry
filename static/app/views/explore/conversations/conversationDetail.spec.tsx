@@ -205,6 +205,35 @@ describe('ConversationDetailPage summary errors', () => {
     });
   });
 
+  it('shows the Junior-style token breakdown in the summary tooltip', async () => {
+    mockApis(null, [
+      spanFixture({
+        span_id: 'span-tokens',
+        'span.name': 'tokenized turn',
+        'precise.start_ts': 1000,
+        'precise.finish_ts': 1000.5,
+        'gen_ai.request.messages': JSON.stringify([{role: 'user', content: 'Hello'}]),
+        'gen_ai.response.text': 'Hi',
+        'gen_ai.usage.input_tokens': 100,
+        'gen_ai.usage.output_tokens': 50,
+        'gen_ai.usage.cache_read.input_tokens': 20,
+        'gen_ai.usage.input_tokens.cache_write': 30,
+        'gen_ai.usage.reasoning.output_tokens': 10,
+        'gen_ai.usage.total_tokens': 999,
+      }),
+    ]);
+    renderPage();
+
+    const tokenCount = await screen.findByText('150');
+    await userEvent.hover(tokenCount.parentElement!);
+
+    expect(await screen.findByText('Input')).toBeInTheDocument();
+    expect(screen.getAllByText('50')).toHaveLength(2);
+    expect(screen.getByText('Cached')).toBeInTheDocument();
+    expect(screen.getByText('Cache Write')).toBeInTheDocument();
+    expect(screen.getByText('Reasoning')).toBeInTheDocument();
+  });
+
   it('renders the fire icon in the summary when a span errored', async () => {
     mockApis(null, [
       ...CONVERSATION_BODY,

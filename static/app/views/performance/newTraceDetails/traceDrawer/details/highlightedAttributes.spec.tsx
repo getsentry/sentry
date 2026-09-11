@@ -211,6 +211,7 @@ describe('getHighlightedSpanAttributes', () => {
       'gen_ai.operation.type': 'ai_client',
       'gen_ai.usage.input_tokens': '100',
       'gen_ai.usage.cache_read.input_tokens': '25',
+      'gen_ai.usage.cache_creation.input_tokens': '15',
       'gen_ai.usage.output_tokens': '50',
       'gen_ai.usage.reasoning.output_tokens': '10',
       'gen_ai.usage.total_tokens': '150',
@@ -221,7 +222,12 @@ describe('getHighlightedSpanAttributes', () => {
       attributes,
     });
 
-    expect(result.find(attr => attr.name === 'Tokens')).toBeDefined();
+    const tokens = result.find(attr => attr.name === 'Tokens');
+    expect(tokens?.value).toEqual(
+      expect.objectContaining({
+        props: expect.objectContaining({cacheWriteTokens: 15}),
+      })
+    );
   });
 
   it('should fall back to deprecated token attributes when replacements are unavailable', () => {
@@ -231,6 +237,7 @@ describe('getHighlightedSpanAttributes', () => {
         'gen_ai.operation.type': 'ai_client',
         'gen_ai.usage.input_tokens': '100',
         'gen_ai.usage.input_tokens.cached': '25',
+        'gen_ai.usage.input_tokens.cache_write': '15',
         'gen_ai.usage.output_tokens': '50',
         'gen_ai.usage.output_tokens.reasoning': '10',
         'gen_ai.usage.total_tokens': '150',
@@ -242,6 +249,7 @@ describe('getHighlightedSpanAttributes', () => {
       expect.objectContaining({
         props: expect.objectContaining({
           cachedTokens: 25,
+          cacheWriteTokens: 15,
           reasoningTokens: 10,
         }),
       })
