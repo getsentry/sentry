@@ -69,8 +69,8 @@ class IntegrationProxyFailureMetricType(StrEnum):
     INVALID_INTEGRATION = "invalid_integration"
     INVALID_CLIENT = "invalid_client"
     INVALID_MODE = "invalid_mode"
-    INVALID_SENDER = "invalid_sender"
     INVALID_IDENTITY = "invalid_identity"
+    STREAM_INTERRUPTED = "stream_interrupted"
     HOST_UNREACHABLE_ERROR = "host_unreachable_error"
     HOST_TIMEOUT_ERROR = "host_timeout_error"
     UNAUTHORIZED_ERROR = "unauthorized_error"
@@ -360,16 +360,11 @@ class InternalIntegrationProxyEndpoint(Endpoint):
     def _add_failure_metric(
         self,
         failure_type: IntegrationProxyFailureMetricType,
-        additional_tags: dict[str, str] | None = None,
     ) -> None:
-        if additional_tags is None:
-            additional_tags = {}
-        tags = {"failure_type": failure_type.value, **additional_tags}
-
         self._add_metric(
             metric_name="proxy_failure",
             sample_rate=1.0,
-            tags=tags,
+            tags={"failure_type": failure_type.value},
         )
 
     @trace
@@ -400,10 +395,18 @@ class InternalIntegrationProxyEndpoint(Endpoint):
                 try:
                     yield from r.iter_content(16 * 1024)
                 except (RequestException, ConnectionError, OSError) as e:
+                    # Django consumes this generator after the view has returned, so
+                    # handle_exception_with_details never sees these. Count them here or the
+                    # truncated response is invisible in proxy_failure.
                     logger.warning(
                         "integrations.proxy.stream_interrupted",
-                        extra={"error": str(e), "url": full_url},
+                        extra={
+                            "error": str(e),
+                            "url": full_url,
+                            "exception_class": type(e).__name__,
+                        },
                     )
+                    self._add_failure_metric(IntegrationProxyFailureMetricType.STREAM_INTERRUPTED)
                     return
 
         return StreamingHttpResponse(

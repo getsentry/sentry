@@ -6,7 +6,7 @@ import time
 from collections.abc import Callable
 from datetime import datetime
 from difflib import SequenceMatcher
-from typing import Any, NamedTuple
+from typing import Any, Literal, NamedTuple
 
 import orjson
 from django.contrib.postgres.fields import ArrayField
@@ -17,7 +17,7 @@ from objectstore_client import RequestError, Session
 from pydantic import BaseModel, ValidationError
 from taskbroker_client.retry import Retry
 
-from sentry import analytics
+from sentry import analytics, options
 from sentry.objectstore import UsecaseId, get_session
 from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
@@ -34,7 +34,7 @@ from sentry.preprod.snapshots.image_diff.compare import (
     read_image_size,
 )
 from sentry.preprod.snapshots.image_diff.odiff import OdiffServer
-from sentry.preprod.snapshots.image_diff.types import ImageSize
+from sentry.preprod.snapshots.image_diff.types import DiffResult, ImageSize
 from sentry.preprod.snapshots.manifest import (
     ChunkAssignment,
     ChunkCandidate,
@@ -164,6 +164,7 @@ class _DiffCandidate(NamedTuple):
     head_hash: str
     base_hash: str
     pixel_count: int
+    kind: Literal["base", "sibling"] = "base"
 
 
 class _ImageDiffResult(NamedTuple):
@@ -341,18 +342,62 @@ def _build_comparison_fingerprints(manifest: ComparisonManifest) -> set[ImageFin
     return fingerprints
 
 
-def _try_auto_approve_snapshot(
-    head_artifact: PreprodArtifact,
-    comparison_manifest: ComparisonManifest,
-    session: Session,
-) -> None:
+class _HashOnlyDiff(NamedTuple):
+    name: str
+    head_hash: str
+    sibling_hash: str
+
+
+def _hash_only_diffs(
+    head: set[ImageFingerprint], sibling: set[ImageFingerprint]
+) -> list[_HashOnlyDiff] | None:
+    # None: names or statuses differ (structural). []: identical. Otherwise the
+    # pairs that differ only by content hash and need a pixel diff.
+    head_by_name = {fp.name: fp for fp in head}
+    sibling_by_name = {fp.name: fp for fp in sibling}
+    if head_by_name.keys() != sibling_by_name.keys():
+        return None
+
+    diffs: list[_HashOnlyDiff] = []
+    for name in sorted(head_by_name):
+        head_fp = head_by_name[name]
+        sibling_fp = sibling_by_name[name]
+        if head_fp == sibling_fp:
+            continue
+        if head_fp._replace(head_hash=None) != sibling_fp._replace(head_hash=None):
+            return None
+        if head_fp.head_hash is None or sibling_fp.head_hash is None:
+            return None
+        diffs.append(_HashOnlyDiff(name, head_fp.head_hash, sibling_fp.head_hash))
+    return diffs
+
+
+def _effective_diff_threshold(manifest: SnapshotManifest, name: str) -> float:
+    image = manifest.images.get(name)
+    if image is not None and image.diff_threshold is not None:
+        return image.diff_threshold
+    if manifest.diff_threshold is not None:
+        return manifest.diff_threshold
+    return 0.0
+
+
+def _diff_ratio(result: DiffResult) -> float:
+    return result.changed_pixels / result.total_pixels if result.total_pixels > 0 else 0.0
+
+
+class SiblingComparison(NamedTuple):
+    artifact_id: int
+    comparison_key: str
+    manifest: ComparisonManifest
+    snapshot_manifest: SnapshotManifest
+
+
+def _find_approved_sibling(
+    head_artifact: PreprodArtifact, session: Session
+) -> SiblingComparison | None:
     cc = head_artifact.commit_comparison
     if not cc or not cc.pr_number or not cc.head_repo_name:
-        return
-
-    head_fingerprints = _build_comparison_fingerprints(comparison_manifest)
-    if not head_fingerprints:
-        return
+        return None
 
     approved_sibling = (
         PreprodArtifact.objects.filter(
@@ -363,58 +408,122 @@ def _try_auto_approve_snapshot(
             commit_comparison__head_repo_name=cc.head_repo_name,
             preprodcomparisonapproval__preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
             preprodcomparisonapproval__approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+            # Human approvals only: chaining through auto-approvals would let
+            # sub-threshold drift compound across rebuilds.
+            preprodcomparisonapproval__extras__auto_approval__isnull=True,
             preprodsnapshotmetrics__snapshot_comparisons_head_metrics__state=PreprodSnapshotComparison.State.SUCCESS,
         )
         .exclude(id=head_artifact.id)
         .order_by("-date_added")
         .first()
     )
-
     if not approved_sibling:
-        return
+        return None
 
     sibling_comparison = (
         PreprodSnapshotComparison.objects.filter(
             head_snapshot_metrics__preprod_artifact=approved_sibling,
             state=PreprodSnapshotComparison.State.SUCCESS,
         )
+        .select_related("head_snapshot_metrics")
         .order_by("-date_updated")
         .first()
     )
-
     if not sibling_comparison:
-        return
+        return None
 
-    sibling_comparison_key = (sibling_comparison.extras or {}).get("comparison_key")
-    if not sibling_comparison_key:
-        return
+    comparison_key = (sibling_comparison.extras or {}).get("comparison_key")
+    if not comparison_key:
+        return None
 
     try:
-        sibling_manifest = ComparisonManifest(
-            **orjson.loads(_read_objectstore(session, sibling_comparison_key))
-        )
+        manifest = _get_json(session, comparison_key, ComparisonManifest)
     except Exception:
         logger.exception(
             "auto_approve: failed to load sibling comparison manifest",
             extra={
                 "head_artifact_id": head_artifact.id,
                 "sibling_artifact_id": approved_sibling.id,
-                "comparison_key": sibling_comparison_key,
+                "comparison_key": comparison_key,
             },
         )
-        return
+        return None
 
-    sibling_fingerprints = _build_comparison_fingerprints(sibling_manifest)
+    snapshot_manifest_key = (sibling_comparison.head_snapshot_metrics.extras or {}).get(
+        "manifest_key"
+    )
+    if not snapshot_manifest_key:
+        return None
 
-    if head_fingerprints != sibling_fingerprints:
-        logger.info(
-            "auto_approve: fingerprints do not match",
+    try:
+        snapshot_manifest = _get_json(session, snapshot_manifest_key, SnapshotManifest)
+    except Exception:
+        logger.exception(
+            "auto_approve: failed to load sibling snapshot manifest",
             extra={
                 "head_artifact_id": head_artifact.id,
                 "sibling_artifact_id": approved_sibling.id,
+                "manifest_key": snapshot_manifest_key,
             },
         )
+        return None
+
+    return SiblingComparison(approved_sibling.id, comparison_key, manifest, snapshot_manifest)
+
+
+def _try_auto_approve_snapshot(
+    head_artifact: PreprodArtifact,
+    comparison_manifest: ComparisonManifest,
+    plan: ComparisonPlan,
+    sibling_images: dict[str, ComparisonImageResult],
+    session: Session,
+) -> None:
+    if plan.sibling_artifact_id is None or not plan.sibling_comparison_key:
         return
+
+    head_fingerprints = _build_comparison_fingerprints(comparison_manifest)
+    if not head_fingerprints:
+        return
+
+    log_extra = {
+        "head_artifact_id": head_artifact.id,
+        "sibling_artifact_id": plan.sibling_artifact_id,
+    }
+    try:
+        sibling_manifest = _get_json(session, plan.sibling_comparison_key, ComparisonManifest)
+    except Exception:
+        logger.exception(
+            "auto_approve: failed to load sibling comparison manifest",
+            extra={**log_extra, "comparison_key": plan.sibling_comparison_key},
+        )
+        return
+
+    diffs = _hash_only_diffs(head_fingerprints, _build_comparison_fingerprints(sibling_manifest))
+    if diffs is None:
+        logger.info("auto_approve: fingerprints do not match", extra=log_extra)
+        return
+
+    for diff in diffs:
+        result = sibling_images.get(diff.name)
+        if (
+            result is None
+            or result.status != "unchanged"
+            or result.head_hash != diff.head_hash
+            or result.base_hash != diff.sibling_hash
+        ):
+            metrics.incr("preprod.snapshots.auto_approve.threshold_mismatch")
+            logger.info(
+                "auto_approve: sibling diff rejected",
+                extra={
+                    **log_extra,
+                    "image_name": diff.name,
+                    "status": result.status if result else None,
+                },
+            )
+            return
+
+    if diffs:
+        metrics.incr("preprod.snapshots.auto_approve.threshold_match")
 
     PreprodComparisonApproval.objects.create(
         preprod_artifact=head_artifact,
@@ -423,7 +532,8 @@ def _try_auto_approve_snapshot(
         approved_at=timezone.now(),
         extras={
             "auto_approval": True,
-            "prev_approved_artifact_id": approved_sibling.id,
+            "prev_approved_artifact_id": plan.sibling_artifact_id,
+            "threshold_matched_image_count": len(diffs),
         },
     )
 
@@ -440,9 +550,10 @@ def _try_auto_approve_snapshot(
     logger.info(
         "auto_approve: snapshot auto-approved",
         extra={
-            "head_artifact_id": head_artifact.id,
-            "prev_approved_artifact_id": approved_sibling.id,
+            **log_extra,
+            "prev_approved_artifact_id": plan.sibling_artifact_id,
             "organization_slug": head_artifact.project.organization.slug,
+            "threshold_matched_image_count": len(diffs),
         },
     )
 
@@ -452,9 +563,9 @@ def _build_comparison_plan(
     base_manifest: SnapshotManifest,
     head_artifact_id: int,
     base_artifact_id: int,
+    sibling: SiblingComparison | None = None,
+    diff_sibling_images: bool = True,
 ) -> ComparisonPlan:
-    diff_threshold = head_manifest.diff_threshold
-
     head_images = head_manifest.images
     base_images = base_manifest.images
 
@@ -501,16 +612,8 @@ def _build_comparison_plan(
             )
             continue
 
-        specific_image_diff_threshold = head_images[name].diff_threshold
-        effective_threshold = (
-            specific_image_diff_threshold
-            if specific_image_diff_threshold is not None
-            else diff_threshold
-            if diff_threshold is not None
-            else 0.0
-        )
         eligible.append(_DiffCandidate(name, head_hash, base_hash, pixel_count))
-        eligible_thresholds[name] = effective_threshold
+        eligible_thresholds[name] = _effective_diff_threshold(head_manifest, name)
 
     for name in sorted(added):
         non_diff_images[name] = ComparisonImageResult(
@@ -545,6 +648,34 @@ def _build_comparison_plan(
             previous_image_file_name=old_name,
         )
 
+    # Diff hash-differing images against the approved sibling so finalize can auto-approve.
+    if sibling is not None and diff_sibling_images:
+        sibling_meta_by_hash = {
+            m.content_hash: m for m in sibling.snapshot_manifest.images.values()
+        }
+        sibling_candidate_names = (
+            {c.name for c in eligible} | set(added) | {n for n, _ in renamed_pairs}
+        )
+        for name in sorted(sibling_candidate_names):
+            sibling_image = sibling.manifest.images.get(name)
+            if sibling_image is None or sibling_image.status not in ("changed", "added", "renamed"):
+                continue
+            head_hash = head_by_name[name]
+            sibling_hash = sibling_image.head_hash
+            if not sibling_hash or sibling_hash == head_hash:
+                continue
+            head_meta = head_meta_by_hash[head_hash]
+            head_size = ImageSize(head_meta.width, head_meta.height)
+            sibling_meta = sibling_meta_by_hash.get(sibling_hash)
+            if sibling_meta is None:
+                continue
+            sibling_size = ImageSize(sibling_meta.width, sibling_meta.height)
+            pixel_count = get_comparison_size(head_size, sibling_size).pixel_count
+            if pixel_count > MAX_DIFF_PIXELS:
+                continue
+            eligible.append(_DiffCandidate(name, head_hash, sibling_hash, pixel_count, "sibling"))
+            eligible_thresholds[name] = _effective_diff_threshold(head_manifest, name)
+
     batches = _create_pixel_batches(eligible, MAX_PIXELS_PER_BATCH)
     chunks = [
         ChunkAssignment(
@@ -556,6 +687,7 @@ def _build_comparison_plan(
                     base_hash=candidate.base_hash,
                     pixel_count=candidate.pixel_count,
                     diff_threshold=eligible_thresholds[candidate.name],
+                    kind=candidate.kind,
                 )
                 for candidate in batch
             ],
@@ -568,6 +700,8 @@ def _build_comparison_plan(
         base_artifact_id=base_artifact_id,
         chunks=chunks,
         non_diff_images=non_diff_images,
+        sibling_artifact_id=sibling.artifact_id if sibling else None,
+        sibling_comparison_key=sibling.comparison_key if sibling else None,
     )
 
 
@@ -578,15 +712,17 @@ def _process_chunk(
     project_id: int,
     head_artifact_id: int,
     base_artifact_id: int,
-) -> dict[str, ComparisonImageResult]:
+) -> ChunkResult:
     image_key_prefix = f"{org_id}/{project_id}"
     images: dict[str, ComparisonImageResult] = {}
+    sibling_images: dict[str, ComparisonImageResult] = {}
+
+    def results_for(candidate: ChunkCandidate) -> dict[str, ComparisonImageResult]:
+        return sibling_images if candidate.kind == "sibling" else images
 
     with OdiffServer() as server:
         diff_pairs: list[tuple[bytes, bytes]] = []
-        batch_names: list[str] = []
-        batch_hashes: list[tuple[str, str]] = []
-        batch_thresholds: list[float] = []
+        batch_candidates: list[ChunkCandidate] = []
 
         unique_hashes: set[str] = set()
         for candidate in assignment.candidates:
@@ -615,13 +751,17 @@ def _process_chunk(
         current_batch_pixels = 0
         for candidate in assignment.candidates:
             if candidate.head_hash in failed_hashes or candidate.base_hash in failed_hashes:
-                images[candidate.name] = _errored_result(candidate, "image_fetch_failed")
+                results_for(candidate)[candidate.name] = _errored_result(
+                    candidate, "image_fetch_failed"
+                )
                 continue
 
             head_size = actual_sizes[candidate.head_hash]
             base_size = actual_sizes[candidate.base_hash]
             if head_size is None or base_size is None:
-                images[candidate.name] = _errored_result(candidate, "image_processing_failed")
+                results_for(candidate)[candidate.name] = _errored_result(
+                    candidate, "image_processing_failed"
+                )
                 continue
 
             head_data = fetch_cache[candidate.head_hash]
@@ -629,7 +769,9 @@ def _process_chunk(
             comparison_size = get_comparison_size(head_size, base_size)
             comparison_pixels = comparison_size.pixel_count
             if comparison_pixels > MAX_DIFF_PIXELS:
-                images[candidate.name] = _errored_result(candidate, "exceeds_pixel_limit")
+                results_for(candidate)[candidate.name] = _errored_result(
+                    candidate, "exceeds_pixel_limit"
+                )
                 metrics.incr("preprod.snapshots.image_diff.exceeds_pixel_limit")
                 logger.warning(
                     "preprod.snapshots.image_diff.exceeds_pixel_limit",
@@ -646,7 +788,9 @@ def _process_chunk(
 
             next_batch_pixels = current_batch_pixels + comparison_pixels
             if next_batch_pixels > MAX_PIXELS_PER_BATCH:
-                images[candidate.name] = _errored_result(candidate, "exceeds_batch_pixel_limit")
+                results_for(candidate)[candidate.name] = _errored_result(
+                    candidate, "exceeds_batch_pixel_limit"
+                )
                 metrics.incr("preprod.snapshots.image_diff.exceeds_batch_pixel_limit")
                 logger.warning(
                     "preprod.snapshots.image_diff.exceeds_batch_pixel_limit",
@@ -663,21 +807,36 @@ def _process_chunk(
 
             current_batch_pixels = next_batch_pixels
             diff_pairs.append((base_data, head_data))
-            batch_names.append(candidate.name)
-            batch_hashes.append((candidate.head_hash, candidate.base_hash))
-            batch_thresholds.append(candidate.diff_threshold)
+            batch_candidates.append(candidate)
 
         diff_results = compare_images_batch(diff_pairs, server=server)
 
-        for name, (head_hash, base_hash), threshold, diff_result in zip(
-            batch_names, batch_hashes, batch_thresholds, diff_results, strict=True
-        ):
+        for candidate, diff_result in zip(batch_candidates, diff_results, strict=True):
+            name = candidate.name
+            head_hash, base_hash, threshold = (
+                candidate.head_hash,
+                candidate.base_hash,
+                candidate.diff_threshold,
+            )
             if diff_result is None:
-                images[name] = ComparisonImageResult(
+                results_for(candidate)[name] = ComparisonImageResult(
                     status="errored",
                     head_hash=head_hash,
                     base_hash=base_hash,
                     reason="image_processing_failed",
+                )
+                continue
+
+            diff_pct = _diff_ratio(diff_result)
+            is_changed = diff_pct > threshold
+
+            if candidate.kind == "sibling":
+                sibling_images[name] = ComparisonImageResult(
+                    status="changed" if is_changed else "unchanged",
+                    head_hash=head_hash,
+                    base_hash=base_hash,
+                    changed_pixels=diff_result.changed_pixels,
+                    total_pixels=diff_result.total_pixels,
                 )
                 continue
 
@@ -687,13 +846,6 @@ def _process_chunk(
             )
             diff_mask_bytes = diff_result.diff_mask_png
             _put_diff_mask(session, diff_mask_key, diff_mask_bytes)
-
-            diff_pct = (
-                diff_result.changed_pixels / diff_result.total_pixels
-                if diff_result.total_pixels > 0
-                else 0
-            )
-            is_changed = diff_pct > threshold
 
             diff_mask_image_id = f"{head_artifact_id}/{base_artifact_id}/diff/{stem}.png"
 
@@ -728,7 +880,9 @@ def _process_chunk(
                 aligned_height=diff_result.aligned_height,
             )
 
-    return images
+    return ChunkResult(
+        chunk_index=assignment.chunk_index, images=images, sibling_images=sibling_images
+    )
 
 
 @instrumented_task(
@@ -757,13 +911,13 @@ def process_snapshot_comparison_chunk(
         plan = _get_json(session, plan_key, ComparisonPlan)
         assignment = next((c for c in plan.chunks if c.chunk_index == chunk_index), None)
         if assignment is not None:
-            images = _process_chunk(
+            result = _process_chunk(
                 session, assignment, org_id, project_id, head_artifact_id, base_artifact_id
             )
             result_key = _chunk_result_key(
                 org_id, project_id, head_artifact_id, base_artifact_id, chunk_index
             )
-            _put_json(session, result_key, ChunkResult(chunk_index=chunk_index, images=images))
+            _put_json(session, result_key, result)
     except Exception as e:
         # Record the chunk as terminally failed so the comparison can still
         # complete: finalize degrades a done chunk with no result blob to errored.
@@ -810,7 +964,9 @@ def compare_snapshots(
     )
 
     try:
-        head_artifact = PreprodArtifact.objects.select_related("project__organization").get(
+        head_artifact = PreprodArtifact.objects.select_related(
+            "project__organization", "commit_comparison"
+        ).get(
             id=head_artifact_id,
             project__organization_id=org_id,
             project_id=project_id,
@@ -1058,8 +1214,15 @@ def compare_snapshots(
                 )
                 return
 
+        sibling = _find_approved_sibling(head_artifact, session)
+        diff_sibling_images = options.get("preprod.snapshots.auto-approve-sibling-diffs.enabled")
         plan = _build_comparison_plan(
-            head_manifest, base_manifest, head_artifact_id, base_artifact_id
+            head_manifest,
+            base_manifest,
+            head_artifact_id,
+            base_artifact_id,
+            sibling=sibling,
+            diff_sibling_images=diff_sibling_images,
         )
 
         plan_key = _plan_key(org_id, project_id, head_artifact_id, base_artifact_id)
@@ -1226,6 +1389,7 @@ def finalize_snapshot_comparison(
         return
 
     images: dict[str, ComparisonImageResult] = dict(plan.non_diff_images)
+    sibling_images: dict[str, ComparisonImageResult] = {}
     done_set = set(comparison.chunks_done_indices)
 
     for assignment in plan.chunks:
@@ -1251,12 +1415,15 @@ def finalize_snapshot_comparison(
                     extra={"comparison_id": comparison.id, "chunk_index": idx},
                 )
                 for candidate in assignment.candidates:
-                    images[candidate.name] = _errored_result(candidate, "chunk_result_unreadable")
+                    target = sibling_images if candidate.kind == "sibling" else images
+                    target[candidate.name] = _errored_result(candidate, "chunk_result_unreadable")
                 continue
             images.update(result.images)
+            sibling_images.update(result.sibling_images)
         else:
             for candidate in assignment.candidates:
-                images[candidate.name] = _errored_result(candidate, "chunk_failed")
+                target = sibling_images if candidate.kind == "sibling" else images
+                target[candidate.name] = _errored_result(candidate, "chunk_failed")
 
     counts = {
         s: 0 for s in ("changed", "unchanged", "added", "removed", "errored", "renamed", "skipped")
@@ -1366,7 +1533,9 @@ def finalize_snapshot_comparison(
             metrics.incr("preprod.snapshots.diff.zero_changes", sample_rate=1.0, tags=metric_tags)
 
         try:
-            _try_auto_approve_snapshot(head_artifact, comparison_manifest, session)
+            _try_auto_approve_snapshot(
+                head_artifact, comparison_manifest, plan, sibling_images, session
+            )
         except Exception:
             logger.exception(
                 "Auto-approve failed after successful comparison",

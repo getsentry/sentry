@@ -161,8 +161,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         metric_name = "hybrid_cloud.integration_proxy.proxy_failure"
         expected_tags = {"failure_type": failure_type, **(tags or {})}
 
-        # Filter on the failure_type tag, since a single validation pass can emit more than
-        # one proxy_failure metric (a specific reason plus the wrapping category).
+        # A request emits at most one proxy_failure; the tag filter identifies which failure
+        # fired rather than disambiguating multiple emissions for the same request.
         matching_mock_calls = [
             call
             for call in mock_metrics.call_args_list
@@ -233,6 +233,13 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             count=1,
             mock_metrics=mock_metrics,
             kwargs_to_match={"sample_rate": 1.0, "tags": {"status": 400}},
+        )
+        # A fully proxied response is never counted as a failure, regardless of the
+        # upstream status code.
+        self.assert_metric_count(
+            metric_name="proxy_failure",
+            count=0,
+            mock_metrics=mock_metrics,
         )
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
@@ -925,6 +932,12 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert proxy_response.status_code == 200
         assert b"".join(proxy_response.streaming_content) == first_chunk
 
+        self.assert_failure_metric_count(
+            failure_type=IntegrationProxyFailureMetricType.STREAM_INTERRUPTED,
+            count=1,
+            mock_metrics=mock_metrics,
+        )
+
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(ExampleIntegration, "get_client")
     @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
@@ -960,6 +973,12 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
 
         assert proxy_response.status_code == 200
         assert b"".join(proxy_response.streaming_content) == b""
+
+        self.assert_failure_metric_count(
+            failure_type=IntegrationProxyFailureMetricType.STREAM_INTERRUPTED,
+            count=1,
+            mock_metrics=mock_metrics,
+        )
 
 
 @control_silo_test

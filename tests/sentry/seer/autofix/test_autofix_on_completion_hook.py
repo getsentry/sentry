@@ -2,6 +2,7 @@ from typing import TypedDict
 from unittest.mock import MagicMock, patch
 
 from sentry.models.activity import Activity
+from sentry.models.repository import Repository
 from sentry.seer.agent.client_models import (
     AgentFilePatch,
     Artifact,
@@ -629,6 +630,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
 
 
 HOOK_PATH = "sentry.seer.autofix.on_completion_hook"
+PR_STATE_PATH = "sentry.seer.autofix.pr_iteration.pr_state"
 
 
 class TestPrIterationCompletionHook(TestCase):
@@ -800,6 +802,92 @@ class TestPrIterationCompletionHook(TestCase):
 
         assert pushed is False
         mock_push.assert_not_called()
+
+    def _github_repo(self, name: str = "test-repo", external_id: str = "1") -> None:
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name=name,
+            provider="integrations:github",
+            external_id=external_id,
+        )
+
+    @patch(f"{PR_STATE_PATH}.metrics.incr")
+    @patch(f"{HOOK_PATH}.pause_pr_iteration")
+    @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request")
+    @patch(f"{PR_STATE_PATH}.make_scm")
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_a_closed_pr_stops_the_push(
+        self, mock_push, mock_make_scm, mock_get_pull_request, mock_pause, mock_incr
+    ):
+        """Closing the PR is the stop signal; pushing into it would talk past it."""
+        self._github_repo()
+        mock_get_pull_request.return_value = {"data": {"state": "closed"}}
+
+        pushed = self._push(self._unsynced())
+
+        assert pushed is False
+        mock_push.assert_not_called()
+        assert mock_pause.call_args.kwargs["reason"] == PauseReason.PR_CLOSED
+        mock_incr.assert_any_call("autofix.pr_iteration.pr_closed", tags={"gate": "push"})
+
+    @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request")
+    @patch(f"{PR_STATE_PATH}.make_scm")
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_an_open_pr_still_pushes(self, mock_push, mock_make_scm, mock_get_pull_request):
+        self._github_repo()
+        mock_get_pull_request.return_value = {"data": {"state": "open"}}
+
+        pushed = self._push(self._unsynced())
+
+        assert pushed is True
+        mock_push.assert_called_once()
+
+    @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request")
+    @patch(f"{PR_STATE_PATH}.make_scm")
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_one_closed_pr_stops_a_multi_repo_push(
+        self, mock_push, mock_make_scm, mock_get_pull_request
+    ):
+        """A push serves every repo at once, so it cannot skip just the closed one."""
+        self._github_repo()
+        self._github_repo("other-repo", external_id="2")
+        state = self._unsynced()
+        state.repo_pr_states["other-repo"] = RepoPRState(
+            repo_name="other-repo",
+            provider="github",
+            pr_id=88,
+            pr_number=8,
+            pr_url="https://example.com/pull/8",
+            pr_creation_status="completed",
+            commit_sha="stale-sha",
+        )
+        mock_get_pull_request.side_effect = [
+            {"data": {"state": "open"}},
+            {"data": {"state": "closed"}},
+        ]
+
+        pushed = self._push(state)
+
+        assert pushed is False
+        mock_push.assert_not_called()
+
+    @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request", side_effect=ValueError("boom"))
+    @patch(f"{PR_STATE_PATH}.make_scm")
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_a_pr_we_cannot_read_still_pushes(
+        self, mock_push, mock_make_scm, mock_get_pull_request
+    ):
+        """A transient read failure must not silently drop the iteration's changes."""
+        self._github_repo()
+
+        pushed = self._push(self._unsynced())
+
+        assert pushed is True
+        mock_push.assert_called_once()
 
     @patch(f"{HOOK_PATH}.trigger_push_changes", side_effect=ValueError("boom"))
     def test_a_failed_push_is_swallowed(self, mock_push):

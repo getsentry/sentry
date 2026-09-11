@@ -25,6 +25,7 @@ import type {
   IntegrationWithConfig,
   OrganizationIntegration,
 } from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -227,11 +228,50 @@ export function ScmMessagingProviderRow({
     onInstallComplete,
   ]);
 
+  const rowEventParams = {organization, provider: resolvedProvider.providerKey};
+
+  const handleConnectClick = () => {
+    trackAnalytics('onboarding.scm_messaging_connect_clicked', rowEventParams);
+    handleConnect();
+  };
+  const handleRetryInstall = () => {
+    trackAnalytics('onboarding.scm_messaging_install_retry_clicked', rowEventParams);
+    handleConnect();
+  };
+
   const activateRow = (mode: 'configuring' | 'removing') =>
     onActiveRowChange({providerKey: resolvedProvider.providerKey, mode});
-  const handleCancelConfiguring = () => onActiveRowChange(null);
-  const handleCancelRemoving = () => onActiveRowChange(null);
+  const handleChooseDestination = () => {
+    trackAnalytics('onboarding.scm_messaging_choose_destination_clicked', rowEventParams);
+    activateRow('configuring');
+  };
+  const handleEditDestination = () => {
+    trackAnalytics('onboarding.scm_messaging_destination_edit_clicked', rowEventParams);
+    activateRow('configuring');
+  };
+  const handleCancelConfiguring = () => {
+    // The same Cancel closes a first-time pick and an edit of a staged
+    // destination; only the latter restores a previous choice.
+    trackAnalytics(
+      isConfigured
+        ? 'onboarding.scm_messaging_destination_edit_cancelled'
+        : 'onboarding.scm_messaging_choose_destination_cancelled',
+      rowEventParams
+    );
+    onActiveRowChange(null);
+  };
+  const handleCancelRemoving = () => {
+    trackAnalytics(
+      'onboarding.scm_messaging_destination_remove_cancelled',
+      rowEventParams
+    );
+    onActiveRowChange(null);
+  };
   const handleConfirmRemove = () => {
+    trackAnalytics(
+      'onboarding.scm_messaging_destination_remove_confirmed',
+      rowEventParams
+    );
     onMessagingSetupChange({mode: 'unconfigured'});
     onActiveRowChange(null);
   };
@@ -254,7 +294,7 @@ export function ScmMessagingProviderRow({
             <Alert
               variant="danger"
               trailingItems={
-                <Alert.Button onClick={handleConnect}>{t('Try again')}</Alert.Button>
+                <Alert.Button onClick={handleRetryInstall}>{t('Try again')}</Alert.Button>
               }
             >
               {errorMessage || t('Installation failed. Please try again.')}
@@ -309,9 +349,9 @@ export function ScmMessagingProviderRow({
               <RowActions
                 visualState={visualState}
                 resolvedProvider={resolvedProvider}
-                onConnect={handleConnect}
-                onChooseDestination={() => activateRow('configuring')}
-                onEditDestination={() => activateRow('configuring')}
+                onConnect={handleConnectClick}
+                onChooseDestination={handleChooseDestination}
+                onEditDestination={handleEditDestination}
                 onStartRemoving={() => activateRow('removing')}
                 onCancelRemoving={handleCancelRemoving}
                 onConfirmRemove={handleConfirmRemove}

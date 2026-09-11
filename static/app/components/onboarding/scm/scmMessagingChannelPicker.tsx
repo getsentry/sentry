@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -9,6 +9,8 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   providerDetails,
   type IntegrationChannel,
@@ -47,6 +49,7 @@ export function ScmMessagingChannelPicker({
   isContinuing,
 }: ScmMessagingChannelPickerProps) {
   const theme = useTheme();
+  const organization = useOrganization();
   const {channelSelectedBy} = providerDetails[providerKey];
 
   // The saved destination we're editing, if any.
@@ -116,6 +119,17 @@ export function ScmMessagingChannelPicker({
     setChannel,
     options: {refetchOnWindowFocus: true},
   });
+
+  // A typed channel the provider rejected, or one the validate request could
+  // not check. Either keeps the user in the picker with the error shown.
+  useEffect(() => {
+    if (channelError) {
+      trackAnalytics('onboarding.scm_messaging_channel_validation_failed', {
+        organization,
+        provider: providerKey,
+      });
+    }
+  }, [channelError, organization, providerKey]);
 
   const handleIntegrationChange = (option: SelectValue<OrganizationIntegration>) => {
     setSelectedIntegrationId(option.value.id);
