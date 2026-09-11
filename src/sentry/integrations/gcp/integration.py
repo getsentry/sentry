@@ -330,7 +330,7 @@ class GcpIntegration(IntegrationInstallation):
 
 class GcpIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.GCP.value
-    name = "Google Cloud Platform"
+    name = "Google Cloud Platform for Seer"
     metadata = metadata
     integration_cls = GcpIntegration
     features = frozenset([IntegrationFeatures.SEER_CONTEXT])
@@ -363,7 +363,7 @@ class GcpIntegrationProvider(IntegrationProvider):
 
         return {
             "external_id": str(org_id),
-            "name": "Google Cloud Platform",
+            "name": "Google Cloud Platform for Seer",
             "metadata": {},
             "post_install_data": {
                 "sentry_sa_email": sentry_sa_email,

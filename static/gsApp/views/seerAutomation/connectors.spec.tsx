@@ -77,8 +77,12 @@ describe('SeerConnectors', () => {
 
   it('renders header and only seer-context providers', async () => {
     mockConfig([
-      makeProvider({key: 'gcp', slug: 'gcp', name: 'Google Cloud Platform'}),
-      makeProvider({key: 'datadog', slug: 'datadog', name: 'Datadog'}),
+      makeProvider({
+        key: 'gcp',
+        slug: 'gcp',
+        name: 'Google Cloud Platform for Seer',
+      }),
+      makeProvider({key: 'datadog', slug: 'datadog', name: 'Datadog for Seer'}),
       // Not a seer-context provider: must be filtered out.
       makeProvider({
         key: 'github',
@@ -91,8 +95,8 @@ describe('SeerConnectors', () => {
 
     render(<SeerConnectors />, {organization});
 
-    expect(await screen.findByText('Google Cloud Platform')).toBeInTheDocument();
-    expect(screen.getByText('Datadog')).toBeInTheDocument();
+    expect(await screen.findByText('Google Cloud Platform for Seer')).toBeInTheDocument();
+    expect(screen.getByText('Datadog for Seer')).toBeInTheDocument();
     expect(screen.queryByText('GitHub')).not.toBeInTheDocument();
     expect(
       screen.getByText(
@@ -103,8 +107,12 @@ describe('SeerConnectors', () => {
 
   it('shows install status per provider', async () => {
     mockConfig([
-      makeProvider({key: 'gcp', slug: 'gcp', name: 'Google Cloud Platform'}),
-      makeProvider({key: 'datadog', slug: 'datadog', name: 'Datadog'}),
+      makeProvider({
+        key: 'gcp',
+        slug: 'gcp',
+        name: 'Google Cloud Platform for Seer',
+      }),
+      makeProvider({key: 'datadog', slug: 'datadog', name: 'Datadog for Seer'}),
     ]);
     mockIntegrations([makeIntegration('gcp', 'active')]);
 
@@ -115,12 +123,20 @@ describe('SeerConnectors', () => {
   });
 
   it('links a provider name to its integration detail page', async () => {
-    mockConfig([makeProvider({key: 'gcp', slug: 'gcp', name: 'Google Cloud Platform'})]);
+    mockConfig([
+      makeProvider({
+        key: 'gcp',
+        slug: 'gcp',
+        name: 'Google Cloud Platform for Seer',
+      }),
+    ]);
     mockIntegrations([]);
 
     render(<SeerConnectors />, {organization});
 
-    const link = await screen.findByRole('link', {name: 'Google Cloud Platform'});
+    const link = await screen.findByRole('link', {
+      name: 'Google Cloud Platform for Seer',
+    });
     expect(link).toHaveAttribute(
       'href',
       `/settings/${organization.slug}/integrations/gcp/`

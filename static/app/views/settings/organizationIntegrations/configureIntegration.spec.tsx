@@ -417,7 +417,7 @@ describe('ConfigureIntegration GCP re-verification', () => {
     const provider = GitHubIntegrationProviderFixture({
       key: providerKey,
       slug: providerKey,
-      name: 'Google Cloud Platform',
+      name: 'Google Cloud Platform for Seer',
       features: [],
     });
     const integration = OrganizationIntegrationsFixture({
