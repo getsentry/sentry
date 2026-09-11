@@ -104,18 +104,4 @@ Writing or editing frontend tests (`*.spec.tsx`, RTL, `MockApiClient`, routing/n
 
 ## Sentry SDK Instrumentation
 
-Before inventing a key for `Sentry.setTag`/`setContext`, or a span's `setAttribute`, check whether OTel or Sentry already has a standard name for it in `@sentry/conventions`. Reusing a convention name keeps the attribute queryable and consistent with what other producers (SDKs, Relay) already emit for the same concept — a bespoke name fragments the same data across two keys. This mirrors the Python-side rule in the **`backend-conventions`** skill; the two must stay in sync since a frontend and backend span can describe the same request.
-
-All frontend imports from this package, including type-only imports, must use `@sentry/conventions/attributes/search`. It exports the `SEARCH_*` name constants and `ATTRIBUTE_SEARCH_METADATA` used by the search-field UI (see `static/app/utils/fields/`).
-
-```tsx
-import {SEARCH_USER_AGENT__ORIGINAL} from '@sentry/conventions/attributes/search';
-
-// WRONG: inventing a name for a concept the conventions already cover
-span.setAttribute('request_user_agent', navigator.userAgent);
-
-// RIGHT: use the existing convention name
-span.setAttribute(SEARCH_USER_AGENT__ORIGINAL, navigator.userAgent);
-```
-
-These are generated from the OTel semantic conventions plus Sentry's own model — search the package's `attributes/search` declarations for candidate keywords before adding a new one.
+Before inventing a key for `Sentry.setTag`/`setContext`, or a span's `setAttribute`, check whether OTel or Sentry already has a standard name for it in `@sentry/conventions`. Reuse existing names so the same attribute remains queryable across producers such as SDKs and Relay.
