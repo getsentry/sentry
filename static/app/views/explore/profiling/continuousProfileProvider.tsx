@@ -79,9 +79,13 @@ export default function ProfileAndTransactionProvider(): React.ReactElement {
     >
       <ProfileTransactionContext value={transactionResult}>
         <Stack flex={1}>
-          <ContinuousProfileHeader
-            transactionSpan={transactionResult.data.transactionSpan}
-          />
+          {profileMeta && (
+            <ContinuousProfileHeader
+              profilerId={profileMeta.profiler_id}
+              projectId={projectSlug}
+              transactionSpan={transactionResult.data.transactionSpan}
+            />
+          )}
           <Outlet />
         </Stack>
       </ProfileTransactionContext>
