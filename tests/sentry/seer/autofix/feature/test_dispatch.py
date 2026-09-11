@@ -4,7 +4,7 @@ import pytest
 
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
-from sentry.seer.autofix.feature.dispatch import AutofixFeatureTriggerArgs, trigger_autofix_feature
+from sentry.seer.autofix.feature.dispatch import AutofixFeatureArgs, trigger_autofix_feature
 from sentry.seer.autofix.feature.models import RCAStepArgs
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix.steps import AutofixStep
@@ -41,7 +41,7 @@ class TestTriggerAutofixFeature(TestCase):
 
             run = trigger_autofix_feature(
                 self.group,
-                AutofixFeatureTriggerArgs(
+                AutofixFeatureArgs(
                     referrer=AutofixReferrer.NIGHT_SHIFT,
                     step=AutofixStep.ROOT_CAUSE,
                     user_context="an upstream triage summary",
@@ -49,7 +49,14 @@ class TestTriggerAutofixFeature(TestCase):
                     step_args=RCAStepArgs(
                         intelligence_level="high",
                         reasoning_effort="low",
-                        repo_pins={"owner/repo": {"sha": "abc123", "branch": "main"}},
+                        repo_pins={
+                            "owner/repo": {
+                                "sha": "abc123",
+                                "branch": "main",
+                                "base_sha": "abc123",
+                                "base_branch": "main",
+                            }
+                        },
                     ),
                 ),
             )
@@ -76,7 +83,14 @@ class TestTriggerAutofixFeature(TestCase):
         assert payload["user_context"] == "an upstream triage summary"
         assert payload["stopping_point"] == AutofixStoppingPoint.OPEN_PR.value
         # Retained while Seer continues to consume the legacy RCA payload shape.
-        assert payload["repo_pins"] == {"owner/repo": {"sha": "abc123", "branch": "main"}}
+        assert payload["repo_pins"] == {
+            "owner/repo": {
+                "sha": "abc123",
+                "branch": "main",
+                "base_sha": "abc123",
+                "base_branch": "main",
+            }
+        }
         assert payload["tweaks"] == {
             "intelligence_level": "high",
             "reasoning_effort": "low",
@@ -85,7 +99,14 @@ class TestTriggerAutofixFeature(TestCase):
         assert payload["step_args"] == {
             "intelligence_level": "high",
             "reasoning_effort": "low",
-            "repo_pins": {"owner/repo": {"sha": "abc123", "branch": "main"}},
+            "repo_pins": {
+                "owner/repo": {
+                    "sha": "abc123",
+                    "branch": "main",
+                    "base_sha": "abc123",
+                    "base_branch": "main",
+                }
+            },
         }
         # Seer persists this hook on the Explorer run so later PR iteration
         # completions continue through the Autofix completion flow.
@@ -116,9 +137,10 @@ class TestTriggerAutofixFeature(TestCase):
             with pytest.raises(NoSeerQuotaException):
                 trigger_autofix_feature(
                     self.group,
-                    AutofixFeatureTriggerArgs(
+                    AutofixFeatureArgs(
                         referrer=AutofixReferrer.NIGHT_SHIFT,
                         step=AutofixStep.ROOT_CAUSE,
+                        step_args=RCAStepArgs(),
                     ),
                 )
 
@@ -137,9 +159,10 @@ class TestTriggerAutofixFeature(TestCase):
 
             run = trigger_autofix_feature(
                 self.group,
-                AutofixFeatureTriggerArgs(
+                AutofixFeatureArgs(
                     referrer=AutofixReferrer.NIGHT_SHIFT,
                     step=AutofixStep.ROOT_CAUSE,
+                    step_args=RCAStepArgs(),
                     allow_free_cohort=True,
                 ),
             )
@@ -160,9 +183,10 @@ class TestTriggerAutofixFeature(TestCase):
 
             trigger_autofix_feature(
                 self.group,
-                AutofixFeatureTriggerArgs(
+                AutofixFeatureArgs(
                     referrer=AutofixReferrer.NIGHT_SHIFT,
                     step=AutofixStep.ROOT_CAUSE,
+                    step_args=RCAStepArgs(),
                     flush=False,
                 ),
             )
@@ -182,9 +206,10 @@ class TestTriggerAutofixFeature(TestCase):
 
             trigger_autofix_feature(
                 self.group,
-                AutofixFeatureTriggerArgs(
+                AutofixFeatureArgs(
                     referrer=AutofixReferrer.NIGHT_SHIFT,
                     step=AutofixStep.ROOT_CAUSE,
+                    step_args=RCAStepArgs(),
                     user=user,
                     enable_bash_tools=True,
                 ),

@@ -17,7 +17,7 @@ from sentry.seer.autofix.analytics import record_autofix_event
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
     PrIterationNoPullRequestException,
-    _build_base_shas_metadata,
+    _build_repo_pins,
     build_step_prompt,
     generate_autofix_handoff_prompt,
     get_iteration_for_insert_index,
@@ -568,7 +568,7 @@ class TestTriggerAutofixAgent(TestCase):
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.scm.factory.new")
-    @patch("sentry.seer.autofix.feature.dispatch.trigger_autofix_feature")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_root_cause_routes_repo_pins_to_feature_when_flagged(
         self,
@@ -606,7 +606,12 @@ class TestTriggerAutofixAgent(TestCase):
         feature_trigger = mock_feature.call_args.args[1]
         assert feature_trigger.step_args is not None
         assert feature_trigger.step_args.repo_pins == {
-            "owner/repo": {"sha": "abc123", "branch": "main"}
+            "owner/repo": {
+                "sha": "abc123",
+                "branch": "main",
+                "base_sha": "abc123",
+                "base_branch": "main",
+            }
         }
         # legacy explorer run is not started for a flagged root-cause kickoff
         mock_client_class.return_value.start_run.assert_not_called()
@@ -622,7 +627,7 @@ class TestTriggerAutofixAgent(TestCase):
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
-    @patch("sentry.seer.autofix.feature.dispatch.trigger_autofix_feature")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_feature_receives_stopping_point(
         self, mock_client_class, mock_feature, mock_broadcast, mock_check_quota, mock_record_run
@@ -648,7 +653,7 @@ class TestTriggerAutofixAgent(TestCase):
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
-    @patch("sentry.seer.autofix.feature.dispatch.trigger_autofix_feature")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_feature_receives_run_options(
         self, mock_client_class, mock_feature, mock_broadcast, mock_check_quota, mock_record_run
@@ -675,7 +680,7 @@ class TestTriggerAutofixAgent(TestCase):
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
-    @patch("sentry.seer.autofix.feature.dispatch.trigger_autofix_feature")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_night_shift_repo_checks_force_bash_tools_on_the_feature(
         self, mock_client_class, mock_feature, mock_broadcast, mock_check_quota, mock_record_run
@@ -696,7 +701,7 @@ class TestTriggerAutofixAgent(TestCase):
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @patch("sentry.seer.autofix.feature.dispatch.trigger_autofix_feature")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_solution_step_does_not_route_to_feature(
         self, mock_client_class, mock_feature, mock_check_quota, mock_record_run
@@ -721,7 +726,7 @@ class TestTriggerAutofixAgent(TestCase):
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @patch("sentry.seer.autofix.feature.dispatch.trigger_autofix_feature")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_root_cause_uses_legacy_flow_without_flag(
         self, mock_client_class, mock_feature, mock_check_quota, mock_record_run
@@ -744,7 +749,7 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client.start_run.assert_called_once()
 
     @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
-    @patch("sentry.seer.autofix.feature.dispatch.trigger_autofix_feature")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_flagged_root_cause_still_enforces_quota(
         self, mock_client_class, mock_feature, mock_check_quota
@@ -1258,7 +1263,7 @@ class TestTriggerAutofixAgent(TestCase):
         mock_scm_new.assert_not_called()
 
 
-class TestBuildBaseShasMetadata(TestCase):
+class TestBuildRepoPins(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
@@ -1284,7 +1289,7 @@ class TestBuildBaseShasMetadata(TestCase):
         )
 
     def test_returns_none_without_repos(self) -> None:
-        assert _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN) is None
+        assert _build_repo_pins(self.group, AutofixReferrer.UNKNOWN) is None
 
     @patch("sentry.scm.factory.new")
     def test_builds_base_shas_using_default_branch(self, mock_scm_new):
@@ -1295,10 +1300,17 @@ class TestBuildBaseShasMetadata(TestCase):
         )
         mock_scm_new.return_value = mock_scm
 
-        result = _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN)
+        result = _build_repo_pins(self.group, AutofixReferrer.UNKNOWN)
 
         assert result is not None
-        assert json.loads(result) == {"owner/repo": {"base_sha": "deadbeef", "base_branch": "main"}}
+        assert result == {
+            "owner/repo": {
+                "sha": "deadbeef",
+                "branch": "main",
+                "base_sha": "deadbeef",
+                "base_branch": "main",
+            }
+        }
         mock_scm.get_branch.assert_called_once_with("main")
 
     @patch("sentry.scm.factory.new")
@@ -1307,11 +1319,16 @@ class TestBuildBaseShasMetadata(TestCase):
         mock_scm = _make_scm_mock(get_branch={"data": {"sha": "abc"}})
         mock_scm_new.return_value = mock_scm
 
-        result = _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN)
+        result = _build_repo_pins(self.group, AutofixReferrer.UNKNOWN)
 
         assert result is not None
-        assert json.loads(result) == {
-            "owner/repo": {"base_sha": "abc", "base_branch": "release/v2"}
+        assert result == {
+            "owner/repo": {
+                "sha": "abc",
+                "branch": "release/v2",
+                "base_sha": "abc",
+                "base_branch": "release/v2",
+            }
         }
         mock_scm.get_repository.assert_not_called()
         mock_scm.get_branch.assert_called_once_with("release/v2")
@@ -1322,7 +1339,7 @@ class TestBuildBaseShasMetadata(TestCase):
         self._make_repo_and_projectrepo()
         mock_scm_new.side_effect = Exception("boom")
 
-        assert _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN) is None
+        assert _build_repo_pins(self.group, AutofixReferrer.UNKNOWN) is None
         mock_logger.exception.assert_called_once()
 
     @patch("sentry.scm.factory.new")
@@ -1331,7 +1348,7 @@ class TestBuildBaseShasMetadata(TestCase):
         mock_scm = _make_scm_mock(get_repository={"data": {"default_branch": None}})
         mock_scm_new.return_value = mock_scm
 
-        assert _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN) is None
+        assert _build_repo_pins(self.group, AutofixReferrer.UNKNOWN) is None
         mock_scm.get_branch.assert_not_called()
 
     @patch("sentry.scm.factory.new")
@@ -1349,11 +1366,16 @@ class TestBuildBaseShasMetadata(TestCase):
         )
         mock_scm_new.side_effect = [ok_scm, bad_scm]
 
-        result = _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN)
+        result = _build_repo_pins(self.group, AutofixReferrer.UNKNOWN)
 
         assert result is not None
-        assert json.loads(result) == {
-            "owner/repo-ok": {"base_sha": "sha-ok", "base_branch": "main"}
+        assert result == {
+            "owner/repo-ok": {
+                "sha": "sha-ok",
+                "branch": "main",
+                "base_sha": "sha-ok",
+                "base_branch": "main",
+            }
         }
 
 

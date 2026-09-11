@@ -24,7 +24,6 @@ from sentry.seer.autofix.feature.models import (
     AutofixRCATweaks,
     RCAStepArgs,
 )
-from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint, is_free_cohort_org
 from sentry.seer.models.run import SeerRun
@@ -52,6 +51,9 @@ def trigger_autofix_feature(
     group: Group,
     args: AutofixFeatureArgs,
 ) -> SeerRun:
+    # Avoid a circular import through the legacy Autofix dispatcher.
+    from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
+
     # Free cohort orgs bypass quota only when called from night shift
     # (allow_free_cohort=True). Not exposed via the API.
     skip_quota = args.allow_free_cohort and is_free_cohort_org(group.organization)
@@ -71,7 +73,7 @@ def trigger_autofix_feature(
             )
             raise NoSeerQuotaException()
 
-    rca_step_args = args.step_args or RCAStepArgs()
+    rca_step_args = args.step_args
     payload = AutofixFeaturePayload(
         group_id=group.id,
         project_id=group.project_id,
