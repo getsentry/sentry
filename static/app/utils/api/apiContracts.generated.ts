@@ -15,7 +15,7 @@
  */
 export type ActionFilterValidator = {
   actions: Array<Record<string, unknown>>;
-  logic_type: 'any' | 'any-short' | 'all' | 'none';
+  logic_type: 'all' | 'any' | 'any-short' | 'none';
   conditions?: unknown[];
   id?: number;
 };
@@ -49,23 +49,23 @@ export type AgenticOnboardingRun = {
   createdAt: string;
   expiresAt: string;
   runId: string;
-  runStatus: 'active' | 'completed' | 'failed' | 'cancelled';
+  runStatus: 'active' | 'cancelled' | 'completed' | 'failed';
   schemaVersion: number;
   sequence: number;
   stages: Array<{
     eventNote: string | null;
     extra: Record<string, unknown> | null;
     stage:
-      | 'connect_mcp'
       | 'analyze_project'
+      | 'check_stack_trace_quality'
+      | 'connect_mcp'
       | 'create_project'
       | 'instrument_app'
       | 'plan_test_error'
-      | 'send_verification_error'
-      | 'receive_verification_error'
       | 'prepare_production'
-      | 'check_stack_trace_quality';
-    status: 'active' | 'waiting' | 'completed' | 'skipped' | 'bypassed' | 'failed' | null;
+      | 'receive_verification_error'
+      | 'send_verification_error';
+    status: 'active' | 'bypassed' | 'completed' | 'failed' | 'skipped' | 'waiting' | null;
   }>;
   updatedAt: string;
   onboardingCode?: string;
@@ -90,16 +90,16 @@ export type AgenticOnboardingStatusRequest = {
   run_token: string;
   schema_version: number;
   stage:
-    | 'connect_mcp'
     | 'analyze_project'
+    | 'check_stack_trace_quality'
+    | 'connect_mcp'
     | 'create_project'
     | 'instrument_app'
     | 'plan_test_error'
-    | 'send_verification_error'
-    | 'receive_verification_error'
     | 'prepare_production'
-    | 'check_stack_trace_quality';
-  status: 'active' | 'waiting' | 'completed' | 'skipped' | 'failed';
+    | 'receive_verification_error'
+    | 'send_verification_error';
+  status: 'active' | 'completed' | 'failed' | 'skipped' | 'waiting';
   event_note?: string;
   extra?: Record<string, unknown>;
   run_status?: 'completed' | 'failed';
@@ -182,7 +182,7 @@ export type AuthMfaChallenge =
 export type AuthMfaRequired = {
   mfaMethods: Array<
     | {
-        id: 'totp' | 'sms' | 'recovery';
+        id: 'recovery' | 'sms' | 'totp';
       }
     | {
         id: 'u2f';
@@ -326,7 +326,7 @@ export type AutofixStateResponse = {
   autofix: Record<string, unknown> | null;
   formatted?: {
     content: string;
-    format: 'markdown' | 'xml' | 'json';
+    format: 'json' | 'markdown' | 'xml';
   };
 };
 
@@ -336,7 +336,7 @@ export type AutofixStateResponse = {
  * Errors are output in camel case.
  */
 export type BaseDataConditionGroupValidator = {
-  logic_type: 'any' | 'any-short' | 'all' | 'none';
+  logic_type: 'all' | 'any' | 'any-short' | 'none';
   conditions?: unknown[];
   id?: number;
 };
@@ -596,7 +596,7 @@ export type CommitSerializerResponse = Array<{
       status?: string;
       url?: string | null;
     };
-    status: 'merged' | 'open' | 'closed' | 'draft' | 'unknown' | null;
+    status: 'closed' | 'draft' | 'merged' | 'open' | 'unknown' | null;
     title: string | null;
   } | null;
   suspectCommitType: string;
@@ -675,6 +675,7 @@ export type ConfigValidator = {
   recovery_threshold?: number | null;
   schedule_type?: 'crontab' | 'interval';
   timezone?:
+    | ''
     | 'Africa/Abidjan'
     | 'Africa/Accra'
     | 'Africa/Addis_Ababa'
@@ -1271,9 +1272,7 @@ export type ConfigValidator = {
     | 'Universal'
     | 'W-SU'
     | 'WET'
-    | 'Zulu'
-    | 'localtime'
-    | '';
+    | 'Zulu';
 };
 
 export type CreateExternalIssueRequest = {
@@ -1551,7 +1550,7 @@ export type CreateReplayDeletionJob = {
 
 export type CrossEvent = {
   query: string;
-  type: 'spans' | 'logs' | 'metrics';
+  type: 'logs' | 'metrics' | 'spans';
   metric?: Metric | null;
 };
 
@@ -1580,7 +1579,7 @@ export type CustomInboundFilter = {
 };
 
 export type CustomInboundFilterCondition = {
-  type: 'error_type' | 'error_message' | 'log_message' | 'metric_name' | 'release';
+  type: 'error_message' | 'error_type' | 'log_message' | 'metric_name' | 'release';
   value: string[];
 };
 
@@ -1613,37 +1612,37 @@ export type DashboardCreateWidget = {
   axis_range?: 'auto' | 'dataMin' | null;
   description?: string | null;
   display_type?:
-    | 'line'
+    | 'agents_traces_table'
     | 'area'
     | 'bar'
-    | 'table'
     | 'big_number'
-    | 'details'
     | 'categorical_bar'
-    | 'wheel'
+    | 'details'
+    | 'heatmap'
+    | 'line'
     | 'rage_and_dead_clicks'
     | 'server_tree'
+    | 'table'
     | 'text'
-    | 'agents_traces_table'
-    | 'heatmap';
+    | 'wheel';
   id?: string;
   interval?: string;
   layout?: DashboardCreateWidgetLayout | null;
-  legend_type?: 'default' | 'breakdown' | null;
+  legend_type?: 'breakdown' | 'default' | null;
   limit?: number | null;
   queries?: DashboardWidgetQuery[];
   thresholds?: Record<string, unknown> | null;
   title?: string;
   widget_type?:
     | 'discover'
-    | 'issue'
-    | 'metrics'
     | 'error-events'
-    | 'transaction-like'
-    | 'spans'
+    | 'issue'
     | 'logs'
-    | 'tracemetrics'
+    | 'metrics'
     | 'preprod-app-size'
+    | 'spans'
+    | 'tracemetrics'
+    | 'transaction-like'
     | null;
 };
 
@@ -1755,7 +1754,7 @@ export type DashboardDetailsModel = {
     id: string;
     interval: string;
     layout: Record<string, number> | null;
-    legendType: 'default' | 'breakdown' | null;
+    legendType: 'breakdown' | 'default' | null;
     limit: number | null;
     queries: Array<{
       aggregates: string[];
@@ -1880,37 +1879,37 @@ export type DashboardWidget = {
   axis_range?: 'auto' | 'dataMin' | null;
   description?: string | null;
   display_type?:
-    | 'line'
+    | 'agents_traces_table'
     | 'area'
     | 'bar'
-    | 'table'
     | 'big_number'
-    | 'details'
     | 'categorical_bar'
-    | 'wheel'
+    | 'details'
+    | 'heatmap'
+    | 'line'
     | 'rage_and_dead_clicks'
     | 'server_tree'
+    | 'table'
     | 'text'
-    | 'agents_traces_table'
-    | 'heatmap';
+    | 'wheel';
   id?: string;
   interval?: string;
   layout?: WidgetLayout | null;
-  legend_type?: 'default' | 'breakdown' | null;
+  legend_type?: 'breakdown' | 'default' | null;
   limit?: number | null;
   queries?: DashboardWidgetQuery[];
   thresholds?: Record<string, unknown> | null;
   title?: string;
   widget_type?:
     | 'discover'
-    | 'issue'
-    | 'metrics'
     | 'error-events'
-    | 'transaction-like'
-    | 'spans'
+    | 'issue'
     | 'logs'
-    | 'tracemetrics'
+    | 'metrics'
     | 'preprod-app-size'
+    | 'spans'
+    | 'tracemetrics'
+    | 'transaction-like'
     | null;
 };
 
@@ -1947,7 +1946,7 @@ export type DashboardWidgetQueryOnDemand = {
 
 export type DataForwarder = {
   organization_id: number;
-  provider: 'segment' | 'sqs' | 'splunk';
+  provider: 'segment' | 'splunk' | 'sqs';
   config?: Record<string, string>;
   enroll_new_projects?: boolean;
   is_enabled?: boolean;
@@ -2160,7 +2159,7 @@ export type Detector = {
   owner?: {
     id: string;
     name: string;
-    type: 'user' | 'team';
+    type: 'team' | 'user';
     email?: string;
   } | null;
 };
@@ -2173,8 +2172,8 @@ export type DetectorCountResponse = {
 
 export type DiscoverSavedQuery = {
   name: string;
-  aggregations?: Array<unknown[]> | null;
-  conditions?: Array<unknown[]> | null;
+  aggregations?: unknown[][] | null;
+  conditions?: unknown[][] | null;
   display?: string | null;
   end?: string | null;
   environment?: string[] | null;
@@ -2462,16 +2461,16 @@ export type EventIdLookupResponse = {
     }>;
     title: string;
     type:
+      | 'csp'
       | 'default'
       | 'error'
-      | 'csp'
-      | 'nel'
-      | 'hpkp'
       | 'expectct'
       | 'expectstaple'
-      | 'transaction'
+      | 'feedback'
       | 'generic'
-      | 'feedback';
+      | 'hpkp'
+      | 'nel'
+      | 'transaction';
     user: {
       data?: Record<string, unknown> | null;
       email?: string | null;
@@ -2521,12 +2520,12 @@ export type ExploreSavedQuery = {
   agent?: string[] | null;
   crossEvents?: CrossEvent[] | null;
   dataset?:
-    | 'spans'
+    | 'ai_conversations'
     | 'logs'
-    | 'segment_spans'
     | 'metrics'
     | 'replays'
-    | 'ai_conversations';
+    | 'segment_spans'
+    | 'spans';
   end?: string | null;
   environment?: string[] | null;
   interval?: string | null;
@@ -2586,12 +2585,12 @@ export type ExploreSavedQueryListResponse = Array<{
     }>;
   } | null;
   dataset:
-    | 'spans'
+    | 'ai_conversations'
     | 'logs'
-    | 'segment_spans'
     | 'metrics'
     | 'replays'
-    | 'ai_conversations';
+    | 'segment_spans'
+    | 'spans';
   dateAdded: string;
   dateUpdated: string;
   expired: boolean;
@@ -2605,10 +2604,10 @@ export type ExploreSavedQueryListResponse = Array<{
   agent?: string[];
   crossEvents?: Array<{
     query: string;
-    type: 'spans' | 'logs' | 'metrics';
+    type: 'logs' | 'metrics' | 'spans';
     metric?: {
       name: string;
-      type: 'counter' | 'gauge' | 'distribution';
+      type: 'counter' | 'distribution' | 'gauge';
       unit?: string | null;
     } | null;
   }>;
@@ -2616,7 +2615,7 @@ export type ExploreSavedQueryListResponse = Array<{
   environment?: string[];
   interval?: string;
   query?: Array<{
-    mode: 'samples' | 'aggregate';
+    mode: 'aggregate' | 'samples';
     aggregateField?: Array<{
       chartType?: number;
       groupBy?: string;
@@ -2628,7 +2627,7 @@ export type ExploreSavedQueryListResponse = Array<{
     groupby?: string[] | null;
     metric?: {
       name: string;
-      type: 'counter' | 'gauge' | 'distribution';
+      type: 'counter' | 'distribution' | 'gauge';
       unit?: string | null;
     } | null;
     orderby?: string | null;
@@ -2693,12 +2692,12 @@ export type ExploreSavedQueryModel = {
     }>;
   } | null;
   dataset:
-    | 'spans'
+    | 'ai_conversations'
     | 'logs'
-    | 'segment_spans'
     | 'metrics'
     | 'replays'
-    | 'ai_conversations';
+    | 'segment_spans'
+    | 'spans';
   dateAdded: string;
   dateUpdated: string;
   expired: boolean;
@@ -2712,10 +2711,10 @@ export type ExploreSavedQueryModel = {
   agent?: string[];
   crossEvents?: Array<{
     query: string;
-    type: 'spans' | 'logs' | 'metrics';
+    type: 'logs' | 'metrics' | 'spans';
     metric?: {
       name: string;
-      type: 'counter' | 'gauge' | 'distribution';
+      type: 'counter' | 'distribution' | 'gauge';
       unit?: string | null;
     } | null;
   }>;
@@ -2723,7 +2722,7 @@ export type ExploreSavedQueryModel = {
   environment?: string[];
   interval?: string;
   query?: Array<{
-    mode: 'samples' | 'aggregate';
+    mode: 'aggregate' | 'samples';
     aggregateField?: Array<{
       chartType?: number;
       groupBy?: string;
@@ -2735,7 +2734,7 @@ export type ExploreSavedQueryModel = {
     groupby?: string[] | null;
     metric?: {
       name: string;
-      type: 'counter' | 'gauge' | 'distribution';
+      type: 'counter' | 'distribution' | 'gauge';
       unit?: string | null;
     } | null;
     orderby?: string | null;
@@ -2760,13 +2759,13 @@ export type ExplorerAutofixRequest = {
   run_id?: number;
   sentry_run_id?: string;
   step?:
-    | 'root_cause'
-    | 'solution'
     | 'code_changes'
-    | 'pr_iteration'
+    | 'coding_agent_handoff'
     | 'open_pr'
-    | 'coding_agent_handoff';
-  stopping_point?: 'root_cause' | 'solution' | 'code_changes' | 'open_pr';
+    | 'pr_iteration'
+    | 'root_cause'
+    | 'solution';
+  stopping_point?: 'code_changes' | 'open_pr' | 'root_cause' | 'solution';
   user_context?: string;
 };
 
@@ -2797,15 +2796,15 @@ export type ExternalTeam = {
   external_name: string;
   integration_id: number;
   provider:
+    | 'custom_scm'
     | 'github'
     | 'github_enterprise'
-    | 'jira_server'
-    | 'slack'
-    | 'slack_staging'
-    | 'perforce'
     | 'gitlab'
+    | 'jira_server'
     | 'msteams'
-    | 'custom_scm';
+    | 'perforce'
+    | 'slack'
+    | 'slack_staging';
   team_id: number;
   external_id?: string | null;
 };
@@ -2820,15 +2819,15 @@ export type ExternalUser = {
   id: number;
   integration_id: number;
   provider:
+    | 'custom_scm'
     | 'github'
     | 'github_enterprise'
-    | 'jira_server'
-    | 'slack'
-    | 'slack_staging'
-    | 'perforce'
     | 'gitlab'
+    | 'jira_server'
     | 'msteams'
-    | 'custom_scm';
+    | 'perforce'
+    | 'slack'
+    | 'slack_staging';
   user_id: number;
   external_id?: string | null;
 };
@@ -2868,22 +2867,22 @@ export type ExternalUser = {
  */
 export type Filters = {
   filetypes?: Array<
-    | 'pe'
-    | 'pdb'
-    | 'portablepdb'
-    | 'mach_debug'
-    | 'mach_code'
-    | 'elf_debug'
-    | 'elf_code'
-    | 'wasm_debug'
-    | 'wasm_code'
+    | 'bcsymbolmap'
     | 'breakpad'
+    | 'dartsymbolmap'
+    | 'elf_code'
+    | 'elf_debug'
+    | 'il2cpp'
+    | 'mach_code'
+    | 'mach_debug'
+    | 'pdb'
+    | 'pe'
+    | 'portablepdb'
+    | 'proguard'
     | 'sourcebundle'
     | 'uuidmap'
-    | 'bcsymbolmap'
-    | 'il2cpp'
-    | 'proguard'
-    | 'dartsymbolmap'
+    | 'wasm_code'
+    | 'wasm_debug'
   >;
   path_patterns?: string[];
   requires_checksum?: boolean;
@@ -2996,7 +2995,7 @@ export type GroupDetailsResponse = {
   assignedTo: {
     id: string;
     name: string;
-    type: 'user' | 'team';
+    type: 'team' | 'user';
     email?: string;
   } | null;
   culprit: string | null;
@@ -3007,14 +3006,14 @@ export type GroupDetailsResponse = {
   isSubscribed: boolean;
   issueCategory: string;
   issueType: string;
-  level: 'sample' | 'debug' | 'info' | 'warning' | 'error' | 'fatal' | 'unknown';
+  level: 'debug' | 'error' | 'fatal' | 'info' | 'sample' | 'unknown' | 'warning';
   logger: string | null;
   metadata: Record<string, unknown>;
   numComments: number;
   participants: Array<Record<string, unknown>>;
   permalink: string;
   platform: string | null;
-  priority: 'low' | 'medium' | 'high' | null;
+  priority: 'high' | 'low' | 'medium' | null;
   priorityLockedAt: string | null;
   project: {
     id: string;
@@ -3029,11 +3028,11 @@ export type GroupDetailsResponse = {
   shareId: string | null;
   shortId: string;
   status:
-    | 'resolved'
     | 'ignored'
     | 'pending_deletion'
     | 'pending_merge'
     | 'reprocessing'
+    | 'resolved'
     | 'unresolved';
   statusDetails: {
     actor?: {
@@ -3100,26 +3099,26 @@ export type GroupDetailsResponse = {
     reason?: string;
   } | null;
   substatus:
-    | 'archived_until_escalating'
-    | 'archived_until_condition_met'
     | 'archived_forever'
+    | 'archived_until_condition_met'
+    | 'archived_until_escalating'
     | 'escalating'
+    | 'new'
     | 'ongoing'
     | 'regressed'
-    | 'new'
     | null;
   title: string;
   type:
+    | 'csp'
     | 'default'
     | 'error'
-    | 'csp'
-    | 'nel'
-    | 'hpkp'
     | 'expectct'
     | 'expectstaple'
-    | 'transaction'
+    | 'feedback'
     | 'generic'
-    | 'feedback';
+    | 'hpkp'
+    | 'nel'
+    | 'transaction';
   userReportCount: number;
   count?: string;
   derivedData?: {
@@ -3164,7 +3163,7 @@ export type GroupDetailsResponse = {
     serviceType: string;
     webUrl: string;
   }>;
-  stats?: Record<string, Array<number[]>>;
+  stats?: Record<string, number[][]>;
   tags?: Array<Record<string, unknown>>;
   userCount?: number;
 };
@@ -3264,16 +3263,16 @@ export type GroupHashesResponse = Array<{
         }>;
         title: string;
         type:
+          | 'csp'
           | 'default'
           | 'error'
-          | 'csp'
-          | 'nel'
-          | 'hpkp'
           | 'expectct'
           | 'expectstaple'
-          | 'transaction'
+          | 'feedback'
           | 'generic'
-          | 'feedback';
+          | 'hpkp'
+          | 'nel'
+          | 'transaction';
         user: {
           data?: Record<string, unknown> | null;
           email?: string | null;
@@ -3340,7 +3339,6 @@ export type GroupHashesResponse = Array<{
           username?: string | null;
         } | null;
       }
-    | Record<string, unknown>
     | null;
   mergedBySeer: boolean;
   seerMatchDistance: number | null;
@@ -3366,7 +3364,7 @@ export type GroupSearchViewPostValidator = {
   projects: number[];
   query: string;
   timeFilters: GroupSearchViewTimeFilters;
-  querySort?: 'date' | 'new' | 'trends' | 'freq' | 'user' | 'inbox' | 'recommended';
+  querySort?: 'date' | 'freq' | 'inbox' | 'new' | 'recommended' | 'trends' | 'user';
   starred?: boolean;
 };
 
@@ -3385,7 +3383,7 @@ export type GroupUpdateResponse = {
   assignedTo: {
     id: string;
     name: string;
-    type: 'user' | 'team';
+    type: 'team' | 'user';
     email?: string;
   } | null;
   culprit: string | null;
@@ -3396,13 +3394,13 @@ export type GroupUpdateResponse = {
   isSubscribed: boolean;
   issueCategory: string;
   issueType: string;
-  level: 'sample' | 'debug' | 'info' | 'warning' | 'error' | 'fatal' | 'unknown';
+  level: 'debug' | 'error' | 'fatal' | 'info' | 'sample' | 'unknown' | 'warning';
   logger: string | null;
   metadata: Record<string, unknown>;
   numComments: number;
   permalink: string;
   platform: string | null;
-  priority: 'low' | 'medium' | 'high' | null;
+  priority: 'high' | 'low' | 'medium' | null;
   priorityLockedAt: string | null;
   project: {
     id: string;
@@ -3416,11 +3414,11 @@ export type GroupUpdateResponse = {
   shareId: string | null;
   shortId: string;
   status:
-    | 'resolved'
     | 'ignored'
     | 'pending_deletion'
     | 'pending_merge'
     | 'reprocessing'
+    | 'resolved'
     | 'unresolved';
   statusDetails: {
     actor?: {
@@ -3487,26 +3485,26 @@ export type GroupUpdateResponse = {
     reason?: string;
   } | null;
   substatus:
-    | 'archived_until_escalating'
-    | 'archived_until_condition_met'
     | 'archived_forever'
+    | 'archived_until_condition_met'
+    | 'archived_until_escalating'
     | 'escalating'
+    | 'new'
     | 'ongoing'
     | 'regressed'
-    | 'new'
     | null;
   title: string;
   type:
+    | 'csp'
     | 'default'
     | 'error'
-    | 'csp'
-    | 'nel'
-    | 'hpkp'
     | 'expectct'
     | 'expectstaple'
-    | 'transaction'
+    | 'feedback'
     | 'generic'
-    | 'feedback';
+    | 'hpkp'
+    | 'nel'
+    | 'transaction';
   count?: string;
   derivedData?: {
     blocker: string;
@@ -3539,18 +3537,18 @@ export type GroupValidator = {
   isPublic: boolean;
   isSubscribed: boolean;
   merge: boolean;
-  priority: 'low' | 'medium' | 'high';
+  priority: 'high' | 'low' | 'medium';
   snoozeDuration: number | null;
-  status: 'resolved' | 'unresolved' | 'ignored' | 'resolvedInNextRelease' | 'muted';
+  status: 'ignored' | 'muted' | 'resolved' | 'resolvedInNextRelease' | 'unresolved';
   statusDetails: StatusDetailsValidator;
   substatus:
-    | 'archived_until_escalating'
-    | 'archived_until_condition_met'
     | 'archived_forever'
+    | 'archived_until_condition_met'
+    | 'archived_until_escalating'
     | 'escalating'
+    | 'new'
     | 'ongoing'
     | 'regressed'
-    | 'new'
     | null;
 };
 
@@ -3823,16 +3821,16 @@ export type IssueEventDetailsResponse = {
   }>;
   title: string;
   type:
+    | 'csp'
     | 'default'
     | 'error'
-    | 'csp'
-    | 'nel'
-    | 'hpkp'
     | 'expectct'
     | 'expectstaple'
-    | 'transaction'
+    | 'feedback'
     | 'generic'
-    | 'feedback';
+    | 'hpkp'
+    | 'nel'
+    | 'transaction';
   user: {
     data?: Record<string, unknown> | null;
     email?: string | null;
@@ -3879,7 +3877,7 @@ export type IssueEventDetailsResponse = {
   fingerprints?: string[];
   formatted?: {
     content: string;
-    format: 'markdown' | 'xml' | 'json';
+    format: 'json' | 'markdown' | 'xml';
   };
   groupingConfig?: {
     enhancements: string;
@@ -3902,7 +3900,7 @@ export type LatestBaseSnapshotResponse = {
   head_artifact_id?: string;
   image_count?: number;
   images?: Array<{
-    canvas_theme?: 'light' | 'dark' | null;
+    canvas_theme?: 'dark' | 'light' | null;
     display_name?: string | null;
     group?: string | null;
     height?: number;
@@ -4024,15 +4022,15 @@ export type LatestInstallableBuildResponse = {
  * ```
  */
 export type Layout = {
-  casing: 'lowercase' | 'uppercase' | 'default';
+  casing: 'default' | 'lowercase' | 'uppercase';
   type:
+    | 'debuginfod'
     | 'native'
+    | 'slashsymbols'
+    | 'ssqp'
     | 'symstore'
     | 'symstore_index2'
-    | 'ssqp'
-    | 'unified'
-    | 'debuginfod'
-    | 'slashsymbols';
+    | 'unified';
 };
 
 export type LinkExternalIssueRequest = {
@@ -4071,7 +4069,7 @@ export type ListAvailableActionResponse = Array<{
 
 export type ListClientKeysResponse = Array<{
   browserSdk: {
-    choices: Array<string[]>;
+    choices: string[][];
   };
   browserSdkVersion: string;
   dateCreated: string | null;
@@ -4166,7 +4164,7 @@ export type ListDetectorSerializerResponse = Array<{
   owner?: {
     id: string;
     name: string;
-    type: 'user' | 'team';
+    type: 'team' | 'user';
     email?: string;
   } | null;
 }>;
@@ -4607,7 +4605,7 @@ export type ListOrganizationAIConversationsResponse = Array<{
 
 export type ListOrganizationClientKeysResponse = Array<{
   browserSdk: {
-    choices: Array<string[]>;
+    choices: string[][];
   };
   browserSdkVersion: string;
   dateCreated: string | null;
@@ -4812,7 +4810,7 @@ export type ListOrganizationReleaseCommitsResponse = Array<{
       status?: string;
       url?: string | null;
     };
-    status: 'merged' | 'open' | 'closed' | 'draft' | 'unknown' | null;
+    status: 'closed' | 'draft' | 'merged' | 'open' | 'unknown' | null;
     title: string | null;
   } | null;
   releases: Array<{
@@ -5054,7 +5052,7 @@ export type ListOrganizationTraceMetricsResponse = Array<{
   count: number;
   lastSeen: number | null;
   name: string;
-  type: 'counter' | 'gauge' | 'distribution';
+  type: 'counter' | 'distribution' | 'gauge';
   unit: string | null;
   context?: {
     brief?: string;
@@ -5193,7 +5191,7 @@ export type ListProjectReleaseCommitsResponse = Array<{
       status?: string;
       url?: string | null;
     };
-    status: 'merged' | 'open' | 'closed' | 'draft' | 'unknown' | null;
+    status: 'closed' | 'draft' | 'merged' | 'open' | 'unknown' | null;
     title: string | null;
   } | null;
   releases: Array<{
@@ -5704,7 +5702,7 @@ export type ListTraceItemAttributesResponse = Array<{
     source_type: 'sentry' | 'user';
     is_transformed_alias?: boolean;
   };
-  attributeType: 'string' | 'number' | 'boolean' | 'array';
+  attributeType: 'array' | 'boolean' | 'number' | 'string';
   key: string;
   name: string;
   secondaryAliases?: string[];
@@ -5716,14 +5714,14 @@ export type ListTracesResponse = {
       duration: number;
       end: number;
       isRoot: boolean;
-      kind: 'project' | 'missing' | 'other';
+      kind: 'missing' | 'other' | 'project';
       project: string | null;
       sdkName: string | null;
       sliceEnd: number;
       sliceStart: number;
       sliceWidth: number;
       start: number;
-      components?: Array<number[]>;
+      components?: number[][];
     }>;
     duration: number;
     end: number;
@@ -5851,7 +5849,7 @@ export type ListWorkflow = Array<{
 
 export type Metric = {
   name: string;
-  type: 'counter' | 'gauge' | 'distribution';
+  type: 'counter' | 'distribution' | 'gauge';
   unit?: string | null;
 };
 
@@ -5922,7 +5920,7 @@ export type Monitor = {
   owner: {
     id: string;
     name: string;
-    type: 'user' | 'team';
+    type: 'team' | 'user';
     email?: string;
   };
   project: {
@@ -6047,7 +6045,7 @@ export type MonitorList = Array<{
   owner: {
     id: string;
     name: string;
-    type: 'user' | 'team';
+    type: 'team' | 'user';
     email?: string;
   };
   project: {
@@ -6275,14 +6273,14 @@ export type OrganizationDetailsPut = {
   allowJoinRequests?: boolean;
   allowSharedIssues?: boolean;
   apdexThreshold?: number;
-  attachmentsRole?: 'member' | 'admin' | 'manager' | 'owner';
+  attachmentsRole?: 'admin' | 'manager' | 'member' | 'owner';
   avatar?: string;
   avatarType?: 'letter_avatar' | 'upload';
   cancelDeletion?: boolean;
   dataScrubber?: boolean;
   dataScrubberDefaults?: boolean;
-  debugFilesRole?: 'member' | 'admin' | 'manager' | 'owner';
-  defaultRole?: 'member' | 'admin' | 'manager' | 'owner';
+  debugFilesRole?: 'admin' | 'manager' | 'member' | 'owner';
+  defaultRole?: 'admin' | 'manager' | 'member' | 'owner';
   enhancedPrivacy?: boolean;
   eventsMemberAdmin?: boolean;
   hasGranularReplayPermissions?: boolean;
@@ -6301,7 +6299,7 @@ export type OrganizationDetailsPut = {
   scrubIPAddresses?: boolean;
   sensitiveFields?: string[];
   slug?: string;
-  storeCrashReports?: 0 | 1 | 5 | 10 | 20 | 50 | 100 | -1;
+  storeCrashReports?: -1 | 0 | 1 | 10 | 100 | 20 | 5 | 50;
   trustedRelays?: Array<Record<string, unknown>>;
 };
 
@@ -6375,7 +6373,7 @@ export type OrganizationEventsTimeseriesResponse = {
       interval: number;
       valueType: string;
       valueUnit: string | null;
-      dataScanned?: 'partial' | 'full';
+      dataScanned?: 'full' | 'partial';
       isOther?: boolean;
       order?: number;
     };
@@ -6384,7 +6382,7 @@ export type OrganizationEventsTimeseriesResponse = {
       timestamp: number;
       value: number;
       comparisonValue?: number;
-      confidence?: 'low' | 'high' | null;
+      confidence?: 'high' | 'low' | null;
       incompleteReason?: string;
       sampleCount?: number;
       sampleRate?: number | null;
@@ -6392,7 +6390,7 @@ export type OrganizationEventsTimeseriesResponse = {
     yAxis: string;
     groupBy?: Array<{
       key: string;
-      value: string | number | Record<string, unknown> | null;
+      value: string | number | null;
     }>;
   }>;
   meta?: {
@@ -6419,7 +6417,7 @@ export type OrganizationGroupIndexGetResponse = Array<{
   assignedTo: {
     id: string;
     name: string;
-    type: 'user' | 'team';
+    type: 'team' | 'user';
     email?: string;
   } | null;
   count: string;
@@ -6465,7 +6463,7 @@ export type OrganizationGroupIndexGetResponse = Array<{
   issueType: string;
   lastSeen: string | null;
   latestEventHasAttachments: boolean;
-  level: 'sample' | 'debug' | 'info' | 'warning' | 'error' | 'fatal' | 'unknown';
+  level: 'debug' | 'error' | 'fatal' | 'info' | 'sample' | 'unknown' | 'warning';
   lifetime: Record<string, unknown>;
   logger: string | null;
   matchingEventEnvironment: string | null;
@@ -6479,7 +6477,7 @@ export type OrganizationGroupIndexGetResponse = Array<{
   };
   permalink: string;
   platform: string | null;
-  priority: 'low' | 'medium' | 'high' | null;
+  priority: 'high' | 'low' | 'medium' | null;
   priorityLockedAt: string | null;
   project: {
     id: string;
@@ -6496,11 +6494,11 @@ export type OrganizationGroupIndexGetResponse = Array<{
   shortId: string;
   stats: Record<string, unknown>;
   status:
-    | 'resolved'
     | 'ignored'
     | 'pending_deletion'
     | 'pending_merge'
     | 'reprocessing'
+    | 'resolved'
     | 'unresolved';
   statusDetails: {
     actor?: {
@@ -6567,26 +6565,26 @@ export type OrganizationGroupIndexGetResponse = Array<{
     reason?: string;
   } | null;
   substatus:
-    | 'archived_until_escalating'
-    | 'archived_until_condition_met'
     | 'archived_forever'
+    | 'archived_until_condition_met'
+    | 'archived_until_escalating'
     | 'escalating'
+    | 'new'
     | 'ongoing'
     | 'regressed'
-    | 'new'
     | null;
   title: string;
   type:
+    | 'csp'
     | 'default'
     | 'error'
-    | 'csp'
-    | 'nel'
-    | 'hpkp'
     | 'expectct'
     | 'expectstaple'
-    | 'transaction'
+    | 'feedback'
     | 'generic'
-    | 'feedback';
+    | 'hpkp'
+    | 'nel'
+    | 'transaction';
   userCount: number;
 }>;
 
@@ -6594,7 +6592,7 @@ export type OrganizationGroupIndexPutResponse = {
   assignedTo?: {
     id: string;
     name: string;
-    type: 'user' | 'team';
+    type: 'team' | 'user';
     email?: string;
   };
   discard?: boolean;
@@ -6701,7 +6699,7 @@ export type OrganizationIssueView = {
   name: string;
   projects: number[];
   query: string;
-  querySort: 'date' | 'new' | 'trends' | 'freq' | 'user' | 'inbox' | 'recommended';
+  querySort: 'date' | 'freq' | 'inbox' | 'new' | 'recommended' | 'trends' | 'user';
   starred: boolean;
   stars: number;
   timeFilters: {
@@ -6765,7 +6763,7 @@ export type OrganizationIssueViewList = Array<{
   name: string;
   projects: number[];
   query: string;
-  querySort: 'date' | 'new' | 'trends' | 'freq' | 'user' | 'inbox' | 'recommended';
+  querySort: 'date' | 'freq' | 'inbox' | 'new' | 'recommended' | 'trends' | 'user';
   starred: boolean;
   stars: number;
   timeFilters: {
@@ -6851,10 +6849,10 @@ export type OrganizationMember = {
 
 export type OrganizationMemberRequest = {
   email: string;
-  orgRole?: 'billing' | 'member' | 'manager' | 'owner' | 'admin';
+  orgRole?: 'admin' | 'billing' | 'manager' | 'member' | 'owner';
   regenerate?: boolean;
   reinvite?: boolean;
-  role?: 'member' | 'admin' | 'manager' | 'owner';
+  role?: 'admin' | 'manager' | 'member' | 'owner';
   sendInvite?: boolean;
   teamRoles?: Array<Record<string, unknown>> | null;
   teams?: unknown[];
@@ -6885,12 +6883,12 @@ export type OrganizationMemberSCIM = {
 };
 
 export type OrganizationMemberTeam = {
-  teamRole?: 'contributor' | 'admin';
+  teamRole?: 'admin' | 'contributor';
 };
 
 export type OrganizationMemberTeamDetails = {
   isActive: boolean;
-  teamRole: 'contributor' | 'admin';
+  teamRole: 'admin' | 'contributor';
 };
 
 export type OrganizationMemberWithRoles = {
@@ -7699,12 +7697,12 @@ export type ProjectAdmin = {
   securityToken: string;
   securityTokenHeader: string;
   allowedDomains?: string[];
-  autofixAutomationTuning?: 'off' | 'super_low' | 'low' | 'medium' | 'high' | 'always';
+  autofixAutomationTuning?: 'always' | 'high' | 'low' | 'medium' | 'off' | 'super_low';
   builtinSymbolSources?: string[];
   copy_from_project?: number;
   dataScrubber?: boolean;
   dataScrubberDefaults?: boolean;
-  debugFilesRole?: 'member' | 'admin' | 'manager' | 'owner' | null;
+  debugFilesRole?: 'admin' | 'manager' | 'member' | 'owner' | null;
   defaultEnvironment?: string | null;
   dynamicSamplingBiases?: DynamicSamplingBias[];
   enableAutoReleaseCreation?: boolean;
@@ -7841,16 +7839,16 @@ export type ProjectEventDetailsResponse = {
   }>;
   title: string;
   type:
+    | 'csp'
     | 'default'
     | 'error'
-    | 'csp'
-    | 'nel'
-    | 'hpkp'
     | 'expectct'
     | 'expectstaple'
-    | 'transaction'
+    | 'feedback'
     | 'generic'
-    | 'feedback';
+    | 'hpkp'
+    | 'nel'
+    | 'transaction';
   user: {
     data?: Record<string, unknown> | null;
     email?: string | null;
@@ -7947,7 +7945,7 @@ export type ProjectFilterResponse = Array<{
 /** This represents a Sentry Project Client Key. */
 export type ProjectKey = {
   browserSdk: {
-    choices: Array<string[]>;
+    choices: string[][];
   };
   browserSdkVersion: string;
   dateCreated: string | null;
@@ -7990,7 +7988,7 @@ export type ProjectKey = {
 export type ProjectKeyPost = {
   name?: string | null;
   rateLimit?: RateLimit;
-  useCase?: 'user' | 'profiling' | 'tempest' | 'demo';
+  useCase?: 'demo' | 'profiling' | 'tempest' | 'user';
 };
 
 export type ProjectOwnership = {
@@ -8152,7 +8150,7 @@ export type ProjectReleaseResponse = {
 
 export type ProjectReleaseStats = {
   statTotals: Record<string, unknown>;
-  stats: Array<number[]>;
+  stats: number[][];
   usersBreakdown: Array<{
     crashFreeSessions: number | null;
     crashFreeUsers: number | null;
@@ -8202,11 +8200,11 @@ export type ProjectSizeStatusCheckRulesResponse = {
   enabled: boolean;
   rules: Array<{
     artifactType:
-      | 'main_artifact'
-      | 'watch_artifact'
+      | 'all_artifacts'
       | 'android_dynamic_feature_artifact'
       | 'app_clip_artifact'
-      | 'all_artifacts';
+      | 'main_artifact'
+      | 'watch_artifact';
     filterQuery: string;
     filters: Array<{
       conditions: Array<{
@@ -8229,7 +8227,7 @@ export type ProjectSizeStatusCheckRulesResponse = {
     }> | null;
     id: string;
     measurement: 'absolute' | 'absolute_diff' | 'relative_diff';
-    metric: 'install_size' | 'download_size';
+    metric: 'download_size' | 'install_size';
     value: string;
   }>;
 };
@@ -8244,7 +8242,7 @@ export type ProjectSnapshotStatusCheckRulesResponse = {
   };
 };
 
-export type ProjectStats = Array<number[]>;
+export type ProjectStats = number[][];
 
 export type ProjectSummary = {
   access: string[];
@@ -8395,7 +8393,7 @@ export type ProjectWithTeam = {
 
 export type PromptsActivity = {
   feature: string;
-  status: 'visible' | 'snoozed' | 'dismissed';
+  status: 'dismissed' | 'snoozed' | 'visible';
 };
 
 export type PromptsActivityResponse = {
@@ -8404,7 +8402,7 @@ export type PromptsActivityResponse = {
 };
 
 export type Query = {
-  mode: 'samples' | 'aggregate';
+  mode: 'aggregate' | 'samples';
   aggregateField?: AggregateField[] | null;
   aggregateOrderby?: string | null;
   caseInsensitive?: boolean;
@@ -8505,7 +8503,7 @@ export type ReleaseThresholdStatusResponse = Record<
     end: string;
     is_healthy: boolean;
     key: string;
-    metric_value: number | Record<string, unknown> | null;
+    metric_value: number | null;
     project_id: number;
     project_slug: string;
     start: string;
@@ -8515,13 +8513,13 @@ export type ReleaseThresholdStatusResponse = Record<
     project?: Record<string, unknown>;
     release?: string;
     threshold_type?:
-      | 'total_error_count'
-      | 'new_issue_count'
-      | 'unhandled_issue_count'
-      | 'regressed_issue_count'
-      | 'failure_rate'
       | 'crash_free_session_rate'
-      | 'crash_free_user_rate';
+      | 'crash_free_user_rate'
+      | 'failure_rate'
+      | 'new_issue_count'
+      | 'regressed_issue_count'
+      | 'total_error_count'
+      | 'unhandled_issue_count';
     trigger_type?: 'over' | 'under';
     value?: number;
     window_in_seconds?: number;
@@ -8615,7 +8613,7 @@ export type RuleGroupHistory = {
     assignedTo: {
       id: string;
       name: string;
-      type: 'user' | 'team';
+      type: 'team' | 'user';
       email?: string;
     } | null;
     culprit: string | null;
@@ -8626,13 +8624,13 @@ export type RuleGroupHistory = {
     isSubscribed: boolean;
     issueCategory: string;
     issueType: string;
-    level: 'sample' | 'debug' | 'info' | 'warning' | 'error' | 'fatal' | 'unknown';
+    level: 'debug' | 'error' | 'fatal' | 'info' | 'sample' | 'unknown' | 'warning';
     logger: string | null;
     metadata: Record<string, unknown>;
     numComments: number;
     permalink: string;
     platform: string | null;
-    priority: 'low' | 'medium' | 'high' | null;
+    priority: 'high' | 'low' | 'medium' | null;
     priorityLockedAt: string | null;
     project: {
       id: string;
@@ -8646,11 +8644,11 @@ export type RuleGroupHistory = {
     shareId: string | null;
     shortId: string;
     status:
-      | 'resolved'
       | 'ignored'
       | 'pending_deletion'
       | 'pending_merge'
       | 'reprocessing'
+      | 'resolved'
       | 'unresolved';
     statusDetails: {
       actor?: {
@@ -8717,26 +8715,26 @@ export type RuleGroupHistory = {
       reason?: string;
     } | null;
     substatus:
-      | 'archived_until_escalating'
-      | 'archived_until_condition_met'
       | 'archived_forever'
+      | 'archived_until_condition_met'
+      | 'archived_until_escalating'
       | 'escalating'
+      | 'new'
       | 'ongoing'
       | 'regressed'
-      | 'new'
       | null;
     title: string;
     type:
+      | 'csp'
       | 'default'
       | 'error'
-      | 'csp'
-      | 'nel'
-      | 'hpkp'
       | 'expectct'
       | 'expectstaple'
-      | 'transaction'
+      | 'feedback'
       | 'generic'
-      | 'feedback';
+      | 'hpkp'
+      | 'nel'
+      | 'transaction';
     count?: string;
     derivedData?: {
       blocker: string;
@@ -8804,7 +8802,7 @@ export type SCIMListResponseEnvelopeSCIMTeamIndexResponse = {
 
 export type SCIMMemberProvision = {
   userName: string;
-  sentryOrgRole?: 'billing' | 'member' | 'manager' | 'admin';
+  sentryOrgRole?: 'admin' | 'billing' | 'manager' | 'member';
 };
 
 export type SCIMPatchOperation = {
@@ -8900,7 +8898,7 @@ export type SentryAppParser = {
   allowedOrigins?: string[];
   author?: string | null;
   events?: string[] | null;
-  features?: Array<0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 11 | 12 | '' | null> | null;
+  features?: Array<'' | 0 | 1 | 11 | 12 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | null> | null;
   isAlertable?: boolean;
   isInternal?: boolean;
   overview?: string | null;
@@ -8912,10 +8910,10 @@ export type SentryAppParser = {
 };
 
 export type SentryAppStats = {
-  installStats: Array<number[]>;
+  installStats: number[][];
   totalInstalls: number;
   totalUninstalls: number;
-  uninstallStats: Array<number[]>;
+  uninstallStats: number[][];
 };
 
 /**
@@ -8924,7 +8922,7 @@ export type SentryAppStats = {
  * Errors are output in camel case.
  */
 export type ServerlessAction = {
-  action: 'enable' | 'disable' | 'updateVersion';
+  action: 'disable' | 'enable' | 'updateVersion';
   target: string;
 };
 
@@ -8978,7 +8976,7 @@ export type ShortIdLookupResponse = {
     assignedTo: {
       id: string;
       name: string;
-      type: 'user' | 'team';
+      type: 'team' | 'user';
       email?: string;
     } | null;
     culprit: string | null;
@@ -8989,13 +8987,13 @@ export type ShortIdLookupResponse = {
     isSubscribed: boolean;
     issueCategory: string;
     issueType: string;
-    level: 'sample' | 'debug' | 'info' | 'warning' | 'error' | 'fatal' | 'unknown';
+    level: 'debug' | 'error' | 'fatal' | 'info' | 'sample' | 'unknown' | 'warning';
     logger: string | null;
     metadata: Record<string, unknown>;
     numComments: number;
     permalink: string;
     platform: string | null;
-    priority: 'low' | 'medium' | 'high' | null;
+    priority: 'high' | 'low' | 'medium' | null;
     priorityLockedAt: string | null;
     project: {
       id: string;
@@ -9009,11 +9007,11 @@ export type ShortIdLookupResponse = {
     shareId: string | null;
     shortId: string;
     status:
-      | 'resolved'
       | 'ignored'
       | 'pending_deletion'
       | 'pending_merge'
       | 'reprocessing'
+      | 'resolved'
       | 'unresolved';
     statusDetails: {
       actor?: {
@@ -9080,26 +9078,26 @@ export type ShortIdLookupResponse = {
       reason?: string;
     } | null;
     substatus:
-      | 'archived_until_escalating'
-      | 'archived_until_condition_met'
       | 'archived_forever'
+      | 'archived_until_condition_met'
+      | 'archived_until_escalating'
       | 'escalating'
+      | 'new'
       | 'ongoing'
       | 'regressed'
-      | 'new'
       | null;
     title: string;
     type:
+      | 'csp'
       | 'default'
       | 'error'
-      | 'csp'
-      | 'nel'
-      | 'hpkp'
       | 'expectct'
       | 'expectstaple'
-      | 'transaction'
+      | 'feedback'
       | 'generic'
-      | 'feedback';
+      | 'hpkp'
+      | 'nel'
+      | 'transaction';
     count?: string;
     derivedData?: {
       blocker: string;
@@ -9234,7 +9232,7 @@ export type SnapshotCreateResponse = {
 
 export type SnapshotDetailsResponse = {
   added?: Array<{
-    canvas_theme?: 'light' | 'dark' | null;
+    canvas_theme?: 'dark' | 'light' | null;
     display_name?: string | null;
     group?: string | null;
     height?: number;
@@ -9251,13 +9249,13 @@ export type SnapshotDetailsResponse = {
     email?: string | null;
     id?: string | null;
     name?: string | null;
-    source?: 'sentry' | 'github';
+    source?: 'github' | 'sentry';
     username?: string | null;
   }>;
   base_artifact_id?: string | null;
   changed?: Array<{
     base_image?: {
-      canvas_theme?: 'light' | 'dark' | null;
+      canvas_theme?: 'dark' | 'light' | null;
       display_name?: string | null;
       group?: string | null;
       height?: number;
@@ -9268,7 +9266,7 @@ export type SnapshotDetailsResponse = {
     diff?: number | null;
     diff_image_key?: string | null;
     head_image?: {
-      canvas_theme?: 'light' | 'dark' | null;
+      canvas_theme?: 'dark' | 'light' | null;
       display_name?: string | null;
       group?: string | null;
       height?: number;
@@ -9284,7 +9282,7 @@ export type SnapshotDetailsResponse = {
   diff_threshold?: number | null;
   errored?: Array<{
     base_image?: {
-      canvas_theme?: 'light' | 'dark' | null;
+      canvas_theme?: 'dark' | 'light' | null;
       display_name?: string | null;
       group?: string | null;
       height?: number;
@@ -9295,7 +9293,7 @@ export type SnapshotDetailsResponse = {
     diff?: number | null;
     diff_image_key?: string | null;
     head_image?: {
-      canvas_theme?: 'light' | 'dark' | null;
+      canvas_theme?: 'dark' | 'light' | null;
       display_name?: string | null;
       group?: string | null;
       height?: number;
@@ -9308,7 +9306,7 @@ export type SnapshotDetailsResponse = {
   head_artifact_id?: string;
   image_count?: number;
   images?: Array<{
-    canvas_theme?: 'light' | 'dark' | null;
+    canvas_theme?: 'dark' | 'light' | null;
     display_name?: string | null;
     group?: string | null;
     height?: number;
@@ -9319,7 +9317,7 @@ export type SnapshotDetailsResponse = {
   is_selective?: boolean;
   project_id?: string;
   removed?: Array<{
-    canvas_theme?: 'light' | 'dark' | null;
+    canvas_theme?: 'dark' | 'light' | null;
     display_name?: string | null;
     group?: string | null;
     height?: number;
@@ -9330,7 +9328,7 @@ export type SnapshotDetailsResponse = {
   removed_count?: number;
   renamed?: Array<{
     base_image?: {
-      canvas_theme?: 'light' | 'dark' | null;
+      canvas_theme?: 'dark' | 'light' | null;
       display_name?: string | null;
       group?: string | null;
       height?: number;
@@ -9341,7 +9339,7 @@ export type SnapshotDetailsResponse = {
     diff?: number | null;
     diff_image_key?: string | null;
     head_image?: {
-      canvas_theme?: 'light' | 'dark' | null;
+      canvas_theme?: 'dark' | 'light' | null;
       display_name?: string | null;
       group?: string | null;
       height?: number;
@@ -9352,7 +9350,7 @@ export type SnapshotDetailsResponse = {
   }>;
   renamed_count?: number;
   skipped?: Array<{
-    canvas_theme?: 'light' | 'dark' | null;
+    canvas_theme?: 'dark' | 'light' | null;
     display_name?: string | null;
     group?: string | null;
     height?: number;
@@ -9363,7 +9361,7 @@ export type SnapshotDetailsResponse = {
   skipped_count?: number;
   state?: string;
   unchanged?: Array<{
-    canvas_theme?: 'light' | 'dark' | null;
+    canvas_theme?: 'dark' | 'light' | null;
     display_name?: string | null;
     group?: string | null;
     height?: number;
@@ -9386,7 +9384,7 @@ export type SnapshotDetailsResponse = {
 
 export type SnapshotImageDetailResponse = {
   base_image?: {
-    canvas_theme?: 'light' | 'dark' | null;
+    canvas_theme?: 'dark' | 'light' | null;
     description?: string | null;
     diff_threshold?: number | null;
     display_name?: string | null;
@@ -9402,7 +9400,7 @@ export type SnapshotImageDetailResponse = {
   diff_image_url?: string | null;
   diff_percentage?: number | null;
   head_image?: {
-    canvas_theme?: 'light' | 'dark' | null;
+    canvas_theme?: 'dark' | 'light' | null;
     description?: string | null;
     diff_threshold?: number | null;
     display_name?: string | null;
@@ -9420,7 +9418,7 @@ export type SnapshotImageDetailResponse = {
 
 export type Source = {
   name: string;
-  type: 'http' | 'gcs' | 's3';
+  type: 'gcs' | 'http' | 's3';
   access_key?: string;
   bucket?: string;
   client_email?: string;
@@ -9431,27 +9429,27 @@ export type Source = {
   prefix?: string;
   private_key?: string;
   region?:
-    | 'us-east-2'
-    | 'us-east-1'
-    | 'us-west-1'
-    | 'us-west-2'
     | 'ap-east-1'
-    | 'ap-south-1'
+    | 'ap-northeast-1'
     | 'ap-northeast-2'
+    | 'ap-south-1'
     | 'ap-southeast-1'
     | 'ap-southeast-2'
-    | 'ap-northeast-1'
     | 'ca-central-1'
     | 'cn-north-1'
     | 'cn-northwest-1'
     | 'eu-central-1'
+    | 'eu-north-1'
     | 'eu-west-1'
     | 'eu-west-2'
     | 'eu-west-3'
-    | 'eu-north-1'
     | 'sa-east-1'
+    | 'us-east-1'
+    | 'us-east-2'
     | 'us-gov-east-1'
-    | 'us-gov-west-1';
+    | 'us-gov-west-1'
+    | 'us-west-1'
+    | 'us-west-2';
   secret_key?: string;
   url?: string;
   username?: string;
@@ -9470,8 +9468,8 @@ export type SourceMapDebug = {
         abs_path: string;
         matching_source_file_names: string[];
         matching_source_map_name: string | null;
-        source_file_lookup_result: 'found' | 'wrong-dist' | 'unsuccessful';
-        source_map_lookup_result: 'found' | 'wrong-dist' | 'unsuccessful';
+        source_file_lookup_result: 'found' | 'unsuccessful' | 'wrong-dist';
+        source_map_lookup_result: 'found' | 'unsuccessful' | 'wrong-dist';
         source_map_reference: string | null;
       } | null;
       scraping_process: {
@@ -9487,17 +9485,16 @@ export type SourceMapDebug = {
           | {
               details: string | null;
               reason:
-                | 'not_found'
                 | 'disabled'
-                | 'invalid_host'
-                | 'permission_denied'
-                | 'timeout'
                 | 'download_error'
-                | 'other';
+                | 'invalid_host'
+                | 'not_found'
+                | 'other'
+                | 'permission_denied'
+                | 'timeout';
               status: 'failure';
               url: string;
             }
-          | Record<string, unknown>
           | null;
         source_map:
           | {
@@ -9511,17 +9508,16 @@ export type SourceMapDebug = {
           | {
               details: string | null;
               reason:
-                | 'not_found'
                 | 'disabled'
-                | 'invalid_host'
-                | 'permission_denied'
-                | 'timeout'
                 | 'download_error'
-                | 'other';
+                | 'invalid_host'
+                | 'not_found'
+                | 'other'
+                | 'permission_denied'
+                | 'timeout';
               status: 'failure';
               url: string;
             }
-          | Record<string, unknown>
           | null;
       };
     }>;
@@ -9533,7 +9529,7 @@ export type SourceMapDebug = {
   project_has_some_artifact_bundle: boolean;
   release: string | null;
   release_has_some_artifact: boolean;
-  sdk_debug_id_support: 'not-supported' | 'unofficial-sdk' | 'needs-upgrade' | 'full';
+  sdk_debug_id_support: 'full' | 'needs-upgrade' | 'not-supported' | 'unofficial-sdk';
   sdk_version: string | null;
 };
 
@@ -9747,7 +9743,7 @@ export type TraceItemStatsResponse = {
 };
 
 export type UpdateClientKey = {
-  browserSdkVersion?: 'latest' | '7.x';
+  browserSdkVersion?: '7.x' | 'latest';
   dynamicSdkLoaderOptions?: DynamicSdkLoaderOption;
   isActive?: boolean;
   name?: string;
@@ -9775,7 +9771,7 @@ export type UpdateGroupNote = {
 };
 
 export type UpdateOrgMemberRoles = {
-  orgRole?: 'billing' | 'member' | 'manager' | 'owner' | 'admin';
+  orgRole?: 'admin' | 'billing' | 'manager' | 'member' | 'owner';
   teamRoles?: Array<Record<string, unknown>> | null;
 };
 
@@ -9901,7 +9897,7 @@ export type UptimeAlertList = Array<{
   body: string | null;
   downtimeThreshold: number;
   environment: string | null;
-  headers: Array<string[]>;
+  headers: string[][];
   id: string;
   intervalSeconds: number;
   method: string;
@@ -9910,7 +9906,7 @@ export type UptimeAlertList = Array<{
   owner: {
     id: string;
     name: string;
-    type: 'user' | 'team';
+    type: 'team' | 'user';
     email?: string;
   };
   projectSlug: string;
@@ -9928,7 +9924,7 @@ export type UptimeDetector = {
   body: string | null;
   downtimeThreshold: number;
   environment: string | null;
-  headers: Array<string[]>;
+  headers: string[][];
   id: string;
   intervalSeconds: number;
   method: string;
@@ -9937,7 +9933,7 @@ export type UptimeDetector = {
   owner: {
     id: string;
     name: string;
-    type: 'user' | 'team';
+    type: 'team' | 'user';
     email?: string;
   };
   projectSlug: string;
@@ -9956,7 +9952,7 @@ export type UptimeDetector = {
  * Errors are output in camel case.
  */
 export type UptimeMonitorValidator = {
-  interval_seconds: 60 | 300 | 600 | 1200 | 1800 | 3600;
+  interval_seconds: 1200 | 1800 | 300 | 3600 | 60 | 600;
   name: string;
   timeout_ms: number;
   url: string;
@@ -9965,7 +9961,7 @@ export type UptimeMonitorValidator = {
   downtime_threshold?: number;
   environment?: string | null;
   headers?: Record<string, unknown>;
-  method?: 'GET' | 'POST' | 'HEAD' | 'PUT' | 'DELETE' | 'PATCH' | 'OPTIONS';
+  method?: 'DELETE' | 'GET' | 'HEAD' | 'OPTIONS' | 'PATCH' | 'POST' | 'PUT';
   mode?: number;
   owner?: string | null;
   recovery_threshold?: number;
@@ -10104,7 +10100,7 @@ export type WorkflowGroupHistory = {
     assignedTo: {
       id: string;
       name: string;
-      type: 'user' | 'team';
+      type: 'team' | 'user';
       email?: string;
     } | null;
     culprit: string | null;
@@ -10115,13 +10111,13 @@ export type WorkflowGroupHistory = {
     isSubscribed: boolean;
     issueCategory: string;
     issueType: string;
-    level: 'sample' | 'debug' | 'info' | 'warning' | 'error' | 'fatal' | 'unknown';
+    level: 'debug' | 'error' | 'fatal' | 'info' | 'sample' | 'unknown' | 'warning';
     logger: string | null;
     metadata: Record<string, unknown>;
     numComments: number;
     permalink: string;
     platform: string | null;
-    priority: 'low' | 'medium' | 'high' | null;
+    priority: 'high' | 'low' | 'medium' | null;
     priorityLockedAt: string | null;
     project: {
       id: string;
@@ -10135,11 +10131,11 @@ export type WorkflowGroupHistory = {
     shareId: string | null;
     shortId: string;
     status:
-      | 'resolved'
       | 'ignored'
       | 'pending_deletion'
       | 'pending_merge'
       | 'reprocessing'
+      | 'resolved'
       | 'unresolved';
     statusDetails: {
       actor?: {
@@ -10206,26 +10202,26 @@ export type WorkflowGroupHistory = {
       reason?: string;
     } | null;
     substatus:
-      | 'archived_until_escalating'
-      | 'archived_until_condition_met'
       | 'archived_forever'
+      | 'archived_until_condition_met'
+      | 'archived_until_escalating'
       | 'escalating'
+      | 'new'
       | 'ongoing'
       | 'regressed'
-      | 'new'
       | null;
     title: string;
     type:
+      | 'csp'
       | 'default'
       | 'error'
-      | 'csp'
-      | 'nel'
-      | 'hpkp'
       | 'expectct'
       | 'expectstaple'
-      | 'transaction'
+      | 'feedback'
       | 'generic'
-      | 'feedback';
+      | 'hpkp'
+      | 'nel'
+      | 'transaction';
     count?: string;
     derivedData?: {
       blocker: string;
@@ -10267,23 +10263,23 @@ export type WorkflowValidator = {
 export type _LegacyBrowserFilter = {
   active?: boolean;
   subfilters?: Array<
-    | 'ie'
-    | 'edge'
-    | 'safari'
-    | 'firefox'
-    | 'chrome'
-    | 'opera'
     | 'android'
-    | 'opera_mini'
-    | 'ie_pre_9'
-    | 'ie9'
+    | 'android_pre_4'
+    | 'chrome'
+    | 'edge'
+    | 'edge_pre_79'
+    | 'firefox'
+    | 'ie'
     | 'ie10'
     | 'ie11'
-    | 'opera_pre_15'
-    | 'android_pre_4'
-    | 'safari_pre_6'
+    | 'ie9'
+    | 'ie_pre_9'
+    | 'opera'
+    | 'opera_mini'
     | 'opera_mini_pre_8'
-    | 'edge_pre_79'
+    | 'opera_pre_15'
+    | 'safari'
+    | 'safari_pre_6'
   >;
 };
 
@@ -11039,9 +11035,9 @@ export type ApiMapping = {
         shareId: string | null;
         shortId: string;
         stats: {
-          '24h'?: Array<number[]>;
+          '24h'?: number[][];
         };
-        status: 'resolved' | 'unresolved' | 'ignored';
+        status: 'ignored' | 'resolved' | 'unresolved';
         statusDetails: Record<string, unknown>;
         subscriptionDetails: Record<string, unknown> | null;
         title: string;
@@ -11053,7 +11049,7 @@ export type ApiMapping = {
     PUT: {
       response: {
         isPublic: boolean;
-        status: 'resolved' | 'unresolved' | 'ignored';
+        status: 'ignored' | 'resolved' | 'unresolved';
         statusDetails: Record<string, unknown>;
       };
     };
@@ -11232,35 +11228,35 @@ export type ApiMapping = {
             id: string;
             layout: {
               type:
+                | 'debuginfod'
                 | 'native'
+                | 'slashsymbols'
+                | 'ssqp'
                 | 'symstore'
                 | 'symstore_index2'
-                | 'ssqp'
-                | 'unified'
-                | 'debuginfod'
-                | 'slashsymbols';
-              casing?: 'lowercase' | 'uppercase' | 'default';
+                | 'unified';
+              casing?: 'default' | 'lowercase' | 'uppercase';
             };
             type: 'http';
             url: string;
             filters?: {
               filetypes?: Array<
-                | 'pe'
-                | 'pdb'
-                | 'portablepdb'
-                | 'mach_debug'
-                | 'mach_code'
-                | 'elf_debug'
-                | 'elf_code'
-                | 'wasm_debug'
-                | 'wasm_code'
+                | 'bcsymbolmap'
                 | 'breakpad'
+                | 'dartsymbolmap'
+                | 'elf_code'
+                | 'elf_debug'
+                | 'il2cpp'
+                | 'mach_code'
+                | 'mach_debug'
+                | 'pdb'
+                | 'pe'
+                | 'portablepdb'
+                | 'proguard'
                 | 'sourcebundle'
                 | 'uuidmap'
-                | 'bcsymbolmap'
-                | 'il2cpp'
-                | 'proguard'
-                | 'dartsymbolmap'
+                | 'wasm_code'
+                | 'wasm_debug'
               >;
               path_patterns?: string[];
               requires_checksum?: boolean;
@@ -11280,14 +11276,14 @@ export type ApiMapping = {
             id: string;
             layout: {
               type:
+                | 'debuginfod'
                 | 'native'
+                | 'slashsymbols'
+                | 'ssqp'
                 | 'symstore'
                 | 'symstore_index2'
-                | 'ssqp'
-                | 'unified'
-                | 'debuginfod'
-                | 'slashsymbols';
-              casing?: 'lowercase' | 'uppercase' | 'default';
+                | 'unified';
+              casing?: 'default' | 'lowercase' | 'uppercase';
             };
             region: string;
             secret_key: {
@@ -11296,22 +11292,22 @@ export type ApiMapping = {
             type: 's3';
             filters?: {
               filetypes?: Array<
-                | 'pe'
-                | 'pdb'
-                | 'portablepdb'
-                | 'mach_debug'
-                | 'mach_code'
-                | 'elf_debug'
-                | 'elf_code'
-                | 'wasm_debug'
-                | 'wasm_code'
+                | 'bcsymbolmap'
                 | 'breakpad'
+                | 'dartsymbolmap'
+                | 'elf_code'
+                | 'elf_debug'
+                | 'il2cpp'
+                | 'mach_code'
+                | 'mach_debug'
+                | 'pdb'
+                | 'pe'
+                | 'portablepdb'
+                | 'proguard'
                 | 'sourcebundle'
                 | 'uuidmap'
-                | 'bcsymbolmap'
-                | 'il2cpp'
-                | 'proguard'
-                | 'dartsymbolmap'
+                | 'wasm_code'
+                | 'wasm_debug'
               >;
               path_patterns?: string[];
               requires_checksum?: boolean;
@@ -11328,14 +11324,14 @@ export type ApiMapping = {
             id: string;
             layout: {
               type:
+                | 'debuginfod'
                 | 'native'
+                | 'slashsymbols'
+                | 'ssqp'
                 | 'symstore'
                 | 'symstore_index2'
-                | 'ssqp'
-                | 'unified'
-                | 'debuginfod'
-                | 'slashsymbols';
-              casing?: 'lowercase' | 'uppercase' | 'default';
+                | 'unified';
+              casing?: 'default' | 'lowercase' | 'uppercase';
             };
             private_key: {
               'hidden-secret'?: true;
@@ -11343,22 +11339,22 @@ export type ApiMapping = {
             type: 'gcs';
             filters?: {
               filetypes?: Array<
-                | 'pe'
-                | 'pdb'
-                | 'portablepdb'
-                | 'mach_debug'
-                | 'mach_code'
-                | 'elf_debug'
-                | 'elf_code'
-                | 'wasm_debug'
-                | 'wasm_code'
+                | 'bcsymbolmap'
                 | 'breakpad'
+                | 'dartsymbolmap'
+                | 'elf_code'
+                | 'elf_debug'
+                | 'il2cpp'
+                | 'mach_code'
+                | 'mach_debug'
+                | 'pdb'
+                | 'pe'
+                | 'portablepdb'
+                | 'proguard'
                 | 'sourcebundle'
                 | 'uuidmap'
-                | 'bcsymbolmap'
-                | 'il2cpp'
-                | 'proguard'
-                | 'dartsymbolmap'
+                | 'wasm_code'
+                | 'wasm_debug'
               >;
               path_patterns?: string[];
               requires_checksum?: boolean;
@@ -11389,35 +11385,35 @@ export type ApiMapping = {
             id: string;
             layout: {
               type:
+                | 'debuginfod'
                 | 'native'
+                | 'slashsymbols'
+                | 'ssqp'
                 | 'symstore'
                 | 'symstore_index2'
-                | 'ssqp'
-                | 'unified'
-                | 'debuginfod'
-                | 'slashsymbols';
-              casing?: 'lowercase' | 'uppercase' | 'default';
+                | 'unified';
+              casing?: 'default' | 'lowercase' | 'uppercase';
             };
             type: 'http';
             url: string;
             filters?: {
               filetypes?: Array<
-                | 'pe'
-                | 'pdb'
-                | 'portablepdb'
-                | 'mach_debug'
-                | 'mach_code'
-                | 'elf_debug'
-                | 'elf_code'
-                | 'wasm_debug'
-                | 'wasm_code'
+                | 'bcsymbolmap'
                 | 'breakpad'
+                | 'dartsymbolmap'
+                | 'elf_code'
+                | 'elf_debug'
+                | 'il2cpp'
+                | 'mach_code'
+                | 'mach_debug'
+                | 'pdb'
+                | 'pe'
+                | 'portablepdb'
+                | 'proguard'
                 | 'sourcebundle'
                 | 'uuidmap'
-                | 'bcsymbolmap'
-                | 'il2cpp'
-                | 'proguard'
-                | 'dartsymbolmap'
+                | 'wasm_code'
+                | 'wasm_debug'
               >;
               path_patterns?: string[];
               requires_checksum?: boolean;
@@ -11437,14 +11433,14 @@ export type ApiMapping = {
             id: string;
             layout: {
               type:
+                | 'debuginfod'
                 | 'native'
+                | 'slashsymbols'
+                | 'ssqp'
                 | 'symstore'
                 | 'symstore_index2'
-                | 'ssqp'
-                | 'unified'
-                | 'debuginfod'
-                | 'slashsymbols';
-              casing?: 'lowercase' | 'uppercase' | 'default';
+                | 'unified';
+              casing?: 'default' | 'lowercase' | 'uppercase';
             };
             region: string;
             secret_key: {
@@ -11453,22 +11449,22 @@ export type ApiMapping = {
             type: 's3';
             filters?: {
               filetypes?: Array<
-                | 'pe'
-                | 'pdb'
-                | 'portablepdb'
-                | 'mach_debug'
-                | 'mach_code'
-                | 'elf_debug'
-                | 'elf_code'
-                | 'wasm_debug'
-                | 'wasm_code'
+                | 'bcsymbolmap'
                 | 'breakpad'
+                | 'dartsymbolmap'
+                | 'elf_code'
+                | 'elf_debug'
+                | 'il2cpp'
+                | 'mach_code'
+                | 'mach_debug'
+                | 'pdb'
+                | 'pe'
+                | 'portablepdb'
+                | 'proguard'
                 | 'sourcebundle'
                 | 'uuidmap'
-                | 'bcsymbolmap'
-                | 'il2cpp'
-                | 'proguard'
-                | 'dartsymbolmap'
+                | 'wasm_code'
+                | 'wasm_debug'
               >;
               path_patterns?: string[];
               requires_checksum?: boolean;
@@ -11485,14 +11481,14 @@ export type ApiMapping = {
             id: string;
             layout: {
               type:
+                | 'debuginfod'
                 | 'native'
+                | 'slashsymbols'
+                | 'ssqp'
                 | 'symstore'
                 | 'symstore_index2'
-                | 'ssqp'
-                | 'unified'
-                | 'debuginfod'
-                | 'slashsymbols';
-              casing?: 'lowercase' | 'uppercase' | 'default';
+                | 'unified';
+              casing?: 'default' | 'lowercase' | 'uppercase';
             };
             private_key: {
               'hidden-secret'?: true;
@@ -11500,22 +11496,22 @@ export type ApiMapping = {
             type: 'gcs';
             filters?: {
               filetypes?: Array<
-                | 'pe'
-                | 'pdb'
-                | 'portablepdb'
-                | 'mach_debug'
-                | 'mach_code'
-                | 'elf_debug'
-                | 'elf_code'
-                | 'wasm_debug'
-                | 'wasm_code'
+                | 'bcsymbolmap'
                 | 'breakpad'
+                | 'dartsymbolmap'
+                | 'elf_code'
+                | 'elf_debug'
+                | 'il2cpp'
+                | 'mach_code'
+                | 'mach_debug'
+                | 'pdb'
+                | 'pe'
+                | 'portablepdb'
+                | 'proguard'
                 | 'sourcebundle'
                 | 'uuidmap'
-                | 'bcsymbolmap'
-                | 'il2cpp'
-                | 'proguard'
-                | 'dartsymbolmap'
+                | 'wasm_code'
+                | 'wasm_debug'
               >;
               path_patterns?: string[];
               requires_checksum?: boolean;
@@ -11545,35 +11541,35 @@ export type ApiMapping = {
             id: string;
             layout: {
               type:
+                | 'debuginfod'
                 | 'native'
+                | 'slashsymbols'
+                | 'ssqp'
                 | 'symstore'
                 | 'symstore_index2'
-                | 'ssqp'
-                | 'unified'
-                | 'debuginfod'
-                | 'slashsymbols';
-              casing?: 'lowercase' | 'uppercase' | 'default';
+                | 'unified';
+              casing?: 'default' | 'lowercase' | 'uppercase';
             };
             type: 'http';
             url: string;
             filters?: {
               filetypes?: Array<
-                | 'pe'
-                | 'pdb'
-                | 'portablepdb'
-                | 'mach_debug'
-                | 'mach_code'
-                | 'elf_debug'
-                | 'elf_code'
-                | 'wasm_debug'
-                | 'wasm_code'
+                | 'bcsymbolmap'
                 | 'breakpad'
+                | 'dartsymbolmap'
+                | 'elf_code'
+                | 'elf_debug'
+                | 'il2cpp'
+                | 'mach_code'
+                | 'mach_debug'
+                | 'pdb'
+                | 'pe'
+                | 'portablepdb'
+                | 'proguard'
                 | 'sourcebundle'
                 | 'uuidmap'
-                | 'bcsymbolmap'
-                | 'il2cpp'
-                | 'proguard'
-                | 'dartsymbolmap'
+                | 'wasm_code'
+                | 'wasm_debug'
               >;
               path_patterns?: string[];
               requires_checksum?: boolean;
@@ -11593,14 +11589,14 @@ export type ApiMapping = {
             id: string;
             layout: {
               type:
+                | 'debuginfod'
                 | 'native'
+                | 'slashsymbols'
+                | 'ssqp'
                 | 'symstore'
                 | 'symstore_index2'
-                | 'ssqp'
-                | 'unified'
-                | 'debuginfod'
-                | 'slashsymbols';
-              casing?: 'lowercase' | 'uppercase' | 'default';
+                | 'unified';
+              casing?: 'default' | 'lowercase' | 'uppercase';
             };
             region: string;
             secret_key: {
@@ -11609,22 +11605,22 @@ export type ApiMapping = {
             type: 's3';
             filters?: {
               filetypes?: Array<
-                | 'pe'
-                | 'pdb'
-                | 'portablepdb'
-                | 'mach_debug'
-                | 'mach_code'
-                | 'elf_debug'
-                | 'elf_code'
-                | 'wasm_debug'
-                | 'wasm_code'
+                | 'bcsymbolmap'
                 | 'breakpad'
+                | 'dartsymbolmap'
+                | 'elf_code'
+                | 'elf_debug'
+                | 'il2cpp'
+                | 'mach_code'
+                | 'mach_debug'
+                | 'pdb'
+                | 'pe'
+                | 'portablepdb'
+                | 'proguard'
                 | 'sourcebundle'
                 | 'uuidmap'
-                | 'bcsymbolmap'
-                | 'il2cpp'
-                | 'proguard'
-                | 'dartsymbolmap'
+                | 'wasm_code'
+                | 'wasm_debug'
               >;
               path_patterns?: string[];
               requires_checksum?: boolean;
@@ -11641,14 +11637,14 @@ export type ApiMapping = {
             id: string;
             layout: {
               type:
+                | 'debuginfod'
                 | 'native'
+                | 'slashsymbols'
+                | 'ssqp'
                 | 'symstore'
                 | 'symstore_index2'
-                | 'ssqp'
-                | 'unified'
-                | 'debuginfod'
-                | 'slashsymbols';
-              casing?: 'lowercase' | 'uppercase' | 'default';
+                | 'unified';
+              casing?: 'default' | 'lowercase' | 'uppercase';
             };
             private_key: {
               'hidden-secret'?: true;
@@ -11656,22 +11652,22 @@ export type ApiMapping = {
             type: 'gcs';
             filters?: {
               filetypes?: Array<
-                | 'pe'
-                | 'pdb'
-                | 'portablepdb'
-                | 'mach_debug'
-                | 'mach_code'
-                | 'elf_debug'
-                | 'elf_code'
-                | 'wasm_debug'
-                | 'wasm_code'
+                | 'bcsymbolmap'
                 | 'breakpad'
+                | 'dartsymbolmap'
+                | 'elf_code'
+                | 'elf_debug'
+                | 'il2cpp'
+                | 'mach_code'
+                | 'mach_debug'
+                | 'pdb'
+                | 'pe'
+                | 'portablepdb'
+                | 'proguard'
                 | 'sourcebundle'
                 | 'uuidmap'
-                | 'bcsymbolmap'
-                | 'il2cpp'
-                | 'proguard'
-                | 'dartsymbolmap'
+                | 'wasm_code'
+                | 'wasm_debug'
               >;
               path_patterns?: string[];
               requires_checksum?: boolean;
