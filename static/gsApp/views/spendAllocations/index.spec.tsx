@@ -580,15 +580,19 @@ describe('DELETE spend allocation', () => {
     await screen.findByRole('table', {name: 'Project allocations'});
     const tableRows = getAllocationRows();
     expect(tableRows).toHaveLength(2);
-    expect(within(tableRows[0]!).getByTestId('delete')).toBeInTheDocument();
-    expect(within(tableRows[1]!).getByTestId('delete')).toBeInTheDocument();
+    expect(
+      within(tableRows[0]!).getByRole('button', {name: 'Delete'})
+    ).toBeInTheDocument();
+    expect(
+      within(tableRows[1]!).getByRole('button', {name: 'Delete'})
+    ).toBeInTheDocument();
   });
   it('fires delete request on click', async () => {
     render(<SpendAllocationsRoot subscription={subscription} />, {organization});
     expect(mockGet.mock.calls).toHaveLength(1);
     await screen.findByRole('table', {name: 'Project allocations'});
     const tableRows = getAllocationRows();
-    await userEvent.click(within(tableRows[0]!).getByTestId('delete'));
+    await userEvent.click(within(tableRows[0]!).getByRole('button', {name: 'Delete'}));
 
     expect(mockDelete.mock.calls).toHaveLength(1);
     // Assert that it refetches allocations on success
@@ -650,10 +654,10 @@ describe('PUT edit spend allocation', () => {
     await screen.findByRole('table', {name: 'Project allocations'});
     const tableRows = getAllocationRows();
     expect(tableRows).toHaveLength(2);
-    expect(within(tableRows[0]!).getByTestId('edit')).toBeInTheDocument();
+    expect(within(tableRows[0]!).getByRole('button', {name: 'Edit'})).toBeInTheDocument();
 
     // Should be editing the first 'error' allocation (mockSpendAllocations[2])
-    await userEvent.click(within(tableRows[0]!).getByTestId('edit'));
+    await userEvent.click(within(tableRows[0]!).getByRole('button', {name: 'Edit'}));
     renderGlobalModal();
 
     expect(await screen.findByRole('button', {name: 'Cancel'})).toBeInTheDocument();

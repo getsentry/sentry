@@ -1,6 +1,3 @@
-import {useState} from 'react';
-import {useTheme} from '@emotion/react';
-
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -29,10 +26,6 @@ export function AllocationRow({
   metricUnit,
   openForm,
 }: AllocationRowProps) {
-  const [deleteHovered, setDeleteHovered] = useState(false);
-  const [editHovered, setEditHovered] = useState(false);
-  const theme = useTheme();
-
   return (
     <Table.Row>
       <AllocationCell columnKey="project">{allocation.targetSlug}</AllocationCell>
@@ -119,10 +112,6 @@ export function AllocationRow({
               icon={<IconEdit />}
               size="xs"
               onClick={openForm}
-              style={editHovered ? {color: theme.colors.gray300} : {}}
-              onMouseEnter={() => setEditHovered(true)}
-              onMouseLeave={() => setEditHovered(false)}
-              data-test-id="edit"
             />
           )}
           {allocation.targetType !== 'Organization' && (
@@ -132,10 +121,6 @@ export function AllocationRow({
               size="xs"
               onClick={deleteAction}
               variant="danger"
-              style={deleteHovered ? {color: theme.colors.red500} : {}}
-              onMouseEnter={() => setDeleteHovered(true)}
-              onMouseLeave={() => setDeleteHovered(false)}
-              data-test-id="delete"
             />
           )}
         </Flex>
