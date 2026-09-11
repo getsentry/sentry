@@ -2,7 +2,7 @@ import {useEffect, useRef} from 'react';
 import {useQueryState} from 'nuqs';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
+import {IntegrationSettingsPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
 import type {
   IntegrationProvider,
   OrganizationIntegration,
@@ -18,9 +18,8 @@ import {getProviderPermissionsUrl} from 'sentry/views/settings/organizationRepos
  */
 export function openGithubPermissionsUpdateModal(integration: OrganizationIntegration) {
   openModal(deps => (
-    <AutofixGithubAppPermissionsModal
+    <IntegrationSettingsPermissionsModal
       {...deps}
-      variant="integration_settings"
       installationUrl={getProviderPermissionsUrl(integration) ?? undefined}
       missingFeatures={integration.missingFeatures ?? undefined}
     />

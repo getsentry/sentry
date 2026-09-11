@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import type {ReactNode} from 'react';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid, Stack} from '@sentry/scraps/layout';
@@ -14,69 +15,38 @@ interface MissingFeature {
   name: string;
 }
 
-interface AutofixGithubAppPermissionsModalProps extends ModalRenderProps {
-  /** Which flow opened the modal; selects the copy. */
-  variant: 'pr_iteration' | 'coding_agent_handoff' | 'integration_settings';
-  /** GitHub permissions URL for the install. Falls back to GitHub's installations index. */
-  installationUrl?: string;
-  /** Feature tiers the install is missing; rendered by the `integration_settings` variant. */
-  missingFeatures?: MissingFeature[];
-}
-
 const DEFAULT_INSTALLATIONS_URL = 'https://github.com/settings/installations/';
 
-export function AutofixGithubAppPermissionsModal({
+interface VariantProps extends ModalRenderProps {
+  /** GitHub permissions URL for the install. Falls back to GitHub's installations index. */
+  installationUrl?: string;
+}
+
+/** The linked "update settings" sentence shared by a few of the variants. */
+function updateSettingsSentence(installationUrl?: string) {
+  return tct(
+    'Please update your [link:GitHub App installation settings] to grant the required permissions.',
+    {link: <ExternalLink href={installationUrl ?? DEFAULT_INSTALLATIONS_URL} />}
+  );
+}
+
+/** Shared chrome (heading + footer) that each variant renders its body into. */
+function PermissionsModal({
   Header,
   Body,
   Footer,
   closeModal,
   installationUrl,
-  variant,
-  missingFeatures,
-}: AutofixGithubAppPermissionsModalProps) {
+  children,
+}: VariantProps & {children: ReactNode}) {
   const settingsUrl = installationUrl ?? DEFAULT_INSTALLATIONS_URL;
-
-  const settingsSentence = tct(
-    'Please update your [link:GitHub App installation settings] to grant the required permissions.',
-    {link: <ExternalLink href={settingsUrl} />}
-  );
 
   return (
     <Fragment>
       <Header closeButton>
         <Heading as="h3">{t('Update GitHub App Permissions')}</Heading>
       </Header>
-      <Body>
-        {variant === 'pr_iteration' ? (
-          <Text as="p">
-            {t(
-              'Seer needs additional GitHub App permissions to keep iterating on the pull requests in this run and get CI passing.'
-            )}{' '}
-            {t('Review and accept the updated permissions to let Seer continue.')}
-          </Text>
-        ) : variant === 'coding_agent_handoff' ? (
-          <Text as="p">
-            {t(
-              'The Sentry GitHub App does not have sufficient permissions to launch a coding agent.'
-            )}{' '}
-            {settingsSentence}
-          </Text>
-        ) : (
-          <Stack gap="lg">
-            <Text as="p">
-              {t('This installation is missing permissions for the following features:')}
-            </Text>
-            <ul>
-              {missingFeatures?.map(feature => (
-                <li key={feature.key}>
-                  <Text>{feature.description}</Text>
-                </li>
-              ))}
-            </ul>
-            <Text as="p">{settingsSentence}</Text>
-          </Stack>
-        )}
-      </Body>
+      <Body>{children}</Body>
       <Footer>
         <Grid flow="column" align="center" gap="md">
           <Button onClick={closeModal}>{t('Remind me later')}</Button>
@@ -93,5 +63,57 @@ export function AutofixGithubAppPermissionsModal({
         </Grid>
       </Footer>
     </Fragment>
+  );
+}
+
+/** PR-iteration flow: Seer is blocked from iterating on the run's pull requests. */
+export function PrIterationPermissionsModal(props: VariantProps) {
+  return (
+    <PermissionsModal {...props}>
+      <Text as="p">
+        {t(
+          'Seer needs additional GitHub App permissions to keep iterating on the pull requests in this run and get CI passing.'
+        )}{' '}
+        {t('Review and accept the updated permissions to let Seer continue.')}
+      </Text>
+    </PermissionsModal>
+  );
+}
+
+/** Coding-agent handoff flow. */
+export function CodingAgentHandoffPermissionsModal(props: VariantProps) {
+  return (
+    <PermissionsModal {...props}>
+      <Text as="p">
+        {t(
+          'The Sentry GitHub App does not have sufficient permissions to launch a coding agent.'
+        )}{' '}
+        {updateSettingsSentence(props.installationUrl)}
+      </Text>
+    </PermissionsModal>
+  );
+}
+
+/** Integration settings page: names the feature tiers the install is missing. */
+export function IntegrationSettingsPermissionsModal({
+  missingFeatures,
+  ...props
+}: VariantProps & {missingFeatures?: MissingFeature[]}) {
+  return (
+    <PermissionsModal {...props}>
+      <Stack gap="lg">
+        <Text as="p">
+          {t('This installation is missing permissions for the following features:')}
+        </Text>
+        <ul>
+          {missingFeatures?.map(feature => (
+            <li key={feature.key}>
+              <Text>{feature.description}</Text>
+            </li>
+          ))}
+        </ul>
+        <Text as="p">{updateSettingsSentence(props.installationUrl)}</Text>
+      </Stack>
+    </PermissionsModal>
   );
 }
