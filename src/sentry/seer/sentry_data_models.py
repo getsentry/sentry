@@ -469,6 +469,9 @@ class EventDetailsResponse(_DictProxyMixin):
     event: dict[str, Any]
     event_id: str
     event_trace_id: str | None
+    # the user session this event belongs to, if the SDK tagged it; lets Seer pull the whole
+    # session's telemetry (across traces) as context, not just the error's own trace
+    session_id: str | None = None
     project_id: int
     project_slug: str
     # shared-formatter text; populated when the RPC is called with a `format`, else None
