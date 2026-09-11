@@ -1,11 +1,17 @@
+from unittest import mock
+
 import responses
 from django.urls import reverse
 
+from sentry.locks import locks
+from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
 from sentry.models.organization import Organization
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
+from sentry.types.activity import ActivityType
+from sentry.utils import json
 
 
 @control_silo_test
@@ -62,6 +68,163 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
             "displayName": "ProjectName#issue-1",
             "webUrl": "https://example.com/project/issue-id",
         }
+
+    @responses.activate
+    @mock.patch("sentry.sentry_apps.services.cell.impl.publish_action")
+    def test_link_expected_issue_is_idempotent(self, publish_action: mock.MagicMock) -> None:
+        self.login_as(user=self.user)
+        target = "https://example.com/project/issue-1"
+        responses.add(
+            responses.POST,
+            "https://example.com/link-issues",
+            json={"project": "ProjectName", "webUrl": target, "identifier": "issue-1"},
+        )
+        url = f"{self.url}?expectedExternalIssueUrl={target}"
+        data = {
+            "groupId": self.group.id,
+            "action": "link",
+            "uri": "/link-issues",
+            "issue": "123",
+            "expectedExternalIssueUrl": "provider-field",
+        }
+
+        first = self.client.post(url, data=data, format="json")
+        repeated = self.client.post(url, data=data, format="json")
+
+        assert first.status_code == 200, first.content
+        assert first.data["changed"] is True
+        assert repeated.status_code == 200, repeated.content
+        assert repeated.data == {**first.data, "changed": False}
+        assert len(responses.calls) == 1
+        assert json.loads(responses.calls[0].request.body)["fields"] == {
+            "issue": "123",
+            "expectedExternalIssueUrl": "provider-field",
+        }
+        publish_action.assert_called_once()
+        with assume_test_silo_mode_of(Activity):
+            assert (
+                Activity.objects.filter(
+                    group=self.group, type=ActivityType.CREATE_ISSUE.value
+                ).count()
+                == 1
+            )
+
+    @responses.activate
+    def test_link_expected_issue_refuses_existing_different_issue(self) -> None:
+        self.login_as(user=self.user)
+        existing = self.create_platform_external_issue(
+            group=self.group,
+            service_type=self.sentry_app.slug,
+            web_url="https://example.com/project/issue-1",
+            display_name="ProjectName#issue-1",
+        )
+
+        response = self.client.post(
+            f"{self.url}?expectedExternalIssueUrl=https://example.com/project/issue-2",
+            data={
+                "groupId": self.group.id,
+                "action": "link",
+                "uri": "/link-issues",
+                "issue": "456",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 409, response.content
+        assert len(responses.calls) == 0
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            existing.refresh_from_db()
+        assert existing.web_url == "https://example.com/project/issue-1"
+
+    @responses.activate
+    def test_link_expected_issue_checks_callback_url(self) -> None:
+        self.login_as(user=self.user)
+        responses.add(
+            responses.POST,
+            "https://example.com/link-issues",
+            json={
+                "project": "ProjectName",
+                "webUrl": "https://example.com/project/issue-2",
+                "identifier": "issue-2",
+            },
+        )
+
+        response = self.client.post(
+            f"{self.url}?expectedExternalIssueUrl=https://example.com/project/issue-1",
+            data={
+                "groupId": self.group.id,
+                "action": "link",
+                "uri": "/link-issues",
+                "issue": "123",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 409, response.content
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            assert not PlatformExternalIssue.objects.filter(group=self.group).exists()
+
+    @responses.activate
+    def test_legacy_link_can_replace_existing_issue(self) -> None:
+        self.login_as(user=self.user)
+        existing = self.create_platform_external_issue(
+            group=self.group,
+            service_type=self.sentry_app.slug,
+            web_url="https://example.com/project/issue-1",
+            display_name="ProjectName#issue-1",
+        )
+        responses.add(
+            responses.POST,
+            "https://example.com/link-issues",
+            json={
+                "project": "ProjectName",
+                "webUrl": "https://example.com/project/issue-2",
+                "identifier": "issue-2",
+            },
+        )
+
+        response = self.client.post(
+            self.url,
+            data={
+                "groupId": self.group.id,
+                "action": "link",
+                "uri": "/link-issues",
+                "issue": "456",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(existing.id)
+        assert response.data["webUrl"] == "https://example.com/project/issue-2"
+        assert "changed" not in response.data
+
+    @responses.activate
+    def test_link_in_progress(self) -> None:
+        self.login_as(user=self.user)
+        with locks.get(
+            f"platform-external-issue-link:{self.group.id}:{self.sentry_app.slug}", duration=300
+        ).acquire():
+            response = self.client.post(
+                f"{self.url}?expectedExternalIssueUrl=https://example.com/project/issue-1",
+                data={"groupId": self.group.id, "action": "link", "uri": "/link-issues"},
+                format="json",
+            )
+
+        assert response.status_code == 409, response.content
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_expected_url_requires_link_action(self) -> None:
+        self.login_as(user=self.user)
+        response = self.client.post(
+            f"{self.url}?expectedExternalIssueUrl=https://example.com/project/issue-1",
+            data={"groupId": self.group.id, "action": "create", "uri": "/create-issues"},
+            format="json",
+        )
+
+        assert response.status_code == 400, response.content
+        assert len(responses.calls) == 0
 
     @responses.activate
     def test_external_issue_doesnt_get_created(self) -> None:

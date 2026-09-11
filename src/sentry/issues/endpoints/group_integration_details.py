@@ -54,6 +54,7 @@ from sentry.issues.action_log.types import (
     UnlinkExternalIssueAction,
 )
 from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
@@ -68,6 +69,7 @@ from sentry.signals import integration_issue_created, integration_issue_linked
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils.locking import UnableToAcquireLock
 
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
 
@@ -79,7 +81,11 @@ class IntegrationIssueConfigResponse(IntegrationSerializerResponse, total=False)
     createIssueConfig: list[dict[str, Any]]
 
 
-class ExternalIssueLinkResponse(TypedDict):
+class ExternalIssueLinkResponseOptional(TypedDict, total=False):
+    changed: bool
+
+
+class ExternalIssueLinkResponse(ExternalIssueLinkResponseOptional):
     id: int
     key: str
     url: str
@@ -402,12 +408,16 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             },
         ),
         responses={
+            200: inline_sentry_response_serializer(
+                "ExternalIssueLinkResponse", ExternalIssueLinkResponse
+            ),
             201: inline_sentry_response_serializer(
                 "ExternalIssueLinkResponse", ExternalIssueLinkResponse
             ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             404: RESPONSE_NOT_FOUND,
+            409: inline_sentry_response_serializer("IssueLinkConflict", DetailResponse),
         },
         examples=IntegrationExamples.EXTERNAL_ISSUE_LINK,
     )
@@ -427,7 +437,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         Link an issue that already exists in the external provider (such as a Jira
         ticket or GitHub issue) to the given Sentry issue. Additional accepted fields
         are integration-specific; fetch them from the `linkIssueConfig` returned by
-        the `GET` endpoint with `?action=link`.
+        the `GET` endpoint with `?action=link`. Linking the same issue again returns
+        the existing link with `changed: false`, without repeating provider comments.
         """
         if not request.user.is_authenticated:
             return Response(status=400)
@@ -474,26 +485,55 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             }
 
             external_issue_key = installation.make_external_key(data)
-            external_issue, created = ExternalIssue.objects.get_or_create(
-                organization_id=organization_id,
-                integration_id=integration.id,
-                key=external_issue_key,
-                defaults=defaults,
-            )
-
-            if created:
-                integration_issue_linked.send_robust(
-                    integration=integration,
-                    organization=group.project.organization,
-                    user=request.user,
-                    sender=self.__class__,
-                )
-            else:
-                external_issue.update(**defaults)
-
-            installation.store_issue_last_defaults(group.project, request.user, request.data)
             try:
-                installation.after_link_issue(external_issue, data=request.data)
+                lock = locks.get(
+                    f"external-issue-link:{organization_id}:{integration.id}:{external_issue_key}",
+                    duration=300,
+                    name="external_issue_link",
+                ).acquire()
+            except UnableToAcquireLock:
+                return Response(
+                    {"detail": "This issue link is being updated. Try again."}, status=409
+                )
+
+            try:
+                with lock:
+                    external_issue, external_issue_created = ExternalIssue.objects.get_or_create(
+                        organization_id=organization_id,
+                        integration_id=integration.id,
+                        key=external_issue_key,
+                        defaults=defaults,
+                    )
+                    changed = not GroupLink.objects.filter(
+                        group_id=group.id,
+                        linked_type=GroupLink.LinkedType.issue,
+                        linked_id=external_issue.id,
+                    ).exists()
+                    if changed:
+                        if external_issue_created:
+                            integration_issue_linked.send_robust(
+                                integration=integration,
+                                organization=group.project.organization,
+                                user=request.user,
+                                sender=self.__class__,
+                            )
+                        else:
+                            external_issue.update(**defaults)
+
+                        installation.store_issue_last_defaults(
+                            group.project, request.user, request.data
+                        )
+                        installation.after_link_issue(external_issue, data=request.data)
+                        with transaction.atomic(router.db_for_write(GroupLink)):
+                            _, changed = GroupLink.objects.get_or_create(
+                                group_id=group.id,
+                                linked_type=GroupLink.LinkedType.issue,
+                                linked_id=external_issue.id,
+                                defaults={
+                                    "project_id": group.project_id,
+                                    "relationship": GroupLink.Relationship.references,
+                                },
+                            )
             except IntegrationFormError as exc:
                 lifecycle.record_halt(exc)
                 return Response(dict(exc.field_errors or {}), status=400)
@@ -501,35 +541,23 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 lifecycle.record_failure(e)
                 return Response({"non_field_errors": [str(e)]}, status=400)
 
-            try:
-                with transaction.atomic(router.db_for_write(GroupLink)):
-                    GroupLink.objects.create(
-                        group_id=group.id,
-                        project_id=group.project_id,
-                        linked_type=GroupLink.LinkedType.issue,
-                        linked_id=external_issue.id,
-                        relationship=GroupLink.Relationship.references,
-                    )
-            except IntegrityError as exc:
-                lifecycle.record_halt(exc)
-                return Response({"non_field_errors": ["That issue is already linked"]}, status=400)
+        if changed:
+            source = resolve_action_source(request)
+            actor = resolve_action_actor(request)
 
-        source = resolve_action_source(request)
-        actor = resolve_action_actor(request)
+            with action_context_scope(source=source, actor=actor):
+                self.create_issue_activity(request, group, installation, external_issue, new=False)
 
-        with action_context_scope(source=source, actor=actor):
-            self.create_issue_activity(request, group, installation, external_issue, new=False)
-
-        publish_action(
-            LinkExternalIssueAction(
-                provider=integration.provider,
-                external_issue_key=external_issue.key,
-            ),
-            source=source,
-            group_id=group.id,
-            project=group.project,
-            actor=actor,
-        )
+            publish_action(
+                LinkExternalIssueAction(
+                    provider=integration.provider,
+                    external_issue_key=external_issue.key,
+                ),
+                source=source,
+                group_id=group.id,
+                project=group.project,
+                actor=actor,
+            )
 
         # TODO(jess): would be helpful to return serialized external issue
         # once we have description, title, etc
@@ -540,8 +568,9 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             "url": url,
             "integrationId": external_issue.integration_id,
             "displayName": installation.get_issue_display_name(external_issue),
+            "changed": changed,
         }
-        return Response(context, status=201)
+        return Response(context, status=201 if changed else 200)
 
     @extend_schema(
         operation_id="Unlink an External Issue from an Issue",
@@ -563,6 +592,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
+            409: inline_sentry_response_serializer("IssueLinkConflict", DetailResponse),
         },
     )
     @deprecated(
@@ -576,7 +606,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         """
         Remove the link between a Sentry issue and an external issue. If no other
         Sentry issues reference the external issue, the link record is deleted
-        entirely. This does not delete the issue in the external provider.
+        entirely. An absent link also returns 204. This does not delete the issue
+        in the external provider.
         """
         if not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
@@ -586,6 +617,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         external_issue_id = request.GET.get("externalIssue")
         if not external_issue_id:
             return Response({"detail": "External ID required"}, status=400)
+        if not external_issue_id.isdecimal():
+            return Response({"detail": "External ID must be an integer"}, status=400)
 
         organization_id = group.project.organization_id
         result = integration_service.organization_context(
@@ -603,20 +636,41 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         try:
             external_issue = ExternalIssue.objects.get(
-                organization_id=organization_id, integration_id=integration.id, id=external_issue_id
+                organization_id=organization_id,
+                integration_id=integration.id,
+                id=external_issue_id,
             )
         except ExternalIssue.DoesNotExist:
-            return Response(status=404)
+            return Response(status=204)
 
-        with transaction.atomic(router.db_for_write(GroupLink)):
-            deleted, _ = GroupLink.objects.get_group_issues(group, external_issue_id).delete()
+        try:
+            lock = locks.get(
+                f"external-issue-link:{organization_id}:{integration.id}:{external_issue.key}",
+                duration=300,
+                name="external_issue_link",
+            ).acquire()
+        except UnableToAcquireLock:
+            return Response({"detail": "This issue link is being updated. Try again."}, status=409)
 
-            # check if other groups reference this external issue
-            # and delete if not
-            if not GroupLink.objects.filter(
-                linked_type=GroupLink.LinkedType.issue, linked_id=external_issue_id
-            ).exists():
-                external_issue.delete()
+        with lock:
+            try:
+                external_issue = ExternalIssue.objects.get(
+                    organization_id=organization_id,
+                    integration_id=integration.id,
+                    id=external_issue_id,
+                )
+            except ExternalIssue.DoesNotExist:
+                return Response(status=204)
+
+            with transaction.atomic(router.db_for_write(GroupLink)):
+                deleted, _ = GroupLink.objects.get_group_issues(group, external_issue_id).delete()
+
+                # check if other groups reference this external issue
+                # and delete if not
+                if not GroupLink.objects.filter(
+                    linked_type=GroupLink.LinkedType.issue, linked_id=external_issue_id
+                ).exists():
+                    external_issue.delete()
 
         # Only record the action when a link was actually removed; the endpoint still
         # returns 204 when nothing was linked to this group.
