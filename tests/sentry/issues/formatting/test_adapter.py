@@ -469,3 +469,52 @@ def test_metric_alert_renders_in_the_output() -> None:
     assert "## Metric Alert Details" in out
     assert "**Aggregate:** p95(span.duration)" in out
     assert "**Threshold:** above 500" in out
+
+
+def _event_with_extra(**context: Any) -> dict[str, Any]:
+    return {"title": "ValueError: x", "context": context}
+
+
+def test_extra_maps_the_response_context() -> None:
+    model = event_response_to_model(
+        _event_with_extra(shardId=7, note="retry after backoff", flags=["a", "b"])
+    )
+    # containers are serialized rather than str()'d, so the value stays machine readable
+    assert model.extra == [
+        ("shardId", "7"),
+        ("note", "retry after backoff"),
+        ("flags", '["a","b"]'),
+    ]
+
+
+def test_extra_drops_scrubbed_and_empty_values() -> None:
+    model = event_response_to_model(_event_with_extra(secret="[Filtered]", missing=None, kept=1))
+    assert model.extra == [("kept", "1")]
+
+
+def test_extra_absent_when_there_is_no_context() -> None:
+    assert event_response_to_model({"title": "t"}).extra == []
+    assert event_response_to_model({"title": "t", "context": {}}).extra == []
+
+
+def test_extra_is_held_back_from_the_default_sections() -> None:
+    # the same open-ended shape as contexts, but filled by the customer's own instrumentation,
+    # so it is opt-in rather than in the list a caller gets without thinking about it
+    event = _event_with_extra(shardId=7)
+    assert "Extra Data" not in format_issue(event)
+    assert "Extra Data" in format_issue(event, sections=EVENT_SECTIONS_WITH_USER)
+
+
+def test_extra_scrubs_per_leaf_not_per_entry() -> None:
+    # one filtered key must not take its siblings with it
+    model = event_response_to_model(_event_with_extra(cfg={"token": "[Filtered]", "region": "us"}))
+    assert model.extra == [("cfg", '{"region":"us"}')]
+
+
+def test_extra_survives_a_malformed_context() -> None:
+    # the adapter runs before any section, so raising here would render the whole event as ""
+    for bad in ("a string", ["a", "list"], 7):
+        data: dict[str, Any] = {"title": "ValueError: x", "context": bad}
+        out = format_issue(data, sections=EVENT_SECTIONS_WITH_USER)
+        assert "ValueError: x" in out, f"context={bad!r} sank the render"
+        assert "Extra Data" not in out

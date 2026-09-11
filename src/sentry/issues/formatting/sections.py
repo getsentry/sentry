@@ -310,6 +310,17 @@ def evidence_section(model: EventObject, limits: Limits) -> Section | None:
     )
 
 
+def extra_section(model: EventObject, limits: Limits) -> Section | None:
+    # the response's ``context``: whatever the customer's instrumentation attached
+    if not model.extra:
+        return None
+    items = tuple(Field(key, value) for key, value in model.extra)
+    return Section(
+        title="Extra Data",
+        groups=(Group(items=items, max_chars=limits.max_contexts_chars),),
+    )
+
+
 def contexts_section(model: EventObject, limits: Limits) -> Section | None:
     groups: list[Group] = []
     for name, data in model.contexts.items():
@@ -344,13 +355,15 @@ EVENT_SECTIONS_WITH_USER: list[SectionFn] = [
     request_section,
     tags_section,
     user_section,
+    extra_section,
     contexts_section,
 ]
 
-# sections that render a user identifier: ``user_section``'s email/IP/username/ID, and the device
+# sections that render a user identifier: ``user_section``'s email/IP/username/ID, the device
 # and session ids that ride along in contexts (device_unique_identifier, replay.replay_id, and
-# whatever a custom context defines -- there is no safe key list for an open-ended mapping).
-_USER_IDENTIFYING_SECTIONS = frozenset({user_section, contexts_section})
+# whatever a custom context defines -- there is no safe key list for an open-ended mapping),
+# and ``extra_section``, which is the same open-ended shape but filled by the customer.
+_USER_IDENTIFYING_SECTIONS = frozenset({user_section, contexts_section, extra_section})
 
 # the default. Rendered output is bound for an LLM, so user identifiers are opt-in -- a caller
 # that doesn't think about it can't leak them into a prompt.
