@@ -327,6 +327,16 @@ WILDCARD_OPERATOR_MAP = {
     "ends_with": f"{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}",
 }
 
+# Deliberately kept out of WILDCARD_OPERATOR_MAP: it shares the marker encoding, but a regex
+# pattern must reach the backend verbatim rather than being rewritten into a wildcard pattern.
+REGEX_OPERATOR = f"{WILDCARD_UNICODE}Matches{WILDCARD_UNICODE}"
+
+# RE2, which backs the ClickHouse `match` this compiles to, rejects the PCRE extensions that
+# Python's `re` accepts, and ClickHouse only reports that as a query failure once the pattern
+# has already reached it. The first branch consumes escaped backslashes, so that a pattern
+# like `\\1` reads as a literal backslash followed by a digit.
+UNSUPPORTED_REGEX_SYNTAX = re.compile(r"\\\\|(?P<unsupported>\\[1-9]|\\Z|\(\?(?:[=!>#(]|<[=!]|P=))")
+
 MAX_SEARCH_RELEASES = 1000
 SEMVER_EMPTY_RELEASE = "____SENTRY_EMPTY_RELEASE____"
 SEMVER_WILDCARDS = frozenset(["X", "*"])
