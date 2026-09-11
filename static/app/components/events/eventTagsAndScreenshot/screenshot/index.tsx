@@ -1,10 +1,10 @@
-import type {ReactEventHandler} from 'react';
+import type {ReactEventHandler, ReactNode} from 'react';
 import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {useRole} from 'sentry/components/acl/useRole';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -76,7 +76,7 @@ export function Screenshot({
   const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${screenshot.id}/`;
 
   return (
-    <StyledPanel>
+    <ScreenshotPanel>
       {totalScreenshots > 1 && (
         <StyledPanelHeader lightText>
           <Button
@@ -166,23 +166,28 @@ export function Screenshot({
           />
         </Grid>
       </StyledPanelFooter>
-    </StyledPanel>
+    </ScreenshotPanel>
   );
 }
 
-const StyledPanel = styled(Panel)`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 0;
-  max-width: 100%;
-  height: 100%;
-  border: 0;
+function ScreenshotPanel({children}: {children: ReactNode}) {
+  return (
+    <Stack
+      justify="center"
+      align="center"
+      marginBottom="0"
+      maxWidth={{zero: '100%', xl: '175px'}}
+      height="100%"
+    >
+      {({className}) => (
+        <BorderlessPanel className={className}>{children}</BorderlessPanel>
+      )}
+    </Stack>
+  );
+}
 
-  @container (min-width: ${p => p.theme.container.xl}) {
-    max-width: 175px;
-  }
+const BorderlessPanel = styled(Panel)`
+  border: 0;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
