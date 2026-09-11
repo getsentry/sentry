@@ -16,7 +16,7 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
-from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
@@ -211,10 +211,7 @@ class MsTeamsIntegrationSendNotificationTest(TestCase):
             }
         )
 
-        mock_send_card.side_effect = ApiError(
-            text=error_payload,
-            code=400,
-        )
+        mock_send_card.side_effect = IntegrationConfigurationError(error_payload)
         payload: AdaptiveCard = {
             "type": "AdaptiveCard",
             "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
