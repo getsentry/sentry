@@ -672,9 +672,9 @@ function AMCheckout(props: Props) {
       <Stack
         align="start"
         width="100%"
-        maxWidth={{zero: '100%', '3xl': '47.5rem'}}
+        maxWidth={{zero: '100%', '2xl': '47.5rem'}}
         padding="0 2xl 3xl"
-        paddingTop={{zero: '0', '3xl': 'md'}}
+        paddingTop={{zero: '0', '2xl': 'md'}}
       >
         {renderPartnerAlert()}
         <CheckoutStepsContainer data-test-id="checkout-steps">
@@ -684,19 +684,19 @@ function AMCheckout(props: Props) {
       <Stack
         as="aside"
         width="100%"
-        maxWidth={{zero: '100%', '3xl': '26rem'}}
-        position={{zero: 'static', '3xl': 'sticky'}}
-        right={{zero: 'auto', '3xl': '0'}}
-        top={{zero: 'auto', '3xl': '6.25rem'}}
-        borderTop={{zero: 'primary', '3xl': 'none'}}
-        padding={{zero: '0 2xl', '3xl': '0 2xl 3xl 3xl'}}
-        background={{zero: 'secondary', '3xl': 'primary'}}
+        maxWidth={{zero: '100%', '2xl': '26rem'}}
+        position={{zero: 'static', '2xl': 'sticky'}}
+        right={{zero: 'auto', '2xl': '0'}}
+        top={{zero: 'auto', '2xl': '6.25rem'}}
+        borderTop={{zero: 'primary', '2xl': 'none'}}
+        padding={{zero: '0 2xl', '2xl': '0 2xl 3xl 3xl'}}
+        background={{zero: 'secondary', '2xl': 'primary'}}
       >
         <Stack
           flex={1}
           position="relative"
           gap="xl"
-          padding={{zero: '2xl 0', '3xl': '0'}}
+          padding={{zero: '2xl 0', '2xl': '0'}}
         >
           <Cart
             {...overviewProps}
@@ -806,7 +806,7 @@ function AMCheckout(props: Props) {
       </CheckoutHeader>
 
       <Flex
-        direction={{zero: 'column', '3xl': 'row'}}
+        direction={{zero: 'column', '2xl': 'row'}}
         gap="md 3xl"
         justify="between"
         width="100%"
