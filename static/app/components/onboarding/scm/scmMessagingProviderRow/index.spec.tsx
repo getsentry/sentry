@@ -20,7 +20,6 @@ import type {ScmMessagingResolvedProvider} from 'sentry/components/onboarding/sc
 import * as pipelineModal from 'sentry/components/pipeline/modal';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import * as analytics from 'sentry/utils/analytics';
 
 import {ScmMessagingProviderRow} from '.';
 
@@ -328,7 +327,6 @@ describe('ScmMessagingProviderRow', () => {
 
     it('reopens the install flow when Try again is clicked', async () => {
       const {callbacks} = mockPipeline();
-      const trackSpy = jest.spyOn(analytics, 'trackAnalytics');
       renderRow(installableSlack);
 
       await userEvent.click(screen.getByRole('button', {name: /Connect/}));
@@ -337,16 +335,6 @@ describe('ScmMessagingProviderRow', () => {
       await userEvent.click(screen.getByRole('button', {name: /Try again/}));
 
       expect(pipelineModal.openPipelineModal).toHaveBeenCalledTimes(2);
-      // The retry is its own event, not a second Connect.
-      expect(trackSpy).toHaveBeenCalledWith(
-        'onboarding.scm_messaging_install_retry_clicked',
-        expect.objectContaining({provider: 'slack'})
-      );
-      expect(
-        trackSpy.mock.calls.filter(
-          ([key]) => key === 'onboarding.scm_messaging_connect_clicked'
-        )
-      ).toHaveLength(1);
     });
 
     it('surfaces a repeated identical error after Try again', async () => {

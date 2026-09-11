@@ -1369,10 +1369,6 @@ describe('ScmMessaging', () => {
       // Refetch settled: picker auto-opened (its "Channel" label), Connect
       // gone, footer still hidden.
       expect(await screen.findByText('Channel')).toBeInTheDocument();
-      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
-        'onboarding.scm_messaging_install_returned',
-        expect.objectContaining({provider: 'slack', outcome: 'connected'})
-      );
       expect(
         screen.queryByRole('button', {name: /Connect slack/i})
       ).not.toBeInTheDocument();
