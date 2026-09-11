@@ -91,11 +91,15 @@ class TestRegisteredComparisonSchemas(TestCase):
             self._validator(Condition.ISSUE_PRIORITY_DEESCALATING, PriorityLevel.HIGH).is_valid()
             is True
         )
-        assert self._validator(Condition.ISSUE_PRIORITY_DEESCALATING, True).is_valid() is True
+        assert (
+            self._validator(Condition.ISSUE_PRIORITY_DEESCALATING, True).is_valid() is True
+        )
         assert (
             self._validator(Condition.ISSUE_PRIORITY_DEESCALATING, False).is_valid() is False
         )
-        assert self._validator(Condition.ISSUE_PRIORITY_DEESCALATING, 100).is_valid() is False
+        assert (
+            self._validator(Condition.ISSUE_PRIORITY_DEESCALATING, 100).is_valid() is False
+        )
 
 
 class MockComplexDataConditionHandler(DataConditionHandler[dict[str, Any]]):
