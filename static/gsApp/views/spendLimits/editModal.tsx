@@ -3,10 +3,9 @@ import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -16,7 +15,6 @@ import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {
@@ -106,33 +104,6 @@ const spendLimitFormSchema = z.object({
   sharedMaxBudget: nonNegativeBudgetSchema,
 });
 
-function renderRequestError(error: Error | null, plan: Plan) {
-  if (!error) {
-    return null;
-  }
-
-  if (error instanceof RequestError && error.responseJSON) {
-    const listOfErrors = Object.entries(error.responseJSON).map(([field, errors]) => (
-      <li key={field}>
-        <strong>{field}</strong>{' '}
-        {Array.isArray(errors) ? errors.join(' ') : String(errors)}
-      </li>
-    ));
-
-    return (
-      <Alert system variant="danger">
-        {listOfErrors.length > 0 ? <ul>{listOfErrors}</ul> : getBudgetSaveError(plan)}
-      </Alert>
-    );
-  }
-
-  return (
-    <Alert system variant="danger">
-      {getBudgetSaveError(plan)}
-    </Alert>
-  );
-}
-
 function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: Props) {
   const [currentOnDemandBudget] = useState(() =>
     parseOnDemandBudgetsFromSubscription(subscription)
@@ -203,7 +174,6 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
     <form.AppForm form={form}>
       <Fragment>
         <OffsetBody>
-          {renderRequestError(mutation.error, subscription.planDetails)}
           <Container padding="2xl">
             <form.AppField name="budgetMode">
               {modeField => {
@@ -323,10 +293,10 @@ function SpendLimitsEditModal({Footer, closeModal, subscription, organization}: 
           </Container>
         </OffsetBody>
         <Footer>
-          <Grid flow="column" align="center" gap="md">
+          <Flex justify="end" gap="md">
             <Button onClick={closeModal}>{t('Cancel')}</Button>
             <form.SubmitButton>{t('Save')}</form.SubmitButton>
-          </Grid>
+          </Flex>
         </Footer>
       </Fragment>
     </form.AppForm>
