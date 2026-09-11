@@ -114,9 +114,7 @@ export function ProjectAllocationsTable({
           />
         ))}
         {!filteredMetrics.length && (
-          <Table.Row>
-            <BodyCell columnKey="project">{t('No allocations set')}</BodyCell>
-          </Table.Row>
+          <Table.Status>{t('No allocations set')}</Table.Status>
         )}
       </Table.Body>
     </AllocationsTable>
@@ -144,8 +142,4 @@ const HeaderCell = styled(Table.HeadCell)`
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   background: ${p => p.theme.tokens.background.secondary};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-`;
-
-const BodyCell = styled(Table.Cell)`
-  padding: ${p => p.theme.space.xl};
 `;
