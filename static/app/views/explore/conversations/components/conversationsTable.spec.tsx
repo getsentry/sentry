@@ -256,7 +256,7 @@ describe('ConversationsTable', () => {
       expect(request).toHaveBeenCalledWith(
         `/organizations/${sortingOrganization.slug}/agents/conversations/`,
         expect.objectContaining({
-          query: expect.objectContaining({sort: ['-totalCost']}),
+          query: expect.objectContaining({sort: ['-conversation.totalCost']}),
         })
       )
     );
