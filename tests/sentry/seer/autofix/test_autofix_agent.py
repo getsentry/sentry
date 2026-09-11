@@ -605,7 +605,7 @@ class TestTriggerAutofixAgent(TestCase):
         assert mock_feature.call_args.args[0] == self.group
         feature_trigger = mock_feature.call_args.args[1]
         assert feature_trigger.step == AutofixStep.ROOT_CAUSE
-        assert feature_trigger.run_id is None
+        assert feature_trigger.existing_run_id is None
         assert feature_trigger.insert_index is None
         assert feature_trigger.step_args is not None
         assert feature_trigger.step_args.repo_pins == {
@@ -628,7 +628,7 @@ class TestTriggerAutofixAgent(TestCase):
         assert payload["sentry_run_id"] == str(feature_run.uuid)
 
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
-    @patch("sentry.seer.autofix.feature.dispatch.trigger_autofix_feature")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_root_cause_rerun_routes_to_feature_when_flagged(
         self, mock_client_class, mock_feature, mock_broadcast
@@ -652,7 +652,7 @@ class TestTriggerAutofixAgent(TestCase):
         mock_feature.assert_called_once()
         feature_trigger = mock_feature.call_args.args[1]
         assert feature_trigger.step == AutofixStep.ROOT_CAUSE
-        assert feature_trigger.run_id == 67890
+        assert feature_trigger.existing_run_id == 67890
         assert feature_trigger.insert_index == 4
         mock_client_class.return_value.continue_run.assert_not_called()
 
@@ -1238,7 +1238,7 @@ class TestTriggerAutofixAgent(TestCase):
                 step=AutofixStep.ROOT_CAUSE,
                 referrer=AutofixReferrer.UNKNOWN,
                 run_id=None,
-            )
+        )
 
         prompt_metadata = mock_client.start_run.call_args.kwargs["prompt_metadata"]
         expected_repo_pins = {
