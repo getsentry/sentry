@@ -96,10 +96,6 @@ const BodyContainer = styled('div')`
   height: calc(100% - 52px);
   overflow-y: auto;
   overflow-x: hidden;
-
-  [data-event-data-section] {
-    padding: 0;
-  }
 `;
 
 const DetailContainer = styled('div')`
