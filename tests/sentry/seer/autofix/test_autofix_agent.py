@@ -507,7 +507,7 @@ class TestTriggerAutofixAgent(TestCase):
                 mock_process_autofix_updates.call_args.kwargs["kwargs"]["activity_already_recorded"]
                 is True
             )
-            mock_metrics_incr.assert_any_call(f"ai.autofix.{step.value}.started")
+            mock_metrics_incr.assert_any_call(f"ai.autofix.{step.value}.started", sample_rate=1.0)
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
@@ -1950,12 +1950,9 @@ class TestTriggerPushChanges(TestCase):
 
 
 class TestAutofixFunnelAnalytics:
-    @patch("sentry_sdk.metrics.count")
     @patch("sentry.seer.autofix.analytics.metrics.incr")
     @patch("sentry.seer.autofix.analytics.analytics.record")
-    def test_records_solution_completion_in_all_destinations(
-        self, mock_record, mock_metrics_incr, mock_sentry_count
-    ) -> None:
+    def test_records_solution_completion(self, mock_record, mock_metrics_incr) -> None:
         event = AiAutofixSolutionCompletedEvent(
             organization_id=1,
             project_id=1,
@@ -1966,5 +1963,4 @@ class TestAutofixFunnelAnalytics:
         record_autofix_event(event)
 
         mock_record.assert_called_once_with(event)
-        mock_metrics_incr.assert_called_once_with("ai.autofix.solution.completed")
-        mock_sentry_count.assert_called_once_with("ai.autofix.solution.completed", 1)
+        mock_metrics_incr.assert_called_once_with("ai.autofix.solution.completed", sample_rate=1.0)
