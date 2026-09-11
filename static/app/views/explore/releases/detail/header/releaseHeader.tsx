@@ -1,33 +1,39 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {Badge, FeatureBadge} from '@sentry/scraps/badge';
-import {Container, Flex} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {TabList} from '@sentry/scraps/tabs';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
-import {Version} from 'sentry/components/version';
-import {IconOpen} from 'sentry/icons';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
+import {IconEllipsis, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseMeta, ReleaseProject} from 'sentry/types/release';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {isMobileRelease} from 'sentry/views/explore/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
-import {ReleaseActions, releaseFeedbackOptions} from './releaseActions';
+import {useReleaseMenuItems} from './useReleaseMenuItems';
+
+const releaseFeedbackOptions = {
+  messagePlaceholder: t('How can we improve the Releases experience?'),
+  tags: {
+    'feedback.source': 'release-detail',
+  },
+};
 
 type Props = {
   location: Location;
@@ -48,30 +54,45 @@ export function ReleaseHeader({
 }: Props) {
   const {version, url} = release;
   const {commitCount, commitFilesChanged} = releaseMeta;
+  const {prevReleaseVersion, nextReleaseVersion} = release.currentProjectMeta;
 
-  const titleContent = (
-    <Fragment>
-      <IdBadge project={project} avatarSize={16} hideName />
-      <Version version={version} anchor={false} truncate />
-      <CopyToClipboardButton
-        className="release-copy-button"
-        variant="transparent"
-        size="zero"
-        text={version}
-        tooltipProps={{title: version}}
-        aria-label={t('Copy release version to clipboard')}
-      />
-      {!!url && (
-        <IconWrapper>
-          <Tooltip title={url}>
-            <ExternalLink href={url}>
-              <IconOpen />
-            </ExternalLink>
-          </Tooltip>
-        </IconWrapper>
-      )}
-    </Fragment>
-  );
+  const menuItems = useReleaseMenuItems({
+    organization,
+    projectSlug: project.slug,
+    refetchData,
+    release,
+    releaseMeta,
+  });
+
+  /**
+   * Swaps the current version out of the current path, so paginating from a
+   * sub-page (e.g. Files Changed) lands on the same sub-page of the neighbour.
+   */
+  function makeSiblingReleaseTarget(toRelease: string | null) {
+    if (!toRelease) {
+      return;
+    }
+
+    // Substitute exactly once. Running an encoded pass and then a raw pass lets
+    // the second match the old version inside the version the first just
+    // inserted, so 1.0 -> 1.0.1 would land on 1.0.1.1.
+    const encodedVersion = encodeURIComponent(version);
+    const currentVersionInPath = location.pathname.includes(encodedVersion)
+      ? encodedVersion
+      : version;
+
+    return {
+      pathname: location.pathname.replace(
+        currentVersionInPath,
+        encodeURIComponent(toRelease)
+      ),
+      query: {...location.query, activeRepo: undefined},
+    };
+  }
+
+  function trackPaginationClick(direction: 'older' | 'newer') {
+    trackAnalytics('release_detail.pagination', {organization, direction});
+  }
 
   const releasePath = makeReleasesPathname({
     organization,
@@ -152,31 +173,71 @@ export function ReleaseHeader({
 
   return (
     <Layout.Header>
-      <TopBar.Slot name="title">
-        <Breadcrumbs
-          crumbs={[
+      <TopBar.Slot name="breadcrumbs">
+        <BreadcrumbList
+          items={[
             {
-              to: makeReleasesPathname({organization, path: '/'}),
+              type: 'link',
               label: t('Releases'),
-              preservePageFilters: true,
-            },
-            {
-              label: (
-                <Flex align="center" gap="md" minWidth={0} css={titleWrapperStyles}>
-                  {titleContent}
-                </Flex>
-              ),
+              to: {
+                pathname: makeReleasesPathname({organization, path: '/'}),
+                query: extractSelectionParameters(location.query),
+              },
             },
           ]}
         />
       </TopBar.Slot>
-      <TopBar.Slot name="actions">
-        <ReleaseActions
-          projectSlug={project.slug}
-          release={release}
-          releaseMeta={releaseMeta}
-          refetchData={refetchData}
-          showFeedbackButton={false}
+      <TopBar.Slot name="title">
+        <BreadcrumbList.Title
+          item={{
+            type: 'page-title',
+            label: formatVersion(version),
+            leadingGraphic: (
+              <IdBadge project={project} disableLink avatarSize={16} hideName />
+            ),
+            pagination: {
+              previous: {
+                ariaLabel: t('Older'),
+                tooltip: prevReleaseVersion
+                  ? t('Older release')
+                  : t('This is the oldest release'),
+                to: makeSiblingReleaseTarget(prevReleaseVersion),
+                onClick: () => trackPaginationClick('older'),
+              },
+              next: {
+                ariaLabel: t('Newer'),
+                tooltip: nextReleaseVersion
+                  ? t('Newer release')
+                  : t('This is the newest release'),
+                to: makeSiblingReleaseTarget(nextReleaseVersion),
+                onClick: () => trackPaginationClick('newer'),
+              },
+            },
+            trailingActions: [
+              url
+                ? {
+                    type: 'button',
+                    element: (
+                      <LinkButton
+                        href={url}
+                        external
+                        size="zero"
+                        variant="transparent"
+                        tooltipProps={{title: url}}
+                        icon={<IconOpen />}
+                        aria-label={t('Open release URL')}
+                      />
+                    ),
+                  }
+                : null,
+              {
+                type: 'menu',
+                triggerLabel: t('Release Actions'),
+                triggerIcon: <IconEllipsis />,
+                items: menuItems,
+              },
+            ],
+          }}
         />
       </TopBar.Slot>
       <TopBar.Slot name="feedback">
@@ -199,32 +260,6 @@ export function ReleaseHeader({
     </Layout.Header>
   );
 }
-
-const titleWrapperStyles = css`
-  line-height: 1;
-
-  .release-copy-button {
-    display: none;
-  }
-
-  &:hover .release-copy-button {
-    display: inline-flex;
-  }
-`;
-
-const IconWrapper = styled('span')`
-  transition: color 0.3s ease-in-out;
-
-  &,
-  a {
-    color: ${p => p.theme.tokens.content.secondary};
-    display: flex;
-    &:hover {
-      cursor: pointer;
-      color: ${p => p.theme.tokens.content.primary};
-    }
-  }
-`;
 
 function ResponsiveNavTabsBadge({children}: {children: React.ReactNode}) {
   return (
