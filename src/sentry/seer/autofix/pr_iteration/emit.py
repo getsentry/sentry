@@ -86,6 +86,7 @@ class PrIterationOutcome(StrEnum):
     PAUSED = "paused"
     PAUSED_USER_STOP = "paused_user_stop"
     PAUSED_RUN_ERRORED = "paused_run_errored"
+    PAUSED_PR_CLOSED = "paused_pr_closed"
 
 
 # The pause reasons this module names an outcome for, derived so that adding a
