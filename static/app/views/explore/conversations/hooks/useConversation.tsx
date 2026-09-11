@@ -66,6 +66,7 @@ interface ConversationApiSpan {
   'gen_ai.usage.input_tokens.cache_write'?: number;
   'gen_ai.usage.input_tokens.cached'?: number;
   'gen_ai.usage.output_tokens'?: number;
+  'gen_ai.usage.output_tokens.reasoning'?: number;
   'gen_ai.usage.reasoning.output_tokens'?: number;
   'gen_ai.usage.total_tokens'?: number;
   occurrences?: TraceTree.EAPOccurrence[];
@@ -167,7 +168,9 @@ function createNodeFromApiSpan(
         apiSpan['gen_ai.usage.input_tokens.cache_write'] ??
         0,
       [SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]:
-        apiSpan['gen_ai.usage.reasoning.output_tokens'] ?? 0,
+        apiSpan['gen_ai.usage.reasoning.output_tokens'] ??
+        apiSpan['gen_ai.usage.output_tokens.reasoning'] ??
+        0,
       [SpanFields.GEN_AI_USAGE_TOTAL_TOKENS]: apiSpan['gen_ai.usage.total_tokens'] ?? 0,
       [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: apiSpan['gen_ai.cost.total_tokens'] ?? 0,
       [SpanFields.SPAN_STATUS]: apiSpan['span.status'],

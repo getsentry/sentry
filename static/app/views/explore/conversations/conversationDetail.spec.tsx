@@ -231,21 +231,23 @@ describe('ConversationDetailPage summary errors', () => {
         'precise.finish_ts': 1000.5,
         'gen_ai.request.messages': JSON.stringify([{role: 'user', content: 'Hello'}]),
         'gen_ai.response.text': 'Hi',
+        // This provider reports input exclusive of cache tokens.
         'gen_ai.usage.input_tokens': 100,
         'gen_ai.usage.output_tokens': 50,
-        'gen_ai.usage.cache_read.input_tokens': 20,
+        'gen_ai.usage.input_tokens.cached': 20,
         'gen_ai.usage.input_tokens.cache_write': 30,
-        'gen_ai.usage.reasoning.output_tokens': 10,
-        'gen_ai.usage.total_tokens': 999,
+        'gen_ai.usage.output_tokens.reasoning': 10,
+        'gen_ai.usage.total_tokens': 200,
       }),
     ]);
     renderPage();
 
-    const tokenCount = await screen.findByText('150');
+    const tokenCount = await screen.findByText('200');
     await userEvent.hover(tokenCount.parentElement!);
 
     expect(await screen.findByText('Input')).toBeInTheDocument();
-    expect(screen.getAllByText('50')).toHaveLength(2);
+    expect(screen.getByText('100')).toBeInTheDocument();
+    expect(screen.getByText('50')).toBeInTheDocument();
     expect(screen.getByText('Cached')).toBeInTheDocument();
     expect(screen.getByText('Cache Write')).toBeInTheDocument();
     expect(screen.getByText('Reasoning')).toBeInTheDocument();

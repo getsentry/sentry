@@ -44,6 +44,7 @@ import {
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
 } from 'sentry/views/insights/pages/agents/utils/query';
+import {getTokenBreakdown} from 'sentry/views/insights/pages/agents/utils/tokenBreakdown';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -432,20 +433,32 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
         getNumberAttrByConvention(node, 'gen_ai.usage.cache_read.input_tokens') ?? 0;
       const cacheWrite =
         getNumberAttrByConvention(node, 'gen_ai.usage.cache_creation.input_tokens') ?? 0;
-      const input = getNumberAttr(node, SpanFields.GEN_AI_USAGE_INPUT_TOKENS);
-      const output = getNumberAttr(node, SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS);
-
-      tokens.input += Math.max(0, (input ?? 0) - cached - cacheWrite);
-      tokens.output += output ?? 0;
-      tokens.cached += cached;
-      tokens.cacheWrite += cacheWrite;
-      tokens.reasoning +=
+      const input = getNumberAttr(node, SpanFields.GEN_AI_USAGE_INPUT_TOKENS) ?? 0;
+      const output = getNumberAttr(node, SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS) ?? 0;
+      const reasoning =
         getNumberAttr(node, SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS) ?? 0;
-      const componentTotal = (input ?? 0) + (output ?? 0);
-      tokens.total +=
-        componentTotal > 0
-          ? componentTotal
-          : (getNumberAttr(node, SpanFields.GEN_AI_USAGE_TOTAL_TOKENS) ?? 0);
+      const reportedTotal =
+        getNumberAttr(node, SpanFields.GEN_AI_USAGE_TOTAL_TOKENS) ?? 0;
+      const breakdown = getTokenBreakdown({
+        inputTokens: input,
+        cachedTokens: cached,
+        cacheWriteTokens: cacheWrite,
+        outputTokens: output,
+        reasoningTokens: reasoning,
+        totalTokens: reportedTotal,
+      });
+      const componentTotal =
+        breakdown.netNewInput +
+        breakdown.cached +
+        breakdown.cacheWrite +
+        breakdown.output;
+
+      tokens.input += breakdown.netNewInput;
+      tokens.output += breakdown.output;
+      tokens.cached += breakdown.cached;
+      tokens.cacheWrite += breakdown.cacheWrite;
+      tokens.reasoning += reasoning;
+      tokens.total += componentTotal > 0 ? componentTotal : reportedTotal;
       totalCost += getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS) ?? 0;
     } else if (getIsExecuteToolSpan(opType)) {
       toolCalls++;
