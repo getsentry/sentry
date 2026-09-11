@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 import orjson
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import SAFE_METHODS
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -20,6 +21,7 @@ from sentry.seer.agent.client_utils import (
     agent_connection_pool,
     has_seer_agent_access_with_detail,
 )
+from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import CODING_PAYLOAD_TYPES
 from sentry.seer.endpoints.utils import resolve_seer_run
 from sentry.seer.models import SeerApiError
@@ -70,6 +72,10 @@ class OrganizationSeerAgentUpdateEndpoint(OrganizationEndpoint):
         if not has_access:
             return Response({"detail": error}, status=403)
 
+        user_id = request.user.id
+        if user_id is None:
+            raise PermissionDenied("A user account is required to update a conversation.")
+
         if not request.data or not isinstance(request.data, dict):
             return Response(status=400, data={"error": "Need a body with a payload"})
 
@@ -84,15 +90,29 @@ class OrganizationSeerAgentUpdateEndpoint(OrganizationEndpoint):
                     data={"detail": "Code generation is disabled for this organization"},
                 )
 
-        resolved = resolve_seer_run(run_id, organization, for_continue=True)
+        resolved = resolve_seer_run(run_id, organization, for_continue=True, user_id=user_id)
         if isinstance(resolved, Response):
             return resolved
 
         path = "/v1/automation/explorer/update"
 
+        data = dict(request.data)
+        if isinstance(payload, dict) and "author" in payload:
+            # Never trust a client-supplied commit author.
+            payload = {k: v for k, v in payload.items() if k != "author"}
+            data["payload"] = payload
+
+        if payload_type == "create_pr":
+            author = commit_author_for_user(
+                request.user, organization.id, referrer="seer_agent_update_create_pr"
+            )
+            if author is not None:
+                payload = {**payload, "author": author}
+                data["payload"] = payload
+
         body = orjson.dumps(
             {
-                **request.data,
+                **data,
                 "run_id": resolved.seer_run_state_id,
                 "organization_id": organization.id,
             }

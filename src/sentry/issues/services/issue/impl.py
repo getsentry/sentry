@@ -6,6 +6,7 @@
 
 from django.db.models import Max
 
+from sentry import options
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.services.issue.model import RpcExternalIssueGroupMetadata, RpcGroupShareMetadata
 from sentry.issues.services.issue.service import IssueService
@@ -31,9 +32,12 @@ class DatabaseBackedIssueService(IssueService):
         if not external_issues.exists():
             return None
 
-        if integration_service.get_integration(integration_id=integration_id) is None:
+        integration = integration_service.get_integration(
+            integration_id=integration_id,
+            using_replica=options.get("integration_service.get_integration.using_replica"),
+        )
+        if integration is None:
             return None
-
         if (
             organization_integrations := integration_service.get_organization_integrations(
                 organization_ids={

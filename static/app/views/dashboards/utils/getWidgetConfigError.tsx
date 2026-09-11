@@ -3,6 +3,7 @@ import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/type
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {getSelectedAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregate';
+import {hasUnresolvedTraceMetric} from 'sentry/views/dashboards/widgetBuilder/utils/hasUnresolvedTraceMetric';
 import {doesMetricSupportHeatMapVisualization} from 'sentry/views/explore/metrics/constants';
 
 /**
@@ -18,9 +19,20 @@ export function getWidgetConfigError(widget: Widget): string | undefined {
     return t('The widget configuration is not valid. Please add a "Visualize" field.');
   }
 
-  // Heat maps are only offered on the trace-metrics dataset, and plot the metric
-  // from their selected "Visualize" aggregate. If they're on another dataset or
-  // that aggregate doesn't resolve to a metric, the widget can't render.
+  if (
+    widget.widgetType === WidgetType.TRACEMETRICS &&
+    widget.displayType === DisplayType.TABLE &&
+    widget.queries.every(q => q.aggregates.length === 0)
+  ) {
+    return t('This widget is missing a metric aggregation to visualize.');
+  }
+
+  // Trace-metric widgets encode the metric in the aggregate; if it doesn't resolve,
+  // nothing can render (applies to every display type, including heat maps).
+  if (widget.widgetType === WidgetType.TRACEMETRICS && hasUnresolvedTraceMetric(widget)) {
+    return t('This widget is missing a metric to visualize.');
+  }
+
   if (widget.displayType === DisplayType.HEATMAP) {
     if (widget.widgetType !== WidgetType.TRACEMETRICS) {
       return t('This dataset does not support this visualization.');
@@ -28,6 +40,7 @@ export function getWidgetConfigError(widget: Widget): string | undefined {
     const aggregate = getSelectedAggregate(widget);
     const traceMetric = aggregate && extractTraceMetricFromColumn(aggregate);
     if (!traceMetric) {
+      // No aggregate at all — a present-but-unresolved one is already caught above.
       return t('This widget is missing a metric to visualize.');
     }
     if (!doesMetricSupportHeatMapVisualization(traceMetric)) {

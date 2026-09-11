@@ -1,6 +1,6 @@
 from django.db.models import Q
 from django.db.models.query import EmptyQuerySet
-from rest_framework.exceptions import AuthenticationFailed, ParseError
+from rest_framework.exceptions import AuthenticationFailed, ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,12 +10,15 @@ from sentry.api.bases.project import ProjectPermission
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import ProjectWithOrganizationSerializer, serialize
+from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import CELL_API_DEPRECATION_DATE, ObjectStatus
 from sentry.db.models.query import in_iexact
 from sentry.models.project import Project
 from sentry.models.projectplatform import ProjectPlatform
+from sentry.organizations.services.organization import organization_service
 from sentry.search.utils import tokenize_query
+from sentry.seer.agent_token import is_agent_auth
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 
 
@@ -47,7 +50,24 @@ class ProjectIndexEndpoint(Endpoint):
         elif status:
             queryset = queryset.none()
 
-        if request.auth and not request.user.is_authenticated:
+        if is_agent_auth(request.auth):
+            if request.auth.organization_id is None or request.auth.user_id is None:
+                raise PermissionDenied
+            else:
+                org_context = organization_service.get_organization_by_id(
+                    id=request.auth.organization_id,
+                    user_id=request.auth.user_id,
+                    include_projects=False,
+                    include_teams=False,
+                )
+                if org_context is None:
+                    queryset = queryset.none()
+                else:
+                    agent_access = access.from_agent_auth(request.auth, org_context)
+                    queryset = queryset.filter(organization_id=request.auth.organization_id)
+                    if not agent_access.has_global_access:
+                        queryset = queryset.filter(id__in=agent_access.accessible_project_ids)
+        elif request.auth and not request.user.is_authenticated:
             if request.auth.project_id:
                 queryset = queryset.filter(id=request.auth.project_id)
             elif request.auth.organization_id is not None:

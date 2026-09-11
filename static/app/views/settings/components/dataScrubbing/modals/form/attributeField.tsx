@@ -8,7 +8,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -92,7 +91,7 @@ export function AttributeField({
   });
   const [suggestedAttributeValues, setSuggestedAttributeValues] = useLocalStorageState(
     `advanced-data-scrubbing.suggested-attribute-values:v3:${projectId ? projectId : 'all'}`,
-    {} as TagCollection
+    {}
   );
 
   const traceItemFieldSelector = TraceItemFieldSelector.fromSourceString(value);
@@ -163,12 +162,12 @@ export function AttributeField({
       setShowSuggestions(true);
       setActiveSuggestion(0);
     },
-    [onChange]
+    [onChange, setShowSuggestions, setActiveSuggestion]
   );
 
   const handleFocus = useCallback(() => {
     setShowSuggestions(true);
-  }, []);
+  }, [setShowSuggestions]);
 
   const handleBlur = useCallback(
     (event: React.FocusEvent<HTMLInputElement>) => {
@@ -178,7 +177,7 @@ export function AttributeField({
       onBlur?.(event.target.value, event);
       fieldProps.onBlur();
     },
-    [onBlur, fieldProps]
+    [onBlur, fieldProps, setShowSuggestions]
   );
 
   const handleClickSuggestion = useCallback(
@@ -187,7 +186,7 @@ export function AttributeField({
       setShowSuggestions(false);
       setActiveSuggestion(0);
     },
-    [onChange]
+    [onChange, setShowSuggestions, setActiveSuggestion]
   );
 
   const handleKeyDown = useCallback(
@@ -218,7 +217,14 @@ export function AttributeField({
           break;
       }
     },
-    [showSuggestions, filteredSuggestions, activeSuggestion, handleClickSuggestion]
+    [
+      showSuggestions,
+      filteredSuggestions,
+      activeSuggestion,
+      handleClickSuggestion,
+      setActiveSuggestion,
+      setShowSuggestions,
+    ]
   );
 
   return (

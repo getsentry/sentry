@@ -7,7 +7,12 @@ from sentry.search.events import constants
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [
+    pytest.mark.sentry_metrics,
+    pytest.mark.skip(
+        reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+    ),
+]
 
 
 class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformanceTestCase):

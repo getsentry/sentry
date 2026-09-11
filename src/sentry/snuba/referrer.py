@@ -25,6 +25,7 @@ class Referrer(StrEnum):
         "api.auth-token.events.metrics-enhanced.primary"
     )
     API_AUTH_TOKEN_EVENTS = "api.auth-token.events"
+    API_AUTH_TOKEN_EVENTS_FIND_TOPN = "api.auth-token.events.find-topn"
 
     # ** Dashboards **
 
@@ -128,6 +129,7 @@ class Referrer(StrEnum):
     API_EXPLORE_TRACEMETRICS_METRICS_LIST = "api.explore.tracemetrics.metrics-list"
     API_EXPLORE_SPANS_AGGREGATES_TABLE = "api.explore.spans-aggregates-table"
     API_EXPLORE_SPANS_SAMPLES_TABLE = "api.explore.spans-samples-table"
+    API_EXPLORE_SPAN_ITEM_DETAILS = "api.explore.span-item-details"
     API_EXPLORE_SPANS_EXTRAPOLATION_META = "api.explore.spans-extrapolation-meta"
     API_EXPLORE_LOGS_TABLE = "api.explore.logs-table"
     API_EXPLORE_LOGS_TABLE_ROW = "api.explore.logs-table-row"
@@ -438,6 +440,7 @@ class Referrer(StrEnum):
     API_METRICS_TOTALS = "api.metrics.totals"
     API_METRICS_TOTALS_INITIAL_QUERY = "api.metrics.totals.initial_query"
     API_METRICS_TOTALS_SECOND_QUERY = "api.metrics.totals.second_query"
+    API_METRICS_SERIES = "api.metrics.series"
     API_METRICS_SERIES_SECOND_QUERY = "api.metrics.series.second_query"
 
     API_ORGANIZATION_TRACE_ITEM_DETAILS = "api.organization-trace-item-details"
@@ -497,7 +500,9 @@ class Referrer(StrEnum):
     API_ORGANIZATION_METRICS_EAP_QUERY = "api.organization.metrics-eap-query"
     API_ORGANIZATION_ISSUES_COUNT = "api.organization-issues-count"
     API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
+    API_ISSUE_DETAILS_VERIFY_RECOMMENDED_REPLAY = "api.issue-details-verify-recommended-replay"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
+    API_ORGANIZATION_SPAN_REPLAY_COUNT = "api.organization-span-replay-count"
     API_ORGANIZATION_VITALS_PER_PROJECT = "api.organization-vitals-per-project"
     API_ORGANIZATION_VITALS = "api.organization-vitals"
     API_AI_CONVERSATIONS = "api.ai-conversations"
@@ -598,6 +603,7 @@ class Referrer(StrEnum):
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
     API_SPAN_SAMPLE_GET_SPAN_DATA = "api.spans.sample-get-span-data"
     API_SERIALIZER_PROJECTS_GET_STATS = "api.serializer.projects.get_stats"
+    API_SERIALIZER_PROJECTS_GET_TRANSACTION_STATS = "api.serializer.projects.get_transaction_stats"
     API_SERIALIZER_CHECKINS_TRACE_IDS = "api.serializer.checkins.trace-ids"
     API_TRACE_VIEW_ERRORS_VIEW = "api.trace-view.errors-view"
     API_TRACE_VIEW_GET_TIMESTAMP_PROJECTS = "api.trace-view.get-timestamp-projects"
@@ -655,9 +661,6 @@ class Referrer(StrEnum):
     DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION = (
         "dynamic_sampling.counters.fetch_projects_with_count_per_transaction_volumes"
     )
-    DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_TRANSACTION_TOTALS = (
-        "dynamic_sampling.counters.fetch_projects_with_transaction_totals"
-    )
     DYNAMIC_SAMPLING_SETTINGS_GET_SPAN_COUNTS = "dynamic_sampling.settings.get_project_span_counts"
     ESCALATING_GROUPS = "sentry.issues.escalating"
     EVENTSTORE_GET_EVENT_BY_ID_NODESTORE = "eventstore.backend.get_event_by_id_nodestore"
@@ -676,6 +679,7 @@ class Referrer(StrEnum):
     GROUP_FILTER_BY_EVENT_ID = "group.filter_by_event_id"
     GROUP_GET_HELPFUL = "Group.get_helpful"
     GROUP_GET_LATEST = "Group.get_latest"
+    GROUP_GET_LATEST_BULK = "Group.get_latest_bulk"
     GROUP_UNHANDLED_FLAG = "group.unhandled-flag"
     GROUPING_RECORDS_BACKFILL_REFERRER = "getsentry.tasks.backfill_grouping_records"
     INCIDENTS_GET_INCIDENT_AGGREGATES_PRIMARY = "incidents.get_incident_aggregates.primary"
@@ -783,6 +787,7 @@ class Referrer(StrEnum):
     REPLAYS_QUERY_BROWSE_SIMPLE_AGGREGATION = "replays.query.browse_simple_aggregation"
     REPLAYS_FILE_REFERRER = "replays.query.download_replay_segments"
     REPLAYS_SCRIPTS_DELETE_REPLAYS = "replays.scripts.delete_replays"
+    REPLAYS_DELETE_REPLAYS_BULK = "replays.delete_replays_bulk"
     FEEDBACKS_LABEL_QUERY = "feedbacks.label_query"
     EU_DATA_EXPORT = "sentry.internal.eu-compliance-data-export"
     REPORTS_KEY_ERROR_ISSUES = "reports.key_errors"
@@ -799,6 +804,8 @@ class Referrer(StrEnum):
     SEARCH_GROUP_INDEX = "search.group_index"
     SEER_NIGHT_SHIFT_FIXABILITY_SCORE_STRATEGY = "seer.night_shift.fixability_score_strategy"
     SEARCH_GROUP_INDEX_SAMPLE = "search.group_index_sample"
+    SEARCH_GROUP_INDEX_API = "search.group_index.api"
+    SEARCH_GROUP_INDEX_API_SAMPLE = "search.group_index.api_sample"
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_QUERY = "search.snuba.group_attributes_search.query"
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_HITS = "search.snuba.group_attributes_search.hits"
     SEER_RPC = "seer.rpc"
@@ -957,8 +964,6 @@ class Referrer(StrEnum):
     TEST_QUERY = "test_query"
     METRIC_VALIDATION = "metric_validation"
 
-    JOB_COMPARE_TIMESERIES = "job-runner.compare-timeseries"
-
 
 VALUES = {referrer.value for referrer in Referrer}
 
@@ -990,6 +995,6 @@ def validate_referrer(referrer: str | None) -> bool:
         raise Exception(error_message)
     except Exception:
         metrics.incr("snql.sdk.api.new_referrers", tags={"referrer": referrer})
-        logger.warning(error_message, exc_info=True)
+        logger.warning(error_message, extra={"referrer": referrer}, exc_info=True)
 
     return False

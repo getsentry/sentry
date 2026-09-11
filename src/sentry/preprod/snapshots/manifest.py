@@ -57,6 +57,15 @@ def image_metadata_extras(
     return {k: v for k, v in metadata if k not in skip}
 
 
+# Keys owned by the response schema (mapped explicitly) or the manifest schema; anything
+# else on a stored image dict is passed through as an "extra" (Config.extra == "allow").
+_KNOWN_IMAGE_KEYS = _SCHEMA_FIELDS | {"key", "image_file_name"}
+
+
+def image_dict_extras(image: dict[str, Any]) -> dict[str, Any]:
+    return {k: v for k, v in image.items() if k not in _KNOWN_IMAGE_KEYS}
+
+
 class SnapshotManifest(BaseModel):
     images: dict[str, ImageMetadata]
     diff_threshold: float | None = Field(default=None, ge=0.0, lt=1.0)
@@ -105,6 +114,7 @@ class ChunkCandidate(BaseModel):
     base_hash: str
     pixel_count: int
     diff_threshold: float
+    kind: Literal["base", "sibling"] = "base"
 
 
 class ChunkAssignment(BaseModel):
@@ -118,8 +128,11 @@ class ComparisonPlan(BaseModel):
     chunks: list[ChunkAssignment]
     # Results that need no odiff (added/removed/skipped/renamed/unchanged/exceeds-pixel-limit).
     non_diff_images: dict[str, ComparisonImageResult]
+    sibling_artifact_id: int | None = None
+    sibling_comparison_key: str | None = None
 
 
 class ChunkResult(BaseModel):
     chunk_index: int
     images: dict[str, ComparisonImageResult]
+    sibling_images: dict[str, ComparisonImageResult] = {}

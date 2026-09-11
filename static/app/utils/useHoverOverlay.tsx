@@ -16,6 +16,8 @@ import {usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
 import {mergeProps} from '@react-aria/utils';
 
+import type {CSS} from '@sentry/scraps/cssTypes';
+
 import {NODE_ENV} from 'sentry/constants/env';
 import type {Theme} from 'sentry/utils/theme';
 
@@ -70,7 +72,7 @@ function makeDefaultPopperModifiers(arrowElement: HTMLElement | null, offset: nu
 const OPEN_DELAY = 400;
 
 /**
- * How long to wait before closing the overlay when isHoverable or
+ * How long to wait before closing the overlay when
  * displayTimeout is set.
  */
 const CLOSE_DELAY = 150;
@@ -167,25 +169,21 @@ interface UseHoverOverlayProps {
   /**
    * Display mode for the container element. Does nothing using skipWrapper.
    */
-  containerDisplayMode?: React.CSSProperties['display'];
+  containerDisplayMode?: CSS['display'];
   /**
    * Time to wait (in milliseconds) before showing the overlay
    */
   delay?: number;
   /**
-   * Time in ms until overlay is hidden. When used with isHoverable this is
-   * used as the time allowed for the user to move their cursor into the overlay)
+   * Time in ms until the overlay is hidden. This is the time allowed for the
+   * user to move their cursor into the overlay.
    */
   displayTimeout?: number;
   /**
-   * Force the overlay to be visible without hovering
+   * Force the overlay to be visible without hovering. `true` opens
+   * immediately, while `delayed` uses the normal open delay.
    */
-  forceVisible?: boolean;
-  /**
-   * If true, user is able to hover overlay without it disappearing. (nice if
-   * you want the overlay to be interactive)
-   */
-  isHoverable?: boolean;
+  forceVisible?: boolean | 'delayed';
   /**
    * Offset along the main axis.
    */
@@ -244,6 +242,9 @@ export function isOverflown(el: Element): boolean {
       ? 2
       : 0;
   return (
+    // Components that truncate text in JavaScript can expose logical overflow
+    // even when the rendered text fits its box.
+    el.getAttribute('data-overflowing') === 'true' ||
     el.scrollWidth - el.clientWidth > tolerance ||
     Array.from(el.children).some(isOverflown)
   );
@@ -284,7 +285,6 @@ function useHoverOverlay({
   style,
   delay,
   displayTimeout,
-  isHoverable,
   showUnderline,
   underlineColor,
   showOnlyOnOverflow,
@@ -337,7 +337,7 @@ function useHoverOverlay({
   // form-field validation errors anchored to a warning icon. They must not
   // be snap-closed when another overlay in the group opens.
   useEffect(() => {
-    if (forceVisible) {
+    if (forceVisible !== undefined && forceVisible !== false) {
       return;
     }
     const listener: OpenListener = origin => {
@@ -364,7 +364,12 @@ function useHoverOverlay({
     };
   }, [group, forceVisible, commitStatus]);
 
-  const isOpen = forceVisible ?? (status === 'open' || status === 'cooling');
+  const isOpen =
+    forceVisible === true
+      ? true
+      : forceVisible === false
+        ? false
+        : status === 'open' || status === 'cooling';
 
   // Fire onHover / onBlur on open/close transitions only. Read the callbacks
   // from refs so that a new callback identity on re-render does not retrigger
@@ -426,8 +431,10 @@ function useHoverOverlay({
 
       const mutationObserver = new MutationObserver(() => updateOverflow(element));
       mutationObserver.observe(element, {
+        attributes: true,
         characterData: true,
         childList: true,
+        attributeFilter: ['data-overflowing'],
         subtree: true,
       });
 
@@ -489,6 +496,7 @@ function useHoverOverlay({
     }
 
     commitStatus('warming');
+    // oxlint-disable-next-line react/immutability
     openTimerRef.current = window.setTimeout(() => {
       commitStatus('open');
       warmUpGroup(group, selfTokenRef.current);
@@ -507,23 +515,26 @@ function useHoverOverlay({
       return;
     }
 
-    // Note: the NODE_ENV === 'test' bypass is intentionally only applied on
-    // the open path. Tests that want to verify close-delay behavior (the
-    // `cooling` grace window) can do so by asserting isOpen mid-timeout,
-    // which requires the timer to actually run.
-    const hasCloseDelay = isHoverable || displayTimeout !== undefined;
-    if (!hasCloseDelay) {
-      commitStatus('idle');
-      startGroupCoolDown(group);
-      return;
-    }
-
     commitStatus('cooling');
+    // oxlint-disable-next-line react/immutability
     hideTimerRef.current = window.setTimeout(() => {
       commitStatus('idle');
       startGroupCoolDown(group);
     }, displayTimeout ?? CLOSE_DELAY);
-  }, [isHoverable, displayTimeout, commitStatus, group]);
+  }, [displayTimeout, commitStatus, group]);
+
+  const previousForceVisibleRef = useRef<boolean | 'delayed' | undefined>(undefined);
+  useEffect(() => {
+    const wasDelayed = previousForceVisibleRef.current === 'delayed';
+
+    if (forceVisible === 'delayed' && !wasDelayed) {
+      handleMouseEnter();
+    } else if (forceVisible !== 'delayed' && wasDelayed) {
+      handleMouseLeave();
+    }
+
+    previousForceVisibleRef.current = forceVisible;
+  }, [forceVisible, handleMouseEnter, handleMouseLeave]);
 
   /**
    * Wraps the passed in react elements with a container that has the proper
@@ -534,7 +545,11 @@ function useHoverOverlay({
    */
   const wrapTrigger = useCallback(
     (triggerChildren: React.ReactNode) => {
-      const shouldInteract = !showOnlyOnOverflow || isOverflowing || forceVisible;
+      const shouldInteract =
+        !showOnlyOnOverflow ||
+        isOverflowing ||
+        forceVisible === true ||
+        forceVisible === 'delayed';
       const providedProps = {
         // !!These props are always overridden!!
         'aria-describedby': shouldInteract ? describeById : undefined,
@@ -628,6 +643,7 @@ function useHoverOverlay({
 
   useEffect(() => {
     if (showOnlyOnOverflow && !isOverflowing) {
+      // oxlint-disable-next-line react/set-state-in-effect
       reset();
     }
   }, [showOnlyOnOverflow, isOverflowing, reset]);
@@ -637,14 +653,13 @@ function useHoverOverlay({
       id: describeById,
       ref: setOverlayElement,
       style: styles.popper,
-      onMouseEnter: isHoverable ? handleMouseEnter : undefined,
-      onMouseLeave: isHoverable ? handleMouseLeave : undefined,
+      onMouseEnter: handleMouseEnter,
+      onMouseLeave: handleMouseLeave,
     };
   }, [
     describeById,
     setOverlayElement,
     styles.popper,
-    isHoverable,
     handleMouseEnter,
     handleMouseLeave,
   ]);

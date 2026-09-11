@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
-import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
+import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
-import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
@@ -55,17 +55,17 @@ function Skeletons({canEdit, numberOfRows}: {canEdit: boolean; numberOfRows: num
               <Placeholder height="16px" width="20%" />
             </div>
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell data-column-name="type">
+          <SimpleTable.RowCell columnKey="type">
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell data-column-name="last-issue">
+          <SimpleTable.RowCell columnKey="last-issue">
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell data-column-name="owner">
+          <SimpleTable.RowCell columnKey="owner">
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
           {canEdit && (
-            <SimpleTable.RowCell data-column-name="connected">
+            <SimpleTable.RowCell columnKey="connected">
               <Placeholder height="20px" />
             </SimpleTable.RowCell>
           )}
@@ -89,6 +89,7 @@ export function ConnectedMonitorsList({
   workflowId,
   ...props
 }: Props) {
+  const getPaginationCaption = useGetPaginationCaption();
   const organization = useOrganization();
   const canEdit = Boolean(connectedDetectorIds && typeof toggleConnected === 'function');
   const emptySelection = defined(detectorIds) && detectorIds.length === 0;
@@ -122,22 +123,32 @@ export function ConnectedMonitorsList({
           total: totalCountInt,
         });
 
+  const columns: TableColumnConfig[] = [
+    {key: 'name', width: '1fr'},
+    {key: 'type', visible: {sm: true}, width: '100px'},
+    {key: 'last-issue', visible: {'3xl': true}, width: 'minmax(0, 0.8fr)'},
+    {key: 'owner', visible: {xl: true}, width: 'auto'},
+    {key: 'connected', visible: canEdit, width: '140px'},
+  ];
+
   return (
-    <Container {...props}>
-      <SimpleTableWithColumns>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="type">
-            {t('Type')}
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="last-issue">
-            {t('Last Issue')}
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="owner">
-            {t('Assignee')}
-          </SimpleTable.HeaderCell>
-          {canEdit && <SimpleTable.HeaderCell data-column-name="connected" />}
-        </SimpleTable.Header>
+    <Container containerType="inline-size" {...props}>
+      <SimpleTable
+        columns={columns}
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell columnKey="type">{t('Type')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell columnKey="last-issue">
+              {t('Last Issue')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell columnKey="owner">
+              {t('Assignee')}
+            </SimpleTable.HeaderCell>
+            {canEdit && <SimpleTable.HeaderCell columnKey="connected" />}
+          </SimpleTable.HeaderRow>
+        }
+      >
         {isLoading && (
           <Skeletons
             canEdit={canEdit}
@@ -148,7 +159,7 @@ export function ConnectedMonitorsList({
             }
           />
         )}
-        {isError && <LoadingError />}
+        {isError && <SimpleTable.Error />}
         {((isSuccess && detectors?.length === 0) || emptySelection) && (
           <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
         )}
@@ -159,17 +170,17 @@ export function ConnectedMonitorsList({
               <SimpleTable.RowCell>
                 <DetectorLink detector={detector} openInNewTab={openInNewTab} />
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell data-column-name="type">
+              <SimpleTable.RowCell columnKey="type">
                 <DetectorTypeCell type={detector.type} />
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell data-column-name="last-issue">
+              <SimpleTable.RowCell columnKey="last-issue">
                 <IssueCell group={detector.latestGroup} />
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell data-column-name="owner">
+              <SimpleTable.RowCell columnKey="owner">
                 <DetectorAssigneeCell assignee={detector.owner} />
               </SimpleTable.RowCell>
               {canEdit && (
-                <SimpleTable.RowCell data-column-name="connected" justify="end">
+                <SimpleTable.RowCell columnKey="connected" justify="end">
                   <Button onClick={() => toggleConnected?.({detector})} size="sm">
                     {connectedDetectorIds?.has(detector.id)
                       ? t('Disconnect')
@@ -179,7 +190,7 @@ export function ConnectedMonitorsList({
               )}
             </SimpleTable.Row>
           ))}
-      </SimpleTableWithColumns>
+      </SimpleTable>
       {limit && (
         <Pagination
           onCursor={onCursor}
@@ -190,43 +201,3 @@ export function ConnectedMonitorsList({
     </Container>
   );
 }
-
-const Container = styled('div')`
-  container-type: inline-size;
-`;
-
-const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 1fr 100px minmax(0, 0.8fr) auto auto;
-
-  /*
-    The connected column can be added/removed depending on props, so in order to
-    have a constant width we have an auto grid column and set the width here.
-  */
-  [data-column-name='connected'] {
-    width: 140px;
-  }
-
-  @container (max-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: 1fr 100px auto auto;
-
-    [data-column-name='last-issue'] {
-      display: none;
-    }
-  }
-
-  @container (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr 100px auto;
-
-    [data-column-name='owner'] {
-      display: none;
-    }
-  }
-
-  @container (max-width: ${p => p.theme.breakpoints.xs}) {
-    grid-template-columns: 1fr 100px;
-
-    [data-column-name='type'] {
-      display: none;
-    }
-  }
-`;

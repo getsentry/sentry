@@ -1,15 +1,19 @@
-import {useEffect} from 'react';
+import {Fragment, useEffect} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
+  IconBroadcast,
   IconBuilding,
   IconDiscord,
   IconDocs,
   IconEllipsis,
   IconGithub,
   IconGroup,
+  IconLab,
   IconMegaphone,
   IconOpen,
   IconQuestion,
@@ -23,21 +27,36 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {showIntercom} from 'sentry/utils/intercom';
+import {AuthV2CookieState, useEnableAuthV2} from 'sentry/utils/useEnableAuthV2';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
+import {
+  useWhatsNewBroadcasts,
+  WhatsNewContent,
+} from 'sentry/views/navigation/primary/whatsNew';
 
-export function PrimaryNavigationHelpMenu() {
+interface PrimaryNavigationHelpMenuProps {
+  additionalItems?: MenuItemProps[];
+  indicator?: 'accent' | 'danger' | 'warning';
+}
+
+export function PrimaryNavigationHelpMenu({
+  additionalItems = [],
+  indicator,
+}: PrimaryNavigationHelpMenuProps = {}) {
   const organization = useOrganization();
   const contactSupportItem = getContactSupportItem(organization);
   const openForm = useFeedbackForm();
   const {privacyUrl, termsUrl} = useLegacyStore(ConfigStore);
+  const {isAuthV2Enabled, setAuthV2CookieState} = useEnableAuthV2();
 
   useEffect(() => {
     trackAnalytics('intercom_link.viewed', {organization, source: 'sidebar'});
   }, [organization]);
 
   const items: MenuItemProps[] = [
+    ...additionalItems,
     {
       key: 'resources',
       label: t('Resources'),
@@ -169,6 +188,33 @@ export function PrimaryNavigationHelpMenu() {
       ],
     },
     {
+      key: 'auth-v2',
+      hidden: !organization.features.includes('authv2-enable-toggle'),
+      children: [
+        {
+          key: 'toggle-auth-v2',
+          label: isAuthV2Enabled ? t('Disable new login') : t('Enable new login'),
+          leadingItems: (
+            <MenuIcon>
+              <IconLab isSolid />
+            </MenuIcon>
+          ),
+          onAction() {
+            const state = isAuthV2Enabled
+              ? AuthV2CookieState.DISABLED
+              : AuthV2CookieState.ENABLED;
+
+            trackAnalytics('auth_v2.rollout.changed', {
+              organization,
+              source: 'help_menu',
+              state,
+            });
+            setAuthV2CookieState(state);
+          },
+        },
+      ],
+    },
+    {
       key: 'actions',
       hidden: !openForm,
       children: [
@@ -183,7 +229,7 @@ export function PrimaryNavigationHelpMenu() {
           onAction() {
             openForm?.({
               tags: {
-                ['feedback.source']: 'navigation_sidebar',
+                'feedback.source': 'navigation_sidebar',
               },
             });
           },
@@ -199,8 +245,40 @@ export function PrimaryNavigationHelpMenu() {
       analyticsKey="help"
       label={t('Help')}
       icon={<IconEllipsis />}
+      indicator={indicator}
     />
   );
+}
+
+export function useWhatsNewHelpMenuItem(): PrimaryNavigationHelpMenuProps {
+  const {unseenPostIds} = useWhatsNewBroadcasts();
+
+  return {
+    additionalItems: [
+      {
+        key: 'whats-new',
+        label: t("What's New"),
+        leadingItems: (
+          <MenuIcon>
+            <IconBroadcast />
+          </MenuIcon>
+        ),
+        onAction() {
+          openModal(({Header, Body}) => (
+            <Fragment>
+              <Header closeButton>{t("What's New")}</Header>
+              <Body>
+                <ErrorBoundary customComponent={null}>
+                  <WhatsNewContent />
+                </ErrorBoundary>
+              </Body>
+            </Fragment>
+          ));
+        },
+      },
+    ],
+    indicator: unseenPostIds.length > 0 ? 'accent' : undefined,
+  };
 }
 
 function getContactSupportItem(organization: Organization): MenuItemProps | null {

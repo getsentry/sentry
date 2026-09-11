@@ -130,7 +130,7 @@ def save_team_assignments(
                 TeamAssignmentChange(team=t, omt_id=old_omt_by_team[t.id].id) for t in removed_teams
             ]
 
-            OrganizationMemberTeam.objects.bulk_delete(existing)
+            existing.delete()
             OrganizationMemberTeam.objects.bulk_create(
                 [
                     OrganizationMemberTeam(

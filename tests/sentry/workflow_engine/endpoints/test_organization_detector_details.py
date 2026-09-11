@@ -25,6 +25,10 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.testutils.skips import requires_kafka, requires_snuba
+from sentry.workflow_engine.defaults.detectors import (
+    ensure_default_all_projects_detector,
+    ensure_default_detectors,
+)
 from sentry.workflow_engine.models import (
     AlertRuleDetector,
     DataCondition,
@@ -36,6 +40,7 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
 
@@ -211,13 +216,16 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         assert response.data["alertRuleId"] is None
         assert response.data["ruleId"] is None
 
-    def test_metric_detector_not_allowed_returns_404(self) -> None:
-        """
-        When the org lacks the incidents feature, GET for a metric detector
-        should return 404.
-        """
-        with self.feature({"organizations:incidents": False}):
-            self.get_error_response(self.organization.slug, self.detector.id, status_code=404)
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_all_projects_detector_get_success(self) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        response = self.get_success_response(self.organization.slug, all_projects_detector.id)
+        assert response.data["id"] == str(all_projects_detector.id)
+        assert response.data["projectId"] is None
+
+    def test_all_projects_detector_get_error_without_flag(self) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        self.get_error_response(self.organization.slug, all_projects_detector.id, status_code=403)
 
 
 @cell_silo_test
@@ -415,19 +423,6 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 status_code=200,
             )
         assert response.data["config"]["comparisonDelta"] == 300
-
-    def test_metric_detector_not_allowed_returns_404(self) -> None:
-        """
-        When the org lacks the incidents feature, PUT for a metric detector
-        should return 404.
-        """
-        with self.feature({"organizations:incidents": False}):
-            self.get_error_response(
-                self.organization.slug,
-                self.detector.id,
-                **self.valid_data,
-                status_code=404,
-            )
 
     def test_update_add_data_condition(self) -> None:
         """
@@ -1111,6 +1106,24 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert query_sub.snuba_query.aggregate == "count()"
         assert query_sub.snuba_query.event_types == [SnubaQueryEventType.EventType.TRANSACTION]
 
+    def test_cannot_update_issue_stream_detector(self) -> None:
+        issue_stream_detector = ensure_default_detectors(self.project)[IssueStreamGroupType.slug]
+        self.get_error_response(
+            self.organization.slug,
+            issue_stream_detector.id,
+            **self.valid_data,
+            status_code=403,
+        )
+
+    def test_all_projects_detector_put_forbidden(self) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        self.get_error_response(
+            self.organization.slug,
+            all_projects_detector.id,
+            name="Updated Name",
+            status_code=403,
+        )
+
 
 @cell_silo_test
 class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest):
@@ -1137,9 +1150,8 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         mock_schedule_update_project_config.assert_called_once_with(self.detector)
 
     def test_delete_allowed_without_metric_subscription_feature(self) -> None:
-        with self.feature({"organizations:incidents": False}):
-            with outbox_runner():
-                self.get_success_response(self.organization.slug, self.detector.id)
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, self.detector.id)
 
         assert CellScheduledDeletion.objects.filter(
             model_name="Detector", object_id=self.detector.id

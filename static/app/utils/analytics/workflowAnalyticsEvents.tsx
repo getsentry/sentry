@@ -66,33 +66,9 @@ type BaseTour = {
 type ReleasesTour = BaseTour & {project_id: string};
 
 export type TeamInsightsEventParameters = {
-  'alert_builder.filter': {query: string; session_id?: string};
-  'alert_builder.noisy_warning_agreed': Record<string, unknown>;
-  'alert_builder.noisy_warning_viewed': Record<string, unknown>;
   'alert_details.viewed': {alert_id: number};
-  'alert_rule_details.viewed': {
-    alert: string;
-    has_chartcuterie: string;
-    notification_uuid: string;
-    rule_id: number;
-  };
-  'alert_rules.viewed': {sort: string};
   'alert_stream.viewed': Record<string, unknown>;
-  'alert_wizard.option_selected': {alert_type: string};
-  'edit_alert_rule.add_row': {
-    name: string;
-    project_id: string;
-    type: string;
-  };
-  'edit_alert_rule.delete_row': {
-    name: string;
-    project_id: string;
-    type: string;
-  };
-  'edit_alert_rule.incompatible_rule': Record<string, unknown>;
-  'edit_alert_rule.notification_test': {success: boolean};
   'edit_alert_rule.viewed': RuleViewed;
-  'issue_alert_rule_details.edit_clicked': {rule_id: number};
   'issue_details.action_clicked': IssueDetailsWithAlert & {
     action_type:
       | 'deleted'
@@ -162,13 +138,19 @@ export type TeamInsightsEventParameters = {
   'issue_details.tab_changed': IssueDetailsWithAlert & {
     tab: Tab;
   };
+  'issue_inbox.resolve_clicked': IssueDetailsWithAlert & {
+    action_type: GroupStatus;
+    org_streamline_only: boolean | undefined;
+    action_status_details?: string;
+    action_substatus?: string;
+  };
   'issue_stream.updated_empty_state_viewed': {platform: string};
   'project_creation_page.created': {
     issue_alert: 'Default' | 'Custom' | 'No Rule';
     notification_rule_created: boolean;
     platform: string;
     project_id: string;
-    rule_ids: string[];
+    workflow_ids: string[];
     // 'legacy' from CreateProject, 'scm' from the SCM wizard. Both variants
     // populate the same payload; only this discriminator differs.
     variant?: ProjectCreationVariant;
@@ -212,21 +194,11 @@ export type TeamInsightsEventParameters = {
 type TeamInsightsEventKey = keyof TeamInsightsEventParameters;
 
 export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
-  'alert_builder.filter': 'Alert Builder: Filter',
-  'alert_builder.noisy_warning_viewed': 'Alert Builder: Noisy Warning Viewed',
-  'alert_builder.noisy_warning_agreed': 'Alert Builder: Noisy Warning Agreed',
   'alert_details.viewed': 'Alert Details: Viewed',
-  'alert_rule_details.viewed': 'Alert Rule Details: Viewed',
-  'alert_rules.viewed': 'Alert Rules: Viewed',
   'alert_stream.viewed': 'Alert Stream: Viewed',
-  'alert_wizard.option_selected': 'Alert Wizard: Option Selected',
-  'edit_alert_rule.add_row': 'Edit Alert Rule: Add Row',
-  'edit_alert_rule.delete_row': 'Edit Alert Rule: Delete Row',
   'edit_alert_rule.viewed': 'Edit Alert Rule: Viewed',
-  'edit_alert_rule.incompatible_rule': 'Edit Alert Rule: Incompatible Rule',
-  'edit_alert_rule.notification_test': 'Edit Alert Rule: Notification Test',
-  'issue_alert_rule_details.edit_clicked': 'Issue Alert Rule Details: Edit Clicked',
   'issue_details.action_clicked': 'Issue Details: Action Clicked',
+  'issue_inbox.resolve_clicked': 'Issue Inbox: Resolve Action Clicked',
   'issue_details.attachment_tab.screenshot_modal_deleted':
     'Attachment Tab: Screenshot deleted from modal',
   'issue_details.attachment_tab.screenshot_modal_download':

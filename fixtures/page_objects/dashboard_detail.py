@@ -38,6 +38,10 @@ class DashboardDetailPage(BasePage):
         self.wait_until_loaded()
 
     def enter_edit_state(self):
+        actions_button = self.browser.element('[aria-label="Dashboard actions"]')
+        self.browser.wait_until_clickable('[aria-label="Dashboard actions"]')
+        actions_button.click()
+
         button = self.browser.element('[data-test-id="dashboard-edit"]')
         self.browser.wait_until_clickable('[data-test-id="dashboard-edit"]')
         button.click()

@@ -3,7 +3,6 @@ from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from django.urls import reverse
-from objectstore_client.errors import RequestError
 
 from sentry.models.profilechunkattachment import ProfileChunkAttachment
 from sentry.testutils.cases import APITestCase
@@ -69,7 +68,7 @@ class ProjectProfilingChunkAttachmentTest(APITestCase):
         assert response.data["id"] == str(self.attachment.id)
         assert response.data["name"] == "trace.perfetto"
 
-    @patch("sentry.api.endpoints.project_profiling_profile.get_profile_attachments_session")
+    @patch("sentry.api.endpoints.project_profiling_profile.get_session")
     def test_downloads_blob(self, mock_session: MagicMock) -> None:
         blob = MagicMock()
         blob.payload = BytesIO(b"perfetto-bytes")
@@ -84,9 +83,11 @@ class ProjectProfilingChunkAttachmentTest(APITestCase):
         assert response["Content-Disposition"] == 'attachment; filename="trace.perfetto"'
         mock_session.return_value.get.assert_called_once()
 
-    @patch("sentry.api.endpoints.project_profiling_profile.get_profile_attachments_session")
+    @patch("sentry.api.endpoints.project_profiling_profile.get_session")
     def test_download_tolerates_expired_blob(self, mock_session: MagicMock) -> None:
-        mock_session.return_value.get.side_effect = RequestError("gone", 404, "")
+        # The blob's Objectstore TTL and this row's cleanup are not perfectly
+        # synchronized, so the blob may already be gone while the row lingers.
+        mock_session.return_value.get.return_value = None
 
         with self.feature(self.features):
             response = self.client.get(self.get_url(), {"download": "1"})

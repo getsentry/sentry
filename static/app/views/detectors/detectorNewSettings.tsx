@@ -1,7 +1,6 @@
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useDetectorTypeQueryState} from 'sentry/views/detectors/components/detectorTypeForm';
@@ -15,7 +14,6 @@ import {
 export default function DetectorNewSettings() {
   const {fetching: isFetchingProjects} = useProjects();
   const [detectorType] = useDetectorTypeQueryState();
-  useWorkflowEngineFeatureGate({redirect: true});
 
   if (isFetchingProjects) {
     return <LoadingIndicator />;

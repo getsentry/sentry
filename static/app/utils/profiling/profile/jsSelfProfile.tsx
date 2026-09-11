@@ -7,7 +7,7 @@ import {Profile} from './profile';
 import type {createFrameIndex} from './utils';
 
 function sortJSSelfProfileSamples(samples: Readonly<JSSelfProfiling.Trace['samples']>) {
-  return [...samples].sort((a, b) => {
+  return samples.toSorted((a, b) => {
     return a.stackId - b.stackId;
   });
 }

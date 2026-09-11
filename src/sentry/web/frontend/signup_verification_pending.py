@@ -11,6 +11,7 @@ from sentry.auth.email_verification import DEFAULT_MAX_AGE_MINUTES
 from sentry.utils.dates import format_duration
 from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.frontend.signup_email_verification import (
+    PENDING_EXPIRY_TEXT_SESSION_KEY,
     PENDING_VERIFICATION_SESSION_KEY,
     _get_signup_url,
 )
@@ -29,9 +30,12 @@ class SignupVerificationPendingView(BaseView):
             logger.warning("signup_verification.email_missing_from_session")
             return self.redirect(_get_signup_url())
 
+        max_age_minutes = request.session.get(
+            PENDING_EXPIRY_TEXT_SESSION_KEY, DEFAULT_MAX_AGE_MINUTES
+        )
         context = {
             "email": email,
-            "expiry_text": format_duration(DEFAULT_MAX_AGE_MINUTES, floor_to_largest_unit=False),
+            "expiry_text": format_duration(max_age_minutes, floor_to_largest_unit=False),
             "signup_url": _get_signup_url(),
         }
         return self.respond("sentry/signup-verification-pending.html", context=context)

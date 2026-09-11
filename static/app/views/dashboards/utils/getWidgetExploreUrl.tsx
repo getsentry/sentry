@@ -22,6 +22,7 @@ import {
   eventViewFromWidget,
   getWidgetInterval,
 } from 'sentry/views/dashboards/utils';
+import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import type {TabularRow} from 'sentry/views/dashboards/widgets/common/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -339,11 +340,14 @@ function _getWidgetExploreUrl(
     visualize,
     groupBy: visualize.length > 0 ? groupBy : [],
     field: fields,
-    query: applyDashboardFilters(
-      overrideQuery?.formatString() ?? decodeScalar(locationQueryParams.query),
-      dashboardFilters,
-      widget.widgetType
-    ),
+    query: applyDashboardFilters({
+      baseQuery: overrideQuery?.formatString() ?? decodeScalar(locationQueryParams.query),
+      dashboardFilters: withGlobalFilterFallback(
+        dashboardFilters,
+        query.globalFilterFallback
+      ),
+      widgetType: widget.widgetType,
+    }),
     sort: sort || undefined,
     interval:
       decodeScalar(locationQueryParams.interval) ??
@@ -419,7 +423,14 @@ function _getWidgetExploreUrlForMultipleQueries(
     selection: currentSelection,
     queries: widget.queries.map(query => ({
       chartType: getChartType(widget.displayType),
-      query: applyDashboardFilters(query.conditions, dashboardFilters) ?? '',
+      query:
+        applyDashboardFilters({
+          baseQuery: query.conditions,
+          dashboardFilters: withGlobalFilterFallback(
+            dashboardFilters,
+            query.globalFilterFallback
+          ),
+        }) ?? '',
       sortBys: decodeSorts(query.orderby).filter(
         s => s.field !== SpanFields.IS_STARRED_TRANSACTION
       ),

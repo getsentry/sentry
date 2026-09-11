@@ -8,8 +8,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import * as SidebarSection from 'sentry/components/sidebarSection';
+import {KeyValueTable, KeyValueTableRow} from 'sentry/components/tables/keyValueTable';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
 import {Version} from 'sentry/components/version';
@@ -45,10 +45,10 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
     <SidebarSection.Wrap>
       <SidebarSection.Title>{t('Project Release Details')}</SidebarSection.Title>
       <SidebarSection.Content>
-        <KeyValueTable>
+        <KeyValueTable margin>
           <KeyValueTableRow
             keyName={t('Created')}
-            value={<DateTime date={dateCreated} seconds={false} />}
+            value={<DateTime date={dateCreated} />}
           />
           <KeyValueTableRow
             keyName={
@@ -56,7 +56,6 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
                 {t('Finalized')}
                 <Tooltip
                   skipWrapper
-                  isHoverable
                   title={tct(
                     'By default a release is created "unreleased".[br]Finalizing a release means that we populate a second timestamp on the release record, which is prioritized over [code:date_created] when sorting releases. [docs:Read more].',
                     {
@@ -74,7 +73,7 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
             }
             value={
               dateReleased ? (
-                <DateTime date={dateReleased} seconds={false} />
+                <DateTime date={dateReleased} />
               ) : (
                 <ButtonContainer>
                   <Tooltip
@@ -123,7 +122,6 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
                 {t('Semver')}
                 <Tooltip
                   skipWrapper
-                  isHoverable
                   title={tct(
                     'Semver packages format their versions as [code:package@version] or [code:package@version+build]. [docs:Read more].',
                     {

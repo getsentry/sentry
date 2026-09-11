@@ -55,7 +55,7 @@ function formatGeo(geoData: UserContext['geo'] = {}): string | undefined {
     );
   }
 
-  return geoStringArray.join(', ');
+  return geoStringArray.length > 0 ? geoStringArray.join(', ') : undefined;
 }
 
 export function getUserContextData({
@@ -120,8 +120,9 @@ export function getUserContextData({
             };
         }
       })
-      // Since user context is generated separately from the rest, it has all known keys with those
-      // unset appearing as `null`. We want to omit those unless they have annotations.
-      .filter(item => defined(item.value) || defined(meta?.[item.key]))
+      // User context includes all known keys even when unset (`null`). Omit those unless the
+      // field has a root-level meta annotation (the `['']` key), which indicates scrubbing or
+      // validation applied directly to this field — not to nested sub-fields (e.g. geo.city).
+      .filter(item => defined(item.value) || defined(meta?.[item.key]?.['']))
   );
 }

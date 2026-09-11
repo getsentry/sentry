@@ -3,7 +3,9 @@ from unittest import mock
 
 from rest_framework.serializers import ValidationError
 
+from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
+from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.endpoints.validators.base import (
     AbstractDataConditionValidator,
     BaseDataConditionValidator,
@@ -54,6 +56,44 @@ class TestBaseDataConditionValidator(TestCase):
         valid_data = {**self.valid_data, "comparison": 1}
         validator = BaseDataConditionValidator(data=valid_data)
         assert validator.is_valid() is True
+
+
+class TestRegisteredComparisonSchemas(TestCase):
+    def _validator(self, condition: Condition, comparison: Any) -> BaseDataConditionValidator:
+        return BaseDataConditionValidator(
+            data={
+                "type": condition.value,
+                "comparison": comparison,
+                "conditionResult": True,
+            }
+        )
+
+    def test_event_seen_count(self) -> None:
+        assert self._validator(Condition.EVENT_SEEN_COUNT, 1).is_valid() is True
+        assert self._validator(Condition.EVENT_SEEN_COUNT, 0).is_valid() is False
+
+    def test_event_created_by_detector(self) -> None:
+        assert self._validator(Condition.EVENT_CREATED_BY_DETECTOR, 1).is_valid() is True
+        assert self._validator(Condition.EVENT_CREATED_BY_DETECTOR, 0).is_valid() is False
+
+    def test_issue_resolution_change(self) -> None:
+        assert (
+            self._validator(Condition.ISSUE_RESOLUTION_CHANGE, GroupStatus.RESOLVED).is_valid()
+            is True
+        )
+        assert (
+            self._validator(Condition.ISSUE_RESOLUTION_CHANGE, GroupStatus.UNRESOLVED).is_valid()
+            is False
+        )
+
+    def test_issue_priority_deescalating(self) -> None:
+        assert (
+            self._validator(Condition.ISSUE_PRIORITY_DEESCALATING, PriorityLevel.HIGH).is_valid()
+            is True
+        )
+        assert self._validator(Condition.ISSUE_PRIORITY_DEESCALATING, True).is_valid() is True
+        assert self._validator(Condition.ISSUE_PRIORITY_DEESCALATING, False).is_valid() is False
+        assert self._validator(Condition.ISSUE_PRIORITY_DEESCALATING, 100).is_valid() is False
 
 
 class MockComplexDataConditionHandler(DataConditionHandler[dict[str, Any]]):
@@ -141,6 +181,19 @@ class TestAssignedToScopeValidator(TestCase):
     def test_team__in_org(self) -> None:
         validator = self._validator({"targetType": "Team", "targetIdentifier": self.team.id})
         assert validator.is_valid() is True
+        assert validator.validated_data["comparison"]["target_identifier"] == self.team.id
+
+    def test_team__string_identifier_normalized_to_int(self) -> None:
+        validator = self._validator({"targetType": "Team", "targetIdentifier": str(self.team.id)})
+        assert validator.is_valid() is True
+        assert validator.validated_data["comparison"]["target_identifier"] == self.team.id
+        assert isinstance(validator.validated_data["comparison"]["target_identifier"], int)
+
+    def test_member__string_identifier_normalized_to_int(self) -> None:
+        validator = self._validator({"targetType": "Member", "targetIdentifier": str(self.user.id)})
+        assert validator.is_valid() is True
+        assert validator.validated_data["comparison"]["target_identifier"] == self.user.id
+        assert isinstance(validator.validated_data["comparison"]["target_identifier"], int)
 
     def test_team__foreign_org(self) -> None:
         validator = self._validator({"targetType": "Team", "targetIdentifier": self.other_team.id})
@@ -164,6 +217,14 @@ class TestAssignedToScopeValidator(TestCase):
 
     def test_non_integer_identifier(self) -> None:
         validator = self._validator({"targetType": "Team", "targetIdentifier": "not-an-int"})
+        assert validator.is_valid() is False
+
+    def test_empty_string_identifier(self) -> None:
+        validator = self._validator({"targetType": "Team", "targetIdentifier": ""})
+        assert validator.is_valid() is False
+
+    def test_zero_identifier(self) -> None:
+        validator = self._validator({"targetType": "Team", "targetIdentifier": 0})
         assert validator.is_valid() is False
 
     def test_no_organization_context(self) -> None:

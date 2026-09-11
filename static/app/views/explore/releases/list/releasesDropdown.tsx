@@ -7,9 +7,18 @@ type Props = {
   onSelect: (key: string) => void;
   options: Record<string, Omit<SelectOption<string>, 'value'>>;
   selected: string;
+  className?: string;
+  style?: React.CSSProperties;
 };
 
-export function ReleasesDropdown({label: prefix, options, selected, onSelect}: Props) {
+export function ReleasesDropdown({
+  className,
+  label: prefix,
+  options,
+  selected,
+  onSelect,
+  style,
+}: Props) {
   const mappedOptions = Object.entries(options).map(
     ([key, {label, tooltip, disabled}]) => ({
       value: key,
@@ -21,9 +30,11 @@ export function ReleasesDropdown({label: prefix, options, selected, onSelect}: P
 
   return (
     <CompactSelect
+      className={className}
       options={mappedOptions}
       onChange={opt => onSelect(opt.value)}
       value={selected}
+      style={style}
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}

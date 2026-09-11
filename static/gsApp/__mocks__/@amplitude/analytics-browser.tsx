@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 const identifyInstance: any = {
   set: jest.fn(() => identifyInstance),
 };

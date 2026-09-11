@@ -1,0 +1,325 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
+
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {PlatformKey} from 'sentry/types/platform';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getAgentSetupPrompt} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
+
+import {ConversationOnboarding} from './onboarding';
+
+jest.mock('sentry/utils/analytics');
+
+describe('ConversationOnboarding', () => {
+  beforeEach(() => {
+    Object.assign(navigator, {
+      clipboard: {writeText: jest.fn().mockResolvedValue(undefined)},
+    });
+  });
+
+  function setupProject(platform: PlatformKey) {
+    const organization = OrganizationFixture();
+    const project = ProjectFixture({platform, firstTransactionEvent: false});
+
+    ProjectsStore.loadInitialData([project]);
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({projects: [Number(project.id)]}),
+      false
+    );
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
+      body: ProjectKeysFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdks/`,
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdk-updates/`,
+      body: [],
+    });
+    // The last onboarding step waits for the first conversation span.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: []},
+    });
+
+    return {organization, project};
+  }
+
+  afterEach(() => {
+    ProjectsStore.reset();
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
+  });
+
+  it('copies the full prompt and lets users expand its preview', async () => {
+    const {organization, project} = setupProject('node');
+    const prompt = getAgentSetupPrompt({
+      organizationSlug: organization.slug,
+      project,
+      dsn: ProjectKeysFixture()[0].dsn.public,
+    });
+
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+
+    expect(
+      await screen.findByRole('tab', {name: 'For your agent', selected: true})
+    ).toBeInTheDocument();
+    expect(screen.getByText(prompt, {collapseWhitespace: false})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Copy prompt'}));
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(prompt);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show More'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Show Less'}));
+    expect(screen.getByRole('button', {name: 'Show More'})).toBeInTheDocument();
+  });
+
+  it('updates the prompt when the selected project changes', async () => {
+    const {organization, project} = setupProject('node');
+    const nextProject = ProjectFixture({
+      id: '3',
+      slug: 'python-project',
+      platform: 'python',
+    });
+    const nextKey = ProjectKeysFixture()[0];
+    nextKey.dsn.public = 'https://public-key@example.com/3';
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${nextProject.slug}/keys/`,
+      body: [nextKey],
+    });
+
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+    await screen.findByRole('button', {name: 'Copy prompt'});
+
+    act(() => {
+      ProjectsStore.loadInitialData([project, nextProject]);
+      PageFiltersStore.onInitializeUrlState(
+        PageFiltersFixture({projects: [Number(nextProject.id)]}),
+        false
+      );
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Copy prompt'}));
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      getAgentSetupPrompt({
+        organizationSlug: organization.slug,
+        project: nextProject,
+        dsn: nextKey.dsn.public,
+      })
+    );
+  });
+
+  it('uses the same agent setup for unsupported platforms', async () => {
+    const {organization, project} = setupProject('other');
+    const prompt = getAgentSetupPrompt({
+      organizationSlug: organization.slug,
+      project,
+      dsn: ProjectKeysFixture()[0].dsn.public,
+    });
+
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Copy prompt'}));
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(prompt);
+    expect(screen.getByText(prompt, {collapseWhitespace: false})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'For you'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
+
+  it.each([
+    {platform: 'node', linkName: 'documentation'},
+    {platform: 'other', linkName: 'Manually instrument'},
+  ] as const)(
+    'keeps documentation available without a DSN for $platform',
+    async ({platform, linkName}) => {
+      const {organization, project} = setupProject(platform);
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/keys/`,
+        body: [],
+      });
+
+      render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+
+      expect(
+        await screen.findByRole('tab', {name: 'For you', selected: true})
+      ).not.toHaveAttribute('aria-disabled', 'true');
+      expect(screen.getByRole('tab', {name: 'For your agent'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(screen.getByRole('link', {name: linkName})).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Copy prompt'})).not.toBeInTheDocument();
+    }
+  );
+
+  it('defaults a Node project to the Node target and installs @sentry/node', async () => {
+    const {organization} = setupProject('node');
+
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+    await userEvent.click(await screen.findByRole('tab', {name: 'For you'}));
+
+    expect(await screen.findByRole('button', {name: 'Node'})).toBeInTheDocument();
+    expect(
+      (await screen.findAllByText(textWithMarkupMatcher(/npm install @sentry\/node/)))
+        .length
+    ).toBeGreaterThan(0);
+  });
+
+  it('pins Cloudflare projects to the Cloudflare runtime with no Node toggle', async () => {
+    const {organization} = setupProject('node-cloudflare-workers');
+
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+    await userEvent.click(await screen.findByRole('tab', {name: 'For you'}));
+
+    expect(
+      (
+        await screen.findAllByText(
+          textWithMarkupMatcher(/npm install @sentry\/cloudflare/)
+        )
+      ).length
+    ).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', {name: 'Node'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Cloudflare'})).not.toBeInTheDocument();
+  });
+
+  it('switches instructions when the deployment target changes', async () => {
+    const {organization} = setupProject('node');
+
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+    await userEvent.click(await screen.findByRole('tab', {name: 'For you'}));
+
+    expect(
+      (await screen.findAllByText(textWithMarkupMatcher(/npm install @sentry\/node/)))
+        .length
+    ).toBeGreaterThan(0);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Node'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Cloudflare'}));
+
+    expect(
+      (
+        await screen.findAllByText(
+          textWithMarkupMatcher(/npm install @sentry\/cloudflare/)
+        )
+      ).length
+    ).toBeGreaterThan(0);
+  });
+
+  it('offers every SDK regardless of the selected runtime', async () => {
+    const {organization} = setupProject('node');
+
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+    await userEvent.click(await screen.findByRole('tab', {name: 'For you'}));
+
+    // Both the Node-only (Mastra) and Cloudflare-only (Workers AI) SDKs are
+    // offered on the Node runtime; the list is no longer filtered by runtime.
+    await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
+    expect(await screen.findByRole('option', {name: 'Workers AI'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Mastra'})).toBeInTheDocument();
+  });
+
+  it('pins and locks the runtime to Cloudflare when a Cloudflare-only SDK is selected', async () => {
+    const {organization} = setupProject('node');
+
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+    await userEvent.click(await screen.findByRole('tab', {name: 'For you'}));
+
+    expect(await screen.findByRole('button', {name: 'Node'})).toBeInTheDocument();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Workers AI'}));
+
+    const runtimeSelector = await screen.findByRole('button', {name: 'Cloudflare'});
+    expect(runtimeSelector).toBeDisabled();
+    expect(screen.queryByRole('button', {name: 'Node'})).not.toBeInTheDocument();
+    expect(
+      (
+        await screen.findAllByText(
+          textWithMarkupMatcher(/npm install @sentry\/cloudflare/)
+        )
+      ).length
+    ).toBeGreaterThan(0);
+  });
+
+  it('pins and locks the runtime to Node when a Node-only SDK is selected', async () => {
+    const {organization} = setupProject('node');
+
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+    await userEvent.click(await screen.findByRole('tab', {name: 'For you'}));
+
+    // Manually switch to Cloudflare first
+    await userEvent.click(await screen.findByRole('button', {name: 'Node'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Cloudflare'}));
+    expect(await screen.findByRole('button', {name: 'Cloudflare'})).toBeInTheDocument();
+
+    // Selecting Mastra (Node-only) flips the runtime back to Node and locks it
+    await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Mastra'}));
+
+    const runtimeSelector = await screen.findByRole('button', {name: 'Node'});
+    expect(runtimeSelector).toBeDisabled();
+    expect(screen.queryByRole('button', {name: 'Cloudflare'})).not.toBeInTheDocument();
+  });
+
+  it('hides the conversation ID and user steps for Eve (OTel drain, no Sentry SDK)', async () => {
+    const {organization} = setupProject('node');
+
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+    await userEvent.click(await screen.findByRole('tab', {name: 'For you'}));
+
+    // The default SDK runs the Sentry SDK, so both steps are shown.
+    expect(await screen.findByText('Set Conversation ID')).toBeInTheDocument();
+    expect(screen.getByText('Identify Users (optional)')).toBeInTheDocument();
+
+    // Eve only drains OpenTelemetry traces, so those Sentry SDK steps drop out.
+    await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Eve'}));
+
+    expect(screen.queryByText('Set Conversation ID')).not.toBeInTheDocument();
+    expect(screen.queryByText('Identify Users (optional)')).not.toBeInTheDocument();
+  });
+
+  it('hides only the conversation ID step for Flue (auto-set), keeping the user step', async () => {
+    const {organization} = setupProject('node');
+
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+    await userEvent.click(await screen.findByRole('tab', {name: 'For you'}));
+
+    expect(await screen.findByText('Set Conversation ID')).toBeInTheDocument();
+
+    // Flue sets the conversation ID automatically, so that step drops out - but it
+    // runs the Sentry SDK, so the user step stays.
+    await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Flue'}));
+
+    expect(screen.queryByText('Set Conversation ID')).not.toBeInTheDocument();
+    expect(screen.getByText('Identify Users (optional)')).toBeInTheDocument();
+  });
+
+  it('tracks AI prompt copy for conversations onboarding', async () => {
+    const {organization} = setupProject('node');
+
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+    await userEvent.click(await screen.findByRole('tab', {name: 'For you'}));
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Copy instructions'}));
+
+    expect(trackAnalytics).toHaveBeenCalledWith('onboarding.ai_prompt_copied', {
+      organization,
+      platform: 'node',
+      product: 'conversations',
+      source: 'prompt',
+    });
+  });
+});

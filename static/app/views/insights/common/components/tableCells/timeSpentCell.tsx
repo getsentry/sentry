@@ -12,21 +12,17 @@ import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/database/settings';
 
 interface Props {
-  containerProps?: React.DetailedHTMLProps<
-    React.HTMLAttributes<HTMLDivElement>,
-    HTMLDivElement
-  >;
   op?: string;
   percentage?: number;
   total?: number;
 }
 
-export function TimeSpentCell({percentage, total, op, containerProps}: Props) {
+export function TimeSpentCell({percentage, total, op}: Props) {
   const formattedTotal = getDuration((total ?? 0) / 1000, 2, true);
   const tooltip = percentage ? getTimeSpentExplanation(percentage, op) : undefined;
 
   return (
-    <NumberContainer {...containerProps}>
+    <NumberContainer>
       <InfoText title={tooltip}>{defined(total) ? formattedTotal : '--'}</InfoText>
     </NumberContainer>
   );
@@ -39,7 +35,7 @@ function getTimeSpentExplanation(percentage: number, op?: string) {
     'The application spent [percentage] of its total time on this [span]. Read more about Time Spent in our [documentation:documentation].',
     {
       percentage: formattedPercentage,
-      span: formatSpanOperation(op, 'short'),
+      span: formatSpanOperation(op),
       documentation: <ExternalLink href={`${MODULE_DOC_LINK}#what-is-time-spent`} />,
     }
   );

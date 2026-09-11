@@ -58,7 +58,7 @@ class CreateProjectTest(AcceptanceTestCase):
         project2 = Project.objects.get(organization=self.org, slug="javascript-nextjs")
         self.browser.back()
         self.browser.get("/organizations/%s/projects/" % self.org.slug)
-        self.browser.wait_until(xpath='//h1[text()="Remain Calm"]')
+        self.browser.wait_until(xpath='//*[text()="Remain Calm"]')
         assert_existing_projects_status(
             self.org, active_project_ids=[], deleted_project_ids=[project1.id, project2.id]
         )
@@ -75,15 +75,21 @@ class ScmCreateProjectTest(AcceptanceTestCase):
             "external_id": "12345",
         },
     ]
-    mock_platforms = [
-        {
-            "platform": "python-django",
-            "language": "Python",
-            "bytes": 50000,
-            "confidence": "high",
-            "priority": 1,
-        }
-    ]
+    mock_platforms = {
+        "platforms": [
+            {
+                "platform": "python-django",
+                "language": "Python",
+                "bytes": 50000,
+                "confidence": "high",
+                "priority": 1,
+            }
+        ],
+        "k_candidate": 0,
+        "k_reads_realized": 0,
+        "tree_entry_count": 0,
+        "is_truncated": False,
+    }
 
     def setUp(self) -> None:
         super().setUp()
@@ -149,7 +155,6 @@ class ScmCreateProjectTest(AcceptanceTestCase):
             self.feature(
                 {
                     "organizations:onboarding-scm-project-creation": True,
-                    "organizations:integrations-github-platform-detection": True,
                 }
             ),
             mock.patch(
@@ -161,7 +166,7 @@ class ScmCreateProjectTest(AcceptanceTestCase):
                 return_value={"id": "12345"},
             ),
             mock.patch(
-                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms",
+                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms_multi",
                 return_value=self.mock_platforms,
             ),
             mock.patch(
@@ -251,7 +256,6 @@ class ScmCreateProjectTest(AcceptanceTestCase):
             self.feature(
                 {
                     "organizations:onboarding-scm-project-creation": True,
-                    "organizations:integrations-github-platform-detection": True,
                 }
             ),
             mock.patch(
@@ -263,7 +267,7 @@ class ScmCreateProjectTest(AcceptanceTestCase):
                 return_value={"id": "12345"},
             ),
             mock.patch(
-                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms",
+                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms_multi",
                 return_value=self.mock_platforms,
             ),
         ):

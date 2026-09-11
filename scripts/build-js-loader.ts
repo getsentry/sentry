@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 'use strict';
 
 import fs from 'node:fs';
@@ -80,7 +79,8 @@ function replacePlaceholders(str: string): string {
     .replace('__LOADER__PUBLIC_KEY__', "'{{ publicKey|safe }}'")
     .replace('__LOADER__SDK_URL__', "'{{ jsSdkUrl|safe }}'")
     .replace('__LOADER__CONFIG__', '{{ config|to_json|safe }}')
-    .replace('__LOADER__IS_LAZY__', '{{ isLazy|safe|lower }}');
+    .replace('__LOADER__IS_LAZY__', '{{ isLazy|safe|lower }}')
+    .replace('__LOADER__QUEUEABLE_APIS__', '{{ queueableApis|to_json|safe }}');
 }
 
 run();

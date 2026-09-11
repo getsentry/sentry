@@ -16,7 +16,7 @@ type FormatOptions = {
   isAbbreviated?: boolean;
 
   /**
-   * Convert attachments to use the most appropriate unit KB/MB/GB/TB/etc.
+   * Convert attachments to use the most appropriate unit kB/MB/GB/TB/etc.
    * Otherwise, it will default to GB
    */
   useUnitScaling?: boolean;

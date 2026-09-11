@@ -7,7 +7,7 @@ import type {Location} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Stack, Grid, type GridProps} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
@@ -133,7 +133,7 @@ type Props = {
   isHomepage?: boolean;
 };
 
-const SavedQueryButtonGroup = memo(function SavedQueryButtonGroup({
+const SavedQueryButtonGroup = memo(function SavedQueryButtonGroupImpl({
   disabled = false,
   organization,
 }: Props) {
@@ -168,19 +168,11 @@ const SavedQueryButtonGroup = memo(function SavedQueryButtonGroup({
   }
 
   return (
-    <ResponsiveButtonBar>
+    <Grid flow="column" align="center" gap="md">
       {renderQueryButton(isDisabled => renderButtonViewSaved(isDisabled))}
-    </ResponsiveButtonBar>
+    </Grid>
   );
 });
-
-const ResponsiveButtonBar = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    margin-top: 0;
-  }
-`;
 
 const StyledOverlay = styled(Overlay)`
   padding: ${p => p.theme.space.md};

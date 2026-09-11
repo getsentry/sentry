@@ -3,7 +3,7 @@ import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Heading, type HeadingProps, type HeadingPropsWithRenderFunction} from './';
+import {Heading, type HeadingProps, type HeadingPropsWithRenderFunction} from './heading';
 
 describe('Heading', () => {
   it('renders with correct HTML element', () => {

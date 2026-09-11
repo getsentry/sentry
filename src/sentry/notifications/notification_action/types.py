@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 from taskbroker_client.retry import RetryTaskError
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
 from sentry.incidents.models.incident import TriggerStatus
@@ -218,7 +219,9 @@ class BaseIssueAlertHandler(ABC):
         environment_id = event_data.workflow_env.id if event_data.workflow_env else None
 
         data: RuleData = {
-            "actions": [cls.build_rule_action_blob(action, detector.project.organization.id)],
+            "actions": [
+                cls.build_rule_action_blob(action, detector.linked_project.organization.id)
+            ],
         }
         rule_id = None
 
@@ -251,10 +254,10 @@ class BaseIssueAlertHandler(ABC):
             ).first()
             if alert_rule_workflow:
                 try:
-                    label = Rule.objects.get(
+                    Rule.objects.get(
                         id=alert_rule_workflow.rule_id,
-                        project__organization_id=detector.project.organization_id,
-                    ).label
+                        project__organization_id=detector.linked_project.organization_id,
+                    )
                     rule_id = alert_rule_workflow.rule_id
                 except Rule.DoesNotExist:
                     logger.exception(
@@ -274,7 +277,7 @@ class BaseIssueAlertHandler(ABC):
 
         rule = Rule(
             id=action.id,
-            project=detector.project,
+            project=detector.linked_project,
             environment_id=environment_id,
             label=label,
             data=dict(data),
@@ -398,6 +401,7 @@ class TicketingIssueAlertHandler(BaseIssueAlertHandler):
                 integration_id=integration_id,
                 organization_id=organization_id,
                 status=ObjectStatus.ACTIVE,
+                using_replica=options.get("integration_service.get_integration.using_replica"),
             )
         integration_name = integration.name if integration else "[removed]"
         return cls.label_template.format(integration=integration_name)
@@ -475,8 +479,8 @@ class BaseMetricAlertHandler(ABC):
             open_period_context=open_period_context,
             trigger_status=trigger_status,
             notification_uuid=invocation.notification_uuid,
-            organization=invocation.detector.project.organization,
-            project=invocation.detector.project,
+            organization=invocation.detector.linked_project.organization,
+            project=invocation.detector.linked_project,
         )
 
 

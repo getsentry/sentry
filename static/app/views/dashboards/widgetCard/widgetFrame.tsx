@@ -26,10 +26,8 @@ interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   noVisualizationPadding?: boolean;
   onCopyUrlClick?: () => void;
   onFullScreenViewClick?: () => void | Promise<void>;
-  revealActions?: 'always' | 'hover';
   revealTooltip?: 'always' | 'hover';
   title?: string;
-  titleBadges?: React.ReactNode;
   warnings?: string[];
 }
 
@@ -67,7 +65,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
       Title={
         <Fragment>
           {props.warnings && props.warnings.length > 0 && (
-            <Tooltip title={<WarningsList warnings={props.warnings} />} isHoverable>
+            <Tooltip title={<WarningsList warnings={props.warnings} />}>
               <TooltipIconTrigger aria-label={t('Widget warnings')}>
                 <IconWarning variant="warning" />
               </TooltipIconTrigger>
@@ -86,10 +84,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
             )}
         </Fragment>
       }
-      revealActions={
-        props.revealTooltip === 'always' ? 'always' : (props.revealActions ?? 'hover')
-      }
-      TitleBadges={props.titleBadges}
+      revealActions={props.revealTooltip === 'always' ? 'always' : 'hover'}
       Actions={
         <Fragment>
           {props.description && (
@@ -212,9 +207,5 @@ function TitleActionsWrapper({disabled, disabledMessage, children}: TitleActions
     return children;
   }
 
-  return (
-    <Tooltip title={disabledMessage} isHoverable>
-      {children}
-    </Tooltip>
-  );
+  return <Tooltip title={disabledMessage}>{children}</Tooltip>;
 }

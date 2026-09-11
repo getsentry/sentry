@@ -12,7 +12,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {ProjectStats} from 'sentry/types/project';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useProjectStats} from 'sentry/views/projectsDashboard/useProjectStats';
 
 describe('useProjectStats', () => {
@@ -62,7 +61,6 @@ describe('useProjectStats', () => {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: DiscoverDatasets.METRICS_ENHANCED,
           query: 'id:2 id:3',
           sessionStats: '1',
           statsPeriod: '24h',

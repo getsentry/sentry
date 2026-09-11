@@ -1,6 +1,5 @@
-import {useLayoutEffect, useMemo, useRef} from 'react';
+import {useEffect, useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
-import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {mergeRefs} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
@@ -8,22 +7,17 @@ import {useComboBoxState} from '@react-stately/combobox';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {AskSeerFeedback} from 'sentry/components/searchQueryBuilder/askSeer/askSeerFeedback';
+import {AskSeerQueryStatusIndicator} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerQueryStatusIndicator';
 import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
 import {AskSeerSearchListBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchListBox';
 import {AskSeerSearchPopover} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchPopover';
 import {QueryTokens} from 'sentry/components/searchQueryBuilder/askSeerCombobox/queryTokens';
-import type {
-  AskSeerSearchItems,
-  QueryTokensProps,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
-import {
-  generateQueryTokensString,
-  isNoneOfTheseItem,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
+import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import {generateQueryTokensString} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {IconClose, IconMegaphone, IconSearch, IconSync} from 'sentry/icons';
@@ -33,6 +27,7 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
 import {useProjects} from 'sentry/utils/useProjects';
+
 // The menu size can change from things like loading states, long options,
 // or custom menus like a date picker. This hook ensures that the overlay
 // is updated in response to these changes.
@@ -81,10 +76,7 @@ function useUpdateOverlayPositionOnContentChange({
   }, [contentRef, isOpen, updateOverlayPosition]);
 }
 
-export interface BaseAskSeerComboBoxProps<T extends QueryTokensProps> extends Omit<
-  AriaComboBoxProps<unknown>,
-  'children'
-> {
+export interface BaseAskSeerComboBoxProps<T extends QueryTokensProps> {
   applySeerSearchQuery: (item: T) => void;
   emptyTitle: string;
   errorTitle: string;
@@ -95,12 +87,14 @@ export interface BaseAskSeerComboBoxProps<T extends QueryTokensProps> extends Om
   queries: T[];
   searchQuery: string;
   submitQuery: (query: string) => void;
+  className?: string;
   onReset?: () => void;
   unsupportedReason?: string | null;
 }
 
 export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   applySeerSearchQuery,
+  className,
   emptyTitle,
   errorTitle,
   isError,
@@ -117,16 +111,17 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const listBoxRef = useRef<HTMLUListElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  // Input.withComponent('div') retains Input's ref type even though this renders a div.
   const containerRef = useRef<HTMLInputElement>(null);
   const isInitialRender = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const organization = useOrganization();
-  const hasAskSeerUxRework = organization.features.includes('gen-ai-ask-seer-ux-rework');
   const {projects} = useProjects();
 
   const openForm = useFeedbackForm();
 
   const {
+    displayAskSeerFeedback,
     setDisplayAskSeer,
     setDisplayAskSeerFeedback,
     askSeerNLQueryRef,
@@ -139,51 +134,21 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
 
   const analyticsArea = useAnalyticsArea();
 
-  const handleNoneOfTheseClick = () => {
-    if (openForm) {
-      openForm({
-        messagePlaceholder: t('Why were these queries incorrect?'),
-        tags: {
-          ['feedback.source']: `ai_query.${analyticsArea}`,
-          ['feedback.owner']: 'ml-ai',
-          ['feedback.natural_language_query']: searchQuery,
-          ['feedback.raw_result']: JSON.stringify(queries).replace(/\n/g, ''),
-          ['feedback.num_queries_returned']: queries.length,
-        },
-      });
-    } else {
-      addErrorMessage(t('Unable to open feedback form'));
-    }
-  };
-
-  const items = useMemo(() => {
-    if (queries.length > 0) {
-      const results: Array<AskSeerSearchItems<T>> = queries.map((query, index) => ({
+  const items = useMemo(
+    () =>
+      queries.map((query, index) => ({
         ...query,
         key: `${index}-${query.query}`,
-      }));
-
-      if (hasAskSeerUxRework) {
-        return results;
-      }
-
-      results.push({
-        key: 'none-of-these',
-        label: t('None of these'),
-      });
-
-      return results;
-    }
-
-    return [];
-  }, [queries, hasAskSeerUxRework]);
+      })),
+    [queries]
+  );
 
   const applySelectedQuery = (item: T) => {
     askSeerNLQueryRef.current = searchQuery.trim();
     skipNextSearchQueryBuilderAutoFocusRef.current = true;
     inputRef.current?.blur();
     applySeerSearchQuery(item);
-    setDisplayAskSeerFeedback(true);
+    setDisplayAskSeerFeedback(false);
     setDisplayAskSeer(false);
     onReset?.();
   };
@@ -192,31 +157,20 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
     ...props,
     items,
     defaultItems: [],
-    selectedKey: null,
+    value: null,
     allowsCustomValue: true,
     allowsEmptyCollection: true,
     shouldCloseOnBlur: false,
     inputValue: searchQuery,
     onInputChange: onSearchQueryChange,
     defaultFilter: () => true,
-    onSelectionChange(key) {
+    onChange(key) {
       if (typeof key !== 'string') {
         return;
       }
 
-      if (key === 'none-of-these') {
-        trackAnalytics('ai_query.rejected', {
-          organization,
-          area: analyticsArea,
-          natural_language_query: searchQuery,
-          num_queries_returned: queries.length,
-        });
-        handleNoneOfTheseClick();
-        return;
-      }
-
       const item = items.find(i => i.key === key);
-      if (!item || isNoneOfTheseItem(item)) {
+      if (!item) {
         addErrorMessage(t('Failed to find AI query to apply'));
         return;
       }
@@ -225,14 +179,6 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
       state.close();
     },
     children: item => {
-      if (isNoneOfTheseItem(item)) {
-        return (
-          <Item key={item.key} textValue={item.label} data-is-none-of-these>
-            <Text variant="muted">{item.label}</Text>
-          </Item>
-        );
-      }
-
       const readableQuery = generateQueryTokensString(item, projects);
 
       return (
@@ -265,6 +211,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
       buttonRef,
       listBoxRef,
       popoverRef,
+      ariaHideOutsideRef: containerRef,
       'aria-label': t('Ask Seer with Natural Language'),
       onFocus: () => {
         state.open();
@@ -289,21 +236,9 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
             state.close();
             return;
           case 'Enter':
-            if (state.isOpen && state.selectionManager.focusedKey === 'none-of-these') {
-              trackAnalytics('ai_query.rejected', {
-                organization,
-                area: analyticsArea,
-                natural_language_query: searchQuery,
-                num_queries_returned: queries.length,
-              });
-              handleNoneOfTheseClick();
-              state.open();
-              return;
-            }
-
             if (state.isOpen && state.selectionManager.focusedKey) {
               const item = items.find(i => i.key === state.selectionManager.focusedKey);
-              if (!item || isNoneOfTheseItem(item)) {
+              if (!item) {
                 addErrorMessage(t('Failed to find AI query to apply'));
                 return;
               }
@@ -414,15 +349,25 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
     state.selectionManager.setFocusedKey(null);
   };
 
+  const hasResults = queries.length > 0;
+  const isDisplayingResults = !isPending && !isError && hasResults;
+  const isUnsupported = Boolean(unsupportedReason) && !hasResults;
+  const hasQueryStatus = isPending || isError || hasResults || isUnsupported;
+
+  useEffect(() => {
+    if (enableAISearch && isDisplayingResults) {
+      setDisplayAskSeerFeedback(true);
+    }
+  }, [enableAISearch, isDisplayingResults, setDisplayAskSeerFeedback]);
+
   if (!enableAISearch) {
     return null;
   }
 
-  const hasResults = queries.length > 0;
-  const isDisplayingResults = !isPending && !isError && hasResults;
+  const showFooter = isDisplayingResults || isError;
 
   return (
-    <Wrapper ref={containerRef} isDropdownOpen={state.isOpen}>
+    <Wrapper className={className} ref={containerRef} isDropdownOpen={state.isOpen}>
       <PositionedSearchIconContainer>
         <SearchIcon size="sm" />
       </PositionedSearchIconContainer>
@@ -430,13 +375,23 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
         <InvisibleInput
           {...inputProps}
           autoComplete="off"
+          hasQueryStatus={hasQueryStatus}
           onClick={() => state.open()}
           placeholder={t('Ask Seer with Natural Language')}
           ref={mergeRefs(inputRef, triggerProps.ref as React.Ref<HTMLInputElement>)}
         />
       </InputWrapper>
       <ButtonsWrapper>
+        {hasQueryStatus ? (
+          <AskSeerQueryStatusIndicator
+            hasResults={hasResults}
+            isError={isError}
+            isPending={isPending}
+            unsupportedReason={unsupportedReason}
+          />
+        ) : null}
         <Button
+          ref={buttonRef}
           size="xs"
           icon={<IconClose />}
           onFocus={() => !state.isOpen && state.open()}
@@ -467,16 +422,12 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
             loadingContent
           ) : isError ? (
             <Stack flex="1">
-              <AskSeerSearchHeader title={errorTitle} />
+              <AskSeerSearchHeader title={errorTitle} isError />
             </Stack>
           ) : hasResults ? (
             <Stack flex="1" onMouseLeave={onMouseLeave}>
-              {hasAskSeerUxRework ? null : (
-                <AskSeerSearchHeader title={t('Do any of these look right to you?')} />
-              )}
               <AskSeerSearchListBox
                 {...listBoxProps}
-                hasAskSeerUxRework={hasAskSeerUxRework}
                 listBoxRef={listBoxRef}
                 state={state}
               />
@@ -492,18 +443,24 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
               <AskSeerSearchHeader title={emptyTitle} />
             </Stack>
           )}
-          {(hasAskSeerUxRework ? isDisplayingResults : openForm) ? (
+          {showFooter ? (
             <Flex
-              justify={hasAskSeerUxRework ? 'between' : 'end'}
+              containerType="inline-size"
+              justify="between"
+              align="start"
               borderTop="primary"
               paddingTop="sm"
               paddingBottom="sm"
               paddingLeft="md"
               paddingRight="md"
-              background={hasAskSeerUxRework ? 'secondary' : 'primary'}
+              background="secondary"
               onMouseDown={e => e.preventDefault()}
             >
-              {hasAskSeerUxRework ? (
+              <Flex
+                direction={{zero: 'column', md: 'row'}}
+                align={{zero: 'start', md: 'center'}}
+                gap="sm"
+              >
                 <Button
                   icon={<IconSync />}
                   size="zero"
@@ -518,16 +475,20 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
                       area: analyticsArea,
                       natural_language_query: query,
                     });
+                    setDisplayAskSeerFeedback(false);
                     onReset?.();
                     submitQuery(query);
                   }}
                 >
-                  {t('Generate again')}
+                  {isError ? t('Try again') : t('Generate again')}
                 </Button>
-              ) : null}
+                {displayAskSeerFeedback && isDisplayingResults ? (
+                  <AskSeerFeedback />
+                ) : null}
+              </Flex>
               {openForm ? (
                 <Button
-                  size={hasAskSeerUxRework ? 'zero' : 'xs'}
+                  size="zero"
                   icon={<IconMegaphone />}
                   onClick={() =>
                     openForm({
@@ -535,8 +496,8 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
                         'How can we make Seer search better for you?'
                       ),
                       tags: {
-                        ['feedback.source']: `ai_query.${analyticsArea}`,
-                        ['feedback.owner']: 'ml-ai',
+                        'feedback.source': `ai_query.${analyticsArea}`,
+                        'feedback.owner': 'ml-ai',
                       },
                     })
                   }
@@ -582,7 +543,7 @@ const InputWrapper = styled('div')`
   height: 100%;
 `;
 
-const InvisibleInput = styled('input')`
+const InvisibleInput = styled('input')<{hasQueryStatus: boolean}>`
   position: absolute;
   inset: 0;
   resize: none;
@@ -597,7 +558,10 @@ const InvisibleInput = styled('input')`
   padding-top: calc(${p => p.theme.space.xs} + 1px);
   padding-bottom: calc(${p => p.theme.space.xs} + 1px);
   padding-left: calc(${p => p.theme.space['3xl']} + ${p => p.theme.space.xs});
-  padding-right: calc(${p => p.theme.space['3xl']} + ${p => p.theme.space.xs});
+  padding-right: ${p =>
+    p.hasQueryStatus
+      ? `calc(${p.theme.space['3xl']} + ${p.theme.space['2xl']})`
+      : `calc(${p.theme.space['3xl']} + ${p.theme.space.xs})`};
 
   &::selection {
     background: rgba(0, 0, 0, 0.2);

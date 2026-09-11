@@ -1,22 +1,18 @@
 import {QueryClientProvider, type InfiniteData} from '@tanstack/react-query';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {Organization} from 'sentry/types/organization';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   LOGS_AUTO_REFRESH_KEY,
   LOGS_REFRESH_INTERVAL_KEY,
-  type AutoRefreshState,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -31,15 +27,6 @@ import {
   type LogPageParam,
 } from 'sentry/views/explore/logs/useLogsQuery';
 
-jest.mock('sentry/utils/useLocation');
-const mockUseLocation = jest.mocked(useLocation);
-
-jest.mock('sentry/components/pageFilters/usePageFilters');
-const mockUsePageFilters = jest.mocked(usePageFilters);
-
-jest.mock('sentry/utils/useNavigate');
-const mockUseNavigate = jest.mocked(useNavigate);
-
 type CachedQueryData = InfiniteData<ApiResponse<EventsLogsResult>, LogPageParam>;
 
 const linkHeaders = {
@@ -49,7 +36,6 @@ const linkHeaders = {
 describe('useInfiniteLogsQuery', () => {
   const organization = OrganizationFixture();
   const queryClient = makeTestQueryClient();
-  const mockLocation = mockUseLocation.mockReturnValue(LocationFixture());
 
   function createWrapper() {
     return function ({children}: {children?: React.ReactNode}) {
@@ -70,19 +56,15 @@ describe('useInfiniteLogsQuery', () => {
 
   afterEach(() => {
     mockNow.mockRestore();
+    PageFiltersStore.reset();
   });
 
   beforeEach(() => {
     jest.resetAllMocks();
     mockNow = jest.spyOn(Date, 'now');
     MockApiClient.clearMockResponses();
-    mockLocation.mockReturnValue(LocationFixture());
-    mockUsePageFilters.mockReturnValue({
-      isReady: true,
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: PageFiltersFixture(),
-    });
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
     queryClient.clear();
   });
 
@@ -115,14 +97,14 @@ describe('useInfiniteLogsQuery', () => {
         ? createDescendingMocks(organization)
         : createAscendingMocks(organization);
 
-    if (sort === 'ASC') {
-      mockLocation.mockReturnValue(
-        LocationFixture({query: {[LOGS_SORT_BYS_KEY]: 'timestamp'}})
-      );
-    }
-
     const {result, rerender} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
       additionalWrapper: createWrapper(),
+      initialRouterConfig: {
+        location: {
+          pathname: '/mock-pathname/',
+          query: sort === 'ASC' ? {[LOGS_SORT_BYS_KEY]: 'timestamp'} : {},
+        },
+      },
       organization,
     });
 
@@ -170,6 +152,83 @@ describe('useInfiniteLogsQuery', () => {
     expect(result.current.data.map(datum => datum[OurLogKnownFieldKey.ID])).toEqual(
       expectedData
     );
+  });
+
+  it('keeps the first row first when fetching the previous page in ascending sort order', async () => {
+    const eventsEndpoint = `/organizations/${organization.slug}/events/`;
+
+    MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      body: createMockLogsData([
+        {id: '1', timestamp_precise: '100', timestamp: '100'},
+        {id: '2', timestamp_precise: '200', timestamp: '200'},
+        {id: '3', timestamp_precise: '300', timestamp: '300'},
+      ]),
+      match: [
+        (_, options) => {
+          const query = options?.query || {};
+          return query.query.length === 0;
+        },
+      ],
+      headers: linkHeaders,
+    });
+
+    const olderRowsMock = MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      body: createMockLogsData([]),
+      match: [
+        (_, options) => {
+          const query = options?.query || {};
+          return query.query.startsWith(
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=100 !${OurLogKnownFieldKey.ID}:1`
+          );
+        },
+      ],
+      headers: linkHeaders,
+    });
+
+    const newerRowsMock = MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      body: createMockLogsData([
+        {id: '3', timestamp_precise: '300', timestamp: '300'},
+        {id: '2', timestamp_precise: '200', timestamp: '200'},
+      ]),
+      match: [
+        (_, options) => {
+          const query = options?.query || {};
+          return query.query.startsWith(
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=100 !${OurLogKnownFieldKey.ID}:1`
+          );
+        },
+      ],
+      headers: linkHeaders,
+    });
+
+    const {result, rerender} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      additionalWrapper: createWrapper(),
+      initialRouterConfig: {
+        location: {
+          pathname: '/mock-pathname/',
+          query: {[LOGS_SORT_BYS_KEY]: 'timestamp'},
+        },
+      },
+      organization,
+    });
+
+    await waitFor(() => {
+      expect(result.current.isPending).toBe(false);
+    });
+
+    await result.current.fetchPreviousPage();
+    rerender();
+
+    expect(olderRowsMock).toHaveBeenCalled();
+    expect(newerRowsMock).not.toHaveBeenCalled();
+    expect(result.current.data.map(datum => datum[OurLogKnownFieldKey.ID])).toEqual([
+      '1',
+      '2',
+      '3',
+    ]);
   });
 
   it('should remove empty pages but maintain hasNextPage', async () => {
@@ -339,6 +398,89 @@ describe('useInfiniteLogsQuery', () => {
       eventsEndpoint,
       expect.objectContaining({data: {highFidelity: true}})
     );
+  });
+
+  describe('frozen to a trace', () => {
+    const traceId = 'a'.repeat(32);
+    const traceLogsEndpoint = `/organizations/${organization.slug}/trace-logs/`;
+
+    function mockTraceLogsRequest() {
+      return MockApiClient.addMockResponse({
+        url: traceLogsEndpoint,
+        body: createMockLogsData([{id: '1', timestamp_precise: '100', timestamp: '100'}]),
+        headers: linkHeaders,
+      });
+    }
+
+    function createTraceWrapper(freeze: {traceId: string; traceTimestamp?: number}) {
+      return function ({children}: {children?: React.ReactNode}) {
+        return (
+          <QueryClientProvider client={queryClient}>
+            <LogsQueryParamsProvider
+              analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+              source="location"
+              freeze={freeze}
+            >
+              {children}
+            </LogsQueryParamsProvider>
+          </QueryClientProvider>
+        );
+      };
+    }
+
+    beforeEach(() => {
+      PageFiltersStore.onInitializeUrlState(
+        PageFiltersFixture({
+          datetime: {
+            start: '2025-04-03T00:00:00',
+            end: '2025-04-03T00:10:00',
+            period: null,
+            utc: null,
+          },
+        })
+      );
+    });
+
+    it('queries as far back as logs go, narrowed by the trace timestamp', async () => {
+      const mockRequest = mockTraceLogsRequest();
+
+      renderHookWithProviders(() => useInfiniteLogsQuery(), {
+        additionalWrapper: createTraceWrapper({traceId, traceTimestamp: 1743695410}),
+        organization,
+      });
+
+      await waitFor(() => expect(mockRequest).toHaveBeenCalled());
+      expect(mockRequest).toHaveBeenCalledWith(
+        traceLogsEndpoint,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            statsPeriod: '30d',
+            timestamp: 1743695410,
+            traceId: [traceId],
+          }),
+        })
+      );
+    });
+
+    it('keeps the selected range when there is no trace timestamp to narrow by', async () => {
+      const mockRequest = mockTraceLogsRequest();
+
+      renderHookWithProviders(() => useInfiniteLogsQuery(), {
+        additionalWrapper: createTraceWrapper({traceId}),
+        organization,
+      });
+
+      await waitFor(() => expect(mockRequest).toHaveBeenCalled());
+      expect(mockRequest).toHaveBeenCalledWith(
+        traceLogsEndpoint,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            start: '2025-04-03T00:00:00.000',
+            end: '2025-04-03T00:10:00.000',
+          }),
+        })
+      );
+    });
   });
 
   describe('high fidelity', () => {
@@ -735,7 +877,7 @@ function createAscendingMocks(organization: Organization) {
         const query = options?.query || {};
         return (
           query.query.startsWith(
-            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=400 !${OurLogKnownFieldKey.ID}:4`
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=400 !${OurLogKnownFieldKey.ID}:4`
           ) && query.sort === '-timestamp' // DESC. Timestamp is aliased to sort both timestamp_precise and timestamp
         );
       },
@@ -778,17 +920,8 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
   const organization = OrganizationFixture();
   const queryClient = makeTestQueryClient();
 
-  function createWrapper({autoRefresh = 'enabled'}: {autoRefresh?: AutoRefreshState}) {
+  function createWrapper() {
     return function ({children}: {children?: React.ReactNode}) {
-      mockUseLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            [LOGS_AUTO_REFRESH_KEY]: autoRefresh,
-            [LOGS_REFRESH_INTERVAL_KEY]: '5', // Fast refresh for testing
-          },
-        })
-      );
-
       return (
         <QueryClientProvider client={queryClient}>
           <LogsQueryParamsProvider
@@ -810,20 +943,15 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
     // with a realistic timestamp so that initializeVirtualTimestamp computes a sane
     // targetTimestamp and correctly filters far-future log rows.
     mockNowInner = jest.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
-    mockUseNavigate.mockReturnValue(jest.fn());
     MockApiClient.clearMockResponses();
     queryClient.clear();
-
-    mockUsePageFilters.mockReturnValue({
-      isReady: true,
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: PageFiltersFixture(),
-    });
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
   });
 
   afterEach(() => {
     mockNowInner.mockRestore();
+    PageFiltersStore.reset();
   });
 
   it('should integrate with virtual streaming when auto refresh is enabled', async () => {
@@ -841,7 +969,16 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
     });
 
     const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
-      additionalWrapper: createWrapper({autoRefresh: 'enabled'}),
+      additionalWrapper: createWrapper(),
+      initialRouterConfig: {
+        location: {
+          pathname: '/mock-pathname/',
+          query: {
+            [LOGS_AUTO_REFRESH_KEY]: 'enabled',
+            [LOGS_REFRESH_INTERVAL_KEY]: '5', // Fast refresh for testing
+          },
+        },
+      },
       organization,
     });
 
@@ -871,7 +1008,16 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
     });
 
     const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
-      additionalWrapper: createWrapper({autoRefresh: 'idle'}),
+      additionalWrapper: createWrapper(),
+      initialRouterConfig: {
+        location: {
+          pathname: '/mock-pathname/',
+          query: {
+            [LOGS_AUTO_REFRESH_KEY]: 'idle',
+            [LOGS_REFRESH_INTERVAL_KEY]: '5', // Fast refresh for testing
+          },
+        },
+      },
       organization,
     });
 
@@ -928,7 +1074,16 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
     });
 
     const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
-      additionalWrapper: createWrapper({autoRefresh: 'enabled'}),
+      additionalWrapper: createWrapper(),
+      initialRouterConfig: {
+        location: {
+          pathname: '/mock-pathname/',
+          query: {
+            [LOGS_AUTO_REFRESH_KEY]: 'enabled',
+            [LOGS_REFRESH_INTERVAL_KEY]: '5', // Fast refresh for testing
+          },
+        },
+      },
       organization,
     });
 
@@ -992,7 +1147,16 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
     });
 
     const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
-      additionalWrapper: createWrapper({autoRefresh: 'idle'}), // Disable auto refresh to avoid virtual streaming filtering
+      additionalWrapper: createWrapper(),
+      initialRouterConfig: {
+        location: {
+          pathname: '/mock-pathname/',
+          query: {
+            [LOGS_AUTO_REFRESH_KEY]: 'idle', // Disable auto refresh to avoid virtual streaming filtering
+            [LOGS_REFRESH_INTERVAL_KEY]: '5',
+          },
+        },
+      },
       organization,
     });
 

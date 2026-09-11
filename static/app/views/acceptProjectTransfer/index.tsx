@@ -63,7 +63,7 @@ function AcceptProjectTransferForm({
     mutationFn: (payload: {data: unknown; organization: string}) =>
       fetchMutation({
         method: 'POST',
-        url: '/accept-transfer/',
+        url: getApiUrl('/accept-transfer/'),
         data: payload,
         options: {host: regionHost},
       }),

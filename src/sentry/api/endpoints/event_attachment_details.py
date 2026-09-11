@@ -1,6 +1,7 @@
 import posixpath
 
-from django.http import StreamingHttpResponse
+import sentry_sdk
+from django.http import HttpResponseRedirect, StreamingHttpResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -20,6 +21,11 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import superuser_has_permission
 from sentry.auth.system import is_system_auth
 from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
+from sentry.issues.action_log import (
+    action_context_scope,
+    resolve_action_actor,
+    resolve_action_source,
+)
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.organizationmember import OrganizationMember
@@ -43,7 +49,9 @@ DOWNLOAD_PARAM = OpenApiParameter(
     description=(
         "If this parameter is present, the response will be a binary file download "
         "instead of JSON metadata. The value does not matter — any value (including "
-        "empty) triggers the download."
+        "empty) triggers the download. Depending on where the attachment is stored, "
+        "the response may be a redirect to the storage service, so clients must follow "
+        "redirects."
     ),
 )
 
@@ -86,7 +94,12 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
     }
     permission_classes = (EventAttachmentDetailsPermission,)
 
-    def download(self, attachment: EventAttachment, request: Request) -> StreamingHttpResponse:
+    def download(
+        self, attachment: EventAttachment, request: Request
+    ) -> HttpResponseRedirect | StreamingHttpResponse:
+        if attachment.uses_objectstore():
+            return HttpResponseRedirect(attachment.get_objectstore_presigned_url(request))
+
         name = posixpath.basename(" ".join(attachment.name.split()))
         accept_encoding = parse_accept_encoding(request.headers.get("Accept-Encoding", ""))
         blob_stream = attachment.get_blob_stream(accept_encoding)
@@ -130,6 +143,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         Response[EventAttachmentSerializerResponse]
         | Response[None]
         | Response[DetailResponse]
+        | HttpResponseRedirect
         | StreamingHttpResponse
     ):
         """
@@ -146,6 +160,8 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             return self.respond({"detail": "Event not found"}, status=404)
+
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
 
         try:
             attachment = EventAttachment.objects.filter(
@@ -184,12 +200,15 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
 
         # an activity with no group cannot be associated with an issue or displayed in an issue details page
         if attachment.group_id is not None:
-            Activity.objects.create(
-                group_id=attachment.group_id,
-                project=project,
-                type=ActivityType.DELETED_ATTACHMENT.value,
-                user_id=request.user.id,
-                data={},
-            )
+            with action_context_scope(
+                source=resolve_action_source(request), actor=resolve_action_actor(request)
+            ):
+                Activity.objects.create(
+                    group_id=attachment.group_id,
+                    project=project,
+                    type=ActivityType.DELETED_ATTACHMENT.value,
+                    user_id=request.user.id,
+                    data={},
+                )
         attachment.delete()
         return self.respond(status=204)

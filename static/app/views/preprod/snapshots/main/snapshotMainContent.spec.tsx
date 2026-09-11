@@ -1,5 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {
   SidebarItem,
@@ -66,7 +68,11 @@ function buildProps(
 function renderSnapshotMainContent(
   props: Partial<React.ComponentProps<typeof SnapshotMainContent>> = {}
 ) {
-  return render(<SnapshotMainContent {...buildProps(props)} />);
+  return render(
+    <Container containerType="inline-size">
+      <SnapshotMainContent {...buildProps(props)} />
+    </Container>
+  );
 }
 
 function image(overrides: Partial<SnapshotImage> = {}): SnapshotImage {
@@ -133,6 +139,13 @@ const renamedPair: SnapshotDiffPair = {
 describe('SnapshotMainContent', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // SnapshotMainContent resolves container-responsive values in JS. Render it
+    // at a wide enough container size for the `xl` breakpoint (768px).
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(800);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('keeps the diff/head toggle visible when viewing the head-only comparison', async () => {
@@ -268,6 +281,40 @@ describe('SnapshotMainContent', () => {
     }
   });
 
+  it('toggles the overlay off and restores the previous opacity', async () => {
+    const onOverlayOpacityChange = jest.fn();
+    const changedItem = {
+      key: 'changed-buttons',
+      name: 'Buttons',
+      displayName: 'Buttons',
+      pairs: [changedPair],
+      type: 'changed' as const,
+    };
+    const props = {
+      comparisonType: 'diff' as const,
+      diffMode: 'split' as const,
+      isSoloView: false,
+      listItems: [changedItem],
+      selectedItem: changedItem,
+      onOverlayOpacityChange,
+      viewMode: 'single' as const,
+    };
+
+    const {rerender} = renderSnapshotMainContent({...props, overlayOpacity: 100});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Hide overlay'}));
+    expect(onOverlayOpacityChange).toHaveBeenLastCalledWith(0);
+
+    rerender(
+      <Container containerType="inline-size">
+        <SnapshotMainContent {...buildProps({...props, overlayOpacity: 0})} />
+      </Container>
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show overlay'}));
+    expect(onOverlayOpacityChange).toHaveBeenLastCalledWith(100);
+  });
+
   it('hides the color picker and opacity presets outside of split mode', () => {
     const changedItem = {
       key: 'changed-buttons',
@@ -347,6 +394,7 @@ describe('SnapshotMainContent', () => {
         display_name: 'Button / light old',
         height: 180,
         image_file_name: 'button.light.old.png',
+        key: 'base-button-light-old',
         width: 320,
       },
       head_image: {
@@ -354,6 +402,7 @@ describe('SnapshotMainContent', () => {
         group: 'components',
         height: 180,
         image_file_name: 'button.light.png',
+        key: 'head-button-light',
         width: 320,
       },
     });
@@ -407,13 +456,15 @@ describe('SnapshotMainContent', () => {
       });
       const renderItem = (nextItem: SidebarItem) =>
         view.rerender(
-          <SnapshotMainContent
-            {...buildProps({
-              listItems: [nextItem],
-              selectedItem: nextItem,
-              viewMode: 'single',
-            })}
-          />
+          <Container containerType="inline-size">
+            <SnapshotMainContent
+              {...buildProps({
+                listItems: [nextItem],
+                selectedItem: nextItem,
+                viewMode: 'single',
+              })}
+            />
+          </Container>
         );
       return {
         navigateTo: (nextImg: SnapshotImage) => renderItem(soloItem(nextImg)),

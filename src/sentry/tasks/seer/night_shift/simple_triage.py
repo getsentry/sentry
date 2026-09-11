@@ -44,6 +44,7 @@ NIGHT_SHIFT_PER_PROJECT_FETCH_MULTIPLIER = 3
 # projects, so its per-project window stays well clear too.
 NIGHT_SHIFT_MAX_SEARCH_PAGES = 10
 FIXABILITY_SCORE_THRESHOLD = FixabilityScoreThresholds.MEDIUM.value
+NIGHT_SHIFT_OCCURRENCE_LOOKBACK = timedelta(days=14)
 
 
 @dataclass
@@ -227,10 +228,12 @@ def _fetch_and_score(
     """
     # Default types + LowValueSpan
     type_ids = sorted(group_types_from([]) | {LowValueSpanConfigurationType.type_id})
+    occurrence_cutoff = timezone.now() - NIGHT_SHIFT_OCCURRENCE_LOOKBACK
     search_filters = [
         SearchFilter(SearchKey("status"), "=", SearchValue([GroupStatus.UNRESOLVED])),
         SearchFilter(SearchKey("issue.seer_last_run"), "=", SearchValue("")),
         SearchFilter(SearchKey("issue.type"), "=", SearchValue(type_ids)),
+        SearchFilter(SearchKey("last_seen"), ">=", SearchValue(occurrence_cutoff)),
     ]
 
     scored: list[ScoredCandidate] = []
@@ -312,11 +315,13 @@ def _fetch_and_score_agentic(
     # Exclude groups Seer ran on within the last 30 days (matching the
     # RecentDateCondition used by the recommended path's search filter).
     seer_recency_cutoff = timezone.now() - timedelta(days=30)
+    occurrence_cutoff = timezone.now() - NIGHT_SHIFT_OCCURRENCE_LOOKBACK
     base_qs = (
         Group.objects.filter(
             project__in=projects,
             status=GroupStatus.UNRESOLVED,
             type__in=type_ids,
+            last_seen__gte=occurrence_cutoff,
         )
         .exclude(seer_explorer_autofix_last_triggered__gte=seer_recency_cutoff)
         .order_by("-last_seen")

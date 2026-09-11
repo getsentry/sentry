@@ -23,12 +23,13 @@ import {
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export function IssueListSeerComboBox() {
+export function IssueListSeerComboBox({className}: {className?: string}) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
@@ -54,7 +55,9 @@ export function IssueListSeerComboBox() {
   const issueListAskSeerMutationOptions = mutationOptions({
     mutationFn: async (queryToSubmit: string) => {
       const data = await fetchMutation<SeerRawResponse>({
-        url: `/organizations/${organization.slug}/search-agent/translate/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/search-agent/translate/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         method: 'POST',
         data: {
           natural_language_query: queryToSubmit,
@@ -143,6 +146,7 @@ export function IssueListSeerComboBox() {
 
   return (
     <AskSeerPollingComboBox<AskSeerSearchQuery>
+      className={className}
       initialQuery={initialSeerQuery}
       projectIds={selectedProjectIds}
       strategy="Issues"

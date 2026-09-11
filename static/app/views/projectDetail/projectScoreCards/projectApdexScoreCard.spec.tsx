@@ -30,7 +30,7 @@ describe('ProjectDetail > ProjectApdex', () => {
       body: {
         data: [
           {
-            'apdex()': 0.678,
+            'apdex(span.duration,300)': 0.678,
           },
         ],
       },
@@ -43,7 +43,7 @@ describe('ProjectDetail > ProjectApdex', () => {
       body: {
         data: [
           {
-            'apdex()': 0.781,
+            'apdex(span.duration,300)': 0.781,
           },
         ],
       },
@@ -62,17 +62,18 @@ describe('ProjectDetail > ProjectApdex', () => {
 
     expect(await screen.findByText('Apdex')).toBeInTheDocument();
     expect(await screen.findByText('0.781')).toBeInTheDocument();
-    expect(await screen.findByText('0.102')).toBeInTheDocument();
+    expect(await screen.findByText('0.1029')).toBeInTheDocument();
 
     expect(currentDataEndpointMock).toHaveBeenNthCalledWith(
       1,
       `/organizations/${organization.slug}/events/`,
       expect.objectContaining({
         query: {
+          dataset: 'spans',
           environment: [],
-          field: ['apdex()'],
+          field: ['apdex(span.duration,300)'],
           project: ['1'],
-          query: 'event.type:transaction count():>0',
+          query: 'is_transaction:true count():>0',
           statsPeriod: '14d',
         },
       })
@@ -83,10 +84,11 @@ describe('ProjectDetail > ProjectApdex', () => {
       `/organizations/${organization.slug}/events/`,
       expect.objectContaining({
         query: {
+          dataset: 'spans',
           environment: [],
-          field: ['apdex()'],
+          field: ['apdex(span.duration,300)'],
           project: ['1'],
-          query: 'event.type:transaction count():>0',
+          query: 'is_transaction:true count():>0',
           statsPeriodStart: '28d',
           statsPeriodEnd: '14d',
         },

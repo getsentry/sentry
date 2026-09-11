@@ -77,7 +77,7 @@ describe('SpanNodeDetails', () => {
     render(
       <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
         <EAPSpanNodeDetails
-          node={node as any}
+          node={node}
           organization={organization}
           onTabScrollToNode={jest.fn()}
           onParentClick={jest.fn()}
@@ -116,7 +116,7 @@ describe('SpanNodeDetails', () => {
     render(
       <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
         <SpanNodeDetails
-          node={node as any}
+          node={node}
           organization={organization}
           onTabScrollToNode={jest.fn()}
           onParentClick={jest.fn()}

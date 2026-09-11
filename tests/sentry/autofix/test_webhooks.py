@@ -3,7 +3,7 @@ from unittest.mock import call, patch
 from django.conf import settings
 from django.test import override_settings
 
-from sentry.analytics.events.ai_autofix_pr_events import (
+from sentry.analytics.events.autofix_events import (
     AiAutofixPrClosedEvent,
     AiAutofixPrMergedEvent,
     AiAutofixPrOpenedEvent,
@@ -45,7 +45,7 @@ class AutofixPrWebhookTest(APITestCase):
             metadata={"group_id": group.id},
         )
 
-        with self.feature("organizations:pr-metrics-attribution"):
+        with self.feature(["organizations:pr-metrics"]):
             handle_github_pr_webhook_for_autofix(
                 self.organization,
                 "opened",
@@ -149,7 +149,7 @@ class AutofixPrWebhookTest(APITestCase):
             metadata={"group_id": group.id},
         )
 
-        with self.feature("organizations:pr-metrics-attribution"):
+        with self.feature(["organizations:pr-metrics"]):
             handle_github_pr_webhook_for_autofix(
                 self.organization,
                 "closed",
@@ -204,7 +204,7 @@ class AutofixPrWebhookTest(APITestCase):
             metadata={"group_id": group.id},
         )
 
-        with self.feature("organizations:pr-metrics-attribution"):
+        with self.feature(["organizations:pr-metrics"]):
             handle_github_pr_webhook_for_autofix(
                 self.organization,
                 "closed",
@@ -275,7 +275,7 @@ class AutofixPrWebhookTest(APITestCase):
             metadata={"group_id": group.id},
         )
 
-        with self.feature("organizations:pr-metrics-attribution"):
+        with self.feature(["organizations:pr-metrics"]):
             handle_github_pr_webhook_for_autofix(
                 self.organization,
                 "closed",
@@ -315,7 +315,7 @@ class AutofixPrWebhookTest(APITestCase):
             metadata={"group_id": group.id},
         )
 
-        with self.feature("organizations:pr-metrics-attribution"):
+        with self.feature(["organizations:pr-metrics"]):
             handle_github_pr_webhook_for_autofix(
                 self.organization,
                 "opened",
@@ -368,7 +368,7 @@ class AutofixPrWebhookTest(APITestCase):
         )
         mock_record_attribution_signal.side_effect = RuntimeError("boom")
 
-        with self.feature("organizations:pr-metrics-attribution"):
+        with self.feature(["organizations:pr-metrics"]):
             handle_github_pr_webhook_for_autofix(
                 self.organization,
                 "opened",

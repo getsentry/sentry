@@ -13,14 +13,13 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
-import {Select, SelectOption} from '@sentry/scraps/select';
+import {Select, SelectOption, components} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t, tct} from 'sentry/locale';
@@ -794,12 +793,7 @@ function DataWidgetViewerModal(props: Props) {
     <Fragment>
       <DashboardsMEPProvider>
         <MetricsCardinalityProvider organization={organization} location={location}>
-          <MetricsDataSwitcher
-            organization={organization}
-            eventView={eventView}
-            location={location}
-            hideLoadingIndicator
-          >
+          <MetricsDataSwitcher location={location}>
             {metricsDataSide => (
               <MEPSettingProvider
                 location={location}
@@ -815,7 +809,6 @@ function DataWidgetViewerModal(props: Props) {
                         title={widget.description}
                         containerDisplayMode="grid"
                         showOnlyOnOverflow
-                        isHoverable
                         position="bottom"
                       >
                         <WidgetDescription>{widget.description}</WidgetDescription>
@@ -825,7 +818,7 @@ function DataWidgetViewerModal(props: Props) {
                 </Header>
                 <Body>{renderWidgetViewer()}</Body>
                 <Footer>
-                  <ResultsContainer>
+                  <Flex align="center" justify="between" gap="md" flex="1">
                     {renderTotalResults(totalResults, widget.widgetType)}
                     <Grid flow="column" align="center" gap="md">
                       {onEdit && widget.id && (
@@ -869,7 +862,7 @@ function DataWidgetViewerModal(props: Props) {
                         />
                       )}
                     </Grid>
-                  </ResultsContainer>
+                  </Flex>
                 </Footer>
               </MEPSettingProvider>
             )}
@@ -1250,19 +1243,6 @@ const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
   display: ${p => p.display};
   gap: ${p => p.theme.space.md};
   flex: 1;
-`;
-
-const ResultsContainer = styled('div')`
-  display: flex;
-  flex-grow: 1;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    align-items: center;
-    flex-direction: row;
-    justify-content: space-between;
-  }
 `;
 
 const EmptyQueryContainer = styled('span')`

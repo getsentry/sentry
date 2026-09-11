@@ -10,9 +10,9 @@ import type {
 import moment from 'moment-timezone';
 
 import {MarkArea} from 'sentry/components/charts/components/markArea';
-import {MarkLine} from 'sentry/components/charts/components/markLine';
-import {AreaSeries} from 'sentry/components/charts/series/areaSeries';
-import {LineSeries} from 'sentry/components/charts/series/lineSeries';
+import {markLine} from 'sentry/components/charts/components/markLine';
+import {createAreaSeries} from 'sentry/components/charts/series/areaSeries';
+import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import {t} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {UsageChartProps} from 'sentry/views/organizationStats/usageChart';
@@ -57,7 +57,7 @@ class SpikeProtectionUsageChart extends Component<SpikeProtectionUsageChartProps
       }
     );
 
-    return LineSeries({
+    return createLineSeries({
       name: t('Spike Protection Threshold'),
       lineStyle: {type: 'dotted'},
       color: theme.colors.gray400,
@@ -126,7 +126,7 @@ class SpikeProtectionUsageChart extends Component<SpikeProtectionUsageChartProps
       })
     );
 
-    return AreaSeries({
+    return createAreaSeries({
       name: t('Spikes'),
       type: 'line',
       markArea: MarkArea({
@@ -135,7 +135,7 @@ class SpikeProtectionUsageChart extends Component<SpikeProtectionUsageChartProps
         itemStyle: {color: theme.colors.red200, opacity: 0.2},
         silent: true,
       }),
-      markLine: MarkLine({
+      markLine: markLine({
         label: {show: false},
         silent: true,
         data: spikeLineData,

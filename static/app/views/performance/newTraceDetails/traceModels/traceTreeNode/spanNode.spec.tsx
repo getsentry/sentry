@@ -223,7 +223,7 @@ describe('SpanNode', () => {
 
     it('should handle missing op with fallback', () => {
       const span = makeSpan({
-        op: undefined as any,
+        op: undefined,
         description: 'Some description',
       });
       const node = new SpanNode(null, span, createMockExtra());

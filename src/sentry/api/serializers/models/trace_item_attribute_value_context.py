@@ -15,7 +15,6 @@ class TraceItemAttributeValueContextResponse(TypedDict):
     attributeValue: str
     dataset: str | None
     attributeType: str | None
-    project: str | None
     brief: str | None
     additionalContext: str | None
     dateCreated: datetime
@@ -33,7 +32,6 @@ class TraceItemAttributeValueContextSerializer(Serializer):
             "attributeValue": obj.attribute_value,
             "dataset": TraceItemTypes.get_type_name(obj.item_type),
             "attributeType": TraceMetricTypes.get_type_name(obj.attribute_type),
-            "project": str(obj.project_id) if obj.project_id else None,
             "brief": obj.brief,
             "additionalContext": obj.additional_context,
             "dateCreated": obj.date_added,

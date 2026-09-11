@@ -12,8 +12,6 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import {getCurrentLandingDisplay, LandingDisplayField} from './landing/utils';
-
 export const DEFAULT_STATS_PERIOD = '14d';
 export const DEFAULT_PROJECT_THRESHOLD = 300;
 
@@ -359,60 +357,6 @@ export function generateMobilePerformanceEventView(
   return eventView;
 }
 
-function generateFrontendPageloadPerformanceEventView(
-  location: Location,
-  withStaticFilters: boolean
-): EventView {
-  const {query} = location;
-
-  const fields = [
-    'team_key_transaction',
-    'transaction',
-    'project',
-    'tpm()',
-    'p75(measurements.fcp)',
-    'p75(measurements.lcp)',
-    'p75(measurements.fid)',
-    'p75(measurements.cls)',
-    'count_unique(user)',
-    'count_miserable(user)',
-    'user_misery()',
-  ];
-
-  const hasStartAndEnd = query.start && query.end;
-  const savedQuery: NewQuery = {
-    id: undefined,
-    name: t('Performance'),
-    query: 'event.type:transaction',
-    projects: [],
-    fields,
-    version: 2,
-  };
-
-  const widths = Array.from<number | string>({length: savedQuery.fields.length}).fill(
-    COL_WIDTH_UNDEFINED
-  );
-  widths[savedQuery.fields.length - 1] = '110';
-
-  // @ts-expect-error -- TODO: resolve this types mismatch
-  savedQuery.widths = widths;
-
-  if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = DEFAULT_STATS_PERIOD;
-  }
-  savedQuery.orderby = decodeScalar(query.sort, '-tpm');
-
-  const searchQuery = decodeScalar(query.query, '');
-  savedQuery.query = prepareQueryForLandingPage(searchQuery, withStaticFilters);
-
-  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-
-  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
-  eventView.additionalConditions.addFilterValues('transaction.op', ['pageload']);
-
-  return eventView;
-}
-
 export function generateFrontendOtherPerformanceEventView(
   location: Location,
   withStaticFilters: boolean,
@@ -468,34 +412,4 @@ export function generateFrontendOtherPerformanceEventView(
   }
 
   return eventView;
-}
-
-export function generatePerformanceEventView(
-  location: Location,
-  projects: Project[],
-  {isTrends = false, withStaticFilters = false} = {}
-) {
-  const eventView = generateGenericPerformanceEventView(location, withStaticFilters);
-  if (isTrends) {
-    return eventView;
-  }
-
-  const display = getCurrentLandingDisplay(location, projects, eventView);
-  switch (display?.field) {
-    case LandingDisplayField.FRONTEND_PAGELOAD:
-      return generateFrontendPageloadPerformanceEventView(location, withStaticFilters);
-    case LandingDisplayField.FRONTEND_OTHER:
-      return generateFrontendOtherPerformanceEventView(location, withStaticFilters);
-    case LandingDisplayField.BACKEND:
-      return generateBackendPerformanceEventView(location, withStaticFilters);
-    case LandingDisplayField.MOBILE:
-      return generateMobilePerformanceEventView(
-        location,
-        projects,
-        eventView,
-        withStaticFilters
-      );
-    default:
-      return eventView;
-  }
 }

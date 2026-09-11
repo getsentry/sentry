@@ -8,7 +8,6 @@ import type {
 import {useCallback, useEffect, useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {AriaComboBoxProps} from '@react-aria/combobox';
-import {ariaHideOutside} from '@react-aria/overlays';
 import {mergeRefs} from '@react-aria/utils';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
@@ -28,7 +27,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
-import {defined} from 'sentry/utils/defined';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
 interface ComboBoxProps {
@@ -46,7 +44,6 @@ interface ComboBoxProps {
   onInputFocus?: FocusEventHandler<HTMLInputElement>;
   onKeyDown?: (evt: KeyboardEvent) => void;
   onKeyDownCapture?: (evt: React.KeyboardEvent<HTMLInputElement>) => void;
-  onKeyUp?: (e: KeyboardEvent) => void;
   onOpenChange?: (newOpenState: boolean) => void;
   onOptionSelected?: (option: SelectOptionWithKey<string>) => void;
   onPaste?: (e: ClipboardEvent<HTMLInputElement>) => void;
@@ -104,12 +101,11 @@ export function ComboBox({
   onInputFocus,
   onOpenChange,
   onOptionSelected,
-  ['data-test-id']: dataTestId,
+  'data-test-id': dataTestId,
   filterValue,
   onInputChange,
   onKeyDown,
   onKeyDownCapture,
-  onKeyUp,
   onPaste,
   placeholder,
   tabIndex,
@@ -126,7 +122,7 @@ export function ComboBox({
     shouldFilterResults: true,
   });
 
-  const handleSelectionChange = useCallback(
+  const handleValueChange = useCallback(
     (key: Key | null) => {
       if (!key) {
         return;
@@ -155,11 +151,11 @@ export function ComboBox({
       items,
       autoFocus: false,
       inputValue: filterValue,
-      onSelectionChange: handleSelectionChange,
+      onChange: handleValueChange,
       allowsCustomValue: true,
       disabledKeys,
       isDisabled: false,
-      selectedKey: null,
+      value: null,
     };
 
   const state = useComboBoxState<SelectOptionOrSectionWithKey<string>>({
@@ -190,7 +186,13 @@ export function ComboBox({
     [onInputBlur, shouldCloseOnInteractOutside, state]
   );
 
-  const isOpen = state.isOpen;
+  const totalOptions = items.reduce(
+    (acc, item) => acc + (itemIsSectionWithKey(item) ? item.options.length : 1),
+    0
+  );
+
+  // Showing the overlay with nothing to select renders as an empty grey bar
+  const isOpen = state.isOpen && totalOptions > hiddenOptions.size;
 
   const handleComboBoxKeyDown = useCallback(
     (evt: KeyboardEvent) => {
@@ -217,13 +219,6 @@ export function ComboBox({
     [inputValue, onInputCommit, onInputEscape, state, isOpen, onKeyDown]
   );
 
-  const handleComboBoxKeyUp = useCallback(
-    (evt: KeyboardEvent) => {
-      onKeyUp?.(evt);
-    },
-    [onKeyUp]
-  );
-
   const {inputProps, listBoxProps} = useSearchTokenCombobox<
     SelectOptionOrSectionWithKey<string>
   >(
@@ -237,7 +232,6 @@ export function ComboBox({
       onFocus: handleComboBoxFocus,
       onBlur: handleComboBoxBlur,
       onKeyDown: handleComboBoxKeyDown,
-      onKeyUp: handleComboBoxKeyUp,
     },
     state
   );
@@ -298,19 +292,6 @@ export function ComboBox({
     updateOverlayPosition,
     isOpen,
   });
-
-  // useCombobox will hide outside elements with aria-hidden="true" when it is open [1].
-  // Because we switch elements when a custom menu is displayed, we need to manually
-  // call this function an extra time to ensure the correct elements are hidden.
-  //
-  // [1]: https://github.com/adobe/react-spectrum/blob/main/packages/%40react-aria/combobox/src/useComboBox.ts#L337C3-L341C44
-  useEffect(() => {
-    if (isOpen) {
-      return ariaHideOutside([inputRef.current, popoverRef.current].filter(defined));
-    }
-
-    return () => {};
-  }, [isOpen]);
 
   const autosizeInputRef = useAutosizeInput({value: inputValue});
 

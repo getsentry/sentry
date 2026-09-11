@@ -7,7 +7,10 @@ import {useIntegrationExternalIssues} from './useIntegrationExternalIssues';
 import {useSentryAppExternalIssues} from './useSentryAppExternalIssues';
 
 interface Props {
-  event: Event;
+  /**
+   * Adds stack trace content to Sentry App issue descriptions when available.
+   */
+  event: Event | undefined;
   group: Group;
 }
 

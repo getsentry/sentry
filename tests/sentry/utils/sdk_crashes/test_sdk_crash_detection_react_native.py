@@ -348,6 +348,22 @@ def test_sentry_wrapped_not_detected(
             "node_modules/@sentry/core/build/cjs/instrument/fetch.js",
             False,
         ),
+        # fetch instrumentation promise rejection handler (ESM build) — should be ignored.
+        # A user's failed fetch rejects, the SDK's anonymous rejection handler rethrows, and
+        # the error surfaces via onunhandledrejection with this frame on top. See SDK-CRASHES-REACT-NATIVE-F7.
+        (
+            "<anonymous>",
+            "@sentry/core/build/esm/instrument/fetch",
+            "node_modules/@sentry/core/build/esm/instrument/fetch.js",
+            False,
+        ),
+        # fetch instrumentation promise rejection handler (CJS build) — should be ignored
+        (
+            "<anonymous>",
+            "@sentry/core/build/cjs/instrument/fetch",
+            "node_modules/@sentry/core/build/cjs/instrument/fetch.js",
+            False,
+        ),
         # Different function in the same module — should be detected
         (
             "instrumentFetch",
@@ -572,3 +588,120 @@ def test_missing_exception_not_detected(
     )
 
     assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+# React Native's dev server (Metro) re-runs the app's entry code — including Sentry.init and SDK
+# integration setup — on hot reload / Fast Refresh by pushing a message over its websocket. React
+# Native delivers that message as a device event (RCTDeviceEventEmitter#emit) to the WebSocket
+# module's listener. These frames reproduce that dev-server call chain. Like real events, they
+# carry the module path in filename/abs_path and have no `module` field.
+_DEV_SERVER_WEBSOCKET_FRAMES = [
+    {
+        "function": "RCTDeviceEventEmitterImpl#emit",
+        "filename": "/Users/dev/project/node_modules/react-native/Libraries/EventEmitter/RCTDeviceEventEmitter.js",
+        "abs_path": "/Users/dev/project/node_modules/react-native/Libraries/EventEmitter/RCTDeviceEventEmitter.js",
+    },
+    {
+        "function": "emit",
+        "filename": "/Users/dev/project/node_modules/react-native/Libraries/vendor/emitter/EventEmitter.js",
+        "abs_path": "/Users/dev/project/node_modules/react-native/Libraries/vendor/emitter/EventEmitter.js",
+    },
+    {
+        "function": "_eventEmitter.addListener$argument_1",
+        "filename": "/Users/dev/project/node_modules/react-native/Libraries/WebSocket/WebSocket.js",
+        "abs_path": "/Users/dev/project/node_modules/react-native/Libraries/WebSocket/WebSocket.js",
+    },
+]
+
+# A normal app-startup caller (crashes reached from here are genuine SDK crashes).
+_APP_STARTUP_FRAME = {
+    "function": "<global>",
+    "filename": "index.js",
+    "abs_path": "app:///index.js",
+}
+
+# An app's own WebSocket onmessage handler. In production the RN WebSocket listener dispatches
+# every incoming message through app code like this before any SDK frame is reached.
+_APP_WEBSOCKET_HANDLER_FRAME = {
+    "function": "onmessage",
+    "filename": "src/realtime/socket.js",
+    "abs_path": "app:///src/realtime/socket.js",
+}
+
+
+def _sdk_frame(function: str, filename: str) -> dict[str, str]:
+    # Real React Native JS frames carry the SDK module path in filename/abs_path, no `module`.
+    return {"function": function, "filename": filename, "abs_path": filename}
+
+
+# The distinct SDK crash origins observed across the real dev-server hot-reload events.
+_INIT_CRASH_FRAMES = [
+    _sdk_frame("init", "@sentry/react-native/dist/js/sdk.js"),
+    _sdk_frame("ReactNativeClient#_initNativeSdk", "@sentry/react-native/dist/js/client.js"),
+]
+_GET_DEFAULT_INTEGRATIONS_CRASH_FRAMES = [
+    _sdk_frame("__awaiter$argument_3", "@sentry/react-native/dist/js/wrapper.js"),
+    _sdk_frame("getDefaultIntegrations", "@sentry/react-native/dist/js/integrations/default.js"),
+]
+_ENCODED_AUTH_CRASH_FRAMES = [
+    _sdk_frame("init", "@sentry/react-native/dist/js/sdk.js"),
+    _sdk_frame("_encodedAuth", "@sentry/core/build/esm/api.js"),
+]
+
+
+@pytest.mark.parametrize(
+    ["frames", "detected"],
+    [
+        # Crash inside init, re-run by the Metro dev-server websocket — should be ignored.
+        ([*_DEV_SERVER_WEBSOCKET_FRAMES, *_INIT_CRASH_FRAMES], False),
+        # Crash inside getDefaultIntegrations (no init frame at all) via the dev-server websocket
+        # — should be ignored. The match must not depend on which SDK frame throws.
+        ([*_DEV_SERVER_WEBSOCKET_FRAMES, *_GET_DEFAULT_INTEGRATIONS_CRASH_FRAMES], False),
+        # Crash inside @sentry/core _encodedAuth via the dev-server websocket — should be ignored.
+        ([*_DEV_SERVER_WEBSOCKET_FRAMES, *_ENCODED_AUTH_CRASH_FRAMES], False),
+        # Genuine crash inside Sentry.init reached from app startup (no dev-server websocket
+        # frames) — should be detected.
+        ([_APP_STARTUP_FRAME, *_INIT_CRASH_FRAMES], True),
+        # Only the device event emitter frame, without the WebSocket listener — should be
+        # detected (both dev-server frames are required to ignore).
+        ([_DEV_SERVER_WEBSOCKET_FRAMES[0], *_GET_DEFAULT_INTEGRATIONS_CRASH_FRAMES], True),
+        # Only the WebSocket listener frame, without the device event emitter — should be
+        # detected (both dev-server frames are required to ignore).
+        ([_DEV_SERVER_WEBSOCKET_FRAMES[2], *_GET_DEFAULT_INTEGRATIONS_CRASH_FRAMES], True),
+        # Production websocket path: both dev-server frames are present, but the WebSocket listener
+        # dispatches through the app's own onmessage handler before the SDK crashes. The listener
+        # is not directly followed by an SDK frame, so a genuine SDK crash must still be detected.
+        (
+            [
+                *_DEV_SERVER_WEBSOCKET_FRAMES,
+                _APP_WEBSOCKET_HANDLER_FRAME,
+                *_INIT_CRASH_FRAMES,
+            ],
+            True,
+        ),
+    ],
+)
+@decorators
+def test_dev_server_hot_reload_not_detected(
+    mock_sdk_crash_reporter,
+    mock_random,
+    store_event,
+    configs,
+    frames,
+    detected: bool,
+) -> None:
+    event_data = get_crash_event(exception={"values": [get_exception(frames=frames)]})
+
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    if detected:
+        assert mock_sdk_crash_reporter.report.call_count == 1
+    else:
+        assert mock_sdk_crash_reporter.report.call_count == 0

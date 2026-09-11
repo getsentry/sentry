@@ -38,12 +38,12 @@ describe('PendingChanges', () => {
       customPricePcss: 0,
       pendingChanges: PendingChangesFixture({
         planDetails: PlanFixture({
-          name: 'Team (Enterprise)',
+          name: 'Enterprise (Business)',
           billingInterval: 'annual',
           budgetTerm: 'on-demand',
         }),
-        plan: 'am1_team_ent',
-        planName: 'Team (Enterprise)',
+        plan: 'am1_business_ent',
+        planName: 'Enterprise (Business)',
         reserved: {errors: 15000000, transactions: 20000000, attachments: 25},
         customPrice: 5000000,
         customPrices: {errors: 2000000, transactions: 2900000, attachments: 50000},
@@ -62,7 +62,9 @@ describe('PendingChanges', () => {
     expect(container).toHaveTextContent(
       'The following changes will take effect on Mar 16, 2022'
     );
-    expect(container).toHaveTextContent('Plan changes — Developer → Team (Enterprise)');
+    expect(container).toHaveTextContent(
+      'Plan changes — Developer → Enterprise (Business)'
+    );
     expect(container).toHaveTextContent('Billing period — monthly → annual');
     expect(container).toHaveTextContent('Reserved errors — 5,000 → 15,000,000 errors');
     expect(container).toHaveTextContent(
@@ -91,12 +93,12 @@ describe('PendingChanges', () => {
       customPricePcss: 0,
       pendingChanges: PendingChangesFixture({
         planDetails: PlanFixture({
-          name: 'Team (Enterprise)',
+          name: 'Enterprise (Business)',
           billingInterval: 'annual',
           budgetTerm: 'on-demand',
         }),
-        plan: 'am3_team_ent',
-        planName: 'Team (Enterprise)',
+        plan: 'am3_business_ent',
+        planName: 'Enterprise (Business)',
         reserved: {errors: 15000000, spans: 20000000, attachments: 25},
         customPrice: 5000000,
         customPrices: {errors: 2000000, spans: 200000, attachments: 50000},
@@ -115,7 +117,9 @@ describe('PendingChanges', () => {
     expect(container).toHaveTextContent(
       'The following changes will take effect on Oct 9, 2024'
     );
-    expect(container).toHaveTextContent('Plan changes — Developer → Team (Enterprise)');
+    expect(container).toHaveTextContent(
+      'Plan changes — Developer → Enterprise (Business)'
+    );
     expect(container).toHaveTextContent('Billing period — monthly → annual');
     expect(container).toHaveTextContent('Reserved errors — 5,000 → 15,000,000 errors');
     expect(container).toHaveTextContent(

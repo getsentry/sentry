@@ -11,21 +11,24 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
+import {DateTime} from 'sentry/components/dateTime';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconOpen, IconUser} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {IconCalendar, IconFire, IconUser} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import type {AvatarProject} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isUUID} from 'sentry/utils/string/isUUID';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getUserDisplayName,
   normalizeUserField,
   UserNotInstrumentedTooltip,
 } from 'sentry/views/explore/conversations/components/conversationsTable';
+import {ConversationTraceLink} from 'sentry/views/explore/conversations/components/conversationTraceLink';
 import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
 import type {ConversationUser} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -48,13 +51,29 @@ interface ConversationSummaryProps {
   nodes: AITraceSpanNode[];
   isLoading?: boolean;
   nodeTraceMap?: Map<string, string>;
+  /** Project the conversation belongs to; rendered beneath the title. */
+  project?: AvatarProject;
+  /** Conversation title when Sentry has one; falls back to the id when null. */
+  title?: string | null;
 }
 
 const VISIBLE_TOOL_COUNT = 6;
 
+// Rendered heights of the content the loading skeletons stand in for. Text trims
+// to its font's ascender and descender, so those values are the trimmed boxes
+// rather than the line heights.
+const TEXT_XL_HEIGHT = '23px'; // `Text size="xl"`, and `Heading as="h2"` with it
+const TEXT_MD_HEIGHT = '16px'; // the `ProjectBadge` name, at the body font size
+const TEXT_SM_HEIGHT = '14px';
+const TAG_HEIGHT = '20px'; // `Tag`, and `ToolTag` with it
+// The zero-size dropdown button the trace link renders for several traces.
+const TRACE_LINK_HEIGHT = '24px';
+
 export function ConversationSummary({
   nodes,
   conversationId,
+  title,
+  project,
   isLoading,
   nodeTraceMap,
 }: ConversationSummaryProps) {
@@ -66,6 +85,12 @@ export function ConversationSummary({
   const userDisplayName = user ? getUserDisplayName(user) : null;
 
   const displayId = isUUID(conversationId) ? conversationId.slice(0, 8) : conversationId;
+  // Prefer the human-readable title; fall back to the (possibly truncated) id.
+  const headingText = title || displayId;
+  const headingTooltip = title || conversationId;
+  // A UUID id is truncated to 8 chars, so it always needs the tooltip to reveal
+  // the full value; a title or non-UUID id only needs it when it overflows.
+  const headingTooltipOnlyOnOverflow = title ? true : !isUUID(conversationId);
 
   const errorsUrl = getExploreUrl({
     organization,
@@ -88,53 +113,118 @@ export function ConversationSummary({
     return Array.from(seen, ([traceId, spanId]) => ({traceId, spanId}));
   }, [nodeTraceMap]);
 
-  // A single trace deep-links to the trace view; multiple traces open the
-  // traces explorer filtered to this conversation.
-  const singleTrace = traces.length === 1 ? traces[0] : undefined;
-  const tracesUrl = singleTrace
-    ? getTraceUrl(organization.slug, singleTrace.traceId, singleTrace.spanId)
-    : getExploreUrl({
-        organization,
-        selection,
-        query: `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}"`,
-        table: 'trace',
-      });
-
   return (
     <Flex
-      direction={{'screen:xs': 'column', 'screen:md': 'row'}}
+      direction={{zero: 'column', xl: 'row'}}
       justify="between"
-      align={{'screen:xs': 'stretch', 'screen:md': 'center'}}
+      align={{zero: 'stretch', xl: 'center'}}
       gap="xl"
       flex={1}
       minWidth={0}
     >
       <Stack gap="md" minWidth={0} flex={1}>
-        <Container minWidth={0}>
-          <Tooltip title={conversationId} showOnlyOnOverflow={!isUUID(conversationId)}>
-            <Heading as="h2" ellipsis>
-              {displayId}
-            </Heading>
-          </Tooltip>
-        </Container>
-        <Flex align="center" gap="xl" minWidth={0} wrap="wrap">
+        {/* A flex box rather than a block: Tooltip wraps the heading in an
+            inline-block span, and as a block this would size to a line box,
+            adding the font strut's descender under the heading. */}
+        <Container minWidth={0} display="flex">
           {isLoading ? (
-            <Fragment>
+            // The title is only known once the conversation loads, so show a
+            // skeleton rather than briefly flashing the id and swapping it out.
+            <Placeholder width="240px" height={TEXT_XL_HEIGHT} />
+          ) : (
+            <Tooltip
+              title={headingTooltip}
+              showOnlyOnOverflow={headingTooltipOnlyOnOverflow}
+            >
+              <Heading as="h2" ellipsis>
+                {headingText}
+              </Heading>
+            </Tooltip>
+          )}
+        </Container>
+        {isLoading ? (
+          <Fragment>
+            <Flex align="center" gap="sm" minWidth={0} wrap="wrap">
+              <Placeholder width="40px" height={TEXT_SM_HEIGHT} />
+              <Placeholder width="72px" height={TAG_HEIGHT} />
+              <Placeholder width="72px" height={TAG_HEIGHT} />
+            </Flex>
+            <MetaRow>
               <Flex align="center" gap="xs">
                 <Placeholder width="16px" height="16px" />
-                <Placeholder width="120px" height="14px" />
+                <Placeholder width="140px" height={TEXT_SM_HEIGHT} />
               </Flex>
               <Flex align="center" gap="xs">
                 <Placeholder width="12px" height="12px" />
-                <Placeholder width="40px" height="14px" />
+                <Placeholder width="40px" height={TEXT_SM_HEIGHT} />
               </Flex>
+              {/* The project comes from the conversation's spans, so it is only
+                  known once they load; its space is reserved either way. */}
               <Flex align="center" gap="sm">
-                <Placeholder width="72px" height="20px" />
-                <Placeholder width="72px" height="20px" />
+                <Placeholder width="16px" height="16px" />
+                <Placeholder width="80px" height={TEXT_MD_HEIGHT} />
               </Flex>
-            </Fragment>
-          ) : (
-            <Fragment>
+              <Flex align="center" gap="xs">
+                <Placeholder width="16px" height="16px" />
+                <Placeholder width="120px" height={TEXT_SM_HEIGHT} />
+              </Flex>
+            </MetaRow>
+          </Fragment>
+        ) : (
+          <Fragment>
+            {aggregates.toolNames.length > 0 && (
+              <Flex align="center" gap="sm" minWidth={0} wrap="wrap">
+                <Text size="sm" wrap="nowrap">
+                  {t('Tools:')}
+                </Text>
+                {aggregates.toolNames.slice(0, VISIBLE_TOOL_COUNT).map(name => (
+                  <ToolTag
+                    key={name}
+                    name={name}
+                    hasError={aggregates.erroredToolNames.has(name)}
+                  />
+                ))}
+                {aggregates.toolNames.length > VISIBLE_TOOL_COUNT && (
+                  <InfoText
+                    size="sm"
+                    variant="muted"
+                    wrap="nowrap"
+                    title={
+                      <Flex wrap="wrap" gap="sm" paddingTop="xs" paddingBottom="xs">
+                        {aggregates.toolNames.slice(VISIBLE_TOOL_COUNT).map(name => (
+                          <ToolTag
+                            key={name}
+                            name={name}
+                            hasError={aggregates.erroredToolNames.has(name)}
+                          />
+                        ))}
+                      </Flex>
+                    }
+                  >
+                    {t('+%s more', aggregates.toolNames.length - VISIBLE_TOOL_COUNT)}
+                  </InfoText>
+                )}
+              </Flex>
+            )}
+            <MetaRow>
+              {aggregates.startTimestamp !== null && (
+                <Flex align="center" gap="xs">
+                  <IconCalendar size="md" />
+                  <InfoText
+                    size="sm"
+                    title={
+                      <TimeSince
+                        date={aggregates.startTimestamp}
+                        disabledAbsoluteTooltip
+                      />
+                    }
+                  >
+                    <DateTime date={aggregates.startTimestamp} year timeZone />
+                  </InfoText>
+                </Flex>
+              )}
+              <ConversationTraceLink conversationId={conversationId} traces={traces} />
+              {project && <ProjectBadge project={project} avatarSize={16} disableLink />}
               <Flex align="center" gap="xs" minWidth={0}>
                 <IconUser size="md" />
                 {userDisplayName ? (
@@ -156,57 +246,9 @@ export function ConversationSummary({
                   </InfoText>
                 )}
               </Flex>
-              {traces.length > 0 && (
-                <Link
-                  to={tracesUrl}
-                  onClick={() =>
-                    trackAnalytics('conversations.detail.click-trace-link', {
-                      organization,
-                    })
-                  }
-                >
-                  <Flex align="center" gap="xs">
-                    <IconOpen size="xs" />
-                    <Text size="sm" variant="inherit" wrap="nowrap">
-                      {tn('Trace', 'Traces', traces.length)}
-                    </Text>
-                  </Flex>
-                </Link>
-              )}
-              {aggregates.toolNames.length > 0 && (
-                <Flex align="center" gap="sm" minWidth={0} wrap="wrap">
-                  {aggregates.toolNames.slice(0, VISIBLE_TOOL_COUNT).map(name => (
-                    <ToolTag
-                      key={name}
-                      name={name}
-                      hasError={aggregates.erroredToolNames.has(name)}
-                    />
-                  ))}
-                  {aggregates.toolNames.length > VISIBLE_TOOL_COUNT && (
-                    <InfoText
-                      size="sm"
-                      variant="muted"
-                      wrap="nowrap"
-                      title={
-                        <Flex wrap="wrap" gap="sm" paddingTop="xs" paddingBottom="xs">
-                          {aggregates.toolNames.slice(VISIBLE_TOOL_COUNT).map(name => (
-                            <ToolTag
-                              key={name}
-                              name={name}
-                              hasError={aggregates.erroredToolNames.has(name)}
-                            />
-                          ))}
-                        </Flex>
-                      }
-                    >
-                      {t('+%s more', aggregates.toolNames.length - VISIBLE_TOOL_COUNT)}
-                    </InfoText>
-                  )}
-                </Flex>
-              )}
-            </Fragment>
-          )}
-        </Flex>
+            </MetaRow>
+          </Fragment>
+        )}
       </Stack>
       <Flex align="start" gap="xl" wrap="wrap" flexShrink={0}>
         <Stat
@@ -217,6 +259,15 @@ export function ConversationSummary({
         <Stat
           label={t('Errors')}
           value={<Count value={aggregates.errorCount} />}
+          icon={
+            aggregates.errorCount > 0 ? (
+              <IconFire
+                size="sm"
+                variant="danger"
+                data-test-id="conversation-error-icon"
+              />
+            ) : undefined
+          }
           to={aggregates.errorCount > 0 ? errorsUrl : undefined}
           onClick={
             aggregates.errorCount > 0
@@ -247,20 +298,49 @@ export function ConversationSummary({
   );
 }
 
+/**
+ * The row of conversation metadata under the title. Its minHeight matches the
+ * trace link's dropdown button, the tallest thing it holds, so the row keeps
+ * its height whether the link renders as a button, a plain link, or a skeleton.
+ */
+function MetaRow({children}: {children: React.ReactNode}) {
+  return (
+    <Flex align="center" gap="xl" minWidth={0} wrap="wrap" minHeight={TRACE_LINK_HEIGHT}>
+      {children}
+    </Flex>
+  );
+}
+
 function Stat({
   label,
   value,
   isLoading,
   to,
   onClick,
+  icon,
 }: {
   label: string;
   value: React.ReactNode;
+  icon?: React.ReactNode;
   isLoading?: boolean;
   onClick?: () => void;
   to?: string;
 }) {
   const isInteractive = !!to && !isLoading;
+
+  const valueContent = (
+    <Flex align="center" gap="xs">
+      <Text
+        size="xl"
+        tabular
+        variant={isInteractive ? 'danger' : undefined}
+        wrap="nowrap"
+      >
+        {value}
+      </Text>
+      {icon}
+    </Flex>
+  );
 
   return (
     <Stack gap="xs" flexShrink={0}>
@@ -268,25 +348,15 @@ function Stat({
         {label}
       </Text>
       {isLoading ? (
-        <Placeholder width="32px" height="24px" />
+        <Placeholder width="32px" height={TEXT_XL_HEIGHT} />
       ) : isInteractive ? (
         <Link to={to} onClick={onClick}>
-          <Text size="xl" tabular variant="danger" wrap="nowrap">
-            {value}
-          </Text>
+          {valueContent}
         </Link>
       ) : (
-        <Text size="xl" tabular wrap="nowrap">
-          {value}
-        </Text>
+        valueContent
       )}
     </Stack>
-  );
-}
-
-function getTraceUrl(orgSlug: string, traceId: string, spanId: string) {
-  return normalizeUrl(
-    `/organizations/${orgSlug}/explore/traces/trace/${traceId}/?node=span-${spanId}`
   );
 }
 
@@ -294,6 +364,8 @@ interface ConversationAggregates {
   errorCount: number;
   erroredToolNames: Set<string>;
   llmCalls: number;
+  /** When the conversation began, or null when no span carries a start time. */
+  startTimestamp: number | null;
   toolCalls: number;
   toolNames: string[];
   totalCost: number;
@@ -310,12 +382,19 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
   let errorCount = 0;
   let totalTokens = 0;
   let totalCost = 0;
+  let startTimestamp: number | null = null;
   const toolNameSet = new Set<string>();
   const erroredToolNameSet = new Set<string>();
 
   for (const node of nodes) {
     const opType = getGenAiOpType(node);
     const nodeHasError = hasError(node);
+
+    // Nodes without a timestamp leave space at its [0, 0] default.
+    const [nodeStart] = node.space;
+    if (nodeStart > 0 && (startTimestamp === null || nodeStart < startTimestamp)) {
+      startTimestamp = nodeStart;
+    }
 
     if (getIsAiGenerationSpan(opType)) {
       llmCalls++;
@@ -337,14 +416,22 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
     }
   }
 
+  // Errored tools lead, so they survive the row's truncation.
+  const sortedToolNames = Array.from(toolNameSet).sort();
+  const toolNames = [
+    ...sortedToolNames.filter(name => erroredToolNameSet.has(name)),
+    ...sortedToolNames.filter(name => !erroredToolNameSet.has(name)),
+  ];
+
   return {
     llmCalls,
     toolCalls,
     errorCount,
+    startTimestamp,
     erroredToolNames: erroredToolNameSet,
     totalTokens,
     totalCost,
-    toolNames: Array.from(toolNameSet).sort(),
+    toolNames,
   };
 }
 
@@ -399,8 +486,9 @@ export function ConversationAggregatesBar({
     query: `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}" span.status:[internal_error,error]`,
   });
 
+  // minHeight matches the tool Tag height so the row stays the same height whether or not tools render
   return (
-    <Flex align="center" gap="lg" minWidth={0}>
+    <Flex align="center" gap="lg" minWidth={0} minHeight="20px">
       <AggregateItem
         label={t('LLM Calls')}
         value={<Count value={aggregates.llmCalls} />}

@@ -5,12 +5,15 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.http import QueryDict
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
 
 from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
 from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
+from sentry.api.authentication import UserAuthTokenAuthentication
 from sentry.api.helpers.group_index import (
     get_group_list,
+    get_search_referrer,
     update_groups,
     validate_search_filter_permissions,
 )
@@ -46,7 +49,9 @@ from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.release import ReleaseStatus
 from sentry.notifications.types import GroupSubscriptionReason
+from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -122,6 +127,29 @@ def _wrap_request(http_request: Any, data: dict[str, Any] | None = None) -> Requ
     if data is not None:
         setattr(drf_request, "_full_data", data)
     return drf_request
+
+
+class GetSearchReferrerTest(TestCase):
+    def _request(self, authenticator: Any) -> Request:
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict()
+        request = _wrap_request(http_request)
+        # DRF exposes `successful_authenticator` as a read-only property backed by
+        # `_authenticator`, which it sets during authentication; set it directly here.
+        setattr(request, "_authenticator", authenticator)
+        return request
+
+    def test_session_auth_uses_ui_referrer(self) -> None:
+        request = self._request(SessionAuthentication())
+        assert get_search_referrer(request) == Referrer.SEARCH_GROUP_INDEX
+
+    def test_token_auth_uses_api_referrer(self) -> None:
+        request = self._request(UserAuthTokenAuthentication())
+        assert get_search_referrer(request) == Referrer.SEARCH_GROUP_INDEX_API
+
+    def test_missing_authenticator_uses_api_referrer(self) -> None:
+        request = self._request(None)
+        assert get_search_referrer(request) == Referrer.SEARCH_GROUP_INDEX_API
 
 
 class UpdateGroupsTest(TestCase):
@@ -724,14 +752,19 @@ class UpdateGroupsTest(TestCase):
         request = _wrap_request(http_request, data={"status": "resolvedInNextRelease"})
 
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
-        with self.feature("projects:issue-action-log-activity"):
+        with action_log_activity_enabled():
             response = update_groups(request, group_list)
 
         activity = response.data["activity"]
-        assert [entry["type"] for entry in activity] == ["set_resolved", "first_seen"]
+        # the manually logged RESOLVE exists only in GALE, so its presence means
+        # the action log was served rather than Activity
+        assert "set_resolved" in [entry["type"] for entry in activity]
         assert activity[-1]["id"] == "0"
 
-    def test_resolve_in_next_release_no_activity_without_action_log(self) -> None:
+    def test_resolve_in_next_release_falls_back_when_action_log_is_empty(self) -> None:
+        # A gated project can still read an empty log: the GALE write for this
+        # resolve goes through an outbox that may not have drained yet. Fall back to
+        # Activity rather than omitting the key, matching the other feed endpoints.
         self.create_release(project=self.project, version="test@1.0.0.0")
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
@@ -741,17 +774,46 @@ class UpdateGroupsTest(TestCase):
 
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
         with (
-            self.feature("projects:issue-action-log-activity"),
-            self.assertLogs("sentry.api.helpers.group_index.update", level="INFO") as logs,
+            action_log_activity_enabled(),
+            patch.object(GroupActionLogEntry.objects, "get_actions_for_group", return_value=[]),
+            self.assertLogs(
+                "sentry.api.serializers.models.groupactionlogentry", level="INFO"
+            ) as logs,
         ):
             response = update_groups(request, group_list)
 
         assert any(
-            record.message == "group_index.groupactionlogentry.not_found" for record in logs.records
+            record.message == "issues.action_log.activity_read.not_found" for record in logs.records
         )
         assert response is not None
-        assert "activity" not in response.data
-        assert GroupActionLogEntry.objects.filter(group_id=group.id).count() == 0
+        # the log read is patched to return nothing, so anything here came from Activity
+        assert "activity" in response.data
+
+    def test_resolve_in_next_release_ignores_action_log_when_disabled(self) -> None:
+        # With the gate closed the log may cover only part of this project's history,
+        # so serving it could silently drop older entries. Fall back to Activity.
+        self.create_release(project=self.project, version="test@1.0.0.0")
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        GroupActionLogEntry.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            type=GroupActionType.COMMENT.value,
+            actor_type=GroupActorType.USER.value,
+            actor_id=self.user.id,
+            source="web",
+            data={"comment_id": 123, "text": "hello world"},
+        )
+
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={group.id}")
+        request = _wrap_request(http_request, data={"status": "resolvedInNextRelease"})
+
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        response = update_groups(request, group_list)
+
+        # the COMMENT only exists in the log, so its absence means Activity was served
+        activity = response.data["activity"]
+        assert "note" not in [entry["type"] for entry in activity]
 
 
 class MergeGroupsTest(TestCase):

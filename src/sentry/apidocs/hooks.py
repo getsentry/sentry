@@ -33,6 +33,8 @@ _OWNERSHIP_FILE = "api_ownership_stats_dont_modify.json"
 # but do not want to document it
 EXCLUSION_PATH_PREFIXES = [
     "/api/0/monitors/",
+    # Legacy aliases for the documented agents/conversations endpoints.
+    "/api/0/organizations/{organization_id_or_slug}/ai-conversations/",
     # Issue URLS have an expression of group|issue that resolves to `var`
     "/api/0/{var}/{issue_id}/",
 ]
@@ -41,13 +43,13 @@ EXCLUSION_PATH_PREFIXES = [
 def __get_line_count_for_team_stats(team_stats: Mapping):
     """
     Returns number of lines it takes to write ownership for each team.
-    For example returns 7 for:
+    For example returns 15 for:
     enterprise: {
         block_start: {line_number_for_enterprise},
         public=[ExamplePublicEndpoint::GET],
         private=[ExamplePrivateEndpoint::GET],
         experimental=[ExampleExperimentalEndpoint::GET],
-        unknown=[ExampleUnknownEndpoint::GET]
+        public_experimental=[ExamplePublicExperimentalEndpoint::GET]
     }
     """
 
@@ -77,6 +79,9 @@ def __write_ownership_data(ownership_data: dict[ApiOwner, dict]):
             ApiPublishStatus.EXPERIMENTAL.value: sorted(
                 ownership_data[team][ApiPublishStatus.EXPERIMENTAL]
             ),
+            ApiPublishStatus.PUBLIC_EXPERIMENTAL.value: sorted(
+                ownership_data[team][ApiPublishStatus.PUBLIC_EXPERIMENTAL]
+            ),
         }
         index += __get_line_count_for_team_stats(ownership_data[team])
     dir = os.path.dirname(os.path.realpath(__file__))
@@ -102,9 +107,20 @@ class CustomGenerator(SchemaGenerator):
 # Collected during preprocessing, used in postprocessing
 _ENDPOINT_SERVERS: dict[str, list[dict[str, Any]]] = {}
 
+# (path, lowercased method) pairs published as PUBLIC_EXPERIMENTAL. Preprocessing only
+# filters endpoint tuples, so the marker has to be stamped onto the operation later.
+_EXPERIMENTAL_OPERATIONS: set[tuple[str, str]] = set()
+
+# Prepended to the description of every PUBLIC_EXPERIMENTAL operation. The docs render
+# operation descriptions as markdown but have no badge for `x-sentry-experimental`, so
+# this is what actually warns a reader. Wording matches the note endpoints used to write
+# by hand before the status existed.
+EXPERIMENTAL_NOTICE = "**Experimental:** This API is under active development and may change."
+
 
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
     _ENDPOINT_SERVERS.clear()
+    _EXPERIMENTAL_OPERATIONS.clear()
 
     filtered = []
     ownership_data: dict[ApiOwner, dict] = {}
@@ -120,6 +136,7 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
                 ApiPublishStatus.PUBLIC: set(),
                 ApiPublishStatus.PRIVATE: set(),
                 ApiPublishStatus.EXPERIMENTAL: set(),
+                ApiPublishStatus.PUBLIC_EXPERIMENTAL: set(),
             }
 
         # Fail if endpoint is unowned
@@ -141,13 +158,13 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
 
         elif callback.view_class.publish_status:
             # endpoints that are documented via tooling
-            if (
-                method in callback.view_class.publish_status
-                and callback.view_class.publish_status[method] is ApiPublishStatus.PUBLIC
-            ):
+            status = callback.view_class.publish_status.get(method)
+            if status is not None and status.is_published:
                 # only pass declared public methods of the endpoint
                 # to the rest of the OpenAPI build pipeline
                 filtered.append((path, path_regex, method, callback))
+                if status is ApiPublishStatus.PUBLIC_EXPERIMENTAL:
+                    _EXPERIMENTAL_OPERATIONS.add((path, method.lower()))
 
         else:
             # if an endpoint doesn't have any registered public methods, don't check it.
@@ -196,16 +213,18 @@ def _validate_request_body(
     for body_param, param_data in schema["properties"].items():
         # Ensure body parameters have a description. Our API docs don't
         # display body params without a description, so it's easy to miss them.
-        # We should be explicitly excluding them as better practice however.
 
         # There is an edge case where a body param might be reference that we should ignore for now
         if "description" not in param_data and "$ref" not in param_data:
             raise SentryApiBuildError(
-                f"""Body parameter '{body_param}' is missing a description for endpoint {endpoint_name}. You can either:
-            1. Add a 'help_text' kwarg to the serializer field
-            2. Remove the field if you're using an inline_serializer
-            3. For a DRF serializer, you must explicitly exclude this field by decorating the request serializer with
-            @extend_schema_serializer(exclude_fields=[{body_param}])."""
+                f"""Body parameter '{body_param}' is missing a description for endpoint {endpoint_name}.
+
+            Add a 'help_text' kwarg to the serializer field, or remove the field if you're
+            using an inline_serializer.
+
+            Withholding it instead -- @sentry_schema_serializer(omit_from_public_schema=
+            {{"{body_param}": "<why>"}}) -- drops it from the schema and every generated SDK.
+            Only do that if the field should not be public at all, never to fix this error."""
             )
 
     # Required params are stored in a list and not in the param itself
@@ -226,6 +245,17 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
         if path in result["paths"]:
             for method_info in result["paths"][path].values():
                 method_info["servers"] = servers
+
+    # Must run before _fix_issue_paths, which rewrites the path keys this is keyed on.
+    for path, method in _EXPERIMENTAL_OPERATIONS:
+        method_info = result["paths"].get(path, {}).get(method)
+        if method_info is not None:
+            method_info["x-sentry-experimental"] = True
+            description = method_info.get("description")
+            # Only prepend to an existing description; a missing one must still fail
+            # _check_description below rather than be silently satisfied here.
+            if description:
+                method_info["description"] = f"{EXPERIMENTAL_NOTICE}\n\n{description}"
 
     _fix_issue_paths(result)
     _fix_nullable_enums(result)

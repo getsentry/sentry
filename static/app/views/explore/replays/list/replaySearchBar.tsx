@@ -120,7 +120,6 @@ type Props = Omit<
   pageFilters: PageFilters;
   query: string;
   onSearch?: (query: string) => void;
-  searchSource?: string;
 };
 
 export function ReplaySearchBar(props: Props) {
@@ -230,7 +229,7 @@ export function ReplaySearchBar(props: Props) {
       matchKeySuggestions={[{key: 'user.email', valuePattern: EMAIL_REGEX}]}
       initialQuery={props.query ?? props.initialQuery ?? ''}
       onSearch={onSearchWithAnalytics}
-      searchSource={props.searchSource ?? 'replay_index'}
+      searchSource="replay_index"
       placeholder={
         props.placeholder ??
         t('Search for users, duration, clicked elements, count_errors, and more')

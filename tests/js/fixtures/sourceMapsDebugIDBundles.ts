@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import type {DebugIdBundle} from 'sentry/types/sourceMaps';
 
 export function SourceMapsDebugIDBundlesFixture(

@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import type {ReactNode} from 'react';
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
@@ -105,6 +104,7 @@ function ReplayOnboardingCTAUpsell({
       return;
     }
 
+    // oxlint-disable-next-line react/set-state-in-effect
     setDidClickOpenModal(false);
     const onComplete = () => {
       dismiss();

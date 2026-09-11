@@ -55,7 +55,7 @@ export const openSentryAppIssueModal = ({
 };
 
 type Props = ModalRenderProps & {
-  event: Event;
+  event: Event | undefined;
   group: Group;
   sentryAppComponent: SentryAppComponent;
   sentryAppInstallation: SentryAppInstallation;

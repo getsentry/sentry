@@ -1,22 +1,16 @@
 import logging
 import time
 from base64 import b64encode
-from urllib.parse import urlencode
 
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
-from django.urls import reverse
-from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from sentry import options
-from sentry import ratelimits as ratelimiter
 from sentry.auth.authenticators.sms import SMSRateLimitExceeded
 from sentry.auth.authenticators.u2f import U2fInterface
+from sentry.auth.twofactor import is_2fa_rate_limited, send_2fa_rate_limit_notification
 from sentry.users.models.authenticator import Authenticator
 from sentry.utils import auth, json
-from sentry.utils.email import MessageBuilder
-from sentry.utils.geo import geo_by_addr
-from sentry.utils.http import absolute_uri
 from sentry.web.client_config import get_client_config
 from sentry.web.forms.accounts import TwoFactorForm
 from sentry.web.frontend.base import BaseView, control_silo_view
@@ -26,36 +20,6 @@ COOKIE_NAME = "s2fai"
 COOKIE_MAX_AGE = 60 * 60 * 24 * 31
 
 logger = logging.getLogger(__name__)
-
-MFA_RATE_LIMITS = {
-    "auth-2fa:user:{user_id}": {
-        "limit": 5,
-        "window": 20,
-    },
-    "auth-2fa-long:user:{user_id}": {
-        "limit": 20,
-        "window": 60 * 60,
-    },
-}
-
-
-def is_rate_limited(user_id: int) -> bool:
-    result = False
-    for key_template, rl in MFA_RATE_LIMITS.items():
-        result = result or ratelimiter.backend.is_limited(
-            key_template.format(user_id=user_id),
-            limit=rl["limit"],
-            window=rl["window"],
-        )
-    return result
-
-
-def reset_2fa_rate_limits(user_id: int):
-    for key_template, rl in MFA_RATE_LIMITS.items():
-        ratelimiter.backend.reset(
-            key_template.format(user_id=user_id),
-            window=rl["window"],
-        )
 
 
 @control_silo_view
@@ -143,30 +107,6 @@ class TwoFactorAuthView(BaseView):
             ):
                 return interface
 
-    def send_notification_email(self, email, ip_address):
-        recover_uri = "{path}?{query}".format(
-            path=reverse("sentry-account-recover"), query=urlencode({"email": email})
-        )
-        context = {
-            "datetime": timezone.now(),
-            "email": email,
-            "geo": geo_by_addr(ip_address),
-            "ip_address": ip_address,
-            "url": absolute_uri(reverse("sentry-account-settings-security")),
-            "recover_url": absolute_uri(recover_uri),
-        }
-
-        subject = "Suspicious Activity Detected"
-        template = "mfa-too-many-attempts"
-        msg = MessageBuilder(
-            subject="{}{}".format(options.get("mail.subject-prefix"), subject),
-            template=f"sentry/emails/{template}.txt",
-            html_template=f"sentry/emails/{template}.html",
-            type="user.mfa-too-many-attempts",
-            context=context,
-        )
-        msg.send_async([email])
-
     def handle(self, request: HttpRequest) -> HttpResponse:
         user = auth.get_pending_2fa_user(request)
         if user is None:
@@ -182,14 +122,12 @@ class TwoFactorAuthView(BaseView):
         challenge = activation = None
         interface = self.negotiate_interface(request, interfaces)
 
-        if request.method == "POST" and is_rate_limited(user.id):
-            # prevent spamming due to failed 2FA attempts
-            if not ratelimiter.backend.is_limited(
-                f"auth-2fa-failed-notification:user:{user.id}", limit=1, window=30 * 60
-            ):
-                self.send_notification_email(
-                    email=user.username, ip_address=request.META["REMOTE_ADDR"]
-                )
+        if request.method == "POST" and is_2fa_rate_limited(user.id):
+            send_2fa_rate_limit_notification(
+                user_id=user.id,
+                email=user.username,
+                ip_address=request.META["REMOTE_ADDR"],
+            )
 
             return HttpResponse(
                 "You have made too many 2FA attempts. Please try again later.",

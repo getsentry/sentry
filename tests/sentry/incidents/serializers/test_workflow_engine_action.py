@@ -37,6 +37,30 @@ class TestGetTargets(TestWorkflowEngineSerializer):
         targets = MetricAlertRegistryHandler.get_targets([action])
         assert targets[action.id] == team
 
+    def test_batch_team_target_from_another_organization(self) -> None:
+        other_organization = self.create_organization()
+        other_team = self.create_team(organization=other_organization)
+        trigger = self.create_alert_rule_trigger(alert_rule=self.alert_rule, label="warning")
+        trigger_action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger,
+            target_type=AlertRuleTriggerAction.TargetType.TEAM,
+            target_identifier=str(other_team.id),
+        )
+        migrate_metric_data_conditions(trigger)
+        action, _, _ = migrate_metric_action(trigger_action)
+
+        targets = MetricAlertRegistryHandler.get_targets([action])
+        assert targets[action.id] is None
+
+        serialized_action = serialize(
+            action,
+            self.user,
+            WorkflowEngineActionSerializer(),
+            alert_rule_trigger_id=trigger.id,
+        )
+        assert serialized_action["desc"] == "Send an email to [removed]"
+        assert other_team.slug not in serialized_action["desc"]
+
     def test_batch_specific_targets(self) -> None:
         trigger = self.create_alert_rule_trigger(alert_rule=self.alert_rule, label="warning")
         trigger_action = AlertRuleTriggerAction.objects.create(

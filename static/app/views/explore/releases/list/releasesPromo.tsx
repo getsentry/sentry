@@ -24,10 +24,7 @@ import {sentryAppsApiOptions} from 'sentry/actionCreators/sentryApps';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
 import {TourImage, TourText} from 'sentry/components/modals/featureTourModal';
-import {
-  CopyMarkdownButton,
-  CopySetupInstructionsGate,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {CopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {Panel} from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
@@ -308,13 +305,11 @@ sentry-cli releases finalize "$VERSION"`;
               generateAndSetNewToken(app.slug);
             }}
           />
-          <CopySetupInstructionsGate>
-            <CopyMarkdownButton
-              borderless
-              getMarkdown={getMarkdown}
-              source="releases_quickstart"
-            />
-          </CopySetupInstructionsGate>
+          <CopyMarkdownButton
+            borderless
+            getMarkdown={getMarkdown}
+            source="releases_quickstart"
+          />
         </Flex>
         <div ref={containerRef}>
           <CodeBlock

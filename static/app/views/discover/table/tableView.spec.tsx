@@ -606,7 +606,7 @@ describe('TableView > CellActions', () => {
       }
     );
     expect(screen.getByText('222.3 KiB')).toBeInTheDocument();
-    expect(screen.getByText('444.3 KB')).toBeInTheDocument();
+    expect(screen.getByText('444.3 kB')).toBeInTheDocument();
   });
 
   it('shows events with value less than selected custom performance metric', async () => {
@@ -656,7 +656,7 @@ describe('TableView > CellActions', () => {
         },
       }
     );
-    await userEvent.hover(screen.getByText('444.3 KB'));
+    await userEvent.hover(screen.getByText('444.3 kB'));
     const buttons = screen.getAllByRole('button');
     await userEvent.click(buttons[buttons.length - 1]!);
     await userEvent.click(screen.getByText('Show values less than'));

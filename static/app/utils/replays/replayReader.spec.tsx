@@ -18,6 +18,7 @@ import {
   RRWebDOMFrameFixture,
   RRWebFullSnapshotFrameEventFixture,
   RRWebIncrementalSnapshotFrameEventFixture,
+  RRWebInitFrameEventsFixture,
 } from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
@@ -232,6 +233,42 @@ describe('ReplayReader', () => {
     });
   });
 
+  it('excludes a slow click from the chapter frames when its node has no tagName', () => {
+    const timestamp = new Date('2023-12-25T00:02:00');
+
+    const scrubbedSlowClick = {
+      type: EventType.Custom,
+      timestamp: timestamp.getTime(),
+      data: {
+        tag: 'breadcrumb',
+        payload: {
+          category: 'ui.slowClickDetected',
+          message: 'div',
+          timestamp: timestamp.getTime() / 1000,
+          type: BreadcrumbType.DEFAULT,
+          data: {
+            node: {id: 42},
+            nodeId: 42,
+            url: '',
+            timeAfterClickMs: 7000,
+            endReason: 'timeout',
+          },
+        },
+      },
+    };
+
+    const replay = ReplayReader.factory({
+      attachments: [scrubbedSlowClick],
+      errors: [],
+      fetching: false,
+      replayRecord,
+    });
+
+    expect(replay?.getChapterFrames()).toStrictEqual([
+      expect.objectContaining({category: 'replay.init'}),
+    ]);
+  });
+
   it('shoud return the SDK config if there is a RecordingOptions event found', () => {
     const timestamp = new Date();
     const optionsFrame = ReplayOptionFrameFixture();
@@ -374,6 +411,60 @@ describe('ReplayReader', () => {
     });
 
     expect(replay?.hasCanvasElementInReplay()).toBe(true);
+  });
+
+  describe('processingErrors', () => {
+    const timestamp = new Date('2023-12-25T00:02:00');
+
+    it('reports no errors when the replay has both a meta frame and a full snapshot', () => {
+      const replay = ReplayReader.factory({
+        attachments: [
+          ...RRWebInitFrameEventsFixture({timestamp}),
+          RRWebFullSnapshotFrameEventFixture({timestamp}),
+        ],
+        errors: [],
+        fetching: false,
+        replayRecord,
+      });
+
+      expect(replay?.processingErrors()).toEqual([]);
+    });
+
+    it('reports a missing full snapshot when the replay only has a meta frame', () => {
+      const replay = ReplayReader.factory({
+        attachments: RRWebInitFrameEventsFixture({timestamp}),
+        errors: [],
+        fetching: false,
+        replayRecord,
+      });
+
+      expect(replay?.processingErrors()).toEqual(['Missing Full Snapshot Frame']);
+    });
+
+    it('reports no missing full snapshot when the replay is a video replay', () => {
+      const replay = ReplayReader.factory({
+        attachments: [
+          ...RRWebInitFrameEventsFixture({timestamp}),
+          {
+            type: EventType.Custom,
+            timestamp: timestamp.getTime(),
+            data: {
+              tag: 'video',
+              payload: {
+                duration: 5000,
+                segmentId: 0,
+                timestamp: timestamp.getTime(),
+              },
+            },
+          },
+        ],
+        errors: [],
+        fetching: false,
+        replayRecord,
+      });
+
+      expect(replay?.processingErrors()).toEqual([]);
+    });
   });
 
   describe('clip window', () => {

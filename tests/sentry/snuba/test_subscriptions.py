@@ -404,6 +404,7 @@ class UpdateSnubaSubscriptionTest(TestCase):
             assert subscription.subscription_id is not None
             assert subscription.subscription_id != subscription_id
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_perf_metric_to_transaction(self) -> None:
         with self.tasks():
             old_dataset = Dataset.PerformanceMetrics

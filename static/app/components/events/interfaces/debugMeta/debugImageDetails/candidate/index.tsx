@@ -1,7 +1,5 @@
-import {Fragment} from 'react';
-import styled from '@emotion/styled';
-
 import {INTERNAL_SOURCE} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/utils';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {ImageCandidate} from 'sentry/types/debugImage';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -35,22 +33,22 @@ export function Candidate({
   const isInternalSource = source === INTERNAL_SOURCE;
 
   return (
-    <Fragment>
-      <Column>
+    <SimpleTable.Row>
+      <SimpleTable.RowCell>
         <StatusTooltip candidate={candidate} hasReprocessWarning={hasReprocessWarning} />
-      </Column>
+      </SimpleTable.RowCell>
 
-      <InformationColumn>
+      <SimpleTable.RowCell direction="column" align="start">
         <Information
           candidate={candidate}
           isInternalSource={isInternalSource}
           eventDateReceived={eventDateReceived}
           hasReprocessWarning={hasReprocessWarning}
         />
-      </InformationColumn>
+      </SimpleTable.RowCell>
 
       {haveCandidatesAtLeastOneAction && (
-        <ActionsColumn>
+        <SimpleTable.RowCell justify="end">
           <Actions
             onDelete={onDelete}
             baseUrl={baseUrl}
@@ -59,22 +57,8 @@ export function Candidate({
             candidate={candidate}
             isInternalSource={isInternalSource}
           />
-        </ActionsColumn>
+        </SimpleTable.RowCell>
       )}
-    </Fragment>
+    </SimpleTable.Row>
   );
 }
-
-const Column = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const InformationColumn = styled(Column)`
-  flex-direction: column;
-  align-items: flex-start;
-`;
-
-const ActionsColumn = styled(Column)`
-  justify-content: flex-end;
-`;

@@ -3,12 +3,13 @@ import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import type {CSS} from '@sentry/scraps/cssTypes';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -34,7 +35,7 @@ export function BillingDetailsPanel({
   organization: Organization;
   subscription: Subscription;
   analyticsEvent?: GetsentryEventKey;
-  maxPanelWidth?: string;
+  maxPanelWidth?: CSS['maxWidth'];
   shouldExpandInitially?: boolean;
 }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -56,6 +57,7 @@ export function BillingDetailsPanel({
 
   useEffect(() => {
     if (expandInitially && !isLoading && !hasSomeBillingDetails(billingDetails)) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsEditing(true);
       setExpandInitially(false);
     }
@@ -70,12 +72,8 @@ export function BillingDetailsPanel({
   }
 
   const taxFieldInfo = getTaxFieldInfo(billingDetails?.countryCode);
-  const balance =
-    subscription.accountBalance < 0
-      ? tct('[credits] credit', {
-          credits: formatCurrency(0 - subscription.accountBalance),
-        })
-      : formatCurrency(subscription.accountBalance);
+  const {accountBalance} = subscription;
+  const isCredit = accountBalance < 0;
 
   return (
     <Flex
@@ -94,11 +92,13 @@ export function BillingDetailsPanel({
           {t('Business address')}
         </Heading>
         {formError && <Alert variant="danger">{formError}</Alert>}
-        {!isEditing && !!subscription.accountBalance && (
+        {!isEditing && !!accountBalance && (
           <Text>
-            {tct('Account balance: [balance]', {
-              balance,
-            })}
+            {isCredit
+              ? tct('Account credits: [amount]', {
+                  amount: formatCurrency(0 - accountBalance),
+                })
+              : tct('Balance due: [amount]', {amount: formatCurrency(accountBalance)})}
           </Text>
         )}
         {isEditing ? (
@@ -155,7 +155,7 @@ export function BillingDetailsPanel({
                 <Text>
                   {taxFieldInfo.label}: {billingDetails.taxNumber}
                 </Text>
-                <QuestionTooltip
+                <InfoTip
                   title={tct(
                     "Your company's [taxNumberName] will appear on all receipts. You may be subject to taxes depending on country specific tax policies.",
                     {taxNumberName: <Text bold>{taxFieldInfo.taxNumberName}</Text>}

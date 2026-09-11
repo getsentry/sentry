@@ -30,7 +30,11 @@ from sentry.models.grouphistory import (
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.project import Project
-from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
+from sentry.models.pullrequest import (
+    PullRequest,
+    PullRequestLifecycleState,
+    is_open_pull_request_state,
+)
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
@@ -308,13 +312,6 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
                 )
 
 
-def _is_open_pull_request_state(state: str | None) -> bool:
-    return state is None or state in (
-        PullRequestLifecycleState.OPEN,
-        PullRequestLifecycleState.LOCKED,
-    )
-
-
 def _groups_with_other_open_prs(group_ids: Sequence[int], *, pull_request_id: int) -> set[int]:
     """
     Return the subset of `group_ids` that still have at least one linked PR
@@ -341,7 +338,7 @@ def _groups_with_other_open_prs(group_ids: Sequence[int], *, pull_request_id: in
         for pr_id, state in PullRequest.objects.filter(id__in=sibling_pr_ids).values_list(
             "id", "state"
         )
-        if _is_open_pull_request_state(state)
+        if is_open_pull_request_state(state)
     }
     return {group_id for group_id, linked_id in sibling_links if linked_id in open_pr_ids}
 
@@ -397,7 +394,7 @@ def _create_pull_request_activities(
 def _get_pull_request_activity_type_from_state(
     state: str | None,
 ) -> ActivityType | None:
-    if _is_open_pull_request_state(state):
+    if is_open_pull_request_state(state):
         return ActivityType.PULL_REQUEST_REOPENED
 
     match state:
@@ -418,8 +415,8 @@ def pull_request_state_changing(instance: PullRequest, **kwargs: object) -> None
         old_state = (
             PullRequest.objects.filter(pk=instance.pk).values_list("state", flat=True).first()
         )
-        previous_is_open = _is_open_pull_request_state(old_state)
-        is_open = _is_open_pull_request_state(instance.state)
+        previous_is_open = is_open_pull_request_state(old_state)
+        is_open = is_open_pull_request_state(instance.state)
         if previous_is_open == is_open:
             return
 

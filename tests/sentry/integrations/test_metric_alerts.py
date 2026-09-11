@@ -8,7 +8,7 @@ from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
-from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.integrations.metric_alerts import get_incident_status_text, incident_attachment_info
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.testutils.cases import BaseIncidentsTest, TestCase
 
@@ -23,6 +23,34 @@ def incident_attachment_info_with_metric_value(incident, new_status, metric_valu
             incident, new_status, metric_value
         ),
     )
+
+
+class GetIncidentStatusTextTest(TestCase, BaseIncidentsTest):
+    def test_formats_failure_rate_as_percentage_with_two_decimal_places(self) -> None:
+        alert_rule = self.create_alert_rule(aggregate="failure_rate()")
+
+        assert (
+            get_incident_status_text(
+                alert_rule.snuba_query,
+                AlertRuleThresholdType.ABOVE,
+                None,
+                "0.123456",
+            )
+            == "12.35% failure rate in the last 10 minutes"
+        )
+
+    def test_formats_failure_rate_as_percentage_for_comparison_alert(self) -> None:
+        alert_rule = self.create_alert_rule(aggregate="failure_rate()", comparison_delta=60)
+
+        assert (
+            get_incident_status_text(
+                alert_rule.snuba_query,
+                AlertRuleThresholdType.ABOVE,
+                alert_rule.comparison_delta,
+                "12.3456",
+            )
+            == "Failure rate 12.35% higher in the last 10 minutes compared to the same time one hour ago"
+        )
 
 
 class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):

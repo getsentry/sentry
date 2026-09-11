@@ -63,11 +63,9 @@ describe('RangeMap', () => {
   });
 
   test('enforces type', () => {
-    type Salutation = 'Hello' | 'Hi';
-
     const ladder = new RangeMap([
-      {min: 0, max: 10, value: 'Hello' as Salutation},
-      {min: 10, max: 20, value: 'Hi' as Salutation},
+      {min: 0, max: 10, value: 'Hello'},
+      {min: 10, max: 20, value: 'Hi'},
     ]);
 
     const salutation = ladder.get(0);

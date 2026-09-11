@@ -30,6 +30,7 @@ export enum DataConditionType {
   LATEST_RELEASE = 'latest_release',
   LEVEL = 'level',
   NEW_HIGH_PRIORITY_ISSUE = 'new_high_priority_issue',
+  EVERY_EVENT = 'every_event',
   REGRESSION_EVENT = 'regression_event',
   REAPPEARED_EVENT = 'reappeared_event',
   ISSUE_RESOLVED_TRIGGER = 'issue_resolved_trigger',

@@ -7,7 +7,6 @@ import * as qs from 'query-string';
 
 import {Link} from '@sentry/scraps/link';
 
-import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
@@ -17,6 +16,8 @@ import {isCollapsedNode} from 'sentry/views/performance/newTraceDetails/traceGua
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import type {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceWaterfallSource} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
+import {getTraceTargetFromEvent} from 'sentry/views/performance/traceDetails/traceTarget';
 
 import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
 
@@ -32,6 +33,7 @@ interface TraceOverlayProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
   event: Event;
   groupId: string | undefined;
+  source: TraceWaterfallSource;
   tree: IssuesTraceTree;
   viewManager: VirtualizedViewManager;
 }
@@ -44,6 +46,7 @@ export function IssueTraceWaterfallOverlay({
   containerRef,
   event,
   groupId,
+  source,
   tree,
   viewManager,
 }: TraceOverlayProps) {
@@ -53,7 +56,7 @@ export function IssueTraceWaterfallOverlay({
 
   const traceTarget = useMemo(
     () =>
-      generateTraceTarget(
+      getTraceTargetFromEvent(
         event,
         organization,
         {
@@ -63,9 +66,11 @@ export function IssueTraceWaterfallOverlay({
             referrer: location.query.referrer,
           },
         },
-        TraceViewSources.ISSUE_DETAILS
+        source === 'feedback'
+          ? TraceViewSources.FEEDBACK_DETAILS
+          : TraceViewSources.ISSUE_DETAILS
       ),
-    [event, organization, location, groupId]
+    [event, organization, location, groupId, source]
   );
 
   useEffect(() => {

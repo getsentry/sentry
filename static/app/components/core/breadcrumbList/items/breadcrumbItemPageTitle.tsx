@@ -58,9 +58,13 @@ function renderTrailingActions(trailingActions?: BreadcrumbTitleActions) {
     return null;
   }
 
+  // Key on the slot each action was declared in, not its position after the
+  // nulls are dropped. Consumers inline conditionals here, so a slot appearing
+  // would otherwise shift every later action onto a new key — remounting it and
+  // discarding its state (an open dropdown snaps shut).
   const actions = (
     Array.isArray(trailingActions) ? trailingActions : [trailingActions]
-  ).filter(action => action !== null);
+  ).flatMap((action, slot) => (action === null ? [] : [{action, slot}]));
 
   if (actions.length === 0) {
     return null;
@@ -68,8 +72,8 @@ function renderTrailingActions(trailingActions?: BreadcrumbTitleActions) {
 
   return (
     <Flex as="span" align="center" gap="xs" flexShrink={0}>
-      {actions.map((action, index) => (
-        <Fragment key={index}>{renderTrailingAction(action)}</Fragment>
+      {actions.map(({action, slot}) => (
+        <Fragment key={slot}>{renderTrailingAction(action)}</Fragment>
       ))}
     </Flex>
   );
@@ -81,7 +85,7 @@ interface BreadcrumbPaginationItem {
   onClick?: () => void;
   /** Destination for the chevron. When omitted the chevron renders disabled. */
   to?: LinkProps['to'];
-  /** Optional tooltip content — useful for rich tooltips like "Learn More" links. */
+  /** Optional tooltip content — accepts rich content, not just a string. */
   tooltip?: React.ReactNode;
 }
 

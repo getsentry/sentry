@@ -71,11 +71,14 @@ class RetentionSettings:
 
 # This mirrors the Retentions struct in relay
 # https://github.com/getsentry/relay/blob/641e7f20cd/relay-dynamic-config/src/project.rs#L34-L45
+# On wire-name collisions (TRANSACTION/SPAN, TRACE_METRIC/TRACE_METRIC_BYTE) the
+# last entry wins, so list categories from least to most preferred.
 RETENTIONS_CONFIG_MAPPING = {
     DataCategory.LOG_BYTE: "log",
     DataCategory.TRANSACTION: "span",
     DataCategory.SPAN: "span",
     DataCategory.TRACE_METRIC: "traceMetric",
+    DataCategory.TRACE_METRIC_BYTE: "traceMetric",
 }
 
 

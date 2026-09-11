@@ -1,5 +1,4 @@
 import {useQueryClient} from '@tanstack/react-query';
-import moment from 'moment-timezone';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {Link} from '@sentry/scraps/link';
@@ -8,6 +7,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ResultTable} from 'sentry/components/resultTable';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getCells} from 'sentry/utils/cells';
@@ -15,12 +15,10 @@ import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
-import {openChangeEffectiveAtModal} from 'admin/components/changeEffectiveAtAction';
 import {DetailLabel} from 'admin/components/detailLabel';
 import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 import {DetailsPage} from 'admin/components/detailsPage';
-import {ResultTable} from 'admin/components/resultTable';
 import {isBillingAdmin, prettyDate} from 'admin/utils';
 import type {Invoice, InvoiceItem} from 'getsentry/types';
 import {InvoiceStatus} from 'getsentry/types';
@@ -28,9 +26,8 @@ import {InvoiceStatus} from 'getsentry/types';
 const ERR_MESSAGE = 'There was an internal error updating this invoice';
 
 export function InvoiceDetails() {
-  const {invoiceId, orgId, region} = useParams<{
+  const {invoiceId, region} = useParams<{
     invoiceId: string;
-    orgId: string;
     region: string;
   }>();
   const cellInfo = getCells().find(c => c.name.toLowerCase() === region.toLowerCase());
@@ -66,8 +63,6 @@ export function InvoiceDetails() {
   const isDeleted = customer.isDeleted;
 
   const updateCache = (updatedInvoice: Invoice) => {
-    // Will be fixed soon when we get rid of setApiQueryData.
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
     setApiQueryData<Invoice>(queryClient, QUERY_KEY, updatedInvoice);
   };
 
@@ -90,7 +85,7 @@ export function InvoiceDetails() {
   const handleRetry = async () => {
     try {
       const updatedInvoice = await api.requestPromise(
-        `/customers/${orgId}/invoices/${invoiceId}/retry-payment/`,
+        `/customers/${customer.slug}/invoices/${invoiceId}/retry-payment/`,
         {
           method: 'PUT',
         }
@@ -102,36 +97,24 @@ export function InvoiceDetails() {
     }
   };
 
-  const handleEffectiveAt = async (effectiveAt: string) => {
-    try {
-      const updatedInvoice = await api.requestPromise(
-        `/customers/${orgId}/invoices/${invoiceId}/effective-at/`,
-        {
-          method: 'PUT',
-          data: {effectiveAt},
-        }
-      );
-      updateCache(updatedInvoice);
-      addSuccessMessage('Invoice effective at date updated');
-    } catch {
-      addErrorMessage(ERR_MESSAGE);
-    }
-  };
-
   const getItemDescription = (item: InvoiceItem) => {
     if (item.description) {
       return item.description;
     }
 
-    const {plan, period} = item.data;
+    const {plan, period} = item.data ?? {};
 
     if (item.type === 'subscription') {
+      if (!plan) {
+        return 'Unlabeled item';
+      }
+      if (!period) {
+        return `${plan.name} subscription`;
+      }
       const from = prettyDate(period.start * 1000);
       const until = prettyDate(period.end * 1000);
 
-      return period
-        ? `${plan.name} subscription from ${from} until ${until}`
-        : `${plan.name} subscription`;
+      return `${plan.name} subscription from ${from} until ${until}`;
     }
 
     return 'Unlabeled item';
@@ -155,7 +138,7 @@ export function InvoiceDetails() {
         <DetailLabel title="Customer">
           {customer.isDeleted ? (
             <span>
-              {customer.slug} <small>(deleted)</small>
+              {customer.slug ?? customer.id} <small>(deleted)</small>
             </span>
           ) : (
             <Link to={`/_admin/customers/${customer.slug}/`}>{customer.name}</Link>
@@ -181,17 +164,6 @@ export function InvoiceDetails() {
       </DetailList>
       <DetailList>
         <DetailLabel title="ID">{invoice.id}</DetailLabel>
-        <DetailLabel title="Type">{invoice.type || 'n/a'}</DetailLabel>
-        <DetailLabel title="Channel">{invoice.channel || 'n/a'}</DetailLabel>
-        <DetailLabel title="Stripe ID">
-          {invoice.stripeInvoiceID ? (
-            <a href={`https://dashboard.stripe.com/invoices/${invoice.stripeInvoiceID}`}>
-              {invoice.stripeInvoiceID}
-            </a>
-          ) : (
-            'n/a'
-          )}
-        </DetailLabel>
         <DetailLabel title="Effective At">
           {invoice.effectiveAt ? prettyDate(invoice.effectiveAt) : 'n/a'}
         </DetailLabel>
@@ -210,15 +182,7 @@ export function InvoiceDetails() {
       <tbody>
         {invoice.items.map((item, num) => (
           <tr key={num}>
-            <td>
-              {getItemDescription(item)}
-              <br />
-              {item.periodStart && item.periodEnd && (
-                <small>{`${moment(item.periodStart).format('ll')} › ${moment(
-                  item.periodEnd
-                ).format('ll')}`}</small>
-              )}
-            </td>
+            <td>{getItemDescription(item)}</td>
             <td data-label="Amount" style={{textAlign: 'right'}}>
               ${(item.amount / 100).toLocaleString()}
             </td>
@@ -306,17 +270,6 @@ export function InvoiceDetails() {
               ? 'Invoice is paid'
               : 'Requires billing admin permission',
           onAction: handleRetry,
-        },
-        {
-          key: 'changeEffectiveAt',
-          name: 'Change Effective At Date',
-          help: 'Change date used for ARR calculations.',
-          disabled: isDeleted || !isBillingAdmin(),
-          disabledReason: isDeleted
-            ? 'Organization is deleted'
-            : 'Requires billing admin permission',
-          skipConfirmModal: true,
-          onAction: () => openChangeEffectiveAtModal({onAction: handleEffectiveAt}),
         },
       ]}
       sections={[

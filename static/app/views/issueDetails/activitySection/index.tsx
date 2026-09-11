@@ -1,301 +1,171 @@
-import {Fragment, useCallback, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {Heading} from '@sentry/scraps/text';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {NoteBody} from 'sentry/components/activity/note/body';
-import {Timeline} from 'sentry/components/timeline';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconEllipsis} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconChat, IconEllipsis} from 'sentry/icons';
+import {t, tct, tn} from 'sentry/locale';
+import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity} from 'sentry/types/group';
-import {GroupActivityType, SEER_ACTIVITY_TYPES} from 'sentry/types/group';
-import type {Team} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {uniqueId} from 'sentry/utils/guid';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
+import {
+  buildActivityFeedItems,
+  type DisplayedActivityFeedItem,
+} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
+import {CollapsedStatusActivityRow} from 'sentry/views/issueDetails/activitySection/activityLineItem/collapsedStatusActivityRow';
+import {ActivityLineList} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
 import {
   ActivityLineNote,
   isActivityNote,
 } from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
 import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
-import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
-import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/activitySection/groupActivityIcons';
-import {getGroupActivityItem} from 'sentry/views/issueDetails/activitySection/groupActivityItem';
 import {useMutateActivity} from 'sentry/views/issueDetails/activitySection/useMutateActivity';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
-import {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebar';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-interface TimelineItemProps {
+interface ActivityFeedRowProps {
   group: Group;
-  handleDelete: (item: GroupActivity) => Promise<void>;
   inputVariant: 'compact' | 'full';
-  item: GroupActivity;
-  size: 'sm' | 'md';
-  teams: Team[];
-  onCommentEdited?: (activity: GroupActivity[]) => void;
+  item: DisplayedActivityFeedItem;
+  onCommentDelete: (item: GroupActivity) => Promise<void>;
+  onCommentUpdate: (item: GroupActivity, data: NoteType) => Promise<void>;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }
 
-function TimelineItem({
+function ActivityFeedRow({
   item,
-  handleDelete,
-  onCommentEdited,
+  onCommentDelete,
+  onCommentUpdate,
   group,
-  teams,
-  size,
   inputVariant,
   timestampUnitStyle,
-}: TimelineItemProps) {
-  const organization = useOrganization();
-  const useActivityLineItems = organization.features.includes('issue-activity-feed-v2');
+}: ActivityFeedRowProps) {
+  if (item.type === 'collapsed_status_activities') {
+    return (
+      <CollapsedStatusActivityRow eventCount={item.activities.length}>
+        {item.activities.map(activity => (
+          <ActivityFeedRow
+            item={activity}
+            onCommentDelete={onCommentDelete}
+            onCommentUpdate={onCommentUpdate}
+            group={group}
+            key={activity.activity.id}
+            inputVariant={inputVariant}
+            timestampUnitStyle={timestampUnitStyle}
+          />
+        ))}
+      </CollapsedStatusActivityRow>
+    );
+  }
 
-  if (useActivityLineItems) {
-    if (isActivityNote(item)) {
-      // Keep note mutations wired from ActivitySection until the v2 note API settles.
-      return (
-        <ActivityLineNote
-          activity={item}
-          group={group}
-          inputVariant={inputVariant}
-          onDelete={() => handleDelete(item)}
-          onCommentEdited={onCommentEdited}
-          timestampUnitStyle={timestampUnitStyle}
-        />
-      );
-    }
+  const {activity} = item;
 
+  if (!isActivityNote(activity)) {
     return (
       <ActivityLine item={item} group={group} timestampUnitStyle={timestampUnitStyle} />
     );
   }
 
   return (
-    <LegacyTimelineItemWithEditing
-      item={item}
-      handleDelete={handleDelete}
-      onCommentEdited={onCommentEdited}
-      group={group}
-      teams={teams}
-      size={size}
+    <ActivityLineNote
+      activity={activity}
       inputVariant={inputVariant}
+      onDelete={() => onCommentDelete(activity)}
+      onUpdate={data => onCommentUpdate(activity, data)}
       timestampUnitStyle={timestampUnitStyle}
     />
-  );
-}
-
-function LegacyTimelineItemWithEditing(props: TimelineItemProps) {
-  const [editing, setEditing] = useState(false);
-
-  return <LegacyTimelineItem {...props} editing={editing} setEditing={setEditing} />;
-}
-
-function LegacyTimelineItem({
-  item,
-  handleDelete,
-  onCommentEdited,
-  group,
-  teams,
-  size,
-  inputVariant,
-  timestampUnitStyle,
-  editing,
-  setEditing,
-}: {
-  editing: boolean;
-  group: Group;
-  handleDelete: (item: GroupActivity) => Promise<void>;
-  inputVariant: 'compact' | 'full';
-  item: GroupActivity;
-  setEditing: (editing: boolean) => void;
-  size: 'sm' | 'md';
-  teams: Team[];
-  onCommentEdited?: (activity: GroupActivity[]) => void;
-  timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
-}) {
-  const organization = useOrganization();
-  const {title, message} = getGroupActivityItem(
-    item,
-    organization,
-    group.project,
-    group.issueCategory,
-    teams
-  );
-
-  const iconMapping = groupActivityTypeIconMapping[item.type];
-  const componentFunction = iconMapping?.componentFunction;
-  const Icon = componentFunction
-    ? componentFunction({
-        data: item.data,
-        user: item.user,
-        sentry_app: item.sentry_app,
-      })
-    : (iconMapping?.Component ?? null);
-
-  return (
-    <ActivityTimelineItem
-      title={
-        <TitleRow>
-          <Tooltip title={title} showOnlyOnOverflow skipWrapper>
-            <TitleText>{title}</TitleText>
-          </Tooltip>
-          {item.type === GroupActivityType.NOTE && !editing ? (
-            <CommentActionsDropdown
-              onDelete={() => handleDelete(item)}
-              onEdit={() => setEditing(true)}
-              user={item.user}
-            />
-          ) : null}
-        </TitleRow>
-      }
-      timestamp={<Timestamp date={item.dateCreated} unitStyle={timestampUnitStyle} />}
-      icon={
-        Icon && (
-          <Icon
-            {...iconMapping.defaultProps}
-            {...iconMapping.propsFunction?.(item.data)}
-            size="xs"
-          />
-        )
-      }
-    >
-      {item.type === GroupActivityType.NOTE && editing ? (
-        <ActivityNoteInput
-          itemKey={item.id}
-          storageKey={`groupinput:${item.id}`}
-          minHeight={96}
-          variant={inputVariant}
-          text={item.data.text}
-          noteId={item.id}
-          group={group}
-          onCommentEdited={activity => {
-            onCommentEdited?.(activity);
-            setEditing(false);
-          }}
-          onCancel={() => setEditing(false)}
-        />
-      ) : typeof message === 'string' ? (
-        <NoteBody text={message} />
-      ) : (
-        <Text as="div" size={size}>
-          {message}
-        </Text>
-      )}
-    </ActivityTimelineItem>
   );
 }
 
 interface ActivitySectionProps {
   group: Group;
   /**
+   * Activity to render instead of the activity embedded in the group response.
+   */
+  activities?: GroupActivity[];
+  /**
    * Whether to filter the activity to only show comments.
    */
   filterComments?: boolean;
   minHeight?: number;
-  onCommentCreated?: (activity: GroupActivity[]) => void;
-  onCommentDeleted?: (activity: GroupActivity[]) => void;
-  onCommentEdited?: (activity: GroupActivity[]) => void;
+  onActivityChange?: (activity: GroupActivity[]) => void;
   /**
    * Controls layout and input style.
    * - `sidebar` (default): fold section, compact input, collapses at 5 items
    * - `standalone`: full input, no collapse
    */
   placeholder?: string;
-  size?: 'sm' | 'md';
   variant?: 'sidebar' | 'standalone';
-}
-
-function isDuplicatePullRequestActivity(
-  activity: GroupActivity,
-  adjacentActivity: GroupActivity | undefined
-): boolean {
-  switch (activity.type) {
-    // REFERENCED_IN_COMMIT should be hidden if there is an adjacent PULL_REQUEST_MERGED activity with the same pull request
-    case GroupActivityType.REFERENCED_IN_COMMIT: {
-      if (adjacentActivity?.type !== GroupActivityType.PULL_REQUEST_MERGED) {
-        return false;
-      }
-
-      const pullRequest = activity.data.commit?.pullRequest;
-      const adjacentPullRequest = adjacentActivity.data.pullRequest;
-      if (!pullRequest || !adjacentPullRequest) {
-        return false;
-      }
-
-      return (
-        pullRequest.id === adjacentPullRequest.id &&
-        pullRequest.repository.id === adjacentPullRequest.repository.id
-      );
-    }
-    default:
-      return false;
-  }
-}
-
-function removeAdjacentDuplicatePullRequestActivities(
-  activities: GroupActivity[]
-): GroupActivity[] {
-  return activities.filter(
-    (activity, index) =>
-      !isDuplicatePullRequestActivity(activity, activities[index - 1]) &&
-      !isDuplicatePullRequestActivity(activity, activities[index + 1])
-  );
 }
 
 export function ActivitySection({
   group,
+  activities: providedActivities,
   filterComments,
-  onCommentCreated,
-  onCommentDeleted,
-  onCommentEdited,
+  onActivityChange,
   variant = 'sidebar',
-  size = 'sm',
   minHeight = 96,
   placeholder = t('Add a comment\u2026'),
 }: ActivitySectionProps) {
-  const theme = useTheme();
   const organization = useOrganization();
-  const {teams} = useTeamsById();
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
-  const [inputId, setInputId] = useState(() => uniqueId());
-
-  const noteProps = {
-    minHeight,
-    group,
-    placeholder,
-  };
-
-  const mutators = useMutateActivity({
+  const activities = providedActivities ?? group.activity;
+  const {createComment, deleteComment, updateComment} = useMutateActivity({
     organization,
     group,
   });
 
-  const handleDelete = useCallback(
-    async (item: GroupActivity): Promise<void> => {
-      const filteredActivity = group.activity.filter(a => a.id !== item.id);
-      await mutators.handleDelete(item.id, {
-        onSuccess: () => {
-          trackAnalytics('issue_details.comment_deleted', {organization});
-          addSuccessMessage(t('Comment removed'));
-          onCommentDeleted?.(filteredActivity);
-        },
-      });
-    },
-    [group.activity, mutators, onCommentDeleted, organization]
-  );
+  async function handleCreate(data: NoteType) {
+    try {
+      const result = await createComment(data);
+      trackAnalytics('issue_details.comment_created', {organization});
+      addSuccessMessage(t('Comment posted'));
+      onActivityChange?.([result, ...activities]);
+    } catch (error) {
+      const detail =
+        error instanceof RequestError && typeof error.responseJSON?.detail === 'string'
+          ? error.responseJSON.detail
+          : null;
+      addErrorMessage(
+        detail ? tct('Error: [msg]', {msg: detail}) : t('Unable to post comment')
+      );
+      throw error;
+    }
+  }
 
+  async function handleDelete(item: GroupActivity) {
+    await deleteComment(item.id);
+    trackAnalytics('issue_details.comment_deleted', {organization});
+    addSuccessMessage(t('Comment removed'));
+    onActivityChange?.(activities.filter(activity => activity.id !== item.id));
+  }
+
+  async function handleUpdate(item: GroupActivity, data: NoteType) {
+    try {
+      const result = await updateComment(item.id, data);
+      trackAnalytics('issue_details.comment_updated', {organization});
+      addSuccessMessage(t('Comment updated'));
+      onActivityChange?.(
+        activities.map(activity => (activity.id === result.id ? result : activity))
+      );
+    } catch (error) {
+      addErrorMessage(t('Unable to update comment'));
+      throw error;
+    }
+  }
+
+  const isStandalone = variant === 'standalone';
   const activityLink = {
     pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
     query: {
@@ -303,62 +173,52 @@ export function ActivitySection({
       cursor: undefined,
     },
   };
+  const commentsLink = {
+    pathname: activityLink.pathname,
+    query: {
+      ...activityLink.query,
+      filter: 'comments',
+    },
+  };
 
-  const showSeerActivities = organization.features.includes(
-    'display-seer-actions-as-issue-activities'
-  );
-  const useActivityLineItems = organization.features.includes('issue-activity-feed-v2');
-  const visibleActivities = showSeerActivities
-    ? group.activity.filter(
-        item => useActivityLineItems || item.type !== GroupActivityType.SEER_PR_CREATED
-      )
-    : group.activity.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));
+  const displayedActivities = buildActivityFeedItems({
+    activities,
+    filterComments,
+  });
+  const inputVariant = isStandalone ? 'full' : 'compact';
+  const timestampUnitStyle = isStandalone ? undefined : 'short';
 
-  const filteredActivities = removeAdjacentDuplicatePullRequestActivities(
-    visibleActivities
-  ).filter(item => !filterComments || item.type === GroupActivityType.NOTE);
-  const inputVariant = variant === 'sidebar' ? 'compact' : 'full';
-  const timestampUnitStyle = variant === 'sidebar' ? 'short' : undefined;
-
-  const renderActivityItem = (item: GroupActivity) => (
-    <TimelineItem
+  const renderActivityItem = (item: DisplayedActivityFeedItem) => (
+    <ActivityFeedRow
       item={item}
-      handleDelete={handleDelete}
-      onCommentEdited={onCommentEdited}
+      onCommentDelete={handleDelete}
+      onCommentUpdate={handleUpdate}
       group={group}
-      teams={teams}
-      key={item.id}
-      size={size}
+      key={item.activity.id}
       inputVariant={inputVariant}
       timestampUnitStyle={timestampUnitStyle}
     />
   );
-  const renderActivityList = (children: React.ReactNode) =>
-    useActivityLineItems ? (
-      <ActivityLineList data-test-id="activity-timeline">{children}</ActivityLineList>
-    ) : (
-      <Timeline.Container data-test-id="activity-timeline">{children}</Timeline.Container>
-    );
-
   const noteInput = (
     <ActivityNoteInput
-      key={inputId}
       storageKey="groupinput:latest"
       itemKey={group.id}
-      onCommentCreated={activity => {
-        onCommentCreated?.(activity);
-        setInputId(uniqueId());
-      }}
+      minHeight={minHeight}
+      onSubmit={handleCreate}
+      placeholder={placeholder}
       variant={inputVariant}
-      {...noteProps}
     />
   );
 
-  const timeline = renderActivityList(filteredActivities.map(renderActivityItem));
+  const timeline = (
+    <ActivityLineList data-test-id="activity-timeline">
+      {displayedActivities.map(renderActivityItem)}
+    </ActivityLineList>
+  );
   const hiddenActivityCount =
-    filteredActivities.length >= 5 ? filteredActivities.length - 3 : 0;
+    displayedActivities.length >= 5 ? displayedActivities.length - 3 : 0;
   const sidebarVisibleActivities =
-    hiddenActivityCount > 0 ? filteredActivities.slice(0, 3) : filteredActivities;
+    hiddenActivityCount > 0 ? displayedActivities.slice(0, 3) : displayedActivities;
   const sidebarActivityItems = (
     <Fragment>
       {sidebarVisibleActivities.map(renderActivityItem)}
@@ -388,7 +248,7 @@ export function ActivitySection({
     </Fragment>
   );
 
-  if (variant === 'standalone') {
+  if (isStandalone) {
     return (
       <Grid gap="xl">
         {noteInput}
@@ -400,82 +260,36 @@ export function ActivitySection({
   return (
     <SidebarFoldSection
       title={
-        <SidebarSectionTitle style={{gap: theme.space.sm, margin: 0}}>
+        <Heading as="h3" size="md">
           {t('Activity')}
-        </SidebarSectionTitle>
+        </Heading>
+      }
+      titleTrailingItems={
+        group.numComments > 0 ? (
+          <LinkButton
+            aria-label={tn('View %s comment', 'View %s comments', group.numComments)}
+            icon={<IconChat />}
+            size="zero"
+            variant="transparent"
+            to={commentsLink}
+            replace
+            preventScrollReset
+          >
+            {tn('%s comment', '%s comments', group.numComments)}
+          </LinkButton>
+        ) : null
       }
       sectionKey={SectionKey.ACTIVITY}
     >
       <Grid gap="lg">
         {noteInput}
-        {renderActivityList(sidebarActivityItems)}
+        <ActivityLineList data-test-id="activity-timeline">
+          {sidebarActivityItems}
+        </ActivityLineList>
       </Grid>
     </SidebarFoldSection>
   );
 }
-
-const TitleRow = styled('span')`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  min-width: 0;
-  max-width: 100%;
-`;
-
-const TitleText = styled('span')`
-  display: inline-block;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-
-  > * {
-    display: inline-block;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-`;
-
-const ActivityTimelineItem = styled(Timeline.Item)`
-  align-items: start;
-  grid-template-columns: 22px minmax(0, 1fr) auto;
-
-  ${Timeline.TitleRow} {
-    min-width: 0;
-  }
-
-  ${Timeline.Title} {
-    min-width: 0;
-    max-width: 100%;
-  }
-`;
-
-const Timestamp = styled(TimeSince)`
-  font-size: ${p => p.theme.font.size.sm};
-  white-space: nowrap;
-`;
-
-const ActivityLineList = styled('div')`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-  container-name: activity-list;
-  container-type: inline-size;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 10.5px;
-    top: 11px;
-    bottom: 11px;
-    width: 0;
-    border-left: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
-  }
-`;
 
 const RotatedEllipsisIcon = styled(IconEllipsis)`
   position: relative;
@@ -489,16 +303,6 @@ const MoreActivityRow = styled('div')`
   align-items: center;
   grid-template-columns: 22px minmax(0, 1fr);
   grid-column-gap: ${p => p.theme.space.md};
-
-  &::after {
-    content: '';
-    position: absolute;
-    left: 10.5px;
-    top: 50%;
-    bottom: 0;
-    width: 1px;
-    background: ${p => p.theme.tokens.background.primary};
-  }
 `;
 
 const MoreActivityIcon = styled('div')`

@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 import moment from 'moment-timezone';
 
+import {Container, Grid} from '@sentry/scraps/layout';
+
 import {restoreRelease} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
@@ -29,6 +31,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -63,11 +66,10 @@ import {ReleaseIssues} from './releaseIssues';
 
 const RELEASE_PERIOD_KEY = 'release';
 
-export enum TransactionsListOption {
+enum TransactionsListOption {
   FAILURE_COUNT = 'failure_count',
   TPM = 'tpm',
   SLOW = 'slow',
-  SLOW_LCP = 'slow_lcp',
   REGRESSION = 'regression',
   IMPROVEMENT = 'improved',
 }
@@ -174,7 +176,7 @@ function ReleaseOverview() {
       id: undefined,
       version: 2,
       name: `Release ${formatVersion(version)}`,
-      query: `event.type:transaction ${searchReleaseVersion(version)}`,
+      query: `is_transaction:true ${searchReleaseVersion(version)}`,
       fields: ['transaction', 'failure_count()', 'epm()', 'p50()'],
       orderby: '-failure_count',
       range: statsPeriod || undefined,
@@ -182,25 +184,19 @@ function ReleaseOverview() {
       projects: [projectId],
       start: start ? getUtcDateString(start) : undefined,
       end: end ? getUtcDateString(end) : undefined,
+      dataset: DiscoverDatasets.SPANS,
     };
 
     switch (selectedSort.value) {
-      case TransactionsListOption.SLOW_LCP:
-        return EventView.fromSavedQuery({
-          ...baseQuery,
-          query: `event.type:transaction release:${version} epm():>0.01 has:measurements.lcp`,
-          fields: ['transaction', 'failure_count()', 'epm()', 'p75(measurements.lcp)'],
-          orderby: 'p75_measurements_lcp',
-        });
       case TransactionsListOption.SLOW:
         return EventView.fromSavedQuery({
           ...baseQuery,
-          query: `event.type:transaction release:${version} epm():>0.01`,
+          query: `is_transaction:true release:${version} epm():>0.01`,
         });
       case TransactionsListOption.FAILURE_COUNT:
         return EventView.fromSavedQuery({
           ...baseQuery,
-          query: `event.type:transaction release:${version} failure_count():>0`,
+          query: `is_transaction:true release:${version} failure_count():>0`,
         });
       default:
         return EventView.fromSavedQuery(baseQuery);
@@ -276,10 +272,7 @@ function ReleaseOverview() {
   const {environments} = selection;
   const {selectedSort, sortOptions} = getTransactionsListSort(location);
   const releaseEventView = getReleaseEventView(project.id, selectedSort);
-  const titles =
-    selectedSort.value === TransactionsListOption.SLOW_LCP
-      ? [t('transaction'), t('failure_count()'), t('tpm()'), t('p75(lcp)')]
-      : [t('transaction'), t('failure_count()'), t('tpm()'), t('p50()')];
+  const titles = [t('transaction'), t('failure_count()'), t('tpm()'), t('p50()')];
   const releaseTrendView = getReleaseTrendView(project.id, releaseMeta.released);
 
   const generateLink = {
@@ -314,49 +307,71 @@ function ReleaseOverview() {
           {isReleaseArchived(release) && (
             <ReleaseArchivedNotice onRestore={() => handleRestore(refetchData)} />
           )}
-          <ReleaseDetailsPageFilters>
-            <EnvironmentPageFilter />
-            <TimeRangeSelector
-              relative={period ?? (defaultDateTimeSelected ? RELEASE_PERIOD_KEY : null)}
-              start={start ?? null}
-              end={end ?? null}
-              utc={utc ?? null}
-              onChange={handleDateChange}
-              menuTitle={t('Filter Time Range')}
-              trigger={triggerProps => (
-                <TimeRangeSelectTrigger {...triggerProps}>
-                  {defaultDateTimeSelected ? releaseBoundsLabel : triggerProps.children}
-                </TimeRangeSelectTrigger>
+          <Grid
+            columns={{zero: 'auto', md: 'minmax(0, max-content) 1fr'}}
+            gap="xl"
+            marginBottom="xl"
+          >
+            <Container width={{zero: '100%', md: 'max-content'}}>
+              {containerProps => (
+                <EnvironmentPageFilter
+                  {...containerProps}
+                  triggerProps={{style: {width: '100%'}}}
+                />
               )}
-              relativeOptions={({defaultOptions, arbitraryOptions}) =>
-                releaseBounds.type === 'ancient'
-                  ? {...defaultOptions, ...arbitraryOptions}
-                  : {
-                      [RELEASE_PERIOD_KEY]: (
-                        <Fragment>
-                          {releaseBoundsLabel}
-                          <br />
-                          <ReleaseBoundsDescription primary={defaultDateTimeSelected}>
-                            <DateTime date={releaseBounds.releaseStart} />
-                            –<DateTime date={releaseBounds.releaseEnd} />
-                          </ReleaseBoundsDescription>
-                        </Fragment>
-                      ),
-                      ...defaultOptions,
-                      ...arbitraryOptions,
-                    }
-              }
-              defaultPeriod={
-                releaseBounds.type === 'ancient' ? '90d' : RELEASE_PERIOD_KEY
-              }
-              defaultAbsolute={{
-                start: moment(releaseBounds.releaseStart).subtract(1, 'hour').toDate(),
-                end: releaseBounds.releaseEnd
-                  ? moment(releaseBounds.releaseEnd).add(1, 'hour').toDate()
-                  : undefined,
-              }}
-            />
-          </ReleaseDetailsPageFilters>
+            </Container>
+            <Container width={{zero: '100%', md: 'max-content'}}>
+              {containerProps => (
+                <TimeRangeSelector
+                  {...containerProps}
+                  relative={
+                    period ?? (defaultDateTimeSelected ? RELEASE_PERIOD_KEY : null)
+                  }
+                  start={start ?? null}
+                  end={end ?? null}
+                  utc={utc ?? null}
+                  onChange={handleDateChange}
+                  menuTitle={t('Filter Time Range')}
+                  trigger={triggerProps => (
+                    <TimeRangeSelectTrigger {...triggerProps} style={{width: '100%'}}>
+                      {defaultDateTimeSelected
+                        ? releaseBoundsLabel
+                        : triggerProps.children}
+                    </TimeRangeSelectTrigger>
+                  )}
+                  relativeOptions={({defaultOptions, arbitraryOptions}) =>
+                    releaseBounds.type === 'ancient'
+                      ? {...defaultOptions, ...arbitraryOptions}
+                      : {
+                          [RELEASE_PERIOD_KEY]: (
+                            <Fragment>
+                              {releaseBoundsLabel}
+                              <br />
+                              <ReleaseBoundsDescription primary={defaultDateTimeSelected}>
+                                <DateTime date={releaseBounds.releaseStart} />
+                                –<DateTime date={releaseBounds.releaseEnd} />
+                              </ReleaseBoundsDescription>
+                            </Fragment>
+                          ),
+                          ...defaultOptions,
+                          ...arbitraryOptions,
+                        }
+                  }
+                  defaultPeriod={
+                    releaseBounds.type === 'ancient' ? '90d' : RELEASE_PERIOD_KEY
+                  }
+                  defaultAbsolute={{
+                    start: moment(releaseBounds.releaseStart)
+                      .subtract(1, 'hour')
+                      .toDate(),
+                    end: releaseBounds.releaseEnd
+                      ? moment(releaseBounds.releaseEnd).add(1, 'hour').toDate()
+                      : undefined,
+                  }}
+                />
+              )}
+            </Container>
+          </Grid>
           {(hasDiscover || hasPerformance || hasHealthData) && (
             <DemoTourElement
               id={DemoTourStep.RELEASES_CHART}
@@ -524,11 +539,6 @@ function getDropdownOptions(): DropdownOption[] {
       label: t('Slow Transactions'),
     },
     {
-      sort: {kind: 'desc', field: 'p75_measurements_lcp'},
-      value: TransactionsListOption.SLOW_LCP,
-      label: t('Slow LCP'),
-    },
-    {
       sort: {kind: 'desc', field: 'trend_percentage()'},
       query: [['confidence()', '>6']],
       trendType: TrendChangeType.REGRESSION,
@@ -557,17 +567,6 @@ function getTransactionsListSort(location: Location): {
   const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0]!;
   return {selectedSort, sortOptions};
 }
-
-const ReleaseDetailsPageFilters = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(0, max-content) 1fr;
-  gap: ${p => p.theme.space.xl};
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: auto;
-  }
-`;
 
 const ReleaseBoundsDescription = styled('span')<{primary: boolean}>`
   font-size: ${p => p.theme.font.size.sm};

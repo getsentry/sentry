@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {CodeBlock} from '@sentry/scraps/code';
 import {Flex} from '@sentry/scraps/layout';
@@ -7,16 +6,19 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
 
+import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {GraphQlRequestBody} from 'sentry/components/events/interfaces/request/graphQlRequestBody';
 import {getCurlCommand, getFullUrl} from 'sentry/components/events/interfaces/utils';
-import {
-  KeyValueData,
-  type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
+import {
+  KeyValueTableCard,
+  KeyValueTableCardPanel,
+  KeyValueTableCardTitle,
+  KeyValueTableDataList,
+  type KeyValueTableDataRowProps,
+} from 'sentry/components/tables/keyValueTable';
 import {Truncate} from 'sentry/components/truncate';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -24,6 +26,7 @@ import type {EntryRequest, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils/defined';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
@@ -75,7 +78,8 @@ function getBodyContent({
       }
 
       return (
-        <KeyValueList
+        <KeyValueTableDataList
+          margin
           data-test-id="rich-http-content-body-key-value-list"
           data={transformedData}
           isContextData
@@ -99,10 +103,10 @@ function RequestBodySection({data, event, meta}: RequestBodyProps) {
 
   if (data.apiTarget === 'graphql' && typeof data.data.query === 'string') {
     return (
-      <RequestCardPanel>
-        <KeyValueData.Title>{t('Body')}</KeyValueData.Title>
+      <KeyValueTableCardPanel block>
+        <KeyValueTableCardTitle>{t('Body')}</KeyValueTableCardTitle>
         <GraphQlRequestBody data={data.data} {...{event, meta}} />
-      </RequestCardPanel>
+      </KeyValueTableCardPanel>
     );
   }
 
@@ -112,10 +116,10 @@ function RequestBodySection({data, event, meta}: RequestBodyProps) {
     inferredContentType: data.inferredContentType,
   });
   return (
-    <RequestCardPanel>
-      <KeyValueData.Title>{t('Body')}</KeyValueData.Title>
+    <KeyValueTableCardPanel block>
+      <KeyValueTableCardTitle>{t('Body')}</KeyValueTableCardTitle>
       {contentBody}
-    </RequestCardPanel>
+    </KeyValueTableCardPanel>
   );
 }
 
@@ -148,17 +152,52 @@ export function Request({data, event}: RequestProps) {
 
   let actions: React.ReactNode = null;
 
-  if (!isPartial && fullUrl) {
+  const canGenerateCurlCommand = !isPartial && fullUrl;
+
+  const shouldRenderCopyAsDropdown = fullUrl || parsedUrl?.pathname;
+
+  const shouldRenderActions = canGenerateCurlCommand || shouldRenderCopyAsDropdown;
+
+  if (shouldRenderActions) {
     actions = (
-      <SegmentedControl aria-label={t('View')} size="xs" value={view} onChange={setView}>
-        <SegmentedControl.Item key="formatted">
-          {/* Translators: this means "formatted" rendering (fancy tables) */}
-          {t('Formatted')}
-        </SegmentedControl.Item>
-        <SegmentedControl.Item key="curl" textValue="curl">
-          <Text monospace>curl</Text>
-        </SegmentedControl.Item>
-      </SegmentedControl>
+      <Flex gap="sm" align="center">
+        {canGenerateCurlCommand && (
+          <SegmentedControl
+            aria-label={t('View')}
+            size="xs"
+            value={view}
+            onChange={setView}
+          >
+            <SegmentedControl.Item key="formatted">
+              {/* Translators: this means "formatted" rendering (fancy tables) */}
+              {t('Formatted')}
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key="curl" textValue="curl">
+              <Text monospace>curl</Text>
+            </SegmentedControl.Item>
+          </SegmentedControl>
+        )}
+
+        {shouldRenderCopyAsDropdown && (
+          <CopyAsDropdown
+            size="xs"
+            items={[
+              {
+                key: 'fullUrl',
+                label: t('Full URL'),
+                onAction: () => copyToClipboard(fullUrl ?? ''),
+                disabled: !fullUrl,
+              },
+              {
+                key: 'path',
+                label: t('Path'),
+                onAction: () => copyToClipboard(parsedUrl?.pathname ?? ''),
+                disabled: !parsedUrl?.pathname,
+              },
+            ]}
+          />
+        )}
+      </Flex>
     );
   }
 
@@ -214,7 +253,7 @@ function RequestDataCard({
     return null;
   }
 
-  const contentItems: KeyValueDataContentProps[] = [];
+  const contentItems: KeyValueTableDataRowProps[] = [];
 
   if (Array.isArray(data) && data.length > 0) {
     data
@@ -239,7 +278,7 @@ function RequestDataCard({
       mini
       message={tct('There was an error loading data: [title]', {title})}
     >
-      <KeyValueData.Card title={title} contentItems={contentItems} truncateLength={5} />
+      <KeyValueTableCard title={title} contentItems={contentItems} truncateLength={5} />
     </ErrorBoundary>
   );
 }
@@ -253,7 +292,7 @@ function TruncatedPathLink(props: TruncatedPathLinkProps) {
   return (
     <Flex as="span" gap="sm" align="baseline" padding="0 0 md 0">
       <Text bold>{props.method || 'GET'}</Text>
-      <ExternalLink openInNewTab href={props.fullUrl} title={props.fullUrl}>
+      <ExternalLink href={props.fullUrl} title={props.fullUrl}>
         <Flex gap="xs" align="baseline">
           {flexProps => (
             <Text {...flexProps} variant="primary">
@@ -269,10 +308,3 @@ function TruncatedPathLink(props: TruncatedPathLinkProps) {
     </Flex>
   );
 }
-
-const RequestCardPanel = styled(KeyValueData.CardPanel)`
-  display: block;
-  pre {
-    margin: 0;
-  }
-`;

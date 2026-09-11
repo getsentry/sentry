@@ -41,8 +41,7 @@ export function getCategoryInfoFromPlural(
  */
 export function getCreditDataCategory(credit: RecurringCredit): DataCategory | null {
   const category =
-    (DATA_CATEGORY_INFO[credit.type as string as DataCategoryExact]
-      ?.plural as DataCategory) || null;
+    DATA_CATEGORY_INFO[credit.type as string as DataCategoryExact]?.plural || null;
   if (!category) {
     return null;
   }

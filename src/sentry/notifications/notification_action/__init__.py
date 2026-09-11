@@ -27,6 +27,7 @@ __all__ = [
     "WebhookActionHandler",
     "SentryAppActionHandler",
     "SendTestNotification",
+    "EmailActionValidatorHandler",
     "SlackActionValidatorHandler",
     "SlackStagingActionValidatorHandler",
     "MSTeamsActionValidatorHandler",
@@ -54,6 +55,7 @@ from .action_handler_registry import (
 from .action_validation import (
     AzureDevOpsActionValidatorHandler,
     DiscordActionValidatorHandler,
+    EmailActionValidatorHandler,
     GithubActionValidatorHandler,
     GithubEnterpriseActionValidatorHandler,
     JiraActionValidatorHandler,

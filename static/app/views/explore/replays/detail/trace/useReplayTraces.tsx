@@ -147,13 +147,14 @@ export function useReplayTraces({
           indexError: indexError as Error,
           indexComplete: true,
         }));
-        cursor = {cursor: '', results: false, href: ''} as ParsedHeader;
+        cursor = {cursor: '', results: false, href: ''};
       }
     }
   }, [api, listEventView, orgSlug, start, end]);
 
   useEffect(() => {
     if (!state.indexComplete) {
+      // oxlint-disable-next-line react/set-state-in-effect
       fetchTransactionData();
     }
   }, [fetchTransactionData, state.indexComplete]);

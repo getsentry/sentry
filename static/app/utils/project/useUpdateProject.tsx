@@ -2,6 +2,7 @@ import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-quer
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {DetailedProject, Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -45,7 +46,9 @@ export function useUpdateProjectMutationOptions(project: Project) {
     mutationFn: (data: Partial<DetailedProject>) => {
       return fetchMutation<DetailedProject>({
         method: 'PUT',
-        url: `/projects/${organization.slug}/${project.slug}/`,
+        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+        }),
         data: {...data},
       });
     },

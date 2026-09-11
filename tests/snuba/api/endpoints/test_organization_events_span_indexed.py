@@ -9,6 +9,7 @@ from django.utils.timezone import now
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry.insights.models import InsightsStarredSegment
+from sentry.search.eap.constants import EAP_FULL_FIDELITY_QUERY_DAYS
 from sentry.search.events.constants import RATE_LIMIT_ERROR_MESSAGE
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
@@ -52,7 +53,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data == [
             {
                 "description": "foo",
-                "spm()": 1 / (90 * 24 * 60),
+                "spm()": pytest.approx(1 / (EAP_FULL_FIDELITY_QUERY_DAYS * 24 * 60), rel=1e-3),
             },
         ]
         assert meta["dataset"] == "spans"
@@ -1214,7 +1215,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert links["next"]["results"] == "true"
 
         assert links["next"]["href"] is not None
-        response = self.client.get(links["next"]["href"], format="json")
+        response = self.client_get(links["next"]["href"], format="json")
         assert response.status_code == 200, response.content
         assert response.data["data"] == [
             {
@@ -1233,7 +1234,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert links["next"]["results"] == "false"
 
         assert links["previous"]["href"] is not None
-        response = self.client.get(links["previous"]["href"], format="json")
+        response = self.client_get(links["previous"]["href"], format="json")
         assert response.status_code == 200, response.content
         assert response.data["data"] == [
             {
@@ -2453,7 +2454,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data == [
             {
                 "description": "foo",
-                "epm()": 1 / (90 * 24 * 60),
+                "epm()": pytest.approx(1 / (EAP_FULL_FIDELITY_QUERY_DAYS * 24 * 60), rel=1e-3),
             },
         ]
         assert meta["dataset"] == "spans"
@@ -2526,7 +2527,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         )
 
         segment_span_count = 1
-        total_time = 90 * 24 * 60
+        total_time = EAP_FULL_FIDELITY_QUERY_DAYS * 24 * 60
 
         assert response.status_code == 200, response.content
         data = response.data["data"]
@@ -2535,7 +2536,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data == [
             {
                 "description": "foo",
-                "tpm()": segment_span_count / total_time,
+                "tpm()": pytest.approx(segment_span_count / total_time, rel=1e-3),
             },
         ]
         assert meta["dataset"] == "spans"
@@ -3327,7 +3328,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
 
         assert meta["dataset"] == "spans"
 
-    def test_avg_if(self) -> None:
+    def test_avg_if_old_syntax(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -3365,6 +3366,46 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert len(data) == 1
         assert data[0]["avg_if(span.duration, span.op, equals, queue.process)"] == 1500.0
         assert data[0]["avg_if(span.duration, span.op, equals, queue.publish)"] == 3000.0
+        assert meta["dataset"] == "spans"
+
+    def test_avg_if_new_syntax(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"op": "queue.process", "sentry_tags": {"op": "queue.process"}},
+                    duration=1000,
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"op": "queue.process", "sentry_tags": {"op": "queue.process"}},
+                    duration=2000,
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"op": "queue.publish", "sentry_tags": {"op": "queue.publish"}},
+                    duration=3000,
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg_if(`span.op:queue.process`, span.duration)",
+                    "avg_if(`span.op:queue.publish`, span.duration)",
+                ],
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["avg_if(`span.op:queue.process`, span.duration)"] == 1500.0
+        assert data[0]["avg_if(`span.op:queue.publish`, span.duration)"] == 3000.0
         assert meta["dataset"] == "spans"
 
     def test_avg_compare(self) -> None:
@@ -3444,6 +3485,35 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
 
         assert response.status_code == 400, response.content
         assert "Invalid parameter snequals" in response.data["detail"]
+
+    def test_any_if_combinator(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo_test", "tags": {"condition": "bad"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "test_foo", "tags": {"condition": "good"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ]
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "any_if(`span.description:*test`, condition)",
+                ],
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"][0]
+        assert data["any_if(`span.description:*test`, condition)"] == "bad"
 
     def test_ttif_ttfd_contribution_rate(self) -> None:
         spans = []
@@ -5834,6 +5904,54 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             },
         ]
 
+    def test_semver_multiple_values(self) -> None:
+        release_1 = self.create_release(version="test@3.0.1")
+        release_2 = self.create_release(version="test@3.0.2")
+        release_3 = self.create_release(version="test@3.0.3")
+
+        span1 = self.create_span(
+            {"sentry_tags": {"release": release_1.version}}, start_ts=self.ten_mins_ago
+        )
+        span2 = self.create_span(
+            {"sentry_tags": {"release": release_2.version}}, start_ts=self.ten_mins_ago
+        )
+        span3 = self.create_span(
+            {"sentry_tags": {"release": release_3.version}}, start_ts=self.ten_mins_ago
+        )
+        self.store_spans([span1, span2, span3])
+
+        request = {
+            "field": ["release"],
+            "project": self.project.id,
+            "dataset": "spans",
+            "orderby": "release",
+        }
+
+        response = self.do_request({**request, "query": "release.version:[3.0.1, 3.0.3]"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@3.0.1",
+            },
+            {
+                "id": span3["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@3.0.3",
+            },
+        ]
+
+        response = self.do_request({**request, "query": "!release.version:[3.0.1, 3.0.3]"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@3.0.2",
+            },
+        ]
+
     def test_semver_package(self) -> None:
         release_1 = self.create_release(version="test1@1.2.1")
         release_2 = self.create_release(version="test2@1.2.1")
@@ -5957,6 +6075,54 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 "id": span2["span_id"],
                 "project.name": self.project.slug,
                 "release": "test@1.2.3+122",
+            },
+        ]
+
+    def test_semver_build_multiple_values(self) -> None:
+        release_1 = self.create_release(version="test@3.0.0+501")
+        release_2 = self.create_release(version="test@3.0.0+502")
+        release_3 = self.create_release(version="test@3.0.0+503")
+
+        span1 = self.create_span(
+            {"sentry_tags": {"release": release_1.version}}, start_ts=self.ten_mins_ago
+        )
+        span2 = self.create_span(
+            {"sentry_tags": {"release": release_2.version}}, start_ts=self.ten_mins_ago
+        )
+        span3 = self.create_span(
+            {"sentry_tags": {"release": release_3.version}}, start_ts=self.ten_mins_ago
+        )
+        self.store_spans([span1, span2, span3])
+
+        request = {
+            "field": ["release"],
+            "project": self.project.id,
+            "dataset": "spans",
+            "orderby": "release",
+        }
+
+        response = self.do_request({**request, "query": "release.build:[501, 503]"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@3.0.0+501",
+            },
+            {
+                "id": span3["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@3.0.0+503",
+            },
+        ]
+
+        response = self.do_request({**request, "query": "!release.build:[501, 503]"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@3.0.0+502",
             },
         ]
 
@@ -6374,7 +6540,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data == [
             {
                 "description": "foo",
-                "eps()": 1 / (90 * 24 * 60 * 60),
+                "eps()": pytest.approx(1 / (EAP_FULL_FIDELITY_QUERY_DAYS * 24 * 60 * 60), rel=1e-3),
             },
         ]
         assert meta["dataset"] == "spans"

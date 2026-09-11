@@ -19,11 +19,11 @@ import type {Node, Orientation} from '@react-types/shared';
 
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {IconEllipsis} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {TabListItemProps} from './item';
@@ -168,7 +168,8 @@ function useOverflowTabs({
         }
         const nextUsed =
           used + (tabWidthsRef.current.get(key) ?? 0) + (index === 0 ? 0 : gap);
-        // Always keep the first tab to avoid an empty tab bar.
+        // Always keep the first tab visible so the tab bar never collapses to
+        // only the overflow trigger.
         if (index === 0 || nextUsed <= budget) {
           used = nextUsed;
         } else {
@@ -198,11 +199,13 @@ function useOverflowTabs({
   ].join('|');
 
   useLayoutEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     recompute();
   }, [recomputeSignature]);
 
   // Recompute on container resize (available space changes) and on list resize
   // (tabs added/removed/relabeled change its intrinsic width). Keyed only on the
+  const rafRef = useRef<number | null>(null);
   useEffect(() => {
     if (disabled) {
       return;
@@ -214,11 +217,21 @@ function useOverflowTabs({
       return;
     }
 
-    const resizeObserver = new ResizeObserver(() => recompute());
+    const resizeObserver = new ResizeObserver(() => {
+      // Defer recompute to outside the render/layout phase. In Firefox,
+      // ResizeObserver callbacks can fire synchronously during rendering,
+      // which throws when calling a useEffectEvent-wrapped function.
+      rafRef.current = requestAnimationFrame(() => recompute());
+    });
     resizeObserver.observe(outerWrap);
     resizeObserver.observe(tabList);
 
-    return () => resizeObserver.disconnect();
+    return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+      }
+      resizeObserver.disconnect();
+    };
   }, [disabled, outerWrapRef, tabListRef]);
 
   // Tabs with the `hidden` prop render with display: none; never surface them
@@ -234,6 +247,8 @@ interface OverflowMenuProps {
 }
 
 function OverflowMenu({state, overflowMenuItems, disabled}: OverflowMenuProps) {
+  const {t} = useTranslation();
+
   return (
     <TabListOverflowWrap>
       <CompactSelect
@@ -281,7 +296,6 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
     orientation,
     size,
     keyboardActivation = 'manual',
-    disableOverflow,
     ...otherRootProps
   } = rootProps;
 
@@ -320,12 +334,12 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
     tabItemsRef,
     tabItems: props.items,
     // Overflow only applies to horizontal tab lists.
-    disabled: disableOverflow || orientation !== 'horizontal',
+    disabled: orientation !== 'horizontal',
   });
 
   const overflowMenuItems = useMemo(() => {
     // Sort overflow items in the order that they appear in TabList
-    const sortedKeys = [...state.collection].map(item => item.key);
+    const sortedKeys = Array.from(state.collection, item => item.key);
     const sortedOverflowTabs = overflowTabs.toSorted(
       (a, b) => sortedKeys.indexOf(a) - sortedKeys.indexOf(b)
     );
@@ -341,7 +355,11 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
 
       return {
         value: key,
-        label: itemProps.children,
+        label: (
+          <Flex align="center" gap="md">
+            {itemProps.children}
+          </Flex>
+        ),
         disabled: itemProps.disabled,
         tooltip: itemProps.tooltip?.title,
         tooltipOptions: itemProps.tooltip,
@@ -358,7 +376,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
         ref={tabListRef}
         variant={variant}
       >
-        {[...state.collection].map(item => (
+        {Array.from(state.collection, item => (
           <Tab
             key={item.key}
             item={item}
@@ -401,7 +419,7 @@ export function TabList({variant, ...props}: TabListProps) {
 
   const parsedItems: TabListItemProps[] = useMemo(
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    () => [...collection].map(({key, props: itemProps}) => ({key, ...itemProps})),
+    () => Array.from(collection, ({key, props: itemProps}) => ({key, ...itemProps})),
     [collection]
   );
 

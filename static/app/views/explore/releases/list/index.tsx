@@ -1,11 +1,9 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {forceCheck} from 'react-lazyload';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
@@ -58,6 +56,10 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {ReleasesDisplayOption, ReleasesDisplayOptions} from './releasesDisplayOptions';
 import {ReleasesSortOptions} from './releasesSortOptions';
@@ -118,7 +120,7 @@ function makeReleaseListApiOptions({
 const releasesFeedbackOptions = {
   messagePlaceholder: t('How can we improve the Releases experience?'),
   tags: {
-    ['feedback.source']: 'releases-list-header',
+    'feedback.source': 'releases-list-header',
   },
 };
 
@@ -295,17 +297,22 @@ function ReleasesListInnerPage() {
     forceCheck();
   }, [releases]);
 
+  const selectedProjects = useSelectedProjectsForLLMContext();
+
   useLLMContext({
     contextHint:
       'Sentry releases list page. Shows deployed releases with crash-free rates, adoption, and session/user health. ' +
       'Users can search, sort, filter by status (active/archived), and toggle sessions vs users display. ' +
-      'You can search live telemetry filtered by release to query related errors, spans, or logs (e.g. "errors in release 1.2.3 in the last 7 days").',
+      'You can search live telemetry filtered by release to query related errors, spans, or logs (e.g. "errors in release 1.2.3 in the last 7 days"). ' +
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     searchQuery: activeQuery,
     activeSort,
     activeDisplay,
     activeStatus,
     selectedTab,
     currentSelectedDateRange: selection.datetime,
+    ...toLLMContextProjectFields(selectedProjects),
   });
 
   const handleSearch = useCallback(
@@ -458,23 +465,27 @@ function ReleasesListInnerPage() {
       <Stack flex={1}>
         <NoProjectMessage organization={organization}>
           <ReleasesHeader />
-          <ReleasesBodySearch hasTabs>
+          <ReleasesBodySearch>
             <Layout.Main width="full">
               <Stack gap="md">
-                <PageFilterBar condensed>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter
-                    disabled={
-                      selectedTab === 'mobile-builds' || selectedTab === 'snapshots'
-                    }
-                  />
-                  <DatePageFilter
-                    disallowArbitraryRelativeRanges
-                    menuFooterMessage={t(
-                      'Changing this date range will recalculate the release metrics. Select a supported date range from the options above.'
-                    )}
-                  />
-                </PageFilterBar>
+                <Container width={{zero: '100%', md: 'max-content'}}>
+                  {containerProps => (
+                    <PageFilterBar {...containerProps} condensed>
+                      <ProjectPageFilter />
+                      <EnvironmentPageFilter
+                        disabled={
+                          selectedTab === 'mobile-builds' || selectedTab === 'snapshots'
+                        }
+                      />
+                      <DatePageFilter
+                        disallowArbitraryRelativeRanges
+                        menuFooterMessage={t(
+                          'Changing this date range will recalculate the release metrics. Select a supported date range from the options above.'
+                        )}
+                      />
+                    </PageFilterBar>
+                  )}
+                </Container>
                 <Tabs value={selectedTab} onChange={handleTabChange}>
                   <TabList aria-label={t('Releases tab selector')}>
                     <TabList.Item
@@ -558,15 +569,27 @@ function ReleasesListInnerPage() {
                     selection={selection}
                   />
                   {shouldShowQuickstart ? null : (
-                    <SortAndFilterWrapper>
-                      <StyledSearchQueryBuilder
-                        onSearch={handleSearch}
-                        initialQuery={activeQuery}
-                        filterKeys={RELEASE_FILTER_KEYS}
-                        getTagValues={getTagValues}
-                        placeholder={t('Search by version, build, package, or stage')}
-                        searchSource="releases"
-                      />
+                    <Grid
+                      columns={{
+                        zero: 'minmax(0, 1fr)',
+                        md: 'repeat(3, 1fr)',
+                        '2xl': '1fr repeat(3, max-content)',
+                      }}
+                      gap="xl"
+                    >
+                      <Container column={{zero: 'auto', md: '1 / -1', '2xl': 'auto'}}>
+                        {containerProps => (
+                          <SearchQueryBuilder
+                            {...containerProps}
+                            onSearch={handleSearch}
+                            initialQuery={activeQuery}
+                            filterKeys={RELEASE_FILTER_KEYS}
+                            getTagValues={getTagValues}
+                            placeholder={t('Search by version, build, package, or stage')}
+                            searchSource="releases"
+                          />
+                        )}
+                      </Container>
                       <ReleasesStatusOptions
                         selected={activeStatus}
                         onSelect={handleStatus}
@@ -581,7 +604,7 @@ function ReleasesListInnerPage() {
                         selected={activeDisplay}
                         onSelect={handleDisplay}
                       />
-                    </SortAndFilterWrapper>
+                    </Grid>
                   )}
 
                   {!(isReleasesPending || isReleasesRefetching) &&
@@ -597,7 +620,6 @@ function ReleasesListInnerPage() {
                       description={t(
                         'View the latest releases for your project. Select a release to review new and regressed issues, and business critical metrics like crash rate, and user adoption. '
                       )}
-                      position="top-start"
                     >
                       {props => (
                         <div {...props}>
@@ -656,38 +678,14 @@ function ReleasesHeader() {
   );
 }
 
-const ReleasesBodySearch = styled(ExploreBodySearch)<{hasTabs: boolean}>`
-  ${p =>
-    p.hasTabs &&
-    css`
-      padding-bottom: 0;
-
-      @media (min-width: ${p.theme.breakpoints.md}) {
-        padding-bottom: 0;
-      }
-    `}
-`;
-
-const SortAndFilterWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr repeat(3, max-content);
-  gap: ${p => p.theme.space.xl};
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: repeat(3, 1fr);
-    & > div {
-      width: auto;
-    }
-  }
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: minmax(0, 1fr);
-  }
-`;
-
-const StyledSearchQueryBuilder = styled(SearchQueryBuilder)`
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    grid-column: 1 / -1;
-  }
-`;
+function ReleasesBodySearch({children}: {children: React.ReactNode}) {
+  return (
+    <Container paddingBottom="0">
+      {containerProps => (
+        <ExploreBodySearch {...containerProps}>{children}</ExploreBodySearch>
+      )}
+    </Container>
+  );
+}
 
 export default registerLLMContext('releases-list', ReleasesListInnerPage);

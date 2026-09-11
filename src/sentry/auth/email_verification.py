@@ -3,13 +3,16 @@ from __future__ import annotations
 import binascii
 import logging
 import time
+from collections.abc import Mapping
 from typing import Any
 
 from django.conf import settings
 from django.core.signing import BadSignature, SignatureExpired
 from django.urls import reverse
 
-from sentry import options
+from sentry import analytics, options
+from sentry import ratelimits as ratelimiter
+from sentry.analytics.events.signup_email_verification import SignupEmailVerificationSentEvent
 from sentry.utils.dates import format_duration
 from sentry.utils.email import MessageBuilder
 from sentry.utils.hashlib import sha256_text
@@ -17,6 +20,8 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
 
 logger = logging.getLogger("sentry.auth.email_verification")
+TRUSTED_EMAIL_VERIFIED_PROVIDERS = frozenset({"github", "google"})
+DEFAULT_MAX_AGE_MINUTES = 120
 
 
 class SignupLinkExpired(SignatureExpired):
@@ -30,13 +35,36 @@ def hash_email(email: str) -> str:
     return sha256_text(email.lower()).hexdigest()
 
 
-DEFAULT_MAX_AGE_MINUTES = 120
+def is_email_verified_by_trusted_provider(provider_key: str, identity: Mapping[str, Any]) -> bool:
+    """If True: the provider's email_verified claim can be trusted, and they certify that the email is verified.
+    If False: the identity requires our own verification step.
+
+    Expects a freshly built identity, where email_verified has been normalized to a
+    bool (see normalize_email_verified). The strict `is True` check does not handle
+    legacy persisted values, which may be the string "true".
+    """
+    return (
+        provider_key in TRUSTED_EMAIL_VERIFIED_PROVIDERS and identity.get("email_verified") is True
+    )
+
+
+def is_verification_send_rate_limited(email: str, email_hash: str | None = None) -> bool:
+    """Throttle verification email sends per email address, across all signup methods.
+
+    Pass email_hash if the caller has already hashed the email, to avoid re-hashing it.
+    """
+    email_hash = email_hash or hash_email(email)
+    return ratelimiter.backend.is_limited(
+        f"signup-verify-send:email:{email_hash}", limit=5, window=300
+    )
 
 
 def send_signup_verification_email(
     email: str,
     url_name: str,
     max_age_minutes: int = DEFAULT_MAX_AGE_MINUTES,
+    record_analytics: bool = True,
+    email_hash: str | None = None,
 ) -> None:
     """
     Send a verification email for signup flows.
@@ -47,6 +75,10 @@ def send_signup_verification_email(
 
     url_name controls which verification endpoint the link points to,
     allowing different signup methods to have their own completion logic.
+
+    The record_analytics arg is temporary, only needed while we run the email+pword experiment.
+
+    Pass email_hash if the caller has already hashed the email, to avoid re-hashing it.
     """
     payload = {
         "email": email,
@@ -72,10 +104,18 @@ def send_signup_verification_email(
     )
     msg.send_async([email])
 
+    email_hash = email_hash or hash_email(email)
     logger.info(
         "signup_verification.sent",
-        extra={"email_hash": hash_email(email)},
+        extra={
+            "email_hash": email_hash,
+            "signup_method": url_name,
+        },
     )
+    if record_analytics:
+        analytics.record(
+            SignupEmailVerificationSentEvent(email_hash=email_hash, signup_method=url_name)
+        )
 
 
 def verify_signup_link(signed_data: str) -> dict[str, Any]:

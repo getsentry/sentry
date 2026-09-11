@@ -1,4 +1,11 @@
-import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {TabList, TabPanels, Tabs} from '.';
 
@@ -308,7 +315,7 @@ describe('Tabs overflow', () => {
           x: 0,
           y: 0,
           toJSON: () => ({}),
-        } as DOMRect;
+        };
       });
 
     // Only the tab list wrapper (whose direct child is the tablist) reports the
@@ -330,7 +337,7 @@ describe('Tabs overflow', () => {
       observe() {}
       unobserve() {}
       disconnect() {}
-    } as unknown as typeof ResizeObserver;
+    };
   });
 
   afterEach(() => {
@@ -384,6 +391,20 @@ describe('Tabs overflow', () => {
     expect(screen.queryByRole('option', {name: 'Activity'})).not.toBeInTheDocument();
   });
 
+  it('keeps the first tab visible when only it and the overflow trigger fit', async () => {
+    containerWidth = 120;
+    renderTabs();
+
+    expect(screen.getByRole('tab', {name: 'Details'})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'More tabs'}));
+
+    expect(screen.queryByRole('option', {name: 'Details'})).not.toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Activity'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'User Feedback'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Attachments'})).toBeInTheDocument();
+  });
+
   it('recomputes overflow when the container is resized', async () => {
     containerWidth = 1000;
     renderTabs();
@@ -396,7 +417,9 @@ describe('Tabs overflow', () => {
     expect(screen.getByRole('option', {name: 'Attachments'})).toBeInTheDocument();
 
     resizeContainerTo(1000);
-    expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
+    await waitForElementToBeRemoved(() =>
+      screen.queryByRole('button', {name: 'More tabs'})
+    );
   });
 
   it('activates an overflowing tab when selected from the menu', async () => {

@@ -104,6 +104,7 @@ class RepoPRState(BaseModel):
     """PR state for a single repository."""
 
     repo_name: str
+    provider: str | None = None
     branch_name: str | None = None
     pr_number: int | None = None
     pr_url: str | None = None
@@ -145,6 +146,11 @@ class ToolResult(BaseModel):
     tool_call_id: str
     tool_call_function: str
     content: str | None = None
+    # Standard MCP-style structured payload carried from seer (openspec:
+    # code-mode-effects-registry). Opaque pass-through: frontend-only effects like
+    # `navigation` (RENDERED) ride this to the client. Additive/optional — absent on old
+    # seer responses, ignored by old clients.
+    structuredContent: dict[str, Any] | None = None
 
     class Config:
         extra = "ignore"
@@ -185,11 +191,17 @@ class PendingUserInput(BaseModel):
 
 
 class CodingAgentResult(BaseModel):
-    """Result from a coding agent."""
+    """Result from a coding agent.
+
+    ``pr_url`` points at a pull request when ``pr_number`` is set and at a pushed branch
+    otherwise, except on results recorded before Seer reported the number -- so a missing
+    number does not by itself mean the URL is a branch.
+    """
 
     description: str
     repo_provider: str
     repo_full_name: str
+    pr_number: int | None = None
     pr_url: str | None = None
 
     class Config:
@@ -251,6 +263,11 @@ class SeerRunState(BaseModel):
     run_id: int
     blocks: list[MemoryBlock]
     status: Literal["processing", "completed", "error", "awaiting_user_input"]
+    # Set only for the failures Seer can classify (currently "timeout" and
+    # "stalled"); every other failure leaves it None, so `status` is the signal
+    # for whether a run failed and this is only ever extra detail. Kept as a
+    # plain str so a new Seer reason does not fail validation mid-deploy.
+    failure_reason: str | None = None
     updated_at: str
     owner_user_id: int | None = None
     pending_user_input: PendingUserInput | None = None
@@ -263,6 +280,24 @@ class SeerRunState(BaseModel):
 
     class Config:
         extra = "ignore"
+
+    def get_created_pull_request_states(self) -> list[RepoPRState]:
+        """
+        The repos this run actually got a pull request onto.
+
+        ``repo_pr_states`` also holds repos whose push failed, so a plain
+        truthiness check treats a failed run as one that opened PRs — which
+        would, for instance, refuse to re-run a step that stranded nothing.
+
+        ``pr_number`` is what says the PR exists: seer only ever sets it from a
+        created pull request, so an errored state that carries one is a PR that
+        opened and then took a failed push, not a creation that never landed.
+        """
+        return [
+            pr_state
+            for pr_state in self.repo_pr_states.values()
+            if pr_state.pr_creation_status != "error" or pr_state.pr_number is not None
+        ]
 
     def get_artifacts(self) -> dict[str, Artifact]:
         """
@@ -373,10 +408,3 @@ class AgentRun(BaseModel):
 
     class Config:
         extra = "allow"
-
-
-class AgentRunWithPrs(AgentRun):
-    """A single agent run record with PR metadata."""
-
-    group_id: int | None = None
-    repo_pr_states: dict[str, RepoPRState] | None = None

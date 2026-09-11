@@ -116,7 +116,7 @@ class ProcessingErrorDetectorHandler(
 
     @override
     def extract_dedupe_value(self, data_packet: DataPacket[ProcessingErrorPacketValue]) -> int:
-        # Not used — we override evaluate_impl and skip dedupe logic
+        # Not used — we override evaluate and skip dedupe logic
         return 0
 
     @override
@@ -167,7 +167,7 @@ class ProcessingErrorDetectorHandler(
         return (occurrence, event_data)
 
     @override
-    def evaluate_impl(
+    def evaluate(
         self, data_packet: DataPacket[ProcessingErrorPacketValue]
     ) -> GroupedDetectorEvaluationResult:
         """
@@ -182,10 +182,7 @@ class ProcessingErrorDetectorHandler(
             data_value
         )
 
-        if (
-            detector_trigger_evaluations is None
-            or detector_trigger_evaluations.outcome.triggered is False
-        ):
+        if detector_trigger_evaluations is None or detector_trigger_evaluations.triggered is False:
             return GroupedDetectorEvaluationResult(result=results, tainted=False)
 
         # Only handle triggering (FAILURE → HIGH). Resolution is handled

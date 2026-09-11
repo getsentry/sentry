@@ -5,16 +5,22 @@ from datetime import timedelta
 
 from django.core.exceptions import ObjectDoesNotExist
 
-from sentry import options, quotas
+from sentry import quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem
+from sentry.dynamic_sampling.per_org.calculations import calculate_recalibration_factor
 from sentry.dynamic_sampling.per_org.queries import get_outcomes_organization_volume
+from sentry.dynamic_sampling.per_org.results import DynamicSamplingResults
+from sentry.dynamic_sampling.per_org.serving import get_previous_recalibration_factor
 from sentry.dynamic_sampling.per_org.telemetry import (
     DynamicSamplingException,
     DynamicSamplingStatus,
 )
 from sentry.dynamic_sampling.rules.utils import ProjectId
-from sentry.dynamic_sampling.tasks.common import compute_sliding_window_sample_rate
+from sentry.dynamic_sampling.tasks.common import (
+    OrganizationDataVolume,
+    compute_sliding_window_sample_rate,
+)
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling
@@ -49,6 +55,7 @@ def get_configuration(organization_id: int) -> BaseDynamicSamplingConfiguration:
 
 class BaseDynamicSamplingConfiguration(ABC):
     measure: SamplingMeasure
+    sample_rate: TargetSampleRate = None
     should_balance_projects: bool = True
     projects: list[Project]
 
@@ -56,6 +63,7 @@ class BaseDynamicSamplingConfiguration(ABC):
         self.organization = organization
         self.sliding_window_sample_rate: TargetSampleRate = None
         self.project_sample_rates: ProjectSampleRates = {}
+        self.results = DynamicSamplingResults()
 
     @property
     @abstractmethod
@@ -66,12 +74,18 @@ class BaseDynamicSamplingConfiguration(ABC):
     def get_sample_rate(self) -> TargetSampleRate:
         raise NotImplementedError
 
+    def get_serving_sample_rate(self) -> TargetSampleRate:
+        # For custom dynamic sampling the target rate is served as-is; only the automatic
+        # configuration applies a serving-time gate on top of it.
+        return self.get_sample_rate()
+
     def get_project_sample_rates(self) -> ProjectSampleRates:
         return self.project_sample_rates
 
     def set_rebalanced_project_sample_rates(
         self, rebalanced_projects: list[RebalancedItem]
     ) -> None:
+        self.results.rebalanced_projects = rebalanced_projects
         self.project_sample_rates = {
             int(item.id): item.new_sample_rate for item in rebalanced_projects
         }
@@ -85,10 +99,6 @@ class BaseDynamicSamplingConfiguration(ABC):
         return self.measure == SamplingMeasure.SEGMENTS
 
     def _get_sampling_measure(self) -> SamplingMeasure:
-        if options.get("dynamic-sampling.check_span_feature_flag") and self.organization.id in (
-            options.get("dynamic-sampling.measure.spans") or []
-        ):
-            return SamplingMeasure.SPANS
         return SamplingMeasure.SEGMENTS
 
     def _get_projects(self) -> list[Project]:
@@ -96,11 +106,28 @@ class BaseDynamicSamplingConfiguration(ABC):
             Project.objects.filter(organization_id=self.organization.id, status=ObjectStatus.ACTIVE)
         )
 
+    def recalibrate(self, org_volume: OrganizationDataVolume | None) -> None:
+        results = self.results
+        results.recalibration_factor = None
+
+        if not self.projects or self.get_sample_rate() is None:
+            return
+
+        results.previous_recalibration_factor = get_previous_recalibration_factor(
+            self.organization.id
+        )
+        results.recalibration_factor = calculate_recalibration_factor(
+            org_volume,
+            results.previous_recalibration_factor,
+            self.get_sample_rate(),
+        )
+
 
 class NoDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
     def __init__(self) -> None:
         self.sliding_window_sample_rate: TargetSampleRate = None
         self.project_sample_rates: ProjectSampleRates = {}
+        self.results = DynamicSamplingResults()
 
     @property
     def is_enabled(self) -> bool:
@@ -140,11 +167,10 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
         return self.sample_rate is not None
 
     def get_sample_rate(self) -> TargetSampleRate:
-        # The usage-based rate. It mirrors the legacy *cache* (boost_low_volume_projects, via
-        # get_org_sample_rate), which is what project balancing and the comparison logging run
-        # against. The blended-100% gate is intentionally NOT applied here: the legacy cache is
-        # ungated too, so applying it would make the logged rates diverge for orgs under their
-        # reserved quota. That gate lives in get_serving_sample_rate, matching legacy serving.
+        # The usage-based rate that project balancing runs against. The blended-100% gate is
+        # intentionally NOT applied here, so that an org under its reserved quota is still
+        # balanced on its usage-based rate, as the legacy pipeline did. That gate lives in
+        # get_serving_sample_rate, matching legacy serving.
         if self.sliding_window_sample_rate is not None:
             return self.sliding_window_sample_rate
         return self.sample_rate
@@ -152,8 +178,7 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
     def get_serving_sample_rate(self) -> TargetSampleRate:
         # Serving-time parity with the legacy path (get_guarded_project_sample_rate): a blended
         # (reserved-based) rate of 100% serves at 100%, bypassing the usage-based sliding-window
-        # rate. Kept out of get_sample_rate so the gate does not leak into the balancing and
-        # comparison path, which must stay aligned with the (ungated) legacy cache.
+        # rate. Kept out of get_sample_rate so the gate does not leak into project balancing.
         if self.sample_rate == 1.0:
             return self.sample_rate
         return self.get_sample_rate()

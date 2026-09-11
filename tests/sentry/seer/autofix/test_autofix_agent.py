@@ -3,7 +3,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 from rest_framework.exceptions import PermissionDenied
 
+from sentry.analytics.events.autofix_events import AiAutofixSolutionCompletedEvent
 from sentry.constants import DataCategory
+from sentry.models.activity import Activity
 from sentry.seer.agent.client_models import (
     Artifact,
     MemoryBlock,
@@ -11,12 +13,11 @@ from sentry.seer.agent.client_models import (
     RepoPRState,
     SeerRunState,
 )
+from sentry.seer.autofix.analytics import record_autofix_event
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
-    AutofixStep,
-    NoSeerQuotaException,
     PrIterationNoPullRequestException,
-    _build_base_shas_metadata,
+    _build_repo_pins,
     build_step_prompt,
     generate_autofix_handoff_prompt,
     get_iteration_for_insert_index,
@@ -26,10 +27,15 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_coding_agent_handoff,
     trigger_push_changes,
 )
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.steps import AutofixStep
+from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SeerPermissionError
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
+from sentry.types.activity import ActivityType
 from sentry.utils import json
 
 
@@ -80,6 +86,9 @@ class TestGenerateAutofixHandoffPrompt(TestCase):
         prompt = generate_autofix_handoff_prompt(state)
 
         assert "Please fix the following issue" in prompt
+        assert "briefly explains the root cause and the solution" in prompt
+        assert "not on the proposed solution below" in prompt
+        assert "triggered by a Seer handoff from Sentry" in prompt
         assert "Root Cause" not in prompt
         assert "Solution" not in prompt
 
@@ -249,6 +258,30 @@ class TestBuildStepPrompt(TestCase):
         assert "app.views.handler" in prompt
         assert "Implement the fix" in prompt
 
+    def test_solution_prompt_without_should_run_repo_checks_skips_testing(self) -> None:
+        prompt = build_step_prompt(AutofixStep.SOLUTION, self.group)
+
+        assert "Do NOT include testing as part of your plan." in prompt
+
+    def test_solution_prompt_with_should_run_repo_checks_plans_verification(self) -> None:
+        prompt = build_step_prompt(AutofixStep.SOLUTION, self.group, should_run_repo_checks=True)
+
+        assert "Do NOT include testing as part of your plan." not in prompt
+        assert "End your plan with a verification step" in prompt
+
+    def test_code_changes_prompt_without_should_run_repo_checks_omits_checks(self) -> None:
+        prompt = build_step_prompt(AutofixStep.CODE_CHANGES, self.group)
+
+        assert "linter" not in prompt
+
+    def test_code_changes_prompt_with_should_run_repo_checks_includes_checks(self) -> None:
+        prompt = build_step_prompt(
+            AutofixStep.CODE_CHANGES, self.group, should_run_repo_checks=True
+        )
+
+        assert "Run the linter/formatter over the files you changed." in prompt
+        assert "Run the tests covering the code you changed" in prompt
+
     def test_prompt_with_missing_culprit_uses_default(self) -> None:
         self.group.culprit = None
         self.group.save()
@@ -412,12 +445,22 @@ class TestTriggerAutofixAgent(TestCase):
             metadata={"group_id": group_id if group_id is not None else self.group.id},
         )
 
+    @patch("sentry.seer.autofix.analytics.metrics.incr")
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.SeerAutofixOperator.has_access", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.process_autofix_updates.apply_async")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_trigger_autofix_agent_sends_started_webhook_for_all_steps(
-        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+        self,
+        mock_client_class,
+        mock_process_autofix_updates,
+        mock_broadcast,
+        mock_has_access,
+        mock_check_quota,
+        mock_record_run,
+        mock_metrics_incr,
     ):
         """Sends correct started webhook for all autofix steps."""
         mock_client = MagicMock()
@@ -425,13 +468,32 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=12345)
 
         step_to_action = {
-            AutofixStep.ROOT_CAUSE: SeerActionType.ROOT_CAUSE_STARTED,
-            AutofixStep.SOLUTION: SeerActionType.SOLUTION_STARTED,
-            AutofixStep.CODE_CHANGES: SeerActionType.CODING_STARTED,
+            AutofixStep.ROOT_CAUSE: (
+                SeerActionType.ROOT_CAUSE_STARTED,
+                ActivityType.SEER_RCA_STARTED,
+            ),
+            AutofixStep.SOLUTION: (
+                SeerActionType.SOLUTION_STARTED,
+                ActivityType.SEER_SOLUTION_STARTED,
+            ),
+            AutofixStep.CODE_CHANGES: (
+                SeerActionType.CODING_STARTED,
+                ActivityType.SEER_CODING_STARTED,
+            ),
         }
 
-        for step, expected_action in step_to_action.items():
+        for step, (expected_action, expected_activity_type) in step_to_action.items():
             mock_broadcast.reset_mock()
+            mock_process_autofix_updates.reset_mock()
+            mock_metrics_incr.reset_mock()
+
+            def assert_activity_exists(**_kwargs: object) -> None:
+                assert Activity.objects.filter(
+                    group=self.group,
+                    type=expected_activity_type.value,
+                ).exists()
+
+            mock_process_autofix_updates.side_effect = assert_activity_exists
             trigger_autofix_agent(
                 group=self.group,
                 step=step,
@@ -441,6 +503,11 @@ class TestTriggerAutofixAgent(TestCase):
             mock_broadcast.assert_called_once()
             call_kwargs = mock_broadcast.call_args.kwargs
             assert call_kwargs["event_name"] == expected_action.value
+            assert (
+                mock_process_autofix_updates.call_args.kwargs["kwargs"]["activity_already_recorded"]
+                is True
+            )
+            mock_metrics_incr.assert_any_call(f"ai.autofix.{step.value}.started", sample_rate=1.0)
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
@@ -500,6 +567,208 @@ class TestTriggerAutofixAgent(TestCase):
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.scm.factory.new")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_root_cause_routes_repo_pins_to_feature_when_flagged(
+        self,
+        mock_client_class,
+        mock_feature,
+        mock_scm_new,
+        mock_broadcast,
+        mock_check_quota,
+        mock_record_run,
+    ):
+        """With the flag on, a new root-cause run dispatches the Autofix feature
+        instead of a legacy explorer run, still emits the started webhook, and
+        returns the feature run."""
+        feature_run = self.create_seer_run(
+            organization=self.group.organization, type="feature_run", seer_run_state_id=777
+        )
+        mock_feature.return_value = feature_run
+        self._make_repo_and_projectrepo()
+        mock_scm_new.return_value = _make_scm_mock(
+            get_repository={"data": {"default_branch": "main"}},
+            get_branch={"data": {"sha": "abc123"}},
+        )
+
+        with self.feature("organizations:autofix-rca-in-seer"):
+            result = trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.ROOT_CAUSE,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=None,
+            )
+
+        assert result == feature_run
+        mock_feature.assert_called_once()
+        assert mock_feature.call_args.args[0] == self.group
+        feature_trigger = mock_feature.call_args.args[1]
+        assert feature_trigger.step_args is not None
+        assert feature_trigger.step_args.repo_pins == {
+            "owner/repo": {
+                "sha": "abc123",
+                "branch": "main",
+                "base_sha": "abc123",
+                "base_branch": "main",
+            }
+        }
+        # legacy explorer run is not started for a flagged root-cause kickoff
+        mock_client_class.return_value.start_run.assert_not_called()
+        # the started webhook still fires, pointing at the feature run
+        mock_broadcast.assert_called_once()
+        payload = mock_broadcast.call_args.kwargs["payload"]
+        assert (
+            mock_broadcast.call_args.kwargs["event_name"] == SeerActionType.ROOT_CAUSE_STARTED.value
+        )
+        assert payload["run_id"] == 777
+        assert payload["sentry_run_id"] == str(feature_run.uuid)
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_feature_receives_stopping_point(
+        self, mock_client_class, mock_feature, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        """The stopping point must reach the feature: delivery reads it back off the
+        run to decide whether to continue the pipeline past root cause."""
+        mock_feature.return_value = self.create_seer_run(
+            organization=self.group.organization, type="feature_run", seer_run_state_id=777
+        )
+
+        with self.feature("organizations:autofix-rca-in-seer"):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.ROOT_CAUSE,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=None,
+                stopping_point=AutofixStoppingPoint.CODE_CHANGES,
+            )
+
+        feature_trigger = mock_feature.call_args.args[1]
+        assert feature_trigger.stopping_point == AutofixStoppingPoint.CODE_CHANGES
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_feature_receives_run_options(
+        self, mock_client_class, mock_feature, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        mock_feature.return_value = self.create_seer_run(
+            organization=self.group.organization, type="feature_run", seer_run_state_id=777
+        )
+        user = self.create_user()
+
+        with self.feature("organizations:autofix-rca-in-seer"):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.ROOT_CAUSE,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=None,
+                user=user,
+                enable_bash_tools=True,
+            )
+
+        feature_trigger = mock_feature.call_args.args[1]
+        assert feature_trigger.user == user
+        assert feature_trigger.enable_bash_tools is True
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_night_shift_repo_checks_force_bash_tools_on_the_feature(
+        self, mock_client_class, mock_feature, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        with (
+            self.feature("organizations:autofix-rca-in-seer"),
+            self.feature("organizations:autofix-should-run-repo-checks"),
+        ):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.ROOT_CAUSE,
+                referrer=AutofixReferrer.NIGHT_SHIFT,
+                run_id=None,
+            )
+
+        feature_trigger = mock_feature.call_args.args[1]
+        assert feature_trigger.enable_bash_tools is True
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_solution_step_does_not_route_to_feature(
+        self, mock_client_class, mock_feature, mock_check_quota, mock_record_run
+    ):
+        """Only the root-cause step routes; solution kickoffs stay on the legacy flow."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.start_run.return_value = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=5
+        )
+
+        with self.feature("organizations:autofix-rca-in-seer"):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.SOLUTION,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=None,
+            )
+
+        mock_feature.assert_not_called()
+        mock_client.start_run.assert_called_once()
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_root_cause_uses_legacy_flow_without_flag(
+        self, mock_client_class, mock_feature, mock_check_quota, mock_record_run
+    ):
+        """Without the flag, root-cause kickoffs use the legacy explorer run."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        seer_run = self.create_seer_run(organization=self.group.organization, seer_run_state_id=9)
+        mock_client.start_run.return_value = seer_run
+
+        result = trigger_autofix_agent(
+            group=self.group,
+            step=AutofixStep.ROOT_CAUSE,
+            referrer=AutofixReferrer.UNKNOWN,
+            run_id=None,
+        )
+
+        assert result == seer_run
+        mock_feature.assert_not_called()
+        mock_client.start_run.assert_called_once()
+
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_flagged_root_cause_still_enforces_quota(
+        self, mock_client_class, mock_feature, mock_check_quota
+    ):
+        """The upstream quota check runs before routing to the feature."""
+        with self.feature("organizations:autofix-rca-in-seer"):
+            with pytest.raises(NoSeerQuotaException):
+                trigger_autofix_agent(
+                    group=self.group,
+                    step=AutofixStep.ROOT_CAUSE,
+                    referrer=AutofixReferrer.UNKNOWN,
+                    run_id=None,
+                )
+
+        mock_feature.assert_not_called()
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_trigger_autofix_agent_metadata_omits_group_id(
         self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
@@ -550,13 +819,14 @@ class TestTriggerAutofixAgent(TestCase):
             trigger_autofix_agent(
                 group=self.group,
                 step=AutofixStep.PR_ITERATION,
-                referrer=AutofixReferrer.UNKNOWN,
+                referrer=AutofixReferrer.GITHUB_PR_COMMENT,
                 run_id=67890,
             )
 
         call_kwargs = mock_broadcast.call_args.kwargs
         assert call_kwargs["event_name"] == SeerActionType.ITERATION_STARTED.value
         assert call_kwargs["payload"]["iteration_index"] == 2
+        assert "referrer" not in call_kwargs["payload"]
 
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
@@ -578,6 +848,53 @@ class TestTriggerAutofixAgent(TestCase):
 
         mock_client.continue_run.assert_not_called()
         mock_broadcast.assert_not_called()
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_pr_iteration_does_not_gate_on_flags(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        """The PR_ITERATION step is gated by its callers, not here.
+
+        Automated CI iteration runs under ``autofix-pr-iteration`` and manual
+        iteration under the ``-manual`` variant; whichever caller checked its flag
+        is what decides, so the step itself runs with neither flag set.
+        """
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = _state_with_blocks(
+            [_iteration_block(1)],
+            group_id=self.group.id,
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo", pr_url="https://example.com/pull/7"
+                )
+            },
+        )
+        mock_client.continue_run.return_value = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
+
+        def trigger() -> None:
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.PR_ITERATION,
+                referrer=AutofixReferrer.GITHUB_PR_COMMENT,
+                run_id=67890,
+            )
+
+        trigger()
+        assert mock_client.continue_run.call_count == 1
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            trigger()
+        assert mock_client.continue_run.call_count == 2
+
+        with self.feature("organizations:autofix-pr-iteration-manual"):
+            trigger()
+        assert mock_client.continue_run.call_count == 3
 
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
@@ -613,6 +930,58 @@ class TestTriggerAutofixAgent(TestCase):
             run_id=None,
         )
 
+        mock_record_run.assert_called_once_with(
+            self.group.organization.id, self.group.project.id, DataCategory.SEER_AUTOFIX
+        )
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_free_cohort_skips_quota_check_and_usage_recording(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=12345)
+
+        with (
+            patch("sentry.seer.autofix.autofix_agent.features.has", return_value=False),
+            patch("sentry.seer.autofix.autofix_agent.is_free_cohort_org", return_value=True),
+        ):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.ROOT_CAUSE,
+                referrer=AutofixReferrer.NIGHT_SHIFT,
+                allow_free_cohort=True,
+            )
+
+        mock_check_quota.assert_not_called()
+        mock_record_run.assert_not_called()
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_allow_free_cohort_still_records_for_non_cohort_org(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=12345)
+
+        with (
+            patch("sentry.seer.autofix.autofix_agent.features.has", return_value=False),
+            patch("sentry.seer.autofix.autofix_agent.is_free_cohort_org", return_value=False),
+        ):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.ROOT_CAUSE,
+                referrer=AutofixReferrer.NIGHT_SHIFT,
+                allow_free_cohort=True,
+            )
+
+        mock_check_quota.assert_called_once()
         mock_record_run.assert_called_once_with(
             self.group.organization.id, self.group.project.id, DataCategory.SEER_AUTOFIX
         )
@@ -755,6 +1124,43 @@ class TestTriggerAutofixAgent(TestCase):
 
         assert mock_client_class.call_args.kwargs["enable_pr_context_tools"] is True
 
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_commit_author_serialized_into_iteration_metadata(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        author = SeerCommitAuthor(name="Mona", email="1+octocat@users.noreply.github.com")
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = _state_with_blocks(
+            [_iteration_block(1)],
+            group_id=self.group.id,
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo", pr_url="https://example.com/pull/7"
+                )
+            },
+        )
+        mock_client.continue_run.return_value = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
+
+        def iterate(**kwargs):
+            with self.feature("organizations:autofix-pr-iteration"):
+                trigger_autofix_agent(
+                    group=self.group,
+                    step=AutofixStep.PR_ITERATION,
+                    referrer=AutofixReferrer.UNKNOWN,
+                    run_id=67890,
+                    **kwargs,
+                )
+            return mock_client.continue_run.call_args.kwargs["prompt_metadata"]
+
+        assert json.loads(iterate(commit_author=author)["commit_author"]) == author
+        assert "commit_author" not in iterate()
+
     def _make_repo_and_projectrepo(
         self,
         *,
@@ -803,9 +1209,16 @@ class TestTriggerAutofixAgent(TestCase):
             )
 
         prompt_metadata = mock_client.start_run.call_args.kwargs["prompt_metadata"]
-        assert json.loads(prompt_metadata["base_shas"]) == {
-            "owner/repo": {"base_sha": "abc123", "base_branch": "main"}
+        expected_repo_pins = {
+            "owner/repo": {
+                "sha": "abc123",
+                "branch": "main",
+                "base_sha": "abc123",
+                "base_branch": "main",
+            }
         }
+        assert json.loads(prompt_metadata["base_shas"]) == expected_repo_pins
+        assert json.loads(prompt_metadata["repo_pins"]) == expected_repo_pins
 
     @patch("sentry.scm.factory.new")
     @patch("sentry.quotas.backend.record_seer_run")
@@ -857,7 +1270,7 @@ class TestTriggerAutofixAgent(TestCase):
         mock_scm_new.assert_not_called()
 
 
-class TestBuildBaseShasMetadata(TestCase):
+class TestBuildRepoPins(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
@@ -883,7 +1296,7 @@ class TestBuildBaseShasMetadata(TestCase):
         )
 
     def test_returns_none_without_repos(self) -> None:
-        assert _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN) is None
+        assert _build_repo_pins(self.group, AutofixReferrer.UNKNOWN) is None
 
     @patch("sentry.scm.factory.new")
     def test_builds_base_shas_using_default_branch(self, mock_scm_new):
@@ -894,10 +1307,17 @@ class TestBuildBaseShasMetadata(TestCase):
         )
         mock_scm_new.return_value = mock_scm
 
-        result = _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN)
+        result = _build_repo_pins(self.group, AutofixReferrer.UNKNOWN)
 
         assert result is not None
-        assert json.loads(result) == {"owner/repo": {"base_sha": "deadbeef", "base_branch": "main"}}
+        assert result == {
+            "owner/repo": {
+                "sha": "deadbeef",
+                "branch": "main",
+                "base_sha": "deadbeef",
+                "base_branch": "main",
+            }
+        }
         mock_scm.get_branch.assert_called_once_with("main")
 
     @patch("sentry.scm.factory.new")
@@ -906,11 +1326,16 @@ class TestBuildBaseShasMetadata(TestCase):
         mock_scm = _make_scm_mock(get_branch={"data": {"sha": "abc"}})
         mock_scm_new.return_value = mock_scm
 
-        result = _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN)
+        result = _build_repo_pins(self.group, AutofixReferrer.UNKNOWN)
 
         assert result is not None
-        assert json.loads(result) == {
-            "owner/repo": {"base_sha": "abc", "base_branch": "release/v2"}
+        assert result == {
+            "owner/repo": {
+                "sha": "abc",
+                "branch": "release/v2",
+                "base_sha": "abc",
+                "base_branch": "release/v2",
+            }
         }
         mock_scm.get_repository.assert_not_called()
         mock_scm.get_branch.assert_called_once_with("release/v2")
@@ -921,7 +1346,7 @@ class TestBuildBaseShasMetadata(TestCase):
         self._make_repo_and_projectrepo()
         mock_scm_new.side_effect = Exception("boom")
 
-        assert _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN) is None
+        assert _build_repo_pins(self.group, AutofixReferrer.UNKNOWN) is None
         mock_logger.exception.assert_called_once()
 
     @patch("sentry.scm.factory.new")
@@ -930,7 +1355,7 @@ class TestBuildBaseShasMetadata(TestCase):
         mock_scm = _make_scm_mock(get_repository={"data": {"default_branch": None}})
         mock_scm_new.return_value = mock_scm
 
-        assert _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN) is None
+        assert _build_repo_pins(self.group, AutofixReferrer.UNKNOWN) is None
         mock_scm.get_branch.assert_not_called()
 
     @patch("sentry.scm.factory.new")
@@ -948,11 +1373,16 @@ class TestBuildBaseShasMetadata(TestCase):
         )
         mock_scm_new.side_effect = [ok_scm, bad_scm]
 
-        result = _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN)
+        result = _build_repo_pins(self.group, AutofixReferrer.UNKNOWN)
 
         assert result is not None
-        assert json.loads(result) == {
-            "owner/repo-ok": {"base_sha": "sha-ok", "base_branch": "main"}
+        assert result == {
+            "owner/repo-ok": {
+                "sha": "sha-ok",
+                "branch": "main",
+                "base_sha": "sha-ok",
+                "base_branch": "main",
+            }
         }
 
 
@@ -1052,7 +1482,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         assert repos[0].name == "repo"
         assert call_kwargs["issue_short_id"] == self.group.qualified_short_id
 
-    @patch("sentry.seer.autofix.autofix_agent.analytics.record")
+    @patch("sentry.seer.autofix.analytics.analytics.record")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_trigger_coding_agent_handoff_records_referrer(self, mock_client_class, mock_record):
         mock_client = MagicMock()
@@ -1149,7 +1579,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
 
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_trigger_coding_agent_handoff_uses_group_title_for_branch(self, mock_client_class):
-        """Test that branch_name_base is set to the group title."""
+        """Test that branch_name_base is the group title behind a seer/ prefix."""
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
@@ -1171,7 +1601,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         )
 
         call_kwargs = mock_client.launch_coding_agents.call_args.kwargs
-        assert call_kwargs["branch_name_base"] == self.group.title
+        assert call_kwargs["branch_name_base"] == f"seer/{self.group.title}"
 
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_trigger_coding_agent_handoff_fetches_auto_create_pr_from_preferences(
@@ -1381,6 +1811,28 @@ class TestTriggerCodingAgentHandoff(TestCase):
         repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
         assert repos[0].branch_name == "release/v2"
 
+    @patch("sentry.seer.autofix.autofix_agent._resolve_default_branch", return_value="main")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_trigger_coding_agent_handoff_resolves_default_branch_when_empty(
+        self, mock_client_class, mock_resolve
+    ):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = self._make_run_state()
+        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        self._make_repo_and_projectrepo(external_id="1", branch_name="")
+
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
+            integration_id=456,
+        )
+
+        mock_resolve.assert_called_once()
+        repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
+        assert repos[0].branch_name == "main"
+
 
 class TestTriggerPushChanges(TestCase):
     """Tests for trigger_push_changes function."""
@@ -1388,6 +1840,33 @@ class TestTriggerPushChanges(TestCase):
     def setUp(self):
         super().setUp()
         self.group = self.create_group(project=self.project)
+
+    def _push(self, mock_post, features="organizations:gen-ai-features", **kwargs):
+        """Push with a minimal run state and return the payload sent to Seer."""
+        mock_post.return_value = MagicMock(status=200)
+        state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={},
+            metadata={"group_id": self.group.id},
+        )
+
+        with self.feature(features):
+            trigger_push_changes(
+                group=self.group,
+                run_id=123,
+                referrer=AutofixReferrer.UNKNOWN,
+                state=state,
+                **kwargs,
+            )
+
+        return mock_post.call_args[0][0]["payload"]
+
+    def _fixes_line(self) -> str:
+        issue_url = self.group.get_absolute_url(params={"seerDrawer": "true"})
+        return f"Fixes [{self.group.qualified_short_id}]({issue_url})"
 
     def test_raises_permission_denied_when_coding_disabled(self):
         self.organization.update_option("sentry:enable_seer_coding", False)
@@ -1400,124 +1879,122 @@ class TestTriggerPushChanges(TestCase):
             )
 
     @patch("sentry.seer.agent.client.make_agent_update_request")
-    def test_passes_correct_pr_description_suffix(self, mock_post):
-        """push_changes is called with pr_description_suffix matching the group's qualified short id."""
-        mock_post.return_value = MagicMock(status=200)
-        state = SeerRunState(
-            run_id=123,
-            blocks=[],
-            status="completed",
-            updated_at="2024-01-01T00:00:00Z",
-            repo_pr_states={},
-            metadata={"group_id": self.group.id},
-        )
+    def test_passes_pr_description_suffix_ready_state_and_author(self, mock_post):
+        author = SeerCommitAuthor(name="Mona", email="1+octocat@users.noreply.github.com")
 
-        with self.feature("organizations:gen-ai-features"):
-            trigger_push_changes(
-                group=self.group,
-                run_id=123,
-                referrer=AutofixReferrer.UNKNOWN,
-                state=state,
-            )
+        payload = self._push(mock_post, author=author)
 
-        body = mock_post.call_args[0][0]
-        issue_url = self.group.get_absolute_url(params={"seerDrawer": "true"})
-        expected = f"Fixes [{self.group.qualified_short_id}]({issue_url})"
-        assert body["payload"]["pr_description_suffix"] == expected
-        assert body["payload"]["ready_for_review"] is True
+        assert payload["pr_description_suffix"] == self._fixes_line()
+        assert payload["ready_for_review"] is True
+        assert payload["author"] == author
 
     @patch("sentry.seer.agent.client.make_agent_update_request")
     def test_opens_as_draft_when_review_request_enabled(self, mock_post):
-        mock_post.return_value = MagicMock(status=200)
-        state = SeerRunState(
-            run_id=123,
-            blocks=[],
-            status="completed",
-            updated_at="2024-01-01T00:00:00Z",
-            repo_pr_states={},
-            metadata={"group_id": self.group.id},
-        )
-
-        with self.feature(
-            {
+        payload = self._push(
+            mock_post,
+            features={
                 "organizations:gen-ai-features": True,
                 "organizations:autofix-pr-iteration-review-request": True,
-            }
-        ):
-            trigger_push_changes(
-                group=self.group,
-                run_id=123,
-                referrer=AutofixReferrer.UNKNOWN,
-                state=state,
-            )
+            },
+        )
 
-        body = mock_post.call_args[0][0]
-        assert body["payload"]["ready_for_review"] is False
+        assert payload["ready_for_review"] is False
+        assert "author" not in payload
 
     @patch("sentry.seer.agent.client.make_agent_update_request")
     def test_pr_description_suffix_includes_linear_issue(self, mock_post):
-        mock_post.return_value = MagicMock(status=200)
         self.create_platform_external_issue(
             group=self.group,
             service_type="linear",
             display_name="PROJ#123",
             web_url="https://linear.app/proj/issue/PROJ-123",
         )
-        state = SeerRunState(
-            run_id=123,
-            blocks=[],
-            status="completed",
-            updated_at="2024-01-01T00:00:00Z",
-            repo_pr_states={},
-            metadata={"group_id": self.group.id},
-        )
 
-        with self.feature("organizations:gen-ai-features"):
-            trigger_push_changes(
-                group=self.group,
-                run_id=123,
-                referrer=AutofixReferrer.UNKNOWN,
-                state=state,
-            )
+        payload = self._push(mock_post)
 
-        body = mock_post.call_args[0][0]
-        issue_url = self.group.get_absolute_url(params={"seerDrawer": "true"})
-        expected = (
-            f"Fixes [{self.group.qualified_short_id}]({issue_url})\n"
-            f"Fixes [PROJ-123](https://linear.app/proj/issue/PROJ-123)"
+        assert payload["pr_description_suffix"] == (
+            f"{self._fixes_line()}\nFixes [PROJ-123](https://linear.app/proj/issue/PROJ-123)"
         )
-        assert body["payload"]["pr_description_suffix"] == expected
 
     @patch("sentry.seer.agent.client.make_agent_update_request")
     def test_pr_description_suffix_linear_alphanumeric_prefix(self, mock_post):
-        mock_post.return_value = MagicMock(status=200)
         self.create_platform_external_issue(
             group=self.group,
             service_type="linear",
             display_name="PROJ2#456",
             web_url="https://linear.app/team/issue/PROJ2-456",
         )
-        state = SeerRunState(
-            run_id=123,
-            blocks=[],
-            status="completed",
-            updated_at="2024-01-01T00:00:00Z",
-            repo_pr_states={},
-            metadata={"group_id": self.group.id},
+
+        payload = self._push(mock_post)
+
+        assert payload["pr_description_suffix"] == (
+            f"{self._fixes_line()}\nFixes [PROJ2-456](https://linear.app/team/issue/PROJ2-456)"
         )
 
-        with self.feature("organizations:gen-ai-features"):
-            trigger_push_changes(
-                group=self.group,
-                run_id=123,
-                referrer=AutofixReferrer.UNKNOWN,
-                state=state,
-            )
-
-        body = mock_post.call_args[0][0]
-        issue_url = self.group.get_absolute_url(params={"seerDrawer": "true"})
-        expected = (
-            f"Fixes [{self.group.qualified_short_id}]({issue_url})\n"
-            f"Fixes [PROJ2-456](https://linear.app/team/issue/PROJ2-456)"
+    @patch("sentry.seer.autofix.autofix_agent.is_free_cohort_org", return_value=True)
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_pr_description_suffix_automated_free_cohort_run(self, mock_post, _mock_free_cohort):
+        self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=123,
+            referrer=AutofixReferrer.NIGHT_SHIFT.value,
         )
-        assert body["payload"]["pr_description_suffix"] == expected
+
+        payload = self._push(mock_post)
+
+        settings_url = self.organization.absolute_url(
+            f"/settings/{self.organization.slug}/projects/{self.group.project.slug}/seer/"
+        )
+        assert payload["pr_description_suffix"] == (
+            f"{self._fixes_line()}\n"
+            f"\n<sub>This PR was automatically generated by Sentry at no cost. "
+            f"You can [adjust this setting]({settings_url}) at any time.</sub>"
+        )
+
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_pr_description_suffix_automated_paid_run(self, mock_post):
+        self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=123,
+            referrer=AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY.value,
+        )
+
+        payload = self._push(mock_post)
+
+        settings_url = self.organization.absolute_url(
+            f"/settings/{self.organization.slug}/projects/{self.group.project.slug}/seer/"
+        )
+        assert payload["pr_description_suffix"] == (
+            f"{self._fixes_line()}\n"
+            f"\n<sub>This PR was automatically generated by Sentry. "
+            f"You can [adjust this setting]({settings_url}) at any time.</sub>"
+        )
+
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_pr_description_suffix_manual_run_has_no_automation_note(self, mock_post):
+        self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=123,
+            referrer=AutofixReferrer.WEB.value,
+        )
+
+        payload = self._push(mock_post)
+
+        assert payload["pr_description_suffix"] == self._fixes_line()
+
+
+class TestAutofixFunnelAnalytics:
+    @patch("sentry.seer.autofix.analytics.metrics.incr")
+    @patch("sentry.seer.autofix.analytics.analytics.record")
+    def test_records_solution_completion(self, mock_record, mock_metrics_incr) -> None:
+        event = AiAutofixSolutionCompletedEvent(
+            organization_id=1,
+            project_id=1,
+            group_id=1,
+            referrer="test",
+        )
+
+        record_autofix_event(event)
+
+        mock_record.assert_called_once_with(event)
+        mock_metrics_incr.assert_called_once_with("ai.autofix.solution.completed", sample_rate=1.0)

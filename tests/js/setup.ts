@@ -11,6 +11,7 @@ import {MotionGlobalConfig} from 'framer-motion';
 import {enableFetchMocks} from 'jest-fetch-mock';
 import {ConfigFixture} from 'sentry-fixture/config';
 
+import {MockResizeObserver, resetResizeObservers} from 'sentry-test/resizeObserver';
 import {resetMockDate} from 'sentry-test/utils';
 
 // eslint-disable-next-line jest/no-mocks-import
@@ -68,6 +69,14 @@ jest.mock('lodash/debounce', () =>
     return fn;
   })
 );
+// Keep callback and value debounces synchronous by default in tests. Suites that
+// assert scheduling behavior can load the real Pacer implementations explicitly.
+jest.mock('@tanstack/react-pacer', () => ({
+  ...jest.requireActual('@tanstack/react-pacer'),
+  useAsyncDebouncedCallback: <TFn>(fn: TFn) => fn,
+  useDebouncedCallback: <TFn>(fn: TFn) => fn,
+  useDebouncedValue: <T>(value: T) => [value] as const,
+}));
 jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
 jest
@@ -205,6 +214,7 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
 
 // Close any open modals before each test
 beforeEach(closeModal);
+afterEach(resetResizeObservers);
 
 jest.mock('echarts-for-react/lib/core', function echartsMockFactory() {
   // We need to do this because `jest.mock` gets hoisted before imports and `React` is not
@@ -306,7 +316,7 @@ declare global {
 }
 
 // needed by cbor-web for webauthn
-window.TextEncoder = TextEncoder as typeof window.TextEncoder;
+window.TextEncoder = TextEncoder;
 window.TextDecoder = TextDecoder as typeof window.TextDecoder;
 
 // This is so we can use async/await in tests instead of wrapping with `setTimeout`.
@@ -373,11 +383,7 @@ window.IntersectionObserver = class IntersectionObserver {
   disconnect() {}
 };
 
-window.ResizeObserver = class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-};
+window.ResizeObserver = MockResizeObserver;
 
 // Mock the crypto.subtle API for Gravatar
 Object.defineProperty(global.self, 'crypto', {
@@ -410,7 +416,6 @@ if (globalThis.setImmediate === undefined) {
  */
 const FLAKY_RERUN_COUNT = 50;
 
-/* eslint-disable jest/valid-title */
 it.isKnownFlake = function isKnownFlake(
   name: string,
   fn: jest.ProvidesCallback,
@@ -427,4 +432,3 @@ it.isKnownFlake = function isKnownFlake(
     }
   });
 };
-/* eslint-enable jest/valid-title */

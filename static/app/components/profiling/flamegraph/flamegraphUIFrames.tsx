@@ -1,9 +1,9 @@
-/* eslint-disable unicorn/filename-case */
-import type {CSSProperties} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {vec2} from 'gl-matrix';
+
+import type {CSS} from '@sentry/scraps/cssTypes';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
@@ -86,12 +86,17 @@ export function FlamegraphUIFrames({
     return renderer;
   }, [uiFramesCanvasRef, uiFrames, flamegraphTheme]);
 
+  // CanvasView reassigns configSpace on the same instance, so the view identity is
+  // not a usable dependency. Reading the rect out here keeps the memo keyed on the
+  // value that actually changes.
+  const uiFramesConfigSpace = uiFramesView?.configSpace;
+
   const hoveredNode = useMemo(() => {
-    if (!configSpaceCursor || !uiFramesRenderer || !uiFramesView?.configSpace) {
+    if (!configSpaceCursor || !uiFramesRenderer || !uiFramesConfigSpace) {
       return null;
     }
-    return uiFramesRenderer.findHoveredNode(configSpaceCursor, uiFramesView.configSpace);
-  }, [configSpaceCursor, uiFramesRenderer, uiFramesView?.configSpace]);
+    return uiFramesRenderer.findHoveredNode(configSpaceCursor, uiFramesConfigSpace);
+  }, [configSpaceCursor, uiFramesRenderer, uiFramesConfigSpace]);
 
   useEffect(() => {
     if (!uiFramesCanvas || !uiFramesView || !uiFramesRenderer) {
@@ -306,7 +311,7 @@ export function FlamegraphUIFrames({
   );
 }
 
-const Canvas = styled('canvas')<{cursor?: CSSProperties['cursor']}>`
+const Canvas = styled('canvas')<{cursor?: CSS['cursor']}>`
   width: 100%;
   height: 100%;
   position: absolute;

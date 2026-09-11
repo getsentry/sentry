@@ -1,6 +1,8 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Chip} from '@sentry/scraps/chip';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -78,11 +80,7 @@ function Filter({token}: {token: TokenResult<Token.FILTER>}) {
 
 function Boolean({token}: {token: TokenResult<Token.LOGIC_BOOLEAN>}) {
   const label = token.text.toUpperCase();
-  return (
-    <FilterWrapper aria-label={label}>
-      <Text variant="muted">{label}</Text>
-    </FilterWrapper>
-  );
+  return <Chip size="sm" value={label} aria-label={label} />;
 }
 
 function QueryToken({token}: TokenProps) {
@@ -91,7 +89,7 @@ function QueryToken({token}: TokenProps) {
       return <Filter token={token} />;
     case Token.FREE_TEXT:
       if (token.value.trim()) {
-        return <span>{token.value.trim()}</span>;
+        return <Text as="span">{token.value.trim()}</Text>;
       }
       return null;
     case Token.L_PAREN:
@@ -179,39 +177,47 @@ export function ProvidedFormattedQuery({
   );
 }
 
-const QueryWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  row-gap: ${p => p.theme.space.xs};
-  column-gap: ${p => p.theme.space.md};
-`;
+function QueryWrapper(props: FlexProps) {
+  return <Flex {...props} align="center" wrap="wrap" gap="xs md" />;
+}
 
-export const FilterWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  background: ${p => p.theme.tokens.background.primary};
-  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
-  border: 1px solid ${p => p.theme.tokens.border.secondary};
-  border-radius: ${p => p.theme.radius.md};
-  height: 24px;
-  white-space: nowrap;
-  overflow: hidden;
-`;
+export function FilterWrapper(props: FlexProps) {
+  return (
+    <Flex
+      {...props}
+      align="center"
+      gap="xs"
+      background="primary"
+      padding="2xs xs"
+      border="secondary"
+      radius="md"
+      minHeight="24px"
+      height="24px"
+      maxWidth="100%"
+      whiteSpace="nowrap"
+      overflow="hidden"
+    />
+  );
+}
 
 const FilterValue = styled('div')`
   max-width: 300px;
+  min-width: 0;
   color: ${p => p.theme.tokens.content.accent};
   display: block;
   width: 100%;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
 `;
 
-const Paren = styled('div')`
-  display: flex;
-  align-items: center;
-  color: ${p => p.theme.tokens.content.secondary};
-`;
+function Paren({children}: {children: React.ReactNode}) {
+  return (
+    <Text variant="muted">
+      {props => (
+        <Flex {...props} align="center">
+          {children}
+        </Flex>
+      )}
+    </Text>
+  );
+}

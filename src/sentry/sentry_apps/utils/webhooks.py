@@ -60,6 +60,7 @@ class SeerActionType(SentryAppActionType):
     CODING_STARTED = "coding_started"
     CODING_COMPLETED = "coding_completed"
     PR_CREATED = "pr_created"
+    PR_READY_FOR_REVIEW = "pr_ready_for_review"
     ITERATION_STARTED = "iteration_started"
     ITERATION_COMPLETED = "iteration_completed"
 
@@ -108,6 +109,7 @@ EVENT_EXPANSION: Final[dict[SentryAppResourceType, list[SentryAppEventType]]] = 
         SentryAppEventType.SEER_CODING_STARTED,
         SentryAppEventType.SEER_CODING_COMPLETED,
         SentryAppEventType.SEER_PR_CREATED,
+        SentryAppEventType.SEER_PR_READY_FOR_REVIEW,
         SentryAppEventType.SEER_ITERATION_STARTED,
         SentryAppEventType.SEER_ITERATION_COMPLETED,
     ],
@@ -134,6 +136,14 @@ _LEGACY_EVENT_ALIASES: Final[dict[str, str]] = {
 def resource_of(event: str) -> SentryAppResourceType | None:
     """The resource a subscribable event belongs to ("issue.resolved" -> ISSUE), else None."""
     return EVENT_TO_RESOURCE.get(event)
+
+
+def has_error_events(events: Collection[str] | None) -> bool:
+    """Whether any entry subscribes to error webhooks, as the whole resource or a single event."""
+    return any(
+        event == SentryAppResourceType.ERROR or resource_of(event) is SentryAppResourceType.ERROR
+        for event in events or ()
+    )
 
 
 def is_subscribed(stored_events: Collection[str], event: str) -> bool:

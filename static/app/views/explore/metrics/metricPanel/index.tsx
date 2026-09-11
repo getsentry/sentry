@@ -1,9 +1,9 @@
-import {Activity, Fragment, useRef, useState} from 'react';
+import {Activity, Fragment, useEffect, useRef, useState} from 'react';
 import type {DraggableAttributes} from '@dnd-kit/core';
 import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
@@ -20,6 +20,7 @@ import {
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {calculateHeatMapBucketDimensions} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/calculateHeatMapBucketDimensions';
+import {ExploreShareButton} from 'sentry/views/explore/components/exploreShareButton';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
@@ -30,10 +31,13 @@ import {
   TraceSamplesTableColumns,
 } from 'sentry/views/explore/metrics/constants';
 import {unresolveExpression} from 'sentry/views/explore/metrics/equationBuilder/utils';
+import {MetricsAggregateExportModalButton} from 'sentry/views/explore/metrics/exports/metricsAggregateExportModalButton';
+import {MetricsSamplesExportModalButton} from 'sentry/views/explore/metrics/exports/metricsSamplesExportModalButton';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
 import {useMetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetricHeatMapData';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
+import {TRACE_METRICS_INGESTION_DELAY_SECONDS} from 'sentry/views/explore/metrics/ingestionDelay';
 import {
   MetricsGraph,
   getMetricsChartTypeOptions,
@@ -57,14 +61,15 @@ import {
   useQueryParamsQuery,
   useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {
   isVisualizeEquation,
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 const RESULT_LIMIT = 50;
-const TWO_MINUTE_DELAY = 120;
 
 const CHART_TYPE_TO_ICON: Record<ChartType, 'line' | 'area' | 'bar' | 'heatmap'> = {
   [ChartType.LINE]: 'line',
@@ -134,6 +139,16 @@ export function MetricPanel({
     return;
   });
 
+  useEffect(() => {
+    if (isVisualizeEquation(visualize)) {
+      // oxlint-disable-next-line react/set-state-in-effect
+      setTitle(
+        visualize.internalExpression ??
+          unresolveExpression(visualize.expression.text, referenceMap)
+      );
+    }
+  }, [visualize, referenceMap]);
+
   const areQueriesEnabled = isVisualizeFunction(visualize)
     ? Boolean(traceMetric.name) && !isMetricOptionsEmpty
     : isVisualizeEquation(visualize) && Boolean(visualize.expression.text);
@@ -143,7 +158,7 @@ export function MetricPanel({
     limit: RESULT_LIMIT,
     traceMetric,
     fields,
-    ingestionDelaySeconds: TWO_MINUTE_DELAY,
+    ingestionDelaySeconds: TRACE_METRICS_INGESTION_DELAY_SECONDS,
     staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
   });
 
@@ -310,7 +325,7 @@ export function MetricPanel({
                     }
                   }}
                 >
-                  <Grid columns={{'screen:xs': '1fr', 'screen:md': '1fr 1fr'}} gap="sm">
+                  <Grid columns={{xs: '1fr', lg: '1fr 1fr'}} gap="sm">
                     <Container minWidth="0" ref={chartContainerRef}>
                       {areHeatMapsEnabled && isHeatmap ? (
                         <MetricsHeatMap
@@ -332,6 +347,30 @@ export function MetricPanel({
                       <MetricInfoTabs
                         traceMetric={traceMetric}
                         isMetricOptionsEmpty={isMetricOptionsEmpty}
+                        additionalActions={
+                          <Flex gap="xs">
+                            <ExploreShareButton
+                              traceItemDataset={TraceItemDataset.TRACEMETRICS}
+                            />
+                            {mode === Mode.AGGREGATE ? (
+                              <MetricsAggregateExportModalButton
+                                isError={metricAggregatesTableResult.result.isError}
+                                isLoading={metricAggregatesTableResult.result.isPending}
+                                pageLinks={metricAggregatesTableResult.result.pageLinks}
+                                tableData={metricAggregatesTableResult.result.data ?? []}
+                                traceMetric={traceMetric}
+                              />
+                            ) : (
+                              <MetricsSamplesExportModalButton
+                                fields={fields}
+                                isError={Boolean(metricSamplesTableResult.isError)}
+                                isLoading={Boolean(metricSamplesTableResult.isPending)}
+                                tableData={metricSamplesTableResult.result.data ?? []}
+                                traceMetric={traceMetric}
+                              />
+                            )}
+                          </Flex>
+                        }
                       />
                     </Container>
                   </Grid>

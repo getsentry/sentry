@@ -14,6 +14,7 @@ import {
   WildcardOperators,
   type ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
+import {quoteFilterKey} from 'sentry/components/searchSyntax/utils';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {
@@ -226,7 +227,7 @@ function getInitialFilterKeyText(key: string, fieldDefinition: FieldDefinition |
     return `${key}()`;
   }
 
-  return key;
+  return quoteFilterKey(key);
 }
 
 function getInitialValueType(fieldDefinition: FieldDefinition | null) {
@@ -252,6 +253,14 @@ export function getInitialFilterText(
 
   const keyText = getInitialFilterKeyText(key, fieldDefinition);
   const valueType = getInitialValueType(fieldDefinition);
+
+  // Array attributes filter by membership: `key[*]:value`. Add the `[*]` operator
+  // only when it isn't already present, so selection supplies it while a
+  // user-typed `[*]` is never doubled. No wildcard — `[*]` is the operator.
+  if (fieldDefinition?.kind === FieldKind.ARRAY) {
+    const membershipKey = keyText.endsWith('[*]') ? keyText : `${keyText}[*]`;
+    return `${membershipKey}:${defaultValue}`;
+  }
 
   switch (valueType) {
     case FieldValueType.INTEGER:

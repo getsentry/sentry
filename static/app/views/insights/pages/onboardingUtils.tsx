@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Container, type ContainerProps} from '@sentry/scraps/layout';
+
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
@@ -32,13 +34,9 @@ export const PulsingIndicator = styled('div')`
   flex-shrink: 0;
 `;
 
-export const HeaderText = styled('div')`
-  flex: 0.65;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex: 1;
-  }
-`;
+export function HeaderText(props: ContainerProps) {
+  return <Container flex={{zero: 1, xl: 0.65}} {...props} />;
+}
 
 export const SubTitle = styled('div')`
   margin-bottom: ${p => p.theme.space.md};

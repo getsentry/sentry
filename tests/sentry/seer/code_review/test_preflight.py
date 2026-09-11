@@ -297,9 +297,9 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.allowed is False
         assert result.denial_reason == PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
 
-    @patch("sentry.seer.code_review.contributor_seats.sentry_sdk.capture_exception")
+    @patch("sentry.seer.code_review.preflight.sentry_sdk.capture_exception")
     @patch(
-        "sentry.seer.code_review.contributor_seats.instance_hostname",
+        "sentry.seer.code_review.preflight.instance_hostname",
         side_effect=InstanceHostnameError("missing"),
     )
     @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
@@ -320,7 +320,7 @@ class TestCodeReviewPreflightService(TestCase):
         result = service.check()
 
         assert result.allowed is False
-        assert result.denial_reason == PreflightDenialReason.ORG_CONTRIBUTOR_NOT_FOUND
+        assert result.denial_reason == PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
         mock_capture.assert_called_once()
 
     @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])

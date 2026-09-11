@@ -28,7 +28,7 @@ function getForceVisible({
   hasWarning: boolean;
   isFocused: boolean;
   isInvalid: boolean;
-  forceVisible?: boolean;
+  forceVisible?: TooltipProps['forceVisible'];
 }) {
   if (!isInvalid && !hasTokenWarning && !hasWarning) {
     return false;
@@ -71,7 +71,6 @@ export function InvalidTokenTooltip({
       })}
       position="bottom"
       title={warning ?? tokenWarning ?? invalid?.reason ?? t('This token is invalid')}
-      isHoverable={hasWarning || hasTokenWarning || tooltipProps.isHoverable}
       {...tooltipProps}
     >
       {children}

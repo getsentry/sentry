@@ -117,7 +117,7 @@ function Grid(props: GridProps) {
         undo={undo}
         gridRef={ref}
       />
-      {[...state.collection].map(item => {
+      {Array.from(state.collection, item => {
         const token = item.value;
 
         switch (token?.type) {
@@ -202,6 +202,7 @@ const SearchQueryGridWrapper = styled('div')`
   /* calc + 1px to account for the border */
   padding-top: calc(${p => p.theme.space.xs} + 1px);
   padding-bottom: calc(${p => p.theme.space.xs} + 1px);
+  /* Reserves room for the leading search icon; see [data-hide-search-icon] in index.tsx. */
   padding-left: 32px;
   padding-right: ${p => p.theme.space.sm};
   display: flex;

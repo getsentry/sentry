@@ -473,8 +473,10 @@ class P4:
                 if data:
                     self._ticket = data.decode()
             elif func == b"flush1":
-                echo = [(b"func", b"flush2")]
-                echo += [(key, msg[key]) for key in (b"himark", b"fseq", b"rseq") if key in msg]
+                echo = [
+                    (k, msg[k]) for k in (b"himark", b"flushHard", b"fseq", b"rseq") if k in msg
+                ]
+                echo.append((b"func", b"flush2"))
                 self._write(_encode_message(echo))
             elif func == b"client-Message":
                 self._handle_message(msg, errors)

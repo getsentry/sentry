@@ -1,130 +1,63 @@
-import {Fragment} from 'react';
-import styled from '@emotion/styled';
-
 import {Alert} from '@sentry/scraps/alert';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {FieldRequiredBadge} from 'sentry/components/forms/fieldGroup/fieldRequiredBadge';
-import {RadioField} from 'sentry/components/forms/fields/radioField';
-import {TextField} from 'sentry/components/forms/fields/textField';
 import type {SuperuserAccessCategoryProps} from 'sentry/types/overrides';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
-type SuperuserAccessCategories = [string, React.ReactNode];
+type SuperuserAccessCategory = [value: string, label: React.ReactNode];
 
-const EngineeringCategories: SuperuserAccessCategories[] = [
+const ENGINEERING_CATEGORIES: SuperuserAccessCategory[] = [
   ['development', 'Development'],
   ['debugging', 'Debugging'],
   ['validate_feature', 'Validate a feature'],
 ];
 
-const ReactiveSupportCategories: SuperuserAccessCategories[] = [
+const REACTIVE_SUPPORT_CATEGORIES: SuperuserAccessCategory[] = [
   ['_admin_actions', '_admin actions'],
   ['organization_setting_change', 'Change organization settings'],
   ['intercom', 'Intercom'],
 ];
 
-const ProactiveSupportCategories: SuperuserAccessCategories[] = [
+const PROACTIVE_SUPPORT_CATEGORIES: SuperuserAccessCategory[] = [
   ['account_review', 'Account review/research'],
   ['customer_demo', 'Customer demo'],
   ['customer_provisioning', 'Customer provisioning'],
   ['onboarding_setup', 'Onboarding setup'],
 ];
 
-const OtherCategory: SuperuserAccessCategories[] = [['other', 'Other']];
+const OTHER_CATEGORIES: SuperuserAccessCategory[] = [['other', 'Other']];
+
+const ACCESS_CATEGORY_GROUPS = [
+  {label: 'Engineering', options: ENGINEERING_CATEGORIES},
+  {label: 'Reactive Support', options: REACTIVE_SUPPORT_CATEGORIES},
+  {label: 'Proactive Support', options: PROACTIVE_SUPPORT_CATEGORIES},
+  {label: 'Others', options: OTHER_CATEGORIES},
+];
 
 const DOCUMENTATION_URL = 'https://www.notion.so/sentry/aae9a918b5814fe0918d8e7aecacf97a';
 
-export function SuperuserAccessCategory({
-  accessCategory,
-  accessCategoryError,
-  onAccessCategoryChange,
-  onReasonChange,
-  reason,
-  reasonError,
-}: SuperuserAccessCategoryProps) {
+export function SuperuserAccessCategory({RadioItem}: SuperuserAccessCategoryProps) {
   return (
-    <Fragment>
+    <Stack gap="xl" flexGrow={1}>
       <Alert variant="muted" showIcon={false}>
         For more information on these categories, please{' '}
         <ExternalLink href={DOCUMENTATION_URL}>see this Notion document</ExternalLink>.
       </Alert>
-      <CategoriesLabel>
-        Categories of Superuser Access
-        <FieldRequiredBadge />
-      </CategoriesLabel>
-      <CategoryGrid>
-        <RadioField
-          name="superuserAccessCategory"
-          inline={false}
-          label="Engineering"
-          choices={EngineeringCategories}
-          onChange={onAccessCategoryChange}
-          value={accessCategory}
-          stacked
-        />
-        <RadioField
-          name="superuserAccessCategory"
-          inline={false}
-          label="Reactive Support"
-          choices={ReactiveSupportCategories}
-          onChange={onAccessCategoryChange}
-          value={accessCategory}
-          stacked
-        />
-        <RadioField
-          name="superuserAccessCategory"
-          inline={false}
-          label="Proactive Support"
-          choices={ProactiveSupportCategories}
-          onChange={onAccessCategoryChange}
-          value={accessCategory}
-          stacked
-        />
-        <RadioField
-          name="superuserAccessCategory"
-          inline={false}
-          label="Others"
-          choices={OtherCategory}
-          onChange={onAccessCategoryChange}
-          value={accessCategory}
-          stacked
-        />
-      </CategoryGrid>
-      {accessCategoryError ? (
-        <Text role="alert" size="sm" variant="danger">
-          {accessCategoryError}
-        </Text>
-      ) : null}
-      <TextField
-        name="superuserReason"
-        label="Reason for Access"
-        inline={false}
-        stacked
-        flexibleControlStateSize
-        required
-        maxLength={128}
-        minLength={4}
-        onChange={onReasonChange}
-        placeholder="e.g. disabling SSO enforcement"
-        value={reason}
-      />
-      {reasonError ? (
-        <Text role="alert" size="sm" variant="danger">
-          {reasonError}
-        </Text>
-      ) : null}
-    </Fragment>
+      <Grid columns="repeat(2, minmax(0, 1fr))" gap="xl 2xl">
+        {ACCESS_CATEGORY_GROUPS.map(group => (
+          <Stack gap="md" key={group.label}>
+            <Text bold>{group.label}</Text>
+            <Stack gap="md">
+              {group.options.map(([value, label]) => (
+                <RadioItem value={value} key={value}>
+                  {label}
+                </RadioItem>
+              ))}
+            </Stack>
+          </Stack>
+        ))}
+      </Grid>
+    </Stack>
   );
 }
-
-const CategoriesLabel = styled(TextBlock)`
-  margin-top: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
-const CategoryGrid = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-`;

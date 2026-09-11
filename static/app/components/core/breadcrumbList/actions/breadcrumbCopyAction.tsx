@@ -5,6 +5,8 @@ export interface BreadcrumbCopyActionProps {
   label: string;
   /** The value copied to the clipboard when the button is pressed. */
   text: string;
+  /** Optional icon override. Defaults to the generic copy icon. */
+  icon?: React.ReactNode;
   /** Fires with the copied text after a successful copy — use for analytics. */
   onCopy?: (copiedText: string) => void;
   /** Optional tooltip shown on hover. */
@@ -22,6 +24,7 @@ export function BreadcrumbCopyAction({
   label,
   tooltip,
   onCopy,
+  icon,
 }: BreadcrumbCopyActionProps) {
   return (
     <CopyToClipboardButton
@@ -29,6 +32,7 @@ export function BreadcrumbCopyAction({
       variant="transparent"
       aria-label={label}
       text={text}
+      icon={icon}
       onCopy={onCopy}
       tooltipProps={{title: tooltip}}
     />

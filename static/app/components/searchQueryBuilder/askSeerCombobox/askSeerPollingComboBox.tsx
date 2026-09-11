@@ -1,7 +1,4 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
-import {type AriaComboBoxProps} from '@react-aria/combobox';
-
-import {Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -10,8 +7,6 @@ import {
   type AskSeerComboBoxProps,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerLoadingStatus} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerLoadingStatus';
-import {AskSeerProgressBlocks} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerProgressBlocks';
-import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
 import {BaseAskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/baseAskSeerComboBox';
 import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {useAskSeerPolling} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useAskSeerPolling';
@@ -21,14 +16,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> extends Omit<
-  AriaComboBoxProps<unknown>,
-  'children'
-> {
+interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> {
   applySeerSearchQuery: (item: T, runId?: number | string) => void;
   initialQuery: string;
   projectIds: number[];
   strategy: string;
+  className?: string;
   /**
    * Fallback mutation options to use if the polling endpoint fails.
    * If provided, the component will fall back to AskSeerComboBox on start failure.
@@ -59,7 +52,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
   const hasTrackedFetchErrorRef = useRef(false);
-  const hasAskSeerUxRework = organization.features.includes('gen-ai-ask-seer-ux-rework');
   const [searchQuery, setSearchQuery] = useState(() =>
     formatQueryToNaturalLanguage(initialQuery)
   );
@@ -118,6 +110,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   if (startFailed && fallbackMutationOptions) {
     return (
       <AskSeerComboBox
+        {...props}
         initialQuery={initialQuery}
         askSeerMutationOptions={fallbackMutationOptions}
         applySeerSearchQuery={applySeerSearchQuery}
@@ -125,13 +118,8 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     );
   }
 
-  const loadingContent = hasAskSeerUxRework ? (
+  const loadingContent = (
     <AskSeerLoadingStatus completedSteps={completedSteps} currentStep={currentStep} />
-  ) : (
-    <Stack flex="1">
-      <AskSeerSearchHeader title={t("I'm on it...")} loading />
-      <AskSeerProgressBlocks completedSteps={completedSteps} currentStep={currentStep} />
-    </Stack>
   );
 
   return (

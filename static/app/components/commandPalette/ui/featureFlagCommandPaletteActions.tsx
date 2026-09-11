@@ -169,7 +169,6 @@ export function FeatureFlagCommandPaletteActions() {
         prompt={t('Search for a feature flag...')}
         resource={(_query, {state}) =>
           // `featureStateKey` represents `flagNames` and `enabledFlags`.
-          // eslint-disable-next-line @tanstack/query/exhaustive-deps
           cmdkQueryOptions({
             queryKey: [
               'cmdk-admin-feature-flag-toggle',

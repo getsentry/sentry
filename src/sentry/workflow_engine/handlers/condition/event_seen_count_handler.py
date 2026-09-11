@@ -8,6 +8,7 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 @condition_handler_registry.register(Condition.EVENT_SEEN_COUNT)
 class EventSeenCountConditionHandler(DataConditionHandler[WorkflowEventData]):
     group = DataConditionHandler.Group.ACTION_FILTER
+    comparison_json_schema = {"type": "integer", "minimum": 1}
 
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:

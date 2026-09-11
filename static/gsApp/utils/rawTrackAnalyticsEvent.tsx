@@ -127,7 +127,11 @@ const getOrganizationAge = (
   return null;
 };
 
-const getUserAge = (user: User): number => {
+const getUserAge = (user: User | null): number | null => {
+  if (!user) {
+    return null;
+  }
+
   return getDaysSinceDate(user.dateJoined);
 };
 type RawTrackEventHook = Overrides['analytics:raw-track-event'];
@@ -150,6 +154,9 @@ export function rawTrackAnalyticsEvent(
   {eventKey, eventName, organization, subscription, ...data}: Params,
   options?: Options
 ) {
+  if (!eventKey && !eventName) {
+    return;
+  }
   try {
     // apply custom function map parameters
     const {mapValuesFn} = options || {};
@@ -213,15 +220,20 @@ export function rawTrackAnalyticsEvent(
     // Prepare reloads data payload. If the organization_id is passed we include
     // that in the data payload.
     const user = ConfigStore.get('user');
-    const reloadData = {
-      user_id: coerceNumber(user?.id),
-      org_id: organization_id,
-      allow_no_schema: true,
-      sent_at: (time || Date.now()).toString(),
-      ...data,
-    };
+    const userId = coerceNumber(user?.id);
+    const reloadOrganizationId = data.organization_id ?? organization_id;
 
-    trackReloadEvent(eventKey, reloadData);
+    if (eventKey && (userId || reloadOrganizationId)) {
+      const reloadData = {
+        user_id: userId,
+        org_id: organization_id,
+        organization_id: reloadOrganizationId,
+        allow_no_schema: true,
+        sent_at: (time || Date.now()).toString(),
+        ...data,
+      };
+      trackReloadEvent(eventKey, reloadData);
+    }
     if (eventName && organization_id !== undefined) {
       const orgAge = getOrganizationAge(organization);
       const userAge = getUserAge(user);

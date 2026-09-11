@@ -44,7 +44,7 @@ export class Flamegraph {
   sort: 'left heavy' | 'alphabetical' | 'call order' = 'call order';
 
   depth = 0;
-  configSpace: Rect = Rect.Empty();
+  configSpace: Rect = Rect.empty();
   root: FlamegraphFrame = {
     key: -1,
     parent: null,
@@ -60,14 +60,14 @@ export class Flamegraph {
   formatter: (value: number) => string;
   timelineFormatter: (value: number) => string;
 
-  static Empty(): Flamegraph {
+  static empty(): Flamegraph {
     return new Flamegraph(Profile.Empty, {
       inverted: false,
       sort: 'call order',
     });
   }
 
-  static Example(): Flamegraph {
+  static example(): Flamegraph {
     return new Flamegraph(SampledProfile.Example, {
       inverted: false,
       sort: 'call order',

@@ -85,10 +85,25 @@ function ArgumentsGrid({
   token: functionToken,
   rowRef,
 }: ArgumentsGridProps) {
+  const {getFieldDefinition} = useArithmeticBuilder();
+
+  const resolveArgumentLabel = useCallback(
+    (index: number, fallbackLabel: string) => {
+      const fieldDefinition = getFieldDefinition(functionToken.function)?.parameters?.[
+        index
+      ];
+      if (fieldDefinition?.kind === 'column') {
+        return fieldDefinition?.defaultLabel ?? fallbackLabel;
+      }
+      return fallbackLabel;
+    },
+    [getFieldDefinition, functionToken]
+  );
+
   const [args, setArguments] = useState(
-    functionToken.attributes.map(attr => {
+    functionToken.attributes.map((attr, index) => {
       return {
-        label: attr.attribute,
+        label: resolveArgumentLabel(index, attr.attribute),
         value: attr.text,
       };
     })
@@ -97,13 +112,19 @@ function ArgumentsGrid({
   const updateArgumentAtIndex = (index: number, argument: string) => {
     setArguments(prev =>
       prev.map((item, i) =>
-        index === i ? {...item, value: argument, label: prettifyTagKey(argument)} : item
+        index === i
+          ? {
+              ...item,
+              value: argument,
+              label: resolveArgumentLabel(index, prettifyTagKey(argument)),
+            }
+          : item
       )
     );
   };
 
   if (!args.length) {
-    return '()';
+    return <BaseGridCell>()</BaseGridCell>;
   }
 
   return (
@@ -175,7 +196,7 @@ function ArgumentsGridList({
       {...gridProps}
       ref={ref}
     >
-      {[...state.collection].map((item, index) => {
+      {Array.from(state.collection, (item, index) => {
         const attribute = item.value;
 
         if (!defined(attribute)) {
@@ -237,7 +258,7 @@ function InternalInput({
   const gridCellRef = useRef<HTMLDivElement>(null);
   const {rowProps, gridCellProps} = useGridListItem({
     item: argumentItem,
-    ref: inputRef,
+    ref: gridCellRef,
     state: argumentsListState,
     focusable: true,
   });
@@ -246,8 +267,30 @@ function InternalInput({
   const hasNextArgument = argumentIndex < functionToken.attributes.length - 1;
   const hasPrevArgument = argumentIndex > 0;
 
+  const {
+    dispatch,
+    functionArguments: builderFunctionArguments,
+    getFieldDefinition,
+    getSuggestedKey,
+  } = useArithmeticBuilder();
+
+  const parameterDefinition = useMemo(
+    () => getFieldDefinition(functionToken.function)?.parameters?.[argumentIndex],
+    [argumentIndex, getFieldDefinition, functionToken]
+  );
+
+  const resolveDisplayLabel = useCallback(
+    (fallback: string): string =>
+      parameterDefinition?.kind === 'column' && parameterDefinition.defaultLabel
+        ? parameterDefinition.defaultLabel
+        : fallback,
+    [parameterDefinition]
+  );
+
+  const initialLabel = resolveDisplayLabel(argument.label);
+
   const [inputValue, setInputValue] = useState('');
-  const [currentValue, setCurrentValue] = useState(argument.label);
+  const [currentValue, setCurrentValue] = useState(initialLabel);
   const [isCurrentlyEditing, setIsCurrentlyEditing] = useState(false);
   const [_selectionIndex, setSelectionIndex] = useState(0); // TODO
   const [_isOpen, setIsOpen] = useState(false); // TODO
@@ -263,18 +306,6 @@ function InternalInput({
     setInputValue('');
     updateSelectionIndex();
   }, [updateSelectionIndex]);
-
-  const {
-    dispatch,
-    functionArguments: builderFunctionArguments,
-    getFieldDefinition,
-    getSuggestedKey,
-  } = useArithmeticBuilder();
-
-  const parameterDefinition = useMemo(
-    () => getFieldDefinition(functionToken.function)?.parameters?.[argumentIndex],
-    [argumentIndex, getFieldDefinition, functionToken]
-  );
 
   const updateAttrsWith = useCallback(
     (value: string) => {
@@ -314,13 +345,9 @@ function InternalInput({
     });
   }, [attributesFilter, builderFunctionArguments, getFieldDefinition]);
 
-  const attributeItems = useAttributeItems({
-    allowedAttributes,
-    filterValue,
-  });
+  const attributeItems = useAttributeItems(allowedAttributes);
 
   const items = useMemo(() => {
-    // If this is a dropdown parameter, use the predefined options
     if (parameterDefinition?.kind === 'value' && parameterDefinition.options) {
       return parameterDefinition.options
         .filter(
@@ -338,8 +365,34 @@ function InternalInput({
         }));
     }
 
-    // Otherwise, use the attribute-based items
-    return attributeItems;
+    // Remap labels (e.g. span.duration → spans for count), then filter
+    let result = attributeItems;
+    if (
+      parameterDefinition?.kind === 'column' &&
+      parameterDefinition.defaultLabel &&
+      parameterDefinition.defaultValue
+    ) {
+      result = result.map(item =>
+        item.value === parameterDefinition.defaultValue
+          ? {
+              ...item,
+              label: parameterDefinition.defaultLabel,
+              textValue: parameterDefinition.defaultLabel,
+            }
+          : item
+      );
+    }
+
+    if (filterValue) {
+      const lower = filterValue.toLowerCase();
+      result = result.filter(
+        item =>
+          item.value.includes(filterValue) ||
+          (item.textValue?.toLowerCase().includes(lower) ?? false)
+      );
+    }
+
+    return result;
   }, [parameterDefinition, filterValue, attributeItems]);
 
   const shouldCloseOnInteractOutside = useCallback((el: Element) => {
@@ -354,6 +407,21 @@ function InternalInput({
     resetInputValue();
     setIsCurrentlyEditing(false);
   }, [resetInputValue]);
+
+  const resolveValue = useCallback(
+    (raw: string): string => {
+      if (
+        parameterDefinition?.kind === 'column' &&
+        parameterDefinition.defaultLabel &&
+        parameterDefinition.defaultValue &&
+        raw === parameterDefinition.defaultLabel
+      ) {
+        return parameterDefinition.defaultValue;
+      }
+      return raw;
+    },
+    [parameterDefinition]
+  );
 
   const onTextInputBlur = useCallback(() => {
     if (inputValue) {
@@ -400,7 +468,9 @@ function InternalInput({
       value = getSuggestedKey(value) ?? value;
     }
 
-    setCurrentValue(value);
+    value = resolveValue(value);
+
+    setCurrentValue(resolveDisplayLabel(value));
     onArgumentsChange(argumentIndex, value);
 
     dispatch({
@@ -421,6 +491,8 @@ function InternalInput({
     argument.label,
     getSuggestedKey,
     parameterDefinition,
+    resolveDisplayLabel,
+    resolveValue,
     onArgumentsChange,
     argumentIndex,
     dispatch,
@@ -540,8 +612,7 @@ function InternalInput({
 
   const onOptionSelected = useCallback(
     (option: SelectOptionWithKey<string>) => {
-      // Check if there's a next argument to focus on
-      setCurrentValue(prettifyTagKey(option.value));
+      setCurrentValue(resolveDisplayLabel(prettifyTagKey(option.value)));
       if (hasNextArgument) {
         focusTarget(
           argumentsListState,
@@ -566,6 +637,7 @@ function InternalInput({
     },
     [
       hasNextArgument,
+      resolveDisplayLabel,
       resetInputValue,
       argumentsListState,
       argumentItem.key,
@@ -587,112 +659,100 @@ function InternalInput({
     (!defined(parameterDefinition.options) || !parameterDefinition.options.length)
   ) {
     return (
-      <ArgumentGridCell {...rowProps} {...gridCellProps} tabIndex={-1} ref={gridCellRef}>
-        <InputBox
-          tabIndex={-1}
+      <ArgumentGridRow {...rowProps} tabIndex={-1} ref={gridCellRef}>
+        <ArgumentGridCell {...gridCellProps}>
+          <InputBox
+            tabIndex={-1}
+            ref={inputRef}
+            inputLabel={t('Add a value')}
+            inputValue={displayValue}
+            onClick={onClick}
+            onInputBlur={onTextInputBlur}
+            onInputChange={onInputChange}
+            onInputCommit={onInputCommit}
+            onInputEscape={onInputEscape}
+            onInputFocus={onInputFocus}
+            onKeyDown={onKeyDown}
+            onKeyDownCapture={onKeyDownCapture}
+          />
+          {argumentIndex < functionToken.attributes.length - 1 && ','}
+        </ArgumentGridCell>
+      </ArgumentGridRow>
+    );
+  }
+
+  return (
+    <ArgumentGridRow {...rowProps} tabIndex={isFocused ? 0 : -1} ref={gridCellRef}>
+      <ArgumentGridCell {...gridCellProps}>
+        <ComboBox
+          items={items}
           ref={inputRef}
-          inputLabel={t('Add a value')}
+          placeholder={
+            parameterDefinition?.kind === 'value' && 'placeholder' in parameterDefinition
+              ? (argument.label ?? parameterDefinition.placeholder)
+              : resolveDisplayLabel(argument.label)
+          }
+          inputLabel={
+            parameterDefinition?.kind === 'column'
+              ? t('Select an attribute')
+              : t('Select an option')
+          }
           inputValue={displayValue}
+          filterValue={filterValue}
+          tabIndex={
+            argumentItem.key === argumentsListState.selectionManager.focusedKey ? 0 : -1
+          }
+          shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
           onClick={onClick}
-          onInputBlur={onTextInputBlur}
+          onInputBlur={onInputBlur}
           onInputChange={onInputChange}
           onInputCommit={onInputCommit}
           onInputEscape={onInputEscape}
           onInputFocus={onInputFocus}
           onKeyDown={onKeyDown}
           onKeyDownCapture={onKeyDownCapture}
-        />
-        {argumentIndex < functionToken.attributes.length - 1 && ','}
+          onOpenChange={setIsOpen}
+          onOptionSelected={onOptionSelected}
+          onPaste={onPaste}
+          data-test-id={
+            functionListState.collection.getLastKey() === functionItem.key
+              ? 'arithmetic-builder-argument-input'
+              : undefined
+          }
+        >
+          {keyItem =>
+            itemIsSection(keyItem) ? (
+              <Section title={keyItem.label} key={keyItem.key}>
+                {keyItem.options.map(child => (
+                  <Item {...child} key={child.key}>
+                    {child.label}
+                  </Item>
+                ))}
+              </Section>
+            ) : (
+              <Item {...keyItem} key={keyItem.key}>
+                {keyItem.label}
+              </Item>
+            )
+          }
+        </ComboBox>
       </ArgumentGridCell>
-    );
-  }
-
-  return (
-    <ArgumentGridCell
-      {...rowProps}
-      {...gridCellProps}
-      tabIndex={isFocused ? 0 : -1}
-      ref={gridCellRef}
-    >
-      <ComboBox
-        items={items}
-        ref={inputRef}
-        placeholder={
-          parameterDefinition?.kind === 'value' && 'placeholder' in parameterDefinition
-            ? (argument.label ?? parameterDefinition.placeholder)
-            : argument.label
-        }
-        inputLabel={
-          parameterDefinition?.kind === 'column'
-            ? t('Select an attribute')
-            : t('Select an option')
-        }
-        inputValue={displayValue}
-        filterValue={filterValue}
-        tabIndex={
-          argumentItem.key === argumentsListState.selectionManager.focusedKey ? 0 : -1
-        }
-        shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
-        onClick={onClick}
-        onInputBlur={onInputBlur}
-        onInputChange={onInputChange}
-        onInputCommit={onInputCommit}
-        onInputEscape={onInputEscape}
-        onInputFocus={onInputFocus}
-        onKeyDown={onKeyDown}
-        onKeyDownCapture={onKeyDownCapture}
-        onOpenChange={setIsOpen}
-        onOptionSelected={onOptionSelected}
-        onPaste={onPaste}
-        data-test-id={
-          functionListState.collection.getLastKey() === functionItem.key
-            ? 'arithmetic-builder-argument-input'
-            : undefined
-        }
-      >
-        {keyItem =>
-          itemIsSection(keyItem) ? (
-            <Section title={keyItem.label} key={keyItem.key}>
-              {keyItem.options.map(child => (
-                <Item {...child} key={child.key}>
-                  {child.label}
-                </Item>
-              ))}
-            </Section>
-          ) : (
-            <Item {...keyItem} key={keyItem.key}>
-              {keyItem.label}
-            </Item>
-          )
-        }
-      </ComboBox>
-    </ArgumentGridCell>
+    </ArgumentGridRow>
   );
 }
 
-function useAttributeItems({
-  allowedAttributes,
-  filterValue,
-}: {
-  allowedAttributes: FunctionArgument[];
-  filterValue: string;
-}): Array<SelectOptionWithKey<string>> {
-  // TODO: use a config
-  const attributes: Array<SelectOptionWithKey<string>> = useMemo(() => {
-    const items = filterValue
-      ? allowedAttributes.filter(attr => attr.name.includes(filterValue))
-      : allowedAttributes;
-
-    return items.map(item => ({
+function useAttributeItems(
+  allowedAttributes: FunctionArgument[]
+): Array<SelectOptionWithKey<string>> {
+  return useMemo(() => {
+    return allowedAttributes.map(item => ({
       key: item.name,
       label: item.label ?? item.name,
       value: item.name,
       textValue: item.name,
       hideCheck: true,
     }));
-  }, [allowedAttributes, filterValue]);
-
-  return attributes;
+  }, [allowedAttributes]);
 }
 
 const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
@@ -702,6 +762,7 @@ const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md};
   height: fit-content;
+  min-height: 24px;
   /* Ensures that filters do not grow outside of the container */
   min-width: 0;
   max-width: 100%;
@@ -729,13 +790,19 @@ const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   }
 `;
 
-const ArgumentGridCell = styled('div')`
+const ArgumentGridRow = styled('div')`
   display: flex;
   align-items: center;
   position: relative;
   height: 100%;
   flex: 0 1 auto;
   max-width: fit-content;
+`;
+
+const ArgumentGridCell = styled('div')`
+  display: flex;
+  align-items: center;
+  height: 100%;
 
   > div input {
     max-width: 130px !important;
@@ -749,6 +816,7 @@ const BaseGridCell = styled('div')`
   align-items: center;
   position: relative;
   height: 100%;
+  min-height: 22px;
 `;
 
 const FunctionGridCell = styled(BaseGridCell)`

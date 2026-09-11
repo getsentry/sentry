@@ -4,6 +4,7 @@ import type {Theme} from '@emotion/react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
@@ -12,10 +13,19 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ProgressBar} from 'sentry/components/progressBar';
-import {IconExpand, IconInput, IconList, IconPause, IconStack} from 'sentry/icons';
+import {
+  IconExpand,
+  IconHide,
+  IconInput,
+  IconList,
+  IconPause,
+  IconShow,
+  IconStack,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import type {DiffMode} from './imageDisplay/diffImageDisplay';
+import {KeyboardShortcutsButton} from './keyboardShortcutsButton';
 
 const TRANSPARENT_COLOR = 'transparent';
 
@@ -56,7 +66,7 @@ export function ToolbarContainer({
         align="center"
         justify="between"
         gap="md"
-        padding={{'screen:xs': 'md xl', 'screen:md': 'md xl md 0'}}
+        padding={{zero: 'md xl', '3xl': 'md xl md 0'}}
         background="primary"
         onClick={e => e.stopPropagation()}
       >
@@ -71,11 +81,8 @@ export function ToolbarContainer({
               {diffControls}
             </Flex>
           )}
-          <Flex
-            display={{'screen:2xs': 'none', 'screen:xs': 'none', 'screen:sm': 'flex'}}
-          >
-            {soloDiffToggle}
-          </Flex>
+          <Flex display={{zero: 'none', xl: 'flex'}}>{soloDiffToggle}</Flex>
+          <KeyboardShortcutsButton />
         </Flex>
       </Flex>
       <Separator orientation="horizontal" />
@@ -162,6 +169,19 @@ export function SortDropdown({
 }
 
 const OPACITY_PRESETS = [0, 50, 100];
+const DEFAULT_VISIBLE_OPACITY = 50;
+
+function useOverlayToggle(opacity: number, onOpacityChange: (opacity: number) => void) {
+  const lastVisibleOpacity = useRef(opacity || DEFAULT_VISIBLE_OPACITY);
+
+  useEffect(() => {
+    if (opacity > 0) {
+      lastVisibleOpacity.current = opacity;
+    }
+  }, [opacity]);
+
+  return () => onOpacityChange(opacity === 0 ? lastVisibleOpacity.current : 0);
+}
 
 export function ColorPickerButton({
   color,
@@ -178,6 +198,11 @@ export function ColorPickerButton({
   const [isOpen, setIsOpen] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
   const palette = theme.chart.getColorPalette(10);
+  const isHidden = opacity === 0;
+  const toggleOverlay = useOverlayToggle(opacity, onOpacityChange);
+  const toggleLabel = isHidden ? t('Show overlay') : t('Hide overlay');
+  // `transparent` supports legacy localStorage color values.
+  const showSlash = isHidden || color === TRANSPARENT_COLOR;
 
   useEffect(() => {
     if (!isOpen) {
@@ -194,11 +219,20 @@ export function ColorPickerButton({
 
   return (
     <ColorPickerWrapper ref={pickerRef}>
+      <Tooltip title={toggleLabel} skipWrapper>
+        <Button
+          size="xs"
+          variant="transparent"
+          icon={isHidden ? <IconShow /> : <IconHide />}
+          aria-label={toggleLabel}
+          aria-pressed={!isHidden}
+          onClick={toggleOverlay}
+        />
+      </Tooltip>
       <Tooltip title={t('Overlay color')} skipWrapper>
         <ColorTrigger
           $color={color}
-          // `transparent` supports legacy localStorage color values.
-          $slash={opacity === 0 || color === TRANSPARENT_COLOR}
+          $slash={showSlash}
           aria-label={t('Pick overlay color')}
           onClick={() => setIsOpen(v => !v)}
         />
@@ -290,6 +324,7 @@ const ColorPickerWrapper = styled('div')`
   position: relative;
   display: flex;
   align-items: center;
+  gap: ${p => p.theme.space['2xs']};
 `;
 
 const ColorPickerDropdown = styled('div')`
@@ -335,7 +370,7 @@ export const ProgressCounter = styled(Text)`
 export const ToolbarProgressBar = styled(ProgressBar)`
   width: 50px;
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     display: none;
   }
 `;

@@ -60,6 +60,7 @@ import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLM
 import {VisualizationWidget} from './visualizationWidget';
 import {
   getMenuOptions,
+  useDiscoverSplitWarning,
   useDroppedColumnsWarning,
   useTransactionsDeprecationWarning,
 } from './widgetCardContextMenu';
@@ -211,6 +212,7 @@ function WidgetCard(props: Props) {
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
+    // oxlint-disable-next-line react/immutability
     widget.displayType = DisplayType.AREA;
   }
 
@@ -231,6 +233,7 @@ function WidgetCard(props: Props) {
     widget,
     dashboardFilters,
   });
+  const discoverSplitWarning = useDiscoverSplitWarning(widget);
 
   const onDataFetchStart = () => {
     if (timeoutRef.current) {
@@ -329,6 +332,7 @@ function WidgetCard(props: Props) {
     transactionsDeprecationWarning,
     droppedColumnsWarning,
     conflictingFilterWarning,
+    discoverSplitWarning,
   ].filter(Boolean) as string[];
 
   const actionsDisabled = Boolean(props.isPreview);
@@ -526,6 +530,8 @@ function useTimeRangeWarning({widget}: {widget: TWidget}) {
   const retentionLimitDays = useRetentionLimit({
     dataset: widget.widgetType ?? WidgetType.ERRORS,
   });
+  // Capture now once per mount instead of reading it during render
+  const [now] = useState(() => Date.now());
 
   if (!retentionLimitDays) {
     return null;
@@ -540,8 +546,8 @@ function useTimeRangeWarning({widget}: {widget: TWidget}) {
 
   // Convert the number of days to ms so we can get an end date to check if the
   // widget is querying more than its retention allows
-  const statsPeriodToEnd = new Date(Date.now() - statsPeriodDaysFromNow * DAYS_TO_MS);
-  const retentionLimitDate = new Date(Date.now() - retentionLimitDays * DAYS_TO_MS);
+  const statsPeriodToEnd = new Date(now - statsPeriodDaysFromNow * DAYS_TO_MS);
+  const retentionLimitDate = new Date(now - retentionLimitDays * DAYS_TO_MS);
   if (
     (retentionLimitDate && datetime.end && retentionLimitDate > datetime.end) ||
     (retentionLimitDate && statsPeriodToEnd && retentionLimitDate > statsPeriodToEnd)

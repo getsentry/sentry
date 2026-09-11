@@ -52,8 +52,18 @@ describe('useScmRepos', () => {
     });
 
     expect(result.current.dropdownItems).toEqual([
-      {value: 'getsentry/sentry', label: 'sentry', disabled: false},
-      {value: 'getsentry/relay', label: 'relay', disabled: false},
+      {
+        value: 'getsentry/sentry',
+        label: 'sentry',
+        textValue: 'sentry',
+        disabled: false,
+      },
+      {
+        value: 'getsentry/relay',
+        label: 'relay',
+        textValue: 'relay',
+        disabled: false,
+      },
     ]);
   });
 

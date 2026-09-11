@@ -139,11 +139,27 @@ class TestResolveViewerContext:
         assert result.user_id == 7
         assert result.actor_type == ActorType.USER
 
-    def test_explicit_only(self) -> None:
+    @patch("sentry.seer.signed_seer_api.metrics")
+    @patch("sentry.seer.signed_seer_api.logger")
+    def test_explicit_only_warns_contextvar_missing(
+        self, mock_logger: MagicMock, mock_metrics: MagicMock
+    ) -> None:
         result = _resolve_viewer_context(SeerViewerContext(organization_id=99, user_id=5))
         assert result is not None
         assert result.organization_id == 99
         assert result.user_id == 5
+
+        mock_logger.warning.assert_called_once_with(
+            "seer.viewer_context_not_set",
+            extra={
+                "explicit_org_id": 99,
+                "explicit_user_id": 5,
+            },
+        )
+        mock_metrics.incr.assert_called_once_with(
+            "seer.viewer_context_resolution",
+            tags={"outcome": "contextvar_missing"},
+        )
 
     def test_contextvar_with_token(self) -> None:
         token = AuthenticatedToken(
@@ -170,8 +186,11 @@ class TestResolveViewerContext:
         assert result.user_id == 99
         assert result.actor_type == ActorType.USER
 
+    @patch("sentry.seer.signed_seer_api.metrics")
     @patch("sentry.seer.signed_seer_api.logger")
-    def test_mismatch_warns_and_strips_token(self, mock_logger: MagicMock) -> None:
+    def test_mismatch_warns_and_strips_token(
+        self, mock_logger: MagicMock, mock_metrics: MagicMock
+    ) -> None:
         token = AuthenticatedToken(
             kind="api_token",
             scopes=["org:read"],
@@ -186,6 +205,38 @@ class TestResolveViewerContext:
         assert result.token is None
         mock_logger.warning.assert_called_once()
         assert mock_logger.warning.call_args[0][0] == "seer.viewer_context_mismatch"
+        mock_metrics.incr.assert_called_once_with(
+            "seer.viewer_context_resolution",
+            tags={"outcome": "mismatch", "has_project": "false"},
+        )
+
+    @patch("sentry.seer.signed_seer_api.metrics")
+    def test_match_emits_metric_with_project_id(self, mock_metrics: MagicMock) -> None:
+        ctx = ViewerContext(
+            organization_id=42, user_id=7, project_id=100, actor_type=ActorType.USER
+        )
+        with viewer_context_scope(ctx):
+            result = _resolve_viewer_context(SeerViewerContext(organization_id=42, user_id=7))
+
+        assert result is not None
+        assert result.project_id == 100
+        mock_metrics.incr.assert_called_once_with(
+            "seer.viewer_context_resolution",
+            tags={"outcome": "match", "has_project": "true"},
+        )
+
+    @patch("sentry.seer.signed_seer_api.metrics")
+    def test_match_emits_metric_without_project_id(self, mock_metrics: MagicMock) -> None:
+        ctx = ViewerContext(organization_id=42, user_id=7, actor_type=ActorType.USER)
+        with viewer_context_scope(ctx):
+            result = _resolve_viewer_context(SeerViewerContext(organization_id=42, user_id=7))
+
+        assert result is not None
+        assert result.project_id is None
+        mock_metrics.incr.assert_called_once_with(
+            "seer.viewer_context_resolution",
+            tags={"outcome": "match", "has_project": "false"},
+        )
 
     def test_no_mismatch_keeps_token(self) -> None:
         token = AuthenticatedToken(

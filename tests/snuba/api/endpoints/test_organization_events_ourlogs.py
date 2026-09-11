@@ -233,6 +233,27 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         ]
         assert meta["dataset"] == self.dataset
 
+    def test_has_trace_filter(self) -> None:
+        trace_id = "1" * 32
+        logs = [
+            self.create_ourlog(
+                {"body": "foo", "trace_id": trace_id},
+                timestamp=self.ten_mins_ago,
+            ),
+        ]
+        self.store_eap_items(logs)
+        response = self.do_request(
+            {
+                "field": ["message", "trace"],
+                "query": "has:trace",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [{"message": "foo", "trace": trace_id}]
+
     def test_filter_timestamp(self) -> None:
         one_day_ago = before_now(days=1).replace(microsecond=0)
         three_days_ago = before_now(days=3).replace(microsecond=0)

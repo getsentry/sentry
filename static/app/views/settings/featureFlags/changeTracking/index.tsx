@@ -5,14 +5,14 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {LoadingError} from 'sentry/components/loadingError';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
@@ -99,7 +99,10 @@ function OrganizationFeatureFlagsChangeTracking() {
   >({
     mutationFn: ({id}) =>
       api.requestPromise(
-        `/organizations/${organization.slug}/flags/signing-secrets/${id}/`,
+        getApiUrl(
+          '/organizations/$organizationIdOrSlug/flags/signing-secrets/$signingSecretId/',
+          {path: {organizationIdOrSlug: organization.slug, signingSecretId: id}}
+        ),
         {
           method: 'DELETE',
         }
@@ -173,21 +176,36 @@ function OrganizationFeatureFlagsChangeTracking() {
           'Look below for a list of the webhooks you have set up with external providers. Note that each provider can only have one associated signing secret.'
         )}
       </TextBlock>
-      <ResponsivePanelTable
-        isLoading={isPending || isError}
-        isEmpty={!isPending && !secretList?.data?.length}
-        loader={
-          isError ? (
-            <LoadingError
-              message={t('Failed to load secrets and providers for the organization.')}
-              onRetry={refetchSecretList}
-            />
-          ) : undefined
-        }
-        emptyMessage={t("You haven't linked any providers yet.")}
-        headers={[t('Provider'), t('Created'), t('Created by'), '']}
+      <StyledSimpleTable
+        columns={SECRET_COLUMNS}
         data-test-id="secrets-table"
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell columnKey="provider">
+              {t('Provider')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell columnKey="created">
+              {t('Created')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell columnKey="createdBy">
+              {t('Created by')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell columnKey="actions" />
+          </SimpleTable.HeaderRow>
+        }
       >
+        {isError && (
+          <SimpleTable.Error
+            message={t('Failed to load secrets and providers for the organization.')}
+            onRetry={refetchSecretList}
+          />
+        )}
+        {!isError && isPending && <SimpleTable.Loading />}
+        {!isError && !isPending && !secretList?.data?.length && (
+          <SimpleTable.Empty>
+            {t("You haven't linked any providers yet.")}
+          </SimpleTable.Empty>
+        )}
         {!isError && !isPending && !!secretList?.data?.length && (
           <SecretList
             secretList={secretList.data}
@@ -195,7 +213,7 @@ function OrganizationFeatureFlagsChangeTracking() {
             removeSecret={hasDeleteAccess ? handleRemoveSecret : undefined}
           />
         )}
-      </ResponsivePanelTable>
+      </StyledSimpleTable>
 
       <OrganizationFeatureFlagsAuditLogTable />
     </Fragment>
@@ -210,14 +228,13 @@ export default function OrganizationFeatureFlagsChangeTrackingRoute() {
   );
 }
 
-const ResponsivePanelTable = styled(PanelTable)`
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr 1fr;
+const SECRET_COLUMNS: TableColumnConfig[] = [
+  {key: 'provider', width: {zero: '1fr', xl: 'auto'}},
+  {key: 'created', visible: {xl: true}, width: 'auto'},
+  {key: 'createdBy', visible: {xl: true}, width: 'auto'},
+  {key: 'actions', width: {zero: '1fr', xl: 'auto'}},
+];
 
-    > *:nth-child(4n + 2),
-    > *:nth-child(4n + 3) {
-      display: none;
-    }
-  }
+const StyledSimpleTable = styled(SimpleTable)`
   margin-bottom: ${p => p.theme.space['2xl']};
 `;

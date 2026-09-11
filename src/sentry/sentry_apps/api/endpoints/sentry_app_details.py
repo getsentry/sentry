@@ -44,6 +44,7 @@ from sentry.sentry_apps.installations import SentryAppInstallationNotifier
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.utils.webhooks import has_error_events
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.audit import create_audit_entry
@@ -139,7 +140,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         )
         if (
             owner_context
-            and self._has_hook_events(request)
+            and has_error_events(request.data.get("events"))
             and not features.has(
                 "organizations:integrations-event-hooks",
                 owner_context.organization,
@@ -283,9 +284,3 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
             return Response(status=204)
 
         return Response({"detail": ["Published apps cannot be removed."]}, status=403)
-
-    def _has_hook_events(self, request: Request):
-        if not request.data.get("events"):
-            return False
-
-        return "error" in request.data["events"]

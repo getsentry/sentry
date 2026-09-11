@@ -1,6 +1,6 @@
-import type {Fuse} from 'sentry/utils/fuzzySearch';
+import type {FuseResultMatch} from 'fuse.js/basic';
 
-type Match = Fuse.FuseResultMatch;
+type Match = FuseResultMatch;
 
 type HighlightResult = {
   highlight: boolean;

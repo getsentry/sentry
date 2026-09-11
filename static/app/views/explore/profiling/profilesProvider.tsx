@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import type {RequestState} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {TransactionResult} from 'sentry/utils/profiling/hooks/useTransactionAsSpans';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useApi} from 'sentry/utils/useApi';
@@ -22,7 +23,16 @@ function fetchFlamegraphs(
 ): Promise<Profiling.ProfileInput> {
   return api
     .requestPromise(
-      `/projects/${orgSlug}/${projectSlug}/profiling/profiles/${eventId}/`,
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/profiling/profiles/$profileId/',
+        {
+          path: {
+            organizationIdOrSlug: orgSlug,
+            projectIdOrSlug: projectSlug,
+            profileId: eventId,
+          },
+        }
+      ),
       {
         method: 'GET',
         includeAllArgs: true,
@@ -38,14 +48,19 @@ function fetchContinuousProfileFlamegraph(
   orgSlug: Organization['slug']
 ): Promise<Profiling.ProfileInput> {
   return api
-    .requestPromise(`/organizations/${orgSlug}/profiling/chunks/`, {
-      method: 'GET',
-      query: {
-        ...query,
-        project: projectSlug,
-      },
-      includeAllArgs: true,
-    })
+    .requestPromise(
+      getApiUrl('/organizations/$organizationIdOrSlug/profiling/chunks/', {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+      {
+        method: 'GET',
+        query: {
+          ...query,
+          project: projectSlug,
+        },
+        includeAllArgs: true,
+      }
+    )
     .then(([data]) => {
       // Temporary fix to ensure the profiler_id is set for continuous profiles
       const profile = data.chunk;

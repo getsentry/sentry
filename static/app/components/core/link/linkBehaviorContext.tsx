@@ -4,27 +4,30 @@ import * as Sentry from '@sentry/react';
 
 import type {LinkProps} from './link';
 
-type LinkBehavior = {
-  behavior: (props: LinkProps) => LinkProps;
-  component: FunctionComponent<LinkProps>;
+type LinkBehavior<T extends LinkProps> = {
+  behavior: (props: T) => T;
+  component: FunctionComponent<T>;
 };
 
-const LinkBehaviorContext = createContext<LinkBehavior | null>(null);
+const LinkBehaviorContext = createContext<LinkBehavior<LinkProps> | null>(null);
 
-const defaultLinkBehavior = {
-  component: RouterLink,
-  behavior: props => props,
-} satisfies LinkBehavior;
+const defaultLinkBehavior = <T extends LinkProps>() =>
+  ({
+    component: RouterLink,
+    behavior: props => props,
+  }) satisfies LinkBehavior<T>;
 
 export const LinkBehaviorContextProvider = LinkBehaviorContext.Provider;
 
-export const useLinkBehavior = (props: LinkProps) => {
-  const linkBehavior = useContext(LinkBehaviorContext);
+export const useLinkBehavior = <T extends LinkProps>(props: T) => {
+  const linkBehavior = useContext<LinkBehavior<T> | null>(
+    LinkBehaviorContext as React.Context<LinkBehavior<T> | null>
+  );
 
   if (process.env.NODE_ENV === 'production' && !linkBehavior) {
     Sentry.logger.warn('LinkBehaviorContext not found');
   }
-  const {component, behavior} = linkBehavior ?? defaultLinkBehavior;
+  const {component, behavior} = linkBehavior ?? defaultLinkBehavior<T>();
 
   return {Component: component, behavior: () => behavior(props)};
 };

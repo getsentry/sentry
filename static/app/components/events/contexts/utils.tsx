@@ -34,6 +34,7 @@ import {getStateContextData} from 'sentry/components/events/contexts/knownContex
 import {getThreadPoolInfoContext} from 'sentry/components/events/contexts/knownContext/threadPoolInfo';
 import {getTraceContextData} from 'sentry/components/events/contexts/knownContext/trace';
 import {getUserContextData} from 'sentry/components/events/contexts/knownContext/user';
+import {getWERContextData} from 'sentry/components/events/contexts/knownContext/wer';
 import {
   getPlatformContextData,
   getPlatformContextIcon,
@@ -106,7 +107,7 @@ export function generateIconName(
 }
 
 export function getRelativeTimeFromEventDateCreated(
-  eventDateCreated: string,
+  eventDateCreated: string | undefined,
   timestamp?: string,
   showTimestamp = true
 ) {
@@ -120,7 +121,14 @@ export function getRelativeTimeFromEventDateCreated(
     return timestamp;
   }
 
-  const relativeTime = `(${dateTime.from(eventDateCreated, true)} ${t(
+  // Without a valid reference date (e.g. the event isn't available) we can't
+  // compute a relative time, so just show the timestamp on its own.
+  const referenceDate = moment(eventDateCreated);
+  if (!eventDateCreated || !referenceDate.isValid()) {
+    return timestamp;
+  }
+
+  const relativeTime = `(${dateTime.from(referenceDate, true)} ${t(
     'before this event'
   )})`;
 
@@ -264,6 +272,8 @@ export function getContextTitle({
       return t('Feedback');
     case 'os':
       return t('Operating System');
+    case 'wer':
+      return t('Windows Error Reporting');
     case 'user':
       return t('User');
     case 'gpu':
@@ -314,17 +324,20 @@ export function getContextTitle({
   }
 }
 
-export function getContextMeta(event: Event, contextType: string): Record<string, any> {
-  const defaultMeta = event._meta?.contexts?.[contextType] ?? {};
+export function getContextMeta(
+  event: Event | undefined,
+  contextType: string
+): Record<string, any> {
+  const defaultMeta = event?._meta?.contexts?.[contextType] ?? {};
   switch (contextType) {
     case 'memory_info': // Current
     case 'Memory Info': // Legacy
-      return event._meta?.contexts?.['Memory Info'] ?? defaultMeta;
+      return event?._meta?.contexts?.['Memory Info'] ?? defaultMeta;
     case 'threadpool_info': // Current
     case 'ThreadPool Info': // Legacy
-      return event._meta?.contexts?.['ThreadPool Info'] ?? defaultMeta;
+      return event?._meta?.contexts?.['ThreadPool Info'] ?? defaultMeta;
     case 'user':
-      return event._meta?.user ?? defaultMeta;
+      return event?._meta?.user ?? defaultMeta;
     default:
       return defaultMeta;
   }
@@ -372,6 +385,9 @@ export function getContextIcon({
       iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);
       break;
   }
+  if (contextType === 'wer') {
+    iconName = 'windows';
+  }
   if (iconName.length === 0) {
     return null;
   }
@@ -392,9 +408,9 @@ export function getFormattedContextData({
 }: {
   contextType: string;
   contextValue: any;
-  event: Event;
   location: Location;
   organization: Organization;
+  event?: Event;
   project?: Project;
 }): KeyValueListData {
   const meta = getContextMeta(event, contextType);
@@ -419,6 +435,8 @@ export function getFormattedContextData({
       return getOperatingSystemContextData({data: contextValue, meta});
     case 'runtime':
       return getRuntimeContextData({data: contextValue, meta});
+    case 'wer':
+      return getWERContextData({data: contextValue, meta});
     case 'user':
       return getUserContextData({data: contextValue, meta});
     case 'gpu':

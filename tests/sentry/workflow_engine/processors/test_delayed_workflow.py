@@ -1008,6 +1008,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         mock_process.return_value = (
             DataConditionGroupEvaluation(
                 result=False,
+                triggered=False,
                 data={"condition_evaluations": [], "logic_type": DataConditionGroup.Type.ANY},
             ),
             [],
@@ -1045,6 +1046,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         mock_process.return_value = (
             DataConditionGroupEvaluation(
                 result=False,
+                triggered=False,
                 data={"condition_evaluations": [], "logic_type": DataConditionGroup.Type.ANY},
             ),
             [],

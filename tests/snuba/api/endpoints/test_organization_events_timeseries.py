@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from typing import Any
+from unittest import mock
 
 import pytest
 from django.urls import reverse
 
 from sentry.api.endpoints.timeseries import INGESTION_DELAY_MESSAGE
-from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.constants import DataCategory
+from sentry.testutils.cases import APITestCase, OutcomesSnubaTest, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.utils.outcomes import Outcome
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -390,3 +394,214 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "valueUnit": None,
             "interval": 3_600_000,
         }
+
+    def _api_token_request(self, data, features):
+        api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
+        with self.feature(features):
+            return self.client.get(
+                self.url,
+                data=data,
+                format="json",
+                HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
+            )
+
+    @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
+    def test_blocked_org_log_fires_for_discover(self, mock_sdk_logger: mock.MagicMock) -> None:
+        data = {
+            "start": self.start,
+            "end": self.end,
+            "interval": "1h",
+            "project": [self.project.id],
+        }
+        self._api_token_request(
+            data,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:events-endpoint-transactions-discover-blocked": True,
+            },
+        )
+
+        mock_sdk_logger.warning.assert_called_once()
+        _, kwargs = mock_sdk_logger.warning.call_args
+        assert kwargs["attributes"] == {
+            "org_id": self.organization.id,
+            "org_slug": self.organization.slug,
+            # no dataset param was passed, so the requested value is empty
+            "requested_dataset": "",
+            # but the default dataset is used
+            "effective_dataset": "discover",
+            "endpoint_name": "organization-events-timeseries",
+        }
+
+    @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
+    def test_blocked_org_log_fires_for_transactions(self, mock_sdk_logger: mock.MagicMock) -> None:
+        data = {
+            "start": self.start,
+            "end": self.end,
+            "interval": "1h",
+            "project": [self.project.id],
+            "dataset": "transactions",
+        }
+        self._api_token_request(
+            data,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:events-endpoint-transactions-discover-blocked": True,
+            },
+        )
+
+        mock_sdk_logger.warning.assert_called_once()
+        _, kwargs = mock_sdk_logger.warning.call_args
+        assert kwargs["attributes"]["effective_dataset"] == "transactions"
+        assert kwargs["attributes"]["requested_dataset"] == "transactions"
+
+    @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
+    def test_blocked_org_log_not_fired_when_flag_off(self, mock_sdk_logger: mock.MagicMock) -> None:
+        data = {
+            "start": self.start,
+            "end": self.end,
+            "interval": "1h",
+            "project": [self.project.id],
+        }
+        self._api_token_request(
+            data,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:events-endpoint-transactions-discover-blocked": False,
+            },
+        )
+
+        mock_sdk_logger.warning.assert_not_called()
+
+    @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
+    def test_blocked_org_log_not_fired_for_non_external_request(
+        self, mock_sdk_logger: mock.MagicMock
+    ) -> None:
+        data = {
+            "start": self.start,
+            "end": self.end,
+            "interval": "1h",
+            "project": [self.project.id],
+        }
+        # do_request uses a session login, not an API token
+        self.do_request(
+            data,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:events-endpoint-transactions-discover-blocked": True,
+            },
+        )
+
+        mock_sdk_logger.warning.assert_not_called()
+
+    @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
+    def test_blocked_org_log_not_fired_for_non_legacy_dataset(
+        self, mock_sdk_logger: mock.MagicMock
+    ) -> None:
+        data = {
+            "start": self.start,
+            "end": self.end,
+            "interval": "1h",
+            "project": [self.project.id],
+            "dataset": "errors",
+        }
+        self._api_token_request(
+            data,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:events-endpoint-transactions-discover-blocked": True,
+            },
+        )
+
+        mock_sdk_logger.warning.assert_not_called()
+
+
+class OrganizationEventsTimeseriesAnnotationsTest(APITestCase, OutcomesSnubaTest):
+    endpoint = "sentry-api-0-organization-events-timeseries"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        # Align to an hour boundary so the hourly Outcomes rollup buckets cleanly.
+        self.end = before_now(days=1).replace(minute=0, second=0, microsecond=0)
+        self.start = self.end - timedelta(hours=2)
+        self.url = reverse(
+            self.endpoint,
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+
+    def _store_span_drop(self, quantity: int, minutes: int = 30) -> None:
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.RATE_LIMITED,
+                "reason": "over_quota",
+                "category": DataCategory.SPAN,
+                "timestamp": self.start + timedelta(minutes=minutes),
+                "quantity": quantity,
+            }
+        )
+
+    def _do_request(self, features: dict[str, bool], annotations: bool = True):
+        data: dict[str, Any] = {
+            "start": self.start,
+            "end": self.end,
+            "interval": "1h",
+            "project": [self.project.id],
+            "dataset": "spans",
+        }
+        if annotations:
+            data["includeAnnotations"] = ""
+        with self.feature(features):
+            return self.client.get(self.url, data=data, format="json")
+
+    def test_annotations_absent_without_flag(self) -> None:
+        self._store_span_drop(2000)
+        response = self._do_request({"organizations:visibility-explore-view": True})
+        assert response.status_code == 200, response.content
+        assert "annotations" not in response.data["meta"]
+
+    def test_annotations_absent_without_query_param(self) -> None:
+        # Flag on, but the endpoint must not enrich unless the caller opts in.
+        self._store_span_drop(2000)
+        response = self._do_request(
+            {
+                "organizations:visibility-explore-view": True,
+                "organizations:explore-data-fidelity-annotations": True,
+            },
+            annotations=False,
+        )
+        assert response.status_code == 200, response.content
+        assert "annotations" not in response.data["meta"]
+
+    def test_annotations_present_with_flag(self) -> None:
+        # Two drops in different hourly buckets: annotations are per-bucket, so
+        # each carries its own start/end rather than the whole query's range.
+        self._store_span_drop(2000, minutes=30)
+        self._store_span_drop(1500, minutes=90)
+        response = self._do_request(
+            {
+                "organizations:visibility-explore-view": True,
+                "organizations:explore-data-fidelity-annotations": True,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert "annotations" in response.data["meta"]
+        annotations = response.data["meta"]["annotations"]
+        assert len(annotations) == 2
+        assert {a["droppedCount"] for a in annotations} == {2000, 1500}
+        assert {a["category"] for a in annotations} == {DataCategory.SPAN.api_name()}
+        # Distinct buckets => distinct start times, one interval apart.
+        starts = sorted(a["start"] for a in annotations)
+        assert starts[1] - starts[0] == 3_600_000
+
+    def test_annotations_empty_when_no_drops(self) -> None:
+        response = self._do_request(
+            {
+                "organizations:visibility-explore-view": True,
+                "organizations:explore-data-fidelity-annotations": True,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"]["annotations"] == []

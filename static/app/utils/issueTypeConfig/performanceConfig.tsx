@@ -182,7 +182,7 @@ export const performanceConfig: IssueCategoryConfigMapping = {
   [IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD]: {
     resources: {
       description: t(
-        'A Large HTTP Payload issue occurs when an http payload size consistently exceeds a threshold of 300KB'
+        'A Large HTTP Payload issue occurs when an http payload size consistently exceeds a threshold of 300kB'
       ),
       links: [
         {
@@ -240,11 +240,8 @@ export const performanceConfig: IssueCategoryConfigMapping = {
       tagsTab: {enabled: false},
     },
     discover: {enabled: false},
-    regression: {enabled: true},
-    performanceDurationRegression: {enabled: true},
     stats: {enabled: false},
     tags: {enabled: false},
-    // We show the regression summary instead
     spanEvidence: {enabled: false},
   },
   [IssueType.PROFILE_FILE_IO_MAIN_THREAD]: {

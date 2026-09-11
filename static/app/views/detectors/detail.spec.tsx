@@ -25,12 +25,12 @@ import {
   EventTypes,
   ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
-import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';
+import {CheckStatus} from 'sentry/views/detectors/components/uptime/types';
 import DetectorDetails from 'sentry/views/detectors/detail';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 describe('DetectorDetails', () => {
-  const organization = OrganizationFixture({features: ['workflow-engine-ui']});
+  const organization = OrganizationFixture();
   const project = ProjectFixture();
   const defaultDataSource = SnubaQueryDataSourceFixture();
   const ownerTeam = TeamFixture();

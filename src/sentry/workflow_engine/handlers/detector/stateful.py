@@ -17,9 +17,9 @@ from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.utils import metrics, redis
 from sentry.workflow_engine.handlers.detector.base import (
-    BaseDetectorHandler,
     DataPacketEvaluationType,
     DataPacketType,
+    DetectorHandler,
     DetectorOccurrence,
     EventData,
     GroupedDetectorEvaluationResult,
@@ -312,7 +312,7 @@ DetectorThresholds = dict[DetectorPriorityLevel, int]
 
 
 class StatefulDetectorHandler(
-    BaseDetectorHandler[DataPacketType, DataPacketEvaluationType],
+    DetectorHandler[DataPacketType, DataPacketEvaluationType],
     abc.ABC,
 ):
     """
@@ -340,6 +340,16 @@ class StatefulDetectorHandler(
         Configure default thresholds at the detector level.
         """
         return {}
+
+    @abc.abstractmethod
+    def extract_dedupe_value(self, data_packet: DataPacket[DataPacketType]) -> int:
+        """
+        Extracts the de-duplication value from a passed data packet. This duplication
+        value is used to determine if we've already processed data to this point or not.
+
+        This is normally a timestamp, but could be any sortable value; (e.g. a sequence number, timestamp, etc).
+        """
+        pass
 
     def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
         """
@@ -402,7 +412,7 @@ class StatefulDetectorHandler(
             "conditions": [
                 condition_evaluation.condition.get_snapshot()
                 for condition_evaluation in group_evaluation.data["condition_evaluations"]
-                if condition_evaluation.outcome.triggered
+                if condition_evaluation.triggered
             ],
             "config": self.detector.config,
             "data_sources": self._build_evidence_data_sources(data_packet),
@@ -410,9 +420,7 @@ class StatefulDetectorHandler(
 
         return base
 
-    def evaluate_impl(
-        self, data_packet: DataPacket[DataPacketType]
-    ) -> GroupedDetectorEvaluationResult:
+    def evaluate(self, data_packet: DataPacket[DataPacketType]) -> GroupedDetectorEvaluationResult:
         dedupe_value = self.extract_dedupe_value(data_packet)
         group_data_values = self._extract_value_from_packet(data_packet)
         state = self.state_manager.get_state_data(list(group_data_values.keys()))
@@ -432,16 +440,10 @@ class StatefulDetectorHandler(
                 group_data_values[group_key]
             )
 
-            if (
-                detector_trigger_evaluation is not None
-                and detector_trigger_evaluation.outcome.is_tainted()
-            ):
+            if detector_trigger_evaluation is not None and detector_trigger_evaluation.is_tainted():
                 tainted = True
 
-            if (
-                detector_trigger_evaluation is None
-                or detector_trigger_evaluation.outcome.triggered is False
-            ):
+            if detector_trigger_evaluation is None or not detector_trigger_evaluation.triggered:
                 # Invalid condition result, nothing we can do
                 # Or if we didn't match any conditions in the evaluation
                 continue
@@ -678,7 +680,7 @@ class StatefulDetectorHandler(
                 },
             )
 
-        if group_evaluation.outcome.triggered:
+        if group_evaluation.triggered:
             """
             TODO - @saponifi3d - split the conditions results that
             don't have a DetectorPriorityLevel result.
@@ -688,7 +690,7 @@ class StatefulDetectorHandler(
             validated_condition_results: list[DetectorPriorityLevel] = [
                 condition_evaluation.result
                 for condition_evaluation in group_evaluation.data["condition_evaluations"]
-                if condition_evaluation.outcome.triggered
+                if condition_evaluation.triggered
                 and isinstance(condition_evaluation.result, DetectorPriorityLevel)
             ]
 

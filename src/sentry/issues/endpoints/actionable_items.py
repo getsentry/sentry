@@ -1,3 +1,4 @@
+import sentry_sdk
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -36,6 +37,8 @@ class ActionableItemsEndpoint(ProjectEndpoint):
         event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             raise NotFound(detail="Event not found")
+
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
 
         actions = []
         event_errors = event.data.get("errors", [])

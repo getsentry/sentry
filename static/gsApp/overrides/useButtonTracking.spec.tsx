@@ -54,6 +54,24 @@ describe('buttonTracking', () => {
     </OrganizationContext>
   );
 
+  const anonymousWrapper = ({children}: ButtonProps) => (
+    <OrganizationContext value={null}>
+      <RouterProvider
+        router={createMemoryRouter(
+          [
+            {
+              path: '/auth/login/',
+              handle: {path: '/auth/login/'},
+              element: children,
+            },
+          ],
+          {initialEntries: ['/auth/login/']}
+        )}
+        future={{v7_startTransition: true}}
+      />
+    </OrganizationContext>
+  );
+
   afterEach(() => {
     jest.mocked(rawTrackAnalyticsEvent).mockClear();
   });
@@ -63,7 +81,7 @@ describe('buttonTracking', () => {
       wrapper,
     });
 
-    result.current({'aria-label': 'Create Alert'});
+    result.current({clickType: 'button', 'aria-label': 'Create Alert'});
 
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith({
       eventName: null,
@@ -75,12 +93,51 @@ describe('buttonTracking', () => {
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
   });
 
+  it('does not set a default Reload event key for links', () => {
+    const {result} = renderHook(useButtonTracking, {
+      wrapper,
+    });
+
+    result.current({clickType: 'link', 'aria-label': 'Open Issues'});
+
+    expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith({
+      eventName: null,
+      eventKey: undefined,
+      organization: expect.objectContaining(organization),
+      parameterized_path: 'settings.:org_id.projects.:project_id',
+      text: 'Open Issues',
+    });
+    expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves an explicit Reload event key for links', () => {
+    const {result} = renderHook(useButtonTracking, {
+      wrapper,
+    });
+
+    result.current({
+      clickType: 'link',
+      'aria-label': 'Open Issues',
+      analyticsEventKey: 'issues.opened',
+    });
+
+    expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith({
+      eventName: null,
+      eventKey: 'issues.opened',
+      organization: expect.objectContaining(organization),
+      parameterized_path: 'settings.:org_id.projects.:project_id',
+      text: 'Open Issues',
+    });
+    expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
+  });
+
   it('calls rawTrackAnalyticsEvent with data', () => {
     const {result} = renderHook(useButtonTracking, {
       wrapper,
     });
 
     result.current({
+      clickType: 'button',
       'aria-label': 'Create Alert',
       analyticsEventKey: 'settings.create_alert',
       analyticsEventName: 'Settings: Create Alert',
@@ -105,6 +162,7 @@ describe('buttonTracking', () => {
     });
 
     result.current({
+      clickType: 'button',
       'aria-label': 'Create Alert',
       analyticsEventKey: 'settings.create_alert',
       analyticsEventName: 'Settings: Create Alert',
@@ -118,5 +176,38 @@ describe('buttonTracking', () => {
       text: 'Create Alert',
     });
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('tracks explicit events without an organization', () => {
+    const {result} = renderHook(useButtonTracking, {
+      wrapper: anonymousWrapper,
+    });
+
+    result.current({
+      clickType: 'button',
+      'aria-label': 'Return to the old login experience',
+      analyticsEventKey: 'auth_v2.login.legacy_fallback_clicked',
+      analyticsEventName: 'Auth V2: Legacy Login Fallback Clicked',
+      analyticsParams: {state: 'login'},
+    });
+
+    expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith({
+      eventName: 'Auth V2: Legacy Login Fallback Clicked',
+      eventKey: 'auth_v2.login.legacy_fallback_clicked',
+      organization: null,
+      parameterized_path: 'auth.login',
+      text: 'Return to the old login experience',
+      state: 'login',
+    });
+  });
+
+  it('does not track automatic button events without an organization', () => {
+    const {result} = renderHook(useButtonTracking, {
+      wrapper: anonymousWrapper,
+    });
+
+    result.current({clickType: 'button', 'aria-label': 'Uninstrumented'});
+
+    expect(rawTrackAnalyticsEvent).not.toHaveBeenCalled();
   });
 });

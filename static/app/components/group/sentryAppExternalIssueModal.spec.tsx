@@ -77,6 +77,20 @@ describe('openSentryAppIssueModal', () => {
     }
   });
 
+  it('renders without an event', async () => {
+    openSentryAppIssueModal({
+      organization,
+      group,
+      event: undefined,
+      sentryAppComponent: component,
+      sentryAppInstallation: install,
+    });
+
+    renderGlobalModal();
+
+    expect(await screen.findByRole('textbox', {name: 'Title'})).toHaveValue(group.title);
+  });
+
   it('can link an existing Issue', async () => {
     const request = MockApiClient.addMockResponse({
       url: submitUrl,

@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 import {IndeterminateLoader} from '@sentry/scraps/loader';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
+import {useClickTracking} from '@sentry/scraps/trackingContext';
 
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
@@ -11,7 +12,7 @@ import {
   DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES,
   DO_NOT_USE_getButtonStyles as getButtonStyles,
 } from './styles';
-import type {DO_NOT_USE_ButtonProps as ButtonProps} from './types';
+import type {DO_NOT_USE_ButtonProps as ButtonProps, ButtonSize} from './types';
 import {useButtonFunctionality} from './useButtonFunctionality';
 
 export type {ButtonProps};
@@ -25,13 +26,15 @@ export function Button({
   ...props
 }: ButtonProps) {
   const contextSize = useSizeContext();
-  const size = explicitSize ?? contextSize ?? 'md';
-  const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
+  const size = useResponsivePropValue(explicitSize ?? contextSize ?? 'md');
+  const buttonProps = {
     ...props,
     type,
     disabled,
     busy,
-  });
+  } satisfies ButtonProps;
+  const {hasChildren, accessibleLabel} = useButtonFunctionality(buttonProps);
+  const {handleClick} = useClickTracking(buttonProps, 'button');
 
   return (
     <Tooltip
@@ -98,7 +101,7 @@ export function Button({
 const StyledButton = styled('button')<
   Omit<ButtonProps, 'size'> & {
     shapeVariant: 'rectangular' | 'square';
-    size: NonNullable<ButtonProps['size']>;
+    size: ButtonSize;
   }
 >`
   ${p => getButtonStyles(p)}

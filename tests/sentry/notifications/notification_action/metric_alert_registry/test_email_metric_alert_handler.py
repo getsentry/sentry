@@ -44,7 +44,7 @@ class TestEmailMetricAlertHandler(MetricAlertHandlerBase):
         self.handler = EmailMetricAlertHandler()
 
     def test_get_target_team_in_org(self) -> None:
-        organization = self.detector.project.organization
+        organization = self.detector.linked_project.organization
         team = self.create_team(organization=organization)
         notification_context = NotificationContext(
             id=self.action.id,
@@ -54,7 +54,7 @@ class TestEmailMetricAlertHandler(MetricAlertHandlerBase):
         assert get_target(organization, notification_context) == team
 
     def test_get_target_team_foreign_org(self) -> None:
-        organization = self.detector.project.organization
+        organization = self.detector.linked_project.organization
         other_org = self.create_organization()
         other_team = self.create_team(organization=other_org)
         notification_context = NotificationContext(
@@ -94,8 +94,8 @@ class TestEmailMetricAlertHandler(MetricAlertHandlerBase):
             metric_issue_context=metric_issue_context,
             open_period_context=open_period_context,
             trigger_status=TriggerStatus.ACTIVE,
-            project=self.detector.project,
-            organization=self.detector.project.organization,
+            project=self.detector.linked_project,
+            organization=self.detector.linked_project.organization,
             notification_uuid=notification_uuid,
         )
 
@@ -106,7 +106,7 @@ class TestEmailMetricAlertHandler(MetricAlertHandlerBase):
             detector_serialized_response=get_detector_serializer(self.detector),
             trigger_status=TriggerStatus.ACTIVE,
             targets=[(self.user.id, self.user.email)],
-            project=self.detector.project,
+            project=self.detector.linked_project,
             notification_uuid=notification_uuid,
         )
 
@@ -175,7 +175,7 @@ class TestEmailMetricAlertHandler(MetricAlertHandlerBase):
             date_closed=None,
         )
 
-        assert organization == self.detector.project.organization
+        assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)
 
     @mock.patch(
@@ -262,5 +262,5 @@ class TestEmailMetricAlertHandler(MetricAlertHandlerBase):
             date_closed=None,
         )
 
-        assert organization == self.detector.project.organization
+        assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)

@@ -60,7 +60,7 @@ def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
                 extra={
                     "action_id": invocation.action.id,
                     "detector_id": invocation.detector.id,
-                    "organization_id": invocation.detector.project.organization_id,
+                    "organization_id": invocation.detector.linked_project.organization_id,
                 },
             )
         return invocation.event_data.event.send_notification()

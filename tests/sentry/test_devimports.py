@@ -119,3 +119,24 @@ for xfail in {xfail!r}:
 @pytest.mark.parametrize("pkg", ("sentry",))
 def test_startup_imports(pkg: str) -> None:
     validate_package(pkg, EXCLUDED, XFAIL)
+
+
+def test_legacy_redis_import_does_not_require_setuptools() -> None:
+    script = """
+import builtins
+import sys
+
+orig = builtins.__import__
+
+def _import(name, globals=None, locals=None, fromlist=(), level=0):
+    if name in {"distutils", "distutils.version", "packaging", "setuptools"} and name not in sys.modules:
+        raise ModuleNotFoundError(name)
+    return orig(name, globals=globals, locals=locals, fromlist=fromlist, level=level)
+
+builtins.__import__ = _import
+
+import sentry
+import redis
+"""
+
+    subprocess.run((sys.executable, "-c", script), check=True)

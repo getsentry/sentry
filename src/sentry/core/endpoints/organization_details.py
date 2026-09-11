@@ -10,7 +10,7 @@ from django.db import models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
 from django.urls import reverse
 from django.utils import timezone as django_timezone
-from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from sentry_sdk import capture_exception
@@ -73,16 +73,11 @@ from sentry.constants import (
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     SEER_DEFAULT_CODING_AGENT_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
-    ObjectStatus,
 )
 from sentry.core.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
-from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
-    boost_low_volume_projects_of_org_with_query,
-    calculate_sample_rates_of_projects,
-    query_project_counts_by_org,
-)
-from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
+from sentry.dynamic_sampling.per_org.scheduler import run_calculations_per_org_task_entry
+from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.dynamic_sampling.utils import (
     has_custom_dynamic_sampling,
     is_organization_mode_sampling,
@@ -101,7 +96,6 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.project import Project
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
@@ -534,7 +528,15 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "Organization does not have the custom dynamic sample rate feature enabled."
             )
 
-        # as this is handled by a choice field, we don't need to check the values of the field
+        # Manual Mode is closed to new organizations. An organization already in it keeps it
+        # until it switches back, and may keep sending its current mode.
+        if value == DynamicSamplingMode.PROJECT.value and not is_project_mode_sampling(
+            organization
+        ):
+            raise serializers.ValidationError(
+                "Manual Mode is no longer available. Sample rates are configured for the "
+                "whole organization."
+            )
 
         return value
 
@@ -892,22 +894,6 @@ def create_console_platform_audit_log(
         )
 
 
-@extend_schema_serializer(
-    exclude_fields=[
-        "accountRateLimit",
-        "projectRateLimit",
-        "apdexThreshold",
-        "genAIConsent",
-        "defaultAutofixAutomationTuning",
-        "defaultSeerScannerAutomation",
-        "autoOpenPrs",
-        "autoEnableCodeReview",
-        "defaultCodeReviewTriggers",
-        "ingestThroughTrustedRelaysOnly",
-        "enabledConsolePlatforms",
-        "consoleSdkInviteQuota",
-    ]
-)
 class OrganizationDetailsPutSerializer(serializers.Serializer):
     # general
     slug = serializers.CharField(
@@ -1096,7 +1082,10 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
 
     # private attributes
     # legacy features
-    apdexThreshold = serializers.IntegerField(required=False)
+    apdexThreshold = serializers.IntegerField(
+        required=False,
+        help_text="Deprecated. Response-time threshold in milliseconds previously used to compute Apdex.",
+    )
 
 
 # NOTE: We override the permission class of this endpoint in getsentry with the OrganizationDetailsPermission class
@@ -1227,26 +1216,21 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             if request.access.has_scope("org:write") and has_custom_dynamic_sampling(organization):
                 is_org_mode = is_organization_mode_sampling(organization)
 
-                # If the sampling mode was changed, adapt the project and org options accordingly
-                if "samplingMode" in changed_data:
+                # Manual Mode cannot be entered any more, so a changed sampling mode is always
+                # a switch back to Automatic Mode: the project rates give way to the org rate.
+                if "samplingMode" in changed_data and is_org_mode:
                     with transaction.atomic(router.db_for_write(ProjectOption)):
-                        if is_project_mode_sampling(organization):
-                            self._compute_project_target_sample_rates(request, organization)
-                            organization.delete_option("sentry:target_sample_rate")
-                            changed_data["samplingMode"] = "to Advanced Mode"
+                        if "targetSampleRate" in changed_data:
+                            organization.update_option(
+                                "sentry:target_sample_rate",
+                                serializer.validated_data["targetSampleRate"],
+                            )
+                        changed_data["samplingMode"] = "to Default Mode"
 
-                        elif is_org_mode:
-                            if "targetSampleRate" in changed_data:
-                                organization.update_option(
-                                    "sentry:target_sample_rate",
-                                    serializer.validated_data["targetSampleRate"],
-                                )
-                            changed_data["samplingMode"] = "to Default Mode"
-
-                            ProjectOption.objects.filter(
-                                project__organization_id=organization.id,
-                                key="sentry:target_sample_rate",
-                            ).delete()
+                        ProjectOption.objects.filter(
+                            project__organization_id=organization.id,
+                            key="sentry:target_sample_rate",
+                        ).delete()
 
                 # If the target sample rate for the org was changed, update the org option
                 if is_org_mode and "targetSampleRate" in changed_data:
@@ -1259,9 +1243,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 if is_org_mode and (
                     "samplingMode" in changed_data or "targetSampleRate" in changed_data
                 ):
-                    boost_low_volume_projects_of_org_with_query.delay(
-                        organization.id,
-                    )
+                    run_calculations_per_org_task_entry.delay(organization.id)
 
                 if is_org_mode and "defaultAutofixAutomationTuning" in changed_data:
                     organization.update_option(
@@ -1326,42 +1308,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
             return self.respond(context)
         return self.respond(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
-
-    def _compute_project_target_sample_rates(self, request: Request, organization: Organization):
-        # TODO: this will take a long time for organizations with a lot of projects
-        #       so we need to refactor this into an async task we can run and observe
-        org_id = organization.id
-        measure = SamplingMeasure.SEGMENTS
-        if options.get("dynamic-sampling.check_span_feature_flag"):
-            span_org_ids = options.get("dynamic-sampling.measure.spans") or []
-            if org_id in span_org_ids:
-                measure = SamplingMeasure.SPANS
-
-        projects_with_tx_count_and_rates = []
-        for chunk in query_project_counts_by_org(
-            [org_id], measure, query_interval=timedelta(days=30)
-        ):
-            for row in chunk:
-                projects_with_tx_count_and_rates.append(row[1:])
-
-        rebalanced_projects = calculate_sample_rates_of_projects(
-            org_id, projects_with_tx_count_and_rates
-        )
-
-        project_ids = set(
-            Project.objects.filter(organization_id=org_id, status=ObjectStatus.ACTIVE).values_list(
-                "id", flat=True
-            )
-        )
-
-        if rebalanced_projects is not None:
-            for rebalanced_item in rebalanced_projects:
-                if int(rebalanced_item.id) in project_ids:
-                    ProjectOption.objects.update_or_create(
-                        project_id=rebalanced_item.id,
-                        key="sentry:target_sample_rate",
-                        defaults={"value": round(rebalanced_item.new_sample_rate, 4)},
-                    )
 
     def handle_delete(self, request: Request, organization: Organization):
         """
@@ -1459,7 +1405,6 @@ class DeleteConfirmationArgs(TypedDict):
 
 
 def send_delete_confirmation(delete_confirmation_args: DeleteConfirmationArgs):
-    from sentry import options
     from sentry.utils.email import MessageBuilder
 
     organization = delete_confirmation_args["organization"]

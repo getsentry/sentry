@@ -1,24 +1,24 @@
 import {useMemo} from 'react';
-import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {IdBadge} from 'sentry/components/idBadge';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tn} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useJoinTeam} from 'sentry/views/settings/organizationTeams/hooks/useJoinTeam';
 import {useRequestTeamAccess} from 'sentry/views/settings/organizationTeams/hooks/useRequestTeamAccess';
 import {TeamProjectsCell} from 'sentry/views/settings/organizationTeams/teamProjectsCell';
+import {
+  TeamLink,
+  TeamsTable,
+} from 'sentry/views/settings/organizationTeams/teamsTableStyles';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
 interface OtherTeamsTableProps {
@@ -65,15 +65,18 @@ export function OtherTeamsTable({
   };
 
   return (
-    <StyledSimpleTable>
-      <SimpleTable.Header>
-        <SimpleTable.HeaderCell>{t('Other Teams')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell data-column-name="role" />
-        <SimpleTable.HeaderCell data-column-name="projects">
-          {t('Projects')}
-        </SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell data-column-name="actions" />
-      </SimpleTable.Header>
+    <TeamsTable
+      header={
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>{t('Other Teams')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell columnKey="role" />
+          <SimpleTable.HeaderCell columnKey="projects">
+            {t('Projects')}
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell columnKey="actions" />
+        </SimpleTable.HeaderRow>
+      }
+    >
       {teams.length === 0
         ? renderEmptyState()
         : teams.map(team => (
@@ -84,7 +87,7 @@ export function OtherTeamsTable({
               projects={projects}
             />
           ))}
-    </StyledSimpleTable>
+    </TeamsTable>
   );
 }
 
@@ -96,8 +99,7 @@ interface OtherTeamRowProps {
 
 function OtherTeamRow({team, openMembership, projects}: OtherTeamRowProps) {
   const organization = useOrganization();
-  const theme = useTheme();
-  const isMobile = useMedia(`(max-width: ${theme.breakpoints.sm})`);
+  const isMobile = useResponsivePropValue({zero: true, xl: false});
 
   const {mutate: joinTeam, isPending: isJoinPending} = useJoinTeam({organization, team});
   const {mutate: requestAccess, isPending: isRequestPending} = useRequestTeamAccess({
@@ -125,7 +127,7 @@ function OtherTeamRow({team, openMembership, projects}: OtherTeamRowProps) {
 
   return (
     <SimpleTable.Row>
-      {canViewTeam && <InteractionStateLayer />}
+      {canViewTeam && <InteractionStateLayer as="td" />}
       <SimpleTable.RowCell>
         {canViewTeam ? (
           <TeamLink
@@ -138,14 +140,14 @@ function OtherTeamRow({team, openMembership, projects}: OtherTeamRowProps) {
           badge
         )}
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell data-column-name="role">{null}</SimpleTable.RowCell>
-      <SimpleTable.RowCell data-column-name="projects">
+      <SimpleTable.RowCell columnKey="role">{null}</SimpleTable.RowCell>
+      <SimpleTable.RowCell columnKey="projects">
         <TeamProjectsCell
           projects={teamProjects}
           teamProjectsUrl={`/settings/${organization.slug}/teams/${team.slug}/projects/`}
         />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="end" data-column-name="actions">
+      <SimpleTable.RowCell justify="end" columnKey="actions" padding="lg xl lg 0">
         <TeamAction
           isLoading={isLoading}
           isPending={team.isPending}
@@ -230,32 +232,3 @@ function TeamAction({
     </Button>
   );
 }
-
-const StyledSimpleTable = styled(SimpleTable)`
-  grid-template-columns: 1fr 125px 150px auto;
-  margin-bottom: ${p => p.theme.space.xl};
-
-  [data-column-name='actions'] {
-    padding-left: 0;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: 1fr 125px auto;
-
-    [data-column-name='projects'] {
-      display: none;
-    }
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr auto;
-
-    [data-column-name='role'] {
-      display: none;
-    }
-  }
-`;
-
-const TeamLink = styled(Link)`
-  ${SimpleTable.rowLinkStyle}
-`;

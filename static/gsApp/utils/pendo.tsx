@@ -5,7 +5,7 @@ import type {Organization} from 'sentry/types/organization';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {getOrganizationAge} from 'sentry/utils/getOrganizationAge';
 
-import type {PromotionClaimed, Subscription} from 'getsentry/types';
+import type {Subscription} from 'getsentry/types';
 
 import {getProductTrial, getTrialDaysLeft, isTrial} from './billing';
 
@@ -87,14 +87,7 @@ const BUCKET_MAP: BucketMap = {
 
 export function getPendoAccountFields(
   subscription: Subscription,
-  organization: Organization,
-  {
-    activePromotions,
-    completedPromotions,
-  }: {
-    activePromotions: PromotionClaimed[] | null;
-    completedPromotions: PromotionClaimed[] | null;
-  }
+  organization: Organization
 ) {
   // add basic fields as-is
   const baseAccountFields = {
@@ -127,37 +120,6 @@ export function getPendoAccountFields(
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       baseAccountFields[field] = getBucketValue(value, buckets);
     }
-  }
-
-  const promoInfo: {
-    activePromotion: null | string;
-    completedPromotions: string;
-    daysSincePromotionClaimed: number;
-    freeEventCreditDaysLeft: number;
-    isLastCycleForFreeEvents: boolean;
-    promotionDaysLeft: number;
-  } = {
-    activePromotion: null,
-    promotionDaysLeft: -1,
-    completedPromotions: (completedPromotions || []).map(p => p.promotion.slug).join(','),
-    freeEventCreditDaysLeft: -1,
-    isLastCycleForFreeEvents: false,
-    daysSincePromotionClaimed: -1,
-  };
-  if (activePromotions && activePromotions.length > 0) {
-    const promo = activePromotions[0]!;
-    promoInfo.activePromotion = promo.promotion.slug;
-    promoInfo.daysSincePromotionClaimed = getDaysSinceDate(promo.dateClaimed);
-    if (promo.promotion.endDate) {
-      promoInfo.promotionDaysLeft = -1 * getDaysSinceDate(promo.promotion.endDate);
-    }
-  }
-
-  if (completedPromotions && completedPromotions.length > 0) {
-    const promo = completedPromotions[0]!;
-    promoInfo.freeEventCreditDaysLeft = promo.freeEventCreditDaysLeft;
-    promoInfo.isLastCycleForFreeEvents = promo.isLastCycleForFreeEvents;
-    promoInfo.daysSincePromotionClaimed = getDaysSinceDate(promo.dateClaimed);
   }
 
   // TODO(data categories): BIL-971
@@ -230,7 +192,6 @@ export function getPendoAccountFields(
     spansTrialStartDate,
     spansTrialEndDate,
     spansTrialActive,
-    ...promoInfo,
   };
 }
 

@@ -1,5 +1,6 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Text} from '@sentry/scraps/text';
@@ -17,7 +18,6 @@ import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {setApiQueryData} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -49,7 +49,7 @@ export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: 
 
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions({elementRef});
-  const timelineWidth = useDebouncedValue(containerWidth, 500);
+  const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 500});
 
   // Use the nextCheckIn timestamp from the earliest scheduled environment as a
   // queryKey for computing the timeWindowConfig. This means when the

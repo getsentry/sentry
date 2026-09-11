@@ -86,6 +86,7 @@ export function useVirtualStreaming({
   useEffect(() => {
     if (previousQueryKeyString !== queryKeyString) {
       // We reset the virtual timestamp when the query key changes.
+      // oxlint-disable-next-line react/set-state-in-effect
       setVirtualTimestamp(undefined);
     }
   }, [queryKeyString, previousQueryKeyString]);
@@ -130,6 +131,7 @@ export function useVirtualStreaming({
   // Reset the virtual timestamp when toggling auto-refresh
   useEffect(() => {
     if (!autoRefresh) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setVirtualTimestamp(undefined);
       return;
     }

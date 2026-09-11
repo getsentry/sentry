@@ -29,7 +29,7 @@ describe('ProjectBaseEventsChart', () => {
     yAxis: 'count()',
     query: '',
     field: ['count()'],
-    dataset: DiscoverDatasets.METRICS_ENHANCED,
+    dataset: DiscoverDatasets.SPANS,
     onTotalValuesChange: jest.fn(),
     location: {
       pathname: '/test',

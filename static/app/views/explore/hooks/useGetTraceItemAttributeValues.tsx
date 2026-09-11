@@ -11,7 +11,7 @@ import type {
   GetTagValuesParams,
   TagValueWithCount,
 } from 'sentry/components/searchQueryBuilder';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
@@ -31,7 +31,7 @@ interface TraceItemAttributeValue {
 }
 
 interface UseGetTraceItemAttributeValuesProps extends UseTraceItemAttributeBaseProps {
-  datetime?: PageFilters['datetime'];
+  datetime?: PageFilterDatetime;
   projectIds?: PageFilters['projects'];
   query?: string;
 }

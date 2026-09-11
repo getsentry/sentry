@@ -1,8 +1,6 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import type {Location} from 'history';
 
-import type {ContainerProps} from '@sentry/scraps/layout';
-
 import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import type {Client} from 'sentry/api';
@@ -68,6 +66,7 @@ function ResultsHeaderBase({
 
   useEffect(() => {
     if (!isHomepage && eventView.id) {
+      // oxlint-disable-next-line react/set-state-in-effect
       fetchData();
     } else if (eventView.id === undefined) {
       setLoading(false);
@@ -76,11 +75,13 @@ function ResultsHeaderBase({
 
   useEffect(() => {
     if (isHomepage) {
+      // oxlint-disable-next-line react/set-state-in-effect
       fetchHomepageQueryData();
     }
   }, [isHomepage, fetchHomepageQueryData]);
 
   const hasDiscoverQueryFeature = organization.features.includes('discover-query');
+  const isDiscoverDeprecated = getDiscoverDeprecation(organization);
 
   const savedQueryButton = (
     <SavedQueryButtonGroup
@@ -106,7 +107,7 @@ function ResultsHeaderBase({
 
   const title = (
     <Fragment>
-      {getDiscoverDeprecation(organization) ? t('Errors') : t('Discover')}
+      {isDiscoverDeprecated ? t('Errors') : t('Discover')}
       <PageHeadingQuestionTooltip
         docsUrl="https://docs.sentry.io/product/discover-queries/"
         title={t('Create queries to get insights into the health of your system.')}
@@ -114,7 +115,7 @@ function ResultsHeaderBase({
     </Fragment>
   );
 
-  const pageFrameBreadcrumb = (
+  const discoverBreadcrumb = (
     <DiscoverBreadcrumb
       eventView={eventView}
       organization={organization}
@@ -124,45 +125,29 @@ function ResultsHeaderBase({
     />
   );
 
-  // there's some styling that gets messed up when choosing to not render the
-  // dataset selector tabs so i'm injecting some styles fix it. This should be removed
-  // when the dataset selector tabs are removed.
-  const deprecationHeaderStyles: ContainerProps<'header'> = {
-    padding: {
-      'screen:sm': '0',
-      'screen:md': '0',
-    },
-    borderBottom: {
-      '2xs': 'none',
-      xs: 'none',
-      sm: 'none',
-      md: 'none',
-    },
-  };
-
   return (
-    <Layout.Header
-      {...(getDiscoverDeprecation(organization) ? deprecationHeaderStyles : {})}
-    >
+    <Fragment>
       <TopBar.Slot name="title">
         {isHomepage ? (
           <GuideAnchor target="discover_landing_header">{title}</GuideAnchor>
         ) : hasDiscoverQueryFeature ? (
-          pageFrameBreadcrumb
+          discoverBreadcrumb
         ) : (
           title
         )}
       </TopBar.Slot>
       <TopBar.Slot name="actions">{savedQueryButton}</TopBar.Slot>
-      {!getDiscoverDeprecation(organization) && (
-        <DatasetSelectorTabs
-          eventView={eventView}
-          isHomepage={isHomepage}
-          savedQuery={savedQuery}
-          splitDecision={splitDecision}
-        />
+      {!isDiscoverDeprecated && (
+        <Layout.Header>
+          <DatasetSelectorTabs
+            eventView={eventView}
+            isHomepage={isHomepage}
+            savedQuery={savedQuery}
+            splitDecision={splitDecision}
+          />
+        </Layout.Header>
       )}
-    </Layout.Header>
+    </Fragment>
   );
 }
 

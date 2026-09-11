@@ -3,7 +3,7 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
-import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -13,7 +13,6 @@ import {Access} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {
   getSourceMapsDocLinks,
   projectPlatformToDocsMap,
@@ -21,6 +20,7 @@ import {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {SearchBar} from 'sentry/components/searchBar';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {IconDelete, IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
@@ -433,12 +433,11 @@ function SourceMapUploadDetails({
     ];
   }, [sourceMapUpload, showAll, projectId]);
 
-  return <StyledKeyValueList data={detailsData} shouldSort={false} />;
+  return <KeyValueTableDataList data={detailsData} shouldSort={false} />;
 }
 
 interface SourceMapUploadDeleteButtonProps {
   onDelete?: () => void;
-  size?: ButtonProps['size'];
 }
 
 function SourceMapUploadDeleteButton({onDelete}: SourceMapUploadDeleteButtonProps) {
@@ -473,12 +472,6 @@ function SourceMapUploadDeleteButton({onDelete}: SourceMapUploadDeleteButtonProp
     </Access>
   );
 }
-
-const StyledKeyValueList = styled(KeyValueList)`
-  && {
-    margin-bottom: 0;
-  }
-`;
 
 const List = styled('div')`
   display: grid;

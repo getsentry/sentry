@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ProgressState} from 'sentry/types/group';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
@@ -10,13 +10,11 @@ import {formatActivityMarkerState, type ActivityMarkerState} from './variant';
 interface ProgressMarkerProps {
   state: ActivityMarkerState;
   label?: string;
-  tooltipProps?: Omit<TooltipProps, 'children' | 'skipWrapper' | 'title'>;
 }
 
 export function ActivityProgressMarker({
   label: labelOverride,
   state,
-  tooltipProps,
 }: ProgressMarkerProps) {
   const label = labelOverride ?? formatActivityMarkerState(state);
   const marker =
@@ -35,7 +33,7 @@ export function ActivityProgressMarker({
   }
 
   return (
-    <Tooltip title={label} {...tooltipProps} skipWrapper>
+    <Tooltip title={label} skipWrapper>
       {marker}
     </Tooltip>
   );

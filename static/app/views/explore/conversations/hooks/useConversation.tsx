@@ -19,6 +19,13 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 export interface UseConversationsOptions {
   conversationId: string;
   endTimestamp?: number;
+  /**
+   * Projects to scope the span query to, overriding the page filters. A caller
+   * that is not the conversations route -- an embed rendered into some other
+   * page -- knows the conversation's own project and must not inherit whatever
+   * the host page happens to have selected.
+   */
+  projects?: number[];
   startTimestamp?: number;
 }
 
@@ -39,6 +46,7 @@ interface ConversationApiSpan {
   errors?: TraceTree.EAPError[];
   'gen_ai.agent.name'?: string;
   'gen_ai.cost.total_tokens'?: number;
+  'gen_ai.embeddings.input'?: string;
   'gen_ai.input.messages'?: string;
   'gen_ai.operation.type'?: string;
   'gen_ai.output.messages'?: string;
@@ -62,11 +70,20 @@ interface ConversationApiSpan {
   'user.username'?: string;
 }
 
+interface ConversationApiResponse {
+  conversationId: string;
+  spans: ConversationApiSpan[];
+  title: string | null;
+}
+
 function isGenAiSpan(span: ConversationApiSpan): boolean {
   if (span['gen_ai.operation.type']) {
     return true;
   }
-  return span['span.name']?.startsWith('gen_ai.') ?? false;
+  return (
+    (span['span.op']?.startsWith('gen_ai.') ?? false) ||
+    (span['span.name']?.startsWith('gen_ai.') ?? false)
+  );
 }
 
 interface UseConversationResult {
@@ -74,6 +91,7 @@ interface UseConversationResult {
   isLoading: boolean;
   nodeTraceMap: Map<string, string>;
   nodes: AITraceSpanNode[];
+  title: string | null;
 }
 
 /**
@@ -112,6 +130,11 @@ function createNodeFromApiSpan(
     occurrences: apiSpan.occurrences ?? [],
     additional_attributes: {
       [SpanFields.GEN_AI_CONVERSATION_ID]: apiSpan['gen_ai.conversation.id'],
+      // Preserve the raw span op so the transcript can recognize embeddings
+      // spans, which don't have a dedicated gen_ai.operation.type. Kept off the
+      // op-type path so the timeline still renders them as before.
+      [SpanFields.SPAN_OP]: apiSpan['span.op'] ?? '',
+      [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: apiSpan['gen_ai.embeddings.input'] ?? '',
       [SpanFields.GEN_AI_INPUT_MESSAGES]: apiSpan['gen_ai.input.messages'] ?? '',
       [SpanFields.GEN_AI_OPERATION_TYPE]: operationType ?? '',
       [SpanFields.GEN_AI_OUTPUT_MESSAGES]: apiSpan['gen_ai.output.messages'] ?? '',
@@ -202,6 +225,76 @@ function createNodeFromApiSpan(
   return node as unknown as AITraceSpanNode;
 }
 
+/**
+ * Orders the conversation's spans so that an agent is always followed by its own
+ * descendants, the way the trace drawer reads them off the trace tree. Sorting by
+ * start time alone interleaves agents that run in parallel, which separates each
+ * agent from the spans it produced.
+ *
+ * Spans whose parent is not part of the conversation become roots. Roots and
+ * siblings are ordered by start time, so reading order stays chronological at
+ * every level.
+ */
+function orderDepthFirst(
+  nodes: AITraceSpanNode[],
+  nodeMap: Map<string, AITraceSpanNode>
+): AITraceSpanNode[] {
+  const byStartTimestamp = (a: AITraceSpanNode, b: AITraceSpanNode) =>
+    (a.startTimestamp ?? 0) - (b.startTimestamp ?? 0);
+
+  const roots: AITraceSpanNode[] = [];
+  const childrenByParentId = new Map<string, AITraceSpanNode[]>();
+
+  for (const node of nodes) {
+    const parentId = node.value?.parent_span_id;
+    const parent = parentId ? nodeMap.get(parentId) : undefined;
+    if (!parentId || !parent || parent === node) {
+      roots.push(node);
+      continue;
+    }
+    const siblings = childrenByParentId.get(parentId);
+    if (siblings) {
+      siblings.push(node);
+    } else {
+      childrenByParentId.set(parentId, [node]);
+    }
+  }
+
+  for (const siblings of childrenByParentId.values()) {
+    siblings.sort(byStartTimestamp);
+  }
+
+  const ordered: AITraceSpanNode[] = [];
+  const visited = new Set<string>();
+  const stack = roots.toSorted(byStartTimestamp).reverse();
+
+  while (stack.length > 0) {
+    const node = stack.pop()!;
+    if (visited.has(node.id)) {
+      continue;
+    }
+    visited.add(node.id);
+    ordered.push(node);
+
+    const children = childrenByParentId.get(node.id);
+    if (children) {
+      for (let i = children.length - 1; i >= 0; i--) {
+        stack.push(children[i]!);
+      }
+    }
+  }
+
+  // A cycle in the parent links leaves spans unreachable from any root. Keep them
+  // rather than dropping rows from the timeline.
+  for (const node of nodes) {
+    if (!visited.has(node.id)) {
+      ordered.push(node);
+    }
+  }
+
+  return ordered;
+}
+
 const MAX_PAGES = 10;
 
 export function useConversation(
@@ -228,8 +321,8 @@ export function useConversation(
       ? normalizeDateTimeParams(selection.datetime)
       : {};
 
-  const project =
-    selection.projects.length > 0 ? selection.projects : [ALL_ACCESS_PROJECTS];
+  const selectedProjects = conversation.projects ?? selection.projects;
+  const project = selectedProjects.length > 0 ? selectedProjects : [ALL_ACCESS_PROJECTS];
 
   const queryParams = {
     project,
@@ -246,8 +339,8 @@ export function useConversation(
     isLoading,
     isError,
   } = useInfiniteQuery(
-    apiOptions.asInfinite<ConversationApiSpan[]>()(
-      '/organizations/$organizationIdOrSlug/ai-conversations/$conversationId/',
+    apiOptions.asInfinite<ConversationApiResponse>()(
+      '/organizations/$organizationIdOrSlug/agents/conversations/$conversationId/',
       {
         path: conversation.conversationId
           ? {
@@ -262,14 +355,22 @@ export function useConversation(
   );
 
   const currentNumberPages = data?.pages.length ?? 0;
+  const canFetchNextPage = Boolean(hasNextPage && currentNumberPages < MAX_PAGES);
 
   useEffect(() => {
-    if (!isFetching && hasNextPage && currentNumberPages < MAX_PAGES) {
+    if (!isFetching && canFetchNextPage) {
       fetchNextPage();
     }
-  }, [isFetching, hasNextPage, fetchNextPage, currentNumberPages]);
+  }, [data, isFetching, canFetchNextPage, fetchNextPage]);
 
-  const allSpans = useMemo(() => data?.pages.flatMap(page => page.json) ?? [], [data]);
+  const allSpans = useMemo(
+    () => data?.pages.flatMap(page => page.json.spans ?? []) ?? [],
+    [data]
+  );
+
+  // The title is conversation-level, so it is identical across pages; read it
+  // off the first page.
+  const title = data?.pages[0]?.json.title ?? null;
 
   const {nodes, nodeTraceMap} = useMemo(() => {
     if (allSpans.length === 0) {
@@ -287,9 +388,7 @@ export function useConversation(
       return node;
     });
 
-    transformedNodes.sort((a, b) => (a.startTimestamp ?? 0) - (b.startTimestamp ?? 0));
-
-    return {nodes: transformedNodes, nodeTraceMap: traceMap};
+    return {nodes: orderDepthFirst(transformedNodes, nodeMap), nodeTraceMap: traceMap};
   }, [allSpans]);
 
   if (!conversation.conversationId) {
@@ -298,13 +397,15 @@ export function useConversation(
       nodeTraceMap: new Map(),
       isLoading: false,
       error: false,
+      title: null,
     };
   }
 
   return {
     nodes,
     nodeTraceMap,
-    isLoading: isLoading || isFetchingNextPage || hasNextPage,
+    isLoading: isLoading || isFetchingNextPage || canFetchNextPage,
     error: isError,
+    title,
   };
 }

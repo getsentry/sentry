@@ -17,7 +17,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useBillingConfig} from 'getsentry/hooks/useBillingConfig';
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {BillingConfig, Subscription} from 'getsentry/types';
-import {displayPlanName} from 'getsentry/utils/billing';
+import {displayPlanName, isBizPlanFamily} from 'getsentry/utils/billing';
 
 export function ScmGithubMultiOrgInstall({
   installations,
@@ -129,10 +129,11 @@ function getRequiredPlanName(billingConfig: BillingConfig | undefined): string |
     return null;
   }
 
+  // Sharing GitHub installations across orgs is a Business-and-above feature.
   const plan = billingConfig.planList
     .filter(p => p.userSelectable)
     .sort((a, b) => a.totalPrice - b.totalPrice)
-    .find(p => p.features.includes('integrations-scm-multi-org'));
+    .find(isBizPlanFamily);
 
   if (!plan) {
     return null;

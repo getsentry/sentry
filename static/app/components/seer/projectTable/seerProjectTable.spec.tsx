@@ -91,12 +91,12 @@ describe('SeerProjectTable', () => {
     jest.restoreAllMocks();
   });
 
-  function renderTable() {
+  function renderTable(renderOrganization = organization) {
     render(
       <SentryNuqsTestingAdapter>
         <SeerProjectTable />
       </SentryNuqsTestingAdapter>,
-      {organization}
+      {organization: renderOrganization}
     );
   }
 
@@ -171,6 +171,10 @@ describe('SeerProjectTable', () => {
 
   it('allows coding-agent handoff for a GitHub-only project', async () => {
     mockProjectRepos('github');
+    const settingsPut = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
+      method: 'PUT',
+    });
     const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
 
     renderTable();
@@ -180,9 +184,14 @@ describe('SeerProjectTable', () => {
       await screen.findByRole('menuitemradio', {name: 'Cursor Cloud Agent'})
     );
 
-    // The check passes, so the selection is committed (left to the existing
-    // blur-to-save flow to persist) and no warning is shown.
-    expect(await screen.findByText('Cursor Cloud Agent')).toBeInTheDocument();
+    // The check passes, so the selection is persisted and no warning is shown.
+    await waitFor(() => expect(settingsPut).toHaveBeenCalled());
     expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it('disables adding a project without organization write access', async () => {
+    renderTable(OrganizationFixture({slug: organization.slug, access: []}));
+
+    expect(await screen.findByRole('button', {name: 'Add Project'})).toBeDisabled();
   });
 });

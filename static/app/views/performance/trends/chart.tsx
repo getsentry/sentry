@@ -1,5 +1,5 @@
 import {useTheme} from '@emotion/react';
-import type {LegendComponentOption, LineSeriesOption} from 'echarts';
+import type {LegendComponentOption} from 'echarts';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
@@ -43,13 +43,10 @@ type Props = ViewProps & {
   projects: Project[];
   statsData: TrendsStats;
   trendChangeType: TrendChangeType;
-  additionalSeries?: LineSeriesOption[];
-  applyRegressionFormatToInterval?: boolean;
   disableLegend?: boolean;
   disableXAxis?: boolean;
   grid?: LineChartProps['grid'];
   height?: number;
-  neutralColor?: boolean;
   transaction?: NormalizedTrendsTransaction;
   trendFunctionField?: TrendFunctionField;
 };
@@ -86,13 +83,10 @@ export function Chart({
   trendFunctionField,
   disableXAxis,
   disableLegend,
-  neutralColor,
   grid,
   height,
   projects,
   project,
-  additionalSeries,
-  applyRegressionFormatToInterval = false,
 }: Props) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -121,7 +115,7 @@ export function Chart({
   const trendToColor = makeTrendToColorMapping(theme);
   const lineColor =
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    trendToColor[neutralColor ? 'neutral' : derivedTrendChangeType || trendChangeType];
+    trendToColor[derivedTrendChangeType || trendChangeType];
 
   const events =
     statsData && transaction?.project && transaction?.transaction
@@ -192,7 +186,7 @@ export function Chart({
     0.5,
     needsLabel,
     transaction,
-    applyRegressionFormatToInterval
+    false
   );
 
   const yDiff = yMax - yMin;
@@ -231,7 +225,6 @@ export function Chart({
                   height={height}
                   {...zoomRenderProps}
                   {...chartOptions}
-                  additionalSeries={additionalSeries}
                   onLegendSelectChanged={handleLegendSelectChanged}
                   series={series}
                   seriesOptions={{

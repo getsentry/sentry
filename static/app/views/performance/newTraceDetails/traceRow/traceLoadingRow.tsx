@@ -42,7 +42,7 @@ export function TraceLoadingRow(props: {
         <div
           className="TraceLeftColumnInner"
           style={{
-            paddingLeft: TraceTree.Depth(props.node) * props.manager.row_depth_padding,
+            paddingLeft: TraceTree.depth(props.node) * props.manager.row_depth_padding,
           }}
         >
           <div

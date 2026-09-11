@@ -14,10 +14,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import type {TagSegment} from 'sentry/actionCreators/events';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isMobilePlatform} from 'sentry/utils/platform';
 import {appendExcludeTagValuesCondition} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -29,23 +27,14 @@ type Props = {
   segments: TagSegment[];
   title: string;
   totalValues: number;
-  colors?: string[];
   expandByDefault?: boolean;
-  onTagClick?: (title: string, value: TagSegment) => void;
-  onTagValueClick?: (title: string, value: TagSegment) => void;
-  otherUrl?: LocationDescriptor;
-  project?: Project;
 };
 
 export function TagFacetsDistributionMeter({
   segments,
   title,
   totalValues,
-  onTagClick,
-  onTagValueClick,
-  project,
   expandByDefault,
-  otherUrl,
 }: Props) {
   const theme = useTheme();
   const colors = theme.chart.getColorPalette(4);
@@ -108,11 +97,9 @@ export function TagFacetsDistributionMeter({
               trackAnalytics('issue_group_details.tags.bar.clicked', {
                 tag: title,
                 value: value.value,
-                platform: project?.platform,
-                is_mobile: isMobilePlatform(project?.platform),
+                is_mobile: false,
                 organization,
               });
-              return onTagClick?.(title, value);
             },
           };
           return (
@@ -201,19 +188,9 @@ export function TagFacetsDistributionMeter({
 
                 return (
                   <li key={`segment-${segment.name}-${index}`}>
-                    {onTagValueClick ? (
-                      <StyledButton
-                        aria-label={linkLabel}
-                        onClick={() => onTagValueClick?.(title, segment)}
-                        variant="link"
-                      >
-                        {legend}
-                      </StyledButton>
-                    ) : (
-                      <Link to={segment.url} aria-label={linkLabel}>
-                        {legend}
-                      </Link>
-                    )}
+                    <Link to={segment.url} aria-label={linkLabel}>
+                      {legend}
+                    </Link>
                   </li>
                 );
               })}
@@ -243,7 +220,7 @@ export function TagFacetsDistributionMeter({
       name: t('Other'),
       value: 'other',
       count: totalValues - totalVisible,
-      url: otherUrl ?? excludeTopSegmentsUrl ?? '',
+      url: excludeTopSegmentsUrl,
     });
   }
 
@@ -388,12 +365,5 @@ const ExpandToggleButton = styled(Button)`
 const StyledSummary = styled('summary')`
   &::-webkit-details-marker {
     display: none;
-  }
-`;
-
-const StyledButton = styled(Button)`
-  width: 100%;
-  > span {
-    display: block;
   }
 `;

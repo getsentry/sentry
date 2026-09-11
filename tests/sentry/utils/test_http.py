@@ -1,11 +1,18 @@
 import unittest
 from unittest import mock
 
+import pytest
 from django.http import HttpRequest
 
 from sentry import options
 from sentry.testutils.cases import TestCase
-from sentry.utils.http import absolute_uri, get_origins, is_valid_origin, origin_from_request
+from sentry.utils.http import (
+    absolute_uri,
+    get_origins,
+    is_valid_ip,
+    is_valid_origin,
+    origin_from_request,
+)
 
 
 class AbsoluteUriTest(unittest.TestCase):
@@ -240,3 +247,40 @@ class OriginFromRequestTestCase(TestCase):
 
         request.META["HTTP_REFERER"] = "http://example.com"
         assert origin_from_request(request) == "http://example.com"
+
+
+class TestIsValidIP:
+    ip_test_cases = [
+        # Adapted from grouping parameterization tests
+        # (name, input, expected result)
+        ("IPv4", "11.21.12.31", True),
+        ("IPv6 unspecified", "::", True),
+        ("IPv6 loopback", "::1", True),
+        ("IPv6 ULA", "fc00::/7", True),
+        ("IPv6 initial compressed segment", "::cbe:908:2013", True),
+        ("IPv6 compressed segment in middle", "2012:d157::cbe:908:2013", True),
+        ("IPv6 final compressed segment", "2012:d157::", True),
+        ("IPv4 mapped to v6", "::ffff:192.168.1.1", True),
+        ("IPv6 full", "1121:0c03:1231:130d:0000:16da:0908:da07", True),
+        ("IPv4 too few segments", "12:31:99", False),
+        ("IPv4 too many segments", "11.21.12.31.12", False),
+        ("IPv4 segment > 255", "12.31.12.908", False),
+        ("IPv4 leading zeros", "11.21.12.001", False),
+        ("double colon object property", "Option::unwrap()", False),
+        ("double colon object property including hex", "Bee::buzz()", False),
+        ("too many initial characters", "12345::6:789", False),
+        ("too many final characters", "123:4::56789", False),
+        ("too many initial colons", ":::1121", False),
+        ("too many interior colons", "1231:::1121", False),
+        ("too many final colons", "1231:::", False),
+        ("three colons alone", ":::", False),
+        ("single leading colon", "Script error. :0:0", False),
+        ("already parameterized", "ip", False),
+        ("filtering placeholder", "Filtered", False),
+        ("filtering placeholder with type", "redacted_number", False),
+        ("random non-IP value", "dogs_are_great", False),
+    ]
+
+    @pytest.mark.parametrize(("name", "input", "expected_result"), ip_test_cases)
+    def test_is_valid_ip(self, name: str, input: str, expected_result: bool) -> None:
+        assert is_valid_ip(input) == expected_result

@@ -18,8 +18,10 @@ import type {DashboardListItem} from 'sentry/views/dashboards/types';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {DashboardsNavigationItems} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsNavigationItems';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
-export function DashboardsSecondaryNavigation() {
+function DashboardsSecondaryNavigationImpl() {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/dashboards`;
   const {projects} = useProjects();
@@ -30,6 +32,9 @@ export function DashboardsSecondaryNavigation() {
   const hasPrebuiltDashboards = organization.features.includes(
     'dashboards-prebuilt-insights-dashboards'
   );
+  const hasUserLastVisited = organization.features.includes(
+    'dashboards-user-last-visited'
+  );
   const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
   const isOnlyPrebuilt = getIsOnlyPrebuilt(hasPrebuiltDashboards, urlFilter);
   const isOnDashboardsList = isPrimaryNavigationLinkActive(
@@ -39,6 +44,16 @@ export function DashboardsSecondaryNavigation() {
       end: true,
     }
   );
+
+  useLLMContext({
+    contextHint: 'The Dashboards secondary nav panel and the starred dashboard list.',
+    hasPrebuiltDashboards,
+    starredDashboards: starredDashboards.map(dashboard => ({
+      id: dashboard.id,
+      title: dashboard.title,
+      projects: dashboard.projects ?? [],
+    })),
+  });
 
   return (
     <Fragment>
@@ -59,7 +74,11 @@ export function DashboardsSecondaryNavigation() {
             {hasPrebuiltDashboards ? (
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
-                  to={`${baseUrl}/?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
+                  to={
+                    hasUserLastVisited
+                      ? `${baseUrl}/?filter=${DashboardFilter.ONLY_PREBUILT}`
+                      : `${baseUrl}/?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`
+                  }
                   isActive={isOnDashboardsList && isOnlyPrebuilt}
                   analyticsItemName="dashboards_sentry_built"
                 >
@@ -96,6 +115,11 @@ export function DashboardsSecondaryNavigation() {
     </Fragment>
   );
 }
+
+export const DashboardsSecondaryNavigation = registerLLMContext(
+  'navigation',
+  DashboardsSecondaryNavigationImpl
+);
 
 function StarredDashboardItems({
   dashboards,

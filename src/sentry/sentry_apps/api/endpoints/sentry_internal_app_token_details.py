@@ -10,6 +10,7 @@ from sentry.analytics.events.sentry_app_installation_token_deleted import (
 )
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import control_silo_endpoint
 from sentry.api.permissions import DisallowImpersonatedTokenCreation
 from sentry.models.apitoken import ApiToken
@@ -28,6 +29,7 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
     }
+    authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (SentryInternalAppTokenPermission, DisallowImpersonatedTokenCreation)
     allow_disabled_sentry_app_for_methods = {"DELETE"}
 

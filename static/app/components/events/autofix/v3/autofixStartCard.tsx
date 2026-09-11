@@ -1,14 +1,16 @@
-import {type CSSProperties, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
 
 import {Button} from '@sentry/scraps/button';
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {useForceBashMode} from 'sentry/components/events/autofix/v3/useForceBashMode';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconBug} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -35,11 +37,13 @@ export function AutofixStartCard({
   // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
   const startStep = autofix.startStep;
 
+  const [enableBashTools] = useForceBashMode();
+
   const [startingRun, setStartingRun] = useState(false);
   const handleStartRootCause = async () => {
     setStartingRun(true);
     try {
-      await startStep('root_cause');
+      await startStep('root_cause', {enableBashTools: enableBashTools || undefined});
     } catch {
       return;
     } finally {
@@ -50,31 +54,7 @@ export function AutofixStartCard({
 
   return (
     <Stack gap="md">
-      <Flex
-        border="muted"
-        radius="md"
-        padding="lg"
-        gap="lg"
-        align="center"
-        justify="between"
-      >
-        <Container>
-          <Text>{t('Have Seer...')}</Text>
-          <Container as="ol" margin="0">
-            <li>{t('Determine the root cause of your issue')}</li>
-            <li>{t('Outline a plan')}</li>
-            <li>{t('Create a code fix')}</li>
-          </Container>
-        </Container>
-        <ImageContainer
-          justify="end"
-          align="center"
-          aspectRatio="9 / 16"
-          height={{'screen:2xs': '78px', 'screen:lg': '98px'}}
-        >
-          <Image src={seerConfigConnectImg} alt="" width="auto" height="100%" />
-        </ImageContainer>
-      </Flex>
+      <AutofixStartCardContent />
       <Button
         size="md"
         icon={startingRun ? <LoadingIndicator size={16} /> : <IconBug />}
@@ -92,8 +72,38 @@ export function AutofixStartCard({
   );
 }
 
+export function AutofixStartCardContent() {
+  return (
+    <Flex
+      border="muted"
+      radius="md"
+      padding="lg"
+      gap="lg"
+      align="center"
+      justify="between"
+    >
+      <Container>
+        <Text>{t('Have Seer...')}</Text>
+        <Container as="ol" margin="0">
+          <li>{t('Determine the root cause of your issue')}</li>
+          <li>{t('Outline a plan')}</li>
+          <li>{t('Create a code fix')}</li>
+        </Container>
+      </Container>
+      <ImageContainer
+        justify="end"
+        align="center"
+        aspectRatio="9 / 16"
+        height={{'screen:2xs': '78px', 'screen:lg': '98px'}}
+      >
+        <Image src={seerConfigConnectImg} alt="" width="auto" height="100%" />
+      </ImageContainer>
+    </Flex>
+  );
+}
+
 const ImageContainer = styled(Flex)<{
-  aspectRatio?: CSSProperties['aspectRatio'];
+  aspectRatio?: CSS['aspectRatio'];
 }>`
   ${p => p.aspectRatio && `aspect-ratio: ${p.aspectRatio}`};
 `;

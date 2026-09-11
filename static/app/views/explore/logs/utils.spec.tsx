@@ -1,7 +1,11 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import type {Sort} from 'sentry/utils/discover/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {LOGS_GROUP_BY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {
   OurLogKnownFieldKey,
@@ -9,10 +13,41 @@ import {
 } from 'sentry/views/explore/logs/types';
 import {
   compareLogRowsBySortBys,
+  createErrorLogRow,
   getLogsUrlFromSavedQueryUrl,
   type LogTableRowItem,
+  viewLogsSamplesTarget,
 } from 'sentry/views/explore/logs/utils';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+
+describe('viewLogsSamplesTarget', () => {
+  it('does not add a filter for an empty group by', () => {
+    const location = LocationFixture({
+      query: {
+        [LOGS_GROUP_BY_KEY]: '',
+        aggregateField: JSON.stringify({groupBy: ''}),
+        logsAggregateSortBys: '-count(message)',
+      },
+    });
+    const target = viewLogsSamplesTarget({
+      location,
+      search: new MutableSearch(''),
+      fields: ['message'],
+      groupBys: [''],
+      visualizes: [new VisualizeFunction('count(message)')],
+      sorts: [{field: 'count(message)', kind: 'desc'}],
+      row: {},
+      projects: [ProjectFixture()],
+    });
+
+    expect(target.query[LOGS_GROUP_BY_KEY]).toBe('');
+    expect(target.query.aggregateField).toBe(location.query.aggregateField);
+    expect(target.query.logsAggregateSortBys).toBe('-count(message)');
+    expect(target.query.logsQuery).toBe('');
+  });
+});
 
 describe('getLogsUrlFromSavedQueryUrl', () => {
   const organization = OrganizationFixture();
@@ -112,8 +147,8 @@ describe('compareLogRowsBySortBys', () => {
   }
 
   function sortedIds(rows: LogTableRowItem[], sortBys: Sort[]): string[] {
-    return [...rows]
-      .sort((a, b) => compareLogRowsBySortBys(a, b, sortBys))
+    return rows
+      .toSorted((a, b) => compareLogRowsBySortBys(a, b, sortBys))
       .map(row => row[OurLogKnownFieldKey.ID]);
   }
 
@@ -228,5 +263,37 @@ describe('compareLogRowsBySortBys', () => {
     expect(() =>
       sortedIds([invalid, older], [{field: OurLogKnownFieldKey.TIMESTAMP, kind: 'desc'}])
     ).not.toThrow();
+  });
+});
+
+describe('createErrorLogRow', () => {
+  const baseError: TraceTree.TraceError = {
+    event_id: 'abc123',
+    issue: 'JAVASCRIPT-1',
+    issue_id: 42,
+    level: 'error',
+    message: 'Boom happened',
+    project_id: 1,
+    project_slug: 'my-project',
+    span: 'span1',
+    title: 'TypeError: Boom happened',
+  };
+
+  it('uses the error timestamp when present', () => {
+    const row = createErrorLogRow({...baseError, timestamp: 100}, 5);
+
+    expect(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]).toBe(100 * 1e9);
+  });
+
+  it('falls back to the provided timestamp when the error has no timestamp', () => {
+    const row = createErrorLogRow(baseError, 50);
+
+    expect(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]).toBe(50 * 1e9);
+  });
+
+  it('defaults to the epoch when no error or fallback timestamp is available', () => {
+    const row = createErrorLogRow(baseError);
+
+    expect(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]).toBe(0);
   });
 });

@@ -138,7 +138,6 @@ export async function openAM2UpsellModalSamePrice(options: UpsellModalSamePriceP
 type ProfilingUpsellModalProps = {
   organization: Organization;
   subscription: Subscription;
-  isActionDisabled?: boolean;
   onComplete?: () => void;
 };
 

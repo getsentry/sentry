@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Grid, type GridProps, Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 
 import {
@@ -14,7 +14,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import type {Organization, SavedQuery} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -23,7 +23,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export type SaveQueryModalProps = {
   organization: Organization;
-  saveQuery: (name: string, starred?: boolean) => Promise<SavedQuery>;
+  saveQuery: (variables: {name: string; starred?: boolean}) => Promise<{id: string}>;
   traceItemDataset: TraceItemDataset;
   name?: string;
   source?: 'toolbar' | 'table' | 'conversations';
@@ -53,7 +53,10 @@ function SaveQueryModal({
     try {
       setIsSaving(true);
       addLoadingMessage(t('Saving query...'));
-      const {id} = await saveQuery(name, initialName === undefined ? starred : undefined);
+      const {id} = await saveQuery({
+        name,
+        starred: initialName === undefined ? starred : undefined,
+      });
       if (initialName === undefined) {
         setQueryParamsSavedQuery(id, name);
       }
@@ -130,14 +133,14 @@ function SaveQueryModal({
       </Body>
 
       <Footer>
-        <StyledButtonBar gap="lg">
+        <Flex gap="lg" justify="end">
           <Button onClick={closeModal} disabled={isSaving}>
             {t('Cancel')}
           </Button>
           <Button onClick={onSave} disabled={!name || isSaving} variant="primary">
             {defined(initialName) ? t('Save Changes') : t('Create a New Query')}
           </Button>
-        </StyledButtonBar>
+        </Flex>
       </Footer>
     </Fragment>
   );
@@ -153,20 +156,6 @@ const StarredWrapper = styled('div')`
 
   > h6 {
     margin-bottom: 0;
-  }
-`;
-
-const StyledButtonBar = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  @media (max-width: ${props => props.theme.breakpoints.sm}) {
-    grid-template-rows: repeat(2, 1fr);
-    gap: ${p => p.theme.space.lg};
-    width: 100%;
-
-    > button {
-      width: 100%;
-    }
   }
 `;
 

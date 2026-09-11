@@ -11,8 +11,9 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
+from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import Any, NamedTuple
+from typing import Any, Literal, NamedTuple
 
 import orjson
 import sentry_sdk
@@ -20,7 +21,15 @@ from pydantic import BaseModel, Field, ValidationError
 from scm import actions as scm_actions
 from scm.helpers import iter_all_pages
 from scm.manager import SourceCodeManager
-from scm.types import ActionResult, GetPullRequestProtocol, ListCheckRunsForRefProtocol, PullRequest
+from scm.types import (
+    ActionResult,
+    CheckRun,
+    GetPullRequestProtocol,
+    ListCheckRunsForRefProtocol,
+    PaginatedActionResult,
+    PaginationParams,
+    PullRequest,
+)
 
 from sentry import features
 from sentry.constants import ObjectStatus
@@ -31,21 +40,58 @@ from sentry.models.repository import Repository
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
-from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
-from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker
+from sentry.seer.autofix.pr_iteration.constants import (
+    ITERATION_FLAG,
+    MANUAL_FLAG,
+    PR_ITERATION_PROVIDER,
+    REVIEW_REQUEST_FLAG,
+)
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-SEER_GITHUB_PROVIDER = "integrations:github"
+# PR iteration is github.com only; GitHub Enterprise is deliberately excluded.
+# See ``PR_ITERATION_PROVIDER``. Every repo lookup below filters on this, so a GHE
+# repo never resolves to an Autofix run here.
+SEER_GITHUB_PROVIDER = PR_ITERATION_PROVIDER
 
 # SeerRun.extras keys for the green check-suite side effects (undraft +
 # review-request). Owned here so bootstrap can short-circuit on DB markers
 # without importing those modules (they import GreenCheckSuiteContext from us).
 READY_FOR_REVIEW_EXTRA = "ready_for_review"
 REVIEW_REQUESTS_EXTRA = "review_requests"
+
+# Per-event memo for ``organization_contexts`` (installation_id → result).
+# The flag gate and repository resolve make the same RPC; without this, flagged
+# suites pay twice on a 10s webhook deadline. Reset at the start of the gate.
+_installation_org_contexts: ContextVar[dict[str, Any]] = ContextVar(
+    "autofix_pr_iteration_installation_org_contexts"
+)
+
+
+def _github_installation_organization_contexts(
+    installation_id: int | str, *, store: bool = False
+) -> Any:
+    key = str(installation_id)
+    try:
+        memo = _installation_org_contexts.get()
+    except LookupError:
+        memo = None
+
+    if memo is not None and key in memo:
+        return memo[key]
+
+    contexts = integration_service.organization_contexts(
+        provider=IntegrationProviderSlug.GITHUB.value,
+        external_id=key,
+    )
+
+    if store and memo is not None:
+        memo[key] = contexts
+    return contexts
+
 
 # Suite/run conclusions we treat as a failure. Values match scm BuildConclusion
 # after GitHub normalization (startup_failure -> failure).
@@ -64,8 +110,26 @@ class GithubCheckSuiteApp(BaseModel):
         extra = "allow"
 
 
+class GithubCheckSuitePullRequestRepository(BaseModel):
+    id: int | None = None
+
+    class Config:
+        extra = "allow"
+
+
+class GithubCheckSuitePullRequestBase(BaseModel):
+    repo: GithubCheckSuitePullRequestRepository | None = None
+
+    class Config:
+        extra = "allow"
+
+
 class GithubCheckSuitePullRequest(BaseModel):
     id: int
+    # Optional so feedback serialized before this field existed still parses. Such
+    # an entry is skipped, which strands nothing: `extra = "allow"` round-tripped
+    # `base` through the model that predates the field, so it parses back in here.
+    base: GithubCheckSuitePullRequestBase | None = None
 
     class Config:
         extra = "allow"
@@ -118,6 +182,103 @@ def get_check_suite_url(event: GithubCheckSuiteEvent) -> str:
     )
 
 
+@dataclass(frozen=True)
+class CheckSuiteFlagGate:
+    """Which organizations behind a check suite's installation hold which flags."""
+
+    organization_ids: list[int]
+    """Every organization sharing the installation the suite was delivered for."""
+
+    organization_ids_by_flag: dict[str, list[int]]
+    """Per flag asked about, the organizations that have it. Only the flags passed
+    to ``resolve_check_suite_flag_gate`` appear, each in installation order."""
+
+    @property
+    def flagged_organization_ids(self) -> list[int]:
+        """Organizations holding at least one flag asked about, in installation
+        order. Empty means: nothing on this branch can act, so drop the event."""
+        flagged = {
+            organization_id
+            for ids in self.organization_ids_by_flag.values()
+            for organization_id in ids
+        }
+        return [
+            organization_id
+            for organization_id in self.organization_ids
+            if organization_id in flagged
+        ]
+
+
+def resolve_check_suite_flag_gate(
+    check_suite_event: CheckSuiteEvent, flags: Sequence[str]
+) -> CheckSuiteFlagGate:
+    """Resolve a check suite's organizations and ask which of them hold ``flags``.
+
+    A GitHub App installation can be linked to several Sentry organizations, and
+    the SCM stream delivers every check suite of every installation. Most belong
+    to organizations that run no part of PR iteration, and resolving those costs a
+    repository query and a round trip to Seer per pull request. This answers the
+    cheaper question first: is *anyone* behind this installation interested?
+
+    ``flags`` is what the caller's branch can actually act on -- see
+    ``GREEN_CHECK_SUITE_FLAGS`` and ``FAILING_CHECK_SUITE_FLAGS``. Asking per
+    branch rather than for PR iteration at large is what lets a failing suite be
+    dropped for an installation that only review-requests; only the flags asked
+    about are evaluated. The green branch is the wider of the two on purpose: it
+    both review-requests and releases feedback parked by a failing suite, so it
+    asks about the iteration flags as well.
+
+    Deliberately stops at organizations. It reads the installation id straight off
+    ``subscription_event["extra"]`` (see ``get_scm_stream_extra`` in
+    ``integrations/github/webhook.py``), so it does not even parse the event body,
+    and it leaves the ``Repository`` query to whichever branch of the listener
+    survives. The installation RPC is memoized for this event so that branch
+    does not pay for it a second time.
+    """
+    # New event: drop any leftover memo from a prior suite on this worker.
+    _installation_org_contexts.set({})
+
+    organization_ids: list[int] = []
+    organization_ids_by_flag: dict[str, list[int]] = {flag: [] for flag in flags}
+
+    with metrics.timer("autofix.pr_iteration.check_suite.flag_gate") as tags:
+        extra = check_suite_event.subscription_event.get("extra") or {}
+        installation_id = extra.get("installation_id")
+
+        if installation_id is None:
+            tags["outcome"] = "missing_installation_id"
+        else:
+            contexts = _github_installation_organization_contexts(str(installation_id), store=True)
+            organization_ids = [oi.organization_id for oi in contexts.organization_integrations]
+
+            for organization_id in organization_ids:
+                try:
+                    organization = Organization.objects.get_from_cache(id=organization_id)
+                except Organization.DoesNotExist:
+                    continue
+
+                for flag in flags:
+                    if features.has(flag, organization):
+                        organization_ids_by_flag[flag].append(organization_id)
+
+            tags["outcome"] = "flagged" if any(organization_ids_by_flag.values()) else "unflagged"
+
+    gate = CheckSuiteFlagGate(
+        organization_ids=organization_ids,
+        organization_ids_by_flag=organization_ids_by_flag,
+    )
+    # Emitted on every path, so an installation that resolves to nothing is
+    # visible as a zero rather than as a gap.
+    metrics.distribution(
+        "autofix.pr_iteration.check_suite.flag_gate.organizations", len(organization_ids)
+    )
+    metrics.distribution(
+        "autofix.pr_iteration.check_suite.flag_gate.flagged_organizations",
+        len(gate.flagged_organization_ids),
+    )
+    return gate
+
+
 def resolve_check_suite_repositories(event: GithubCheckSuiteEvent) -> list[Repository]:
     """All Sentry repos matching this GitHub check-suite installation + external id.
 
@@ -134,10 +295,7 @@ def resolve_check_suite_repositories(event: GithubCheckSuiteEvent) -> list[Repos
         )
         return []
 
-    contexts = integration_service.organization_contexts(
-        provider=IntegrationProviderSlug.GITHUB.value,
-        external_id=str(installation_id),
-    )
+    contexts = _github_installation_organization_contexts(installation_id)
     if contexts.integration is None or not contexts.organization_integrations:
         logger.info(
             "autofix.pr_iteration.check_suite.repository.missing_integration",
@@ -191,14 +349,38 @@ def resolve_check_suite_autofix_run(
     match, logs a warning and returns the first. Callers that already resolved
     (or filtered) the candidate repos can pass ``repositories`` to restrict the
     search.
+
+    GitHub matches a PR to a suite on ``head_sha`` + ``head_branch``, so an entry
+    whose ``base.repo`` is not this suite's repo is a PR with its *head* here and
+    its base elsewhere — a fork syncing from upstream, say. Autofix opens both
+    sides of a PR in one repo, so such an entry can never be one of its own, and
+    resolving it would bind the suite to whatever run owns that foreign PR:
+    ``repository`` below is this suite's repo, not the entry's, and the first
+    match wins. Skipping them keeps the own-repo entry from being shadowed.
+
+    An entry with no ``base.repo`` is skipped on the same rule. A global ``pr.id``
+    could place it, but GitHub always sends ``base.repo``, so such an entry is not
+    a payload this path receives — and resolving one anyway would re-admit, for the
+    entry we cannot place, exactly the shadowing above.
     """
+    # `sentry.integrations.github` registers rule actions at import time, and this
+    # module loads while the SCM stream listeners initialize in AppConfig.ready,
+    # before options init. Deferred like `make_scm` in `confirm_green_check_suite`.
+    from sentry.integrations.github.check_payloads import is_own_repo_pull_request
+
     repos = (
         list(repositories) if repositories is not None else resolve_check_suite_repositories(event)
     )
     if not repos:
         return None
 
-    pull_requests = event.check_suite.pull_requests
+    pull_requests = []
+    for pr in event.check_suite.pull_requests:
+        base_repo_id = pr.base.repo.id if pr.base and pr.base.repo else None
+        if not is_own_repo_pull_request(base_repo_id, event.repository.id):
+            metrics.incr("autofix.pr_iteration.check_suite.foreign_pull_request")
+            continue
+        pull_requests.append(pr)
     if not pull_requests:
         return None
 
@@ -291,6 +473,81 @@ def check_suite_matches_pr_head(
     return CheckSuiteHeadMatch(head_sha=head_sha, repo_name=repo_name, matched=matched)
 
 
+LivePullRequestHeadResult = Literal[
+    "match",
+    "mismatch",
+    "no_pr_number",
+    "no_autofix_run",
+    "scm_init_failed",
+    "unsupported_provider",
+    "get_pull_request_failed",
+    "no_live_head",
+    "unexpected_error",
+]
+
+
+class LivePullRequestHead(NamedTuple):
+    result: LivePullRequestHeadResult
+    head_sha: str | None = None
+
+
+def _record_github_request(head: LivePullRequestHead) -> LivePullRequestHead:
+    metrics.incr(
+        "autofix.pr_iteration.check_suite.live_head.github_request",
+        tags={"outcome": "useful" if head.result == "mismatch" else "not_useful"},
+    )
+    return head
+
+
+def compare_live_pull_request_head(
+    event: GithubCheckSuiteEvent, run_state: SeerRunState, repository: Repository
+) -> LivePullRequestHead:
+    from sentry.scm.factory import new as make_scm
+
+    repo_name = event.repository.full_name
+    pr_state = run_state.repo_pr_states.get(repo_name) if repo_name else None
+    pr_number = pr_state.pr_number if pr_state else None
+    if pr_number is None:
+        return LivePullRequestHead("no_pr_number")
+
+    log_extra = {
+        "run_id": run_state.run_id,
+        "organization_id": repository.organization_id,
+        "repo_id": repository.id,
+        "pr_number": pr_number,
+    }
+
+    try:
+        scm = make_scm(repository.organization_id, repository.id, referrer="seer")
+    except Exception:
+        logger.exception(
+            "autofix.pr_iteration.check_suite.live_head.scm_init_failed",
+            extra=log_extra,
+        )
+        return LivePullRequestHead("scm_init_failed")
+
+    if not isinstance(scm, GetPullRequestProtocol):
+        return LivePullRequestHead("unsupported_provider")
+
+    try:
+        pull_request = scm_actions.get_pull_request(scm, str(pr_number))
+    except Exception:
+        logger.exception(
+            "autofix.pr_iteration.check_suite.live_head.get_pull_request_failed",
+            extra=log_extra,
+        )
+        return _record_github_request(LivePullRequestHead("get_pull_request_failed"))
+
+    live_head_sha = pull_request["data"]["head"].get("sha")
+    if not live_head_sha:
+        return _record_github_request(LivePullRequestHead("no_live_head"))
+
+    matched = check_suite_matches_pr_head(event, pr_head_sha=live_head_sha).matched
+    return _record_github_request(
+        LivePullRequestHead("match" if matched else "mismatch", live_head_sha)
+    )
+
+
 @dataclass(frozen=True)
 class ResolvedGreenCheckSuite:
     """Cheap half of green-path bootstrap: enough to read DB markers."""
@@ -314,10 +571,23 @@ class GreenCheckSuiteContext:
     head_sha: str
 
 
+def pr_iteration_enabled(organization: Organization) -> bool:
+    """Whether any PR-iteration behaviour is enabled for this org."""
+    return (
+        features.has(REVIEW_REQUEST_FLAG, organization)
+        or features.has(ITERATION_FLAG, organization)
+        or features.has(MANUAL_FLAG, organization)
+    )
+
+
 def resolve_green_check_suite(
     check_suite_event: CheckSuiteEvent,
 ) -> ResolvedGreenCheckSuite | None:
-    """Parse, flag-gate, and resolve the Autofix run (no SCM)."""
+    """Parse, flag-gate, and resolve the Autofix run (no SCM).
+
+    The gate here is only the coarse "does this org do PR iteration at all" one
+    (see ``pr_iteration_enabled``); callers gate their own side effects.
+    """
     try:
         raw = orjson.loads(check_suite_event.subscription_event["event"])
         event = GithubCheckSuiteEvent.parse_obj(raw)
@@ -335,8 +605,10 @@ def resolve_green_check_suite(
             except Organization.DoesNotExist:
                 continue
             organizations[repo.organization_id] = organization
-        if features.has(REVIEW_REQUEST_FLAG, organization):
+
+        if pr_iteration_enabled(organization):
             flagged_repos.append(repo)
+
     if not flagged_repos:
         return None
 
@@ -347,6 +619,7 @@ def resolve_green_check_suite(
     )
     if autofix_run is None:
         return None
+
     organization = organizations[autofix_run.repository.organization_id]
 
     log_extra: dict[str, Any] = {
@@ -381,10 +654,20 @@ def resolve_green_check_suite(
     )
 
 
-def confirm_green_check_suite(
+@dataclass(frozen=True)
+class InspectedCheckSuiteHead:
+    """Live PR head + check-run sweep. CI may still be red."""
+
+    scm: SourceCodeManager
+    pull_request: ActionResult[PullRequest]
+    head_sha: str
+    sweep: CheckRunsSweep
+
+
+def inspect_check_suite_head(
     resolved: ResolvedGreenCheckSuite,
-) -> GreenCheckSuiteContext | None:
-    """SCM live-head match + check-run sweep. Call only when a side effect is needed."""
+) -> InspectedCheckSuiteHead | None:
+    """SCM live-head match + check-run sweep. Does not require the tip to be green."""
     # Importing the SCM factory while the check-suite listener module is
     # initialized pulls in integration handlers before options init.
     from sentry.scm.factory import new as make_scm
@@ -418,13 +701,29 @@ def confirm_green_check_suite(
     if sweep is None:
         _skip("sweep_failed", resolved.log_extra)
         return None
-    if not sweep.is_green:
+
+    return InspectedCheckSuiteHead(
+        scm=scm,
+        pull_request=pull_request,
+        head_sha=head_match.head_sha,
+        sweep=sweep,
+    )
+
+
+def confirm_green_check_suite(
+    resolved: ResolvedGreenCheckSuite,
+) -> GreenCheckSuiteContext | None:
+    """SCM live-head match + check-run sweep. Call only when a side effect is needed."""
+    inspected = inspect_check_suite_head(resolved)
+    if inspected is None:
+        return None
+    if not inspected.sweep.is_green:
         _skip(
             "not_green",
             {
                 **resolved.log_extra,
-                "incomplete_count": sweep.incomplete,
-                "failed_count": sweep.failed,
+                "incomplete_count": inspected.sweep.incomplete,
+                "failed_count": inspected.sweep.failed,
             },
         )
         return None
@@ -432,26 +731,55 @@ def confirm_green_check_suite(
     metrics.incr("autofix.pr_iteration.green_check_suite.confirmed")
     return GreenCheckSuiteContext(
         resolved=resolved,
-        scm=scm,
-        pull_request=pull_request,
-        head_sha=head_match.head_sha,
+        scm=inspected.scm,
+        pull_request=inspected.pull_request,
+        head_sha=inspected.head_sha,
     )
 
 
-def bootstrap_green_check_suite(
-    check_suite_event: CheckSuiteEvent,
-) -> GreenCheckSuiteContext | None:
-    """Resolve + confirm. Skips SCM when both green-path markers are already set."""
-    resolved = resolve_green_check_suite(check_suite_event)
-    if resolved is None:
-        return None
-    if (
-        get_run_marker(resolved.seer_run, READY_FOR_REVIEW_EXTRA, resolved.repo_name) is not None
-        and get_run_marker(resolved.seer_run, REVIEW_REQUESTS_EXTRA, resolved.repo_name) is not None
-    ):
-        _skip("already_complete", resolved.log_extra)
-        return None
-    return confirm_green_check_suite(resolved)
+def should_defer_pr_iteration(resolved: ResolvedGreenCheckSuite) -> bool:
+    """Whether a PR-iteration event on this head must leave a parked consume deferred.
+
+    A failing check suite parks its feedback and defers consume by an hour while
+    other checks are still running. A later event on the same head — today only a
+    green check suite — can pull that forward, but only once the head is actually
+    finished: one app going green says nothing about the other apps' suites.
+
+    Deferral holds unless the sweep ran and found nothing incomplete. Every
+    inconclusive outcome (SCM init failure, a provider that cannot list check
+    runs, a failed listing, a head the PR has already moved off) keeps the
+    existing 1h task as the only scheduler rather than starting an iteration
+    mid-CI. The automated-iteration hard cap defers for good.
+    """
+    # feedback.py imports the check-suite feedback source, which imports this
+    # module; deferred like ``make_scm`` below it.
+    from sentry.seer.autofix.pr_iteration.feedback import automated_iteration_cap_reached
+
+    if automated_iteration_cap_reached(resolved.autofix_run.run_state):
+        _skip("hard_cap_reached", resolved.log_extra)
+        return True
+
+    inspected = inspect_check_suite_head(resolved)
+    if inspected is None:
+        return True
+
+    if inspected.sweep.incomplete:
+        _skip(
+            "check_runs_incomplete",
+            {**resolved.log_extra, "incomplete_count": inspected.sweep.incomplete},
+        )
+        return True
+
+    return False
+
+
+def green_review_side_effects_enabled(resolved: ResolvedGreenCheckSuite) -> bool:
+    """Whether undraft / request-review may run for this run's org."""
+    if features.has(REVIEW_REQUEST_FLAG, resolved.organization):
+        return True
+
+    _skip("review_request_disabled", resolved.log_extra)
+    return False
 
 
 def _skip(reason: str, log_extra: dict[str, Any]) -> None:
@@ -484,6 +812,21 @@ class CheckRunsSweep:
         return self.incomplete == 0 and self.failed == 0
 
 
+@dataclass
+class _SweepCost:
+    requests: int = 0
+
+    def log_extra(self) -> dict[str, object]:
+        return {"sweep_requests": self.requests}
+
+    def record(self, *, outcome: str) -> None:
+        metrics.distribution(
+            "autofix.pr_iteration.check_runs_sweep.cost",
+            self.requests,
+            tags={"outcome": outcome},
+        )
+
+
 def sweep_check_runs(
     scm: SourceCodeManager, head_sha: str, *, log_extra: Mapping[str, object]
 ) -> CheckRunsSweep | None:
@@ -498,24 +841,28 @@ def sweep_check_runs(
         )
         return None
 
+    cost = _SweepCost()
+
+    def fetch(pagination: PaginationParams) -> PaginatedActionResult[list[CheckRun]]:
+        cost.requests += 1
+        return scm_actions.list_check_runs_for_ref(scm, head_sha, pagination=pagination)
+
     total = incomplete = failed = 0
     try:
-        for page in iter_all_pages(
-            lambda pagination: scm_actions.list_check_runs_for_ref(
-                scm, head_sha, pagination=pagination
-            )
-        ):
+        for page in iter_all_pages(fetch):
             total += len(page["data"])
             incomplete += sum(1 for run in page["data"] if run["status"] != "completed")
             failed += sum(1 for run in page["data"] if run.get("conclusion") in FAILURE_CONCLUSIONS)
     except Exception:
+        cost.record(outcome="failed")
         logger.warning(
             "autofix.pr_iteration.check_runs_sweep.list_check_runs_failed",
-            extra={**log_extra, "head_sha": head_sha},
+            extra={**log_extra, "head_sha": head_sha, **cost.log_extra()},
             exc_info=True,
         )
         return None
 
+    cost.record(outcome="swept")
     sweep = CheckRunsSweep(total=total, incomplete=incomplete, failed=failed)
     logger.info(
         "autofix.pr_iteration.check_runs_sweep.swept",
@@ -525,6 +872,7 @@ def sweep_check_runs(
             "check_run_count": sweep.total,
             "incomplete_count": sweep.incomplete,
             "failed_count": sweep.failed,
+            **cost.log_extra(),
         },
     )
     return sweep

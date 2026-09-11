@@ -26,7 +26,7 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
-from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
+from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus, ScheduleType
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.notifications.utils.participants import get_notification_recipients
@@ -266,6 +266,45 @@ class TestProjectTransfer(TestCase):
         assert existing_monitor.id == monitor_to.id
         assert existing_monitor.organization_id == self.to_org.id
         assert existing_monitor.project_id == monitor_to.project_id
+
+    def assert_transfer_remaps_monitor_environment(self, status: int) -> None:
+        monitor = self.create_monitor(
+            project=self.project,
+            organization=self.from_org,
+            name="test-monitor",
+            slug="test-monitor",
+        )
+        environment = self.create_environment(project=self.project, name="production")
+        monitor_environment = self.create_monitor_environment(
+            monitor=monitor,
+            environment_id=environment.id,
+            status=status,
+        )
+
+        self.project.transfer_to(organization=self.to_org)
+
+        monitor_environment.refresh_from_db()
+        transferred_environment = Environment.objects.get(id=monitor_environment.environment_id)
+        ensured_monitor_environment = MonitorEnvironment.objects.ensure_environment(
+            self.project, monitor, "production"
+        )
+
+        assert transferred_environment.organization_id == self.to_org.id
+        assert transferred_environment.name == "production"
+        assert ensured_monitor_environment.id == monitor_environment.id
+        assert MonitorEnvironment.objects.filter(monitor=monitor).count() == 1
+
+    def test_transfer_to_organization_remaps_active_monitor_environment(self) -> None:
+        self.assert_transfer_remaps_monitor_environment(MonitorStatus.ACTIVE)
+
+    def test_transfer_to_organization_remaps_ok_monitor_environment(self) -> None:
+        self.assert_transfer_remaps_monitor_environment(MonitorStatus.OK)
+
+    def test_transfer_to_organization_remaps_error_monitor_environment(self) -> None:
+        self.assert_transfer_remaps_monitor_environment(MonitorStatus.ERROR)
+
+    def test_transfer_to_organization_remaps_disabled_monitor_environment(self) -> None:
+        self.assert_transfer_remaps_monitor_environment(MonitorStatus.DISABLED)
 
     def test_transfer_to_organization_slug_collision(self) -> None:
         # give the project being transferred a slug that collides with an
@@ -1033,7 +1072,6 @@ class CopyProjectSettingsTest(TestCase):
         project.update_option("sentry:resolve_age", 200)
         ProjectTeam.objects.create(team=self.create_team(), project=project)
         self.create_environment(project=project)
-        Rule.objects.filter(project_id=project.id).order_by("id")[0]
 
         assert project.copy_settings_from(self.other_project.id)
         self.assert_settings_copied(project)

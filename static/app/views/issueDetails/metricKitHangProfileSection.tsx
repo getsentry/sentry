@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 
+import {InfoTip} from '@sentry/scraps/info';
+
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   hasFlamegraphData,
   StacktraceFlamegraph,
 } from 'sentry/components/events/interfaces/crashContent/stackTrace/flamegraph';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -67,7 +68,7 @@ export function MetricKitHangProfileSection({data}: {data: HangProfileData}) {
           <span>
             {t('Hang Profile')}
             &nbsp;
-            <QuestionTooltip
+            <InfoTip
               position="bottom"
               size="sm"
               title={t('This profile was reported by MetricKit during the app hang.')}

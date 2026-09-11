@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 // Window/localStorage shims for SSR — must run before any component imports.
 //
 // IMPORTANT: Do NOT define globalThis.document here. Emotion's SSR style
@@ -35,7 +34,7 @@ if (globalThis.window === undefined) {
     requestAnimationFrame: (cb: () => void) => setTimeout(cb, 0),
   } as any;
 
-  globalThis.localStorage = localStorageShim as unknown as Storage;
+  globalThis.localStorage = localStorageShim;
 }
 
 // CompactSelect and other core components call `CSS.escape` during render, but

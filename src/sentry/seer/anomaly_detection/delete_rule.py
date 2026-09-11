@@ -53,7 +53,7 @@ def delete_data_in_seer_for_detector(detector: Detector):
         )
         return
 
-    organization = detector.project.organization
+    organization = detector.linked_project.organization
 
     if detector.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC:
         success = delete_rule_in_seer(

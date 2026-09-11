@@ -1,9 +1,13 @@
-import type {Theme} from '@emotion/react';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {
+  Container,
+  type ContainerProps,
+  Flex,
+  type FlexProps,
+  Grid,
+  type GridProps,
+} from '@sentry/scraps/layout';
 
 const motionProps = {
   initial: 'initial',
@@ -13,42 +17,46 @@ const motionProps = {
   transition: {staggerChildren: 0.2},
 };
 
-const footerChromeStyles = (theme: Theme) => css`
-  width: 100%;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  height: 72px;
-  z-index: 100;
-  background-color: ${theme.tokens.background.primary};
-  border-top: 1px solid ${theme.tokens.border.secondary};
-`;
+export const FOOTER_HEIGHT = '72px';
+
+const footerChromeProps = {
+  position: 'fixed',
+  bottom: 0,
+  left: 0,
+  width: '100%',
+  height: FOOTER_HEIGHT,
+  background: 'primary',
+  borderTop: 'secondary',
+  style: {zIndex: 100},
+} as const satisfies ContainerProps;
 
 export function GenericFooter(
   props: React.ComponentProps<typeof motion.div> & FlexProps
 ) {
-  return <MotionFlex {...motionProps} {...props} />;
+  return (
+    <MotionFlex {...footerChromeProps} justify="between" {...motionProps} {...props} />
+  );
 }
 
-export function GridFooter(props: React.ComponentProps<typeof motion.div>) {
-  return <MotionGrid {...motionProps} {...props} />;
+export function GridFooter(props: React.ComponentProps<typeof motion.div> & GridProps) {
+  return (
+    // A separate element from the grid below: an element can't query itself, and
+    // this is the outermost node the footer owns, so its containment can't
+    // re-anchor a `position: fixed` ancestor.
+    <Container {...footerChromeProps} containerType="inline-size">
+      <MotionGrid
+        height="100%"
+        // Below xl the hidden slots leave a single visible child. Flowing in
+        // one column-direction row keeps it on the footer's baseline; explicit
+        // equal tracks would put each child on its own row instead.
+        flow={{zero: 'column', xl: 'row'}}
+        columns={{zero: 'none', xl: 'repeat(3, 1fr)'}}
+        {...motionProps}
+        {...props}
+      />
+    </Container>
+  );
 }
 
-const StyledFlex = styled(Flex)`
-  ${p => footerChromeStyles(p.theme)};
-  justify-content: space-between;
-`;
-
-const StyledGrid = styled('div')`
-  ${p => footerChromeStyles(p.theme)};
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: flex;
-    flex-direction: row;
-    justify-content: end;
-  }
-`;
-
-const MotionFlex = motion.create(StyledFlex);
-const MotionGrid = motion.create(StyledGrid);
+const MotionFlex = motion.create(Flex);
+const MotionGrid = motion.create(Grid);

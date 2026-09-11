@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -17,8 +18,6 @@ import {
   type SearchGroup,
   type SearchItem,
 } from 'sentry/components/searchBar/types';
-import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
-import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderLayout,
@@ -75,6 +74,7 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -89,7 +89,6 @@ import {
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {fzf} from 'sentry/utils/search/fzf';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useKeyPress} from 'sentry/utils/useKeyPress';
 import {useOrganization} from 'sentry/utils/useOrganization';
 type SearchQueryValueBuilderProps = {
@@ -388,6 +387,9 @@ function useFilterSuggestions({
         token,
         fieldDefinition,
       }),
+    // React Compiler treats one of these dependencies as mutated later in the
+    // component, so it cannot prove the memoization is preserved.
+    // oxlint-disable-next-line react/preserve-manual-memoization
     [key, filterValue, token, fieldDefinition]
   );
   // Only keys that explicitly have predefined values should skip the fetch.
@@ -422,7 +424,9 @@ function useFilterSuggestions({
     () => ['search-query-builder-tag-values', queryParams] as const,
     [queryParams]
   );
-  const queryKey = useDebouncedValue(baseQueryKey);
+  const [queryKey] = useDebouncedValue(baseQueryKey, {
+    wait: DEFAULT_DEBOUNCE_DURATION,
+  });
   const isDebouncing = baseQueryKey !== queryKey;
 
   const tagKeysBaseQueryKey = useMemo(
@@ -430,11 +434,12 @@ function useFilterSuggestions({
       ['search-query-builder-tag-keys', filterKeyRegistryQueryKey, filterValue] as const,
     [filterKeyRegistryQueryKey, filterValue]
   );
-  const tagKeysQueryKey = useDebouncedValue(tagKeysBaseQueryKey);
+  const [tagKeysQueryKey] = useDebouncedValue(tagKeysBaseQueryKey, {
+    wait: DEFAULT_DEBOUNCE_DURATION,
+  });
   const isDebouncingTagKeys = tagKeysBaseQueryKey !== tagKeysQueryKey;
 
   // TODO(malwilley): Display error states
-  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data, isFetching} = useQuery({
     queryKey,
     queryFn: ctx =>
@@ -444,7 +449,6 @@ function useFilterSuggestions({
   });
 
   // TODO(malwilley): Display error states
-  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data: asyncKeys, isFetching: isFetchingTagKeys} = useQuery({
     queryKey: tagKeysQueryKey,
     queryFn: ctx => {
@@ -578,7 +582,6 @@ function ItemCheckbox({disabled, value}: {disabled: boolean; value: string}) {
     >
       <CheckWrap role="presentation">
         <Checkbox
-          size="sm"
           checked={selected}
           disabled={disabled}
           onChange={() => {
@@ -638,11 +641,6 @@ function ValueComboboxCustomMenu(
     );
   }
 
-  // Remove Ask Seer items from the value list box since they are not shown here.
-  const hiddenOptions = new Set(props.hiddenOptions);
-  hiddenOptions.delete(ASK_SEER_ITEM_KEY);
-  hiddenOptions.delete(ASK_SEER_CONSENT_ITEM_KEY);
-
   return (
     <ValueListBox
       {...props}
@@ -651,7 +649,6 @@ function ValueComboboxCustomMenu(
           ? (props.portalTarget ?? wrapperRef.current)
           : props.portalTarget
       }
-      hiddenOptions={hiddenOptions}
       wrapperRef={wrapperRef}
       isMultiSelect={canSelectMultipleValues}
       items={items}
@@ -799,6 +796,7 @@ export function SearchQueryBuilderValueCombobox({
       }
       const newIndex = nearestOccurrence(liftedValue, oldIndex);
       if (newIndex === -1) {
+        // oxlint-disable-next-line react/set-state-in-effect
         setEditingChip(null);
         setInputValue('');
       } else {

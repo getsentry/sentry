@@ -54,6 +54,11 @@ const config: Config.InitialOptions = {
   testEnvironment: '<rootDir>/tests/js/sentry-test/jest-environment-node.js',
   testMatch: ['<rootDir>/static/**/*.snapshots.tsx'],
   testPathIgnorePatterns: ['/node_modules/'],
+  // Coding agents check out nested git worktrees under .claude/worktrees/, each a
+  // full copy of this repo. jest-haste-map crawls all of rootDir, so every manual
+  // mock in static/ collides with its copies and the file that ends up backing
+  // jest.mock() is decided by crawl order. Keep the module map to this checkout.
+  modulePathIgnorePatterns: ['<rootDir>/\\.claude/'],
   testEnvironmentOptions: {
     sentryConfig: {
       init: {

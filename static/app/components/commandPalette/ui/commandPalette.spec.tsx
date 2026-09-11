@@ -1,8 +1,10 @@
 import {Fragment} from 'react';
+import {QueryClientProvider} from '@tanstack/react-query';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-jest.unmock('lodash/debounce');
+jest.unmock('@tanstack/react-pacer');
 
 jest.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: ({count}: {count: number}) => {
@@ -357,6 +359,29 @@ describe('CommandPalette', () => {
       await userEvent.type(input, 'xyzzy');
 
       expect(screen.queryAllByRole('option')).toHaveLength(0);
+    });
+
+    it('waits for search to settle before showing the Seer fallback', async () => {
+      render(
+        <CommandPaletteProvider>
+          <CMDKAction to="/known/" display={{label: 'Known Action'}} />
+          <CommandPalette {...makeRenderProps(jest.fn())} openSeerExplorer={jest.fn()} />
+        </CommandPaletteProvider>
+      );
+
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Search commands'}),
+        'xyzzy'
+      );
+
+      expect(screen.getByTestId('command-palette-loading')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'Ask Seer: xyzzy'})
+      ).not.toBeInTheDocument();
+
+      expect(
+        await screen.findByRole('option', {name: 'Ask Seer: xyzzy'})
+      ).toBeInTheDocument();
     });
 
     it('clearing the query restores all top-level items', async () => {
@@ -993,6 +1018,42 @@ describe('CommandPalette', () => {
     });
   });
 
+  describe('lazy resources', () => {
+    it('does not create a query until a disabled resource is selected', async () => {
+      const queryClient = makeTestQueryClient();
+      const queryKey = ['test-lazy-resource'];
+      const queryFn = jest.fn(() => []);
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <GlobalActionsComponent>
+            <CMDKAction display={{label: 'Resource Group'}}>
+              <CMDKAction
+                display={{label: 'Lazy Resource'}}
+                prompt="Enter a value..."
+                resource={(_query, {state}) =>
+                  cmdkQueryOptions({
+                    queryKey,
+                    queryFn,
+                    enabled: state === 'selected',
+                  })
+                }
+              />
+            </CMDKAction>
+          </GlobalActionsComponent>
+        </QueryClientProvider>
+      );
+
+      await screen.findByRole('option', {name: 'Lazy Resource'});
+      expect(queryClient.getQueryCache().find({queryKey})).toBeUndefined();
+
+      await userEvent.click(screen.getByRole('option', {name: 'Lazy Resource'}));
+
+      await waitFor(() => expect(queryFn).toHaveBeenCalledTimes(1));
+      expect(queryClient.getQueryCache().find({queryKey})).toBeDefined();
+    });
+  });
+
   describe('prompt actions', () => {
     function PromptAction() {
       return (
@@ -1256,6 +1317,7 @@ describe('CommandPalette', () => {
     let testDispatch: CommandPaletteDispatch;
 
     function DispatchCapture() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       testDispatch = useCommandPaletteDispatch();
       return null;
     }

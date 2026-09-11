@@ -30,3 +30,12 @@ def escape_markdown_code(value: str | None, *, default: str = "") -> str:
         return default
     single_line = _NEWLINES.sub(" ", value)
     return single_line.replace("`", "").replace("|", "\\|")
+
+
+def format_commit_sha_markdown(sha: str, *, repo_url: str | None = None) -> str:
+    """Render a commit SHA as markdown, linking to the repo commit page when possible."""
+    display = escape_markdown_code(sha)
+    if not repo_url:
+        return f"`{display}`"
+    commit_url = f"{repo_url.rstrip('/')}/commit/{sha}"
+    return f"[`{display}`]({commit_url})"

@@ -33,7 +33,7 @@ const RATE_AGGREGATE_DISABLED_REASON = t(
   'Rate aggregates are not supported in equations'
 );
 const DISABLED_EQUATION_AGGREGATES: Record<string, string> = Object.fromEntries(
-  [...RATE_AGGREGATES].map(agg => [agg, RATE_AGGREGATE_DISABLED_REASON])
+  Array.from(RATE_AGGREGATES, agg => [agg, RATE_AGGREGATE_DISABLED_REASON])
 );
 
 const GRID_COLUMNS = 'auto 1fr auto';

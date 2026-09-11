@@ -2,12 +2,11 @@ import {Fragment} from 'react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ApiForm} from 'sentry/components/forms/apiForm';
-import type {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject} from 'sentry/components/forms/types';
 import type {RequestMethod} from 'sentry/utils/api/apiQueryKey';
 
-interface JsonFormModalProps extends ModalRenderProps, Pick<FormProps, 'onSubmitError'> {
+interface JsonFormModalProps extends ModalRenderProps {
   apiEndpoint: string;
   apiMethod: RequestMethod;
   fields: FieldObject[];
@@ -26,7 +25,6 @@ export function JsonFormModal({
   initialData = {},
   fields,
   onSuccess,
-  onSubmitError,
 }: JsonFormModalProps) {
   return (
     <Fragment>
@@ -41,7 +39,6 @@ export function JsonFormModal({
             }
             closeModal();
           }}
-          onSubmitError={onSubmitError}
           initialData={initialData}
           submitLabel="Save Changes"
         >

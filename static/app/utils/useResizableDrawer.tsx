@@ -1,5 +1,7 @@
 import {useCallback, useLayoutEffect, useRef, useState} from 'react';
 
+import {setDocumentDragging} from 'sentry/utils/setDocumentDragging';
+
 export interface UseResizableDrawerOptions {
   /**
    * When dragging, which direction should be used for the delta
@@ -14,18 +16,18 @@ export interface UseResizableDrawerOptions {
    */
   min: number;
   /**
-   * Triggered while dragging
-   */
-  onResize: (
-    newSize: number,
-    maybeOldSize: number | undefined,
-    userEvent: boolean
-  ) => void;
-  /**
    * The maximum size the container may be dragged to. Optional — defaults
    * to no upper bound. Only enforced during drag, mirroring `min`.
    */
   max?: number;
+  /**
+   * Triggered while dragging
+   */
+  onResize?: (
+    newSize: number,
+    maybeOldSize: number | undefined,
+    userEvent: boolean
+  ) => void;
   /**
    * Fires once when a drag completes (on mouseUp). Receives the size at
    * the start and end of the drag.
@@ -97,7 +99,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   const updateSize = useCallback((newSize: number, userEvent = false) => {
     sizeRef.current = newSize;
     setSize(newSize);
-    optionsRef.current.onResize(newSize, undefined, userEvent);
+    optionsRef.current.onResize?.(newSize, undefined, userEvent);
     if (optionsRef.current.sizeStorageKey) {
       localStorage.setItem(optionsRef.current.sizeStorageKey, newSize.toString());
     }
@@ -108,7 +110,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   // invoke the onResize callback with the previously stored dimensions.
   useLayoutEffect(() => {
     const clamped = clampSize(options.initialSize ?? 0, options.min, options.max);
-    options.onResize(clamped, size, false);
+    options.onResize?.(clamped, size, false);
     setSize(clamped);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.direction]);
@@ -123,12 +125,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
       const isXAxis = options.direction === 'left' || options.direction === 'right';
       const isInverted = options.direction === 'down' || options.direction === 'left';
 
-      document.body.style.pointerEvents = 'none';
-      document.body.style.userSelect = 'none';
-
-      // We've disabled pointerEvents on the body, the cursor needs to be
-      // applied to the root most element to work
-      document.documentElement.style.cursor = isXAxis ? 'ew-resize' : 'ns-resize';
+      setDocumentDragging(isXAxis ? 'ew-resize' : 'ns-resize');
 
       if (rafIdRef.current !== null) {
         window.cancelAnimationFrame(rafIdRef.current);
@@ -168,9 +165,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   const dragStartSizeRef = useRef<number | null>(null);
 
   const onDragEnd = useCallback(() => {
-    document.body.style.pointerEvents = '';
-    document.body.style.userSelect = '';
-    document.documentElement.style.cursor = '';
+    setDocumentDragging(null);
     document.removeEventListener('mousemove', onDragMove);
     document.removeEventListener('mouseup', onDragEnd);
     document.removeEventListener('pointermove', onDragMove);

@@ -119,7 +119,7 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
             source="similar-issues-tab"
             canSelectGroups={false}
             withChart={false}
-            withColumns={['event']}
+            withColumns={['event', 'firstSeen', 'lastSeen']}
             numPlaceholderRows={4}
           />
         </Fragment>

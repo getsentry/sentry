@@ -35,10 +35,10 @@ function StoreCapture({
   return null;
 }
 
-function makeStoreRef() {
-  return createRef() as React.MutableRefObject<ReturnType<
-    typeof TestCollection.useStore
-  > | null>;
+function makeStoreRef(): React.MutableRefObject<ReturnType<
+  typeof TestCollection.useStore
+> | null> {
+  return createRef();
 }
 
 describe('Collection', () => {
@@ -285,10 +285,12 @@ describe('Collection', () => {
       return null;
     }
     function CaptureA() {
+      // oxlint-disable-next-line react/immutability
       storeRefA.current = A.useStore();
       return null;
     }
     function CaptureB() {
+      // oxlint-disable-next-line react/immutability
       storeRefB.current = B.useStore();
       return null;
     }

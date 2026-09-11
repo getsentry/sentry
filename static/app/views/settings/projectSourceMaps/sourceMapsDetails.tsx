@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
@@ -8,13 +7,14 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useRole} from 'sentry/components/acl/useRole';
 import {FileSize} from 'sentry/components/fileSize';
 import {Panel} from 'sentry/components/panels/panel';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SearchBar} from 'sentry/components/searchBar';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconClock, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -41,7 +41,7 @@ enum DebugIdBundleArtifactType {
   INDEXED_RAM_BUNDLE = 4,
 }
 
-const debugIdBundleTypeLabels = {
+const debugIdBundleTypeLabels: Record<number, string> = {
   [DebugIdBundleArtifactType.INVALID]: t('Invalid'),
   [DebugIdBundleArtifactType.SOURCE]: t('Source'),
   [DebugIdBundleArtifactType.MINIFIED_SOURCE]: t('Minified'),
@@ -67,18 +67,18 @@ function ArtifactsTableRow({
   const {hasRole, roleRequired: downloadRole} = useRole({role: 'debugFilesRole'});
 
   return (
-    <Fragment>
-      <ArtifactColumn>
+    <SimpleTable.Row>
+      <ArtifactColumn align="stretch" direction="column" justify="center">
         <Flex justify="start" align="center">
           {name || `(${t('empty')})`}
         </Flex>
         {artifactColumnDetails}
       </ArtifactColumn>
-      {type && <TypeColumn>{type}</TypeColumn>}
-      <SizeColumn>
+      {type && <AlignedRightColumn>{type}</AlignedRightColumn>}
+      <AlignedRightColumn>
         <FileSize bytes={size} />
-      </SizeColumn>
-      <ActionsColumn>
+      </AlignedRightColumn>
+      <SimpleTable.RowCell justify="end">
         <Tooltip
           title={tct(
             'Artifacts can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
@@ -89,7 +89,6 @@ function ArtifactsTableRow({
             }
           )}
           disabled={hasRole}
-          isHoverable
         >
           <LinkButton
             size="sm"
@@ -100,8 +99,8 @@ function ArtifactsTableRow({
             aria-label={t('Download Artifact')}
           />
         </Tooltip>
-      </ActionsColumn>
-    </Fragment>
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 }
 
@@ -251,27 +250,33 @@ export function SourceMapsDetails({bundleId, project}: Props) {
         onSearch={handleSearch}
         query={query}
       />
-      <StyledPanelTable
-        hasTypeColumn={isDebugIdBundle}
-        headers={[
-          t('Artifact'),
-          ...(isDebugIdBundle ? [<TypeColumn key="type">{t('Type')}</TypeColumn>] : []),
-          <SizeColumn key="file-size">{t('File Size')}</SizeColumn>,
-          '',
-        ]}
-        emptyMessage={
-          query
-            ? t('No artifacts match your search query.')
-            : t('There are no artifacts in this upload.')
+      <SimpleTable
+        columns={isDebugIdBundle ? ARTIFACT_COLUMNS : ARTIFACT_COLUMNS_WITHOUT_TYPE}
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Artifact')}</SimpleTable.HeaderCell>
+            {isDebugIdBundle && (
+              <SimpleTable.HeaderCell>{t('Type')}</SimpleTable.HeaderCell>
+            )}
+            <SimpleTable.HeaderCell>{t('File Size')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell />
+          </SimpleTable.HeaderRow>
         }
-        isEmpty={
+      >
+        {(isDebugIdBundle ? debugIdBundlesArtifactsLoading : artifactsLoading) && (
+          <SimpleTable.Loading />
+        )}
+        {!(isDebugIdBundle ? debugIdBundlesArtifactsLoading : artifactsLoading) &&
           (isDebugIdBundle
             ? (debugIdBundlesArtifactsData?.files ?? [])
             : (artifactsData ?? [])
-          ).length === 0
-        }
-        isLoading={isDebugIdBundle ? debugIdBundlesArtifactsLoading : artifactsLoading}
-      >
+          ).length === 0 && (
+            <SimpleTable.Empty>
+              {query
+                ? t('No artifacts match your search query.')
+                : t('There are no artifacts in this upload.')}
+            </SimpleTable.Empty>
+          )}
         {isDebugIdBundle
           ? (debugIdBundlesArtifactsData?.files ?? []).map(data => {
               const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
@@ -285,9 +290,7 @@ export function SourceMapsDetails({bundleId, project}: Props) {
                   key={data.id}
                   size={data.fileSize}
                   name={data.filePath}
-                  type={
-                    debugIdBundleTypeLabels[data.fileType as DebugIdBundleArtifactType]
-                  }
+                  type={debugIdBundleTypeLabels[data.fileType]}
                   downloadUrl={downloadUrl}
                   orgSlug={organization.slug}
                   artifactColumnDetails={
@@ -338,7 +341,7 @@ export function SourceMapsDetails({bundleId, project}: Props) {
                 />
               );
             })}
-      </StyledPanelTable>
+      </SimpleTable>
       <Pagination
         pageLinks={
           isDebugIdBundle
@@ -350,29 +353,16 @@ export function SourceMapsDetails({bundleId, project}: Props) {
   );
 }
 
-const StyledPanelTable = styled(PanelTable)<{hasTypeColumn: boolean}>`
-  grid-template-columns: minmax(220px, 1fr) minmax(120px, max-content) minmax(
-      74px,
-      max-content
-    );
-  ${p =>
-    p.hasTypeColumn &&
-    css`
-      grid-template-columns:
-        minmax(220px, 1fr) minmax(120px, max-content) minmax(120px, max-content)
-        minmax(74px, max-content);
-    `}
-`;
+const ARTIFACT_COLUMNS: TableColumnConfig[] = [
+  {key: 'artifact', width: 'minmax(220px, 1fr)'},
+  {key: 'type', width: 'minmax(120px, max-content)'},
+  {key: 'fileSize', width: 'minmax(120px, max-content)'},
+  {key: 'actions', width: 'minmax(74px, max-content)'},
+];
 
-const Column = styled('div')`
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-`;
-
-const ActionsColumn = styled(Column)`
-  justify-content: flex-end;
-`;
+const ARTIFACT_COLUMNS_WITHOUT_TYPE = ARTIFACT_COLUMNS.filter(
+  column => column.key !== 'type'
+);
 
 const SearchBarWithMarginBottom = styled(SearchBar)`
   margin-bottom: ${p => p.theme.space['2xl']};
@@ -382,24 +372,13 @@ const DetailsPanel = styled(Panel)`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
-const ArtifactColumn = styled('div')`
+const ArtifactColumn = styled(SimpleTable.RowCell)`
   overflow-wrap: break-word;
   word-break: break-all;
   line-height: 140%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
 `;
 
-const TypeColumn = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  text-align: right;
-  align-items: center;
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const SizeColumn = styled('div')`
+const AlignedRightColumn = styled(SimpleTable.RowCell)`
   display: flex;
   justify-content: flex-end;
   text-align: right;

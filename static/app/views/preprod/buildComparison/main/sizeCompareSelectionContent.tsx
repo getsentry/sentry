@@ -37,12 +37,10 @@ import {SizeCompareSelectedBuilds} from './sizeCompareSelectedBuilds';
 
 interface SizeCompareSelectionContentProps {
   headBuildDetails: BuildDetailsApiResponse;
-  baseBuildDetails?: BuildDetailsApiResponse;
 }
 
 export function SizeCompareSelectionContent({
   headBuildDetails,
-  baseBuildDetails,
 }: SizeCompareSelectionContentProps) {
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
@@ -52,7 +50,9 @@ export function SizeCompareSelectionContent({
       cursor: decodeScalar,
     },
   });
-  const [selectedBaseBuild, setSelectedBaseBuild] = useState(baseBuildDetails);
+  const [selectedBaseBuild, setSelectedBaseBuild] = useState<
+    BuildDetailsApiResponse | undefined
+  >();
   const [searchQuery, setSearchQuery] = useState('');
 
   const searchFilters: string[] = [`state:${BuildDetailsState.PROCESSED}`];

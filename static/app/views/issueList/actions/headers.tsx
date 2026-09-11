@@ -29,19 +29,54 @@ export function Headers({
     <Fragment>
       {isReprocessingQuery ? (
         <Fragment>
-          <StartedColumn>{t('Started')}</StartedColumn>
-          <EventsReprocessedColumn>{t('Events Reprocessed')}</EventsReprocessedColumn>
-          <ProgressColumn>{t('Progress')}</ProgressColumn>
+          <ToolbarHeader
+            width={{zero: '85px', xl: '140px'}}
+            margin="0 xl"
+            whiteSpace="nowrap"
+            overflow="hidden"
+            style={{textOverflow: 'ellipsis'}}
+          >
+            {t('Started')}
+          </ToolbarHeader>
+          <ToolbarHeader
+            width={{zero: '75px', xl: '140px'}}
+            margin="0 xl"
+            whiteSpace="nowrap"
+            overflow="hidden"
+            style={{textOverflow: 'ellipsis'}}
+          >
+            {t('Events Reprocessed')}
+          </ToolbarHeader>
+          <ToolbarHeader
+            display={{zero: 'none', xl: 'block'}}
+            width="160px"
+            margin="0 xl"
+          >
+            {t('Progress')}
+          </ToolbarHeader>
         </Fragment>
       ) : (
         <Fragment>
-          <LastSeenLabel breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN} align="right">
+          <IssueStreamHeaderLabel
+            display={{zero: 'none', [COLUMN_BREAKPOINTS.LAST_SEEN]: 'inline-block'}}
+            align="right"
+            width="86px"
+          >
             {t('Last Seen')}
-          </LastSeenLabel>
-          <FirstSeenLabel breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN} align="right">
+          </IssueStreamHeaderLabel>
+          <IssueStreamHeaderLabel
+            display={{zero: 'none', [COLUMN_BREAKPOINTS.FIRST_SEEN]: 'inline-block'}}
+            align="right"
+            width="50px"
+          >
             {t('Age')}
-          </FirstSeenLabel>
-          <GraphLabel breakpoint={COLUMN_BREAKPOINTS.TREND}>
+          </IssueStreamHeaderLabel>
+          <IssueStreamHeaderLabel
+            display={{zero: 'none', [COLUMN_BREAKPOINTS.TREND]: 'flex'}}
+            width="175px"
+            flex="1"
+            style={{justifyContent: 'space-between', padding: 0}}
+          >
             <Flex flex="1" justify="between">
               {t('Trend')}
               <GraphToggles>
@@ -61,38 +96,50 @@ export function Headers({
                 </GraphToggle>
               </GraphToggles>
             </Flex>
-          </GraphLabel>
-          <EventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.EVENTS} align="right">
+          </IssueStreamHeaderLabel>
+          <IssueStreamHeaderLabel
+            display={{zero: 'none', [COLUMN_BREAKPOINTS.EVENTS]: 'inline-block'}}
+            align="right"
+            width="60px"
+          >
             {t('Events')}
-          </EventsOrUsersLabel>
-          <EventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.USERS} align="right">
+          </IssueStreamHeaderLabel>
+          <IssueStreamHeaderLabel
+            display={{zero: 'none', [COLUMN_BREAKPOINTS.USERS]: 'inline-block'}}
+            align="right"
+            width="60px"
+          >
             {t('Users')}
-          </EventsOrUsersLabel>
+          </IssueStreamHeaderLabel>
           {withColumns?.includes('progress') ? (
-            <ProgressLabel breakpoint={COLUMN_BREAKPOINTS.PROGRESS} align="left">
+            <IssueStreamHeaderLabel
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.PROGRESS]: 'inline-block'}}
+              align="left"
+              width="124px"
+            >
               {t('Progress')}
-            </ProgressLabel>
+            </IssueStreamHeaderLabel>
           ) : (
-            <PriorityLabel breakpoint={COLUMN_BREAKPOINTS.PRIORITY} align="left">
+            <IssueStreamHeaderLabel
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.PRIORITY]: 'inline-block'}}
+              align="left"
+              width="64px"
+            >
               {t('Priority')}
-            </PriorityLabel>
+            </IssueStreamHeaderLabel>
           )}
-          <AssigneeLabel breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE} align="right">
+          <IssueStreamHeaderLabel
+            display={{zero: 'none', [COLUMN_BREAKPOINTS.ASSIGNEE]: 'inline-block'}}
+            align="right"
+            width="66px"
+          >
             {t('Assignee')}
-          </AssigneeLabel>
+          </IssueStreamHeaderLabel>
         </Fragment>
       )}
     </Fragment>
   );
 }
-
-const GraphLabel = styled(IssueStreamHeaderLabel)`
-  width: 175px;
-  flex: 1;
-  display: flex;
-  justify-content: space-between;
-  padding: 0;
-`;
 
 const GraphToggles = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.regular};
@@ -112,64 +159,4 @@ const GraphToggle = styled('a')<{active: boolean}>`
   }
 `;
 
-const LastSeenLabel = styled(IssueStreamHeaderLabel)`
-  width: 86px;
-`;
-
-const FirstSeenLabel = styled(IssueStreamHeaderLabel)`
-  width: 50px;
-`;
-
-const EventsOrUsersLabel = styled(IssueStreamHeaderLabel)`
-  width: 60px;
-`;
-
-const PriorityLabel = styled(IssueStreamHeaderLabel)`
-  width: 64px;
-`;
-
-const ProgressLabel = styled(IssueStreamHeaderLabel)`
-  width: 124px;
-`;
-
-const AssigneeLabel = styled(IssueStreamHeaderLabel)`
-  width: 66px;
-`;
-
 // Reprocessing
-const StartedColumn = styled(ToolbarHeader)`
-  margin: 0 ${p => p.theme.space.xl};
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 85px;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    width: 140px;
-  }
-`;
-
-const EventsReprocessedColumn = styled(ToolbarHeader)`
-  margin: 0 ${p => p.theme.space.xl};
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 75px;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    width: 140px;
-  }
-`;
-
-const ProgressColumn = styled(ToolbarHeader)`
-  margin: 0 ${p => p.theme.space.xl};
-
-  display: none;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    display: block;
-    width: 160px;
-  }
-`;

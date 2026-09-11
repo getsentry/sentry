@@ -8,6 +8,10 @@ from django.utils import timezone
 from sentry.auth import access
 from sentry.auth.access import Access, NoAccess
 from sentry.auth.providers.dummy import DummyProvider
+from sentry.auth.scope_declaration import (
+    bind_endpoint_scope_declaration,
+    update_permission_scope_declaration,
+)
 from sentry.auth.services.access.service import access_service
 from sentry.auth.superuser import SUPERUSER_READONLY_SCOPES, SUPERUSER_SCOPES
 from sentry.constants import ObjectStatus
@@ -925,6 +929,125 @@ class FromSentryAppTest(AccessFactoryTestCase):
 
 @no_silo_test
 class DefaultAccessTest(TestCase):
+    @patch("sentry.auth.scope_declaration.options.get")
+    def test_declared_scope_check_does_not_read_audit_option(self, options_get: Mock) -> None:
+        class Permission:
+            scope_map = {"GET": ("org:read",)}
+
+        with bind_endpoint_scope_declaration(
+            endpoint="test.Endpoint", method="GET", permission_classes=(Permission,)
+        ):
+            assert not access.DEFAULT.has_scope("org:read")
+
+        options_get.assert_not_called()
+
+    @patch("sentry.auth.scope_declaration.options.get")
+    def test_implied_scope_checks_do_not_read_audit_option(self, options_get: Mock) -> None:
+        class Permission:
+            scope_map = {"GET": ("org:admin",)}
+
+        with bind_endpoint_scope_declaration(
+            endpoint="test.Endpoint", method="GET", permission_classes=(Permission,)
+        ):
+            assert not access.DEFAULT.has_scope("org:read")
+            assert not access.DEFAULT.has_scope("org:write")
+            assert not access.DEFAULT.has_scope("org:integrations")
+
+        options_get.assert_not_called()
+
+    @patch("sentry.auth.scope_declaration.options.get")
+    def test_runtime_scope_map_expands_implied_scopes(self, options_get: Mock) -> None:
+        class Permission:
+            scope_map = {"GET": ("org:read",)}
+
+        permission = Permission()
+        with bind_endpoint_scope_declaration(
+            endpoint="test.Endpoint", method="GET", permission_classes=(Permission,)
+        ):
+            update_permission_scope_declaration(permission, {"GET": ("org:admin",)})
+            assert not access.DEFAULT.has_scope("org:write")
+
+        options_get.assert_not_called()
+
+    @patch("sentry.auth.scope_declaration.capture_message")
+    @patch("sentry.auth.scope_declaration.logger.warning")
+    @override_options({"api.permission-scope-audit.enabled": True})
+    def test_stronger_scope_check_is_still_reported(
+        self, warning: Mock, capture_message: Mock
+    ) -> None:
+        class Permission:
+            scope_map = {"GET": ("org:write",)}
+
+        with bind_endpoint_scope_declaration(
+            endpoint="test.Endpoint", method="GET", permission_classes=(Permission,)
+        ):
+            assert not access.DEFAULT.has_scope("org:admin")
+
+        assert warning.call_count == 1
+        assert warning.call_args.kwargs["extra"]["scope"] == "org:admin"
+        assert capture_message.call_count == 1
+
+    def test_disabled_scope_audit_reads_option_once_per_endpoint(self) -> None:
+        class Permission:
+            scope_map = {"GET": ("org:read",)}
+
+        with (
+            patch("sentry.auth.scope_declaration.options.get", return_value=False) as options_get,
+            patch("sentry.auth.scope_declaration.logger.warning") as warning,
+            bind_endpoint_scope_declaration(
+                endpoint="test.Endpoint", method="GET", permission_classes=(Permission,)
+            ),
+        ):
+            assert not access.DEFAULT.has_scope("project:read")
+            assert not access.DEFAULT.has_scope("project:write")
+
+        options_get.assert_called_once_with("api.permission-scope-audit.enabled")
+        warning.assert_not_called()
+
+    @patch("sentry.auth.scope_declaration.capture_message")
+    @patch("sentry.auth.scope_declaration.logger.warning")
+    @override_options({"api.permission-scope-audit.enabled": True})
+    def test_reports_project_and_team_scope_checks_without_access(
+        self, warning: Mock, capture_message: Mock
+    ) -> None:
+        class Permission:
+            scope_map = {"GET": ("org:read",)}
+
+        with bind_endpoint_scope_declaration(
+            endpoint="test.Endpoint", method="GET", permission_classes=(Permission,)
+        ):
+            assert not access.DEFAULT.has_scope("org:read")
+            assert not access.DEFAULT.has_team_scope(Mock(), "team:write")
+            assert not access.DEFAULT.has_project_scope(Mock(), "project:write")
+
+        assert [call.kwargs["extra"]["scope"] for call in warning.call_args_list] == [
+            "team:write",
+            "project:write",
+        ]
+        assert capture_message.call_count == 2
+
+    @patch("sentry.auth.scope_declaration.capture_message")
+    @patch("sentry.auth.scope_declaration.logger.warning")
+    @override_options({"api.permission-scope-audit.enabled": True})
+    def test_reports_every_scope_in_direct_project_scope_check(
+        self, warning: Mock, capture_message: Mock
+    ) -> None:
+        class Permission:
+            scope_map = {"GET": ("org:read",)}
+
+        with bind_endpoint_scope_declaration(
+            endpoint="test.Endpoint", method="GET", permission_classes=(Permission,)
+        ):
+            assert not access.DEFAULT.has_any_project_scope(
+                Mock(), ["project:read", "project:write"]
+            )
+
+        assert [call.kwargs["extra"]["scope"] for call in warning.call_args_list] == [
+            "project:read",
+            "project:write",
+        ]
+        assert capture_message.call_count == 2
+
     def test_no_access(self) -> None:
         result = access.DEFAULT
         assert result.sso_is_valid

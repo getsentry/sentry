@@ -11,22 +11,36 @@ import {ActivityProgressMarker} from './progressMarker';
 import {getActivityMarkerState} from './variant';
 
 export function ActivityLineMarker({
+  actorItem,
   item,
   showProgress,
 }: {
   item: GroupActivity;
   showProgress: boolean;
+  actorItem?: GroupActivity;
 }) {
+  const activityActor = actorItem ?? item;
+
   return (
     <LeadingCells>
       <MarkerCell>
         {showProgress ? (
           <ActivityProgressMarker state={getActivityMarkerState(item)} />
         ) : (
-          (renderActivityLineActor(item) ?? <ActivityLineDot />)
+          (renderActivityLineActor(activityActor) ?? <ActivityLineDot />)
         )}
       </MarkerCell>
-      {showProgress ? <ActivityLineActor item={item} /> : null}
+      {showProgress ? <ActivityLineActor item={activityActor} /> : null}
+    </LeadingCells>
+  );
+}
+
+export function ActivityLineDotMarker() {
+  return (
+    <LeadingCells>
+      <MarkerCell>
+        <ActivityLineDot />
+      </MarkerCell>
     </LeadingCells>
   );
 }
@@ -36,6 +50,8 @@ function ActivityLineDot() {
 }
 
 const LeadingCells = styled('div')`
+  position: relative;
+  z-index: 1;
   grid-column: 1;
   grid-row: 1;
   display: grid;

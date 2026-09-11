@@ -157,7 +157,16 @@ export function useReplaySummary(
   } = useMutation({
     mutationFn: () => {
       return api.requestPromise(
-        `/projects/${organization.slug}/${project?.slug}/replays/${replayRecord?.id}/summarize/`,
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/summarize/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: String(project?.slug),
+              replayId: String(replayRecord?.id),
+            },
+          }
+        ),
         {
           method: 'POST',
           headers: {
@@ -180,6 +189,7 @@ export function useReplaySummary(
           replayRecord?.id ?? ''
         ),
       });
+      // oxlint-disable-next-line react/purity
       startSummaryRequestTime.current = Date.now();
     },
   });

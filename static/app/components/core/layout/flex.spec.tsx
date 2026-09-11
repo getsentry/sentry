@@ -3,12 +3,9 @@ import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {
-  Flex,
-  type FlexProps,
-  type FlexPropsWithRenderFunction,
-} from '@sentry/scraps/layout';
 import type {Responsive} from '@sentry/scraps/layout';
+
+import {Flex, type FlexProps, type FlexPropsWithRenderFunction} from './flex';
 
 describe('Flex', () => {
   it('renders children', () => {

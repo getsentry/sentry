@@ -1,10 +1,15 @@
+from typing import Any
+
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.commit import Commit
 from sentry.models.group import GroupStatus
 from sentry.models.pullrequest import PullRequest
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -317,3 +322,139 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
 
         result = serialize(entry, user)
         assert result["data"] == {"issues": [{"id": "2"}, {"id": "3"}]}
+
+    def test_comment_entry_serializes_the_activity_id(self) -> None:
+        user = self.create_user()
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        entry = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT,
+            actor_type=GroupActorType.USER,
+            actor_id=user.id,
+            data={"comment_id": 123, "text": "hello world"},
+        )
+
+        result = serialize(entry, user)
+        assert result["id"] == "123"
+        assert result["type"] == "note"
+
+    def test_comment_edit_entry_keeps_its_own_id(self) -> None:
+        user = self.create_user()
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        comment = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT,
+            actor_type=GroupActorType.USER,
+            actor_id=user.id,
+            data={"comment_id": 123, "text": "original"},
+        )
+        edit = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT_EDIT,
+            actor_type=GroupActorType.USER,
+            actor_id=user.id,
+            data={"comment_id": comment.id, "text": "edited"},
+        )
+
+        result = serialize(edit, user)
+        assert result["id"] == str(edit.id)
+
+    def _comment(self, comment_id: int, text: str) -> GroupActionLogEntry:
+        return self.create_group_action_log_entry(
+            type=GroupActionType.COMMENT,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            data={"comment_id": comment_id, "text": text},
+        )
+
+    def _comment_mutation(
+        self, type: GroupActionType, comment: GroupActionLogEntry, **data: object
+    ) -> GroupActionLogEntry:
+        return self.create_group_action_log_entry(
+            type=type,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            data={"comment_id": comment.id, **data},
+        )
+
+    def _activity_items(self) -> list[dict[str, Any]]:
+        with action_log_activity_enabled():
+            items = get_serialized_activity_items(self.group, self.user, endpoint="test")
+        assert items is not None
+        return items
+
+    def test_comment_edit_replaces_the_comment_text(self) -> None:
+        comment = self._comment(123, "original")
+        self._comment_mutation(GroupActionType.COMMENT_EDIT, comment, text="edited")
+
+        items = self._activity_items()
+
+        assert [item["type"] for item in items] == ["note", "first_seen"]
+        assert items[0]["id"] == "123"
+        assert items[0]["data"]["text"] == "edited"
+
+    def test_latest_comment_edit_wins(self) -> None:
+        comment = self._comment(123, "original")
+        self._comment_mutation(GroupActionType.COMMENT_EDIT, comment, text="first edit")
+        self._comment_mutation(GroupActionType.COMMENT_EDIT, comment, text="second edit")
+
+        items = self._activity_items()
+
+        assert [item["type"] for item in items] == ["note", "first_seen"]
+        assert items[0]["data"]["text"] == "second edit"
+
+    def test_comment_delete_removes_the_comment(self) -> None:
+        comment = self._comment(123, "original")
+        self._comment_mutation(GroupActionType.COMMENT_DELETE, comment)
+
+        items = self._activity_items()
+
+        assert [item["type"] for item in items] == ["first_seen"]
+
+    def test_comment_delete_wins_over_an_earlier_edit(self) -> None:
+        comment = self._comment(123, "original")
+        self._comment_mutation(GroupActionType.COMMENT_EDIT, comment, text="edited")
+        self._comment_mutation(GroupActionType.COMMENT_DELETE, comment)
+
+        items = self._activity_items()
+
+        assert [item["type"] for item in items] == ["first_seen"]
+
+    def test_only_the_named_comment_is_folded(self) -> None:
+        self._comment(123, "untouched")
+        edited = self._comment(456, "original")
+        self._comment_mutation(GroupActionType.COMMENT_EDIT, edited, text="edited")
+        deleted = self._comment(789, "doomed")
+        self._comment_mutation(GroupActionType.COMMENT_DELETE, deleted)
+        self.create_group_action_log_entry(
+            type=GroupActionType.TRIGGER_AUTOFIX,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            data={"referrer": "slack"},
+        )
+
+        items = self._activity_items()
+
+        assert [item["type"] for item in items] == [
+            "trigger_autofix",
+            "note",
+            "note",
+            "first_seen",
+        ]
+        assert items[1]["id"] == "456"
+        assert items[1]["data"]["text"] == "edited"
+        assert items[2]["id"] == "123"
+        assert items[2]["data"]["text"] == "untouched"
+
+    def test_comment_mutations_are_dropped_without_their_comment(self) -> None:
+        # The COMMENT fell outside the window, or was never written. Either way the
+        # mutation has nothing to fold into and must not render on its own.
+        orphan = self._comment(123, "original")
+        self._comment_mutation(GroupActionType.COMMENT_EDIT, orphan, text="edited")
+        orphan.delete()
+
+        items = self._activity_items()
+
+        assert [item["type"] for item in items] == ["first_seen"]

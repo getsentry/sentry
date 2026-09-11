@@ -1,5 +1,3 @@
-import {useButtonTracking} from '@sentry/scraps/trackingContext';
-
 import type {
   DO_NOT_USE_ButtonProps as ButtonProps,
   DO_NOT_USE_LinkButtonProps as LinkButtonProps,
@@ -13,30 +11,6 @@ export function useButtonFunctionality(props: ButtonProps | LinkButtonProps) {
     props['aria-label'] ??
     (typeof props.children === 'string' ? props.children : undefined);
 
-  const buttonTracking = useButtonTracking();
-
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
-    // Don't allow clicks when disabled or busy
-    if (props.disabled || props.busy) {
-      e.preventDefault();
-      e.stopPropagation();
-      return;
-    }
-
-    buttonTracking({
-      analyticsEventName: props.analyticsEventName,
-      analyticsEventKey: props.analyticsEventKey,
-      analyticsParams: {
-        variant: props.variant,
-        href: 'href' in props ? props.href : undefined,
-        ...props.analyticsParams,
-      },
-      'aria-label': accessibleLabel || '',
-    });
-    // @ts-expect-error at this point, we don't know if the button is a button or a link
-    props.onClick?.(e);
-  };
-
   const hasChildren = Array.isArray(props.children)
     ? props.children.some(child => !!child || String(child) === '0')
     : !!props.children || String(props.children) === '0';
@@ -46,7 +20,6 @@ export function useButtonFunctionality(props: ButtonProps | LinkButtonProps) {
   // *Note* you must still handle tabindex manually.
 
   return {
-    handleClick,
     hasChildren,
     accessibleLabel,
   };

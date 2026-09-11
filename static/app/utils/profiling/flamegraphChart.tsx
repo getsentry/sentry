@@ -58,7 +58,7 @@ export class FlamegraphChart {
   };
 
   static MIN_RENDERABLE_POINTS = 2;
-  static Empty = new FlamegraphChart(Rect.Empty(), [], [[0, 0, 0, 0]]);
+  static Empty = new FlamegraphChart(Rect.empty(), [], [[0, 0, 0, 0]]);
 
   constructor(
     configSpace: Rect,

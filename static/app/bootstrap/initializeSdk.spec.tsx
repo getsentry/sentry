@@ -45,7 +45,7 @@ describe('initializeSdk', () => {
     );
   });
 
-  it('filters malformed [null,null] unhandled rejections', () => {
+  it('ignores the ECharts tooltip error thrown when a chart replaces its series', () => {
     initializeSdk({
       ...window.__initialData,
       apmSampling: 1,
@@ -57,32 +57,21 @@ describe('initializeSdk', () => {
       },
     });
 
-    const initConfig = jest.mocked(Sentry.init).mock.calls.slice(-1)[0]?.[0];
-    expect(initConfig?.beforeSend).toBeDefined();
+    const ignoreErrors = jest.mocked(Sentry.init).mock.lastCall?.[0]?.ignoreErrors ?? [];
+    const message =
+      "TypeError: Cannot read properties of undefined (reading 'getDataParams')";
 
-    const event = {
-      // The SDK has not normalized this to the stored `[null,null]` string yet.
-      message: [null, null] as unknown as string,
-      exception: {
-        values: [
-          {
-            type: 'Error',
-            value: ',',
-            mechanism: {
-              type: 'auto.browser.global_handlers.onunhandledrejection',
-            },
-          },
-        ],
-      },
-    } as Sentry.ErrorEvent;
-
-    expect(initConfig?.beforeSend?.(event, {originalException: [null, null]})).toBeNull();
+    expect(
+      ignoreErrors.some(pattern =>
+        typeof pattern === 'string' ? message.includes(pattern) : pattern.test(message)
+      )
+    ).toBe(true);
   });
 });
 
 describe('isFilteredRequestErrorEvent', () => {
   const methods = ['GET', 'POST', 'PUT', 'DELETE'];
-  const stati = [200, 400, 401, 403, 404, 429];
+  const stati = [200, 400, 401, 402, 403, 404, 429];
 
   describe('matching error type, matching message', () => {
     for (const method of methods) {

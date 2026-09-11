@@ -8,9 +8,9 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
+import {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
 import * as analytics from 'sentry/utils/analytics';
 import * as integrationUtil from 'sentry/utils/integrationUtil';
-import {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 import {
   type IssueAlertNotificationProps,
   MultipleCheckboxOptions,

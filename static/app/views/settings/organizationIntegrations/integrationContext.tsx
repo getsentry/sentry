@@ -1,7 +1,7 @@
 import {createContext} from 'react';
 
+import type {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
 import type {IntegrationProvider, IntegrationType} from 'sentry/types/integrations';
-import type {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 
 type IntegrationContextProps = {
   analyticsParams: {

@@ -143,4 +143,56 @@ describe('useArithmeticBuilderAction', () => {
       },
     });
   });
+
+  it('resets expression when initialExpression prop changes', () => {
+    const {result, rerender} = renderHook(
+      ({initialExpression}) =>
+        useArithmeticBuilderAction({
+          initialExpression,
+        }),
+      {
+        initialProps: {
+          initialExpression: 'A + B',
+        },
+      }
+    );
+
+    expect(result.current.state.expression).toEqual(new Expression('A + B'));
+
+    rerender({initialExpression: 'C * D'});
+
+    expect(result.current.state.expression).toEqual(new Expression('C * D'));
+  });
+
+  it('preserves user edits until initialExpression changes', () => {
+    const tokens = tokenizeExpression('A + B');
+
+    const {result, rerender} = renderHook(
+      ({initialExpression}) =>
+        useArithmeticBuilderAction({
+          initialExpression,
+        }),
+      {
+        initialProps: {
+          initialExpression: 'A + B',
+        },
+      }
+    );
+
+    act(() =>
+      result.current.dispatch({
+        type: 'REPLACE_TOKEN',
+        token: tokens[0]!,
+        text: 'X',
+      })
+    );
+
+    expect(result.current.state.expression).toEqual(new Expression('X + B'));
+
+    rerender({initialExpression: 'A + B'});
+    expect(result.current.state.expression).toEqual(new Expression('X + B'));
+
+    rerender({initialExpression: 'C / D'});
+    expect(result.current.state.expression).toEqual(new Expression('C / D'));
+  });
 });

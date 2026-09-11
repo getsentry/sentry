@@ -5,6 +5,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
+import {AUTOFIX_USER_CONTEXT_MAX_LENGTH} from 'sentry/components/events/autofix/types';
 import {IconClose} from 'sentry/icons/iconClose';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
@@ -30,6 +31,8 @@ export function AutofixResetPrompt({
       <TextArea
         autosize
         rows={2}
+        autoFocus
+        maxLength={AUTOFIX_USER_CONTEXT_MAX_LENGTH}
         placeholder={placeholder}
         value={userContext}
         onChange={event => setUserContext(event.target.value)}

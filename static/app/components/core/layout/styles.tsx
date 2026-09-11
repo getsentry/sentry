@@ -132,6 +132,34 @@ const VIEWPORT_ORDER: ReadonlyArray<{key: ScreenBreakpoint; token: BreakpointSiz
 
 type Margin = SpaceSize | 'auto' | '0';
 
+/**
+ * The `justify` vocabulary a flex container accepts, and its mapping onto CSS
+ * `justify-content`. Shared so components that are not themselves a `Flex` but
+ * lay their content out with one — table header cells, for instance — can take
+ * the same prop values a `Flex` does. `Grid` deliberately keeps its own map:
+ * grid alignment resolves `start`/`end` to the grid keywords, not the flex ones.
+ */
+export type FlexJustify =
+  | 'start'
+  | 'end'
+  | 'center'
+  | 'between'
+  | 'around'
+  | 'evenly'
+  | 'left'
+  | 'right';
+
+export const FLEX_JUSTIFY_CONTENT = {
+  around: 'space-around',
+  between: 'space-between',
+  center: 'center',
+  end: 'flex-end',
+  evenly: 'space-evenly',
+  left: 'left',
+  right: 'right',
+  start: 'flex-start',
+} as const satisfies Record<FlexJustify, string>;
+
 // @TODO(jonasbadalic): audit for memory usage and linting performance issues.
 // These may not be trivial to infer as we are dealing with n^4 complexity
 export type Shorthand<T extends string, N extends 4 | 2> = N extends 4
@@ -154,7 +182,7 @@ export type Shorthand<T extends string, N extends 4 | 2> = N extends 4
  * `lg`.
  */
 type ScreenBreakpoint = `screen:${BreakpointSize}`;
-type ResponsiveKey = ContainerBreakpointSize | ScreenBreakpoint;
+export type ResponsiveKey = ContainerBreakpointSize | ScreenBreakpoint;
 
 export type Responsive<T> = T | Partial<Record<ResponsiveKey, T>>;
 
@@ -294,15 +322,33 @@ export function getMargin(
  * to branch logic. Prefer those unless you're building a responsive prop of your
  * own.
  */
-type ResponsiveValue<T> = T extends Responsive<infer U> ? U : never;
-export function useResponsivePropValue<T extends Responsive<any>>(
-  prop: T
-): T | ResponsiveValue<T> {
+export function useResponsivePropValue<T>(prop: Responsive<T>): T {
+  return useResponsivePropResolver()(prop);
+}
+
+/**
+ * The multi-prop form of {@link useResponsivePropValue}: resolves the current
+ * breakpoints once and hands back a resolver, for components that resolve a
+ * variable number of `Responsive<T>` values (e.g. one per table column) and so
+ * cannot call a hook per value.
+ */
+export function useResponsivePropResolver(): <T>(prop: Responsive<T>) => T {
   const viewportBreakpoint = useActiveBreakpoint();
   // No container ancestor → 'zero', the only value CSS applies in that case (the
   // plain base declaration), so JS and the @container rules stay in agreement.
   const containerBreakpoint = useContext(ContainerQueryContext) ?? 'zero';
 
+  return useCallback(
+    prop => resolveResponsiveProp(prop, containerBreakpoint, viewportBreakpoint),
+    [containerBreakpoint, viewportBreakpoint]
+  );
+}
+
+function resolveResponsiveProp<T>(
+  prop: Responsive<T>,
+  containerBreakpoint: ContainerBreakpointSize,
+  viewportBreakpoint: BreakpointSize
+): T {
   // Only resolve the active breakpoint if the prop is responsive, else ignore it.
   if (!isResponsive(prop)) {
     return prop;
@@ -320,7 +366,7 @@ export function useResponsivePropValue<T extends Responsive<any>>(
   const containerIndex = CONTAINER_ORDER.indexOf(containerBreakpoint);
   const viewportIndex = VIEWPORT_ORDER.findIndex(e => e.token === viewportBreakpoint);
 
-  let resolved: ResponsiveValue<T> | undefined;
+  let resolved: T | undefined;
   let first = true;
 
   // Read each axis with the same prop keys rc() emits — bare for the container
@@ -331,7 +377,7 @@ export function useResponsivePropValue<T extends Responsive<any>>(
       if (key === undefined) {
         continue;
       }
-      const value = (prop as Partial<Record<string, ResponsiveValue<T>>>)[key];
+      const value = (prop as Partial<Record<string, T>>)[key];
       if (value === undefined) {
         continue;
       }
@@ -401,7 +447,11 @@ export function useActiveBreakpoint(): BreakpointSize {
     [mediaQueries]
   );
 
-  return useSyncExternalStore(subscribe, () => findLargestBreakpoint(mediaQueries));
+  return useSyncExternalStore(
+    subscribe,
+    () => findLargestBreakpoint(mediaQueries),
+    () => '2xs'
+  );
 }
 
 function findLargestBreakpoint(

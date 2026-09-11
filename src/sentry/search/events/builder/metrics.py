@@ -117,7 +117,6 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         self.distributions: list[CurriedFunction] = []
         self.sets: list[CurriedFunction] = []
         self.counters: list[CurriedFunction] = []
-        self.gauges: list[CurriedFunction] = []
         self.percentiles: list[CurriedFunction] = []
         self.metric_ids: set[int] = set()
         self._indexer_cache: dict[str, int | None] = {}
@@ -648,7 +647,16 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         if nullable:
             self._has_nullable = True
 
-        if snql_function.snql_distribution is not None and (prefix is None or prefix == "d"):
+        if self.dataset is Dataset.PerformanceMetrics and prefix in {"d", "s", "g"}:
+            raise IncompatibleMetricsQuery(
+                "Generic metrics sets, gauges, and distributions are no longer supported"
+            )
+
+        if (
+            self.dataset is not Dataset.PerformanceMetrics
+            and snql_function.snql_distribution is not None
+            and (prefix is None or prefix == "d")
+        ):
             resolved_function = snql_function.snql_distribution(arguments, alias)
             if not resolve_only:
                 if not nullable:
@@ -659,7 +667,11 @@ class MetricsQueryBuilder(BaseQueryBuilder):
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
-        if snql_function.snql_set is not None and (prefix is None or prefix == "s"):
+        if (
+            self.dataset is not Dataset.PerformanceMetrics
+            and snql_function.snql_set is not None
+            and (prefix is None or prefix == "s")
+        ):
             resolved_function = snql_function.snql_set(arguments, alias)
             if not resolve_only:
                 if not nullable:
@@ -675,14 +687,10 @@ class MetricsQueryBuilder(BaseQueryBuilder):
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
-        if snql_function.snql_gauge is not None and (prefix is None or prefix == "g"):
-            resolved_function = snql_function.snql_gauge(arguments, alias)
-            if not resolve_only:
-                if not nullable:
-                    self.gauges.append(resolved_function)
-                # Still add to aggregates so groupby is correct
-                self.aggregates.append(resolved_function)
-            return resolved_function
+        if self.dataset is Dataset.PerformanceMetrics:
+            raise IncompatibleMetricsQuery(
+                "Generic metrics sets, gauges, and distributions are no longer supported"
+            )
         return None
 
     def resolve_metric_index(self, value: str) -> int | None:
@@ -930,31 +938,35 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         )
 
     def _get_base_query_framework(self) -> dict[str, QueryFramework]:
-        prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
-        query_framework: dict[str, QueryFramework] = {
+        if self.dataset is Dataset.PerformanceMetrics:
+            query_framework: dict[str, QueryFramework] = {
+                "counter": QueryFramework(
+                    orderby=[],
+                    having=[],
+                    functions=self.counters,
+                    entity=Entity("generic_metrics_counters", sample=self.sample_rate),
+                ),
+            }
+            return query_framework
+
+        query_framework = {
             "distribution": QueryFramework(
                 orderby=[],
                 having=[],
                 functions=self.distributions,
-                entity=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
+                entity=Entity("metrics_distributions", sample=self.sample_rate),
             ),
             "counter": QueryFramework(
                 orderby=[],
                 having=[],
                 functions=self.counters,
-                entity=Entity(f"{prefix}metrics_counters", sample=self.sample_rate),
+                entity=Entity("metrics_counters", sample=self.sample_rate),
             ),
             "set": QueryFramework(
                 orderby=[],
                 having=[],
                 functions=self.sets,
-                entity=Entity(f"{prefix}metrics_sets", sample=self.sample_rate),
-            ),
-            "gauge": QueryFramework(
-                orderby=[],
-                having=[],
-                functions=self.gauges,
-                entity=Entity(f"{prefix}metrics_gauges", sample=self.sample_rate),
+                entity=Entity("metrics_sets", sample=self.sample_rate),
             ),
             # Percentiles are a part of distributions but they're expensive, treat them as their own entity so we'll run
             # a query with the cheap distributions first then only get page_size quantiles
@@ -962,7 +974,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
                 orderby=[],
                 having=[],
                 functions=self.percentiles,
-                entity=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
+                entity=Entity("metrics_distributions", sample=self.sample_rate),
             ),
         }
         return query_framework
@@ -1159,7 +1171,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
                     orderby=[],
                     having=[],
                     functions=self.aggregates,
-                    entity=Entity("generic_metrics_distributions", sample=self.sample_rate),
+                    entity=Entity("generic_metrics_counters", sample=self.sample_rate),
                 )
             }
 
@@ -1354,7 +1366,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             "d": snql_function.snql_distribution,
             "s": snql_function.snql_set,
             "c": snql_function.snql_counter,
-            "g": snql_function.snql_gauge,
+            "g": None,
         }
 
         metrics_map = {

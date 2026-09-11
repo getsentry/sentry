@@ -38,6 +38,7 @@ export const seerSettingsRoutes = (): SentryRouteObject => ({
         {
           path: 'projects/',
           name: t('Autofix'),
+          handle: {seerSection: 'autofix'},
           component: make(() => import('getsentry/views/seerAutomation/projects')),
           children: [
             {

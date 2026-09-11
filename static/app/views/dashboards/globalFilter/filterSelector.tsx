@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 import xor from 'lodash/xor';
@@ -34,12 +35,12 @@ import {
   tokenSupportsMultipleValues,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
 import {TermOperator} from 'sentry/components/searchSyntax/parser';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {emptyValue, EMPTY_VALUE_LABEL} from 'sentry/utils/discover/emptyFieldValues';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
 import {FilterSelectorTrigger} from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
@@ -149,6 +150,7 @@ export function FilterSelector({
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setActiveFilterValues(initialValues);
     setStagedFilterValues([]);
   }, [initialValues]);
@@ -209,9 +211,10 @@ export function FilterSelector({
       searchQuery,
     ]
   );
-  const queryKey = useDebouncedValue(baseQueryKey);
+  const [queryKey] = useDebouncedValue(baseQueryKey, {
+    wait: DEFAULT_DEBOUNCE_DURATION,
+  });
 
-  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const queryResult = useQuery({
     queryKey,
     queryFn: async ctx => {

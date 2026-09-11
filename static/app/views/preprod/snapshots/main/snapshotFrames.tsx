@@ -1,5 +1,4 @@
-import {useTheme} from '@emotion/react';
-import {css} from '@emotion/react';
+import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container, Stack} from '@sentry/scraps/layout';
@@ -97,15 +96,5 @@ const SnapshotVariantContainer = styled(Container, {
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  }
-
-  &:first-child > ${SelectedOverlay} {
-    border-top-left-radius: ${p => p.theme.radius.md};
-    border-top-right-radius: ${p => p.theme.radius.md};
-  }
-
-  &:last-child > ${SelectedOverlay} {
-    border-bottom-left-radius: ${p => p.theme.radius.md};
-    border-bottom-right-radius: ${p => p.theme.radius.md};
   }
 `;

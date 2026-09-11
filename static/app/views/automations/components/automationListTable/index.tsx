@@ -6,19 +6,24 @@ import NoAlertsImage from 'sentry-images/features/alerts-not-found.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {LoadingError} from 'sentry/components/loadingError';
+import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {AutomationsTableActions} from 'sentry/views/automations/components/automationListTable/actions';
+import {
+  AutomationsTableActions,
+  AutomationsTableActionsBanner,
+} from 'sentry/views/automations/components/automationListTable/actions';
 import {
   AutomationListRow,
   AutomationListRowSkeleton,
@@ -52,21 +57,22 @@ function HeaderCell({
   children: React.ReactNode;
   sort: Sort | undefined;
   className?: string;
-  divider?: boolean;
   sortKey?: string;
 } & Omit<ComponentProps<typeof SimpleTable.HeaderCell>, 'sort'>) {
   const location = useLocation();
   const navigate = useNavigate();
-  const isSortedByField = sort?.field === sortKey;
   const handleSort = () => {
     if (!sortKey) {
       return;
     }
-    const newSort =
-      sort && isSortedByField ? `${sort.kind === 'asc' ? '-' : ''}${sortKey}` : sortKey;
+    const nextSort = getNextSort(sortKey, sort ?? undefined, 'asc');
     navigate({
       pathname: location.pathname,
-      query: {...location.query, sort: newSort, cursor: undefined},
+      query: {
+        ...location.query,
+        sort: encodeSort(nextSort),
+        cursor: undefined,
+      },
     });
   };
 
@@ -93,7 +99,17 @@ export function AutomationListTable({
   const organization = useOrganization();
   const canEditAutomations = useCanEditAutomation();
   const [query] = useQueryState('query', parseAsString);
-  const [selected, setSelected] = useState(new Set<string>());
+  const [selected, setSelectedIds] = useState(new Set<string>());
+  const [allInQuerySelected, setAllInQuerySelected] = useState(false);
+
+  // Selecting every match only holds while something is selected, so emptying the
+  // selection has to clear it too.
+  const setSelected = useCallback((ids: Set<string>) => {
+    setSelectedIds(ids);
+    if (ids.size === 0) {
+      setAllInQuerySelected(false);
+    }
+  }, []);
 
   const togglePageSelected = (pageSelected: boolean) => {
     const newSelected = new Set<string>();
@@ -130,53 +146,66 @@ export function AutomationListTable({
       }
       setSelected(newSelected);
     },
-    [selected]
+    [selected, setSelected]
   );
 
   return (
-    <AutomationsSimpleTable>
-      {canEditAutomations && selected.size === 0 ? (
-        <SimpleTable.Header key="header">
-          <HeaderCell sort={sort} sortKey="name">
-            <Flex gap="md" align="center">
-              <SelectAllHeaderCheckbox
-                checked={pageSelected || (anySelected ? 'indeterminate' : false)}
-                onChange={checked => togglePageSelected(checked)}
-              />
-              <span>{t('Name')}</span>
-            </Flex>
-          </HeaderCell>
-          <HeaderCell
-            data-column-name="last-triggered"
-            sort={sort}
-            sortKey="lastTriggered"
-          >
-            {t('Last Triggered')}
-          </HeaderCell>
-          <HeaderCell data-column-name="action" sort={sort} sortKey="actions">
-            {t('Actions')}
-          </HeaderCell>
-          <HeaderCell data-column-name="projects" sort={sort}>
-            {t('Projects')}
-          </HeaderCell>
-          <HeaderCell
-            data-column-name="connected-monitors"
-            sort={sort}
-            sortKey="connectedDetectors"
-          >
-            {t('Monitors')}
-          </HeaderCell>
-        </SimpleTable.Header>
-      ) : (
-        <AutomationsTableActions
-          key="actions"
+    <AutomationsSimpleTable
+      columns={AUTOMATION_COLUMNS}
+      header={
+        !canEditAutomations || selected.size === 0 ? (
+          <SimpleTable.HeaderRow key="header">
+            <HeaderCell sort={sort} sortKey="name">
+              <Flex gap="md" align="center">
+                {canEditAutomations && (
+                  <SelectAllHeaderCheckbox
+                    checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+                    onChange={checked => togglePageSelected(checked)}
+                  />
+                )}
+                <span>{t('Name')}</span>
+              </Flex>
+            </HeaderCell>
+            <HeaderCell columnKey="last-triggered" sort={sort} sortKey="lastTriggered">
+              {t('Last Triggered')}
+            </HeaderCell>
+            <HeaderCell columnKey="action" sort={sort} sortKey="actions">
+              {t('Actions')}
+            </HeaderCell>
+            <HeaderCell columnKey="projects" sort={sort}>
+              {t('Projects')}
+            </HeaderCell>
+            <HeaderCell
+              columnKey="connected-monitors"
+              sort={sort}
+              sortKey="connectedDetectors"
+            >
+              {t('Monitors')}
+            </HeaderCell>
+          </SimpleTable.HeaderRow>
+        ) : (
+          <AutomationsTableActions
+            key="actions"
+            selected={selected}
+            pageSelected={pageSelected}
+            togglePageSelected={togglePageSelected}
+            queryCount={queryCount}
+            allInQuerySelected={allInQuerySelected}
+            setAllInQuerySelected={setAllInQuerySelected}
+            canEnable={canEnable}
+            canDisable={canDisable}
+          />
+        )
+      }
+    >
+      {selected.size > 0 && (
+        <AutomationsTableActionsBanner
           selected={selected}
           pageSelected={pageSelected}
-          togglePageSelected={togglePageSelected}
-          queryCount={queryCount}
           allResultsVisible={allResultsVisible}
-          canEnable={canEnable}
-          canDisable={canDisable}
+          queryCount={queryCount}
+          allInQuerySelected={allInQuerySelected}
+          setAllInQuerySelected={setAllInQuerySelected}
         />
       )}
       {isSuccess && automations.length === 0 && (
@@ -201,7 +230,7 @@ export function AutomationListTable({
           </StyledFlex>
         </SimpleTable.Empty>
       )}
-      {isError && <LoadingError message={t('Error loading alerts')} />}
+      {isError && <SimpleTable.Error message={t('Error loading alerts')} />}
       {isPending && <LoadingSkeletons />}
       {isSuccess &&
         automations.map(automation => (
@@ -220,47 +249,14 @@ const StyledFlex = styled(Flex)`
   padding: ${p => p.theme.size.sm};
 `;
 
+const AUTOMATION_COLUMNS: TableColumnConfig[] = [
+  {key: 'name', width: {zero: '1fr', sm: '2.5fr', '4xl': 'minmax(0, 3fr)'}},
+  {key: 'last-triggered', visible: {'3xl': true}, width: 'minmax(160px, 1fr)'},
+  {key: 'action', visible: {xl: true}, width: '1fr'},
+  {key: 'projects', visible: {sm: true}, width: '1fr'},
+  {key: 'connected-monitors', visible: {'4xl': true}, width: '1fr'},
+];
+
 const AutomationsSimpleTable = styled(SimpleTable)`
-  grid-template-columns: 1fr;
-
   margin-bottom: ${p => p.theme.space.xl};
-
-  [data-column-name='last-triggered'],
-  [data-column-name='action'],
-  [data-column-name='projects'],
-  [data-column-name='connected-monitors'] {
-    display: none;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xs}) {
-    grid-template-columns: 2.5fr 1fr;
-
-    [data-column-name='projects'] {
-      display: flex;
-    }
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 2.5fr 1fr 1fr;
-
-    [data-column-name='action'] {
-      display: flex;
-    }
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: 2.5fr minmax(160px, 1fr) 1fr 1fr;
-
-    [data-column-name='last-triggered'] {
-      display: flex;
-    }
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: minmax(0, 3fr) minmax(160px, 1fr) 1fr 1fr 1fr;
-
-    [data-column-name='connected-monitors'] {
-      display: flex;
-    }
-  }
 `;

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import StrEnum
+from collections.abc import Mapping
 from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
@@ -17,27 +17,24 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams
-from sentry.models.custominboundfilter import CustomInboundFilter
+from sentry.ingest.inbound_filters import get_supported_condition_types
+from sentry.models.custominboundfilter import (
+    CustomInboundFilter,
+    CustomInboundFilterConditionType,
+    CustomInboundFilterDataType,
+)
 from sentry.models.project import Project
+from sentry.tasks.relay import schedule_invalidate_project_config
 
 MAX_CONDITIONS_PER_FILTER = 10
 MAX_FILTERS_PER_PROJECT = 50
 
 
-class CustomInboundFilterConditionType(StrEnum):
-    ERROR_MESSAGE = "error_message"
-    LOG_MESSAGE = "log_message"
-    METRIC_NAME = "metric_name"
-    RELEASE = "release"
-
-
-PRIMARY_CONDITION_TYPES = frozenset(
-    (
-        CustomInboundFilterConditionType.ERROR_MESSAGE,
-        CustomInboundFilterConditionType.LOG_MESSAGE,
-        CustomInboundFilterConditionType.METRIC_NAME,
-    )
-)
+# Ingestion feature an organization needs before a filter can target a data type.
+_REQUIRED_FEATURE_BY_DATA_TYPE: Mapping[CustomInboundFilterDataType, str] = {
+    CustomInboundFilterDataType.LOG: "organizations:ourlogs-ingestion",
+    CustomInboundFilterDataType.METRIC: "organizations:tracemetrics-ingestion",
+}
 
 
 class CustomInboundFilterCondition(TypedDict):
@@ -61,6 +58,15 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         max_length=256, allow_blank=True, allow_null=True, required=False, trim_whitespace=True
     )
     active = serializers.BooleanField(required=False)
+    dataType = serializers.ChoiceField(
+        source="data_type",
+        choices=[data_type.value for data_type in CustomInboundFilterDataType],
+        help_text=(
+            "The data the filter matches against. `all` is the catch-all: it filters every "
+            "data type Sentry ingests, including ones added later, and accepts only the "
+            "conditions that every data type carries a field for."
+        ),
+    )
     conditions = CustomInboundFilterConditionSerializer(
         many=True,
         allow_empty=False,
@@ -77,36 +83,58 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
 
     class Meta:
         model = CustomInboundFilter
-        fields = ["id", "name", "active", "conditions", "dateCreated", "dateUpdated"]
+        fields = ["id", "name", "active", "dataType", "conditions", "dateCreated", "dateUpdated"]
 
     def create(self, validated_data: dict[str, Any]) -> CustomInboundFilter:
         return CustomInboundFilter.objects.create(**validated_data)
 
-    def validate_conditions(self, conditions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def validate_dataType(self, data_type: str) -> str:
         organization = self.context["project"].organization
         request = self.context["request"]
-        condition_types = [condition["type"] for condition in conditions]
 
-        primary_condition_types = PRIMARY_CONDITION_TYPES.intersection(condition_types)
-        if CustomInboundFilterConditionType.LOG_MESSAGE in condition_types and not features.has(
-            "organizations:ourlogs-ingestion", organization, actor=request.user
+        required_feature = _REQUIRED_FEATURE_BY_DATA_TYPE.get(
+            CustomInboundFilterDataType(data_type)
+        )
+        if required_feature and not features.has(
+            required_feature, organization, actor=request.user
         ):
             raise serializers.ValidationError(
-                "Log message filters are not enabled for this organization."
+                f"{data_type.capitalize()} filters are not enabled for this organization."
             )
 
-        if CustomInboundFilterConditionType.METRIC_NAME in condition_types and not features.has(
-            "organizations:tracemetrics-ingestion", organization, actor=request.user
-        ):
+        return data_type
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        # A partial update may change the data type or the conditions alone, so the
+        # other side comes from the stored filter.
+        stored = self.instance
+        conditions = attrs.get("conditions")
+        if conditions is None:
+            conditions = stored.conditions if stored else None
+
+        raw_data_type = attrs.get("data_type") or (stored.data_type if stored else None)
+        if raw_data_type is None:
             raise serializers.ValidationError(
-                "Metric name filters are not enabled for this organization."
+                {"dataType": "This filter has no data type. Send dataType to update it."}
             )
-        if len(primary_condition_types) > 1:
+        if conditions is None:
+            return attrs
+
+        data_type = CustomInboundFilterDataType(raw_data_type)
+        supported = get_supported_condition_types(data_type)
+        unsupported = sorted({condition["type"] for condition in conditions} - set(supported))
+        if unsupported:
             raise serializers.ValidationError(
-                "Only one of error_message, log_message, or metric_name can be used in a filter."
+                {
+                    "conditions": (
+                        f"A filter on {data_type.value} data cannot use the "
+                        f"{', '.join(unsupported)} condition. It accepts "
+                        f"{', '.join(supported)}."
+                    )
+                }
             )
 
-        return conditions
+        return attrs
 
 
 class ProjectCustomInboundFilterEndpoint(ProjectEndpoint):
@@ -133,6 +161,7 @@ class ProjectCustomInboundFilterEndpoint(ProjectEndpoint):
             "filter_id": str(custom_filter.id),
             "filter_name": custom_filter.name,
             "active": custom_filter.active,
+            "data_type": custom_filter.data_type,
             "conditions": custom_filter.conditions,
             "operation": operation,
         }
@@ -230,6 +259,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
             event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
             data=self.get_audit_log_data(project, custom_filter, "add"),
         )
+        schedule_invalidate_project_config(project_id=project.id, trigger="custom_inbound_filters")
 
         return Response(serializer.data, status=201)
 
@@ -304,7 +334,7 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
             return Response(serializer.errors, status=400)
 
         changes: dict[str, Any] = {}
-        for field in ("name", "active", "conditions"):
+        for field in ("name", "active", "data_type", "conditions"):
             if field not in serializer.validated_data:
                 continue
 
@@ -323,6 +353,10 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
                 event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
                 data=self.get_audit_log_data(project, custom_filter, "edit", changes),
             )
+            if changes.keys() & {"active", "data_type", "conditions"}:
+                schedule_invalidate_project_config(
+                    project_id=project.id, trigger="custom_inbound_filters"
+                )
 
         return Response(CustomInboundFilterSerializer(custom_filter).data)
 
@@ -358,5 +392,6 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
             event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
             data=audit_log_data,
         )
+        schedule_invalidate_project_config(project_id=project.id, trigger="custom_inbound_filters")
 
         return Response(status=204)

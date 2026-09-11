@@ -38,7 +38,7 @@
   },
   {
     "name": "docs",
-    "description": "Link to a page in the Sentry documentation. Use this whenever you reference a Sentry feature or concept that has official docs. The href MUST be an absolute https://docs.sentry.io/... URL.",
+    "description": "Link to a page in the Sentry documentation (docs.sentry.io only). The href MUST be an absolute https://docs.sentry.io/... URL. NEVER use this for Sentry issue links — use the `issue` or `issues` embed instead.",
     "level": ["inline"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -63,5 +63,1681 @@
         }
       }
     ]
+  },
+  {
+    "name": "dashboard",
+    "description": "The ONLY way to reference a saved Sentry dashboard. Use the dashboard ID exactly as returned by the dashboard API. Include the API-provided title when available. Inline: renders a compact link. Block: renders a live preview of the dashboard widgets. Do not duplicate the widget titles, queries, visualizations, or values as text. Never use a markdown link for dashboard references.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["id"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Dashboard",
+        "data": {
+          "id": "123",
+          "title": "Application health"
+        }
+      }
+    ]
+  },
+  {
+    "name": "dsn",
+    "description": "Display a copyable Sentry DSN (Data Source Name) string. Use this whenever presenting a DSN to the user — never output it as bare text.",
+    "level": ["block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": ["value"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "DSN",
+        "data": {
+          "value": "https://examplePublicKey@o0.ingest.sentry.io/0"
+        }
+      }
+    ]
+  },
+  {
+    "name": "user",
+    "description": "Mention a Sentry user or team inline. Renders an avatar and display name. Use the actor type (\"user\" or \"team\") and the actor's ID and name.",
+    "level": ["inline"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["user", "team"]
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "type", "name"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "User",
+        "data": {
+          "id": "1",
+          "type": "user",
+          "name": "Jane Doe"
+        }
+      },
+      {
+        "label": "Team",
+        "data": {
+          "id": "2",
+          "type": "team",
+          "name": "platform"
+        }
+      }
+    ]
+  },
+  {
+    "name": "issue",
+    "description": "The ONLY way to reference a Sentry issue. Requires the issue short ID (e.g. \"PROJECT-123\"). Inline: renders a compact link with the short id. Block: renders a full interactive issue row with title, events, users, assignee, and trend graph — do NOT duplicate any of that data as text. MUST NOT appear inside a markdown table or list. When referencing 2+ issues, use the `issues` embed instead. Never use `docs` or markdown links for issue references.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": ["id"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Inline",
+        "data": {
+          "id": "JAVASCRIPT-22SP"
+        }
+      },
+      {
+        "label": "Block",
+        "data": {
+          "id": "JAVASCRIPT-22SP"
+        }
+      }
+    ]
+  },
+  {
+    "name": "issues",
+    "description": "The ONLY way to list multiple Sentry issues. Renders an interactive table with title, trend graph, events, users, priority, and assignee for each issue — do NOT duplicate any of that data as text. ALWAYS use this when referencing 2+ issues. MUST NOT appear inside a markdown table or list. Never use `docs`, `issue`, or markdown tables for multiple issues. Provide only the array of issue short IDs (e.g. \"PROJECT-123\").",
+    "level": ["block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["ids"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Block",
+        "data": {
+          "ids": ["JAVASCRIPT-22SP", "JAVASCRIPT-39HX", "JAVASCRIPT-39ZF"]
+        }
+      }
+    ]
+  },
+  {
+    "name": "replay",
+    "description": "The ONLY way to reference a Sentry Session Replay. Use the replay ID, not the legacy project-slug:replay-id form. Provide eventTimestamp as an ISO 8601 timestamp with a timezone offset (for example, Z or +00:00) when the replay should open around a relevant event. Inline: renders a compact link. Block: renders a standalone replay reference. Never use a markdown link for replay references.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "eventTimestamp": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+          "description": "ISO 8601 timestamp with a timezone offset (for example, Z or +00:00)"
+        }
+      },
+      "required": ["id"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Inline",
+        "data": {
+          "id": "4c1f2e3d1234567890",
+          "eventTimestamp": "2026-08-25T16:37:12Z"
+        }
+      },
+      {
+        "label": "Block",
+        "data": {
+          "id": "4c1f2e3d1234567890",
+          "eventTimestamp": "2026-08-25T16:37:12Z"
+        }
+      }
+    ]
+  },
+  {
+    "name": "release",
+    "description": "The ONLY way to reference a Sentry release. Use `version` exactly as the releases API returns it. Provide `projectId` when the release belongs to a specific project. Inline: renders a compact link. Block: renders release metadata, new issues, commit authors, the last commit, and recent deploys. Do not duplicate that data as text. Never use a markdown link for release references.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "projectId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "required": ["version"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Release",
+        "data": {
+          "version": "example-app@1.2.3",
+          "projectId": "1"
+        }
+      }
+    ]
+  },
+  {
+    "name": "chart",
+    "description": "Display numeric data as a compact Sentry-style chart. For line, area, and bar charts, prefer at least three points. Use x_axis \"time\" only with offset-bearing ISO 8601 timestamps. Category axes are supported for bar charts only. Duration values are milliseconds, percentage values are 0-100, and byte values are raw bytes.",
+    "level": ["block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subtitle": {
+          "type": "string"
+        },
+        "visualization": {
+          "default": "line",
+          "type": "string",
+          "enum": ["line", "area", "bar"]
+        },
+        "x_axis": {
+          "default": "time",
+          "type": "string",
+          "enum": ["time", "category"]
+        },
+        "y_axis_unit": {
+          "default": "number",
+          "type": "string",
+          "enum": ["number", "percentage", "duration", "bytes"]
+        },
+        "series": {
+          "minItems": 1,
+          "maxItems": 5,
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "description": "Legend label for the series"
+                  },
+                  "data": {
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "x": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            }
+                          ]
+                        },
+                        "y": {
+                          "type": "number"
+                        }
+                      },
+                      "required": ["x", "y"],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": ["label", "data"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Legacy alias for label"
+                  },
+                  "data": {
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "x": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            }
+                          ]
+                        },
+                        "y": {
+                          "type": "number"
+                        }
+                      },
+                      "required": ["x", "y"],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": ["name", "data"],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "required": ["title", "visualization", "x_axis", "y_axis_unit", "series"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Error volume",
+        "data": {
+          "title": "Error volume",
+          "subtitle": "Last 6 hours",
+          "visualization": "area",
+          "x_axis": "time",
+          "y_axis_unit": "number",
+          "series": [
+            {
+              "label": "Errors",
+              "data": [
+                {
+                  "x": "2026-07-30T12:00:00Z",
+                  "y": 12
+                },
+                {
+                  "x": "2026-07-30T13:00:00Z",
+                  "y": 18
+                },
+                {
+                  "x": "2026-07-30T14:00:00Z",
+                  "y": 15
+                },
+                {
+                  "x": "2026-07-30T15:00:00Z",
+                  "y": 31
+                },
+                {
+                  "x": "2026-07-30T16:00:00Z",
+                  "y": 46
+                },
+                {
+                  "x": "2026-07-30T17:00:00Z",
+                  "y": 38
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "autofix",
+    "description": "Render one step of a Seer Autofix run (root cause, solution, or code changes) as a collapsible block linking back to the issue. Emit this embed whenever the user signals intent to fix, solve, debug, or resolve a problem — e.g. \"fix this issue\", \"solve the problem\", \"find the root cause\", \"why is this happening\", \"how do I resolve this error\" — or asks for the status/result of an autofix run already in progress. `id` and `shortId` are the issue the run belongs to, exactly as the issue API returns them. `step` is the autofix step identifier exactly as the autofix API reports it — the UI renders the human-readable label, so do not send a display string. `result` is the markdown summary for that step. Send the step's detail in the structured fields rather than folding it into `result`, so it renders as the same sections a live run shows: `fiveWhys` and `reproductionSteps` for `root_cause`, `steps` for `solution`. Prefer this embed over a plaintext explanation whenever an issue can be autofixed, and emit one embed per step rather than combining multiple steps into one.",
+    "level": ["block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "step": {
+          "type": "string",
+          "enum": ["root_cause", "solution", "code_changes", "pr_iteration"]
+        },
+        "result": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "shortId": {
+          "type": "string"
+        },
+        "fiveWhys": {
+          "description": "root_cause only: the causal chain, most immediate cause first.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reproductionSteps": {
+          "description": "root_cause only: ordered steps that reproduce the error.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "steps": {
+          "description": "solution only: the ordered steps needed to resolve the issue.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            },
+            "required": ["title", "description"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["step", "result", "id", "shortId"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Root cause",
+        "data": {
+          "id": "1234567890",
+          "shortId": "EXMPL-123",
+          "result": "`CartService.total()` reduces the line items without an initial accumulator, so an empty cart throws instead of totalling to zero.",
+          "fiveWhys": [
+            "`POST /checkout` returned a 500 for every request with an empty cart.",
+            "`CartService.total()` threw `TypeError: Reduce of empty array with no initial value`.",
+            "`items.reduce((sum, item) => sum + item.price)` was called without a second argument.",
+            "With no initial value `reduce` uses the first element as the seed, which an empty array does not have.",
+            "The empty cart path was never covered — every test seeded at least one line item."
+          ],
+          "reproductionSteps": [
+            "Sign in and add a single item to the cart.",
+            "Remove that item, leaving the cart empty.",
+            "Open `/checkout`, which calls `POST /api/checkout/quote`.",
+            "The request 500s and the page renders the generic error state."
+          ],
+          "step": "root_cause"
+        }
+      },
+      {
+        "label": "Plan",
+        "data": {
+          "id": "1234567890",
+          "shortId": "EXMPL-123",
+          "result": "Seed the reduction with `0` so an empty cart totals to zero, and cover the path with a test.",
+          "steps": [
+            {
+              "title": "Pass an initial accumulator to `CartService.total()`",
+              "description": "Change `items.reduce((sum, item) => sum + item.price)` to pass `0` as the second argument."
+            },
+            {
+              "title": "Add a regression test for the empty cart",
+              "description": "Assert `total()` returns `0` for `[]` in `src/checkout/cartService.test.ts`."
+            }
+          ],
+          "step": "solution"
+        }
+      }
+    ],
+    "featureFlag": ["organizations:seat-based-seer-enabled", "organizations:seer-added"]
+  },
+  {
+    "name": "alert",
+    "description": "The ONLY way to reference a Sentry alert. Use `id` exactly as the alerts API returns it, and set `kind` to match: \"metric\" for a metric alert, \"issue\" for an issue alert, \"uptime\" for an uptime alert, \"cron\" for a cron alert. Include the API-provided name when available. Inline: renders a compact link. Block: renders alert conditions and configured actions, plus the underlying rule configuration for metric, uptime, and cron alerts. Do not duplicate those details as text. Never use a markdown link for alert references.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["metric", "issue", "uptime", "cron"]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["id", "kind"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Metric alert",
+        "data": {
+          "id": "4521",
+          "kind": "metric",
+          "name": "Checkout p95 latency"
+        }
+      },
+      {
+        "label": "Issue alert",
+        "data": {
+          "id": "881",
+          "kind": "issue"
+        }
+      },
+      {
+        "label": "Uptime alert",
+        "data": {
+          "id": "774",
+          "kind": "uptime",
+          "name": "Checkout availability"
+        }
+      },
+      {
+        "label": "Cron alert",
+        "data": {
+          "id": "9931",
+          "kind": "cron",
+          "name": "nightly-sync"
+        }
+      }
+    ]
+  },
+  {
+    "name": "monitor",
+    "description": "The ONLY way to reference a Sentry monitor (error, metric, cron, uptime, or mobile build detector). Use the numeric id from the detectors API (get_organization_detector / list_organization_detectors) — do NOT use the \"id\" field from the monitors API, which is a GUID and will not work here. Include the API-provided name when available. Inline: renders a compact link. Block: loads the live monitor and renders its type-specific configuration/rules. Never use a markdown link for monitor references.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["id"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Monitor",
+        "data": {
+          "id": "9931",
+          "name": "nightly-billing-sync"
+        }
+      }
+    ]
+  },
+  {
+    "name": "savedIssueView",
+    "description": "The ONLY way to reference a saved Sentry issue view. Use the view ID exactly as the issue-views API returns it. Include the API-provided name when available. Inline: renders a compact link. Block: loads the saved filters and renders a live preview of matching issues. Do not duplicate the issue titles, event counts, users, priorities, or assignees as text. Never use a markdown link for issue view references.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["id"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Saved issue view",
+        "data": {
+          "id": "77",
+          "name": "Unresolved in checkout"
+        }
+      }
+    ]
+  },
+  {
+    "name": "savedQuery",
+    "description": "The ONLY way to reference a saved Explore query. Use the saved query ID exactly as the API returns it and set `dataset` to the dataset it was saved against. Include the API-provided name when available. Never use a markdown link for saved query references. Inline renders a link; block fetches the saved query and shows its name, filter, group-by and visualize, linking to the query's own parameters rather than just its id.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dataset": {
+          "type": "string",
+          "enum": [
+            "spans",
+            "segment_spans",
+            "logs",
+            "metrics",
+            "replays",
+            "ai_conversations"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["id", "dataset"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Saved query",
+        "data": {
+          "id": "312",
+          "dataset": "spans",
+          "name": "Slow checkout spans"
+        }
+      }
+    ]
+  },
+  {
+    "name": "trace",
+    "description": "The ONLY way to reference a Sentry trace. Renders a compact link. Use the 32-character trace ID. Provide `timestamp` when known so the link opens on the right time range, and `spanId` to focus a span. This never renders the waterfall itself — when the user wants to see the trace, emit the separate `traceWaterfall` embed. Never use a markdown link for trace references.",
+    "level": ["inline"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "traceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "spanId": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["traceId"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Trace",
+        "data": {
+          "traceId": "a1b2c3d4e5f678901234567890abcdef",
+          "timestamp": "2026-08-25T16:37:12Z"
+        }
+      }
+    ]
+  },
+  {
+    "name": "traceWaterfall",
+    "description": "Render the live, interactive trace waterfall for one trace. This is a large, data-heavy widget that loads the whole span tree, so only emit it when the user actually wants to look at the trace — they asked to see it, or the answer is about the shape or timing of the spans. Merely citing a trace is the `trace` embed, which does NOT expand into a waterfall. Use the 32-character trace ID. Provide `timestamp` when known so the waterfall opens on the right time range, and `spanId` to focus a span. Do not duplicate the waterfall spans or duration details as text. Emit at most one per response.",
+    "level": ["block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "traceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "spanId": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["traceId"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Trace waterfall",
+        "data": {
+          "traceId": "a1b2c3d4e5f678901234567890abcdef",
+          "timestamp": "2026-08-25T16:37:12Z"
+        }
+      }
+    ]
+  },
+  {
+    "name": "profile",
+    "description": "The ONLY way to reference a Sentry profile (the flamegraph view). Requires both the profile ID and the slug of the project it belongs to. Inline: renders a compact link with the short profile id. Block: renders a preview with the transaction, duration, thread count, environment, release, OS, device, received time, and a flamechart — do NOT duplicate any of that data as text. Never use a markdown link for profile references.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectSlug": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profileId": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["projectSlug", "profileId"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Inline",
+        "data": {
+          "projectSlug": "javascript",
+          "profileId": "7f3c2b1a9d8e4f60"
+        }
+      },
+      {
+        "label": "Block",
+        "data": {
+          "projectSlug": "javascript",
+          "profileId": "7f3c2b1a9d8e4f60"
+        }
+      }
+    ]
+  },
+  {
+    "name": "event",
+    "description": "The ONLY way to reference a single error event inside a Sentry issue. `id` is the 32-character event ID and `issueId` is the numeric group ID the event belongs to, both exactly as the events API returns them. Include the issue short ID as `shortId` when available. When referencing the issue as a whole rather than one of its events, use the `issue` embed instead. Inline: renders a compact link to the event. Block: renders the event with its title, message, culprit, and context — do NOT duplicate any of that as text. Set `view` to \"tags\" to also render the full tag list for the event, or to \"tag\" together with `tagKeys` to render how those tags are distributed across the issue -- pass every key the user asked about in one embed rather than repeating the embed per key, and keep it to a handful. Leave `view` as \"summary\" unless the user asked about tags. Never use a markdown link for event references.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "issueId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "shortId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "view": {
+          "default": "summary",
+          "type": "string",
+          "enum": ["summary", "tags", "tag"]
+        },
+        "tagKeys": {
+          "description": "Required when view is \"tag\". The tag keys to break down, e.g. [\"browser\", \"os\"].",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": ["id", "issueId", "view"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Event",
+        "data": {
+          "id": "8f2c1a9d7e6b4f30a1b2c3d4e5f60718",
+          "issueId": "5551212",
+          "shortId": "JAVASCRIPT-22SP"
+        }
+      },
+      {
+        "label": "All tags",
+        "data": {
+          "id": "8f2c1a9d7e6b4f30a1b2c3d4e5f60718",
+          "issueId": "5551212",
+          "shortId": "JAVASCRIPT-22SP",
+          "view": "tags"
+        }
+      },
+      {
+        "label": "Single tag breakdown",
+        "data": {
+          "id": "8f2c1a9d7e6b4f30a1b2c3d4e5f60718",
+          "issueId": "5551212",
+          "shortId": "JAVASCRIPT-22SP",
+          "view": "tag",
+          "tagKeys": ["browser"]
+        }
+      },
+      {
+        "label": "Several tag breakdowns",
+        "data": {
+          "id": "8f2c1a9d7e6b4f30a1b2c3d4e5f60718",
+          "issueId": "5551212",
+          "shortId": "JAVASCRIPT-22SP",
+          "view": "tag",
+          "tagKeys": ["browser", "os", "release"]
+        }
+      }
+    ]
+  },
+  {
+    "name": "log",
+    "description": "The ONLY way to reference a single log line (Explore > Logs). `id` is the log item ID exactly as the logs API returns it. Provide `traceId`, `projectId`, and `timestamp` whenever the API gave them to you — without them the embed has to scan a wider window to find the row. When referencing a SET of logs defined by a search, use the `logsQuery` embed instead. Inline: renders a compact link that opens the log row in Explore. Block: renders the log row with its severity, message, and timestamp — do NOT duplicate any of that as text. Set `view` to \"attributes\" to also render the full attribute list for the log, or to \"attribute\" together with `attribute` to break that one attribute down across matching logs. Leave `view` as \"summary\" unless the user asked about attributes. Never use a markdown link for log references.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "traceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "projectId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "view": {
+          "default": "summary",
+          "type": "string",
+          "enum": ["summary", "attributes", "attribute"]
+        },
+        "attribute": {
+          "description": "Required when view is \"attribute\". The attribute key to break down, e.g. \"severity\".",
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["id", "view"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Inline",
+        "data": {
+          "id": "019bfe1c-4c1f-7e3d-9a2f-3e6b1a2c3d4e",
+          "traceId": "a1b2c3d4e5f678901234567890abcdef",
+          "projectId": "1",
+          "timestamp": "2026-08-25T16:37:12Z"
+        }
+      },
+      {
+        "label": "Block",
+        "data": {
+          "id": "019bfe1c-4c1f-7e3d-9a2f-3e6b1a2c3d4e",
+          "traceId": "a1b2c3d4e5f678901234567890abcdef",
+          "projectId": "1",
+          "timestamp": "2026-08-25T16:37:12Z"
+        }
+      },
+      {
+        "label": "All attributes",
+        "data": {
+          "id": "019bfe1c-4c1f-7e3d-9a2f-3e6b1a2c3d4e",
+          "traceId": "a1b2c3d4e5f678901234567890abcdef",
+          "projectId": "1",
+          "timestamp": "2026-08-25T16:37:12Z",
+          "view": "attributes"
+        }
+      },
+      {
+        "label": "Single attribute breakdown",
+        "data": {
+          "id": "019bfe1c-4c1f-7e3d-9a2f-3e6b1a2c3d4e",
+          "traceId": "a1b2c3d4e5f678901234567890abcdef",
+          "projectId": "1",
+          "timestamp": "2026-08-25T16:37:12Z",
+          "view": "attribute",
+          "attribute": "severity"
+        }
+      }
+    ]
+  },
+  {
+    "name": "issuesQuery",
+    "description": "Link to the issue stream filtered by a search query. Use this when pointing the user at a SET of issues defined by a search rather than specific known issues — if you already have the short IDs, use the `issue` or `issues` embed instead. `query` uses issue search syntax, e.g. \"is:unresolved level:error\".",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projects": {
+          "description": "Project IDs. Omit for the \"My Projects\" selection.",
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "environments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "statsPeriod": {
+          "description": "Relative time range, e.g. \"24h\" or \"7d\". Mutually exclusive with start/end.",
+          "type": "string",
+          "pattern": "^\\d+[smhdw]$"
+        },
+        "start": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "query": {
+          "default": "",
+          "type": "string"
+        },
+        "sort": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["query"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Unresolved errors",
+        "data": {
+          "query": "is:unresolved level:error",
+          "statsPeriod": "7d",
+          "title": "Unresolved errors"
+        }
+      }
+    ]
+  },
+  {
+    "name": "errorsQuery",
+    "description": "Preview an errors (Discover) query. Use mode \"samples\" to show individual error events and \"aggregate\" to group and chart them. `query` uses event search syntax. In samples mode `fields` are non-aggregate table columns; in aggregate mode `fields` must include the group-by columns and at least one aggregate function, such as \"count()\" or \"count_unique(user)\". Inline renders a link; block renders the first five matching rows beneath a timeseries chart of the total across the period — the chart is never broken out per group. When aggregate mode names only aggregates and no group-by columns, the chart replaces the table. Provide `yAxes` to pick which aggregate is charted; samples mode charts the event count.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projects": {
+          "description": "Project IDs. Omit for the \"My Projects\" selection.",
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "environments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "statsPeriod": {
+          "description": "Relative time range, e.g. \"24h\" or \"7d\". Mutually exclusive with start/end.",
+          "type": "string",
+          "pattern": "^\\d+[smhdw]$"
+        },
+        "start": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "query": {
+          "default": "",
+          "type": "string"
+        },
+        "mode": {
+          "default": "samples",
+          "type": "string",
+          "enum": ["samples", "aggregate"]
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "yAxes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sort": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["query", "mode"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Recent errors",
+        "data": {
+          "query": "event.type:error",
+          "mode": "samples",
+          "fields": ["title", "project", "user.display", "timestamp"],
+          "statsPeriod": "24h",
+          "title": "Recent errors"
+        }
+      },
+      {
+        "label": "Errors by title",
+        "data": {
+          "query": "",
+          "mode": "aggregate",
+          "fields": ["title", "project", "count_unique(user)"],
+          "sort": "-count_unique_user",
+          "statsPeriod": "1h",
+          "yAxes": ["count()"],
+          "title": "Errors by title"
+        }
+      },
+      {
+        "label": "Total errors",
+        "data": {
+          "query": "event.type:error",
+          "mode": "aggregate",
+          "fields": ["count()"],
+          "statsPeriod": "24h",
+          "title": "Total errors"
+        }
+      }
+    ]
+  },
+  {
+    "name": "spansQuery",
+    "description": "Preview an Explore > Traces (spans) query. Use mode \"samples\" for individual spans and mode \"aggregate\" for grouped results, supplying `groupBy` and `yAxes`. `query` uses span search syntax, e.g. \"span.op:http.client\". Inline renders a link; block renders the first five matching rows beneath a timeseries chart of the same query. A query with `groupBy` charts the top five groups as one series each, matching the rows below it; every other query charts a single total for the period. Provide `yAxes` to pick which aggregate is charted — samples mode, and any query naming none, charts \"count(span.duration)\". When aggregate mode supplies no `groupBy` there is only one row to show, so the chart replaces the table.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projects": {
+          "description": "Project IDs. Omit for the \"My Projects\" selection.",
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "environments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "statsPeriod": {
+          "description": "Relative time range, e.g. \"24h\" or \"7d\". Mutually exclusive with start/end.",
+          "type": "string",
+          "pattern": "^\\d+[smhdw]$"
+        },
+        "start": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "query": {
+          "default": "",
+          "type": "string"
+        },
+        "mode": {
+          "default": "samples",
+          "type": "string",
+          "enum": ["samples", "aggregate"]
+        },
+        "groupBy": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "yAxes": {
+          "description": "Aggregate functions to chart, e.g. \"count()\" or \"p95(span.duration)\".",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sort": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["query", "mode"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Slow HTTP spans",
+        "data": {
+          "query": "span.op:http.client",
+          "mode": "samples",
+          "fields": ["span.description", "span.op", "span.duration", "timestamp"],
+          "sort": "-span.duration",
+          "statsPeriod": "24h",
+          "title": "Slow HTTP spans"
+        }
+      },
+      {
+        "label": "p95 by span op",
+        "data": {
+          "query": "",
+          "mode": "aggregate",
+          "groupBy": ["span.op"],
+          "yAxes": ["p95(span.duration)"],
+          "sort": "-p95_span_duration",
+          "statsPeriod": "7d",
+          "title": "p95 by span op"
+        }
+      },
+      {
+        "label": "Total spans",
+        "data": {
+          "query": "span.op:http.client",
+          "mode": "aggregate",
+          "yAxes": ["count(span.duration)"],
+          "statsPeriod": "24h",
+          "title": "Total spans"
+        }
+      }
+    ]
+  },
+  {
+    "name": "logsQuery",
+    "description": "Preview an Explore > Logs query. Use mode \"samples\" to show individual log rows and \"aggregate\" to group and chart them. In aggregate mode supply `groupBy` and `yAxes`. `query` uses log search syntax, e.g. \"severity:error\". Inline renders a link; block renders the first five matching rows beneath a timeseries — one series per group when grouped, log volume otherwise. An aggregate that groups by nothing collapses to a single row, so there the chart replaces the table.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projects": {
+          "description": "Project IDs. Omit for the \"My Projects\" selection.",
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "environments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "statsPeriod": {
+          "description": "Relative time range, e.g. \"24h\" or \"7d\". Mutually exclusive with start/end.",
+          "type": "string",
+          "pattern": "^\\d+[smhdw]$"
+        },
+        "start": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "query": {
+          "default": "",
+          "type": "string"
+        },
+        "mode": {
+          "default": "samples",
+          "type": "string",
+          "enum": ["samples", "aggregate"]
+        },
+        "groupBy": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "yAxes": {
+          "description": "Aggregate functions to chart, e.g. \"count()\" or \"p95(span.duration)\".",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sort": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["query", "mode"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Error logs",
+        "data": {
+          "query": "severity:error",
+          "mode": "samples",
+          "statsPeriod": "24h"
+        }
+      },
+      {
+        "label": "Log volume by severity",
+        "data": {
+          "query": "",
+          "mode": "aggregate",
+          "groupBy": ["severity"],
+          "yAxes": ["count(message)"],
+          "statsPeriod": "7d"
+        }
+      }
+    ]
+  },
+  {
+    "name": "conversation",
+    "description": "The ONLY way to reference a single AI agent conversation (Explore > Agents). Use the `conversationId` exactly as the agents conversations API returns it. Include the API-provided `title` when available, and `start`/`end` (the conversation's own first and last span timestamps) so the embed can scope its query instead of scanning the default window. Inline: renders a compact link. Block: renders the conversation transcript with its LLM call, token, cost, and tool totals. Do not duplicate the messages or those totals as text. Never use a markdown link for conversation references.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "start": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        }
+      },
+      "required": ["id"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Conversation",
+        "data": {
+          "id": "4821",
+          "title": "Refund request escalated to a human",
+          "start": "2026-08-25T16:37:12Z",
+          "end": "2026-08-25T16:39:02Z"
+        }
+      }
+    ],
+    "featureFlag": "organizations:gen-ai-conversations"
+  },
+  {
+    "name": "conversationsQuery",
+    "description": "Preview the AI agent conversations list (Explore > Agents) filtered by a search query. Use this when pointing the user at a SET of conversations — if you have a specific conversation ID, use the `conversation` embed instead. `query` uses span search syntax over gen_ai spans, e.g. \"gen_ai.request.model:gpt-4o\". Negation is not supported. Use `agents` to filter to specific agent names. Inline renders a link; block renders the first five matching conversations with their duration, message count, errors and cost.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projects": {
+          "description": "Project IDs. Omit for the \"My Projects\" selection.",
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "environments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "statsPeriod": {
+          "description": "Relative time range, e.g. \"24h\" or \"7d\". Mutually exclusive with start/end.",
+          "type": "string",
+          "pattern": "^\\d+[smhdw]$"
+        },
+        "start": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "query": {
+          "default": "",
+          "type": "string"
+        },
+        "agents": {
+          "description": "Filter to these agent names, as reported by gen_ai.agent.name.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["query"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Conversations with tool errors",
+        "data": {
+          "query": "gen_ai.tool.name:*",
+          "statsPeriod": "24h",
+          "title": "Conversations using tools"
+        }
+      }
+    ],
+    "featureFlag": "organizations:gen-ai-conversations"
+  },
+  {
+    "name": "replaysQuery",
+    "description": "Preview the Session Replay list filtered by a search query. Use this when pointing the user at a SET of replays — if you have a specific replay ID, use the `replay` embed instead. `query` uses replay search syntax, e.g. \"user.email:user@example.com\". Inline renders a link; block renders the first five matching replays with their duration, error count and rage clicks.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projects": {
+          "description": "Project IDs. Omit for the \"My Projects\" selection.",
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "environments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "statsPeriod": {
+          "description": "Relative time range, e.g. \"24h\" or \"7d\". Mutually exclusive with start/end.",
+          "type": "string",
+          "pattern": "^\\d+[smhdw]$"
+        },
+        "start": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "query": {
+          "default": "",
+          "type": "string"
+        },
+        "sort": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["query"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Replays with rage clicks",
+        "data": {
+          "query": "count_rage_clicks:>0",
+          "statsPeriod": "7d"
+        }
+      }
+    ]
+  },
+  {
+    "name": "metricsQuery",
+    "description": "Preview an Explore > Metrics query for a single trace metric. Requires the metric `name` and `type` exactly as the metrics API returns them. Use mode \"aggregate\" with `groupBy`/`yAxes` to chart the metric, or \"samples\" to list raw points. Name `yAxes` the short way, e.g. \"p95(value)\" — the embed qualifies them with the metric itself. Omit `yAxes` to use the default aggregate for the metric's type. Inline renders a link; block renders a timeseries chart with the first five matching rows beneath it. An aggregate that groups by nothing collapses to a single row, so there the chart replaces the table.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projects": {
+          "description": "Project IDs. Omit for the \"My Projects\" selection.",
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "environments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "statsPeriod": {
+          "description": "Relative time range, e.g. \"24h\" or \"7d\". Mutually exclusive with start/end.",
+          "type": "string",
+          "pattern": "^\\d+[smhdw]$"
+        },
+        "start": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "query": {
+          "default": "",
+          "type": "string"
+        },
+        "mode": {
+          "default": "samples",
+          "type": "string",
+          "enum": ["samples", "aggregate"]
+        },
+        "groupBy": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "yAxes": {
+          "description": "Aggregate functions to chart, e.g. \"count()\" or \"p95(span.duration)\".",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sort": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": ["query", "mode", "name", "type"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Checkout latency metric",
+        "data": {
+          "name": "checkout.latency",
+          "type": "distribution",
+          "unit": "millisecond",
+          "mode": "aggregate",
+          "yAxes": ["p95(value)"],
+          "statsPeriod": "24h"
+        }
+      }
+    ]
+  },
+  {
+    "name": "autofixRef",
+    "description": "Render a live view of one Seer Autofix step (root cause, solution, code changes, or PR iteration) that fetches and updates itself in the browser. Emit this immediately after starting or continuing an autofix step via RPC, in place of polling for the result yourself and writing it up: the embed shows progress while the step runs, then the result once it completes, with buttons to continue to the next step or retry on error. `id` and `shortId` are the issue the run belongs to, exactly as the issue API returns them. `runId` is the run identifier returned by the RPC call (its `sentry_run_id`, or `run_id` if that is unavailable). `step` is the autofix step identifier exactly as the autofix API reports it — the UI renders the human-readable label, so do not send a display string.",
+    "level": ["block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "step": {
+          "type": "string",
+          "enum": ["root_cause", "solution", "code_changes", "pr_iteration"]
+        },
+        "id": {
+          "type": "string"
+        },
+        "shortId": {
+          "type": "string"
+        },
+        "runId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "required": ["step", "id", "shortId", "runId"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Root cause",
+        "data": {
+          "id": "1234567890",
+          "shortId": "EXMPL-123",
+          "runId": "018f2c1a-6b7e-7c3e-9a2f-3e6b1a2c3d4e",
+          "step": "root_cause"
+        }
+      }
+    ],
+    "featureFlag": ["organizations:seat-based-seer-enabled", "organizations:seer-added"]
   }
 ]

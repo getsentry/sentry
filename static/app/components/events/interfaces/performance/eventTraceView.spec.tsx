@@ -5,7 +5,6 @@ import {initializeData} from 'sentry-test/performance/initializePerformanceData'
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EntryType} from 'sentry/types/event';
-import type {TraceEventResponse} from 'sentry/views/issueDetails/traceTimeline/useTraceTimelineEvents';
 import {
   makeTraceError,
   makeTransaction,
@@ -24,6 +23,8 @@ describe('EventTraceView', () => {
   });
   const group = GroupFixture();
   const event = EventFixture({
+    groupID: group.id,
+    projectID: group.project.id,
     contexts: {
       trace: {
         trace_id: traceId,
@@ -31,15 +32,19 @@ describe('EventTraceView', () => {
     },
     eventID: 'issue-5',
   });
-  const issuePlatformBody: TraceEventResponse = {
-    data: [],
-    meta: {fields: {}, units: {}},
-  };
-
   beforeEach(() => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: issuePlatformBody,
+      url: `/organizations/${organization.slug}/issues/`,
+      body: [],
+      headers: {'X-Hits': '0'},
+      match: [
+        MockApiClient.matchQuery({
+          limit: '20',
+          project: '-1',
+          query: `trace:${traceId} !issue.id:${group.id}`,
+          statsPeriod: '90d',
+        }),
+      ],
     });
   });
 

@@ -1,7 +1,8 @@
 import {Observer} from 'mobx-react-lite';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -18,7 +19,10 @@ import {
   getNoAlertWritePermissionTooltip,
   useCanEditAutomation,
 } from 'sentry/views/automations/hooks/useCanEditAutomation';
-import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
+import {
+  makeAutomationBasePathname,
+  makeAutomationDetailsPathname,
+} from 'sentry/views/automations/pathnames';
 
 interface EditAutomationActionsProps {
   automation: Automation;
@@ -70,7 +74,7 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
           size="sm"
           onClick={toggleDisabled}
           disabled={!canEdit || isUpdating}
-          tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+          tooltipProps={{title: permissionTooltipText}}
         >
           {automation.enabled ? t('Disable') : t('Enable')}
         </Button>
@@ -78,11 +82,19 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
           variant="danger"
           onClick={handleDelete}
           disabled={!canEdit || isDeleting}
-          tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+          tooltipProps={{title: permissionTooltipText}}
           size="sm"
         >
           {t('Delete')}
         </Button>
+        <Separator orientation="vertical" />
+        <LinkButton
+          variant="secondary"
+          size="sm"
+          to={makeAutomationDetailsPathname(organization.slug, automation.id)}
+        >
+          {t('Cancel')}
+        </LinkButton>
         <Observer>
           {() => (
             <Button
@@ -91,7 +103,7 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
               size="sm"
               busy={form.isSaving}
               disabled={!canEdit}
-              tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+              tooltipProps={{title: permissionTooltipText}}
             >
               {t('Save')}
             </Button>

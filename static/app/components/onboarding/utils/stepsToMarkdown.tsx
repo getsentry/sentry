@@ -194,11 +194,6 @@ interface MarkdownOptions {
    */
   blockPath?: string;
   /**
-   * Per-block tab selection. Used when calling contentBlockToMarkdown directly
-   * (e.g. in tests). For full step conversion, use `tabSelectionsMap` instead.
-   */
-  selectedTabValue?: string;
-  /**
    * Current step index, set internally by stepsToMarkdown when iterating.
    * Included in the tab key to disambiguate tabs with identical labels
    * across different steps.
@@ -243,8 +238,7 @@ function renderTabbedCodeBlock(
  * Converts a single ContentBlock to markdown text.
  *
  * Tab selection is resolved by looking up the block's tab key in
- * options.tabSelectionsMap (from the scope), falling back to
- * options.selectedTabValue (for direct calls / tests).
+ * options.tabSelectionsMap (from the scope).
  */
 export function contentBlockToMarkdown(
   block: ContentBlock,
@@ -257,10 +251,9 @@ export function contentBlockToMarkdown(
     case 'code': {
       if ('tabs' in block) {
         if (block.tabs && block.tabs.length > 0) {
-          const selectedValue =
-            options?.tabSelectionsMap?.get(
-              deriveTabKey(block.tabs, options?.stepIndex, options?.blockPath)
-            ) ?? options?.selectedTabValue;
+          const selectedValue = options?.tabSelectionsMap?.get(
+            deriveTabKey(block.tabs, options?.stepIndex, options?.blockPath)
+          );
           return renderTabbedCodeBlock(block.tabs, selectedValue, options);
         }
         // MultipleCodeBlock with empty tabs — nothing to render

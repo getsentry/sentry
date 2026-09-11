@@ -236,7 +236,7 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
 
         try:
             owner = self.detector.owner.identifier if self.detector.owner else None
-            assignee = parse_and_validate_actor(owner, self.detector.project.organization_id)
+            assignee = parse_and_validate_actor(owner, self.detector.linked_project.organization_id)
         except Exception:
             logger.exception("Failed to parse assignee for detector id %s", self.detector.id)
             assignee = None
@@ -300,7 +300,7 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
             try:
                 dataset = Dataset(snuba_query.dataset)
                 alert_type = get_alert_type_from_aggregate_dataset(
-                    agg_display_key, dataset, self.detector.project.organization
+                    agg_display_key, dataset, self.detector.linked_project.organization
                 )
             except ValueError:
                 logger.exception(

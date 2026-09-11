@@ -49,26 +49,18 @@ import {SourceField} from './form/sourceField';
 import {ErrorType, handleError} from './handleError';
 import {hasCaptureGroups, useSourceGroupData} from './utils';
 
-const dataScrubSchema = z
-  .object({
-    method: z.enum(MethodType),
-    pattern: z.string(),
-    placeholder: z.string(),
-    replaceCaptured: z.boolean(),
-    source: z.string().min(1, t('This field is required')),
-    type: z.enum(RuleType),
-    dataset: z.enum(AllowedDataScrubbingDatasets),
-    eventId: z.string(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.type === RuleType.PATTERN && !data.pattern.trim()) {
-      ctx.addIssue({
-        code: 'custom',
-        message: t('This field is required'),
-        path: ['pattern'],
-      });
-    }
-  });
+// `pattern` is permissive here and carries its own validator on the field, so
+// it is only enforced when the regex-matches input is displayed.
+const dataScrubSchema = z.object({
+  method: z.enum(MethodType),
+  pattern: z.string(),
+  placeholder: z.string(),
+  replaceCaptured: z.boolean(),
+  source: z.string().min(1, t('This field is required')),
+  type: z.enum(RuleType),
+  dataset: z.enum(AllowedDataScrubbingDatasets),
+  eventId: z.string(),
+});
 
 export type DataScrubFormModalProps = ModalRenderProps & {
   api: Client;
@@ -367,6 +359,9 @@ export function DataScrubFormModal({
             {type === RuleType.PATTERN && (
               <form.AppField
                 name="pattern"
+                validators={{
+                  onDynamic: z.string().trim().min(1, t('This field is required')),
+                }}
                 listeners={{
                   onChange: ({value}) => {
                     if (!hasCaptureGroups(value)) {
@@ -422,7 +417,7 @@ export function DataScrubFormModal({
                               onClick={() => setDisplayEventId(false)}
                             >
                               {t('Hide event ID field')}
-                              <IconChevron direction="up" size="xs" />
+                              <IconChevron size="xs" />
                             </Toggle>
                           ) : (
                             <Toggle
@@ -505,7 +500,7 @@ export function DataScrubFormModal({
                     {displayEventId ? (
                       <Toggle variant="link" onClick={() => setDisplayEventId(false)}>
                         {t('Hide event ID field')}
-                        <IconChevron direction="up" size="xs" />
+                        <IconChevron size="xs" />
                       </Toggle>
                     ) : (
                       <Toggle variant="link" onClick={() => setDisplayEventId(true)}>

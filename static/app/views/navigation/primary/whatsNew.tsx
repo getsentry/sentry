@@ -49,7 +49,7 @@ function BroadcastImage({src, alt}: {alt: string; src: string}) {
   );
 }
 
-function WhatsNewContent({
+function WhatsNewBroadcastList({
   unseenPostIds,
   isPending,
   broadcasts = [],
@@ -186,7 +186,12 @@ function WhatsNewContent({
   );
 }
 
-export function PrimaryNavigationWhatsNew() {
+/**
+ * Recent broadcasts plus the derived unseen/deduped views of them. Shared by the
+ * standalone What's New button and the help menu entry that replaces it when the
+ * navigation row has no room for a dedicated trigger.
+ */
+export function useWhatsNewBroadcasts() {
   const organization = useOrganization();
   const {isPending, data: broadcasts} = useApiQuery<Broadcast[]>(
     [
@@ -196,7 +201,6 @@ export function PrimaryNavigationWhatsNew() {
       {query: {show: 'latest', limit: '3'}},
     ],
     {
-      // Five minute stale time prevents window focus frequent refetches
       staleTime: 1000 * 60 * 5,
       // 10 minutes poll
       refetchInterval: 1000 * 60 * 10,
@@ -224,6 +228,24 @@ export function PrimaryNavigationWhatsNew() {
     });
   }, [allBroadcasts]);
 
+  return {isPending, unseenPostIds, uniqueBroadcasts};
+}
+
+export function WhatsNewContent() {
+  const {isPending, unseenPostIds, uniqueBroadcasts} = useWhatsNewBroadcasts();
+
+  return (
+    <WhatsNewBroadcastList
+      unseenPostIds={unseenPostIds}
+      isPending={isPending}
+      broadcasts={uniqueBroadcasts}
+    />
+  );
+}
+
+export function PrimaryNavigationWhatsNew() {
+  const {unseenPostIds} = useWhatsNewBroadcasts();
+
   const {
     isOpen,
     triggerProps: overlayTriggerProps,
@@ -243,11 +265,7 @@ export function PrimaryNavigationWhatsNew() {
       />
       {isOpen && (
         <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
-          <WhatsNewContent
-            unseenPostIds={unseenPostIds}
-            isPending={isPending}
-            broadcasts={uniqueBroadcasts}
-          />
+          <WhatsNewContent />
         </PrimaryNavigation.ButtonOverlay>
       )}
     </Fragment>

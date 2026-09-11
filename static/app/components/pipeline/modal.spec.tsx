@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
+import {act, renderGlobalModal, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openPipelineModal} from './modal';
 
@@ -50,5 +50,22 @@ describe('PipelineModal', () => {
 
     expect(await screen.findByText('Hello!')).toBeInTheDocument();
     expect(screen.getAllByText(/Step 1 of 2/).length).toBeGreaterThan(0);
+  });
+
+  it('reports a pipeline error to the caller', async () => {
+    const onError = jest.fn();
+    MockApiClient.addMockResponse({
+      url: API_URL,
+      method: 'POST',
+      statusCode: 500,
+      body: {detail: 'Installation failed'},
+      match: [MockApiClient.matchData({action: 'initialize', provider: 'dummy'})],
+    });
+
+    renderGlobalModal({organization});
+
+    act(() => openPipelineModal({type: 'integration', provider: 'dummy', onError}));
+
+    await waitFor(() => expect(onError).toHaveBeenCalledWith('Installation failed'));
   });
 });

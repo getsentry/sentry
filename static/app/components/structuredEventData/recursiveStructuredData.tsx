@@ -59,13 +59,19 @@ export function RecursiveStructuredData({
 
   if (config?.isNull?.(value) || value === null) {
     const nullValue = config?.renderNull?.(value) ?? String(value);
+    const metaEntry: Record<string, any> | undefined = meta?.[''] ?? meta;
+    const isRedacted = !!(
+      withAnnotatedText &&
+      metaEntry &&
+      (metaEntry.rem?.length || metaEntry.err?.length || metaEntry.chunks?.length)
+    );
 
     return (
       <Fragment>
         {formattedObjectKey}
         <ValueNull data-test-id="value-null">
           <AnnotatedValue
-            value={nullValue}
+            value={isRedacted ? null : nullValue}
             meta={meta}
             withAnnotatedText={withAnnotatedText}
             withOnlyFormattedText={withOnlyFormattedText}

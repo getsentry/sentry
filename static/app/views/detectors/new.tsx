@@ -8,7 +8,6 @@ import {Text} from '@sentry/scraps/text';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {EditLayoutDeprecated} from 'sentry/components/workflowEngine/layout/edit';
-import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t, tct} from 'sentry/locale';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -40,7 +39,6 @@ function NewDetectorBreadcrumbs() {
 export default function DetectorNew() {
   const navigate = useNavigate();
   const organization = useOrganization();
-  useWorkflowEngineFeatureGate({redirect: true});
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
   const [detectorType] = useDetectorTypeQueryState();

@@ -1,5 +1,6 @@
 import {useState, type ReactNode} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useDebouncedValue} from '@tanstack/react-pacer';
+import {useQueries, useQuery} from '@tanstack/react-query';
 import type {DistributedPick} from 'type-fest';
 
 import {Button} from '@sentry/scraps/button';
@@ -17,7 +18,6 @@ import {Client} from 'sentry/api';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useApi} from 'sentry/utils/useApi';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 import type {JsonFormAdapterFieldConfig} from './types';
 
@@ -37,7 +37,7 @@ interface ChoiceMapperTableProps {
   labels: Record<string, ReactNode>;
   onSave: (value: Record<string, Record<string, unknown>>) => void;
   onUpdate: (value: Record<string, Record<string, unknown>>) => void;
-  value: Record<string, Record<string, unknown>>;
+  value: Record<string, Record<string, string>>;
   disabled?: boolean;
 }
 
@@ -61,7 +61,7 @@ function AsyncSearchCompactSelect({
   searchField?: string;
 } & DistributedPick<SelectProps<string>, 'trigger'>) {
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 200);
+  const [debouncedSearch] = useDebouncedValue(search, {wait: 200});
   const [apiClient] = useState(() => new Client({baseUrl: ''}));
   const api = useApi({api: apiClient});
 
@@ -194,6 +194,66 @@ export function ChoiceMapperDropdown({
 }
 
 /**
+ * Lazily fetches per-item selector(label) choices when `statusUrl` and `perItemMapping`
+ * are both set. Used by Jira Cloud config where statuses are fetched when a new project row is added.
+ */
+function useLazyPerItemSelectors({
+  config,
+  value,
+  fieldKeys,
+}: {
+  config: ChoiceMapperConfig;
+  fieldKeys: string[];
+  value: Record<string, Record<string, unknown>>;
+}) {
+  const statusUrl = config.perItemMapping ? config.statusUrl : undefined;
+  const [apiClient] = useState(() => new Client({baseUrl: ''}));
+  const api = useApi({api: apiClient});
+
+  const itemsToFetch = statusUrl
+    ? Object.keys(value).filter(key => !config.mappedSelectors?.[key])
+    : [];
+
+  return useQueries({
+    queries: itemsToFetch.map(itemKey => ({
+      queryKey: [statusUrl, {field: 'status', project: itemKey}] as const,
+      queryFn: (): Promise<Array<{label: string; value: string}>> =>
+        api.requestPromise(statusUrl!, {
+          query: {field: 'status', project: itemKey},
+        }),
+      staleTime: 30_000,
+    })),
+    combine: queryResults => {
+      const fetchedSelectors: Record<
+        string,
+        Record<string, {choices: Array<[string, string]>}>
+      > = {};
+      const loadingItemKeys: string[] = [];
+
+      queryResults.forEach((result, index) => {
+        const itemKey = itemsToFetch[index]!;
+        if (result.isPending) {
+          loadingItemKeys.push(itemKey);
+        }
+        if (result.data) {
+          const choices: Array<[string, string]> = result.data.map(status => [
+            status.value,
+            status.label,
+          ]);
+
+          // fetchedSelectors looks something like {'1001': {on_resolve: {choices: [['1001', 'Resolved'], ['1002', 'In Progress']]}} etc.
+          fetchedSelectors[itemKey] = Object.fromEntries(
+            fieldKeys.map(field => [field, {choices}])
+          );
+        }
+      });
+
+      return {fetchedSelectors, loadingItems: new Set(loadingItemKeys)};
+    },
+  });
+}
+
+/**
  * Renders the mapping table rows (header + data rows).
  * Placed below the Layout.Row.
  */
@@ -209,9 +269,18 @@ export function ChoiceMapperTable({
 
   const mappedKeys = Object.keys(columnLabels);
 
+  const {fetchedSelectors, loadingItems} = useLazyPerItemSelectors({
+    config,
+    value,
+    fieldKeys: mappedKeys,
+  });
+
   const getSelector = (itemKey: string, fieldKey: string) => {
     if (config.perItemMapping) {
-      return config.mappedSelectors?.[itemKey]?.[fieldKey];
+      return (
+        config.mappedSelectors?.[itemKey]?.[fieldKey] ??
+        fetchedSelectors[itemKey]?.[fieldKey]
+      );
     }
     return config.mappedSelectors?.[fieldKey];
   };
@@ -284,7 +353,8 @@ export function ChoiceMapperTable({
                 <Select
                   {...getSelector(itemKey, fieldKey)}
                   options={transformMappedChoices(getSelector(itemKey, fieldKey))}
-                  disabled={disabled}
+                  disabled={disabled || loadingItems.has(itemKey)}
+                  isLoading={loadingItems.has(itemKey)}
                   onChange={(v: {value: string | number | null} | null) =>
                     setValue(itemKey, fieldKey, v ? v.value : null)
                   }
@@ -312,7 +382,7 @@ export function ChoiceMapperTable({
  * Transform choice tuples from the backend config into Select options.
  */
 function transformMappedChoices(
-  selector?: {choices?: Array<[string, string]>; placeholder?: string} | unknown
+  selector?: {choices?: Array<[string, string]>} | unknown
 ): Array<{label: string; value: string}> {
   if (!selector || typeof selector !== 'object') {
     return [];

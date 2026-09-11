@@ -398,7 +398,7 @@ describe('formatUsageWithUnits', () => {
       formatUsageWithUnits(1000, DataCategory.ATTACHMENTS, {
         useUnitScaling: true,
       })
-    ).toBe('1 KB');
+    ).toBe('1 kB');
     expect(
       formatUsageWithUnits(MILLION, DataCategory.ATTACHMENTS, {
         useUnitScaling: true,

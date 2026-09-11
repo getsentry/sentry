@@ -1,5 +1,6 @@
 import {createRef} from 'react';
 
+import {dragHandle} from 'sentry-test/dragMove';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SplitPanel, type SplitPanelHandle} from '@sentry/scraps/splitPanel';
@@ -8,7 +9,6 @@ describe('SplitPanel', () => {
   it('renders both panes and a divider', () => {
     render(
       <SplitPanel
-        orientation="horizontal"
         defaultSize={200}
         minSize={100}
         sized={<div>sized</div>}
@@ -22,9 +22,7 @@ describe('SplitPanel', () => {
   });
 
   it('renders only the sized pane (no divider) when fill is omitted', () => {
-    render(
-      <SplitPanel orientation="horizontal" defaultSize={200} sized={<div>sized</div>} />
-    );
+    render(<SplitPanel defaultSize={200} sized={<div>sized</div>} />);
 
     expect(screen.getByText('sized')).toBeInTheDocument();
     expect(screen.queryByRole('separator')).not.toBeInTheDocument();
@@ -35,7 +33,6 @@ describe('SplitPanel', () => {
     // negative flex-basis; the rendered size is floored at minSize.
     render(
       <SplitPanel
-        orientation="horizontal"
         defaultSize={200}
         initialSize={-50}
         minSize={100}
@@ -44,49 +41,26 @@ describe('SplitPanel', () => {
       />
     );
 
+    // https://github.com/testing-library/jest-dom/issues/735
+    // eslint-disable-next-line jest-dom/prefer-to-have-value
     expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '100');
   });
 
   it('preserves the sized pane DOM node when the fill pane is toggled', () => {
     const sized = <div>sized</div>;
     const {rerender} = render(
-      <SplitPanel
-        orientation="horizontal"
-        defaultSize={200}
-        sized={sized}
-        fill={<div>fill</div>}
-      />
+      <SplitPanel defaultSize={200} sized={sized} fill={<div>fill</div>} />
     );
     const before = screen.getByText('sized');
 
-    rerender(<SplitPanel orientation="horizontal" defaultSize={200} sized={sized} />);
+    rerender(<SplitPanel defaultSize={200} sized={sized} />);
 
     expect(screen.getByText('sized')).toBe(before);
-  });
-
-  it('places the sized pane after the fill pane when placement is "end"', () => {
-    render(
-      <SplitPanel
-        orientation="horizontal"
-        placement="end"
-        defaultSize={200}
-        sized={<div>sized</div>}
-        fill={<div>fill</div>}
-      />
-    );
-
-    const sized = screen.getByText('sized');
-    const fill = screen.getByText('fill');
-    // `sized` follows `fill` in the DOM.
-    expect(
-      fill.compareDocumentPosition(sized) & Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy();
   });
 
   it('exposes the divider as a separator with orientation and value attributes', () => {
     render(
       <SplitPanel
-        orientation="horizontal"
         defaultSize={200}
         minSize={100}
         maxSize={600}
@@ -99,6 +73,9 @@ describe('SplitPanel', () => {
     expect(separator).toHaveAttribute('aria-orientation', 'vertical');
     expect(separator).toHaveAttribute('aria-valuemin', '100');
     expect(separator).toHaveAttribute('aria-valuemax', '600');
+
+    // https://github.com/testing-library/jest-dom/issues/735
+    // eslint-disable-next-line jest-dom/prefer-to-have-value
     expect(separator).toHaveAttribute('aria-valuenow', '200');
     expect(separator).toHaveAttribute('tabindex', '0');
   });
@@ -108,7 +85,6 @@ describe('SplitPanel', () => {
     render(
       <SplitPanel
         ref={ref}
-        orientation="horizontal"
         defaultSize={200}
         minSize={100}
         maxSize={600}
@@ -117,11 +93,15 @@ describe('SplitPanel', () => {
       />
     );
 
+    // https://github.com/testing-library/jest-dom/issues/735
+    // eslint-disable-next-line jest-dom/prefer-to-have-value
     expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '200');
 
     // Lets a parent seed the size from a post-mount measurement without a remount.
     act(() => ref.current?.setSize(350));
 
+    // https://github.com/testing-library/jest-dom/issues/735
+    // eslint-disable-next-line jest-dom/prefer-to-have-value
     expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '350');
   });
 
@@ -133,7 +113,6 @@ describe('SplitPanel', () => {
 
       render(
         <SplitPanel
-          orientation="horizontal"
           defaultSize={200}
           minSize={100}
           fillMinSize={400}
@@ -155,7 +134,6 @@ describe('SplitPanel', () => {
 
       render(
         <SplitPanel
-          orientation="horizontal"
           defaultSize={200}
           minSize={100}
           sized={<div>sized</div>}
@@ -175,7 +153,6 @@ describe('SplitPanel', () => {
       const onResizeEnd = jest.fn();
       render(
         <SplitPanel
-          orientation="horizontal"
           defaultSize={200}
           initialSize={400}
           minSize={100}
@@ -187,11 +164,17 @@ describe('SplitPanel', () => {
 
       const separator = screen.getByRole('separator');
       // `initialSize` seeds the starting value.
+
+      // https://github.com/testing-library/jest-dom/issues/735
+      // eslint-disable-next-line jest-dom/prefer-to-have-value
       expect(separator).toHaveAttribute('aria-valuenow', '400');
 
       await userEvent.dblClick(separator);
 
       // Resets to the canonical default and reports it so consumers can persist.
+
+      // https://github.com/testing-library/jest-dom/issues/735
+      // eslint-disable-next-line jest-dom/prefer-to-have-value
       expect(separator).toHaveAttribute('aria-valuenow', '200');
       expect(onResizeEnd).toHaveBeenCalledWith({
         startSize: 400,
@@ -204,7 +187,6 @@ describe('SplitPanel', () => {
       const onResizeEnd = jest.fn();
       render(
         <SplitPanel
-          orientation="horizontal"
           defaultSize={200}
           initialSize={-50}
           minSize={100}
@@ -216,6 +198,9 @@ describe('SplitPanel', () => {
 
       const separator = screen.getByRole('separator');
       // Renders floored at min, not the seeded -50.
+
+      // https://github.com/testing-library/jest-dom/issues/735
+      // eslint-disable-next-line jest-dom/prefer-to-have-value
       expect(separator).toHaveAttribute('aria-valuenow', '100');
 
       await userEvent.dblClick(separator);
@@ -232,7 +217,6 @@ describe('SplitPanel', () => {
       const onResizeEnd = jest.fn();
       render(
         <SplitPanel
-          orientation="horizontal"
           defaultSize={200}
           initialSize={-50}
           minSize={100}
@@ -253,35 +237,16 @@ describe('SplitPanel', () => {
         endSize: 110,
         direction: 'increase',
       });
+
+      // https://github.com/testing-library/jest-dom/issues/735
+      // eslint-disable-next-line jest-dom/prefer-to-have-value
       expect(separator).toHaveAttribute('aria-valuenow', '110');
-    });
-
-    it('reports a clamped size to onResize at mount when seeded below min', () => {
-      const onResize = jest.fn();
-      render(
-        <SplitPanel
-          orientation="horizontal"
-          defaultSize={200}
-          initialSize={-50}
-          minSize={100}
-          onResize={onResize}
-          sized={<div>sized</div>}
-          fill={<div>fill</div>}
-        />
-      );
-
-      // The drawer hook fires onResize at mount with the raw initialSize; it
-      // must be floored at min so it matches the rendered size.
-      expect(onResize).toHaveBeenCalledWith(100);
-      expect(onResize).not.toHaveBeenCalledWith(-50);
     });
 
     it('treats a Home/End edge as a no-op while max is unbounded', async () => {
       const onResizeEnd = jest.fn();
       render(
         <SplitPanel
-          orientation="horizontal"
-          placement="end"
           defaultSize={200}
           minSize={100}
           onResizeEnd={onResizeEnd}
@@ -292,10 +257,12 @@ describe('SplitPanel', () => {
 
       const separator = screen.getByRole('separator');
       separator.focus();
-      // With the sized pane last, Home targets max — but max is unbounded until
-      // the container is measured, so it must not set an infinite size.
-      await userEvent.keyboard('{Home}');
+      // End targets max — but max is unbounded until the container is
+      // measured, so it must not set an infinite size.
+      await userEvent.keyboard('{End}');
 
+      // https://github.com/testing-library/jest-dom/issues/735
+      // eslint-disable-next-line jest-dom/prefer-to-have-value
       expect(separator).toHaveAttribute('aria-valuenow', '200');
       expect(onResizeEnd).not.toHaveBeenCalled();
     });
@@ -304,7 +271,6 @@ describe('SplitPanel', () => {
       const onResizeEnd = jest.fn();
       render(
         <SplitPanel
-          orientation="horizontal"
           defaultSize={200}
           minSize={100}
           onResizeEnd={onResizeEnd}
@@ -328,7 +294,6 @@ describe('SplitPanel', () => {
       const onResizeEnd = jest.fn();
       render(
         <SplitPanel
-          orientation="horizontal"
           defaultSize={200}
           minSize={100}
           onResizeEnd={onResizeEnd}
@@ -338,16 +303,11 @@ describe('SplitPanel', () => {
       );
 
       const separator = screen.getByRole('separator');
-      await userEvent.pointer([
-        {keys: '[MouseLeft>]', target: separator, coords: {x: 200, y: 0}},
-        {target: separator, coords: {x: 150, y: 0}},
-      ]);
+      dragHandle(separator, {from: 200, to: 150});
+
+      // https://github.com/testing-library/jest-dom/issues/735
+      // eslint-disable-next-line jest-dom/prefer-to-have-value
       await waitFor(() => expect(separator).toHaveAttribute('aria-valuenow', '150'));
-
-      act(() => {
-        document.dispatchEvent(new MouseEvent('pointerup', {bubbles: true}));
-      });
-
       await waitFor(() =>
         expect(onResizeEnd).toHaveBeenCalledWith({
           startSize: 200,
@@ -355,33 +315,6 @@ describe('SplitPanel', () => {
           direction: 'decrease',
         })
       );
-    });
-
-    it('maps arrow keys to physical direction for placement="end"', async () => {
-      const onResizeEnd = jest.fn();
-      render(
-        <SplitPanel
-          orientation="horizontal"
-          placement="end"
-          defaultSize={200}
-          minSize={100}
-          onResizeEnd={onResizeEnd}
-          sized={<div>sized</div>}
-          fill={<div>fill</div>}
-        />
-      );
-
-      const separator = screen.getByRole('separator');
-      separator.focus();
-      // The sized pane sits after the divider, so moving the separator right
-      // (ArrowRight) shrinks it, matching the drag direction.
-      await userEvent.keyboard('{ArrowRight}');
-
-      expect(onResizeEnd).toHaveBeenCalledWith({
-        startSize: 200,
-        endSize: 190,
-        direction: 'decrease',
-      });
     });
   });
 });

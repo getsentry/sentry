@@ -88,6 +88,10 @@ export function TypeBadge({
     return <Text variant="warning">{t('number')}</Text>;
   }
 
+  if (valueType === FieldValueType.ARRAY || kind === FieldKind.ARRAY) {
+    return <Text variant="success">{t('array')}</Text>;
+  }
+
   if (valueType === FieldValueType.STRING || kind === FieldKind.TAG) {
     return <Text variant="accent">{t('string')}</Text>;
   }

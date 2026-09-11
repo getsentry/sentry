@@ -52,12 +52,27 @@ def _drain_outbox() -> None:
     drain_outbox_shards(outbox_identifier_low=lo, outbox_identifier_hi=hi + 1)
 
 
-def main(org_id: int, max_candidates: int | None, drain: bool) -> None:
-    sys.stdout.write(f"> Running night shift for organization {org_id}...\n")
-    run_options: SeerNightShiftRunOptionsPartial = {"source": "manual"}
+def main(
+    org_id: int,
+    max_candidates: int | None,
+    drain: bool,
+    schedule_id: str | None,
+    dry_run: bool,
+) -> None:
+    if schedule_id is None:
+        sys.stdout.write(f"> Running manual night shift for organization {org_id}...\n")
+    else:
+        sys.stdout.write(
+            f"> Running scheduled night shift window {schedule_id} for organization {org_id}...\n"
+        )
+
+    run_options: SeerNightShiftRunOptionsPartial = {
+        "source": "cron" if schedule_id is not None else "manual",
+        "dry_run": dry_run,
+    }
     if max_candidates is not None:
         run_options["max_candidates"] = max_candidates
-    run_id = run_night_shift_for_org(org_id, options=run_options)
+    run_id = run_night_shift_for_org(org_id, options=run_options, schedule_id=schedule_id)
     sys.stdout.write("> Done.\n")
 
     if run_id is None:
@@ -112,10 +127,19 @@ if __name__ == "__main__":
         help="Override the candidate cap (default: seer.night_shift.issues_per_org option)",
     )
     parser.add_argument(
+        "--schedule-id",
+        help="Run through the scheduled/idempotent path with this schedule window identifier",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Do not trigger Autofix when Seer returns verdicts",
+    )
+    parser.add_argument(
         "--no-drain",
         action="store_false",
         dest="drain",
         help="Skip draining the outbox (leave the run PENDING for the cron to dispatch)",
     )
     args = parser.parse_args()
-    main(args.org_id, args.max_candidates, args.drain)
+    main(args.org_id, args.max_candidates, args.drain, args.schedule_id, args.dry_run)

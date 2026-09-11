@@ -6,6 +6,7 @@ import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selecti
 import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useIsFetching} from '@tanstack/react-query';
 import {animate, AnimatePresence, motion} from 'framer-motion';
 
@@ -36,6 +37,7 @@ import {
 import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCommandPaletteAnalytics';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {
   IconArrow,
   IconClose,
@@ -50,7 +52,6 @@ import {t} from 'sentry/locale';
 import {fzf} from 'sentry/utils/search/fzf';
 import type {Theme} from 'sentry/utils/theme';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useNavigate} from 'sentry/utils/useNavigate';
 const MotionButton = motion.create(Button);
@@ -113,6 +114,9 @@ export function CommandPalette({
 
   const getDocEl = useCallback(
     () => state.input.current?.closest('[role="document"]') as HTMLElement | null,
+    // The dependency is the ref object while React Compiler infers the `.current`
+    // read inside the callback. Refs are stable, so the memoization already holds.
+    // oxlint-disable-next-line react/preserve-manual-memoization
     [state.input]
   );
 
@@ -140,7 +144,9 @@ export function CommandPalette({
     preload(errorIllustration, {as: 'image'});
   }
 
-  const debouncedQuery = useDebouncedValue(state.query, 300);
+  const [debouncedQuery] = useDebouncedValue(state.query, {
+    wait: DEFAULT_DEBOUNCE_DURATION,
+  });
   const isFetchingQueries = useIsFetching({predicate: q => q.meta?.cmdk === true});
   const isLoading =
     state.list === 'active' &&
@@ -210,7 +216,7 @@ export function CommandPalette({
               children: [] as CMDKFlatItem[],
               listItemType: 'action' as const,
               display: {label: t('Tell us what to improve'), icon: <IconMegaphone />},
-              onAction: () => openForm({tags: {['feedback.source']: 'command_palette'}}),
+              onAction: () => openForm({tags: {'feedback.source': 'command_palette'}}),
             },
           ]
         : []),
@@ -261,7 +267,7 @@ export function CommandPalette({
     );
   }, [actions]);
 
-  const treeState = useTreeState({
+  const treeState = useTreeState<CommandPaletteActionMenuItem>({
     disabledKeys: sectionKeys,
     children: actions.map(action => {
       const menuItem = makeMenuItemFromAction(action, prefixMap);
@@ -681,7 +687,6 @@ export function CommandPalette({
             overlayIsOpen
             virtualized
             virtualizedListPadding={0}
-            size="md"
             aria-label={t('Search results')}
             selectionMode="none"
             shouldUseVirtualFocus
@@ -716,7 +721,7 @@ export function CommandPalette({
 function presortBySlotRef(
   nodes: Array<CollectionTreeNode<CMDKActionData>>
 ): Array<CollectionTreeNode<CMDKActionData>> {
-  return [...nodes].sort((a, b) => {
+  return nodes.toSorted((a, b) => {
     const aEl = a.ref?.current ?? null;
     const bEl = b.ref?.current ?? null;
 
@@ -1249,7 +1254,7 @@ function CommandPaletteNoResults() {
             variant="primary"
             feedbackOptions={{
               tags: {
-                ['feedback.source']: 'command_palette',
+                'feedback.source': 'command_palette',
               },
             }}
           />

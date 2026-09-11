@@ -27,7 +27,7 @@ class OrganizationEventsPreprodSizeEndpointTest(OrganizationEventsEndpointTestBa
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
         with self.feature(features):
-            return self.client.get(url, data=data, format="json")
+            return self.client_get(data=data, url=url)
 
     def test_simple_table_query(self) -> None:
         """Test basic table query returns size metrics."""

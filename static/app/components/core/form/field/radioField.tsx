@@ -53,6 +53,7 @@ function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
       onChange(newValue);
       if (autoSaveContext) {
         // Radios should reset to previous value on error
+        // oxlint-disable-next-line react/immutability
         autoSaveContext.resetOnErrorRef.current = true;
         field.handleBlur();
       }
@@ -96,9 +97,9 @@ function RadioItem({children, value, description}: RadioItemProps) {
         onChange={() => onChange(value)}
       />
       <Stack gap="xs" paddingTop="xs">
-        <Text>{children}</Text>
+        <Text bold={false}>{children}</Text>
         {description && (
-          <Text size="sm" variant="muted" id={descriptionId}>
+          <Text bold={false} size="sm" variant="muted" id={descriptionId}>
             {description}
           </Text>
         )}

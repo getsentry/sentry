@@ -15,7 +15,7 @@ export function MarkdownTextArea({className, ...props}: MarkdownTextAreaProps) {
   return (
     <Container position="relative" className={className}>
       <RightPaddedTextArea autosize rows={5} maxRows={10} {...props} />
-      <Container position="absolute" top="8px " right="10px">
+      <Container position="absolute" top="8px" right="10px">
         <Tooltip title={t('Markdown supported')}>
           <IconMarkdown size="md" variant="muted" />
         </Tooltip>

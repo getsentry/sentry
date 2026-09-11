@@ -14,7 +14,7 @@ interface AssistantMessageProps extends React.HTMLAttributes<HTMLDivElement> {
  */
 export function AssistantMessage({children, ...props}: AssistantMessageProps) {
   return (
-    <Container width="100%" minWidth={0} overflow="hidden" {...props}>
+    <Container width="100%" minWidth={0} {...props}>
       {children}
     </Container>
   );

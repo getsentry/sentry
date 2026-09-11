@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, ClassVar, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import JSONField
 from django.db.models.functions import Cast
-from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
@@ -24,6 +23,7 @@ from sentry.api.serializers.models.role import (
 )
 from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.api.utils import generate_locality_url
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.auth.access import Access
 from sentry.auth.services.auth import RpcOrganizationAuthConfig, auth_service
 from sentry.constants import (
@@ -103,16 +103,6 @@ START_DATE_FOR_CHECKING_ONBOARDING_COMPLETION = datetime(2024, 10, 30, tzinfo=ti
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
 logger = logging.getLogger(__name__)
-
-# A mapping of OrganizationOption keys to a list of frontend features, and functions to apply the feature.
-# Enabling feature-flagging frontend components without an extra API call/endpoint to verify
-# the OrganizationOption.
-OptionFeature = tuple[str, Callable[[OrganizationOption], bool]]
-ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, list[OptionFeature]] = {
-    "quotas:new-spike-protection": [
-        ("spike-projections", lambda opt: bool(opt.value)),
-    ],
-}
 
 
 class _Status(TypedDict):
@@ -519,15 +509,6 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
         if "api-keys" not in feature_set and attrs["has_api_key"]:
             feature_set.add("api-keys")
 
-        # Organization flag features (not provided through the features module)
-        options_as_features = OrganizationOption.objects.filter(
-            organization=obj, key__in=ORGANIZATION_OPTIONS_AS_FEATURES.keys()
-        )
-        for option in options_as_features:
-            for option_feature, option_function in ORGANIZATION_OPTIONS_AS_FEATURES[option.key]:
-                if option_function(option):
-                    feature_set.add(option_feature)
-
         if getattr(obj.flags, "allow_joinleave"):
             feature_set.add("open-membership")
         if not getattr(obj.flags, "disable_shared_issues"):
@@ -646,7 +627,11 @@ class _OrganizationSerializerResponseOptional(OrganizationSummarySerializerRespo
     dashboardsAsyncQueueParallelLimit: int
 
 
-@extend_schema_serializer(exclude_fields=["availableRoles"])
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "availableRoles": "Deprecated, superseded by orgRoleList.",
+    }
+)
 class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
     experiments: dict[str, str]
     isDefault: bool
@@ -946,20 +931,19 @@ class OrganizationSerializer(OrganizationSummarySerializer):
         return context
 
 
-@extend_schema_serializer(
-    exclude_fields=[
-        "availableRoles",
-        "genAIConsent",
-        "quota",
-        "rollbackEnabled",
-        "streamlineOnly",
-        "ingestThroughTrustedRelaysOnly",
-        "enabledConsolePlatforms",
-        "consoleSdkInviteQuota",
-        "dashboardsAsyncQueueParallelLimit",
-        "hasGranularReplayPermissions",
-        "replayAccessMembers",
-    ]
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "availableRoles": "Deprecated, superseded by orgRoleList.",
+        "genAIConsent": "Internal consent flag surfaced only to the Sentry UI.",
+        "rollbackEnabled": "Internal feature toggle surfaced only to the Sentry UI.",
+        "streamlineOnly": "Internal UI preference flag.",
+        "ingestThroughTrustedRelaysOnly": "Internal relay ingestion setting.",
+        "enabledConsolePlatforms": "Internal console-platform allowlist.",
+        "consoleSdkInviteQuota": "Internal console SDK invite quota.",
+        "dashboardsAsyncQueueParallelLimit": "Internal query-queue tuning value.",
+        "hasGranularReplayPermissions": "Internal replay permission flag surfaced only to the Sentry UI.",
+        "replayAccessMembers": "Internal replay access list surfaced only to the Sentry UI.",
+    }
 )
 class OrganizationWithProjectsAndTeamsSerializerResponse(OrganizationSerializerResponse):
     teams: list[TeamSerializerResponse]

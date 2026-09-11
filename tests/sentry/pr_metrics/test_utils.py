@@ -16,7 +16,11 @@ from sentry.models.pullrequest import (
     PullRequestMetrics,
     PullRequestVerdict,
 )
-from sentry.pr_metrics.utils import is_activity_tracking_enabled, org_has_coding_agent_for_provider
+from sentry.pr_metrics.utils import (
+    is_activity_tracking_enabled,
+    org_has_coding_agent_for_provider,
+    unattributed_activity_cutoff,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -38,14 +42,14 @@ class IsActivityTrackingEnabledTest(TestCase):
         assert not is_activity_tracking_enabled(self.organization, pr=pr)
 
     def test_no_pr_returns_true_when_flag_enabled(self) -> None:
-        with self.feature("organizations:pr-metrics-activity"):
+        with self.feature(["organizations:pr-metrics"]):
             assert is_activity_tracking_enabled(self.organization)
 
     def test_within_buffer_no_attribution_returns_true(self) -> None:
         now = timezone.now()
         with freeze_time(now):
             pr = self._make_pr()
-            with self.feature("organizations:pr-metrics-activity"):
+            with self.feature(["organizations:pr-metrics"]):
                 assert is_activity_tracking_enabled(self.organization, pr=pr)
 
     def test_within_buffer_with_attribution_returns_true(self) -> None:
@@ -58,7 +62,7 @@ class IsActivityTrackingEnabledTest(TestCase):
                 source=PullRequestAttributionSource.WEBHOOK_DATA,
                 is_valid=True,
             )
-            with self.feature("organizations:pr-metrics-activity"):
+            with self.feature(["organizations:pr-metrics"]):
                 assert is_activity_tracking_enabled(self.organization, pr=pr)
 
     def test_after_buffer_no_attribution_returns_false(self) -> None:
@@ -66,7 +70,7 @@ class IsActivityTrackingEnabledTest(TestCase):
         with freeze_time(past):
             pr = self._make_pr()
 
-        with self.feature("organizations:pr-metrics-activity"):
+        with self.feature(["organizations:pr-metrics"]):
             assert not is_activity_tracking_enabled(self.organization, pr=pr)
 
     def test_after_buffer_with_valid_attribution_returns_true(self) -> None:
@@ -80,7 +84,7 @@ class IsActivityTrackingEnabledTest(TestCase):
             source=PullRequestAttributionSource.WEBHOOK_DATA,
             is_valid=True,
         )
-        with self.feature("organizations:pr-metrics-activity"):
+        with self.feature(["organizations:pr-metrics"]):
             assert is_activity_tracking_enabled(self.organization, pr=pr)
 
     def test_after_buffer_only_invalid_attribution_returns_false(self) -> None:
@@ -94,14 +98,14 @@ class IsActivityTrackingEnabledTest(TestCase):
             source=PullRequestAttributionSource.WEBHOOK_DATA,
             is_valid=False,
         )
-        with self.feature("organizations:pr-metrics-activity"):
+        with self.feature(["organizations:pr-metrics"]):
             assert not is_activity_tracking_enabled(self.organization, pr=pr)
 
     def test_superseded_pr_returns_false_without_db_queries(self) -> None:
         pr = self._make_pr()
         pr.state = PullRequestLifecycleState.SUPERSEDED
         pr.save()
-        with self.feature("organizations:pr-metrics-activity"):
+        with self.feature(["organizations:pr-metrics"]):
             assert not is_activity_tracking_enabled(self.organization, pr=pr)
 
     def test_closed_pr_within_buffer_collects_activity_to_capture_closer(self) -> None:
@@ -111,14 +115,14 @@ class IsActivityTrackingEnabledTest(TestCase):
         pr = self._make_pr()
         pr.state = PullRequestLifecycleState.CLOSED
         pr.save()
-        with self.feature("organizations:pr-metrics-activity"):
+        with self.feature(["organizations:pr-metrics"]):
             assert is_activity_tracking_enabled(self.organization, pr=pr)
 
     def test_merged_pr_within_buffer_collects_activity_to_capture_closer(self) -> None:
         pr = self._make_pr()
         pr.state = PullRequestLifecycleState.MERGED
         pr.save()
-        with self.feature("organizations:pr-metrics-activity"):
+        with self.feature(["organizations:pr-metrics"]):
             assert is_activity_tracking_enabled(self.organization, pr=pr)
 
     def test_terminal_pr_blocked_once_verdict_claimed(self) -> None:
@@ -131,7 +135,7 @@ class IsActivityTrackingEnabledTest(TestCase):
             pull_request=pr,
             verdict=PullRequestVerdict.MERGED_UNCHANGED,
         )
-        with self.feature("organizations:pr-metrics-activity"):
+        with self.feature(["organizations:pr-metrics"]):
             assert not is_activity_tracking_enabled(self.organization, pr=pr)
 
     def test_after_buffer_valid_attribution_but_verdict_set_returns_false(self) -> None:
@@ -149,7 +153,7 @@ class IsActivityTrackingEnabledTest(TestCase):
             pull_request=pr,
             verdict=PullRequestVerdict.MERGED_UNCHANGED,
         )
-        with self.feature("organizations:pr-metrics-activity"):
+        with self.feature(["organizations:pr-metrics"]):
             assert not is_activity_tracking_enabled(self.organization, pr=pr)
 
     def test_open_pr_within_buffer_not_blocked_by_state_check(self) -> None:
@@ -158,7 +162,7 @@ class IsActivityTrackingEnabledTest(TestCase):
             pr = self._make_pr()
             pr.state = PullRequestLifecycleState.OPEN
             pr.save()
-            with self.feature("organizations:pr-metrics-activity"):
+            with self.feature(["organizations:pr-metrics"]):
                 assert is_activity_tracking_enabled(self.organization, pr=pr)
 
     def test_for_terminal_event_bypasses_state_and_verdict_gates(self) -> None:
@@ -168,7 +172,7 @@ class IsActivityTrackingEnabledTest(TestCase):
         PullRequestMetrics.objects.create(
             pull_request=pr, verdict=PullRequestVerdict.MERGED_UNCHANGED
         )
-        with self.feature("organizations:pr-metrics-activity"):
+        with self.feature(["organizations:pr-metrics"]):
             # The normal gate blocks (superseded state + claimed verdict)...
             assert not is_activity_tracking_enabled(self.organization, pr=pr)
             # ...but a terminal event bypasses both, subject only to the buffer gate.
@@ -178,11 +182,36 @@ class IsActivityTrackingEnabledTest(TestCase):
         past = timezone.now() - timedelta(hours=31)
         with freeze_time(past):
             pr = self._make_pr()
-        with self.feature("organizations:pr-metrics-activity"):
+        with self.feature(["organizations:pr-metrics"]):
             # Outside the buffer with no attribution, even a terminal event is gated.
             assert not is_activity_tracking_enabled(
                 self.organization, pr=pr, for_terminal_event=True
             )
+
+
+class UnattributedActivityCutoffTest(TestCase):
+    def setUp(self) -> None:
+        self.repo = self.create_repo(
+            self.project, name="getsentry/sentry", provider="integrations:github"
+        )
+
+    def test_is_one_attribution_buffer_back(self) -> None:
+        now = timezone.now()
+        with freeze_time(now):
+            assert unattributed_activity_cutoff() == now - timedelta(hours=30)
+
+    def test_boundary_matches_the_tracking_gate(self) -> None:
+        # The cutoff is only sound because the gate has stopped writing by the time a
+        # PR's activity reaches it; the two must not drift apart.
+        now = timezone.now()
+        with freeze_time(now - timedelta(hours=31)):
+            pr = self.create_pull_request(
+                organization_id=self.organization.id, repository_id=self.repo.id
+            )
+        with freeze_time(now):
+            assert pr.date_added < unattributed_activity_cutoff()
+            with self.feature(["organizations:pr-metrics"]):
+                assert not is_activity_tracking_enabled(self.organization, pr=pr)
 
 
 class OrgHasCodingAgentForProviderTest(TestCase):

@@ -13,6 +13,7 @@ import {
   useSpanSearchQueryBuilderProps,
   type UseSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -23,13 +24,14 @@ import {
   ExploreBodySearch,
 } from 'sentry/views/explore/components/styles';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
 import {ConversationsChart} from 'sentry/views/explore/conversations/components/conversationsChart';
 import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {SaveConversationQueryButton} from 'sentry/views/explore/conversations/components/saveConversationQueryButton';
+import {useConversations} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
-import {hasGenAiConversationsRedesignFeature} from 'sentry/views/explore/conversations/utils/features';
 import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
@@ -49,6 +51,18 @@ function ConversationsOverviewPage() {
     isLoading: isOnboardingLoading,
     refetch: refetchOnboarding,
   } = useShowConversationOnboarding();
+  const {
+    data: conversations,
+    isFetching: isConversationsFetching,
+    error: conversationsError,
+  } = useConversations();
+  const showMissingMessagesAlert =
+    !isConversationsFetching &&
+    !conversationsError &&
+    conversations.length > 0 &&
+    conversations.every(
+      conversation => !conversation.firstInput && !conversation.lastOutput
+    );
 
   const [searchQuery, setSearchQuery] = useQueryState(
     'query',
@@ -106,8 +120,24 @@ function ConversationsOverviewPage() {
   const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =
     useSpanSearchQueryBuilderProps(searchQueryBuilderProps);
 
+  // Value counts are span-level and can imply conversation results that the list
+  // will not return. Strip them so autocomplete only shows attribute values.
+  const searchQueryBuilderProviderProps = useMemo(() => {
+    const getTagValuesWithoutCounts: GetTagValues = async params => {
+      const values = await spanSearchQueryBuilderProviderProps.getTagValues(params);
+      return values.map(value =>
+        typeof value === 'string' ? value : {value: value.value}
+      );
+    };
+
+    return {
+      ...spanSearchQueryBuilderProviderProps,
+      getTagValues: getTagValuesWithoutCounts,
+    };
+  }, [spanSearchQueryBuilderProviderProps]);
+
   return (
-    <SearchQueryBuilderProvider {...spanSearchQueryBuilderProviderProps}>
+    <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
       <ExploreBodySearch>
         <Layout.Main width="full">
           <Stack gap="md">
@@ -146,9 +176,8 @@ function ConversationsOverviewPage() {
             <ConversationOnboarding onDismiss={refetchOnboarding} />
           ) : (
             <Fragment>
-              {hasGenAiConversationsRedesignFeature(organization) && (
-                <ConversationsChart />
-              )}
+              {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
+              <ConversationsChart />
               <ConversationsTable />
             </Fragment>
           )}

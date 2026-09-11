@@ -85,7 +85,7 @@ interface DataCategoryFormattingInfo {
   /**
    * BigNum unit type for formatting large numbers.
    * 0 = numbers (standard numeric formatting)
-   * 1 = kiloBytes (byte-based formatting with KB/MB/GB suffixes)
+   * 1 = kiloBytes (byte-based formatting with kB/MB/GB suffixes)
    */
   bigNumUnit: 0 | 1;
   /**

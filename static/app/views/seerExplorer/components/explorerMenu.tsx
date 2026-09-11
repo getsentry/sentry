@@ -11,7 +11,6 @@ interface SlashCommandHandlers {
   onBashMode?: (value: boolean) => void;
   onCodeMode?: (value: 'off' | 'on' | 'only') => void;
   onConversations?: () => void;
-  onLangfuse?: () => void;
   onMaxSize?: () => void;
   onMedSize?: () => void;
 }
@@ -121,6 +120,7 @@ export function useExplorerMenu({
   // Toggle between slash-commands-keyboard and hidden modes based on filteredSlashCommands.
   useEffect(() => {
     if (menuMode === 'slash-commands-keyboard' && filteredSlashCommands.length === 0) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setMenuMode('hidden');
     } else if (menuMode === 'hidden' && filteredSlashCommands.length > 0) {
       setMenuMode('slash-commands-keyboard');
@@ -134,6 +134,7 @@ export function useExplorerMenu({
 
   // Reset selected index when items change
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setSelectedIndex(0);
   }, [menuItems]);
 
@@ -204,6 +205,7 @@ export function useExplorerMenu({
   // Calculate menu position based on anchor element
   useEffect(() => {
     if (!isVisible) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setMenuPosition({});
       return;
     }
@@ -290,7 +292,6 @@ function useSlashCommands({
   onMedSize,
   onNew,
   onFeedback,
-  onLangfuse,
   onConversations,
   onCodeMode,
 }: SlashCommandHandlers): MenuItemProps[] {
@@ -372,16 +373,6 @@ function useSlashCommands({
             },
           ]
         : []),
-      ...(isSentryEmployee && onLangfuse
-        ? [
-            {
-              title: '/langfuse',
-              key: '/langfuse',
-              description: 'Open Langfuse to view session details',
-              handler: onLangfuse,
-            },
-          ]
-        : []),
       ...(isSentryEmployee && onConversations
         ? [
             {
@@ -400,7 +391,6 @@ function useSlashCommands({
       onFeedback,
       onBashMode,
       onCodeMode,
-      onLangfuse,
       onConversations,
       isSentryEmployee,
     ]

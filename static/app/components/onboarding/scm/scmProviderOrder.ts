@@ -20,7 +20,7 @@ function providerOrderRank(key: string): number {
  * lists and integration lists so they share one ordering.
  */
 export function sortByScmProviderOrder<T>(items: T[], getKey: (item: T) => string): T[] {
-  return [...items].sort(
+  return items.toSorted(
     (a, b) => providerOrderRank(getKey(a)) - providerOrderRank(getKey(b))
   );
 }

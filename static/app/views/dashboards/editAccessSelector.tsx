@@ -163,7 +163,6 @@ export function EditAccessSelector({
     return (
       <Tooltip
         title={renderCollapsedAvatarTooltip()}
-        isHoverable
         overlayStyle={{
           pointerEvents: 'auto',
           zIndex: 1000,
@@ -363,7 +362,6 @@ export function EditAccessSelector({
       }
       position="bottom-end"
       strategy="fixed"
-      preventOverflowOptions={{mainAxis: false}}
       disabled={disabled}
     />
   );

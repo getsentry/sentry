@@ -46,7 +46,7 @@ const DEFAULT_COLUMN_WIDTH = 88;
 const DYNAMIC_COLUMN_INDEX = 2;
 const MIN_DYNAMIC_COLUMN_WIDTH = 180;
 const OVERSCAN = 20;
-const STATIC_COLUMN_WIDTHS = [76, 76, 0, 88, 88, 98, 116];
+const STATIC_COLUMN_WIDTHS = [76, 104, 0, 88, 88, 98, 116];
 
 export function NetworkList() {
   const organization = useOrganization();
@@ -255,6 +255,7 @@ export function NetworkList() {
                                   key={`${virtualRow.key}-${columnIndex}`}
                                   columnIndex={columnIndex}
                                   frame={network}
+                                  isSelected={selectedIndex === virtualRow.index}
                                   onMouseEnter={onMouseEnter}
                                   onMouseLeave={onMouseLeave}
                                   onClickCell={onClickCell}

@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
+from datetime import datetime
 from typing import TypedDict, cast
 
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, Q, Subquery
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -19,9 +21,15 @@ from sentry.api.serializers.models.pullrequest import (
     get_stored_pull_request_status,
 )
 from sentry.constants import ObjectStatus
-from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.pull_request_status_batch import (
+    get_checks_and_review,
+    get_provider_installation,
+    get_pull_request_repo_name,
+)
+from sentry.integrations.source_code_management.status_check import PullRequestStatusResult
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
+from sentry.models.grouphistory import RESOLVED_STATUSES, GroupHistory, GroupHistoryStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
@@ -29,6 +37,18 @@ from sentry.models.repository import Repository
 logger = logging.getLogger(__name__)
 
 DEFAULT_LIMIT = 5
+
+_ISSUE_STATE_HISTORY_STATUSES = (
+    GroupHistoryStatus.ONGOING,
+    *RESOLVED_STATUSES,
+    GroupHistoryStatus.IGNORED,
+    GroupHistoryStatus.UNIGNORED,
+    GroupHistoryStatus.REGRESSED,
+    GroupHistoryStatus.ESCALATING,
+    GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING,
+    GroupHistoryStatus.ARCHIVED_FOREVER,
+    GroupHistoryStatus.ARCHIVED_UNTIL_CONDITION_MET,
+)
 
 
 class ProviderPullRequestResponse(TypedDict, total=False):
@@ -38,6 +58,7 @@ class ProviderPullRequestResponse(TypedDict, total=False):
 
 
 class GroupPullRequestsResponse(TypedDict):
+    latestRegressionAt: datetime | None
     pullRequests: list[LinkedPullRequestResponse]
 
 
@@ -65,34 +86,48 @@ def _get_valid_group_pull_request_links(group: Group, organization_id: int) -> l
     )
 
 
-def _get_pull_request_repo_name(repository: Repository) -> str:
-    config_name = repository.config.get("name")
-    if isinstance(config_name, str) and config_name:
-        return config_name
-    return repository.name
+def _get_latest_regression_at(group: Group) -> datetime | None:
+    previous_status = (
+        GroupHistory.objects.filter(
+            group_id=OuterRef("group_id"),
+            status__in=_ISSUE_STATE_HISTORY_STATUSES,
+        )
+        .filter(
+            Q(date_added__lt=OuterRef("date_added"))
+            | Q(date_added=OuterRef("date_added"), id__lt=OuterRef("id"))
+        )
+        .order_by("-date_added", "-id")
+        .values("status")[:1]
+    )
+
+    return (
+        GroupHistory.objects.filter(
+            group_id=group.id,
+            status__in=(GroupHistoryStatus.REGRESSED, GroupHistoryStatus.ONGOING),
+        )
+        .alias(previous_status=Subquery(previous_status))
+        .filter(
+            Q(status=GroupHistoryStatus.REGRESSED)
+            | Q(status=GroupHistoryStatus.ONGOING, previous_status__in=RESOLVED_STATUSES)
+        )
+        .order_by("-date_added", "-id")
+        .values_list("date_added", flat=True)
+        .first()
+    )
 
 
 def _fetch_pull_request_status_response(
     pull_request: PullRequest, repository: Repository
 ) -> ProviderPullRequestResponse | None:
-    if repository.integration_id is None:
+    installation = get_provider_installation(pull_request, repository)
+    if installation is None:
         return None
 
-    integration = integration_service.get_integration(
-        integration_id=repository.integration_id,
-        organization_id=pull_request.organization_id,
-        status=ObjectStatus.ACTIVE,
-    )
-    if integration is None:
-        return None
-
-    installation = integration.get_installation(organization_id=pull_request.organization_id)
-    client = installation.get_client()
-    get_pull_request = getattr(client, "get_pull_request", None)
+    get_pull_request = getattr(installation.get_client(), "get_pull_request", None)
     if not callable(get_pull_request):
         return None
 
-    response = get_pull_request(_get_pull_request_repo_name(repository), pull_request.key)
+    response = get_pull_request(get_pull_request_repo_name(repository), pull_request.key)
     if not isinstance(response, Mapping):
         return None
 
@@ -163,7 +198,9 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
         organization_id = group.project.organization_id
         group_links = _get_valid_group_pull_request_links(group, organization_id)
         if not group_links:
-            return Response({"pullRequests": []})
+            return Response({"latestRegressionAt": None, "pullRequests": []})
+
+        latest_regression_at = _get_latest_regression_at(group)
 
         pull_request_ids = [link.linked_id for link in group_links]
         pull_requests_by_id = PullRequest.objects.filter(
@@ -195,6 +232,14 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
             for pull_request in pull_requests
         }
 
+        checks_and_review_by_pr_id: dict[int, PullRequestStatusResult] = {}
+        if "checksAndReview" in request.GET.getlist("expand") and features.has(
+            "organizations:issue-pr-checks-status", group.project.organization
+        ):
+            checks_and_review_by_pr_id = get_checks_and_review(
+                pull_requests, repositories_by_id, status_by_pr_id
+            )
+
         # serialize() infers the base PullRequestSerializerResponse from the
         # parent's generic; LinkedPullRequestSerializer returns the narrower type.
         pull_request_responses = cast(
@@ -205,10 +250,14 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
                 serializer=LinkedPullRequestSerializer(
                     date_linked_by_pr_id=date_linked_by_pr_id,
                     status_by_pr_id=status_by_pr_id,
+                    checks_and_review_by_pr_id=checks_and_review_by_pr_id,
                 ),
             ),
         )
 
-        response: GroupPullRequestsResponse = {"pullRequests": pull_request_responses}
+        response: GroupPullRequestsResponse = {
+            "latestRegressionAt": latest_regression_at,
+            "pullRequests": pull_request_responses,
+        }
 
         return Response(response)

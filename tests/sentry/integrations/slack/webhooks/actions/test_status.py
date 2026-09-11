@@ -1199,6 +1199,53 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             org_name=self.organization.name,
         )
 
+    @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
+    def test_rule_from_another_organization_is_not_used(self, mock_tags: MagicMock) -> None:
+        """
+        Ensure a rule id in the callback payload cannot resolve a rule belonging to
+        another organization
+        """
+        other_project = self.create_project(organization=self.create_organization())
+        other_rule = self.create_project_rule(project=other_project)
+
+        status_action = self.get_mark_ongoing_action()
+        original_message = self.get_original_message(self.group.id)
+        callback_id = orjson.dumps({"issue": self.group.id, "rule": other_rule.id}).decode()
+
+        resp = self.post_webhook_block_kit(
+            action_data=[status_action],
+            original_message=original_message,
+            callback_id=callback_id,
+        )
+        assert resp.status_code == 200, resp.content
+
+        # The action itself still succeeds; only the foreign rule is dropped.
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.UNRESOLVED
+
+        blocks = self.mock_post.call_args.kwargs["blocks"]
+        assert f"alert_rule_id={other_rule.id}" not in blocks[0]["text"]["text"]
+        assert "alert_rule_id" not in blocks[0]["text"]["text"]
+
+    @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
+    def test_rule_from_same_organization_is_used(self, mock_tags: MagicMock) -> None:
+        """
+        Ensure scoping the rule lookup by organization does not break the same-org case
+        """
+        status_action = self.get_mark_ongoing_action()
+        original_message = self.get_original_message(self.group.id)
+        callback_id = orjson.dumps({"issue": self.group.id, "rule": self.rule.id}).decode()
+
+        resp = self.post_webhook_block_kit(
+            action_data=[status_action],
+            original_message=original_message,
+            callback_id=callback_id,
+        )
+        assert resp.status_code == 200, resp.content
+
+        blocks = self.mock_post.call_args.kwargs["blocks"]
+        assert f"alert_rule_id={self.rule.id}" in blocks[0]["text"]["text"]
+
     @patch(
         "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True
     )

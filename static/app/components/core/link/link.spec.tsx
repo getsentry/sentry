@@ -1,6 +1,16 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
+
+function renderWithTracking(ui: React.ReactElement) {
+  const tracking = jest.fn();
+  function TrackingWrapper({children}: {children: React.ReactNode}) {
+    return <TrackingContextProvider value={tracking}>{children}</TrackingContextProvider>;
+  }
+
+  return {tracking, ...render(ui, {additionalWrapper: TrackingWrapper})};
+}
 
 describe('Link', () => {
   // Note: Links should not support a disabled option, as disabled links are just text elements
@@ -8,7 +18,7 @@ describe('Link', () => {
   describe('disabled links', () => {
     it('renders links with string to prop render as <a> with no href', () => {
       render(
-        // eslint-disable-next-line no-restricted-syntax
+        // eslint-disable-next-line eslint-js/no-restricted-syntax
         <Link disabled to="https://www.sentry.io/">
           Link
         </Link>
@@ -31,9 +41,18 @@ describe('Link', () => {
   });
 
   it('links render as <a> with href', () => {
-    // eslint-disable-next-line no-restricted-syntax
+    // eslint-disable-next-line eslint-js/no-restricted-syntax
     render(<Link to="https://www.sentry.io/">Link</Link>);
     expect(screen.getByText('Link')).toHaveAttribute('href', 'https://www.sentry.io/');
+  });
+
+  it('uses the link text as the tracking label', async () => {
+    const {tracking} = renderWithTracking(<Link to="/some/route">Open</Link>);
+    await userEvent.click(screen.getByRole('link', {name: 'Open'}));
+
+    expect(tracking).toHaveBeenCalledWith(
+      expect.objectContaining({'aria-label': 'Open'})
+    );
   });
 });
 

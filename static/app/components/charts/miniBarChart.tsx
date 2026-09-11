@@ -24,6 +24,8 @@ function makeBaseChartOptions({
   yAxisOptions,
   showXAxisLine,
   xAxisLineColor,
+  tooltip,
+  yAxisMax,
 }: {
   animateBars: boolean;
   height: number;
@@ -34,19 +36,25 @@ function makeBaseChartOptions({
   hideDelay?: number;
   labelYAxisExtents?: boolean;
   showMarkLineLabel?: boolean;
+  tooltip?: BaseChartProps['tooltip'];
   tooltipFormatter?: (value: number) => string;
+  yAxisMax?: number;
   yAxisOptions?: BarChartProps['yAxis'];
 }): Omit<BarChartProps, 'series' | 'barOpacity'> {
   return {
-    tooltip: {
-      trigger: 'axis',
-      hideDelay,
-      valueFormatter: tooltipFormatter
-        ? (value: number) => tooltipFormatter(value)
-        : undefined,
-    },
+    tooltip:
+      tooltip === null
+        ? null
+        : {
+            trigger: 'axis',
+            hideDelay,
+            valueFormatter: tooltipFormatter
+              ? (value: number) => tooltipFormatter(value)
+              : undefined,
+            ...tooltip,
+          },
     yAxis: {
-      max: getYAxisMaxFn(height),
+      max: yAxisMax ?? getYAxisMaxFn(height),
       splitLine: {
         show: false,
       },
@@ -209,6 +217,13 @@ interface Props extends Omit<BaseChartProps, 'css' | 'colors' | 'series' | 'heig
    * Whether timestamps are should be shown in UTC or local timezone.
    */
   utc?: boolean;
+
+  /**
+   * Ceiling of the y-axis. By default the axis scales to the data and rounds a
+   * maximum below ten up to ten, which draws the same value at different heights in
+   * two charts. Set this to draw several charts to one scale.
+   */
+  yAxisMax?: number;
 }
 
 function getYAxisMaxFn(height: number) {
@@ -272,6 +287,8 @@ export function MiniBarChart({
   showXAxisLine = false,
   height,
   grid,
+  tooltip,
+  yAxisMax,
   ...props
 }: Props) {
   const theme = useTheme();
@@ -349,6 +366,8 @@ export function MiniBarChart({
       yAxisOptions,
       showXAxisLine,
       xAxisLineColor,
+      tooltip,
+      yAxisMax,
     });
 
     return options;
@@ -361,8 +380,10 @@ export function MiniBarChart({
     markLineLabelSide,
     showMarkLineLabel,
     showXAxisLine,
+    tooltip,
     tooltipFormatter,
     xAxisLineColor,
+    yAxisMax,
   ]);
 
   return (

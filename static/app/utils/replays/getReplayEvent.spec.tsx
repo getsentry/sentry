@@ -89,7 +89,6 @@ describe('getNextReplayFrame', () => {
     const result = getNextReplayFrame({
       frames,
       targetOffsetMs: exactTime,
-      allowExact: false,
     });
 
     expect(result).toEqual(frames[2]);
@@ -159,7 +158,6 @@ describe('getPrevReplayFrame', () => {
     const result = getPrevReplayFrame({
       frames,
       targetOffsetMs: exactTime,
-      allowExact: false,
     });
 
     expect(result).toEqual(frames[0]);

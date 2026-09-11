@@ -38,6 +38,9 @@ REPOSITORY_URL_LENGTH = 512
 
 RepoResolution = Literal["resolved", "not_found", "ambiguous"]
 
+# Which reported identity resolved the repo.
+RepoLookup = Literal["external_id", "name"]
+
 
 class RepositoryManager(BaseManager["Repository"]):
     def provider_match(self, provider: str) -> models.Q:
@@ -49,34 +52,61 @@ class RepositoryManager(BaseManager["Repository"]):
         """
         return models.Q(provider=provider) | models.Q(provider=f"integrations:{provider}")
 
+    def _resolve_active_unique(
+        self, *, organization_id: int, normalized_provider: str | None, **identity: str
+    ) -> tuple[Repository | None, RepoResolution]:
+        """Resolve to the single active org repo matching ``identity``, or say why not.
+
+        Refusing to guess between several matches is deliberate: picking one risks
+        attaching a PR to the wrong repository. ``normalized_provider`` is the bare,
+        lowercased form (no ``integrations:`` prefix); None skips provider narrowing.
+
+        Returns ``(repository, "resolved" | "not_found" | "ambiguous")``.
+        """
+        candidates = self.filter(
+            organization_id=organization_id,
+            status=ObjectStatus.ACTIVE,
+            **identity,
+        )
+        if normalized_provider is not None:
+            candidates = candidates.filter(self.provider_match(normalized_provider))
+
+        # Two is enough: we only need to know whether there is exactly one.
+        matches = list(candidates.order_by("id")[:2])
+        if len(matches) == 1:
+            return matches[0], "resolved"
+        return None, "ambiguous" if matches else "not_found"
+
     def resolve_active(
         self, *, organization_id: int, name: str, normalized_provider: str | None
     ) -> tuple[Repository | None, RepoResolution]:
         """Resolve the org-scoped active repository named ``name`` for a reported PR.
 
-        Resolves only when exactly one active repo matches. A provider disambiguates
-        same-named repos across providers (matching both stored shapes via
-        ``provider_match``); without one, refuse to guess between them rather than risk
-        mis-resolution.
-
-        ``normalized_provider`` is the bare, lowercased form (no ``integrations:`` prefix);
-        None skips provider filtering. Returns ``(repository, reason)`` where reason is
-        ``"resolved"``, ``"not_found"`` (zero matches), or ``"ambiguous"`` (more than one).
+        Names aren't unique, and a provider only sometimes separates duplicates —
+        re-installing an integration mints a row with the same name and provider. Prefer
+        :meth:`resolve_active_by_external_id` wherever the reporter has the external id.
         """
-        candidates = self.filter(
+        return self._resolve_active_unique(
             organization_id=organization_id,
+            normalized_provider=normalized_provider,
             name=name,
-            status=ObjectStatus.ACTIVE,
         )
-        if normalized_provider is not None:
-            candidates = candidates.filter(self.provider_match(normalized_provider))
 
-        # Fetch up to 2 to detect ambiguity — the same name can exist under multiple
-        # providers (e.g. github & gitlab) within one org.
-        matches = list(candidates.order_by("id")[:2])
-        if len(matches) == 1:
-            return matches[0], "resolved"
-        return None, "ambiguous" if matches else "not_found"
+    def resolve_active_by_external_id(
+        self, *, organization_id: int, external_id: str, normalized_provider: str | None
+    ) -> tuple[Repository | None, RepoResolution]:
+        """Resolve the org-scoped active repository whose provider-side id is ``external_id``.
+
+        The identity Sentry handed the reporter, so it round-trips exactly, and
+        ``(organization_id, provider, external_id)`` is unique. A name does neither:
+        GitLab reporters carry ``path_with_namespace`` while ``name`` holds
+        ``name_with_namespace``.
+        """
+        return self._resolve_active_unique(
+            organization_id=organization_id,
+            normalized_provider=normalized_provider,
+            external_id=external_id,
+        )
 
 
 @cell_silo_model

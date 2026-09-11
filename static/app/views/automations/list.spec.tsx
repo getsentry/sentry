@@ -3,7 +3,10 @@ import {
   ActionFixture,
   AutomationFixture,
 } from 'sentry-fixture/automations';
-import {MetricDetectorFixture} from 'sentry-fixture/detectors';
+import {
+  AllProjectsDetectorFixture,
+  MetricDetectorFixture,
+} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -23,10 +26,14 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import AutomationsList from 'sentry/views/automations/list';
 
+// Cells the container is too narrow to show are hidden rather than dropped, so
+// the row still holds every column in order: name, last triggered, action,
+// projects, connected monitors.
+const projectsCell = (row: HTMLElement) =>
+  within(row).getAllByRole('cell', {hidden: true})[3]!;
+
 describe('AutomationsList', () => {
-  const organization = OrganizationFixture({
-    features: ['workflow-engine-ui'],
-  });
+  const organization = OrganizationFixture();
   const project = ProjectFixture({id: '1', slug: 'project-1'});
   const detector = MetricDetectorFixture({
     id: '1',
@@ -140,8 +147,27 @@ describe('AutomationsList', () => {
     const row = await screen.findByTestId('automation-list-row');
 
     // Projects column should show em dash for automation with no detectors
-    const projectsColumn = row.querySelector('[data-column-name="projects"]')!;
-    expect(within(projectsColumn as HTMLElement).getByText('—')).toBeInTheDocument();
+    expect(within(projectsCell(row)).getByText('—')).toBeInTheDocument();
+  });
+
+  it('shows all projects for an all-projects detector', async () => {
+    const allProjectsDetector = AllProjectsDetectorFixture({id: '10'});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      body: [AutomationFixture({id: '100', detectorIds: [allProjectsDetector.id]})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [allProjectsDetector],
+      match: [MockApiClient.matchQuery({id: [allProjectsDetector.id]})],
+    });
+
+    render(<AutomationsList />, {organization});
+
+    const row = await screen.findByTestId('automation-list-row');
+    expect(
+      await within(projectsCell(row)).findByText('All Projects')
+    ).toBeInTheDocument();
   });
 
   it('can filter by project', async () => {
@@ -184,7 +210,9 @@ describe('AutomationsList', () => {
 
     // Click on Name column header to sort
     await userEvent.click(
-      screen.getByRole('columnheader', {name: 'Select all on page Name'})
+      within(
+        screen.getByRole('columnheader', {name: 'Select all on page Name'})
+      ).getByRole('button')
     );
 
     await waitFor(() => {
@@ -201,7 +229,9 @@ describe('AutomationsList', () => {
 
     // Click on Name column header again to change sort direction
     await userEvent.click(
-      screen.getByRole('columnheader', {name: 'Select all on page Name'})
+      within(
+        screen.getByRole('columnheader', {name: 'Select all on page Name'})
+      ).getByRole('button')
     );
 
     await waitFor(() => {
@@ -635,16 +665,18 @@ describe('AutomationsList', () => {
     });
   });
 
-  it('disables the create alert button without alerts:write permission', async () => {
+  it('disables alert controls without alerts:write permission', async () => {
     const noWriteOrg = OrganizationFixture({
-      features: ['workflow-engine-ui'],
       access: ['org:read', 'alerts:read'],
     });
 
     render(<AutomationsList />, {organization: noWriteOrg});
-    await screen.findByText('Automation 1');
+    await screen.findByTestId('automation-list-row');
 
     const createButton = screen.getByRole('button', {name: 'Create Alert'});
     expect(createButton).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('columnheader', {name: 'Name'})).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Delete'})).not.toBeInTheDocument();
   });
 });

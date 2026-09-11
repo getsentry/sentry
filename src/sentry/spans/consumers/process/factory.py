@@ -2,6 +2,7 @@ import logging
 import time
 from collections.abc import Mapping
 from functools import partial
+from typing import Annotated
 
 import msgspec
 import sentry_sdk
@@ -30,7 +31,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     3. Reduce the messages to find the latest timestamp to process
     4. Fetch all segments are two minutes or older and expire the keys so they
        aren't reprocessed
-    5. Produce segments to buffered-segments topic
+    5. Spawn a process_segment task for each flushed segment
     """
 
     def __init__(
@@ -227,7 +228,7 @@ def process_batch(
 
 
 class SpanAttributeValue(msgspec.Struct, gc=False):
-    value: str | None = None
+    value: Annotated[str, msgspec.Meta(pattern=r"\A[0-9a-fA-F]{16}\Z")] | None = None
 
 
 class SpanAttributes(msgspec.Struct, gc=False):

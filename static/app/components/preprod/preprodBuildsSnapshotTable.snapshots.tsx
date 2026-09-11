@@ -1,6 +1,5 @@
 import {ThemeProvider} from '@emotion/react';
 
-// eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -11,12 +10,13 @@ jest.mock('@sentry/scraps/badge', () => ({
   ...jest.requireActual('sentry/components/core/badge/tag'),
 }));
 
-jest.mock('./preprodBuildsTableCommon', () => ({
+jest.mock('./preprodBuildsTableStyles', () => ({
+  ...jest.requireActual('./preprodBuildsTableStyles'),
   FullRowLink: ({to, children, ...props}: any) => (
     <a
       href={typeof to === 'string' ? to : '#'}
       {...props}
-      style={{display: 'contents', color: 'inherit', textDecoration: 'none'}}
+      style={{color: 'inherit', textDecoration: 'none'}}
     >
       {children}
     </a>

@@ -6,12 +6,14 @@ interface UseExploreSuggestedAttributeOptions {
   booleanAttributes: TagCollection;
   numberAttributes: TagCollection;
   stringAttributes: TagCollection;
+  arrayAttributes?: TagCollection;
 }
 
 export function useExploreSuggestedAttribute({
   numberAttributes,
   stringAttributes,
   booleanAttributes,
+  arrayAttributes = {},
 }: UseExploreSuggestedAttributeOptions) {
   return useCallback(
     (key: string): string | null => {
@@ -24,6 +26,10 @@ export function useExploreSuggestedAttribute({
       }
 
       if (key in booleanAttributes) {
+        return key;
+      }
+
+      if (key in arrayAttributes) {
         return key;
       }
 
@@ -42,8 +48,27 @@ export function useExploreSuggestedAttribute({
         return explicitBooleanAttribute;
       }
 
+      // Array attributes filter by membership. Resolve both the `[*]` form and
+      // the bare root name to the backend key; getInitialFilterText adds the
+      // `[*]` operator, so plain `:` and `[*]:` both produce a membership filter.
+      if (key.endsWith('[*]')) {
+        const base = key.slice(0, -'[*]'.length);
+        if (base in arrayAttributes) {
+          return `${base}[*]`;
+        }
+        const explicitArrayWithOperator = `tags[${base},array]`;
+        if (explicitArrayWithOperator in arrayAttributes) {
+          return `${explicitArrayWithOperator}[*]`;
+        }
+      }
+
+      const explicitArrayAttribute = `tags[${key},array]`;
+      if (explicitArrayAttribute in arrayAttributes) {
+        return explicitArrayAttribute;
+      }
+
       return null;
     },
-    [booleanAttributes, numberAttributes, stringAttributes]
+    [booleanAttributes, numberAttributes, stringAttributes, arrayAttributes]
   );
 }

@@ -7,7 +7,6 @@ import type {AvatarProps} from './avatar';
 
 interface ProjectAvatarProps extends AvatarProps {
   project: AvatarProject;
-  direction?: 'left' | 'right';
   ref?: React.Ref<HTMLDivElement>;
 }
 

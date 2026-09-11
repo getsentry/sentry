@@ -2,11 +2,11 @@ import {Fragment, useMemo, useState, type PropsWithChildren} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
-import type {LocationDescriptor} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Markdown} from '@sentry/scraps/markdown';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -22,13 +22,6 @@ import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreens
 import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {DataSection} from 'sentry/components/events/styles';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {
-  CardPanel,
-  KeyValueData,
-  Subject,
-  ValueSection,
-  type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
 import {type LazyRenderProps} from 'sentry/components/lazyRender';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -37,6 +30,14 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
+import {
+  KeyValueTableCard,
+  KeyValueTableCardGrid,
+  KeyValueTableCardPanel,
+  type KeyValueTableDataRowProps,
+  KeyValueTableSubject,
+  KeyValueTableValueSection,
+} from 'sentry/components/tables/keyValueTable';
 import {
   IconCircleFill,
   IconEllipsis,
@@ -54,7 +55,6 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {markdownRendersVisibleContent} from 'sentry/utils/marked/marked';
-import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -64,7 +64,11 @@ import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
-import {tryParseJsonRecursive} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {
+  tryParseJsonRecursive,
+  getTraceKeyValueActions,
+  TraceDrawerActionValueKind,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {
   makeTraceContinuousProfilingLink,
   makeTransactionProfilingLink,
@@ -86,7 +90,6 @@ import {
   MIN_PCT_DURATION_DIFFERENCE,
 } from './durationComparison';
 import type {KeyValueActionParams, TraceDrawerActionKind} from './utils';
-import {getTraceKeyValueActions, TraceDrawerActionValueKind} from './utils';
 
 const BodyContainer = styled('div')`
   display: flex;
@@ -196,7 +199,6 @@ function TitleOp({text}: {text: string}) {
         </Fragment>
       }
       showOnlyOnOverflow
-      isHoverable
     >
       <TitleOpText>{text}</TitleOpText>
     </Tooltip>
@@ -218,8 +220,6 @@ const TitleOpText = styled('div')`
 `;
 
 const Table = styled('table')`
-  margin-bottom: 0 !important;
-
   td {
     overflow: hidden;
   }
@@ -320,38 +320,25 @@ function Duration(props: DurationProps) {
 
 function TableRow({
   title,
-  keep,
   children,
-  prefix,
-  extra = null,
-  toolTipText,
 }: {
   children: React.ReactNode;
   title: React.JSX.Element | string | null;
-  extra?: React.ReactNode;
-  keep?: boolean;
-  prefix?: React.JSX.Element;
-  toolTipText?: string;
 }) {
-  if (!keep && !children) {
+  if (!children) {
     return null;
   }
 
   return (
     <tr>
       <td className="key">
-        <Flex align="center">
-          {prefix}
-          {title}
-          {toolTipText ? <StyledQuestionTooltip size="xs" title={toolTipText} /> : null}
-        </Flex>
+        <Flex align="center">{title}</Flex>
       </td>
       <ValueTd className="value">
         <TableValueRow>
           <StyledPre>
             <span className="val-string">{children}</span>
           </StyledPre>
-          <TableRowButtonContainer>{extra}</TableRowButtonContainer>
         </TableValueRow>
       </ValueTd>
     </tr>
@@ -452,7 +439,7 @@ function Highlights({
                 },
               }}
             >
-              {t('Open in AI View')}
+              {t('Open Agent Activity')}
             </OpenInAIFocusButton>
           )}
           {!hidePanelAndBreakdown && (
@@ -734,17 +721,9 @@ const TableValueRow = styled('div')`
   margin: 2px;
 `;
 
-const StyledQuestionTooltip = styled(QuestionTooltip)`
-  margin-left: ${p => p.theme.space.xs};
-`;
-
 const StyledPre = styled('pre')`
   margin: 0 !important;
   background-color: transparent !important;
-`;
-
-const TableRowButtonContainer = styled('div')`
-  padding: 8px 10px;
 `;
 
 const ValueTd = styled('td')`
@@ -1038,28 +1017,28 @@ function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
 
 export type SectionCardKeyValueList = KeyValueListData;
 
+const SECTION_CARD_TRUNCATE_LENGTH = 5;
+
 function SectionCard({
   items,
   title,
-  disableTruncate,
   sortAlphabetically = false,
   itemProps = {},
 }: {
   items: SectionCardKeyValueList;
   title: React.ReactNode;
-  disableTruncate?: boolean;
-  itemProps?: Partial<KeyValueDataContentProps>;
+  itemProps?: Partial<KeyValueTableDataRowProps>;
   sortAlphabetically?: boolean;
 }) {
   const contentItems = items.map(item => ({item, ...itemProps}));
 
   return (
     <CardWrapper>
-      <KeyValueData.Card
+      <KeyValueTableCard
         title={title}
         contentItems={contentItems}
         sortAlphabetically={sortAlphabetically}
-        truncateLength={disableTruncate ? Infinity : 5}
+        truncateLength={SECTION_CARD_TRUNCATE_LENGTH}
       />
     </CardWrapper>
   );
@@ -1069,11 +1048,11 @@ function SectionCard({
 // with tests failing otherwise, since @container queries are not supported by the version of
 // jsdom currently used by jest.
 const CardWrapper = styled('div')`
-  ${CardPanel} {
+  ${KeyValueTableCardPanel} {
     container-type: inline-size;
   }
 
-  ${Subject} {
+  ${KeyValueTableSubject} {
     display: flex;
     align-items: center;
     @container (width < 350px) {
@@ -1081,26 +1060,16 @@ const CardWrapper = styled('div')`
     }
   }
 
-  ${ValueSection} {
+  ${KeyValueTableValueSection} {
     align-items: center;
   }
 `;
 
 function SectionCardGroup({children}: {children: React.ReactNode}) {
-  return <KeyValueData.Container>{children}</KeyValueData.Container>;
+  return <KeyValueTableCardGrid>{children}</KeyValueTableCardGrid>;
 }
 
-function CopyableCardValueWithLink({
-  value,
-  linkTarget,
-  linkText,
-  onClick,
-}: {
-  value: React.ReactNode;
-  linkTarget?: LocationDescriptor;
-  linkText?: string;
-  onClick?: () => void;
-}) {
+function CopyableCardValueWithLink({value}: {value: React.ReactNode}) {
   return (
     <CardValueContainer>
       <CardValueText>
@@ -1114,11 +1083,6 @@ function CopyableCardValueWithLink({
           />
         ) : null}
       </CardValueText>
-      {linkTarget && linkTarget ? (
-        <Link to={linkTarget} onClick={onClick}>
-          {linkText}
-        </Link>
-      ) : null}
     </CardValueContainer>
   );
 }
@@ -1197,9 +1161,7 @@ function MultilineText({
       </Container>
       {showRaw || defaultFormattingIsBlank
         ? children.trim()
-        : (renderFormatted?.(children) ?? (
-            <MarkedText as={MarkdownContainer} text={children} />
-          ))}
+        : (renderFormatted?.(children) ?? <Markdown raw={children} />)}
     </MultilineTextWrapper>
   );
 
@@ -1219,62 +1181,6 @@ const StyledClippedBox = styled(ClippedBox)`
   margin-bottom: ${p => p.theme.space.md};
 `;
 
-/**
- * Markdown wrapper including styles for markdown elements
- * Optimized for inline use, with minimal padding and margin and smaller heading font size
- */
-const MarkdownContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.sm};
-  white-space: normal;
-  p {
-    margin: 0;
-    padding: 0;
-  }
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    font-size: ${p => p.theme.font.size.md};
-    margin: 0;
-    padding-bottom: ${p => p.theme.space.sm};
-  }
-  ul,
-  ol {
-    margin: 0;
-  }
-  blockquote {
-    margin: 0;
-    padding: ${p => p.theme.space.sm};
-    border-left: 2px solid ${p => p.theme.tokens.border.primary};
-  }
-  pre {
-    margin: 0;
-    padding: ${p => p.theme.space.sm};
-    border-radius: ${p => p.theme.radius.md};
-  }
-  img {
-    max-height: 200px;
-  }
-  hr {
-    margin: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-    border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-  table {
-    border-collapse: collapse;
-    width: auto;
-    width: max-content;
-  }
-  table th,
-  table td {
-    border: 1px solid ${p => p.theme.tokens.border.primary};
-    padding: ${p => p.theme.space.xs};
-  }
-`;
-
 const MultilineTextWrapper = styled('div')`
   position: relative;
   white-space: pre-wrap;
@@ -1284,6 +1190,14 @@ const MultilineTextWrapper = styled('div')`
   word-break: break-word;
   &:not(:last-child) {
     margin-bottom: ${p => p.theme.space.md};
+  }
+
+  /* word-break: break-word is legacy for overflow-wrap: anywhere, which counts
+   * toward min-content intrinsic size. Inherited into cells, it collapses them to
+   * about one character: the table then fits any container, columns squish, and
+   * its scroll container never overflows. Tables scroll on their own. */
+  table {
+    word-break: normal;
   }
 `;
 
@@ -1427,7 +1341,6 @@ export const TraceDrawerComponents = {
   Duration,
   TableRow,
   LAZY_RENDER_PROPS,
-  TableRowButtonContainer,
   TableValueRow,
   IssuesLink,
   SectionCard,
@@ -1440,5 +1353,4 @@ export const TraceDrawerComponents = {
   MultilineText,
   MultilineJSON,
   MultilineTextLabel,
-  MarkdownContainer,
 };

@@ -105,6 +105,7 @@ function useTokenValidation(
   // left the token.
   useEffect(() => {
     if (!isActive && !hasLeft) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setHasLeft(true);
     }
   }, [hasLeft, isActive]);
@@ -232,6 +233,8 @@ function KeyToken({
     | Token.KEY_EXPLICIT_BOOLEAN_TAG
     | Token.KEY_EXPLICIT_NUMBER_TAG
     | Token.KEY_EXPLICIT_STRING_TAG
+    | Token.KEY_EXPLICIT_ARRAY_TAG
+    | Token.KEY_ARRAY_INCLUDES
     | Token.KEY_EXPLICIT_FLAG
     | Token.KEY_EXPLICIT_NUMBER_FLAG
     | Token.KEY_EXPLICIT_STRING_FLAG

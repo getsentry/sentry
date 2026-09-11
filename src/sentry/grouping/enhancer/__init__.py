@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import base64
-import logging
 import os
 import re
 import zlib
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from functools import cached_property
 from typing import Any, Literal, overload
@@ -28,8 +27,6 @@ from .exceptions import InvalidEnhancerConfig
 from .matchers import create_match_frame
 from .parser import parse_enhancements
 from .rules import EnhancementRule
-
-logger = logging.getLogger(__name__)
 
 # NOTE: The 1_000 here is pretty arbitrary. Our builtin base enhancements have about ~300 rules,
 # So this leaves quite a bit of headroom for custom enhancement rules as well.
@@ -88,17 +85,18 @@ def _merge_rust_enhancements(
     This will merge the parsed enhancements together with the `bases`.
     It pretty much concatenates all the rules in `bases` (in order) together
     with all the rules in the incoming `rust_enhancements`.
+
+    Note: Assumes all of the passed bases are valid.
     """
     merged_rust_enhancements = RustEnhancements.empty()
     for base_id in bases:
-        base = ENHANCEMENT_BASES.get(base_id)
-        if base:
-            base_rust_enhancements = (
-                base.classifier_rust_enhancements
-                if type == "classifier"
-                else base.contributes_rust_enhancements
-            )
-            merged_rust_enhancements.extend_from(base_rust_enhancements)
+        base = ENHANCEMENT_BASES[base_id]
+        base_rust_enhancements = (
+            base.classifier_rust_enhancements
+            if type == "classifier"
+            else base.contributes_rust_enhancements
+        )
+        merged_rust_enhancements.extend_from(base_rust_enhancements)
     merged_rust_enhancements.extend_from(rust_enhancements)
     return merged_rust_enhancements
 
@@ -129,10 +127,15 @@ def _make_rust_exception_data(
     exception_data: dict[str, Any] | None,
 ) -> RustExceptionData:
     exception_data = exception_data or {}
+    mechanism = exception_data.get("mechanism")
     rust_data = {
         "type": exception_data.get("type"),
         "value": exception_data.get("value"),
-        "mechanism": get_path(exception_data, "mechanism", "type"),
+        "mechanism": (
+            mechanism.get("type")
+            if isinstance(mechanism, Mapping)
+            else getattr(mechanism, "type", None)
+        ),
     }
 
     # Convert string values to bytes
@@ -401,7 +404,8 @@ class EnhancementsConfig:
         self.id = id
         self.rules = rules
         self.version = version or DEFAULT_ENHANCEMENTS_VERSION
-        self.bases = bases or []
+        # To be safe, filter out invalid base ids (shouldn't ever happen in practice, though)
+        self.bases = [base_id for base_id in (bases or []) if base_id in ENHANCEMENT_BASES]
 
         classifier_config, contributes_config = split_enhancement_configs or _split_rules(rules)
 

@@ -25,26 +25,11 @@ import type {DiffItem, DiffType} from 'sentry/views/preprod/types/appSizeTypes';
 import {formattedSizeDiff} from 'sentry/views/preprod/utils/labelUtils';
 
 const tableHeaders = [
-  {
-    key: 'change',
-    label: 'Change',
-  },
-  {
-    key: 'file_path',
-    label: 'File Path',
-  },
-  {
-    key: 'item_type',
-    label: 'Item Type',
-  },
-  {
-    key: 'size',
-    label: 'Size',
-  },
-  {
-    key: 'size_diff',
-    label: 'Size Diff',
-  },
+  {key: 'change', label: 'Change', width: '150px'},
+  {key: 'file_path', label: 'File Path', width: 'minmax(200px, 3fr)'},
+  {key: 'item_type', label: 'Item Type', width: '120px'},
+  {key: 'size', label: 'Size', width: '120px'},
+  {key: 'size_diff', label: 'Size Diff', width: '120px'},
 ];
 
 interface SizeCompareItemDiffTableProps {
@@ -66,7 +51,7 @@ export function SizeCompareItemDiffTable({
 
   const [currentPage, setCurrentPage] = useState(0);
 
-  const sortedDiffItems = [...diffItems].sort((a: DiffItem, b: DiffItem) => {
+  const sortedDiffItems = diffItems.toSorted((a: DiffItem, b: DiffItem) => {
     const {field, kind} = sort;
 
     let aValue: number | string = '';
@@ -123,11 +108,13 @@ export function SizeCompareItemDiffTable({
 
   useEffect(() => {
     if (safeCurrentPage !== currentPage) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setCurrentPage(safeCurrentPage);
     }
   }, [currentPage, safeCurrentPage]);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setCurrentPage(0);
   }, [sort.field, sort.kind, diffItems.length]);
 
@@ -138,29 +125,10 @@ export function SizeCompareItemDiffTable({
 
   return (
     <Stack gap="md">
-      <DiffTableWithColumns gridTemplateColumns="150px minmax(200px, 3fr) 120px 120px 120px">
-        <DiffTableHeader>
-          {tableHeaders.map(header => (
-            <SimpleTable.HeaderCell
-              key={header.key}
-              handleSortClick={
-                header.key
-                  ? () =>
-                      setSort({
-                        field: header.key,
-                        kind:
-                          sort?.field === header.key && sort.kind === 'asc'
-                            ? 'desc'
-                            : 'asc',
-                      })
-                  : undefined
-              }
-              sort={sort && sort?.field === header.key ? sort.kind : undefined}
-            >
-              {header.label}
-            </SimpleTable.HeaderCell>
-          ))}
-        </DiffTableHeader>
+      <DiffTableWithColumns
+        columns={tableHeaders}
+        header={<DiffTableHeader headers={tableHeaders} onSort={setSort} sort={sort} />}
+      >
         {sortedDiffItems.length === 0 && (
           <SimpleTable.Empty>
             <Stack gap="lg" align="center" justify="center">
@@ -223,7 +191,6 @@ export function SizeCompareItemDiffTable({
                     ) : null
                   }
                   disabled={!diffItem.path}
-                  isHoverable
                   maxWidth={420}
                 >
                   <TextOverflow

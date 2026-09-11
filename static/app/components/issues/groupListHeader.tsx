@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
@@ -18,89 +16,102 @@ export function GroupListHeader({
 }: Props) {
   return (
     <PanelHeader disablePadding>
-      <IssueWrapper hideDivider>{t('Issue')}</IssueWrapper>
+      <IssueStreamHeaderLabel
+        hideDivider
+        flex="1"
+        paddingLeft="xl"
+        style={{textTransform: 'capitalize'}}
+      >
+        {t('Issue')}
+      </IssueStreamHeaderLabel>
       {withColumns.includes('lastSeen') && (
-        <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN} align="right">
+        <IssueStreamHeaderLabel
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.LAST_SEEN]: 'inline-block'}}
+          align="right"
+          width="80px"
+          style={{textTransform: 'capitalize'}}
+        >
           {t('Last Seen')}
-        </LastSeenWrapper>
+        </IssueStreamHeaderLabel>
       )}
       {withColumns.includes('firstSeen') && (
-        <AgeWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN} align="right">
+        <IssueStreamHeaderLabel
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.FIRST_SEEN]: 'inline-block'}}
+          align="right"
+          width="50px"
+          style={{textTransform: 'capitalize'}}
+        >
           {t('Age')}
-        </AgeWrapper>
+        </IssueStreamHeaderLabel>
       )}
       {withColumns.includes('lastTriggered') && (
-        <LastTriggeredLabel align="right">{t('Last Triggered')}</LastTriggeredLabel>
+        <IssueStreamHeaderLabel
+          align="right"
+          width="100px"
+          style={{textTransform: 'capitalize'}}
+        >
+          {t('Last Triggered')}
+        </IssueStreamHeaderLabel>
       )}
       {withChart && (
-        <GraphLabel breakpoint={COLUMN_BREAKPOINTS.TREND}>{t('Graph')}</GraphLabel>
+        <IssueStreamHeaderLabel
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.TREND]: 'inline-block'}}
+          width="175px"
+          style={{textTransform: 'capitalize'}}
+        >
+          {t('Graph')}
+        </IssueStreamHeaderLabel>
       )}
       {withColumns.includes('event') && (
-        <EventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.EVENTS} align="right">
+        <IssueStreamHeaderLabel
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.EVENTS]: 'inline-block'}}
+          align="right"
+          width="60px"
+          style={{textTransform: 'capitalize'}}
+        >
           {t('Events')}
-        </EventsOrUsersLabel>
+        </IssueStreamHeaderLabel>
       )}
       {withColumns.includes('users') && (
-        <EventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.USERS} align="right">
+        <IssueStreamHeaderLabel
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.USERS]: 'inline-block'}}
+          align="right"
+          width="60px"
+          style={{textTransform: 'capitalize'}}
+        >
           {t('Users')}
-        </EventsOrUsersLabel>
+        </IssueStreamHeaderLabel>
       )}
       {withColumns.includes('priority') && (
-        <PriorityLabel breakpoint={COLUMN_BREAKPOINTS.PRIORITY} align="right">
+        <IssueStreamHeaderLabel
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.PRIORITY]: 'inline-block'}}
+          align="right"
+          width="70px"
+          style={{textTransform: 'capitalize'}}
+        >
           {t('Priority')}
-        </PriorityLabel>
+        </IssueStreamHeaderLabel>
       )}
       {withColumns.includes('progress') && (
-        <ProgressLabel breakpoint={COLUMN_BREAKPOINTS.PROGRESS} align="right">
+        <IssueStreamHeaderLabel
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.PROGRESS]: 'inline-block'}}
+          align="right"
+          width="90px"
+          style={{textTransform: 'capitalize'}}
+        >
           {t('Progress')}
-        </ProgressLabel>
+        </IssueStreamHeaderLabel>
       )}
       {withColumns.includes('assignee') && (
-        <AssigneeLabel breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE} align="right">
+        <IssueStreamHeaderLabel
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.ASSIGNEE]: 'inline-block'}}
+          align="right"
+          width="66px"
+          style={{textTransform: 'capitalize'}}
+        >
           {t('Assignee')}
-        </AssigneeLabel>
+        </IssueStreamHeaderLabel>
       )}
     </PanelHeader>
   );
 }
-
-const GroupListHeaderLabel = styled(IssueStreamHeaderLabel)`
-  text-transform: capitalize;
-`;
-
-const IssueWrapper = styled(GroupListHeaderLabel)`
-  flex: 1;
-  padding-left: ${p => p.theme.space.xl};
-`;
-
-const LastSeenWrapper = styled(GroupListHeaderLabel)`
-  width: 80px;
-`;
-
-const AgeWrapper = styled(GroupListHeaderLabel)`
-  width: 50px;
-`;
-
-const GraphLabel = styled(GroupListHeaderLabel)`
-  width: 175px;
-`;
-
-const EventsOrUsersLabel = styled(GroupListHeaderLabel)`
-  width: 60px;
-`;
-
-const PriorityLabel = styled(GroupListHeaderLabel)`
-  width: 70px;
-`;
-
-const ProgressLabel = styled(GroupListHeaderLabel)`
-  width: 90px;
-`;
-
-const AssigneeLabel = styled(GroupListHeaderLabel)`
-  width: 66px;
-`;
-
-const LastTriggeredLabel = styled(GroupListHeaderLabel)`
-  width: 100px;
-`;

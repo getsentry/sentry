@@ -5,7 +5,6 @@ from typing import Any
 import orjson
 from django.http import HttpResponse, StreamingHttpResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from objectstore_client.errors import RequestError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -31,7 +30,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.profilechunkattachment import ProfileChunkAttachment
 from sentry.models.project import Project
 from sentry.models.release import Release
-from sentry.objectstore import get_profile_attachments_session, parse_accept_encoding
+from sentry.objectstore import UsecaseId, get_session, parse_accept_encoding
 from sentry.profiles.utils import get_from_profiling_service, proxy_profiling_service
 
 
@@ -230,15 +229,10 @@ class ProjectProfilingChunkAttachmentEndpoint(ProjectProfilingBaseEndpoint):
         name = posixpath.basename(" ".join(attachment.name.split()))
         accept_encoding = parse_accept_encoding(request.headers.get("Accept-Encoding", ""))
 
-        session = get_profile_attachments_session(project.organization_id, project.id)
-        try:
-            blob = session.get(attachment.stored_id, accept_encoding=accept_encoding or None)
-        except RequestError as e:
-            # The blob's Objectstore TTL and this row's cleanup are not perfectly
-            # synchronized, so the blob may already be gone while the row lingers.
-            if e.status == 404:
-                raise ResourceDoesNotExist
-            raise
+        session = get_session(UsecaseId.PROFILE_ATTACHMENTS, project)
+        blob = session.get(attachment.stored_id, accept_encoding=accept_encoding or None)
+        if blob is None:
+            raise ResourceDoesNotExist
 
         def stream_attachment() -> Generator[bytes]:
             with blob.payload as payload:

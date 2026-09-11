@@ -73,6 +73,33 @@ class AiAutofixIntrospectionEvent(AiAutofixPhaseEvent):
     reached_stopping_point: bool
 
 
+@analytics.eventclass()
+class AiAutofixPrEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    group_id: int
+    run_id: int
+    integration: str
+    github_app: str
+    sent_at: int
+    referrer: str | None = None
+
+
+@analytics.eventclass("ai.autofix.pr.closed")
+class AiAutofixPrClosedEvent(AiAutofixPrEvent):
+    pass
+
+
+@analytics.eventclass("ai.autofix.pr.merged")
+class AiAutofixPrMergedEvent(AiAutofixPrEvent):
+    pass
+
+
+@analytics.eventclass("ai.autofix.pr.opened")
+class AiAutofixPrOpenedEvent(AiAutofixPrEvent):
+    pass
+
+
 analytics.register(AiAutofixRootCauseStartedEvent)
 analytics.register(AiAutofixSolutionStartedEvent)
 analytics.register(AiAutofixCodeChangesStartedEvent)
@@ -85,3 +112,6 @@ analytics.register(AiAutofixPrCreatedStartedEvent)
 analytics.register(AiAutofixPrCreatedCompletedEvent)
 analytics.register(AiAutofixAgentHandoffEvent)
 analytics.register(AiAutofixIntrospectionEvent)
+analytics.register(AiAutofixPrClosedEvent)
+analytics.register(AiAutofixPrMergedEvent)
+analytics.register(AiAutofixPrOpenedEvent)

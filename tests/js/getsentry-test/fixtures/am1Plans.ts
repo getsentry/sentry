@@ -54,58 +54,6 @@ const AM1_AVAILABLE_RESERVED_BUDGET_TYPES = {
   [ReservedBudgetCategoryType.SEER]: SeerReservedBudgetCategoryFixture({}),
 };
 
-const AM1_FREE_FEATURES = [
-  'advanced-search',
-  'event-attachments',
-  'performance-view',
-  'integrations-stacktrace-link',
-  'session-replay',
-  'monitor-seat-billing',
-  'uptime',
-];
-
-const AM1_TEAM_FEATURES = [
-  ...AM1_FREE_FEATURES,
-  'crash-rate-alerts',
-  'discover-basic',
-  'incidents',
-  'integrations-issue-basic',
-  'integrations-issue-sync',
-  'integrations-alert-rule',
-  'integrations-chat-unfurl',
-  'integrations-incident-management',
-  'sso-basic',
-  'weekly-reports',
-  'on-demand-metrics-prefill',
-  'seer-billing',
-];
-
-const AM1_BUSINESS_FEATURES = [
-  ...AM1_TEAM_FEATURES,
-  'anomaly-detection-alerts',
-  'baa',
-  'change-alerts',
-  'custom-inbound-filters',
-  'custom-symbol-sources',
-  'data-forwarding',
-  'discard-groups',
-  'discover-query',
-  'integrations-codeowners',
-  'integrations-enterprise-alert-rule',
-  'integrations-enterprise-incident-management',
-  'integrations-event-hooks',
-  'integrations-ticket-rules',
-  'rate-limits',
-  'relay',
-  'sso-saml2',
-  'team-insights',
-  'team-roles',
-];
-
-const AM1_TRIAL_FEATURES = AM1_BUSINESS_FEATURES.filter(
-  feature => feature !== 'sso-saml2' && feature !== 'baa'
-);
-
 const BUDGET_TERM = 'on-demand';
 // TODO(isabella): This probably isn't all the common fields
 const commonFields = {
@@ -194,7 +142,6 @@ export const AM1_PLANS = {
       ...LEGACY_SEER_TIERS_DEVELOPER,
       ...SEER_TIERS,
     },
-    features: AM1_FREE_FEATURES,
     dashboardLimit: 10,
     metricDetectorLimit: 20,
   },
@@ -273,7 +220,6 @@ export const AM1_PLANS = {
       ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
       ...SEER_TIERS,
     },
-    features: AM1_TRIAL_FEATURES,
     dashboardLimit: 10,
     metricDetectorLimit: 20,
   },
@@ -862,7 +808,6 @@ export const AM1_PLANS = {
       ...LEGACY_SEER_TIERS,
       ...SEER_TIERS,
     },
-    features: AM1_TEAM_FEATURES,
     dashboardLimit: 20,
     metricDetectorLimit: 20,
   },
@@ -1451,7 +1396,6 @@ export const AM1_PLANS = {
       ...LEGACY_SEER_TIERS_ANNUAL,
       ...SEER_TIERS,
     },
-    features: AM1_TEAM_FEATURES,
     dashboardLimit: 20,
     metricDetectorLimit: 20,
   },
@@ -2040,7 +1984,6 @@ export const AM1_PLANS = {
       ...LEGACY_SEER_TIERS,
       ...SEER_TIERS,
     },
-    features: AM1_BUSINESS_FEATURES,
     dashboardLimit: -1,
     metricDetectorLimit: -1,
   },
@@ -2629,7 +2572,6 @@ export const AM1_PLANS = {
       ...LEGACY_SEER_TIERS,
       ...SEER_TIERS,
     },
-    features: AM1_BUSINESS_FEATURES,
     dashboardLimit: -1,
     metricDetectorLimit: -1,
   },
@@ -2644,7 +2586,6 @@ export const AM1_PLANS = {
     maxMembers: null,
     retentionDays: 90,
     userSelectable: false,
-    features: AM1_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {

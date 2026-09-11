@@ -8,7 +8,6 @@ from typing import Literal, TypedDict, TypeVar
 from django.conf import settings
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
-from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.process_update_helpers import (
@@ -223,13 +222,6 @@ class SubscriptionProcessor:
             )
             return False
 
-        if not features.has("organizations:incidents", organization):
-            metrics.incr(
-                "incidents.alert_rules.no_incidents_not_downgraded",
-                sample_rate=1.0,
-                tags={"dataset": dataset},
-            )
-
         if subscription_update["timestamp"] <= self.last_update:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
             return False
@@ -258,6 +250,7 @@ class SubscriptionProcessor:
             comparison_delta = self.get_comparison_delta(self.detector)
             aggregation_value = self.get_aggregation_value(subscription_update, comparison_delta)
 
+            # get_aggregation_value already normalizes Snuba values to float | None.
             if aggregation_value is None or math.isnan(aggregation_value):
                 metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
                 # We have an invalid aggregate, but we _did_ process the update, so we store

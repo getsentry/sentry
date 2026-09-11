@@ -17,9 +17,16 @@ from sentry.utils.db import atomic_transaction
 
 
 def snapshot_widget(widget: DashboardWidget):
-    if widget.widget_type == DashboardWidgetTypes.TRANSACTION_LIKE or (
-        widget.widget_type == DashboardWidgetTypes.DISCOVER
-        and widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
+    if (
+        widget.widget_type == DashboardWidgetTypes.TRANSACTION_LIKE
+        or (
+            widget.widget_type == DashboardWidgetTypes.DISCOVER
+            and widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
+        )
+        or (
+            widget.widget_type is None
+            and widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
+        )
     ):
         serialized_widget = serialize(widget)
         if serialized_widget and serialized_widget["dateCreated"]:

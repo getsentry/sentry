@@ -1,7 +1,6 @@
 import {useCallback} from 'react';
 import * as echarts from 'echarts/core';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   aggregateFunctionOutputType,
   parseFunction,
@@ -13,8 +12,12 @@ import {
   formatRate,
 } from 'sentry/utils/formatters';
 import {formatMetricUsingUnit} from 'sentry/utils/number/formatMetricUsingUnit';
-import {useProjects} from 'sentry/utils/useProjects';
 import {prettifyAggregation} from 'sentry/views/explore/utils';
+import type {LLMContextLocation} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
+import {
+  type SelectedProjectsForLLMContext,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 // Types
 type SeriesData = {
@@ -891,9 +894,42 @@ function renderTextNodes(
 export function buildResult(
   gridHelpers: GridHelpers,
   chartTables: string[],
-  projectSlugs: string[]
+  selectedProjects: SelectedProjectsForLLMContext | string[],
+  location?: LLMContextLocation
 ): string {
-  const url = window.location.href;
+  // Accept legacy string[] call sites from older tests while the shared helper
+  // shape rolls out; prefer SelectedProjectsForLLMContext going forward.
+  // Empty string[] keeps the old no-footnote behavior — only the object form
+  // can express "My/All Projects" via selectionMode/instruction.
+  const projectSelection: SelectedProjectsForLLMContext = Array.isArray(selectedProjects)
+    ? {
+        selectionMode: 'explicit',
+        isAllProjects: false,
+        projectIds: [],
+        projectSlugs: selectedProjects,
+        projects: selectedProjects.map(slug => ({id: '', slug})),
+        instruction: selectedProjects.length
+          ? `Page filter pins these projects — scope queries to them unless the user asks otherwise: ${selectedProjects.join(', ')}.`
+          : '',
+      }
+    : selectedProjects;
+  // The URL alone leaves the reader to infer what each path segment means. When
+  // the caller has the full location, lead with all of it — the route pattern
+  // plus params says `123` is a groupId, which a bare URL does not.
+  const header = location
+    ? [
+        location.url,
+        location.name ? `Route: ${location.name}` : '',
+        Object.keys(location.params).length > 0
+          ? `Route params: ${JSON.stringify(location.params)}`
+          : '',
+        Object.keys(location.query).length > 0
+          ? `Query params: ${JSON.stringify(location.query)}`
+          : '',
+      ]
+        .filter(Boolean)
+        .join('\n')
+    : window.location.href;
 
   // Step 1: Strip trailing spaces from each row. The grid is initialized as
   // all-space cells so rows are always full-width;
@@ -912,19 +948,31 @@ export function buildResult(
   // Step 3: Drop all blank rows
   const nonBlank = lines.filter(l => l.length > 0);
 
-  let result = url + '\n' + nonBlank.join('\n');
+  let result = header + '\n' + nonBlank.join('\n');
 
-  if (chartTables.length > 0 || projectSlugs.length > 0) {
+  // Instruction covers My/All Projects (empty project lists); projects covers pins.
+  const hasProjectFootnote =
+    Boolean(projectSelection.instruction) || projectSelection.projects.length > 0;
+
+  if (chartTables.length > 0 || hasProjectFootnote) {
     result += '\n\n=== FOOTNOTES ===\n\n';
 
-    if (projectSlugs.length > 0) {
-      result += `This page has the following projects selected: ${projectSlugs.join(', ')}\n`;
-      if (chartTables.length > 0) {
-        result += '\n';
-      }
+    if (projectSelection.instruction) {
+      result += `${projectSelection.instruction}\n`;
+    } else if (projectSelection.projects.length > 0) {
+      // Legacy string[] path may only have slugs and an empty instruction.
+      const projectList = projectSelection.projects
+        .map(project =>
+          project.id ? `${project.slug} (id: ${project.id})` : project.slug
+        )
+        .join(', ');
+      result += `This page has the following projects selected: ${projectList}\n`;
     }
 
     if (chartTables.length > 0) {
+      if (hasProjectFootnote) {
+        result += '\n';
+      }
       chartTables.forEach((table, index) => {
         result += `Chart ${index + 1}:\n${table}\n\n`;
       });
@@ -940,56 +988,47 @@ export function buildResult(
  * Elements within any ancestor marked with `data-seer-explorer-root` are excluded.
  */
 export function useAsciiSnapshot() {
-  const {selection} = usePageFilters();
-  const {projects} = useProjects();
+  const selectedProjects = useSelectedProjectsForLLMContext();
 
-  const capture = useCallback(() => {
-    if (typeof document === 'undefined' || typeof window === 'undefined') {
-      return '';
-    }
-
-    const viewportWidth = Math.max(0, Math.floor(window.innerWidth));
-    const viewportHeight = Math.max(0, Math.floor(window.innerHeight));
-
-    const cellWidthPx = 6;
-    const cellHeightPx = 14;
-
-    const cols = Math.max(1, Math.floor(viewportWidth / cellWidthPx));
-    const rows = Math.max(1, Math.floor(viewportHeight / cellHeightPx));
-
-    const leftShiftPx = computeLeftShiftPx(viewportWidth);
-    const gridHelpers = createGridHelpers(rows, cols);
-    const isExcluded = createIsExcluded();
-    const isVisible = createIsVisible(viewportWidth, viewportHeight);
-
-    const context: ChartProcessingContext = {
-      gridHelpers,
-      viewportWidth,
-      viewportHeight,
-      cellWidthPx,
-      cellHeightPx,
-      leftShiftPx,
-      isExcluded,
-      isVisible,
-    };
-
-    const chartTables: string[] = [];
-    const chartContainers = processCharts(context, chartTables);
-    renderTextNodes(context, chartContainers);
-
-    const projectSlugs: string[] = [];
-    if (selection.projects.length > 0) {
-      const projectIdToSlug = new Map(projects.map(p => [parseInt(p.id, 10), p.slug]));
-      for (const projectId of selection.projects) {
-        const slug = projectIdToSlug.get(projectId);
-        if (slug) {
-          projectSlugs.push(slug);
-        }
+  const capture = useCallback(
+    (location?: LLMContextLocation) => {
+      if (typeof document === 'undefined' || typeof window === 'undefined') {
+        return '';
       }
-    }
 
-    return buildResult(gridHelpers, chartTables, projectSlugs);
-  }, [selection.projects, projects]);
+      const viewportWidth = Math.max(0, Math.floor(window.innerWidth));
+      const viewportHeight = Math.max(0, Math.floor(window.innerHeight));
+
+      const cellWidthPx = 6;
+      const cellHeightPx = 14;
+
+      const cols = Math.max(1, Math.floor(viewportWidth / cellWidthPx));
+      const rows = Math.max(1, Math.floor(viewportHeight / cellHeightPx));
+
+      const leftShiftPx = computeLeftShiftPx(viewportWidth);
+      const gridHelpers = createGridHelpers(rows, cols);
+      const isExcluded = createIsExcluded();
+      const isVisible = createIsVisible(viewportWidth, viewportHeight);
+
+      const context: ChartProcessingContext = {
+        gridHelpers,
+        viewportWidth,
+        viewportHeight,
+        cellWidthPx,
+        cellHeightPx,
+        leftShiftPx,
+        isExcluded,
+        isVisible,
+      };
+
+      const chartTables: string[] = [];
+      const chartContainers = processCharts(context, chartTables);
+      renderTextNodes(context, chartContainers);
+
+      return buildResult(gridHelpers, chartTables, selectedProjects, location);
+    },
+    [selectedProjects]
+  );
 
   return capture;
 }

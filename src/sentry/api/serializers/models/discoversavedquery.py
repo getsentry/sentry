@@ -1,9 +1,17 @@
 from collections import defaultdict
+from datetime import datetime
 from typing import TypedDict
 
+from sentry import features
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ALL_ACCESS_PROJECTS
-from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.discover.models import (
+    DatasetSourcesTypes,
+    DiscoverSavedQuery,
+    DiscoverSavedQueryLastVisited,
+    DiscoverSavedQueryStarred,
+    DiscoverSavedQueryTypes,
+)
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.service import user_service
@@ -29,6 +37,9 @@ class DiscoverSavedQueryResponseOptional(TypedDict, total=False):
     topEvents: int
     interval: str
     exploreQuery: dict
+    lastVisited: str
+    starred: bool
+    position: int | None
 
 
 class DiscoverSavedQueryResponse(DiscoverSavedQueryResponseOptional):
@@ -89,6 +100,33 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
             lambda: {"created_by": {}, "explore_query": None}
         )
 
+        organization = item_list[0].organization if item_list else None
+        has_migrate_feature = (
+            organization is not None
+            and user.id is not None
+            and features.has(
+                "organizations:discover-queries-in-all-queries", organization, actor=user
+            )
+        )
+
+        user_last_visited: dict[int, datetime] = {}
+        if has_migrate_feature:
+            starred_queries = dict(
+                DiscoverSavedQueryStarred.objects.filter(
+                    discover_saved_query__in=item_list,
+                    user_id=user.id,
+                    organization=item_list[0].organization if item_list else None,
+                    starred=True,
+                ).values_list("discover_saved_query_id", "position")
+            )
+            user_last_visited = dict(
+                DiscoverSavedQueryLastVisited.objects.filter(
+                    discover_saved_query__in=item_list,
+                    user_id=user.id,
+                    organization=organization,
+                ).values_list("discover_saved_query_id", "last_visited")
+            )
+
         service_serialized = user_service.serialize_many(
             filter={
                 "user_ids": [
@@ -126,6 +164,18 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
                 result[discover_saved_query]["explore_query"] = serialized_explore_queries.get(
                     discover_saved_query.explore_query_id
                 )
+            if has_migrate_feature:
+                if discover_saved_query.id in starred_queries:
+                    result[discover_saved_query]["starred"] = True
+                    result[discover_saved_query]["position"] = starred_queries[
+                        discover_saved_query.id
+                    ]
+                else:
+                    result[discover_saved_query]["starred"] = False
+                    result[discover_saved_query]["position"] = None
+                result[discover_saved_query]["user_last_visited"] = user_last_visited.get(
+                    discover_saved_query.id
+                )
 
         return result
 
@@ -159,6 +209,15 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
             "dateUpdated": obj.date_updated,
             "createdBy": attrs.get("created_by"),
         }
+
+        if "user_last_visited" in attrs:
+            data["lastVisited"] = attrs["user_last_visited"]
+
+        if "starred" in attrs:
+            data["starred"] = attrs["starred"]
+
+        if "position" in attrs:
+            data["position"] = attrs["position"]
 
         for key in query_keys:
             if obj.query.get(key) is not None:

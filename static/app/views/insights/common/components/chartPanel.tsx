@@ -7,17 +7,14 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Panel} from 'sentry/components/panels/panel';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Subtitle} from 'sentry/views/performance/landing/widgets/widgets/singleFieldAreaWidget';
 
 type Props = {
   children: React.ReactNode;
-  button?: React.JSX.Element;
   className?: string;
-  subtitle?: React.ReactNode;
   title?: React.ReactNode;
 };
 
-export function ChartPanel({title, children, button, subtitle, className}: Props) {
+export function ChartPanel({title, children, className}: Props) {
   return (
     <PanelWithNoPadding className={className}>
       <PanelBody>
@@ -38,7 +35,6 @@ export function ChartPanel({title, children, button, subtitle, className}: Props
               </ChartLabel>
             )}
             <Flex as="span">
-              {button}
               <Button
                 aria-label={t('Expand Insight Chart')}
                 variant="transparent"
@@ -50,11 +46,6 @@ export function ChartPanel({title, children, button, subtitle, className}: Props
               />
             </Flex>
           </Flex>
-        )}
-        {subtitle && (
-          <SubtitleContainer>
-            <Subtitle>{subtitle}</Subtitle>
-          </SubtitleContainer>
         )}
         {children}
       </PanelBody>
@@ -68,10 +59,6 @@ const PanelWithNoPadding = styled(Panel)`
 
 const TextTitleContainer = styled('div')`
   padding: 1px 0;
-`;
-
-const SubtitleContainer = styled('div')`
-  padding-top: ${p => p.theme.space.xs};
 `;
 
 const ChartLabel = styled('div')`

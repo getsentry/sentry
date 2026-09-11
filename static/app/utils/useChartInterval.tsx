@@ -16,7 +16,7 @@ import {
 import {parseStatsPeriod} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t, tn} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -235,7 +235,7 @@ function getIntervalLabel(interval: string): string {
   }
 }
 
-export function getIntervalOptionsForPageFilter(datetime: PageFilters['datetime']) {
+export function getIntervalOptionsForPageFilter(datetime: PageFilterDatetime) {
   const diffInMinutes = getDiffInMinutes(datetime);
 
   const minimumOption = MINIMUM_INTERVAL.getInterval(diffInMinutes);

@@ -34,7 +34,7 @@ type Props = {
 export const releaseFeedbackOptions = {
   messagePlaceholder: t('How can we improve the Releases experience?'),
   tags: {
-    ['feedback.source']: 'release-detail',
+    'feedback.source': 'release-detail',
   },
 };
 
@@ -199,7 +199,7 @@ export function ReleaseActions({
   return (
     <Flex gap="sm" align="center">
       {showFeedbackButton ? (
-        <FeedbackButton feedbackOptions={releaseFeedbackOptions}>
+        <FeedbackButton variant="secondary" feedbackOptions={releaseFeedbackOptions}>
           {t('Give Feedback')}
         </FeedbackButton>
       ) : null}

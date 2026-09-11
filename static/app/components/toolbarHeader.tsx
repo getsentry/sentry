@@ -1,8 +1,20 @@
-import styled from '@emotion/styled';
+import {useTheme} from '@emotion/react';
 
-export const ToolbarHeader = styled('div')`
-  font-size: 12px;
-  text-transform: uppercase;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  color: ${p => p.theme.tokens.content.secondary};
-`;
+import {Container, type ContainerProps} from '@sentry/scraps/layout';
+
+export function ToolbarHeader({style, ...props}: ContainerProps) {
+  const theme = useTheme();
+
+  return (
+    <Container
+      {...props}
+      style={{
+        fontSize: '12px',
+        textTransform: 'uppercase',
+        fontWeight: theme.font.weight.sans.medium,
+        color: theme.tokens.content.secondary,
+        ...style,
+      }}
+    />
+  );
+}

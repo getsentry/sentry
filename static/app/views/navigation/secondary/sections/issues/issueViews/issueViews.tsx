@@ -12,6 +12,8 @@ import {useUpdateGroupSearchViewStarredOrder} from 'sentry/views/issueList/mutat
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {IssueViewItem} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewItem';
 import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 export interface IssueView extends IssueViewParams {
   createdBy: AvatarUser | null;
@@ -23,13 +25,29 @@ export interface IssueView extends IssueViewParams {
   stars: number;
 }
 
-export function IssueViews() {
+function IssueViewsImpl() {
   const organization = useOrganization();
   const {viewId} = useParams<{orgId?: string; viewId?: string}>();
 
   const {starredViews: views, setStarredIssueViews: setViews} = useStarredIssueViews();
 
   const {mutate: updateStarredViewsOrder} = useUpdateGroupSearchViewStarredOrder();
+
+  useLLMContext({
+    contextHint:
+      'The starred issue views listed in the Issues secondary nav panel. Each ' +
+      "view's live issue count is a further-nested child node (nodeType " +
+      '"navigation"), keyed by the same view id.',
+    views: views.map(view => ({
+      id: view.id,
+      label: view.label,
+      query: view.query,
+      querySort: view.querySort,
+      projects: view.projects,
+      environments: view.environments,
+      isActive: view.id === viewId,
+    })),
+  });
 
   if (!views.length) {
     return null;
@@ -61,6 +79,8 @@ export function IssueViews() {
     </Fragment>
   );
 }
+
+export const IssueViews = registerLLMContext('navigation', IssueViewsImpl);
 
 export const constructViewLink = (baseUrl: string, view: IssueView) => {
   return normalizeUrl({

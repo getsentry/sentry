@@ -1,18 +1,8 @@
 import type {SeriesDataUnit} from 'sentry/types/echarts';
-import type {Tag} from 'sentry/types/group';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
-import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
-
-type Props = {
-  browserTypes?: BrowserType[];
-  subregions?: SubregionCode[];
-  tag?: Tag;
-  transaction?: string | null;
-};
 
 export type WebVitalsScoreBreakdown = {
   cls: SeriesDataUnit[];
@@ -23,25 +13,8 @@ export type WebVitalsScoreBreakdown = {
   ttfb: SeriesDataUnit[];
 };
 
-export const useProjectWebVitalsScoresTimeseriesQuery = ({
-  transaction,
-  tag,
-  browserTypes,
-  subregions,
-}: Props) => {
-  const search = new MutableSearch([
-    'has:measurements.score.total',
-    ...(tag ? [`${tag.key}:"${tag.name}"`] : []),
-  ]);
-  if (transaction) {
-    search.addFilterValue('transaction', transaction);
-  }
-  if (subregions) {
-    search.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
-  }
-  if (browserTypes) {
-    search.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
-  }
+export const useProjectWebVitalsScoresTimeseriesQuery = () => {
+  const search = new MutableSearch(['has:measurements.score.total']);
 
   const result = useFetchSpanTimeSeries(
     {
@@ -79,5 +52,5 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
     total: getSeriesData('count()'),
   };
 
-  return {...result, data};
+  return {data, isLoading: result.isLoading};
 };

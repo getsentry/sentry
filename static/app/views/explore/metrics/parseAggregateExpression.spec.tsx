@@ -123,6 +123,17 @@ describe('parseAggregateExpression', () => {
     ]);
   });
 
+  it('keeps an _if filter containing unquoted commas in one piece', () => {
+    const result = parseAggregateExpression(
+      'sum_if(`span.op:[db,http]`,value,requests,counter,none)'
+    );
+
+    expect(result.metricQueries[0]!.queryParams.query).toBe('span.op:[db,http]');
+    expect(result.metricQueries[0]!.queryParams.aggregateFields).toEqual([
+      new VisualizeFunction('sum(value,requests,counter,none)'),
+    ]);
+  });
+
   it('preserves complex _if filter query', () => {
     const result = parseAggregateExpression(
       'equation|sum_if(`agent_name:["Agent Run","Assisted Query"] AND environment:prod`,value,errors,counter,none) / sum(value,total,counter,none)'

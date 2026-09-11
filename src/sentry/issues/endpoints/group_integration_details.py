@@ -43,6 +43,7 @@ from sentry.integrations.project_management.metrics import (
 )
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.issues.action_log import (
+    action_context_scope,
     publish_action,
     resolve_action_actor,
     resolve_action_source,
@@ -345,17 +346,21 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             )
         installation.store_issue_last_defaults(group.project, request.user, request.data)
 
-        self.create_issue_activity(request, group, installation, external_issue, new=True)
+        source = resolve_action_source(request)
+        actor = resolve_action_actor(request)
+
+        with action_context_scope(source=source, actor=actor):
+            self.create_issue_activity(request, group, installation, external_issue, new=True)
 
         publish_action(
             CreateExternalIssueAction(
                 provider=integration.provider,
                 external_issue_key=external_issue.key,
             ),
-            source=resolve_action_source(request),
+            source=source,
             group_id=group.id,
             project=group.project,
-            actor=resolve_action_actor(request),
+            actor=actor,
         )
 
         # TODO(jess): return serialized issue
@@ -383,6 +388,16 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 "externalIssue": serializers.CharField(
                     help_text="The identifier of the existing external issue to link, "
                     "as understood by the provider (such as a Jira issue key)."
+                ),
+                "repo": serializers.CharField(
+                    required=False,
+                    help_text="The repository containing the external issue, in owner/name format. "
+                    "Required by GitHub, GitHub Enterprise, and Bitbucket integrations.",
+                ),
+                "comment": serializers.CharField(
+                    required=False,
+                    help_text="An optional comment to post to the external issue when linking, "
+                    "if supported by the integration.",
                 ),
             },
         ),
@@ -499,17 +514,21 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 lifecycle.record_halt(exc)
                 return Response({"non_field_errors": ["That issue is already linked"]}, status=400)
 
-        self.create_issue_activity(request, group, installation, external_issue, new=False)
+        source = resolve_action_source(request)
+        actor = resolve_action_actor(request)
+
+        with action_context_scope(source=source, actor=actor):
+            self.create_issue_activity(request, group, installation, external_issue, new=False)
 
         publish_action(
             LinkExternalIssueAction(
                 provider=integration.provider,
                 external_issue_key=external_issue.key,
             ),
-            source=resolve_action_source(request),
+            source=source,
             group_id=group.id,
             project=group.project,
-            actor=resolve_action_actor(request),
+            actor=actor,
         )
 
         # TODO(jess): would be helpful to return serialized external issue

@@ -5,26 +5,13 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import * as analytics from 'sentry/utils/analytics';
 
 import {ScmPlatformFeaturesCore} from './scmPlatformFeaturesCore';
 
-interface MockDebouncedCallback {
-  callback: () => void;
-  isActive: () => boolean;
-}
-
-const mockDebouncedCallbacks: MockDebouncedCallback[] = [];
-
-jest.mock('lodash/debounce', () => (callback: () => void) => {
-  const debounced = jest.fn();
-  mockDebouncedCallbacks.push({
-    callback,
-    isActive: () => debounced.mock.calls.length > 0,
-  });
-  return debounced;
-});
+jest.unmock('@tanstack/react-pacer');
 
 // Mock the virtualizer so the manual-picker Select renders in JSDOM (no layout
 // engine).
@@ -39,6 +26,7 @@ jest.mock('@tanstack/react-virtual', () => ({
       })),
     getTotalSize: () => count * 36,
     measureElement: jest.fn(),
+    scrollToIndex: jest.fn(),
   })),
 }));
 
@@ -50,7 +38,11 @@ jest.mock('sentry/data/platforms', () => {
     ...actual,
     platforms: actual.platforms.filter(
       (p: {id: string}) =>
-        p.id === 'javascript' || p.id === 'python' || p.id === 'python-django'
+        p.id === 'javascript' ||
+        p.id === 'python' ||
+        p.id === 'python-django' ||
+        // Not in the curated popular list, so the picker gets both sections.
+        p.id === 'deno'
     ),
   };
 });
@@ -80,7 +72,6 @@ function defaultProps(overrides: Partial<Record<string, unknown>> = {}) {
     selectedPlatform: pythonPlatform,
     onPlatformChange: jest.fn(),
     onFeaturesChange: jest.fn(),
-    onClearProjectDetailsForm: jest.fn(),
     ...overrides,
   };
 }
@@ -88,11 +79,8 @@ function defaultProps(overrides: Partial<Record<string, unknown>> = {}) {
 describe('ScmPlatformFeaturesCore', () => {
   const organization = OrganizationFixture();
 
-  beforeEach(() => {
-    mockDebouncedCallbacks.length = 0;
-  });
-
   afterEach(() => {
+    jest.useRealTimers();
     jest.restoreAllMocks();
   });
 
@@ -202,9 +190,22 @@ describe('ScmPlatformFeaturesCore', () => {
     );
   });
 
+  it('sections the manual picker dropdown into Popular and Other platforms', async () => {
+    render(<ScmPlatformFeaturesCore {...defaultProps({selectedPlatform: undefined})} />, {
+      organization,
+    });
+
+    await userEvent.click(screen.getByRole('textbox'));
+
+    expect(screen.getByText('Popular')).toBeInTheDocument();
+    expect(screen.getByText('Other platforms')).toBeInTheDocument();
+  });
+
   it('tracks one debounced manual platform search with its result count', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
     const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-    render(
+    const {unmount} = render(
       <ScmPlatformFeaturesCore
         {...defaultProps({
           analyticsFlow: 'project-creation',
@@ -214,20 +215,15 @@ describe('ScmPlatformFeaturesCore', () => {
       {organization}
     );
 
-    await userEvent.type(screen.getByRole('textbox'), 'java ');
+    await user.type(screen.getByRole('textbox'), 'java ');
 
     expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
       'growth.platformpicker_search',
       expect.anything()
     );
 
-    const activeDebouncedCallbacks = mockDebouncedCallbacks.filter(({isActive}) =>
-      isActive()
-    );
-    expect(activeDebouncedCallbacks).toHaveLength(1);
-
     act(() => {
-      activeDebouncedCallbacks[0]!.callback();
+      jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION);
     });
 
     expect(trackAnalyticsSpy).toHaveBeenCalledTimes(1);
@@ -239,18 +235,25 @@ describe('ScmPlatformFeaturesCore', () => {
       source: 'project-creation',
       variant: 'scm',
     });
+
+    await user.type(screen.getByRole('textbox'), 'script');
+    expect(trackAnalyticsSpy).toHaveBeenCalledTimes(1);
+    unmount();
+    expect(trackAnalyticsSpy).toHaveBeenCalledTimes(2);
+    expect(trackAnalyticsSpy).toHaveBeenLastCalledWith(
+      'growth.platformpicker_search',
+      expect.objectContaining({search: 'java script'})
+    );
   });
 
   it('clears the selected platform from the manual picker', async () => {
     const onPlatformChange = jest.fn();
     const onFeaturesChange = jest.fn();
-    const onClearProjectDetailsForm = jest.fn();
     render(
       <ScmPlatformFeaturesCore
         {...defaultProps({
           onPlatformChange,
           onFeaturesChange,
-          onClearProjectDetailsForm,
         })}
       />,
       {organization}
@@ -260,7 +263,6 @@ describe('ScmPlatformFeaturesCore', () => {
 
     expect(onPlatformChange).toHaveBeenCalledWith(undefined);
     expect(onFeaturesChange).toHaveBeenCalledWith(undefined);
-    expect(onClearProjectDetailsForm).toHaveBeenCalled();
   });
 
   it('does not offer a clear button when a platform was auto-detected', async () => {
@@ -294,7 +296,6 @@ describe('ScmPlatformFeaturesCore', () => {
 
   it('keeps a non-default detected selection when returning to the recommended view', async () => {
     const onFeaturesChange = jest.fn();
-    const onClearProjectDetailsForm = jest.fn();
     const repository = RepositoryFixture({
       id: '123',
       provider: {id: 'integrations:github', name: 'GitHub'},
@@ -322,7 +323,6 @@ describe('ScmPlatformFeaturesCore', () => {
           selectedPlatform={platform}
           onPlatformChange={setPlatform}
           onFeaturesChange={onFeaturesChange}
-          onClearProjectDetailsForm={onClearProjectDetailsForm}
         />
       );
     }
@@ -337,7 +337,6 @@ describe('ScmPlatformFeaturesCore', () => {
       screen.getByRole('button', {name: "Doesn't look right? Change platform"})
     );
     onFeaturesChange.mockClear();
-    onClearProjectDetailsForm.mockClear();
 
     // Returning keeps the chosen detected platform: it is already detected, so
     // nothing is reset and the card stays selected.
@@ -349,12 +348,10 @@ describe('ScmPlatformFeaturesCore', () => {
       await screen.findByRole('radio', {name: 'Browser JavaScript Language'})
     ).toBeChecked();
     expect(onFeaturesChange).not.toHaveBeenCalled();
-    expect(onClearProjectDetailsForm).not.toHaveBeenCalled();
   });
 
   it('does not reset state when returning without a change', async () => {
     const onFeaturesChange = jest.fn();
-    const onClearProjectDetailsForm = jest.fn();
     const repository = RepositoryFixture({
       id: '123',
       provider: {id: 'integrations:github', name: 'GitHub'},
@@ -371,7 +368,6 @@ describe('ScmPlatformFeaturesCore', () => {
           selectedRepository: repository,
           selectedPlatform: pythonPlatform,
           onFeaturesChange,
-          onClearProjectDetailsForm,
         })}
       />,
       {organization}
@@ -387,14 +383,12 @@ describe('ScmPlatformFeaturesCore', () => {
     );
 
     expect(onFeaturesChange).not.toHaveBeenCalled();
-    expect(onClearProjectDetailsForm).not.toHaveBeenCalled();
   });
 
   it('reverts a manual pick to the detected platform on return, recording it', async () => {
     const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
     const onPlatformChange = jest.fn();
     const onFeaturesChange = jest.fn();
-    const onClearProjectDetailsForm = jest.fn();
     const repository = RepositoryFixture({
       id: '123',
       provider: {id: 'integrations:github', name: 'GitHub'},
@@ -413,7 +407,6 @@ describe('ScmPlatformFeaturesCore', () => {
           selectedPlatform: javascriptPlatform,
           onPlatformChange,
           onFeaturesChange,
-          onClearProjectDetailsForm,
         })}
       />,
       {organization}

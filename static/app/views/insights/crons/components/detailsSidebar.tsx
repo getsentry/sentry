@@ -5,16 +5,15 @@ import moment from 'moment-timezone';
 import {Alert} from '@sentry/scraps/alert';
 import {ActorAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
-import {useDrawer} from '@sentry/scraps/drawer';
-import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
+import {useDrawer, DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import {KeyValueTable, KeyValueTableRow} from 'sentry/components/tables/keyValueTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCopy, IconJson} from 'sentry/icons';
+import {IconCopyId, IconJson} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -47,7 +46,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
         onClick={() => copy(monitor.slug, {successMessage: 'Copied to clipboard'})}
       >
         <SlugText>{monitor.slug}</SlugText>
-        <IconCopy size="xs" />
+        <IconCopyId size="xs" />
       </MonitorSlug>
     </Tooltip>
   );
@@ -103,7 +102,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
         />
       </Legend>
       <SectionHeading>{t('Cron Details')}</SectionHeading>
-      <KeyValueTable>
+      <KeyValueTable margin>
         <KeyValueTableRow keyName={t('Monitor Slug')} value={slug} />
         <KeyValueTableRow
           keyName={t('Failure tolerance')}
@@ -123,13 +122,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
         />
         <KeyValueTableRow
           keyName={t('Owner')}
-          value={
-            monitor.owner ? (
-              <ActorAvatar size={24} actor={monitor.owner} />
-            ) : (
-              t('Unassigned')
-            )
-          }
+          value={monitor.owner ? <ActorAvatar actor={monitor.owner} /> : t('Unassigned')}
         />
         <KeyValueTableRow
           keyName={t('Date created')}

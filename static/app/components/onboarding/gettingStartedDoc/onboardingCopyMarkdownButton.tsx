@@ -8,7 +8,6 @@ import {stepsToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdow
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface CopyMarkdownButtonProps {
   getMarkdown: () => string;
@@ -124,36 +123,4 @@ export function OnboardingCopyMarkdownButton({
       variant={variant}
     />
   );
-}
-
-type CopySetupInstructionsType = 'onboarding' | 'project_creation';
-
-const FEATURE_FLAGS: Record<CopySetupInstructionsType, string> = {
-  onboarding: 'onboarding-copy-setup-instructions',
-  project_creation: 'onboarding-copy-setup-instructions-project-creation',
-};
-
-/**
- * Returns whether the copy setup instructions button should be shown
- * for the given context type.
- */
-export function useCopySetupInstructionsEnabled(
-  type: CopySetupInstructionsType = 'onboarding'
-): boolean {
-  const organization = useOrganization();
-  return organization.features.includes(FEATURE_FLAGS[type]);
-}
-
-export function CopySetupInstructionsGate({
-  children,
-  type,
-}: {
-  children: React.ReactNode;
-  type?: CopySetupInstructionsType;
-}) {
-  const enabled = useCopySetupInstructionsEnabled(type);
-  if (!enabled) {
-    return null;
-  }
-  return children;
 }

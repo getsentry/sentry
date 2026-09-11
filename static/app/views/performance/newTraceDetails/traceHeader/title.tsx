@@ -9,16 +9,18 @@ import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ReplayContextKey} from 'sentry/types/event';
 import {FieldKey} from 'sentry/utils/fields';
+import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
-import {findSpanAttributeValue} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 interface TitleProps {
+  isLoading: boolean;
   representativeEvent: TraceTree.RepresentativeTraceEvent | null;
   rootEventResults: TraceRootEventQueryResults;
 }
@@ -51,7 +53,7 @@ function ContextBadges({rootEventResults}: Pick<TitleProps, 'rootEventResults'>)
   }
 
   const replayId = isTraceItemDetailsResponse(rootEventResults.data)
-    ? findSpanAttributeValue(rootEventResults.data.attributes, FieldKey.REPLAY_ID)
+    ? getAttributeValue(rootEventResults.data.attributes, FieldKey.REPLAY_ID, 'string')
     : rootEventResults.data.contexts.replay?.[ReplayContextKey.REPLAY_ID];
 
   if (!replayId) {
@@ -85,7 +87,16 @@ const ReplayButton = styled(LinkButton)`
   text-decoration-style: dotted;
 `;
 
-export function Title({representativeEvent, rootEventResults}: TitleProps) {
+export function Title({isLoading, representativeEvent, rootEventResults}: TitleProps) {
+  if (isLoading) {
+    return (
+      <Stack align="start" gap="xs" width="75%">
+        <TraceHeaderComponents.StyledPlaceholder _width={100} _height={24} />
+        <TraceHeaderComponents.StyledPlaceholder _width={300} _height={20} />
+      </Stack>
+    );
+  }
+
   const traceTitle = getTitle(representativeEvent);
 
   if (traceTitle) {

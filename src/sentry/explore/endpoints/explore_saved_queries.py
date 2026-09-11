@@ -27,6 +27,7 @@ from sentry.apidocs.parameters import (
     GlobalParams,
     VisibilityParams,
 )
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.explore.endpoints.bases import (
     ExploreSavedQueryPermission,
@@ -267,7 +268,7 @@ def sync_prebuilt_queries(organization):
             ).delete()
 
 
-def sync_prebuilt_queries_starred(organization, user_id):
+def sync_prebuilt_queries_starred(organization, user):
     """
     Queries the database to check if prebuilt queries have an ExploreSavedQueryStarred record for the user_id, and creates them if they don't.
     This ensures that prebuilt queries are starred by default for all users.
@@ -276,7 +277,7 @@ def sync_prebuilt_queries_starred(organization, user_id):
         prebuilt_starred = list(
             ExploreSavedQueryStarred.objects.filter(
                 organization=organization,
-                user_id=user_id,
+                user_id=user.id,
                 starred=True,
                 explore_saved_query__prebuilt_id__isnull=False,
             )
@@ -296,7 +297,7 @@ def sync_prebuilt_queries_starred(organization, user_id):
             .exclude(
                 id__in=ExploreSavedQueryStarred.objects.filter(
                     organization=organization,
-                    user_id=user_id,
+                    user_id=user.id,
                 ).values_list("explore_saved_query_id", flat=True)
             )
             .order_by("name")
@@ -304,18 +305,18 @@ def sync_prebuilt_queries_starred(organization, user_id):
         for query in missing_queries:
             if is_default_order:
                 ExploreSavedQueryStarred.objects.insert_starred_query_alphabetically(
-                    organization, user_id, query
+                    organization, user, query
                 )
             else:
-                ExploreSavedQueryStarred.objects.insert_starred_query(organization, user_id, query)
+                ExploreSavedQueryStarred.objects.insert_starred_query(organization, user, query)
 
 
 @extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.EXPLORE
     permission_classes = (ExploreSavedQueryPermission,)
@@ -370,7 +371,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
                 # Deletes old prebuilt queries from the database if they should no longer exist.
                 # Stars prebuilt queries for the user if it is the first time they are being fetched by the user.
                 sync_prebuilt_queries(organization)
-                sync_prebuilt_queries_starred(organization, request.user.id)
+                sync_prebuilt_queries_starred(organization, request.user)
         except UnableToAcquireLock:
             # Another process is already syncing the prebuilt queries. We can skip syncing this time.
             pass
@@ -499,6 +500,10 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
             )
             order_by = ["position", "-date_added"]
 
+        # Entries with null last visited need a deterministic tiebreaker,
+        # hence adding id to serve this purpose.
+        order_by.append("-id")
+
         queryset = queryset.order_by(*order_by)
 
         def data_fn(offset, limit):
@@ -507,7 +512,9 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         return self.paginate(
             request=request,
             paginator=GenericOffsetPaginator(data_fn=data_fn),
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(
+                x, request.user, serializer=ExploreSavedQueryModelSerializer()
+            ),
             default_per_page=25,
         )
 
@@ -523,7 +530,9 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         },
         examples=ExploreExamples.EXPLORE_SAVED_QUERY_POST_RESPONSE,
     )
-    def post(self, request: Request, organization) -> Response:
+    def post(
+        self, request: Request, organization: Organization
+    ) -> Response[ExploreSavedQueryResponse] | Response[ValidationErrorResponse]:
         """
         Create a new trace explorersaved query for the given organization.
         """
@@ -546,7 +555,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         )
 
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         data = serializer.validated_data
 
@@ -563,9 +572,9 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         try:
             if "starred" in request.data and request.data["starred"]:
                 ExploreSavedQueryStarred.objects.insert_starred_query(
-                    organization, request.user.id, model, starred=True
+                    organization, request.user, model, starred=True
                 )
         except Exception as err:
             sentry_sdk.capture_exception(err)
 
-        return Response(serialize(model), status=201)
+        return Response(serialize(model, serializer=ExploreSavedQueryModelSerializer()), status=201)

@@ -372,8 +372,8 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
                 return f"Logged: '{message}' at {timestamp}"
             case EventType.RESOURCE_FETCH:
                 payload = event["data"]["payload"]
-                method = payload["data"]["method"]
-                status_code = payload["data"]["statusCode"]
+                method = payload["data"].get("method")
+                status_code = payload["data"].get("statusCode")
                 description = payload["description"]
 
                 # Format URL
@@ -389,16 +389,16 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
                 if status_code and str(status_code).startswith("2"):
                     return None
 
+                request_str = f"{method} {url}" if method else url
+                status_str = str(status_code) if status_code else "no response"
                 if response_size is None:
-                    return (
-                        f'Fetch request "{method} {url}" failed with {status_code} at {timestamp}'
-                    )
+                    return f'Fetch request "{request_str}" failed with {status_str} at {timestamp}'
                 else:
-                    return f'Fetch request "{method} {url}" failed with {status_code} ({response_size} bytes) at {timestamp}'
+                    return f'Fetch request "{request_str}" failed with {status_str} ({response_size} bytes) at {timestamp}'
             case EventType.RESOURCE_XHR:
                 payload = event["data"]["payload"]
-                method = payload["data"]["method"]
-                status_code = payload["data"]["statusCode"]
+                method = payload["data"].get("method")
+                status_code = payload["data"].get("statusCode")
                 description = payload["description"]
 
                 # Format URL
@@ -414,14 +414,18 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
                 if status_code and str(status_code).startswith("2"):
                     return None
 
+                request_str = f"{method} {url}" if method else url
+                status_str = str(status_code) if status_code else "no response"
                 if response_size is None:
-                    return f'XHR request "{method} {url}" failed with {status_code} at {timestamp}'
+                    return f'XHR request "{request_str}" failed with {status_str} at {timestamp}'
                 else:
-                    return f'XHR request "{method} {url}" failed with {status_code} ({response_size} bytes) at {timestamp}'
+                    return f'XHR request "{request_str}" failed with {status_str} ({response_size} bytes) at {timestamp}'
             case EventType.LCP:
-                duration = event["data"]["payload"]["data"]["size"]
-                rating = event["data"]["payload"]["data"]["rating"]
-                return f"Application largest contentful paint: {duration} ms and has a {rating} rating at {timestamp}"
+                duration = event["data"]["payload"]["data"].get("size")
+                rating = event["data"]["payload"]["data"].get("rating")
+                if duration is not None and rating is not None:
+                    return f"Application largest contentful paint: {duration} ms and has a {rating} rating at {timestamp}"
+                return f"Application largest contentful paint occurred at {timestamp}"
             case EventType.HYDRATION_ERROR:
                 return f"There was a hydration error on the page at {timestamp}"
             case EventType.TAP:
@@ -431,15 +435,21 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
                 else:
                     return None
             case EventType.DEVICE_BATTERY:
-                charging = event["data"]["payload"]["data"]["charging"]
-                level = event["data"]["payload"]["data"]["level"]
-                return f"Device battery was {level}% and {'charging' if charging else 'not charging'} at {timestamp}"
+                charging = event["data"]["payload"]["data"].get("charging")
+                level = event["data"]["payload"]["data"].get("level")
+                if charging is not None and level is not None:
+                    return f"Device battery was {level}% and {'charging' if charging else 'not charging'} at {timestamp}"
+                return f"Device battery event occurred at {timestamp}"
             case EventType.DEVICE_ORIENTATION:
-                position = event["data"]["payload"]["data"]["position"]
-                return f"Device orientation was changed to {position} at {timestamp}"
+                position = event["data"]["payload"]["data"].get("position")
+                if position is not None:
+                    return f"Device orientation was changed to {position} at {timestamp}"
+                return f"Device orientation was changed at {timestamp}"
             case EventType.DEVICE_CONNECTIVITY:
-                state = event["data"]["payload"]["data"]["state"]
-                return f"Device connectivity was changed to {state} at {timestamp}"
+                state = event["data"]["payload"]["data"].get("state")
+                if state is not None:
+                    return f"Device connectivity was changed to {state} at {timestamp}"
+                return f"Device connectivity was changed at {timestamp}"
             case EventType.SCROLL:
                 view_id = event["data"]["payload"]["data"].get("view.id", "")
                 direction = event["data"]["payload"]["data"].get("direction", "")
@@ -478,8 +488,10 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
                 return None
             case EventType.NAVIGATION:
                 if is_mobile_replay:
-                    to = event["data"]["payload"]["data"]["to"]
-                    return f"User navigated to: {to} at {timestamp}"
+                    to = event["data"]["payload"]["data"].get("to")
+                    if to is not None:
+                        return f"User navigated to: {to} at {timestamp}"
+                    return f"User navigated at {timestamp}"
                 else:
                     return None
             case EventType.MULTI_CLICK:

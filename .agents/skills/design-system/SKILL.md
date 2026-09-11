@@ -520,3 +520,107 @@ Before creating a styled component, ask:
 - ✅ Does the primitive support the prop I need? (Check implementation files)
 
 If you answered yes to any of these, **use the primitive instead**.
+
+## Other Core Components
+
+### Avatars
+
+Use the core avatar components (`<UserAvatar/>`, `<TeamAvatar/>`, `<ProjectAvatar/>`, `<OrganizationAvatar/>`, `<SentryAppAvatar/>`, `<DocIntegrationAvatar/>`) from `static/app/components/core/avatar`. For lists of avatars, use `<AvatarList>`.
+
+```tsx
+// ✅ Use Avatar component and useUser
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {useUser} from 'sentry/utils/useUser';
+
+<UserAvatar user={user}>
+
+// ❌ Do not use raw intrinsic elements or static paths
+function Component() {
+  return (
+    <img
+      src="/path/to/image.jpg"
+      style={{
+        border,
+        width: 20,
+        height: 20,
+        borderRadius: '50%',
+        objectFit: 'cover',
+        display: 'inline-block',
+      }}
+    />
+  );
+}
+```
+
+### Disclosure
+
+Use the core disclosure component instead of building your own.
+
+```tsx
+// ✅ Use Disclosure component
+<Disclosure>
+  <Disclosure.Title>Title</Disclosure.Title>
+  <Disclosure.Content>Content that is toggled based on expanded state</Disclosure.Content>
+</Disclosure>;
+
+// ❌ Do not reimplement disclosure pattern manually
+function Component() {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <div>
+      <Button
+        onClick={() => setIsExpanded(!isExpanded)}
+        icon={<IconChevron direction={isExpanded ? 'down' : 'right'} />}
+      >
+        Title
+      </Button>
+      {isExpanded && (
+        <Container>Content that is toggled based on expanded state</Container>
+      )}
+    </div>
+  );
+}
+```
+
+### Images and Icons
+
+Place all icons in the `static/app/icons` folder. Never inline SVGs or add them to any other folder. Optimize SVGs using svgo or svgomg.
+
+```tsx
+// ❌ Never inline SVGs
+function Component(){
+  return (
+    <Button icon={
+      <svg viewbox="0 0 16 16>"}>
+        // ❌ paths have excessive precision, optimize them with SVGO
+        <circle cx="8.00134" cy="8.4314" r="5.751412" />
+        <circle cx="8.00134" cy="8.4314" r="12.751412" />
+        <line x1="8.41334" y1="5.255361" x2="8" y2="8.255421" />
+      </svg>
+    </Button>
+  )
+}
+
+// ❌ Never place SVGs outside of icons folder.
+import {CustomIcon} from "./customIcon"
+
+// ✅ Import icon from our icon set
+import {IconExclamation} from "sentry/icons"
+```
+
+All images belong inside `static/app/images` and must be imported via the webpack loader (the `sentry-images` alias), never referenced by static path.
+
+```tsx
+// ✅ Images are imported from sentry-images alias
+import image from 'sentry-images/example.png';
+
+function Component() {
+  return <Image src={image} />;
+}
+
+// ❌ All images need to be imported using the webpack loader!
+function Component() {
+  return <Image src="/path/to/image.png" />;
+}
+```

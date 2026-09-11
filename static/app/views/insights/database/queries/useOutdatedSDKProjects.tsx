@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import uniqBy from 'lodash/uniqBy';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';

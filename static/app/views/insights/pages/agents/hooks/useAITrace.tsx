@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {useEffect, useState} from 'react';
 
 import {useApi} from 'sentry/utils/useApi';
@@ -59,6 +58,7 @@ export function useAITrace(traceSlug: string, timestamp?: number): UseAITraceRes
 
   useEffect(() => {
     if (trace.status !== 'success' || !trace.data) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setError(trace.status === 'error');
       setIsLoading(trace.status === 'pending');
       return;
@@ -108,7 +108,7 @@ export function useAITrace(traceSlug: string, timestamp?: number): UseAITraceRes
 
         setNodes(flattenedNodes);
         setIsLoading(false);
-      } catch (err) {
+      } catch {
         setError(true);
         setIsLoading(false);
       }

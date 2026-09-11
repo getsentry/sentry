@@ -15,7 +15,7 @@ from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.handlers.detector.base import (
-    BaseDetectorHandler,
+    DetectorHandler,
     DetectorOccurrence,
     GroupedDetectorEvaluationResult,
 )
@@ -191,7 +191,7 @@ SizeAnalysisEvaluation: TypeAlias = int | float
 
 
 class PreprodSizeAnalysisDetectorHandler(
-    BaseDetectorHandler[SizeAnalysisValue, SizeAnalysisEvaluation]
+    DetectorHandler[SizeAnalysisValue, SizeAnalysisEvaluation]
 ):
     def _matches_query(self, data_packet: SizeAnalysisDataPacket) -> bool:
         query = self.detector.config.get("query", "")
@@ -205,7 +205,7 @@ class PreprodSizeAnalysisDetectorHandler(
             )
 
         artifact = metadata["head_artifact"]
-        organization = self.detector.project.organization
+        organization = self.detector.linked_project.organization
 
         try:
             return artifact_matches_query(artifact, query, organization)
@@ -216,7 +216,7 @@ class PreprodSizeAnalysisDetectorHandler(
             )
             return False
 
-    def evaluate_impl(self, data_packet: SizeAnalysisDataPacket) -> GroupedDetectorEvaluationResult:
+    def evaluate(self, data_packet: SizeAnalysisDataPacket) -> GroupedDetectorEvaluationResult:
         if not self._matches_query(data_packet):
             return GroupedDetectorEvaluationResult(result={}, tainted=False)
 
@@ -253,7 +253,7 @@ class PreprodSizeAnalysisDetectorHandler(
             return None, None
 
         group_evaluation, _ = process_data_condition_group(self.condition_group, value)
-        if not group_evaluation.outcome.triggered:
+        if not group_evaluation.triggered:
             return None, None
 
         priorities = [
@@ -394,9 +394,6 @@ class PreprodSizeAnalysisDetectorHandler(
         }
 
         return occurrence, event_data
-
-    def extract_dedupe_value(self, data_packet: SizeAnalysisDataPacket) -> int:
-        raise NotImplementedError
 
 
 class PreprodSizeAnalysisDetectorValidator(BaseDetectorTypeValidator):

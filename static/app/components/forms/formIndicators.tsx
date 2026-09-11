@@ -119,8 +119,8 @@ const PRETTY_VALUES = new Map<unknown, string>([
   [null, '<none>'],
   [undefined, '<unset>'],
   // if we don't cast as any, then typescript complains because booleans are not valid keys
-  [true as any, 'enabled'],
-  [false as any, 'disabled'],
+  [true, 'enabled'],
+  [false, 'disabled'],
 ]);
 
 // Transform form values into a string

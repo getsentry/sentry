@@ -177,3 +177,123 @@ class OrganizationEventsEndpointTest(APITestCase):
         self.do_request(query)
         _, kwargs = mock.call_args
         self.assertEqual(kwargs["referrer"], "api.insights.transaction-summary")
+
+    def _api_token_request(self, query, features):
+        """Issue an external API-token request, which forces the referrer to
+        `api.auth-token.events` (the "external API request" branch of the
+        blocked-org warning)."""
+        api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
+        features.update(self.features)
+        url = self.reverse_url()
+        with self.feature(features):
+            return self.client_get(
+                url,
+                query,
+                format="json",
+                HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
+            )
+
+    @mock.patch("sentry.api.endpoints.organization_events.sdk_logger")
+    @mock.patch("sentry.snuba.discover.query")
+    def test_blocked_org_log_fires_for_discover(
+        self, mock_query: mock.MagicMock, mock_sdk_logger: mock.MagicMock
+    ) -> None:
+        mock_query.return_value = {}
+
+        # discover is the default dataset when none is specified
+        query = {"field": ["user"], "project": [self.project.id]}
+        self._api_token_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:events-endpoint-transactions-discover-blocked": True,
+            },
+        )
+
+        mock_sdk_logger.warning.assert_called_once()
+        _, kwargs = mock_sdk_logger.warning.call_args
+        assert kwargs["attributes"] == {
+            "org_id": self.organization.id,
+            "org_slug": self.organization.slug,
+            # no dataset param was passed, so the requested value is empty
+            "requested_dataset": "",
+            # but the default dataset is used
+            "effective_dataset": "discover",
+            "endpoint_name": "organization-events",
+        }
+
+    @mock.patch("sentry.api.endpoints.organization_events.sdk_logger")
+    @mock.patch("sentry.snuba.transactions.query")
+    def test_blocked_org_log_fires_for_transactions(
+        self, mock_query: mock.MagicMock, mock_sdk_logger: mock.MagicMock
+    ) -> None:
+        mock_query.return_value = {}
+
+        query = {"field": ["user"], "project": [self.project.id], "dataset": "transactions"}
+        self._api_token_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:events-endpoint-transactions-discover-blocked": True,
+            },
+        )
+
+        mock_sdk_logger.warning.assert_called_once()
+        _, kwargs = mock_sdk_logger.warning.call_args
+        assert kwargs["attributes"]["effective_dataset"] == "transactions"
+        assert kwargs["attributes"]["requested_dataset"] == "transactions"
+
+    @mock.patch("sentry.api.endpoints.organization_events.sdk_logger")
+    @mock.patch("sentry.snuba.discover.query")
+    def test_blocked_org_log_not_fired_when_flag_off(
+        self, mock_query: mock.MagicMock, mock_sdk_logger: mock.MagicMock
+    ) -> None:
+        mock_query.return_value = {}
+
+        query = {"field": ["user"], "project": [self.project.id]}
+        self._api_token_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:events-endpoint-transactions-discover-blocked": False,
+            },
+        )
+
+        mock_sdk_logger.warning.assert_not_called()
+
+    @mock.patch("sentry.api.endpoints.organization_events.sdk_logger")
+    @mock.patch("sentry.snuba.discover.query")
+    def test_blocked_org_log_not_fired_for_non_external_request(
+        self, mock_query: mock.MagicMock, mock_sdk_logger: mock.MagicMock
+    ) -> None:
+        mock_query.return_value = {}
+
+        query = {"field": ["user"], "project": [self.project.id]}
+        # do_request uses a session login, not an API token
+        self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:events-endpoint-transactions-discover-blocked": True,
+            },
+        )
+
+        mock_sdk_logger.warning.assert_not_called()
+
+    @mock.patch("sentry.api.endpoints.organization_events.sdk_logger")
+    @mock.patch("sentry.snuba.errors.query")
+    def test_blocked_org_log_not_fired_for_non_legacy_dataset(
+        self, mock_query: mock.MagicMock, mock_sdk_logger: mock.MagicMock
+    ) -> None:
+        mock_query.return_value = {}
+
+        query = {"field": ["user"], "project": [self.project.id], "dataset": "errors"}
+        self._api_token_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:events-endpoint-transactions-discover-blocked": True,
+            },
+        )
+
+        mock_sdk_logger.warning.assert_not_called()

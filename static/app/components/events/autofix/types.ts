@@ -49,13 +49,6 @@ export enum CodingAgentProvider {
   GITHUB_COPILOT_AGENT = 'github_copilot_agent',
 }
 
-export function getResultButtonLabel(url: string | null | undefined): string {
-  if (url?.includes('/tree/')) {
-    return t('View Branch');
-  }
-  return t('View Pull Request');
-}
-
 export type FilePatch = {
   added: number;
   hunks: Hunk[];
@@ -187,6 +180,9 @@ export interface ProjectSeerPreferences {
 }
 
 export const AUTOFIX_TTL_IN_DAYS = 30;
+
+// Keep in sync with the user_context serializer in src/sentry/seer/endpoints/group_ai_autofix.py.
+export const AUTOFIX_USER_CONTEXT_MAX_LENGTH = 1000;
 
 export function getCodingAgentName(provider: string | undefined): string {
   switch (provider) {

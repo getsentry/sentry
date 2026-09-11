@@ -11,7 +11,6 @@ type NodeProps = {
   onExpandClick: () => void;
   collapsible?: boolean;
   isFocused?: boolean;
-  isSelected?: boolean;
 };
 
 export function Node({

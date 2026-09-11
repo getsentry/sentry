@@ -14,7 +14,6 @@ import type {Event, Frame} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils/defined';
 
 import {OmittedFrames} from './omittedFrames';
 
@@ -39,9 +38,7 @@ type Props = {
   className?: string;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   includeSystemFrames?: boolean;
-  inlined?: boolean;
   isHoverPreviewed?: boolean;
-  maxDepth?: number;
   meta?: Record<any, any>;
 };
 
@@ -52,10 +49,8 @@ export function NativeContent({
   event,
   newestFirst,
   isHoverPreviewed,
-  inlined,
   groupingCurrentLevel,
   includeSystemFrames = true,
-  maxDepth,
   meta,
 }: Props) {
   const frames = data.frames ?? [];
@@ -180,9 +175,7 @@ export function NativeContent({
           frame,
           prevFrame,
           nextFrame,
-          emptySourceNotation: inlined
-            ? false
-            : lastFrameIndex === frameIndex && frameIndex === 0,
+          emptySourceNotation: lastFrameIndex === frameIndex && frameIndex === 0,
           platform,
           onShowFramesToggle: (e: React.MouseEvent<HTMLElement>) => {
             handleToggleFrames(e, frameIndex);
@@ -224,9 +217,6 @@ export function NativeContent({
     })
     .filter((frame): frame is React.ReactElement => !!frame);
 
-  if (defined(maxDepth)) {
-    convertedFrames = convertedFrames.slice(-maxDepth);
-  }
   if (newestFirst) {
     convertedFrames = convertedFrames.toReversed();
   }

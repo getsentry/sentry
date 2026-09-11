@@ -145,7 +145,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
     ) -> None:
         detector_projects = set()
         for detector in detectors.values():
-            detector_projects.add((detector.id, detector.project.slug))
+            detector_projects.add((detector.id, detector.linked_project.slug))
 
         for detector_id, project_slug in detector_projects:
             rule_result = result[detectors[detector_id]].setdefault(
@@ -268,7 +268,9 @@ class WorkflowEngineDetectorSerializer(Serializer):
         actions = [dcga.action for dcga in dcgas]
 
         # add sentry app data
-        organization_id = [detector.project.organization_id for detector in detectors.values()][0]
+        organization_id = [
+            detector.linked_project.organization_id for detector in detectors.values()
+        ][0]
         sentry_app_installations_by_sentry_app_id = (
             self.add_sentry_app_installations_by_sentry_app_id(actions, organization_id)
         )
@@ -430,7 +432,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
         data: AlertRuleSerializerResponse = {
             "id": str(alert_rule_id),
             "name": obj.name,
-            "organizationId": str(obj.project.organization_id),
+            "organizationId": str(obj.linked_project.organization_id),
             "status": AlertRuleStatus.PENDING.value,
             "queryType": attrs.get("queryType"),
             "dataset": attrs.get("dataset"),

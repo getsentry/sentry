@@ -32,7 +32,6 @@ const ALL_AVAILABLE_FEATURES = [
   'performance-view',
   'profiling',
   'visibility-explore-view',
-  'workflow-engine-ui',
 ];
 
 const mockUsingCustomerDomain = jest.fn();
@@ -200,7 +199,7 @@ describe('desktop navigation', () => {
           <Navigation />
         </PrimaryNavigationContextProvider>,
         navigationContext({
-          organization: {features: [...ALL_AVAILABLE_FEATURES, 'workflow-engine-ui']},
+          organization: {features: [...ALL_AVAILABLE_FEATURES]},
         })
       );
 

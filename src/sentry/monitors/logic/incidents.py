@@ -58,10 +58,13 @@ def try_incident_threshold(
     if not failure_issue_threshold:
         failure_issue_threshold = 1
 
+    resolved_checkins: list[MonitorCheckIn] | None = None
+
     # check to see if we need to update the status
     if monitor_env.status in [MonitorStatus.OK, MonitorStatus.ACTIVE]:
         if failure_issue_threshold == 1:
             previous_checkins: list[SimpleCheckIn] = [SimpleCheckIn.from_checkin(failed_checkin)]
+            resolved_checkins = [failed_checkin]
         else:
             previous_checkins = [
                 SimpleCheckIn(**row)
@@ -77,9 +80,11 @@ def try_incident_threshold(
             # reverse the list after slicing in order to start with oldest check-in
             previous_checkins = list(reversed(previous_checkins))
 
-            # If we have any successful check-ins within the threshold of
-            # commits we have NOT reached an incident state
-            if any([checkin.status == CheckInStatus.OK for checkin in previous_checkins]):
+            # If we have fewer check-ins than the threshold or any successful
+            # check-ins within it, we have NOT reached an incident state.
+            if len(previous_checkins) < failure_issue_threshold or any(
+                checkin.status == CheckInStatus.OK for checkin in previous_checkins
+            ):
                 return False
 
         # change monitor status + update fingerprint timestamp
@@ -104,6 +109,7 @@ def try_incident_threshold(
         # If the monitor was already in an incident there are no previous
         # check-ins to pass long when creating the occurrence
         previous_checkins = [SimpleCheckIn.from_checkin(failed_checkin)]
+        resolved_checkins = [failed_checkin]
 
         # get the active incident from the monitor environment
         incident = monitor_env.active_incident
@@ -115,7 +121,11 @@ def try_incident_threshold(
     # - We have an active incident and fingerprint
     # - The environment is not muted
     if not monitor_env.is_muted and incident:
-        checkins = list(MonitorCheckIn.objects.filter(id__in=[c.id for c in previous_checkins]))
+        checkins = (
+            resolved_checkins
+            if resolved_checkins is not None
+            else list(MonitorCheckIn.objects.filter(id__in=[c.id for c in previous_checkins]))
+        )
         for checkin in checkins:
             dispatch_incident_occurrence(checkin, checkins, incident, received, clock_tick)
 

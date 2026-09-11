@@ -115,6 +115,7 @@ export const SENTRY_PREPROD_STRING_TAGS: string[] = [
   'git_base_sha',
   'git_head_ref',
   'git_head_sha',
+  'install_groups',
   'platform_name',
   'snapshot_status',
 ];
@@ -158,6 +159,8 @@ export const HIDDEN_PREPROD_ATTRIBUTES = [
   'tags[metrics_artifact_type,number]',
   'tags[artifact_type,number]',
   ...PREPROD_IMAGE_FIELDS,
+  // Distribution-only; explicitly allowlisted by the Mobile Builds distribution views.
+  'install_groups',
   'snapshot_status',
 ];
 
@@ -177,3 +180,7 @@ export const MAX_PERIOD_FOR_CROSS_EVENTS = '7d';
 export const MAX_DAYS_FOR_CROSS_EVENTS = statsPeriodToDays(MAX_PERIOD_FOR_CROSS_EVENTS);
 
 export const EXPLORE_FIVE_MIN_STALE_TIME = 5 * 60 * 1000;
+
+// Some fields don't make sense to allow users to group by as they create
+// very high cardinality groupings and is not useful.
+export const DISALLOWED_GROUP_BY_FIELDS = new Set(['id', 'timestamp']);

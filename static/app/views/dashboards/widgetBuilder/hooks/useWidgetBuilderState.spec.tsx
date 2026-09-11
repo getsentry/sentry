@@ -2849,7 +2849,7 @@ describe('useWidgetBuilderState', () => {
         result.current.dispatch({
           type: BuilderStateAction.SET_TEXT_CONTENT,
           payload: 'new text content',
-        } as any);
+        });
       });
 
       jest.runAllTimers();

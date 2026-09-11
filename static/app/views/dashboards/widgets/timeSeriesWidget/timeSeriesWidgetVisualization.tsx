@@ -57,10 +57,10 @@ import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
 import {formatYAxisValue} from './formatters/formatYAxisValue';
 import type {Plottable} from './plottables/plottable';
 import {assignPlottablesToYAxes} from './assignPlottablesToYAxes';
+import {createReleaseSeriesOptions} from './createReleaseSeriesOptions';
+import {createTimeSeriesWidgetYAxisOptions} from './createTimeSeriesWidgetYAxisOptions';
 import {generateTimezoneAlignedTicks} from './generateTimezoneAlignedTicks';
-import {ReleaseSeries} from './releaseSeries';
 import {FALLBACK_TYPE} from './settings';
-import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
 
 const {warn} = Sentry.logger;
 
@@ -73,7 +73,7 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * Sets the range of the Y axis.
    *
    * - `auto`: The Y axis starts at 0, and ends at the maximum value of the data.
-   * - `dataMin`: The Y axis starts at the minimum value of the data, and ends at the maximum value of the data.
+   * - `dataMin`: The Y axis starts at a round tick value at or just below the minimum value of the data, and ends at the maximum value of the data.
    * Default: `auto`
    */
   axisRange?: AxisRange;
@@ -194,7 +194,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const axisRangeProp = getAxisRange(props.axisRange) ?? 'auto';
 
-  const leftYAxis = TimeSeriesWidgetYAxis(
+  const leftYAxis = createTimeSeriesWidgetYAxisOptions(
     {
       axisLabel: {
         hideOverlap: true,
@@ -208,7 +208,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   );
 
   const rightYAxis = rightYAxisType
-    ? TimeSeriesWidgetYAxis(
+    ? createTimeSeriesWidgetYAxisOptions(
         {
           axisLabel: {
             hideOverlap: true,
@@ -262,8 +262,14 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       const uniqueSeries = new Set<string>();
 
       deDupedParams = params.filter(param => {
+        // When a chart re-renders while its tooltip is open, ECharts replays the
+        // pre-render data indices against the new data. A shrunk series leaves
+        // the index past the end, so the param has no data tuple to read
+        if (!Array.isArray(param.value)) {
+          return false;
+        }
+
         // Filter null values from tooltip
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         if (param.value[1] === null) {
           return false;
         }
@@ -277,6 +283,13 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         uniqueSeries.add(param.seriesName);
         return true;
       });
+
+      // A shrunk series makes every replayed index stale, so nothing survives
+      // the filter. `getFormatter` reads the tooltip timestamp off the first
+      // series, so hand it an empty list and it throws
+      if (deDupedParams.length === 0) {
+        return '';
+      }
     }
 
     return getFormatter({
@@ -396,7 +409,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     props.releases && props.showReleaseAs !== 'none'
       ? hasReleaseBubbles
         ? releaseBubbleSeries
-        : ReleaseSeries(
+        : createReleaseSeriesOptions(
             theme,
             props.releases,
             function onReleaseClick(release: Release) {
@@ -520,6 +533,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     if (plottable.needsColor) {
       // For any timeseries in need of a color, pull from the chart palette
       color = palette[seriesColorIndex % palette.length]!; // Mod the index in case the number of plottables exceeds the palette length
+      // oxlint-disable-next-line react/immutability
       seriesColorIndex += 1;
     }
 

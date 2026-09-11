@@ -1,9 +1,9 @@
 import {Fragment, type ReactNode} from 'react';
 
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {CrumbErrorTitle} from 'sentry/components/replays/breadcrumbs/errorTitle';
 import {SelectorList} from 'sentry/components/replays/breadcrumbs/selectorList';
 import {
@@ -33,6 +33,7 @@ import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {
   BreadcrumbFrame,
   ClickFrame,
+  ClickFrameNode,
   ConsoleFrame,
   DeviceBatteryFrame,
   DeviceConnectivityFrame,
@@ -487,10 +488,10 @@ export function defaultTitle(frame: ReplayFrame | RawBreadcrumbFrame) {
   return 'description' in frame ? (frame.description ?? '') : '';
 }
 
-function stringifyNodeAttributes(node: SlowClickFrame['data']['node']) {
+function stringifyNodeAttributes(node: ClickFrameNode | undefined) {
   const {tagName, attributes} = node ?? {};
   const attributesEntries = Object.entries(attributes ?? {});
-  const componentName = node?.attributes['data-sentry-component'];
+  const componentName = attributes?.['data-sentry-component'];
 
   return `${componentName ?? tagName}${
     attributesEntries.length
@@ -519,8 +520,7 @@ function WebVitalTitle(frame: WebVitalFrame) {
   return (
     <Flex align="center" gap="xs">
       {t('Web Vital: ') + toTitleCase(explodeSlug(frame.description))}
-      <QuestionTooltip
-        isHoverable
+      <InfoTip
         size="xs"
         title={
           <Fragment>

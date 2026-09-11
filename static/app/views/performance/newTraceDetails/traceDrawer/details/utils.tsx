@@ -110,17 +110,10 @@ export function getSearchInExploreTarget(
   };
 }
 
-export function findSpanAttributeValue(
-  attributes: TraceItemResponseAttribute[],
-  attributeName: string
-) {
-  return attributes.find(attribute => attribute.name === attributeName)?.value.toString();
-}
-
 // Sort attributes so that span.* attributes are at the beginning and
 // the rest of the attributes are sorted alphabetically.
 export function sortAttributes(attributes: TraceItemResponseAttribute[]) {
-  return [...attributes].sort((a, b) => {
+  return attributes.toSorted((a, b) => {
     const aIsSpan = a.name.startsWith('span.');
     const bIsSpan = b.name.startsWith('span.');
 

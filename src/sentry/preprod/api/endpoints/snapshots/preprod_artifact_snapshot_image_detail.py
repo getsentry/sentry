@@ -24,7 +24,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.issues.action_log import resolve_action_source
 from sentry.models.organization import Organization
-from sentry.objectstore import get_preprod_session
+from sentry.objectstore import UsecaseId, get_session
 from sentry.preprod.analytics import PreprodArtifactApiGetSnapshotImageEvent
 from sentry.preprod.api.models.public.snapshots import SnapshotImageDetailResponseDict
 from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import (
@@ -122,7 +122,7 @@ def _to_response_dict(resp: SnapshotImageDetailResponse) -> SnapshotImageDetailR
 
 
 # Intentionally uses a flat response format (nullable fields, no conditional shapes)
-# rather than matching the details endpoint's SnapshotDiffPair/SnapshotImageResponse split.
+# rather than the details endpoint's categorized diff-pair/image split.
 # This endpoint is designed for LLM/MCP consumers that benefit from a single uniform shape.
 @extend_schema(tags=["Snapshots"])
 @cell_silo_endpoint
@@ -216,8 +216,11 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
             return Response({"detail": "Manifest key not found"}, status=404)
 
         try:
-            session = get_preprod_session(organization.id, artifact.project_id)
-            manifest_data = orjson.loads(session.get(manifest_key).payload.read())
+            session = get_session(UsecaseId.PREPROD, artifact.project)
+            response = session.get(manifest_key)
+            if response is None:
+                raise FileNotFoundError("Manifest does not exist in objectstore")
+            manifest_data = orjson.loads(response.payload.read())
             manifest = SnapshotManifest(**manifest_data)
         except Exception:
             logger.exception(
@@ -249,8 +252,11 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
             comparison_key = (comparison.extras or {}).get("comparison_key")
             if comparison_key:
                 try:
+                    response = session.get(comparison_key)
+                    if response is None:
+                        raise FileNotFoundError("Comparison manifest does not exist in objectstore")
                     comparison_manifest = ComparisonManifest(
-                        **orjson.loads(session.get(comparison_key).payload.read())
+                        **orjson.loads(response.payload.read())
                     )
                 except Exception:
                     logger.exception(
@@ -262,9 +268,10 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
             base_manifest_key = (comparison.base_snapshot_metrics.extras or {}).get("manifest_key")
             if base_manifest_key:
                 try:
-                    base_manifest = SnapshotManifest(
-                        **orjson.loads(session.get(base_manifest_key).payload.read())
-                    )
+                    response = session.get(base_manifest_key)
+                    if response is None:
+                        raise FileNotFoundError("Base manifest does not exist in objectstore")
+                    base_manifest = SnapshotManifest(**orjson.loads(response.payload.read()))
                 except Exception:
                     logger.exception(
                         "Failed to fetch base manifest",

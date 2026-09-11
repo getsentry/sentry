@@ -131,6 +131,48 @@ export const VALID_ISSUE_CATEGORIES = [
   IssueCategory.CONFIGURATION,
 ];
 
+/**
+ * Numeric values used by issue category workflow conditions.
+ * These must match GroupCategory in src/sentry/issues/grouptype.py.
+ */
+export enum GroupCategory {
+  ERROR = 1,
+  PERFORMANCE = 2,
+  CRON = 4,
+  REPLAY = 5,
+  FEEDBACK = 6,
+  UPTIME = 7,
+  METRIC_ALERT = 8,
+  OUTAGE = 10,
+  METRIC = 11,
+  DB_QUERY = 12,
+  HTTP_CLIENT = 13,
+  FRONTEND = 14,
+  MOBILE = 15,
+  AI_DETECTED = 16,
+  PREPROD = 17,
+  CONFIGURATION = 19,
+}
+
+export const ISSUE_CATEGORY_TO_GROUP_CATEGORY: Record<IssueCategory, GroupCategory> = {
+  [IssueCategory.ERROR]: GroupCategory.ERROR,
+  [IssueCategory.PERFORMANCE]: GroupCategory.PERFORMANCE,
+  [IssueCategory.CRON]: GroupCategory.CRON,
+  [IssueCategory.REPLAY]: GroupCategory.REPLAY,
+  [IssueCategory.FEEDBACK]: GroupCategory.FEEDBACK,
+  [IssueCategory.UPTIME]: GroupCategory.UPTIME,
+  [IssueCategory.METRIC_ALERT]: GroupCategory.METRIC_ALERT,
+  [IssueCategory.OUTAGE]: GroupCategory.OUTAGE,
+  [IssueCategory.METRIC]: GroupCategory.METRIC,
+  [IssueCategory.DB_QUERY]: GroupCategory.DB_QUERY,
+  [IssueCategory.HTTP_CLIENT]: GroupCategory.HTTP_CLIENT,
+  [IssueCategory.FRONTEND]: GroupCategory.FRONTEND,
+  [IssueCategory.MOBILE]: GroupCategory.MOBILE,
+  [IssueCategory.AI_DETECTED]: GroupCategory.AI_DETECTED,
+  [IssueCategory.PREPROD]: GroupCategory.PREPROD,
+  [IssueCategory.CONFIGURATION]: GroupCategory.CONFIGURATION,
+};
+
 export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.ERROR]: t('Runtime errors or exceptions.'),
   [IssueCategory.OUTAGE]: t('Uptime or cron monitoring issues.'),
@@ -399,14 +441,6 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   11003: IssueType.PREPROD_SIZE_ANALYSIS,
 };
 
-// Occurrence type IDs for hidden issue types - used to filter API queries.
-// Note: This only works for issuePlatform events not discover/error events.
-export const HIDDEN_OCCURRENCE_TYPE_IDS: number[] = Object.entries(
-  OCCURRENCE_TYPE_TO_ISSUE_TYPE
-)
-  .filter(([_, issueType]) => HIDDEN_ISSUE_TYPES.includes(issueType))
-  .map(([id]) => Number(id));
-
 const PERFORMANCE_REGRESSION_TYPE_IDS = new Set([1017, 1018, 2010, 2011]);
 
 export function getIssueTypeFromOccurrenceType(
@@ -458,6 +492,12 @@ export type Tag = {
   key: string;
   name: string;
   alias?: string;
+
+  /**
+   * For trace-item attributes, whether the attribute was defined by Sentry
+   * ('sentry') or sent by the user ('user').
+   */
+  attributeSource?: 'sentry' | 'user';
 
   isInput?: boolean;
 
@@ -555,7 +595,7 @@ export type SuggestedOwnerReason =
   | 'codeowners';
 
 // Received from the backend to denote suggested owners of an issue
-type SuggestedOwner = {
+export type SuggestedOwner = {
   date_added: string;
   owner: string;
   type: SuggestedOwnerReason;
@@ -924,7 +964,7 @@ export interface GroupActivitySetEscalating extends GroupActivityBase {
   type: GroupActivityType.SET_ESCALATING;
 }
 
-export interface GroupActivitySetPriority extends GroupActivityBase {
+interface GroupActivitySetPriority extends GroupActivityBase {
   data: {
     priority: PriorityLevel;
     reason: string;
@@ -955,7 +995,7 @@ export interface GroupActivityAssigned extends GroupActivityBase {
   type: GroupActivityType.ASSIGNED;
 }
 
-export interface GroupActivityCreateIssue extends GroupActivityBase {
+interface GroupActivityCreateIssue extends GroupActivityBase {
   data: {
     location: string;
     provider: string;
@@ -1033,6 +1073,7 @@ interface GroupActivitySeerPrCreated extends GroupActivityBase {
 interface GroupActivitySeerIterationStarted extends GroupActivityBase {
   data: {
     iteration_index?: number;
+    referrer?: AutofixReferrer;
     run_id?: number;
   };
   type: GroupActivityType.SEER_ITERATION_STARTED;

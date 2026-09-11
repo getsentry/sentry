@@ -482,7 +482,7 @@ function useParenthesisItems({
     if (nextAllowedTokenKinds.includes(TokenKind.OPEN_PARENTHESIS)) {
       options.push({
         key: `${TokenKind.OPEN_PARENTHESIS}:open`,
-        label: <IconParenthesis side="left" height={26} />,
+        label: <IconParenthesis height={26} />,
         value: '(',
         textValue: '(',
         hideCheck: true,
@@ -622,7 +622,7 @@ function useReferenceItems({
       {
         key: 'references',
         label: t('references'),
-        options: [...references].map(key => ({
+        options: Array.from(references, key => ({
           key: `${TokenKind.REFERENCE}:${key}`,
           label: key,
           value: key,

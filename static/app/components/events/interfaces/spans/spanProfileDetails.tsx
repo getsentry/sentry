@@ -2,9 +2,9 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
 import {IssueFrameActions} from 'sentry/components/stackTrace/issueStackTrace/issueFrameActions';
 import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
@@ -44,7 +44,6 @@ export interface SpanProfileDetailsProps {
     start_timestamp: number;
     thread_id?: string;
   }>;
-  onNoProfileFound?: () => void;
 }
 
 export function useSpanProfileDetails(
@@ -206,11 +205,7 @@ export function useSpanProfileDetails(
   };
 }
 
-export function SpanProfileDetails({
-  event,
-  span,
-  onNoProfileFound,
-}: SpanProfileDetailsProps) {
+export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === event.projectID);
@@ -232,9 +227,6 @@ export function SpanProfileDetails({
   }
 
   if (!frames.length) {
-    if (onNoProfileFound) {
-      onNoProfileFound();
-    }
     return null;
   }
 
@@ -255,7 +247,7 @@ export function SpanProfileDetails({
             })}
           </SectionSubtext>
         </SpanDetailsItem>
-        <QuestionTooltip
+        <InfoTip
           position="top"
           size="xs"
           title={t(

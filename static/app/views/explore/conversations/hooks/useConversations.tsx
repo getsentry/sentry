@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -21,11 +22,19 @@ export interface Conversation {
   endTimestamp: number;
   errors: number;
   firstInput: string | null;
+  // Summed duration (ms) of the conversation's generation (ai_client) spans.
+  generationDuration: number;
   inputTokens: number;
   lastOutput: string | null;
   llmCalls: number;
   outputTokens: number;
+  // Project the conversation's first span belongs to (null when unknown).
+  projectId: number | null;
   startTimestamp: number;
+  // AI-generated summary of the conversation. Not always available (title
+  // generation is gated and asynchronous), so consumers must fall back to the
+  // first input message.
+  title: string | null;
   toolCalls: number;
   toolErrors: number;
   toolNames: string[];
@@ -46,11 +55,41 @@ interface ConversationApiResponse extends Omit<
 
 const CONVERSATION_LIST_PER_PAGE = 50;
 
+const CONVERSATION_SORT_FIELDS = [
+  'age',
+  'generationDuration',
+  'llmCalls',
+  'errors',
+  'totalCost',
+] as const;
+
+export type ConversationSortField = (typeof CONVERSATION_SORT_FIELDS)[number];
+
+const CONVERSATION_SORTS = CONVERSATION_SORT_FIELDS.flatMap(field => [
+  field,
+  `-${field}`,
+]);
+
+function normalizeConversationPreview(
+  content: ConversationApiResponse['firstInput']
+): string | null {
+  return typeof content === 'string'
+    ? content
+    : (content?.find(part => part.type === 'text')?.text ?? null);
+}
+
 export function useConversations() {
   const organization = useOrganization();
-  const {cursor, setCursor} = useTableCursor();
+  const {cursor, setCursor, unsetCursor} = useTableCursor();
   const pageFilters = usePageFilters();
   const combinedQuery = useCombinedQuery();
+  const sortingEnabled = organization.features.includes(
+    'gen-ai-conversations-querying-enhancements'
+  );
+  const [sort, setSort] = useQueryState(
+    'sort',
+    parseAsStringLiteral(CONVERSATION_SORTS).withDefault('-age')
+  );
 
   const {
     data: response,
@@ -58,7 +97,7 @@ export function useConversations() {
     error,
   } = useQuery({
     ...apiOptions.as<ConversationApiResponse[]>()(
-      '/organizations/$organizationIdOrSlug/ai-conversations/',
+      '/organizations/$organizationIdOrSlug/agents/conversations/',
       {
         path: {organizationIdOrSlug: organization.slug},
         query: {
@@ -67,6 +106,7 @@ export function useConversations() {
           project: pageFilters.selection.projects,
           environment: pageFilters.selection.environments,
           per_page: CONVERSATION_LIST_PER_PAGE,
+          sort: sortingEnabled ? [sort] : undefined,
           ...normalizeDateTimeParams(pageFilters.selection.datetime),
         },
         staleTime: 0,
@@ -79,25 +119,13 @@ export function useConversations() {
   const isDirectHit = response?.headers['X-Sentry-Direct-Hit'] === '1';
 
   const data = useMemo(() => {
-    return (response?.json ?? [])
-      .map(
-        ({
-          firstInput: rawFirstInput,
-          lastOutput: rawLastOutput,
-          ...rest
-        }): Conversation => {
-          const firstInput =
-            typeof rawFirstInput === 'string'
-              ? rawFirstInput
-              : (rawFirstInput?.find(content => content.type === 'text')?.text ?? null);
-          const lastOutput =
-            typeof rawLastOutput === 'string'
-              ? rawLastOutput
-              : (rawLastOutput?.find(content => content.type === 'text')?.text ?? null);
-          return {...rest, firstInput, lastOutput};
-        }
-      )
-      .sort((a, b) => b.endTimestamp - a.endTimestamp);
+    return (response?.json ?? []).map(
+      ({firstInput: rawFirstInput, lastOutput: rawLastOutput, ...rest}): Conversation => {
+        const firstInput = normalizeConversationPreview(rawFirstInput);
+        const lastOutput = normalizeConversationPreview(rawLastOutput);
+        return {...rest, firstInput, lastOutput};
+      }
+    );
   }, [response?.json]);
 
   return {
@@ -106,6 +134,10 @@ export function useConversations() {
     error,
     pageLinks,
     setCursor,
+    unsetCursor,
     isDirectHit,
+    sort,
+    setSort,
+    sortingEnabled,
   };
 }

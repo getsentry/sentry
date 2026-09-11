@@ -65,14 +65,12 @@ _SKIP_STATUS_CHECK_RESPONSES = {
 class BaseProjectPreprodSkipStatusCheckEndpoint(ProjectEndpoint):
     """Create a neutral status check for a commit that intentionally skips an artifact upload.
 
-    The repository must have an active GitHub integration in the project's organization.
+    The repository must be connected to the project's organization through an active repository
+    integration.
     The same Sentry auth token configured for build uploads can also be used for this endpoint.
     """
 
     owner = ApiOwner.EMERGE_TOOLS
-    publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
-    }
     # Release scope: the same token that uploads builds can post skips.
     permission_classes = (ProjectReleasePermission,)
     rate_limits = RateLimitConfig(
@@ -136,6 +134,9 @@ class BaseProjectPreprodSkipStatusCheckEndpoint(ProjectEndpoint):
 @cell_silo_endpoint
 class ProjectPreprodSizeAnalysisSkipStatusCheckEndpoint(BaseProjectPreprodSkipStatusCheckEndpoint):
     check_type = "size"
+    publish_status = {
+        "POST": ApiPublishStatus.PUBLIC,
+    }
 
 
 @extend_schema(tags=["Snapshots"])
@@ -154,3 +155,6 @@ class ProjectPreprodSizeAnalysisSkipStatusCheckEndpoint(BaseProjectPreprodSkipSt
 @cell_silo_endpoint
 class ProjectPreprodSnapshotSkipStatusCheckEndpoint(BaseProjectPreprodSkipStatusCheckEndpoint):
     check_type = "snapshots"
+    publish_status = {
+        "POST": ApiPublishStatus.PUBLIC,
+    }

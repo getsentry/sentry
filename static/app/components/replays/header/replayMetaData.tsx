@@ -119,10 +119,6 @@ const KeyMetrics = styled('dl')`
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
   margin: 0;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    justify-self: flex-end;
-  }
 `;
 
 const KeyMetricLabel = styled('dt')`

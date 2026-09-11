@@ -48,10 +48,7 @@ from sentry.workflow_engine.processors.data_condition_group import (
     evaluate_data_conditions,
     get_slow_conditions_for_groups,
 )
-from sentry.workflow_engine.processors.evaluations import (
-    DataConditionGroupEvaluation,
-    TriggerResult,
-)
+from sentry.workflow_engine.processors.evaluations import DataConditionGroupEvaluation
 from sentry.workflow_engine.processors.log_util import track_batch_performance
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import (
@@ -646,27 +643,35 @@ def get_groups_to_fire(
 
         evaluated_workflow_ids.add(workflow_id)
         workflow_env = workflows_to_envs[workflow_id]
-        when_result = TriggerResult.TRUE
+        # When there is no WHEN group, treat the workflow as triggered with no taint.
+        # This is the identity element for the taint-aware AND (`.all`) below.
+        when_evaluation = DataConditionGroupEvaluation(
+            result=True,
+            triggered=True,
+            data={
+                "condition_evaluations": [],
+                "logic_type": DataConditionGroup.Type.ANY,
+            },
+        )
         if when_dcg_id := event_key.when_dcg_id:
             when_dcg = data_condition_group_mapping.get(when_dcg_id)
             if not when_dcg:
                 when_dcg_missing[workflow_id].append(group_id)
                 continue
-            when_group = _evaluate_group_result_for_dcg(
+            when_evaluation = _evaluate_group_result_for_dcg(
                 when_dcg,
                 dcg_to_slow_conditions,
                 group_id,
                 workflow_env,
                 condition_group_results,
             )
-            when_result = when_group.outcome
-            if not when_result.triggered:
+            if not when_evaluation.triggered:
                 # If we're not triggering, all action-y if conditions need to be treated
                 # as tainted or not based on the when condition result.
                 if_conds = event_key.if_dcg_ids | event_key.passing_dcg_ids
                 # Limit to those we can access to be consistent with the if conditions evaluation.
                 if_cond_count = len(if_conds & data_condition_group_mapping.keys())
-                if when_result.is_tainted():
+                if when_evaluation.is_tainted():
                     tainted += if_cond_count
                     when_failed_tainted[workflow_id].append(group_id)
                 else:
@@ -684,14 +689,16 @@ def get_groups_to_fire(
                     workflow_env,
                     condition_group_results,
                 )
-                if_result = when_result & if_group.outcome
+                if_triggered, if_error = DataConditionGroupEvaluation.all(
+                    [when_evaluation, if_group]
+                )
 
-                if if_result.is_tainted():
+                if if_error is not None:
                     tainted += 1
                 else:
                     untainted += 1
 
-                if if_result.triggered:
+                if if_triggered:
                     groups_to_fire[group_id].add(dcg)
                     if_dcg_passed[workflow_id][group_id][dcg.id] = [
                         pc.condition.id for pc in if_group.data["condition_evaluations"]
@@ -702,7 +709,7 @@ def get_groups_to_fire(
         for if_dcg_id in event_key.passing_dcg_ids:
             if dcg := data_condition_group_mapping.get(if_dcg_id):
                 # TODO: Propagate taint with passing conditions.
-                if when_result.is_tainted():
+                if when_evaluation.is_tainted():
                     tainted += 1
                 else:
                     untainted += 1

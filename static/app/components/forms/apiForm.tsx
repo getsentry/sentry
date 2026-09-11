@@ -10,7 +10,6 @@ import {useApi} from 'sentry/utils/useApi';
 type Props = FormProps & {
   apiEndpoint: string;
   apiMethod: string;
-  hostOverride?: string;
   onSubmit?: (data: Record<string, any>) => any | void;
 };
 
@@ -20,13 +19,7 @@ type Props = FormProps & {
  * DO NOT USE THIS. Prefer using `Form` instead. Form already supports API
  * requests, this is quite old and should be removed
  */
-export function ApiForm({
-  onSubmit,
-  apiMethod,
-  apiEndpoint,
-  hostOverride,
-  ...otherProps
-}: Props) {
+export function ApiForm({onSubmit, apiMethod, apiEndpoint, ...otherProps}: Props) {
   const api = useApi();
 
   const handleSubmit = useCallback(
@@ -43,10 +36,6 @@ export function ApiForm({
         data: transformed ?? data,
       };
 
-      if (hostOverride) {
-        requestOptions.host = hostOverride;
-      }
-
       try {
         const response = await api.requestPromise(apiEndpoint, requestOptions);
         clearIndicators();
@@ -56,7 +45,7 @@ export function ApiForm({
         onError(error);
       }
     },
-    [api, onSubmit, apiMethod, apiEndpoint, hostOverride]
+    [api, onSubmit, apiMethod, apiEndpoint]
   );
 
   return <Form onSubmit={handleSubmit} {...otherProps} />;
