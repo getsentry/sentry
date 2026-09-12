@@ -67,11 +67,9 @@ describe('RowActions', () => {
   });
 
   describe('choose-destination state', () => {
-    it('renders the Choose destination button', () => {
+    it('renders the Set up button', () => {
       renderActions('choose-destination');
-      expect(
-        screen.getByRole('button', {name: /Choose destination for Slack/})
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Set up Slack/})).toBeInTheDocument();
     });
   });
 

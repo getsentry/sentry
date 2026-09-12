@@ -78,9 +78,9 @@ export function RowActions({
         size="sm"
         icon={<IconAdd size="xs" />}
         onClick={onChooseDestination}
-        aria-label={t('Choose destination for %s', resolvedProvider.provider.name)}
+        aria-label={t('Set up %s', resolvedProvider.provider.name)}
       >
-        {t('Choose destination')}
+        {t('Set up')}
       </Button>
     );
   }
