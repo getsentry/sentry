@@ -171,7 +171,7 @@ def process_batch(
                 min_timestamp = timestamp
 
             # Decoding into the typed struct validates the fields the buffer relies on (presence
-            # and types); malformed spans raise here and are routed to the DLQ below. See also:
+            # and types); malformed spans raise here and are dropped below. See also:
             # INC-1453, INC-1458.
             decode_start = time.monotonic()
             span_event = _PROCESS_SPAN_DECODER.decode(payload.value)
@@ -202,6 +202,13 @@ def process_batch(
             )
 
             spans.append(span)
+
+        except msgspec.ValidationError:
+            logger.exception("spans.invalid-message")
+            metrics.incr("spans.buffer.process_batch.dropped_invalid_span")
+            # The DLQ is currently broken, so a span that fails validation is
+            # dropped rather than routed to it.
+            continue
 
         except Exception:
             logger.exception("spans.invalid-message")
