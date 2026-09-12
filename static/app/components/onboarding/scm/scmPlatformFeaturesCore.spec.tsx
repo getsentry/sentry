@@ -330,9 +330,7 @@ describe('ScmPlatformFeaturesCore', () => {
     render(<Host />, {organization});
 
     // Select the second detected platform, then open the manual picker.
-    await userEvent.click(
-      await screen.findByRole('radio', {name: 'Browser JavaScript Language'})
-    );
+    await userEvent.click(await screen.findByRole('radio', {name: 'Browser JavaScript'}));
     await userEvent.click(
       screen.getByRole('button', {name: "Doesn't look right? Change platform"})
     );
@@ -344,9 +342,7 @@ describe('ScmPlatformFeaturesCore', () => {
       screen.getByRole('button', {name: 'Back to recommended platforms'})
     );
 
-    expect(
-      await screen.findByRole('radio', {name: 'Browser JavaScript Language'})
-    ).toBeChecked();
+    expect(await screen.findByRole('radio', {name: 'Browser JavaScript'})).toBeChecked();
     expect(onFeaturesChange).not.toHaveBeenCalled();
   });
 

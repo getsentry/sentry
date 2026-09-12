@@ -5,7 +5,7 @@ import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedD
 import type {DisabledProducts} from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';
 
-import {ScmFeatureCard} from './scmFeatureCard';
+import {ScmFeatureRow} from './scmFeatureCard';
 import type {FeatureMeta} from './useScmFeatureMeta';
 
 interface ScmFeatureSelectionCardsProps {
@@ -44,19 +44,27 @@ export function ScmFeatureSelectionCards({
         </Flex>
       ) : null}
 
-      <Stack gap="md">
-        {availableFeatures.map(feature => {
+      <Stack
+        width="100%"
+        background="primary"
+        border="primary"
+        radius="xl"
+        overflow="hidden"
+        style={{borderBottomWidth: 2}}
+      >
+        {availableFeatures.map((feature, index) => {
           const meta = featureMeta[feature];
           const disabledProduct = disabledProducts[feature];
           const disabledReason = meta.alwaysEnabled
             ? t('Error monitoring is always enabled')
             : disabledProduct?.reason;
           return (
-            <ScmFeatureCard
+            <ScmFeatureRow
               key={feature}
               icon={meta.icon}
               label={meta.label}
               description={meta.description}
+              isFirst={index === 0}
               isSelected={selectedFeatures.includes(feature) || !!meta.alwaysEnabled}
               disabled={!!meta.alwaysEnabled || !!disabledProduct}
               disabledReason={disabledReason}

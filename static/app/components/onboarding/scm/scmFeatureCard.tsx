@@ -1,8 +1,9 @@
 import type {ComponentType, ReactNode} from 'react';
+import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
-import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -11,9 +12,8 @@ import {IconInfo} from 'sentry/icons/iconInfo';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 
 import {ScmCardButton} from './scmCardButton';
-import {ScmSelectableContainer} from './scmSelectableContainer';
 
-interface ScmFeatureCardProps {
+interface ScmFeatureRowProps {
   description: string;
   icon: ComponentType<SVGIconProps>;
   isSelected: boolean;
@@ -23,38 +23,41 @@ interface ScmFeatureCardProps {
   volumeTooltip: string;
   disabled?: boolean;
   disabledReason?: ReactNode;
+  // The first row skips its top divider; the parent list draws the frame.
+  isFirst?: boolean;
   isVolumeLoading?: boolean;
   showVolume?: boolean;
 }
 
-export function ScmFeatureCard({
+/**
+ * A list entry for a product toggle: icon, label, description, and a checkbox
+ * indicator. Meant to be stacked inside one framed list rather than laid out
+ * as standalone cards. Selection lives on the row button; the checkbox only
+ * mirrors it.
+ */
+export function ScmFeatureRow({
   icon: Icon,
   label,
   description,
   isSelected,
   disabled,
   disabledReason,
+  isFirst,
   onClick,
   volume,
   volumeTooltip,
   isVolumeLoading,
   showVolume = true,
-}: ScmFeatureCardProps) {
+}: ScmFeatureRowProps) {
   return (
-    <ScmCardButton
-      disabled={disabled}
-      onClick={onClick}
-      role="checkbox"
-      aria-checked={isSelected}
-      style={{width: '100%', height: '100%'}}
-    >
-      <ScmSelectableContainer
-        isSelected={isSelected}
-        padding="lg"
-        height="100%"
-        borderCompensation={3}
+    <Tooltip title={disabledReason} disabled={!disabledReason} delay={500}>
+      <RowButton
+        disabled={disabled}
+        onClick={onClick}
+        role="checkbox"
+        aria-checked={isSelected}
       >
-        <Flex align="start">
+        <Container borderTop={isFirst ? undefined : 'primary'} padding="xl">
           <Grid
             columns="min-content 1fr min-content"
             rows="min-content min-content"
@@ -62,19 +65,13 @@ export function ScmFeatureCard({
             align="center"
             width="100%"
             areas={`
-                    "icon label toggle"
-                    ". description ."
-                  `}
+              "icon label       toggle"
+              ".    description description"
+            `}
           >
-            <Container area="icon">
-              {containerProps => (
-                <Icon
-                  {...containerProps}
-                  size="md"
-                  variant={isSelected ? 'accent' : undefined}
-                />
-              )}
-            </Container>
+            <Flex area="icon" align="center" alignSelf="start" paddingTop="2xs">
+              <Icon size="md" variant="secondary" />
+            </Flex>
 
             <Container area="label">
               <Text bold size="md">
@@ -82,7 +79,13 @@ export function ScmFeatureCard({
               </Text>
             </Container>
 
-            <Flex area="toggle" align="start" gap="sm">
+            <Container area="description">
+              <Text variant="muted" size="md" density="comfortable" textWrap="pretty">
+                {description}
+              </Text>
+            </Container>
+
+            <Flex area="toggle" align="center" alignSelf="start" gap="md">
               {showVolume &&
                 (isVolumeLoading ? (
                   <Placeholder height="22px" width="100px" />
@@ -93,24 +96,29 @@ export function ScmFeatureCard({
                     </Tag>
                   </Tooltip>
                 ))}
-
-              <Tooltip title={disabledReason} disabled={!disabledReason} delay={500}>
-                <Switch
+              {/* Presentational only: let the row own hover and cursor. */}
+              <Flex pointerEvents="none">
+                <Checkbox
                   checked={isSelected}
                   disabled={disabled}
                   role="presentation"
                   tabIndex={-1}
                   readOnly
                 />
-              </Tooltip>
+              </Flex>
             </Flex>
-
-            <Container area="description" column="2 / -1">
-              <Text variant="secondary">{description}</Text>
-            </Container>
           </Grid>
-        </Flex>
-      </ScmSelectableContainer>
-    </ScmCardButton>
+        </Container>
+      </RowButton>
+    </Tooltip>
   );
 }
+
+const RowButton = styled(ScmCardButton)`
+  display: block;
+  width: 100%;
+
+  &:hover:not(:disabled) {
+    background: ${p => p.theme.tokens.background.secondary};
+  }
+`;

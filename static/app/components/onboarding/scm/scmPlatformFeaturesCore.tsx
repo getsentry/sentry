@@ -4,7 +4,7 @@ import {useDebouncedCallback} from '@tanstack/react-pacer';
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Select, type StylesConfig} from '@sentry/scraps/select';
 import {createFilter} from '@sentry/scraps/select';
@@ -28,7 +28,7 @@ import {
   scmFlowVariantParams,
   trackScmPlatformSelected,
 } from './scmAnalyticsFlow';
-import {ScmPlatformCard} from './scmPlatformCard';
+import {ScmPlatformRow} from './scmPlatformCard';
 import {
   DEFAULT_SCM_FEATURES,
   getPlatformInfo,
@@ -423,30 +423,26 @@ export function ScmPlatformFeaturesCore({
             <LoadingIndicator mini />
           </Flex>
         ) : (
-          <Grid
-            columns={{
-              zero: '1fr',
-              '3xl':
-                resolvedPlatforms.length < 3
-                  ? 'repeat(2, minmax(0, 1fr))'
-                  : 'repeat(3, minmax(0, 1fr))',
-            }}
+          <Stack
             width="100%"
-            justify="start"
-            gap="md"
+            background="primary"
+            border="primary"
+            radius="xl"
+            overflow="hidden"
             role="radiogroup"
+            style={{borderBottomWidth: 2}}
           >
-            {resolvedPlatforms.map(({platform, info}) => (
-              <ScmPlatformCard
+            {resolvedPlatforms.map(({platform, info}, index) => (
+              <ScmPlatformRow
                 key={platform}
                 platform={platform}
                 name={info.name}
-                type={info.type}
+                isFirst={index === 0}
                 isSelected={currentPlatformKey === platform}
                 onClick={() => handleSelectDetectedPlatform(platform)}
               />
             ))}
-          </Grid>
+          </Stack>
         )}
       </Stack>
     </MotionStack>
