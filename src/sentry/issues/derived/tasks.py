@@ -829,3 +829,15 @@ def regenerate_stale_derived_data_batch(
             "elapsed": time.monotonic() - start,
         },
     )
+
+
+@instrumented_task(
+    name="sentry.issues.derived.tasks.reconcile_group_status",
+    namespace=issues_tasks,
+    silo_mode=SiloMode.CELL,
+)
+def reconcile_group_status(group_id: int, **kwargs: object) -> None:
+    """Publish a ReconcileStatusAction when Group status and GDD disagree."""
+    from sentry.issues.derived.reconcile import reconcile_group_status as do_reconcile
+
+    do_reconcile(group_id)
