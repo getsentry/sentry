@@ -189,7 +189,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f":red_circle: <{issue_url}|*{title}*>",
+                    "text": f":red_circle: <{issue_url}|{title}>",
                 },
                 "block_id": block_id,
             },

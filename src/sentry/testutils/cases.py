@@ -2961,7 +2961,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
             issue_link += issue_link_extra_params
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <{issue_link}|*{TEST_ISSUE_OCCURRENCE.issue_title}*>"
+            == f":red_circle: <{issue_link}|{TEST_ISSUE_OCCURRENCE.issue_title}>"
         )
 
         if with_culprit:
