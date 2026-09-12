@@ -75,7 +75,11 @@ class WorkflowSerializer(Serializer[WorkflowSerializerResponse]):
         }
         last_triggered_map = get_last_fired_dates([w.id for w in item_list])
 
-        wdcg_list = list(WorkflowDataConditionGroup.objects.filter(workflow__in=item_list))
+        wdcg_list = list(
+            WorkflowDataConditionGroup.objects.filter(workflow__in=item_list).select_related(
+                "condition_group"
+            )
+        )
         condition_groups = {wdcg.condition_group for wdcg in wdcg_list}
 
         serialized_condition_groups = {
