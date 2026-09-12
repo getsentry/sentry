@@ -1,7 +1,7 @@
 import {LayoutGroup, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {InfoTip} from '@sentry/scraps/info';
+import {InfoText, InfoTip} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -28,15 +28,38 @@ interface ScmConnectProps {
   genBackButton?: StepProps['genBackButton'];
 }
 
-const SCM_INFO_SECTIONS = [
+interface ScmInfoItem {
+  label: string;
+  // Shown in a hover tooltip behind a dotted underline on the label.
+  tooltip?: string;
+}
+
+const SCM_INFO_SECTIONS: Array<{
+  icon: React.ReactNode;
+  items: ScmInfoItem[];
+  title: string;
+  tooltip?: string;
+}> = [
   {
     title: t('How we use access'),
     icon: <IconCheckmark size="xs" variant="success" />,
     items: [
-      t('Source code context: show code around errors'),
-      t('Commit attribution: identify which commit introduced an issue'),
-      t('Auto assignment: route issues by code ownership'),
-      t('AI debugging: connect code to telemetry to debug and fix issues'),
+      {
+        label: t('Source code context'),
+        tooltip: t('Show code around errors'),
+      },
+      {
+        label: t('Commit attribution'),
+        tooltip: t('Identify which commit introduced an issue'),
+      },
+      {
+        label: t('Auto assignment'),
+        tooltip: t('Route issues by code ownership'),
+      },
+      {
+        label: t('AI debugging'),
+        tooltip: t('Connect code to telemetry to debug and fix issues'),
+      },
     ],
   },
   {
@@ -46,9 +69,9 @@ const SCM_INFO_SECTIONS = [
     ),
     icon: <IconClose size="xs" variant="danger" />,
     items: [
-      t('Train AI on your code'),
-      t('Use your code for anything beyond debugging and support'),
-      t('Merge code into your branches'),
+      {label: t('Train AI on your code')},
+      {label: t('Merge code into your branches')},
+      {label: t('Use your code for anything beyond debugging and support')},
     ],
   },
 ];
@@ -73,7 +96,7 @@ export function ScmConnect({
     // The onboarding flow has no page-level query container (project creation
     // resolves against `#main`), and the flow's fixed footers preclude one
     // higher up, so each SCM step declares its own.
-    <Stack align="center" gap="3xl" containerType="inline-size">
+    <Stack align="center" gap="2xl" containerType="inline-size">
       <ScmStepHeader
         heading={t('Connect your code')}
         subtitle={t(
@@ -89,11 +112,13 @@ export function ScmConnect({
           onRepositoryChange={onRepositoryChange}
           selectedIntegration={selectedIntegration}
           selectedRepository={selectedRepository}
+          pillsJustify="center"
         />
         <MotionFlex
           layout="position"
           gap="sm"
           align="center"
+          justify="center"
           width="100%"
           maxWidth={SCM_STEP_CONTENT_WIDTH}
         >
@@ -104,33 +129,47 @@ export function ScmConnect({
         </MotionFlex>
 
         <MotionGrid
-          columns={{'screen:xs': '1fr', 'screen:md': '1fr 1fr'}}
-          gap="3xl"
+          columns="1fr"
+          gap="2xl"
           width="100%"
           maxWidth={SCM_STEP_CONTENT_WIDTH}
           layout="position"
-          border="secondary"
+          background="tertiary"
+          border="primary"
           radius="xl"
-          padding="2xl"
+          padding="xl"
         >
           {SCM_INFO_SECTIONS.map(section => (
-            <Stack key={section.title} gap="xl">
+            <Stack key={section.title} gap="lg">
               <Flex align="center" gap="sm">
                 <Text bold size="md" density="compressed" variant="primary">
                   {section.title}
                 </Text>
                 {section.tooltip && <InfoTip title={section.tooltip} size="sm" />}
               </Flex>
-              <Stack gap="lg">
+              <Flex wrap="wrap" gap="md 2xl">
                 {section.items.map(item => (
-                  <Grid key={item} columns="max-content 1fr" gap="md">
+                  <Grid key={item.label} columns="max-content 1fr" gap="md">
                     <Flex paddingTop="2xs">{section.icon}</Flex>
-                    <Text variant="primary" size="md" density="comfortable">
-                      {item}
-                    </Text>
+                    <Flex>
+                      {item.tooltip ? (
+                        <InfoText
+                          title={item.tooltip}
+                          variant="primary"
+                          size="md"
+                          density="comfortable"
+                        >
+                          {item.label}
+                        </InfoText>
+                      ) : (
+                        <Text variant="primary" size="md" density="comfortable">
+                          {item.label}
+                        </Text>
+                      )}
+                    </Flex>
                   </Grid>
                 ))}
-              </Stack>
+              </Flex>
             </Stack>
           ))}
         </MotionGrid>
