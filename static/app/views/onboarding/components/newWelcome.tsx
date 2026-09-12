@@ -32,7 +32,10 @@ import {
   WelcomeAgentSetup,
 } from 'sentry/views/onboarding/components/welcomeAgentSetup';
 import {WelcomeSkipButton} from 'sentry/views/onboarding/components/welcomeSkipButton';
-import {ONBOARDING_WELCOME_STAGGER_ITEM} from 'sentry/views/onboarding/consts';
+import {
+  ONBOARDING_WELCOME_STAGGER_ITEM,
+  SCM_STEP_CONTENT_WIDTH,
+} from 'sentry/views/onboarding/consts';
 import {OnboardingWelcomeProductId, type StepProps} from 'sentry/views/onboarding/types';
 import {useWelcomeAnalyticsEffect} from 'sentry/views/onboarding/useWelcomeAnalyticsEffect';
 import {useWelcomeHandleComplete} from 'sentry/views/onboarding/useWelcomeHandleComplete';
@@ -198,16 +201,21 @@ export function NewWelcomeUI(props: StepProps) {
   };
 
   return (
-    <MotionContainer width="100%" margin="0 auto" maxWidth="900px" position="relative">
+    <MotionContainer
+      width="100%"
+      margin="0 auto"
+      maxWidth={hasScmOnboarding ? SCM_STEP_CONTENT_WIDTH : '900px'}
+      position="relative"
+    >
       <MotionFlex direction="column" align="center" {...STAGGER_CONTAINER}>
         <Stack gap="3xl" align="center" width="100%">
           <MotionStack gap="md" {...ONBOARDING_WELCOME_STAGGER_ITEM} width="100%">
             {hasScmOnboarding ? (
-              <Stack gap="lg">
-                <Heading as="h2" size="4xl" wrap="pre-line">
+              <Stack gap="lg" paddingBottom="xl">
+                <Heading as="h2" size="3xl" align="center" wrap="pre-line">
                   {scmHeading.title}
                 </Heading>
-                <Text variant="muted" size="xl" density="comfortable">
+                <Text align="center" variant="muted" size="lg" density="comfortable">
                   {scmHeading.description}
                 </Text>
               </Stack>
@@ -284,14 +292,17 @@ export function NewWelcomeUI(props: StepProps) {
                 transition={{staggerChildren: 0.125}}
               >
                 <MotionGrid
-                  columns={{'screen:xs': '1fr', 'screen:sm': 'repeat(3, 1fr)'}}
+                  columns={{
+                    'screen:xs': '1fr',
+                    'screen:sm': hasScmOnboarding ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+                  }}
                   gap="3xl"
                   width="100%"
                   {...ONBOARDING_WELCOME_STAGGER_ITEM}
-                  border="muted"
-                  background="secondary"
-                  radius="lg"
-                  padding="2xl"
+                  border={hasScmOnboarding ? 'primary' : 'muted'}
+                  background={hasScmOnboarding ? 'primary' : 'secondary'}
+                  radius="xl"
+                  padding="xl"
                 >
                   {PRODUCT_OPTIONS.map(product => (
                     <NewWelcomeProductCard key={product.id} product={product} />
@@ -302,7 +313,7 @@ export function NewWelcomeUI(props: StepProps) {
                   <MotionFlex
                     {...ONBOARDING_WELCOME_STAGGER_ITEM}
                     width="100%"
-                    justify="end"
+                    justify="center"
                   >
                     <Button
                       variant="primary"
