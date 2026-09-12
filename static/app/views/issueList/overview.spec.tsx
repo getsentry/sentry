@@ -346,6 +346,7 @@ describe('IssueList', () => {
       await waitFor(() => {
         expect(testRouter.location.query).toEqual({
           cursor: '1443575000:0:0',
+          groupStatsPeriod: 'auto',
           page: '1',
           project: '3559',
           query: DEFAULT_QUERY,
@@ -364,6 +365,7 @@ describe('IssueList', () => {
       await waitFor(() => {
         expect(testRouter.location.query).toEqual({
           cursor: '1443574000:0:0',
+          groupStatsPeriod: 'auto',
           page: '2',
           project: '3559',
           query: DEFAULT_QUERY,
@@ -378,6 +380,7 @@ describe('IssueList', () => {
       await waitFor(() => {
         expect(testRouter.location.query).toEqual({
           cursor: '1443575000:0:1',
+          groupStatsPeriod: 'auto',
           page: '1',
           project: '3559',
           query: DEFAULT_QUERY,
@@ -512,6 +515,7 @@ describe('IssueList', () => {
 
       await waitFor(() => {
         expect(testRouter.location.query).toEqual({
+          groupStatsPeriod: 'auto',
           project: project.id.toString(),
           query: 'is:ignored',
           statsPeriod: '14d',
@@ -632,7 +636,39 @@ describe('IssueList', () => {
         expect(fetchDataMock).toHaveBeenLastCalledWith(
           '/organizations/org-slug/issues/',
           expect.objectContaining({
-            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&shortIdLookup=1&statsPeriod=14d',
+            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&groupStatsPeriod=auto&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&shortIdLookup=1&statsPeriod=14d',
+          })
+        );
+      });
+    });
+
+    it('defaults the row graph period to auto so it follows the global time range', async () => {
+      const {rerender} = render(<IssueListOverview />, {
+        initialRouterConfig: merge({}, initialRouterConfig, {
+          location: {
+            query: {
+              query: DEFAULT_QUERY,
+            },
+          },
+        }),
+      });
+
+      act(() =>
+        PageFiltersStore.onInitializeUrlState({
+          projects: [99],
+          environments: [],
+          datetime: {period: '14d', start: null, end: null, utc: null},
+        })
+      );
+
+      rerender(<IssueListOverview />);
+
+      await waitFor(() => {
+        expect(fetchDataMock).toHaveBeenNthCalledWith(
+          2,
+          '/organizations/org-slug/issues/',
+          expect.objectContaining({
+            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&groupStatsPeriod=auto&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&shortIdLookup=1&statsPeriod=14d',
           })
         );
       });
