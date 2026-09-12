@@ -1238,7 +1238,7 @@ class TestTriggerAutofixAgent(TestCase):
                 step=AutofixStep.ROOT_CAUSE,
                 referrer=AutofixReferrer.UNKNOWN,
                 run_id=None,
-        )
+            )
 
         prompt_metadata = mock_client.start_run.call_args.kwargs["prompt_metadata"]
         expected_repo_pins = {
