@@ -25,41 +25,15 @@ function getCategoryLabel(category: string): string {
   return CATEGORY_LABELS[category] ?? category;
 }
 
-/**
- * The values the tooltip renders. Every figure is the same drop rate,
- * `dropped / (dropped + accepted)`, in a different unit:
- *
- * - Header "Total Dropped": the count rate rendered as a percentage.
- * - "{Category} Rejected": the count rate rendered as `dropped/total`.
- * - "Payloads Rejected": the byte rate rendered as `dropped/total`.
- *
- * Only `droppedCount` is available from the API today; `acceptedCount` and the
- * byte totals are added by a follow-up backend change. The tooltip degrades
- * when they are absent: the header shows a raw dropped count instead of a
- * percentage, and the ratio/payload rows are hidden.
- */
 export interface DroppedDataTooltipData {
   categoryLabel: string;
   droppedCount: number;
-  /**
-   * Accepted bytes for the same bucket + category. With `droppedBytes` this
-   * forms the payloads `dropped/total` row.
-   */
   acceptedBytes?: number;
-  /**
-   * Accepted count for the same bucket + category. With `droppedCount` this
-   * forms the header percentage and the count `dropped/total` row.
-   */
   acceptedCount?: number;
-  /**
-   * Dropped bytes for the bucket ("payloads").
-   */
   droppedBytes?: number;
 }
 
 export function getDroppedDataTooltipData(bucket: Bucket): DroppedDataTooltipData {
-  // A bucket is always built from at least one annotation (see
-  // `groupIntoBuckets`), and every annotation shares the same category.
   const [firstAnnotation] = bucket.annotations;
   return {
     droppedCount: bucket.total,
@@ -68,8 +42,8 @@ export function getDroppedDataTooltipData(bucket: Bucket): DroppedDataTooltipDat
 }
 
 interface DroppedDataTooltipProps {
-  bucket: Bucket;
-  utc: boolean;
+  data: DroppedDataTooltipData;
+  range: string;
 }
 
 function RatioRow({
@@ -89,11 +63,9 @@ function RatioRow({
   );
 }
 
-export function DroppedDataTooltip({bucket, utc}: DroppedDataTooltipProps) {
-  const {droppedCount, categoryLabel, acceptedCount, droppedBytes, acceptedBytes} =
-    getDroppedDataTooltipData(bucket);
+export function DroppedDataTooltip({data, range}: DroppedDataTooltipProps) {
+  const {droppedCount, categoryLabel, acceptedCount, droppedBytes, acceptedBytes} = data;
 
-  // Count rate: header percentage + the "{Category} Rejected" row.
   const hasCounts = typeof acceptedCount === 'number';
   const countTotal = hasCounts ? droppedCount + acceptedCount! : undefined;
   const percentage =
@@ -101,18 +73,8 @@ export function DroppedDataTooltip({bucket, utc}: DroppedDataTooltipProps) {
       ? Math.round((droppedCount / countTotal) * 100)
       : undefined;
 
-  // Byte rate: the "Payloads Rejected" row.
   const hasBytes = typeof droppedBytes === 'number' && typeof acceptedBytes === 'number';
   const byteTotal = hasBytes ? droppedBytes! + acceptedBytes! : undefined;
-
-  const range = defaultFormatAxisLabel(
-    bucket.start,
-    /* isTimestamp */ true,
-    utc,
-    /* showTimeInTooltip */ true,
-    /* addSecondsToTimeFormat */ false,
-    /* bucketSize */ bucket.end - bucket.start
-  );
 
   return (
     <Fragment>
@@ -164,7 +126,21 @@ export function useDroppedDataTooltipFormatter(utc: boolean) {
   const renderToString = useRenderToString();
 
   return useCallback(
-    (bucket: Bucket) => renderToString(<DroppedDataTooltip bucket={bucket} utc={utc} />),
+    (bucket: Bucket) => {
+      const range = String(
+        defaultFormatAxisLabel(
+          bucket.start,
+          true,
+          utc,
+          true,
+          false,
+          bucket.end - bucket.start
+        )
+      );
+      return renderToString(
+        <DroppedDataTooltip data={getDroppedDataTooltipData(bucket)} range={range} />
+      );
+    },
     [renderToString, utc]
   );
 }

@@ -9,11 +9,10 @@ import type {
 } from 'echarts';
 
 import {isChartHovered} from 'sentry/components/charts/utils';
-import {tn} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import {escape} from 'sentry/utils';
 import {defined} from 'sentry/utils/defined';
 import type {DataFidelityAnnotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import {useDroppedDataTooltipFormatter} from 'sentry/views/explore/components/chart/droppedDataBand/droppedDataTooltip';
 import {
   BAND_HEIGHT,
   BAND_PADDING,
@@ -63,33 +62,16 @@ interface DroppedDataSeriesProps {
   alignInMiddle: boolean;
   buckets: Bucket[];
   chartRef: React.RefObject<ReactEchartsRef | null>;
+  formatTooltip: (bucket: Bucket) => string;
   theme: Theme;
   yAxisIndex?: number;
-}
-
-function formatBucketTooltip(bucket: Bucket): string {
-  const annotationLines = bucket.annotations
-    .map(
-      annotation =>
-        `<div>${escape(annotation.label)} — ${annotation.droppedCount.toLocaleString()}</div>`
-    )
-    .join('');
-
-  return `
-<div class="tooltip-series">
-<div>
-${tn('%s event dropped', '%s events dropped', bucket.total)}
-</div>
-${annotationLines}
-</div>
-<div class="tooltip-arrow arrow-top"></div>
-`;
 }
 
 function createDroppedDataSeries({
   alignInMiddle,
   buckets,
   chartRef,
+  formatTooltip,
   theme,
   yAxisIndex,
 }: DroppedDataSeriesProps): CustomSeriesOption {
@@ -182,7 +164,7 @@ function createDroppedDataSeries({
           return '';
         }
 
-        return formatBucketTooltip(params.data as Bucket);
+        return formatTooltip(params.data as Bucket);
       },
     },
   };
@@ -201,6 +183,10 @@ interface UseDroppedDataBandParams {
    */
   showDroppedData?: boolean;
   /**
+   * Whether timestamps in the tooltip should render in UTC.
+   */
+  utc?: boolean;
+  /**
    * The index of the dummy y-axis used to convert timestamps to pixel x.
    */
   yAxisIndex?: number;
@@ -210,10 +196,12 @@ export function useDroppedDataBand({
   annotations,
   showDroppedData = true,
   alignInMiddle = false,
+  utc = false,
   yAxisIndex,
 }: UseDroppedDataBandParams) {
   const theme = useTheme();
   const chartRef = useRef<ReactEchartsRef | null>(null);
+  const formatTooltip = useDroppedDataTooltipFormatter(utc);
 
   const buckets = useMemo(
     () => groupIntoBuckets(annotations ?? []).filter(bucket => bucket.severity > 0),
@@ -231,11 +219,12 @@ export function useDroppedDataBand({
             alignInMiddle,
             buckets,
             chartRef,
+            formatTooltip,
             theme,
             yAxisIndex,
           })
         : null,
-    [alignInMiddle, buckets, theme, yAxisIndex]
+    [alignInMiddle, buckets, formatTooltip, theme, yAxisIndex]
   );
 
   if (!buckets.length || !showDroppedData) {
