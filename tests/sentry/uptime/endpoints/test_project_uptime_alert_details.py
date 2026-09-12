@@ -130,7 +130,10 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         must not raise Environment.DoesNotExist when environment is omitted from
         the PUT payload."""
         detector = self.create_uptime_detector()
-        # Confirm the monitor has no environment set
+        # Simulate a monitor that was created without an environment by clearing
+        # the environment from the config (mirrors the pre-existing bug scenario).
+        detector.config["environment"] = None
+        detector.save(update_fields=["config"])
         assert detector.config.get("environment") is None
 
         resp = self.get_success_response(
