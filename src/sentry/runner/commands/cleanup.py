@@ -4,11 +4,11 @@ import functools
 import logging
 import os
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
+from concurrent.futures import Executor, Future, ProcessPoolExecutor
+from concurrent.futures import wait as future_wait
 from datetime import timedelta
-from multiprocessing import JoinableQueue as Queue
-from multiprocessing import Process
-from typing import TYPE_CHECKING, Any, Final, Literal, TypeAlias, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 from uuid import uuid4
 
 import click
@@ -66,15 +66,6 @@ def get_organization(value: str) -> int | None:
         return None
 
 
-# We need a unique value to indicate when to stop multiprocessing queue
-# an identity on an object() isn't guaranteed to work between parent
-# and child proc
-_STOP_WORKER: Final = "91650ec271ae4b3e8a67cdc909d80f8c"
-_WorkQueue: TypeAlias = (
-    "Queue[Literal['91650ec271ae4b3e8a67cdc909d80f8c'] | tuple[str, tuple[int, ...], int | None]]"
-)
-
-
 API_TOKEN_TTL_IN_DAYS = 30
 
 
@@ -94,71 +85,13 @@ def _format_chunk_ids(chunk: tuple[int, ...]) -> str:
         return f"[{chunk[0]}, ..., {chunk[-1]}] ({len(chunk)} total)"
 
 
-def multiprocess_worker(task_queue: _WorkQueue) -> None:
-    # Configure within each Process
-    import logging
-
-    logger = logging.getLogger("sentry.cleanup")
-
+def _worker_initializer() -> None:
     from sentry.runner import configure
 
     configure()
 
-    from sentry import options
-    from sentry.utils import metrics
 
-    while True:
-        j = task_queue.get()
-        if j == _STOP_WORKER:
-            task_queue.task_done()
-            return
-
-        # Handle both old format (model_name, chunk) and new format (model_name, chunk, project_id)
-        if len(j) == 2:
-            model_name, chunk = j  # type: ignore[unreachable]
-            project_id = None
-        else:
-            model_name, chunk, project_id = j
-
-        if options.get("cleanup.abort_execution"):
-            logger.warning("Cleanup worker aborting due to cleanup.abort_execution flag")
-            task_queue.task_done()
-            return
-
-        try:
-            with start_span(
-                op="cleanup", name=f"{TRANSACTION_PREFIX}.multiprocess_worker", transaction=True
-            ):
-                task_execution(model_name, chunk, project_id)
-        except Exception:
-            metrics.incr(
-                "cleanup.error",
-                instance=model_name,
-                tags={"model": model_name, "type": "multiprocess_worker"},
-                sample_rate=1.0,
-            )
-            ids_str = _format_chunk_ids(chunk)
-            if os.environ.get("SENTRY_CLEANUP_SILENT", None):
-                tags: dict[str, Any] = {
-                    "model": model_name,
-                    "chunk_size": len(chunk),
-                    "chunk_ids": ids_str,
-                }
-                if project_id is not None:
-                    tags["project_id"] = project_id
-                capture_exception(tags=tags)
-            else:
-                logger.exception(
-                    "Error processing chunk of %s objects (IDs: %s project_id=%s)",
-                    model_name,
-                    ids_str,
-                    project_id,
-                )
-        finally:
-            task_queue.task_done()
-
-
-def task_execution(model_name: str, chunk: tuple[int, ...], project_id: int | None) -> None:
+def task_execution(model_name: str, chunk: tuple[int, ...], project_id: int | None = None) -> None:
     """
     Execute deletion for a chunk of objects.
 
@@ -167,57 +100,93 @@ def task_execution(model_name: str, chunk: tuple[int, ...], project_id: int | No
     - Each iteration: progress through the deletion task
     - End: completion summary
     """
-    from sentry import deletions, models, similarity
+    import logging
+
+    logger = logging.getLogger("sentry.cleanup")
+
+    from sentry import deletions, models, options, similarity
     from sentry.utils import metrics
     from sentry.utils.imports import import_string
 
-    skip_child_relations_models = [
-        # Handled by other parts of cleanup
-        models.EventAttachment,
-        models.UserReport,
-        models.Group,
-        models.GroupEmailThread,
-        models.GroupRuleStatus,
-        # Handled by TTL
-        similarity,
-    ]
+    if options.get("cleanup.abort_execution"):
+        logger.warning("Cleanup worker aborting due to cleanup.abort_execution flag")
+        return
 
-    ids_str = _format_chunk_ids(chunk)
-    chunk_size = len(chunk)
+    try:
+        with start_span(
+            op="cleanup", name=f"{TRANSACTION_PREFIX}.multiprocess_worker", transaction=True
+        ):
+            skip_child_relations_models = [
+                # Handled by other parts of cleanup
+                models.EventAttachment,
+                models.UserReport,
+                models.Group,
+                models.GroupEmailThread,
+                models.GroupRuleStatus,
+                # Handled by TTL
+                similarity,
+            ]
 
-    # Log start of chunk processing
-    debug_output(
-        f"[START] Processing {chunk_size} {model_name} objects (IDs: {ids_str} project_id={project_id})"
-    )
+            ids_str = _format_chunk_ids(chunk)
+            chunk_size = len(chunk)
 
-    model = import_string(model_name)
-    task = deletions.get(
-        model=model,
-        query={"id__in": chunk},
-        skip_models=skip_child_relations_models,
-        transaction_id=uuid4().hex,
-    )
+            # Log start of chunk processing
+            debug_output(
+                f"[START] Processing {chunk_size} {model_name} objects (IDs: {ids_str} project_id={project_id})"
+            )
 
-    # Track deletion iterations (task.chunk() may need multiple calls to fully delete)
-    iteration = 0
-    while True:
-        iteration += 1
-        has_more = task.chunk(apply_filter=True)
+            model = import_string(model_name)
+            task = deletions.get(
+                model=model,
+                query={"id__in": chunk},
+                skip_models=skip_child_relations_models,
+                transaction_id=uuid4().hex,
+            )
 
-        debug_output(
-            f"[ITERATION {iteration}] {model_name} chunk (project_id={project_id} has_more={has_more})"
+            # Track deletion iterations (task.chunk() may need multiple calls to fully delete)
+            iteration = 0
+            while True:
+                iteration += 1
+                has_more = task.chunk(apply_filter=True)
+
+                debug_output(
+                    f"[ITERATION {iteration}] {model_name} chunk (project_id={project_id} has_more={has_more})"
+                )
+
+                if not has_more:
+                    break
+
+            # Increment metric once per chunk, after all iterations complete
+            metrics.incr("cleanup.chunk_processed", tags={"model": model_name}, amount=chunk_size)
+
+            # Log completion
+            debug_output(
+                f"[COMPLETE] Finished {chunk_size} {model_name} objects in {iteration} iteration(s) (IDs: {ids_str} project_id={project_id})"
+            )
+    except Exception:
+        metrics.incr(
+            "cleanup.error",
+            instance=model_name,
+            tags={"model": model_name, "type": "multiprocess_worker"},
+            sample_rate=1.0,
         )
-
-        if not has_more:
-            break
-
-    # Increment metric once per chunk, after all iterations complete
-    metrics.incr("cleanup.chunk_processed", tags={"model": model_name}, amount=chunk_size)
-
-    # Log completion
-    debug_output(
-        f"[COMPLETE] Finished {chunk_size} {model_name} objects in {iteration} iteration(s) (IDs: {ids_str} project_id={project_id})"
-    )
+        ids_str = _format_chunk_ids(chunk)
+        if os.environ.get("SENTRY_CLEANUP_SILENT", None):
+            tags: dict[str, Any] = {
+                "model": model_name,
+                "chunk_size": len(chunk),
+                "chunk_ids": ids_str,
+            }
+            if project_id is not None:
+                tags["project_id"] = project_id
+            capture_exception(tags=tags)
+        else:
+            logger.exception(
+                "Error processing chunk of %s objects (IDs: %s project_id=%s)",
+                model_name,
+                ids_str,
+                project_id,
+            )
 
 
 @click.command()
@@ -333,7 +302,10 @@ def _cleanup(
     _validate_and_setup_environment(concurrency, silent)
     # Make sure we fork off multiprocessing pool
     # before we import or configure the app
-    pool, task_queue = _start_pool(concurrency)
+    # Using a fairly low tasks per child to control memory usage
+    executor = ProcessPoolExecutor(
+        max_workers=concurrency, initializer=_worker_initializer, max_tasks_per_child=100
+    )
 
     from sentry.runner import configure
 
@@ -398,7 +370,7 @@ def _cleanup(
             )
 
             run_bulk_deletes_in_deletes(
-                task_queue,
+                executor,
                 deletes,
                 is_filtered,
                 days,
@@ -410,7 +382,7 @@ def _cleanup(
             # Expiry-based models always use days=0 so records are deleted exactly
             # when they expire, regardless of the --days flag.
             run_bulk_deletes_in_deletes(
-                task_queue,
+                executor,
                 expiry_deletes,
                 is_filtered,
                 0,
@@ -420,11 +392,11 @@ def _cleanup(
             )
 
             run_bulk_deletes_by_project(
-                task_queue, project_id, start_from_project_id, is_filtered, days, models_attempted
+                executor, project_id, start_from_project_id, is_filtered, days, models_attempted
             )
 
             run_bulk_deletes_by_organization(
-                task_queue, organization_id, is_filtered, days, models_attempted
+                executor, organization_id, is_filtered, days, models_attempted
             )
 
             remove_file_blobs(is_filtered, models_attempted)
@@ -444,7 +416,7 @@ def _cleanup(
 
         finally:
             # Shut down our pool
-            _stop_pool(pool, task_queue)
+            executor.shutdown()
 
             duration = int(time.time() - start_time)
             metrics.timing(
@@ -566,29 +538,6 @@ def _report_models_never_attempted(
                 ),
             },
         )
-
-
-def _start_pool(concurrency: int) -> tuple[list[Process], _WorkQueue]:
-    pool: list[Process] = []
-    task_queue: _WorkQueue = Queue(1000)
-    for _ in range(concurrency):
-        p = Process(target=multiprocess_worker, args=(task_queue,))
-        p.daemon = True
-        p.start()
-        pool.append(p)
-    return pool, task_queue
-
-
-def _stop_pool(pool: Sequence[Process], task_queue: _WorkQueue) -> None:
-    # First, ensure all queued tasks are completed
-    task_queue.join()
-
-    # Stop the pool
-    for _ in pool:
-        task_queue.put(_STOP_WORKER)
-    # And wait for it to drain
-    for p in pool:
-        p.join()
 
 
 @continue_on_error("specialized_cleanup_lost_passwords")
@@ -863,12 +812,12 @@ def run_bulk_query_deletes(
 
 
 def _schedule_bulk_delete_chunks(
-    task_queue: _WorkQueue,
+    executor: Executor,
     q: BulkDeleteQuery,  # Imported locally in functions that use it
     model_tp: type[BaseModel],
     project_id: int | None,
     context_str: str = "",
-) -> tuple[int, int]:
+) -> list[Future[None]]:
     """
     Schedule chunks from a BulkDeleteQuery into the task queue.
 
@@ -876,14 +825,14 @@ def _schedule_bulk_delete_chunks(
         Tuple of (chunk_count, total_objects)
     """
     imp = ".".join((model_tp.__module__, model_tp.__name__))
-    chunk_count = 0
     total_objects = 0
+    futures = []
 
     for chunk in q.iterator(chunk_size=DELETES_BY_PROJECT_CHUNK_SIZE):
-        task_queue.put((imp, chunk, project_id))
-        chunk_count += 1
+        futures.append(executor.submit(task_execution, imp, chunk, project_id))
         total_objects += len(chunk)
 
+    chunk_count = len(futures)
     if chunk_count > 0:
         debug_output(
             f"[SCHEDULED] {chunk_count} chunks ({total_objects} total {model_tp.__name__} objects project_id={project_id}{context_str})"
@@ -893,11 +842,11 @@ def _schedule_bulk_delete_chunks(
             f"[SCHEDULED] No {model_tp.__name__} objects found to delete (project_id={project_id}{context_str})"
         )
 
-    return chunk_count, total_objects
+    return futures
 
 
 def run_bulk_deletes_in_deletes(
-    task_queue: _WorkQueue,
+    executor: Executor,
     deletes: list[tuple[type[BaseModel], str, str]],
     is_filtered: Callable[[type[BaseModel]], bool],
     days: int,
@@ -913,6 +862,7 @@ def run_bulk_deletes_in_deletes(
         raise CleanupExecutionAborted()
 
     debug_output("Running bulk deletes in DELETES")
+    futures = []
     for model_tp, dtfield, order_by in deletes:
         if is_filtered(model_tp):
             debug_output(">> Skipping %s" % model_tp.__name__)
@@ -927,7 +877,7 @@ def run_bulk_deletes_in_deletes(
                     project_id=project_id,
                     order_by=order_by,
                 )
-                _schedule_bulk_delete_chunks(task_queue, q, model_tp, project_id)
+                futures.extend(_schedule_bulk_delete_chunks(executor, q, model_tp, project_id))
 
             except Exception:
                 capture_exception(tags={"model": model_tp.__name__})
@@ -939,11 +889,11 @@ def run_bulk_deletes_in_deletes(
                 )
 
     # Ensure all tasks are completed before exiting
-    task_queue.join()
+    future_wait(futures)
 
 
 def run_bulk_deletes_by_project(
-    task_queue: _WorkQueue,
+    executor: Executor,
     project_id: int | None,
     start_from_project_id: int | None,
     is_filtered: Callable[[type[BaseModel]], bool],
@@ -962,6 +912,7 @@ def run_bulk_deletes_by_project(
         is_filtered, project_id, start_from_project_id
     )
 
+    futures = []
     if project_deletion_query is not None and len(to_delete_by_project):
         debug_output("Running bulk deletes in DELETES_BY_PROJECT")
 
@@ -984,7 +935,9 @@ def run_bulk_deletes_by_project(
                         order_by=order_by,
                     )
 
-                    _schedule_bulk_delete_chunks(task_queue, q, model_tp, project_id_for_deletion)
+                    futures.extend(
+                        _schedule_bulk_delete_chunks(executor, q, model_tp, project_id_for_deletion)
+                    )
                 except Exception:
                     capture_exception(
                         tags={"model": model_tp.__name__, "project_id": project_id_for_deletion}
@@ -997,11 +950,11 @@ def run_bulk_deletes_by_project(
                     )
 
     # Ensure all tasks are completed before exiting
-    task_queue.join()
+    future_wait(futures)
 
 
 def run_bulk_deletes_by_organization(
-    task_queue: _WorkQueue,
+    executor: Executor,
     organization_id: int | None,
     is_filtered: Callable[[type[BaseModel]], bool],
     days: int,
@@ -1019,6 +972,7 @@ def run_bulk_deletes_by_organization(
         organization_id, is_filtered
     )
 
+    futures = []
     if organization_deletion_query is not None and len(to_delete_by_organization):
         debug_output("Running bulk deletes in DELETES_BY_ORGANIZATION")
         for organization_id_for_deletion in RangeQuerySetWrapper(
@@ -1038,12 +992,14 @@ def run_bulk_deletes_by_organization(
                         organization_id=organization_id_for_deletion,
                         order_by=order_by,
                     )
-                    _schedule_bulk_delete_chunks(
-                        task_queue,
-                        q,
-                        model_tp,
-                        None,
-                        context_str=f" organization_id={organization_id_for_deletion}",
+                    futures.extend(
+                        _schedule_bulk_delete_chunks(
+                            executor,
+                            q,
+                            model_tp,
+                            None,
+                            context_str=f" organization_id={organization_id_for_deletion}",
+                        )
                     )
                 except Exception:
                     capture_exception(
@@ -1060,7 +1016,7 @@ def run_bulk_deletes_by_organization(
                     )
 
     # Ensure all tasks are completed before exiting
-    task_queue.join()
+    future_wait(futures)
 
 
 def prepare_deletes_by_project(
