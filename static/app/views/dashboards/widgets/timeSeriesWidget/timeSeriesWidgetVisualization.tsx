@@ -426,6 +426,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     alignInMiddle: props.plottables.some(plottable => plottable instanceof Bars),
     annotations: props.droppedData,
     showDroppedData: props.showDroppedData,
+    utc: utc ?? false,
     yAxisIndex: yAxes.length,
   });
 
