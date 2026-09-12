@@ -44,6 +44,11 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
     def allow_registration(self):
         return self.options({"auth.allow-registration": True})
 
+    def set_invite_session(self, email: str = "foo@example.com") -> None:
+        self.session["invite_email"] = email
+        self.session["can_register"] = True
+        self.save_session()
+
     def test_renders_correct_template(self) -> None:
         resp = self.client.get(self.path)
 
@@ -402,6 +407,9 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 
             assert resp.status_code == 200
             assert resp.context["op"] == "register"
+            assert resp.context["register_form"].fields["username"].disabled is False
+            assert resp.context["is_invite_registration"] is False
+            assert "nav-tabs" in resp.content.decode("utf-8")
             self.assertTemplateUsed("sentry/login.html")
 
     def test_register_renders_django_template_with_react_auth_cookie(self) -> None:
@@ -416,9 +424,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         self.assertTemplateNotUsed(resp, "sentry/base-react.html")
 
     def test_register_prefills_invite_email(self) -> None:
-        self.session["invite_email"] = "foo@example.com"
-        self.session["can_register"] = True
-        self.save_session()
+        self.set_invite_session()
 
         register_path = reverse("sentry-register")
         resp = self.client.get(register_path)
@@ -426,7 +432,50 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert resp.status_code == 200
         assert resp.context["op"] == "register"
         assert resp.context["register_form"].initial["username"] == "foo@example.com"
+        assert resp.context["register_form"].fields["username"].disabled is True
+        assert resp.context["is_invite_registration"] is True
         self.assertTemplateUsed("sentry/login.html")
+        content = resp.content.decode("utf-8")
+        assert "Create your account" in content
+        assert "nav-tabs" not in content
+        assert "Already have an account? Sign in" in content
+
+    def test_login_form_submit_works_during_invite_registration(self) -> None:
+        self.set_invite_session()
+
+        # load it once for test cookie
+        self.client.get(self.path)
+
+        resp = self.client.post(
+            self.path,
+            {"username": self.user.username, "password": "admin", "op": "login"},
+            follow=True,
+        )
+        assert resp.status_code == 200
+        assert "_auth_user_id" in self.client.session
+        assert not User.objects.filter(username="foo@example.com").exists()
+
+    @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_session")
+    def test_register_ignores_tampered_invite_email(self, from_session: mock.MagicMock) -> None:
+        self.set_invite_session()
+
+        self.client.get(self.path)
+
+        invite_helper = mock.Mock(valid_request=True, organization_id=self.organization.id)
+        from_session.return_value = invite_helper
+
+        resp = self.client.post(
+            self.path,
+            {
+                "username": "attacker@example.com",
+                "password": "foobar",
+                "name": "Foo Bar",
+                "op": "register",
+            },
+        )
+        assert resp.status_code == 302
+        assert User.objects.filter(username="foo@example.com").exists()
+        assert not User.objects.filter(username="attacker@example.com").exists()
 
     @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_session")
     def test_register_accepts_invite(self, from_session: mock.MagicMock) -> None:
