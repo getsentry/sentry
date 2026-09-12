@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -30,11 +31,22 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.feature.models import FEATURE_ID
+from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SeerPermissionError
+from sentry.seer.models.run import (
+    SeerAgentRun,
+    SeerRun,
+    SeerRunMilestone,
+    SeerRunMilestoneType,
+    SeerRunMirrorStatus,
+    SeerRunType,
+)
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 
@@ -53,6 +65,52 @@ def _make_scm_mock(*, get_repository=None, get_branch=None):
             "get_branch": MagicMock(return_value=get_branch),
         },
     )()
+
+
+class _FakeSeerResponse:
+    def __init__(self, data: dict[str, Any], status: int = 200) -> None:
+        self.data = data
+        self.status = status
+
+    def json(self) -> dict[str, Any]:
+        return self.data
+
+
+class _RecordingSeer:
+    """Record requests at the Seer transport boundary and serve fake run state."""
+
+    def __init__(self, run_id: int = 4242) -> None:
+        self.run_id = run_id
+        self.feature_requests: list[dict[str, Any]] = []
+        self.chat_requests: list[dict[str, Any]] = []
+        self.state_requests: list[dict[str, Any]] = []
+        self.run_state: SeerRunState | None = None
+
+    def start_feature_run(self, body: dict[str, Any], **_kwargs: Any) -> _FakeSeerResponse:
+        self.feature_requests.append(body)
+        return _FakeSeerResponse({"run_id": self.run_id})
+
+    def continue_run(self, body: dict[str, Any], **_kwargs: Any) -> _FakeSeerResponse:
+        self.chat_requests.append(body)
+        return _FakeSeerResponse({})
+
+    def fetch_run_state(self, body: dict[str, Any], **_kwargs: Any) -> _FakeSeerResponse:
+        self.state_requests.append(body)
+        assert self.run_state is not None, "A fake Seer run state must be configured"
+        session = self.run_state.dict()
+        # SeerRunState excludes internal metadata from public serialization, but
+        # Seer's internal state endpoint includes it for trusted Sentry callers.
+        session["metadata"] = self.run_state.metadata
+        return _FakeSeerResponse({"session": session})
+
+
+class _FakeSCM:
+    def get_repository(self) -> dict[str, Any]:
+        return {"data": {"default_branch": "main"}}
+
+    def get_branch(self, branch: str) -> dict[str, Any]:
+        assert branch == "main"
+        return {"data": {"sha": "abc123"}}
 
 
 class TestGenerateAutofixHandoffPrompt(TestCase):
@@ -429,6 +487,242 @@ class TestPrIterationPrompt(TestCase):
 
         assert "Iterate on the pull request" in prompt
         assert "pull request(s)" not in prompt
+
+
+class TestAutofixAgentIntegration(TestCase):
+    """Exercise Autofix orchestration with real Sentry state and a fake Seer boundary."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(
+            project=self.project,
+            message="TypeError: a request without a user reached the task handler",
+        )
+        self.group.culprit = "app.tasks.run"
+        self.group.save(update_fields=["culprit"])
+        repository = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="123",
+            name="test-org/test-repo",
+        )
+        self.create_seer_project_repository(project=self.project, repository=repository)
+
+    def _completed_root_cause_state(self, run_id: int) -> SeerRunState:
+        return SeerRunState(
+            run_id=run_id,
+            blocks=[
+                MemoryBlock(
+                    id="root-cause-block",
+                    message=Message(
+                        role="assistant",
+                        content="The task assumes every request has a user.",
+                        metadata={
+                            "step": AutofixStep.ROOT_CAUSE.value,
+                            "referrer": AutofixReferrer.WEB.value,
+                        },
+                    ),
+                    timestamp="2024-01-01T00:00:00Z",
+                    artifacts=[
+                        Artifact(
+                            key="root_cause",
+                            data={
+                                "headline": "Task accepts a missing user",
+                                "one_line_description": (
+                                    "A missing user reaches a task that assumes one exists."
+                                ),
+                                "five_whys": ["The request did not include a user."],
+                                "reproduction_steps": ["Submit the task without a user."],
+                                "relevant_repo": "test-org/test-repo",
+                                "fixability": {
+                                    "assessment": "fixable",
+                                    "reason": "The task can validate its input.",
+                                },
+                            },
+                            reason="Generated by the Autofix agent",
+                        )
+                    ],
+                )
+            ],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            metadata={"group_id": self.group.id},
+        )
+
+    def test_root_cause_step_persists_and_dispatches_feature_run(self) -> None:
+        seer = _RecordingSeer()
+        scm = _FakeSCM()
+
+        with (
+            self.feature(
+                {
+                    "organizations:gen-ai-features": True,
+                    "organizations:autofix-rca-in-seer": True,
+                }
+            ),
+            patch("sentry.scm.factory.new", return_value=scm),
+            patch(
+                "sentry.receivers.outbox.cell.make_feature_run_request",
+                side_effect=seer.start_feature_run,
+            ),
+            BurstTaskRunner() as tasks,
+        ):
+            run = trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.ROOT_CAUSE,
+                referrer=AutofixReferrer.WEB,
+                stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
+                user_context="Requests without a user fail.",
+                user=self.user,
+            )
+
+        run.refresh_from_db()
+        assert run.seer_run_state_id == seer.run_id
+        assert run.mirror_status == SeerRunMirrorStatus.LIVE
+        assert run.type == SeerRunType.FEATURE_RUN
+        assert run.user_id == self.user.id
+
+        agent_run = SeerAgentRun.objects.get(run=run)
+        assert agent_run.source == FEATURE_ID
+        assert agent_run.project_id == self.project.id
+        assert agent_run.group_id == self.group.id
+        assert agent_run.extras == {
+            "referrer": AutofixReferrer.WEB.value,
+            "stopping_point": AutofixStoppingPoint.ROOT_CAUSE.value,
+        }
+
+        assert len(seer.feature_requests) == 1
+        request = seer.feature_requests[0]
+        assert request["feature_id"] == FEATURE_ID
+        assert request["ref"] == str(run.uuid)
+        assert request["external_idempotency_key"] == str(run.uuid)
+        payload = request["payload"]
+        assert payload["group_id"] == self.group.id
+        assert payload["project_id"] == self.project.id
+        assert payload["short_id"] == self.group.qualified_short_id
+        assert payload["title"] == self.group.title
+        assert payload["culprit"] == "app.tasks.run"
+        assert payload["user_context"] == "Requests without a user fail."
+        assert payload["stopping_point"] == AutofixStoppingPoint.ROOT_CAUSE.value
+        assert payload["repo_pins"] == {
+            "test-org/test-repo": {
+                "sha": "abc123",
+                "branch": "main",
+                "base_sha": "abc123",
+                "base_branch": "main",
+            }
+        }
+
+        assert Activity.objects.filter(
+            group=self.group,
+            type=ActivityType.SEER_RCA_STARTED.value,
+            data={"run_id": seer.run_id},
+        ).exists()
+        assert [
+            kwargs["event_name"]
+            for task, _args, kwargs in tasks.queue
+            if task.name
+            == "sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization"
+        ] == [SeerActionType.ROOT_CAUSE_STARTED.value]
+
+    def test_completed_root_cause_continues_same_run_with_solution_prompt(self) -> None:
+        seer = _RecordingSeer()
+        scm = _FakeSCM()
+
+        with (
+            self.feature(
+                {
+                    "organizations:gen-ai-features": True,
+                    "organizations:autofix-rca-in-seer": True,
+                }
+            ),
+            patch("sentry.scm.factory.new", return_value=scm),
+            patch(
+                "sentry.receivers.outbox.cell.make_feature_run_request",
+                side_effect=seer.start_feature_run,
+            ),
+            patch(
+                "sentry.seer.agent.client_utils.make_agent_state_request",
+                side_effect=seer.fetch_run_state,
+            ),
+            patch(
+                "sentry.seer.agent.client.make_agent_chat_request",
+                side_effect=seer.continue_run,
+            ),
+            BurstTaskRunner() as tasks,
+        ):
+            run = trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.ROOT_CAUSE,
+                referrer=AutofixReferrer.WEB,
+                stopping_point=AutofixStoppingPoint.SOLUTION,
+                user=self.user,
+            )
+            seer.run_state = self._completed_root_cause_state(seer.run_id)
+
+            AutofixOnCompletionHook.execute(self.organization, seer.run_id)
+
+        assert len(seer.state_requests) == 2
+        assert all(request["run_id"] == seer.run_id for request in seer.state_requests)
+        assert len(seer.chat_requests) == 1
+        solution_request = seer.chat_requests[0]
+        assert solution_request["run_id"] == seer.run_id
+        assert self.group.qualified_short_id in solution_request["query"]
+        assert self.group.title in solution_request["query"]
+        assert "Do NOT implement" in solution_request["query"]
+        assert solution_request["artifact_key"] == AutofixStep.SOLUTION.value
+        assert set(solution_request["artifact_schema"]["required"]) == {
+            "one_line_summary",
+            "steps",
+        }
+        assert solution_request["query_metadata"] == {
+            "step": AutofixStep.SOLUTION.value,
+            "referrer": AutofixReferrer.WEB.value,
+            "has_user_context": "no",
+            "is_retry": "no",
+        }
+
+        assert SeerRun.objects.filter(organization=self.organization).count() == 1
+        run.refresh_from_db()
+        assert run.seer_run_state_id == seer.run_id
+
+        milestone = SeerRunMilestone.objects.get(
+            seer_run=run,
+            milestone=SeerRunMilestoneType.ROOT_CAUSE,
+        )
+        assert milestone.extras == {
+            "root_cause_artifact": {
+                "headline": "Task accepts a missing user",
+                "one_line_description": "A missing user reaches a task that assumes one exists.",
+            }
+        }
+
+        completed_activity = Activity.objects.get(
+            group=self.group,
+            type=ActivityType.SEER_RCA_COMPLETED.value,
+        )
+        assert completed_activity.data == {
+            "run_id": seer.run_id,
+            "summary": "A missing user reaches a task that assumes one exists.",
+        }
+        assert Activity.objects.filter(
+            group=self.group,
+            type=ActivityType.SEER_SOLUTION_STARTED.value,
+            data={"run_id": seer.run_id},
+        ).exists()
+
+        self.group.refresh_from_db()
+        assert self.group.seer_explorer_autofix_last_triggered is not None
+        assert [
+            kwargs["event_name"]
+            for task, _args, kwargs in tasks.queue
+            if task.name
+            == "sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization"
+        ] == [
+            SeerActionType.ROOT_CAUSE_STARTED.value,
+            SeerActionType.ROOT_CAUSE_COMPLETED.value,
+            SeerActionType.SOLUTION_STARTED.value,
+        ]
 
 
 class TestTriggerAutofixAgent(TestCase):
