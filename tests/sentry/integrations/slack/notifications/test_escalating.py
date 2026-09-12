@@ -40,7 +40,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
         assert (
             blocks[1]["text"]["text"]
-            == f"<http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=escalating_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>  \nSentry flagged this issue as escalating because over 100 events happened in an hour."
+            == f"<http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=escalating_activity-slack&notification_uuid={notification_uuid}|{self.group.title}>  \nSentry flagged this issue as escalating because over 100 events happened in an hour."
         )
         assert (
             blocks[2]["elements"][0]["text"]
@@ -70,7 +70,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
         assert (
             blocks[1]["text"]["text"]
-            == f"<http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=escalating_activity-slack&notification_uuid={notification_uuid}|*{event.group.title}*>  \nSentry flagged this issue as escalating because over 100 events happened in an hour."
+            == f"<http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=escalating_activity-slack&notification_uuid={notification_uuid}|{event.group.title}>  \nSentry flagged this issue as escalating because over 100 events happened in an hour."
         )
         assert (
             blocks[2]["elements"][0]["text"]
@@ -103,7 +103,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
         assert (
             blocks[1]["text"]["text"]
-            == f"<http://testserver/organizations/{self.organization.slug}/issues/{group_event.group.id}/?referrer=escalating_activity-slack&notification_uuid={notification_uuid}|*{TEST_ISSUE_OCCURRENCE.issue_title}*>  \nSentry flagged this issue as escalating because over 100 events happened in an hour."
+            == f"<http://testserver/organizations/{self.organization.slug}/issues/{group_event.group.id}/?referrer=escalating_activity-slack&notification_uuid={notification_uuid}|{TEST_ISSUE_OCCURRENCE.issue_title}>  \nSentry flagged this issue as escalating because over 100 events happened in an hour."
         )
         assert (
             blocks[2]["elements"][0]["text"]

@@ -35,6 +35,7 @@ from sentry.integrations.slack.message_builder.types import (
 )
 from sentry.integrations.slack.message_builder.util import build_slack_footer
 from sentry.integrations.slack.utils.escape import (
+    escape_slack_link_label,
     escape_slack_markdown_text,
     escape_slack_text,
 )
@@ -456,7 +457,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         title = build_attachment_title(event_or_group)
         title_emojis = self.get_title_emoji(has_action)
 
-        title_text = f"{title_emojis} <{title_link}|*{escape_slack_text(title)}*>"
+        # Slack only parses the <url|label> link syntax when the label is on a
+        # single line, and inline formatting like *bold* inside the label is
+        # not rendered (notably on mobile clients), so keep the label plain.
+        title_text = f"{title_emojis} <{title_link}|{escape_slack_link_label(title)}>"
         return self.get_markdown_block(title_text)
 
     def get_title_emoji(self, has_action: bool) -> str:
