@@ -57,9 +57,11 @@ export function ScmFeatureInfoCards({
       <Grid
         gap="2xl"
         columns={{zero: '1fr', xl: '1fr 1fr'}}
-        border="secondary"
-        radius="lg"
-        padding="2xl"
+        background="primary"
+        border="primary"
+        radius="xl"
+        padding="xl"
+        style={{borderBottomWidth: 2}}
       >
         {availableFeatures.map(feature => {
           const meta = featureMeta[feature];

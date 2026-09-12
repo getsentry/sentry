@@ -208,10 +208,10 @@ export function ScmFeatureSelectionPanel({
           <Stack gap="0" paddingTop={isOnboarding ? 'xs' : undefined}>
             {isOnboarding ? (
               <Flex
-                padding="lg"
-                background="secondary"
-                border="secondary"
-                radius="md"
+                padding="xl"
+                background="tertiary"
+                border="primary"
+                radius="xl"
                 gap="lg"
               >
                 <IconBusiness size="lg" variant="accent" />

@@ -447,10 +447,15 @@ export function ScmPlatformFeaturesCore({
       </Stack>
     </MotionStack>
   ) : (
+    // Framed like the connected-repo card so the two pickers read as siblings.
     <MotionStack
       key="manual"
-      gap="md"
+      gap="lg"
       width="100%"
+      background="primary"
+      border="primary"
+      radius="xl"
+      padding="xl"
       initial={{opacity: 0}}
       animate={{opacity: 1}}
     >
