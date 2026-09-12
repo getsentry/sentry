@@ -520,6 +520,8 @@ def trigger_autofix_agent(
         args = AutofixFeatureArgs(
             step=step,
             referrer=referrer,
+            existing_run_id=run_id,
+            insert_index=insert_index,
             step_args=RCAStepArgs(repo_pins=_build_repo_pins(group, referrer)),
             user_context=user_context,
             stopping_point=stopping_point,
