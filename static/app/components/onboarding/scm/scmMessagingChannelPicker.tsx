@@ -208,9 +208,9 @@ export function ScmMessagingChannelPicker({
           {t('Failed to load channels. You can still type a channel name.')}
         </Alert>
       )}
-      <Flex gap="sm" justify="end">
+      <Flex gap="md" justify="end">
         {onCancel && (
-          <Button size="sm" variant="link" onClick={onCancel}>
+          <Button size="sm" variant="transparent" onClick={onCancel}>
             {t('Cancel')}
           </Button>
         )}

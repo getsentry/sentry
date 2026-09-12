@@ -156,7 +156,7 @@ export function ScmMessaging({
             </MotionStack>
           )}
 
-          <MotionFlex layout="position" align="center" gap="sm">
+          <MotionFlex layout="position" align="center" justify="center" gap="sm">
             <IconMail size="sm" variant="muted" />
             <Text variant="muted">{t('Email alerts will be included by default')}</Text>
           </MotionFlex>
@@ -230,7 +230,7 @@ export function ScmMessaging({
               <Flex align="center" gap="md">
                 <Button
                   size="sm"
-                  variant="secondary"
+                  variant="transparent"
                   analyticsEventKey="onboarding.scm_messaging_setup_later_clicked"
                   analyticsEventName="Onboarding: SCM Messaging Setup Later Clicked"
                   onClick={handleSetupLater}

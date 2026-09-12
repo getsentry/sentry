@@ -101,7 +101,7 @@ export function RowActions({
   if (visualState === 'removing') {
     return (
       <Fragment>
-        <Button size="sm" variant="link" onClick={onCancelRemoving}>
+        <Button size="sm" variant="transparent" onClick={onCancelRemoving}>
           {t('Cancel')}
         </Button>
         <Button size="sm" variant="danger" onClick={onConfirmRemove}>

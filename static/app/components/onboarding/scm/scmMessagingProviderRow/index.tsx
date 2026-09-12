@@ -19,7 +19,6 @@ import type {
 import type {ScmMessagingResolvedProvider} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconInfo} from 'sentry/icons/iconInfo';
-import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {
   IntegrationWithConfig,
@@ -29,6 +28,7 @@ import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {RowActions} from './action';
+import {ProviderLogo} from './logo';
 import {openMsTeamsConnectionModal} from './msTeamsConnection';
 import {RowSubtitle} from './subtitle';
 import type {RowVisualState} from './types';
@@ -240,10 +240,14 @@ export function ScmMessagingProviderRow({
   const errorMessage = getInstallErrorMessage(installState);
 
   return (
-    <Container border={visualState === 'removing' ? 'danger' : 'primary'} radius="lg">
+    <Container
+      background="primary"
+      border={visualState === 'removing' ? 'danger' : 'primary'}
+      radius="xl"
+    >
       <Stack>
         {visualState === 'install-error' && (
-          <Stack padding="md" gap="md" align="start">
+          <Stack padding="lg xl" gap="md" align="start">
             <Alert
               variant="danger"
               trailingItems={
@@ -256,10 +260,10 @@ export function ScmMessagingProviderRow({
         )}
 
         {visualState !== 'install-error' && (
-          <Flex padding="lg" gap="md" align="center" justify="between">
-            <Flex gap="md" align="center" style={{flex: 1, minWidth: 0}}>
+          <Flex padding="lg xl" gap="xl" align="center" justify="between">
+            <Flex gap="xl" align="center" style={{flex: 1, minWidth: 0}}>
               <Container flexShrink={0} paddingTop="2xs">
-                <PluginIcon pluginId={resolvedProvider.providerKey} size={28} />
+                <ProviderLogo providerKey={resolvedProvider.providerKey} />
               </Container>
               <Stack gap="sm">
                 <Flex gap="xs" align="center">
@@ -312,7 +316,7 @@ export function ScmMessagingProviderRow({
 
         {visualState === 'configuring' &&
           resolvedProvider.eligibleIntegrations.length > 0 && (
-            <Container borderTop="primary" padding="lg">
+            <Container borderTop="primary" padding="lg xl">
               {renderChannelPicker ? (
                 renderChannelPicker({
                   integrations: resolvedProvider.eligibleIntegrations,
