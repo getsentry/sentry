@@ -128,51 +128,54 @@ export function ScmConnect({
           </Text>
         </MotionFlex>
 
-        <MotionGrid
-          columns="1fr"
-          gap="2xl"
-          width="100%"
-          maxWidth={SCM_STEP_CONTENT_WIDTH}
-          layout="position"
-          background="tertiary"
-          border="primary"
-          radius="xl"
-          padding="xl"
-        >
-          {SCM_INFO_SECTIONS.map(section => (
-            <Stack key={section.title} gap="lg">
-              <Flex align="center" gap="sm">
-                <Text bold size="md" density="compressed" variant="primary">
-                  {section.title}
-                </Text>
-                {section.tooltip && <InfoTip title={section.tooltip} size="sm" />}
-              </Flex>
-              <Flex wrap="wrap" gap="md 2xl">
-                {section.items.map(item => (
-                  <Grid key={item.label} columns="max-content 1fr" gap="md">
-                    <Flex paddingTop="2xs">{section.icon}</Flex>
-                    <Flex>
-                      {item.tooltip ? (
-                        <InfoText
-                          title={item.tooltip}
-                          variant="primary"
-                          size="md"
-                          density="comfortable"
-                        >
-                          {item.label}
-                        </InfoText>
-                      ) : (
-                        <Text variant="primary" size="md" density="comfortable">
-                          {item.label}
-                        </Text>
-                      )}
-                    </Flex>
-                  </Grid>
-                ))}
-              </Flex>
-            </Stack>
-          ))}
-        </MotionGrid>
+        {/* Once a provider is connected the access explainer has done its job. */}
+        {effectiveIntegration ? null : (
+          <MotionGrid
+            columns="1fr"
+            gap="2xl"
+            width="100%"
+            maxWidth={SCM_STEP_CONTENT_WIDTH}
+            layout="position"
+            background="tertiary"
+            border="primary"
+            radius="xl"
+            padding="xl"
+          >
+            {SCM_INFO_SECTIONS.map(section => (
+              <Stack key={section.title} gap="lg">
+                <Flex align="center" gap="sm">
+                  <Text bold size="md" density="compressed" variant="primary">
+                    {section.title}
+                  </Text>
+                  {section.tooltip && <InfoTip title={section.tooltip} size="sm" />}
+                </Flex>
+                <Flex wrap="wrap" gap="md 2xl">
+                  {section.items.map(item => (
+                    <Grid key={item.label} columns="max-content 1fr" gap="md">
+                      <Flex paddingTop="2xs">{section.icon}</Flex>
+                      <Flex>
+                        {item.tooltip ? (
+                          <InfoText
+                            title={item.tooltip}
+                            variant="primary"
+                            size="md"
+                            density="comfortable"
+                          >
+                            {item.label}
+                          </InfoText>
+                        ) : (
+                          <Text variant="primary" size="md" density="comfortable">
+                            {item.label}
+                          </Text>
+                        )}
+                      </Flex>
+                    </Grid>
+                  ))}
+                </Flex>
+              </Stack>
+            ))}
+          </MotionGrid>
+        )}
 
         <MotionFlex
           layout="position"
@@ -184,7 +187,10 @@ export function ScmConnect({
         >
           <Flex align="center">{genBackButton?.()}</Flex>
           <Flex align="center" gap="md" minWidth={0}>
-            {!selectedRepository && (
+            {/* A repo can linger in session storage after its integration is
+                gone; without a provider there is no Continue, so this is the
+                only way forward. */}
+            {(!effectiveIntegration || !selectedRepository) && (
               <Button
                 analyticsEventKey="onboarding.scm_connect_skip_clicked"
                 analyticsEventName="Onboarding: SCM Connect Skip Clicked"
@@ -201,24 +207,26 @@ export function ScmConnect({
               </Button>
             )}
 
-            <Button
-              variant="primary"
-              analyticsEventKey="onboarding.scm_connect_continue_clicked"
-              analyticsEventName="Onboarding: SCM Connect Continue Clicked"
-              analyticsParams={{
-                provider: effectiveIntegration?.provider.key ?? '',
-                repo: selectedRepository?.name ?? '',
-              }}
-              onClick={() => {
-                if (effectiveIntegration && !selectedIntegration) {
-                  onIntegrationChange(effectiveIntegration);
-                }
-                onComplete();
-              }}
-              disabled={!selectedRepository?.id}
-            >
-              {t('Continue')}
-            </Button>
+            {effectiveIntegration && (
+              <Button
+                variant="primary"
+                analyticsEventKey="onboarding.scm_connect_continue_clicked"
+                analyticsEventName="Onboarding: SCM Connect Continue Clicked"
+                analyticsParams={{
+                  provider: effectiveIntegration.provider.key,
+                  repo: selectedRepository?.name ?? '',
+                }}
+                onClick={() => {
+                  if (!selectedIntegration) {
+                    onIntegrationChange(effectiveIntegration);
+                  }
+                  onComplete();
+                }}
+                disabled={!selectedRepository?.id}
+              >
+                {t('Continue')}
+              </Button>
+            )}
           </Flex>
         </MotionFlex>
       </LayoutGroup>
