@@ -1,3 +1,6 @@
+from django.db import DEFAULT_DB_ALIAS, connections
+from django.test.utils import CaptureQueriesContext
+
 from sentry.api.serializers import serialize
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
@@ -74,3 +77,44 @@ class TestDataConditionGroupSerializer(TestCase):
                 }
             ],
         }
+
+    def test_serialize_bulk_no_n_plus_1(self) -> None:
+        """Serializing multiple DataConditionGroups should not issue per-group
+        DB queries (i.e. no N+1 when fetching related actions)."""
+
+        def _build_group():
+            condition_group = self.create_data_condition_group(
+                organization_id=self.organization.id,
+                logic_type=DataConditionGroup.Type.ANY,
+            )
+            action = self.create_action(
+                type=Action.Type.EMAIL,
+                data={},
+                config={
+                    "target_identifier": "123",
+                    "target_type": ActionTarget.USER.value,
+                },
+            )
+            self.create_data_condition_group_action(
+                condition_group=condition_group, action=action
+            )
+            self.create_data_condition(
+                condition_group=condition_group,
+                type=Condition.GREATER,
+                comparison=100,
+                condition_result=DetectorPriorityLevel.HIGH,
+            )
+            return condition_group
+
+        group1 = _build_group()
+        group2 = _build_group()
+
+        # Baseline: query count for a single group.
+        with CaptureQueriesContext(connections[DEFAULT_DB_ALIAS]) as one_group_queries:
+            serialize([group1])
+
+        # Adding more groups must not increase the number of queries.
+        with CaptureQueriesContext(connections[DEFAULT_DB_ALIAS]) as two_group_queries:
+            serialize([group1, group2])
+
+        assert len(two_group_queries) == len(one_group_queries)
