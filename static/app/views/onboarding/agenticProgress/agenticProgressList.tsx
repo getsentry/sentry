@@ -290,16 +290,18 @@ export function AgenticProgressList({
   return (
     <MotionStack
       width="100%"
+      background="primary"
       border="primary"
-      radius="lg"
+      radius="xl"
       overflow="hidden"
       gap="0"
+      style={{borderBottomWidth: 2}}
       initial="initial"
       animate={hasEntered ? 'animate' : 'initial'}
       transition={STAGE_LIST_STAGGER_TRANSITION}
     >
       {header ? (
-        <Container padding="xl" borderBottom="muted">
+        <Container padding="xl" borderBottom="primary">
           {header}
         </Container>
       ) : null}
@@ -371,9 +373,10 @@ function AgenticProgressSummary({projectSlugs}: {projectSlugs: string[]}) {
   return (
     <Flex
       width="100%"
+      background="primary"
       border="primary"
-      radius="lg"
-      padding="lg"
+      radius="xl"
+      padding="xl"
       gap="md"
       align="center"
       justify="between"
