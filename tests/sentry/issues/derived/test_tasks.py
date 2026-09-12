@@ -597,7 +597,17 @@ class CheckFreshDerivedDataBatchTest(DerivedDataTaskTestBase):
             )
 
         assert mock_incr.call_args_list == [
+            call(
+                "issues.status_reconciliation.checked",
+                sample_rate=1.0,
+                tags={"result": "aligned", "source": "batch_check"},
+            ),
             call("issues.derived.check_group", sample_rate=1.0, tags={"result": "success"}),
+            call(
+                "issues.status_reconciliation.checked",
+                sample_rate=1.0,
+                tags={"result": "aligned", "source": "batch_check"},
+            ),
             call("issues.derived.check_group", sample_rate=1.0, tags={"result": "success"}),
         ]
 
@@ -668,11 +678,18 @@ class CheckFreshDerivedDataBatchTest(DerivedDataTaskTestBase):
             group_id_start=group.id + 1,
             group_id_end=group.id + 2,
         )
-        mock_incr.assert_called_once_with(
-            "issues.derived.check_group",
-            sample_rate=1.0,
-            tags={"result": "no_result"},
-        )
+        assert mock_incr.call_args_list == [
+            call(
+                "issues.status_reconciliation.checked",
+                sample_rate=1.0,
+                tags={"result": "aligned", "source": "batch_check"},
+            ),
+            call(
+                "issues.derived.check_group",
+                sample_rate=1.0,
+                tags={"result": "no_result"},
+            ),
+        ]
 
     def test_records_status_inconsistency_for_backfilled_project(self) -> None:
         group = self.create_unprocessed_groups(1)[0]
@@ -707,6 +724,7 @@ class CheckFreshDerivedDataBatchTest(DerivedDataTaskTestBase):
         group = self.create_unprocessed_groups(1)[0]
         process_group_log(group.id)
         group.update(status=GroupStatus.IGNORED)
+        self.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, False)
         GroupDerivedData.objects.filter(group_id=group.id).update(data={"status": "open"})
 
         with patch("sentry.issues.derived.check.record_status_consistency") as mock_record_status:
