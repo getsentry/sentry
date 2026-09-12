@@ -1,6 +1,8 @@
+from inspect import signature
 from unittest.mock import ANY, MagicMock, patch
 
 import orjson
+from scm.helpers import iter_all_pages
 
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
@@ -17,6 +19,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     resolve_check_suite_flag_gate,
     resolve_check_suite_repositories,
     should_defer_pr_iteration,
+    sweep_check_runs,
 )
 from sentry.seer.autofix.pr_iteration.constants import (
     CAP_ASSIGN_FLAG,
@@ -98,6 +101,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
         # The gate itself is covered by ``CheckSuiteFlagGateTest``; these tests are
         # about what each branch does with an event that is already through it.
         gate_patcher = patch(
@@ -140,6 +144,18 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
             repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")},
             metadata={"group_id": self.group.id},
         )
+
+    def _resolved_green(self) -> MagicMock:
+        """A resolved green suite carrying real ids.
+
+        ``bootstrap_iteration`` looks the ``SeerRun`` up by run and organization,
+        so those two cannot be bare mock attributes.
+        """
+        resolved = MagicMock()
+        resolved.organization = self.organization
+        resolved.autofix_run.run_state = self._agent_state()
+        resolved.autofix_run.group_id = self.group.id
+        return resolved
 
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     def test_skips_non_completed_action(self, mock_get_state: MagicMock) -> None:
@@ -198,7 +214,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         _mock_peek: MagicMock,
     ) -> None:
         event = self._event(self._raw(), conclusion="success")
-        resolved = MagicMock()
+        resolved = self._resolved_green()
         ctx = MagicMock()
         mock_resolve.return_value = resolved
         mock_confirm.return_value = ctx
@@ -239,7 +255,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
             REVIEW_REQUESTS_EXTRA,
         )
 
-        resolved = MagicMock()
+        resolved = self._resolved_green()
         ctx = MagicMock()
         mock_resolve.return_value = resolved
         mock_confirm.return_value = ctx
@@ -276,7 +292,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         _mock_flag: MagicMock,
         _mock_peek: MagicMock,
     ) -> None:
-        mock_resolve.return_value = MagicMock()
+        mock_resolve.return_value = self._resolved_green()
 
         pr_iteration_from_check_suite_listener(self._event(self._raw(), conclusion="success"))
 
@@ -303,7 +319,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         _mock_peek: MagicMock,
     ) -> None:
         """The resolve no longer implies the review-request flag; the caller checks it."""
-        mock_resolve.return_value = MagicMock()
+        mock_resolve.return_value = self._resolved_green()
 
         pr_iteration_from_check_suite_listener(self._event(self._raw(), conclusion="success"))
 
@@ -331,7 +347,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         _mock_flag: MagicMock,
         _mock_peek: MagicMock,
     ) -> None:
-        mock_resolve.return_value = MagicMock()
+        mock_resolve.return_value = self._resolved_green()
         pr_iteration_from_check_suite_listener(self._event(self._raw(), conclusion="success"))
 
         mock_mark_ready.assert_not_called()
@@ -601,6 +617,7 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
         gate_patcher = patch(
             f"{CHECK_PATH}.resolve_check_suite_flag_gate",
             return_value=CheckSuiteFlagGate(
@@ -1619,6 +1636,97 @@ class CheckSuiteFlagGateTest(TestCase):
         resolve_check_suite_repositories(event)
 
         mock_contexts.assert_called_once()
+
+
+class SweepCheckRunsCostTest(TestCase):
+    """The sweep's GitHub cost is the thing we budget for, so pin it down."""
+
+    def _page(self, runs: list[dict]) -> dict:
+        return {
+            "data": runs,
+            "type": "github",
+            "raw": {"headers": None, "data": {}},
+            "meta": {"next_cursor": "2"},
+        }
+
+    def _run(self, *, status: str = "completed", conclusion: str | None = "success") -> dict:
+        return {"id": 1, "name": "test", "status": status, "conclusion": conclusion}
+
+    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.scm_actions")
+    def test_counts_the_trailing_empty_page_as_a_request(self, mock_actions: MagicMock) -> None:
+        """``iter_all_pages`` can only stop on an empty page, so a sweep is pages + 1."""
+        mock_actions.list_check_runs_for_ref.side_effect = [
+            self._page([self._run()]),
+            self._page([self._run()]),
+            self._page([]),
+        ]
+
+        sweep = sweep_check_runs(MagicMock(), "abc", log_extra={})
+
+        assert sweep == CheckRunsSweep(total=2, incomplete=0, failed=0)
+        assert mock_actions.list_check_runs_for_ref.call_count == 3
+
+    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.scm_actions")
+    def test_uses_iter_all_pages_default_page_size(self, mock_actions: MagicMock) -> None:
+        mock_actions.list_check_runs_for_ref.side_effect = [self._page([])]
+
+        sweep_check_runs(MagicMock(), "abc", log_extra={})
+
+        pagination = mock_actions.list_check_runs_for_ref.call_args.kwargs["pagination"]
+        assert pagination["per_page"] == signature(iter_all_pages).parameters["per_page"].default
+
+    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.scm_actions")
+    def test_counts_incomplete_and_failed_runs(self, mock_actions: MagicMock) -> None:
+        mock_actions.list_check_runs_for_ref.side_effect = [
+            self._page(
+                [
+                    self._run(),
+                    self._run(status="in_progress", conclusion=None),
+                    self._run(conclusion="failure"),
+                    self._run(conclusion="timed_out"),
+                ]
+            ),
+            self._page([]),
+        ]
+
+        sweep = sweep_check_runs(MagicMock(), "abc", log_extra={})
+
+        assert sweep == CheckRunsSweep(total=4, incomplete=1, failed=2)
+        assert sweep.is_green is False
+
+    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.scm_actions")
+    def test_listing_failure_returns_none(self, mock_actions: MagicMock) -> None:
+        mock_actions.list_check_runs_for_ref.side_effect = ValueError("boom")
+
+        assert sweep_check_runs(MagicMock(), "abc", log_extra={}) is None
+
+    def test_unsupported_provider_returns_none(self) -> None:
+        assert sweep_check_runs(MagicMock(), "abc", log_extra={}) is None
+
+    @patch(f"{CHECK_SUITES_PATH}.metrics")
+    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.scm_actions")
+    def test_records_the_request_count_as_the_cost(
+        self, mock_actions: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        """The cost is the number of requests the sweep made, trailing empty page included."""
+        mock_actions.list_check_runs_for_ref.side_effect = [
+            self._page([self._run()]),
+            self._page([self._run()]),
+            self._page([]),
+        ]
+
+        sweep_check_runs(MagicMock(), "abc", log_extra={})
+
+        mock_metrics.distribution.assert_called_once_with(
+            "autofix.pr_iteration.check_runs_sweep.cost",
+            3,
+            tags={"outcome": "swept"},
+        )
 
 
 def _live_pr_result(head_sha: str = "abc") -> dict:

@@ -18,6 +18,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.deletions.models.watermark import CellDeletionWatermark, ControlDeletionWatermark
+from sentry.deletions.tasks import hybrid_cloud
 from sentry.deletions.tasks.hybrid_cloud import (
     ROW_WATERMARK,
     TOMBSTONE_WATERMARK,
@@ -135,8 +136,8 @@ def record_watermark_writes(
     field: HybridCloudForeignKey[int, int],
 ) -> Generator[set[str]]:
     """
-    Collect the watermark prefixes written for one field. A rewrite stores the
-    value it already holds, so the row itself cannot show that it happened.
+    Collect the watermark prefixes written for one field. A write can store the
+    value the row already holds, so the row itself cannot show that it happened.
     """
     written: set[str] = set()
     manager = _watermark_model(field).objects
@@ -152,6 +153,29 @@ def record_watermark_writes(
 
     with patch.object(manager, "update_or_create", record):
         yield written
+
+
+@contextmanager
+def record_low_bound_reports(
+    field: HybridCloudForeignKey[int, int],
+) -> Generator[set[str]]:
+    """
+    Collect the watermark prefixes that reported their position for one field.
+    Reporting does not touch the row, so the row cannot show that it happened.
+    """
+    reported: set[str] = set()
+    real_report = hybrid_cloud._report_low_bound
+
+    def record(prefix: str, reported_field: Any, value: int) -> None:
+        if (
+            reported_field.model._meta.db_table == field.model._meta.db_table
+            and reported_field.name == field.name
+        ):
+            reported.add(prefix)
+        return real_report(prefix, reported_field, value)
+
+    with patch.object(hybrid_cloud, "_report_low_bound", record):
+        yield reported
 
 
 @django_db_all
@@ -172,53 +196,25 @@ def test_no_work_is_no_op(
 
 
 @django_db_all
-def test_no_work_rewrites_both_watermarks(
+def test_no_work_reports_both_watermarks_without_writing(
     task_runner: Callable[[], ContextManager[None]],
     project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
 ) -> None:
-    reset_watermarks()
-
-    before = {
-        prefix: get_watermark(prefix, project_bookmark_user_id_field)
-        for prefix in WATERMARK_PREFIXES
-    }
-
-    with record_watermark_writes(project_bookmark_user_id_field) as written:
-        with task_runner():
-            schedule_hybrid_cloud_foreign_key_jobs()
-
-    assert written == set(WATERMARK_PREFIXES)
-
-    for prefix, watermark in before.items():
-        assert get_watermark(prefix, project_bookmark_user_id_field) == watermark
-
-
-@django_db_all
-def test_catch_up_rewrites_both_watermarks(
-    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
-) -> None:
     """
-    The `or` in _process_hybrid_cloud_foreign_key_cascade skips the second
-    reconciliation while the first one still has work. Both watermarks must be
-    written on such a cycle.
+    A caught up field writes its watermark rows only when it has work, but it
+    still reports where both watermarks sit. The every cycle rewrite existed to
+    fill the Postgres tables during the Redis to Postgres migration and is gone
+    now, so the report is what keeps the position visible.
     """
     reset_watermarks()
 
     with record_watermark_writes(project_bookmark_user_id_field) as written:
-        with patch(
-            "sentry.deletions.tasks.hybrid_cloud._process_tombstone_reconciliation",
-            return_value=True,
-        ) as reconciliation:
-            _process_hybrid_cloud_foreign_key_cascade(
-                app_name=ProjectBookmark._meta.app_label,
-                model_name=ProjectBookmark.__name__,
-                field_name=project_bookmark_user_id_field.name,
-                process_task=Mock(),
-                silo_mode=SiloMode.CELL,
-            )
+        with record_low_bound_reports(project_bookmark_user_id_field) as reported:
+            with task_runner():
+                schedule_hybrid_cloud_foreign_key_jobs()
 
-    assert reconciliation.call_count == 1
-    assert written == set(WATERMARK_PREFIXES)
+    assert written == set()
+    assert reported == set(WATERMARK_PREFIXES)
 
 
 @django_db_all
@@ -308,25 +304,6 @@ def test_write_failure_reaches_the_caller(
     row = _cell_watermark_rows(project_bookmark_user_id_field).get(prefix=TOMBSTONE_WATERMARK)
     assert row.low_bound == 5
     assert get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)[0] == 5
-
-
-@django_db_all
-def test_one_cycle_fills_both_watermark_rows(
-    task_runner: Callable[[], ContextManager[None]],
-    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
-) -> None:
-    reset_watermarks()
-    _cell_watermark_rows(project_bookmark_user_id_field).delete()
-
-    with task_runner():
-        schedule_hybrid_cloud_foreign_key_jobs()
-
-    rows = {row.prefix: row for row in _cell_watermark_rows(project_bookmark_user_id_field)}
-    assert set(rows) == set(WATERMARK_PREFIXES)
-    for prefix, row in rows.items():
-        assert (row.low_bound, row.transaction_id) == get_watermark(
-            prefix, project_bookmark_user_id_field
-        )
 
 
 @django_db_all

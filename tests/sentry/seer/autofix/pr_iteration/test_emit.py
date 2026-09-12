@@ -7,20 +7,25 @@ from sentry.analytics.events.pr_iteration_events import (
     AiAutofixPrIterationFeedbackBatchCompletedEvent,
 )
 from sentry.seer.agent.client_models import MemoryBlock, Message, SeerRunState
-from sentry.seer.autofix.autofix_agent import AutofixStep
 from sentry.seer.autofix.pr_iteration.details_store import (
     open_iterations,
     remove_iterations_before,
     update_iteration,
 )
 from sentry.seer.autofix.pr_iteration.emit import (
+    PrIterationOutcome,
+    bootstrap_iteration,
     complete_pr_iteration_details,
     discard_pr_iteration_details,
-    open_pr_iteration_details,
+    outcome_for_failed_run,
     record_pr_iteration_counts,
     trigger_pr_iteration_details,
 )
-from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.logs import (
+    LogCtxIteration,
+    PrIterationLogContext,
+)
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
@@ -61,14 +66,15 @@ class PrIterationDetailsTest(TestCase):
         )
         self.log_ctx = PrIterationLogContext(
             MagicMock(),
+            iteration=LogCtxIteration.TRIGGERED,
             run_state=_run_state(),
             organization_id=self.organization.id,
             group_id=self.group.id,
         )
 
     def _open(self) -> None:
-        open_pr_iteration_details(
-            log_ctx=self.log_ctx,
+        bootstrap_iteration(
+            logger=MagicMock(),
             run_state=_run_state(),
             organization_id=self.organization.id,
             group_id=self.group.id,
@@ -95,12 +101,17 @@ class PrIterationDetailsTest(TestCase):
             )
         return iteration_id
 
-    def _complete(self, iteration_id: int, *, pushed_changes: bool = True) -> None:
+    def _complete(
+        self,
+        iteration_id: int,
+        *,
+        outcome: str = PrIterationOutcome.ALREADY_PUSHED.value,
+    ) -> None:
         complete_pr_iteration_details(
             log_ctx=self.log_ctx,
             run_state=_run_state(blocks=[_iteration_block(iteration_id)]),
             organization_id=self.organization.id,
-            pushed_changes=pushed_changes,
+            outcome=outcome,
         )
 
     def _open_rows(self) -> list:
@@ -150,26 +161,22 @@ class PrIterationDetailsTest(TestCase):
                 queued_count=3,
                 dropped_count=1,
                 automated_feedback_count=1,
-                duration_ms=0,
-                pushed_changes=True,
+                outcome="already_pushed",
             ),
         )
         # A surviving row is an iteration still owing an event.
         assert self._open_rows() == []
 
-    def test_the_completion_measures_how_long_the_iteration_took(self) -> None:
+    def test_the_completion_records_the_outcome_it_ended_with(self) -> None:
         self._open()
         iteration_id = self._trigger()
         assert iteration_id is not None
-        (row,) = self._open_rows()
-        row.update(date_added=timezone.now() - timedelta(seconds=30))
 
         with patch("sentry.analytics.record") as mock_record:
-            self._complete(iteration_id, pushed_changes=False)
+            self._complete(iteration_id, outcome=PrIterationOutcome.PUSH_FAILED.value)
 
         event = mock_record.call_args.args[0]
-        assert 30_000 <= event.duration_ms < 60_000
-        assert event.pushed_changes is False
+        assert event.outcome == "push_failed"
 
     def test_an_incomplete_row_keeps_its_row_and_emits_nothing(self) -> None:
         self._open()
@@ -204,8 +211,9 @@ class PrIterationDetailsTest(TestCase):
         assert self._trigger() is None
         assert first is not None
 
-    def test_a_second_open_resets_the_row_left_by_an_abandoned_iteration(self) -> None:
-        # A pause clears the queue, so the row it opened waits for feedback that never runs.
+    def test_a_second_open_reuses_the_row_left_by_an_abandoned_iteration(self) -> None:
+        # A pause clears the queue, so the row it opened waits for feedback that never
+        # runs. The next feedback joins that row rather than opening a second one.
         self._open()
         (stale,) = self._open_rows()
         stale.update(date_added=timezone.now() - timedelta(hours=2))
@@ -214,21 +222,6 @@ class PrIterationDetailsTest(TestCase):
 
         (row,) = self._open_rows()
         assert row.id == stale.id
-        assert row.date_added > stale.date_added
-
-    def test_the_reset_row_measures_only_the_iteration_that_claimed_it(self) -> None:
-        self._open()
-        (stale,) = self._open_rows()
-        stale.update(date_added=timezone.now() - timedelta(hours=2))
-        self._open()
-        iteration_id = self._trigger()
-        assert iteration_id is not None
-
-        with patch("sentry.analytics.record") as mock_record:
-            self._complete(iteration_id)
-
-        event = mock_record.call_args.args[0]
-        assert event.duration_ms < 60_000
 
     def test_a_waiting_row_never_doubles_up(self) -> None:
         self._open()
@@ -285,3 +278,65 @@ class PrIterationDetailsTest(TestCase):
             self._complete(iteration_id)
 
         assert mock_record.called
+
+    @freeze_time("2024-01-01 00:00:00")
+    def test_an_iteration_that_produced_nothing_records_that_outcome(self) -> None:
+        self._open()
+        iteration_id = self._trigger()
+        assert iteration_id is not None
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._complete(iteration_id, outcome=PrIterationOutcome.NO_CODE_CHANGES.value)
+
+        assert_last_analytics_event(
+            mock_record,
+            AiAutofixPrIterationFeedbackBatchCompletedEvent(
+                iteration_id=iteration_id,
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_id=self.group.id,
+                run_id=RUN_ID,
+                referrer="github_pr_comment",
+                iteration_index=0,
+                trigger_source="feedback",
+                feedback_count=2,
+                queued_count=3,
+                dropped_count=1,
+                automated_feedback_count=1,
+                outcome="no_code_changes",
+            ),
+        )
+        assert self._open_rows() == []
+
+    def test_a_second_ending_emits_nothing(self) -> None:
+        """The row is the claim: one batch never lands under two outcomes."""
+        self._open()
+        iteration_id = self._trigger()
+        assert iteration_id is not None
+        self._complete(iteration_id)
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._complete(iteration_id, outcome=PrIterationOutcome.TIMEOUT.value)
+
+        assert not mock_record.called
+
+    def test_seers_reason_is_the_outcome_of_a_failed_run(self) -> None:
+        state = _run_state()
+        state.status = "error"
+        state.failure_reason = "stalled"
+
+        assert outcome_for_failed_run(state) == PrIterationOutcome.STALLED.value
+
+    def test_a_failure_seer_did_not_classify_is_recorded_as_errored(self) -> None:
+        state = _run_state()
+        state.status = "error"
+
+        assert outcome_for_failed_run(state) == PrIterationOutcome.ERRORED.value
+
+    def test_a_reason_seer_added_since_is_passed_through(self) -> None:
+        """Folding an unknown reason into ``errored`` would hide a new failure."""
+        state = _run_state()
+        state.status = "error"
+        state.failure_reason = "out_of_credits"
+
+        assert outcome_for_failed_run(state) == "out_of_credits"

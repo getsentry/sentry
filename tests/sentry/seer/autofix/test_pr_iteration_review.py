@@ -211,6 +211,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
         self.repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
@@ -606,6 +607,47 @@ class TriggerPrIterationFromReviewTest(TestCase):
         source = self.mock_enqueue.call_args.kwargs["feedback"].source
         assert isinstance(source, GithubPrReviewBodyFeedbackSource)
         assert source.body == "looks good"
+
+    def test_bot_review_without_inline_comments_is_skipped(self) -> None:
+        # A bot approval with only a summary body carries nothing to act on.
+        self._run(author_is_bot=True)
+
+        self.mock_enqueue.assert_not_called()
+        self.mock_consume.assert_not_called()
+        # The bail happens before the body fetch.
+        self.mock_actions.get_pull_request_review.assert_not_called()
+
+    def test_bot_review_with_inline_comments_still_iterates(self) -> None:
+        self.mock_actions.get_review_comments.return_value = self._paginated(
+            [self._review_comment(comment_id="1", body="fix this")]
+        )
+        self.mock_actions.get_pull_request_review.return_value = self._review_result(
+            {"id": "500", "html_url": "https://x/500", "body": "one nit below"}
+        )
+
+        self._run(author_is_bot=True)
+
+        # The inline comment and the summary body each become a feedback source.
+        assert self.mock_enqueue.call_count == 2
+        sources = [c.kwargs["feedback"].source for c in self.mock_enqueue.call_args_list]
+        assert len([s for s in sources if isinstance(s, GithubPrReviewCommentFeedbackSource)]) == 1
+        assert len([s for s in sources if isinstance(s, GithubPrReviewBodyFeedbackSource)]) == 1
+        self.mock_consume.assert_called_once()
+        self.mock_actions.create_review_comment_reaction.assert_called_once()
+        assert self.mock_actions.create_review_comment_reaction.call_args.args[3] == "eyes"
+
+    def test_human_review_without_inline_comments_still_iterates(self) -> None:
+        # The bot guard must not touch a human summary-only review.
+        self.mock_actions.get_pull_request_review.return_value = self._review_result(
+            {"id": "500", "html_url": "https://x/500", "body": "this pr looks good to me!"}
+        )
+
+        self._run(author_is_bot=False)
+
+        self.mock_enqueue.assert_called_once()
+        source = self.mock_enqueue.call_args.kwargs["feedback"].source
+        assert isinstance(source, GithubPrReviewBodyFeedbackSource)
+        self.mock_consume.assert_called_once()
 
     def test_review_not_found_still_processes_inline_comments(self) -> None:
         # If the review is gone (deleted/dismissed between webhook and task) the

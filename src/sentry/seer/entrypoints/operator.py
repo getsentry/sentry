@@ -180,12 +180,12 @@ class SeerAutofixOperator[CachePayloadT]:
         run_id: int | None = None,
     ) -> None:
         from sentry.seer.autofix.autofix_agent import (
-            AutofixStep,
-            NoSeerQuotaException,
             get_autofix_agent_state,
             trigger_autofix_agent,
             trigger_push_changes,
         )
+        from sentry.seer.autofix.exceptions import NoSeerQuotaException
+        from sentry.seer.autofix.steps import AutofixStep
 
         event_lifecyle = SeerOperatorEventLifecycleMetric(
             interaction_type=SeerOperatorInteractionType.OPERATOR_TRIGGER_AUTOFIX,
@@ -798,7 +798,7 @@ def process_autofix_updates(
 def get_autofix_explorer_status(
     stopping_point: AutofixStoppingPoint, autofix_state: SeerRunState
 ) -> bool | None:
-    from sentry.seer.autofix.autofix_agent import AutofixStep
+    from sentry.seer.autofix.steps import AutofixStep
 
     expected_step = AutofixStep.from_autofix_stopping_point(stopping_point)
 

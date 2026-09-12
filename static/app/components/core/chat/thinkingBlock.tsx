@@ -83,6 +83,7 @@ export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlo
 
   useEffect(() => {
     if (!isActive) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setOverride(null);
     }
   }, [isActive]);

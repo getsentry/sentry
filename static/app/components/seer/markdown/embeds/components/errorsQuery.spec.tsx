@@ -54,7 +54,9 @@ describe('errors query embed', () => {
     expect(await screen.findByText('Error 1')).toBeInTheDocument();
     expect(screen.getByText('Error 5')).toBeInTheDocument();
     expect(screen.queryByText('Error 6')).not.toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Recent errors'})).toHaveAttribute(
+    // The block's name is the collapse toggle; the link out is a separate target.
+    expect(screen.getByRole('button', {name: 'Recent errors'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'View Errors'})).toHaveAttribute(
       'href',
       expect.stringContaining('/explore/discover/results/')
     );

@@ -43,8 +43,6 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix_agent import (
-    AutofixStep,
-    NoSeerQuotaException,
     get_autofix_agent_state,
     get_autofix_run_state,
     trigger_autofix_agent,
@@ -57,11 +55,12 @@ from sentry.seer.autofix.coding_agent import (
 )
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.github_perms import (
     get_blocked_pr_iteration_permissions,
 )
+from sentry.seer.autofix.pr_iteration.emit import bootstrap_iteration
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
-from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
@@ -73,6 +72,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
     try_enqueue_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_extra
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.types import (
     AutofixHandoffResponse,
     AutofixPostResponse,
@@ -98,6 +98,7 @@ SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
 PAUSED_PR_ITERATION_DETAIL = {
     PauseReason.USER_STOP: "Iteration was stopped for this pull request",
     PauseReason.RUN_ERRORED: "Seer can no longer iterate on this pull request",
+    PauseReason.PR_CLOSED: "This pull request is closed, so Seer stopped iterating on it",
 }
 
 
@@ -200,7 +201,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
 class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin, GroupAiEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
-        "GET": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     formatter_adapter = staticmethod(format_autofix)
     owner = ApiOwner.ML_AI
@@ -417,8 +418,11 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
 
                 # Shared by both calls, so one arrival of feedback logs its queue
                 # and trigger decisions under one identity.
-                log_ctx = PrIterationLogContext.for_run(
-                    logger, run_state, group.organization.id, group.id
+                log_ctx = bootstrap_iteration(
+                    logger=logger,
+                    run_state=run_state,
+                    organization_id=group.organization.id,
+                    group_id=group.id,
                 )
 
                 try_enqueue_autofix_feedback(
@@ -551,8 +555,6 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         - Root Cause Analysis
         - Proposed Solution
         - Generated code changes
-
-        This endpoint although documented is still experimental and the payload may change in the future.
         """
         try:
             state = get_autofix_agent_state(group.organization, group.id)

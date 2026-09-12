@@ -101,6 +101,7 @@ export function ScmPlatformFeaturesCore({
   // for the new repo. Keyed on externalId since it is stable across the
   // optimistic -> resolved transition for a given selection.
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setShowManualPicker(false);
     autoDetectionTrackedRef.current = false;
   }, [selectedRepository?.externalId]);

@@ -12,6 +12,7 @@ import {InfoText} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -64,14 +65,16 @@ type CustomInboundFilter = {
   dateUpdated: string;
   id: string;
   name: string | null;
+  // Absent until the API stores the data type on the filter.
+  dataType?: FilterDataType;
 };
 
 type PropertyOption = {label: string; value: ConditionType};
 
-// The data type a filter applies to. The backend rejects a filter that mixes
-// data types, so a filter targets exactly one, which determines the condition
-// properties available to it. `DATA_TYPES` below describes each one.
-type FilterDataType = 'error' | 'metric' | 'log';
+// The data a filter matches against. It decides which condition properties the
+// filter can use. `all` is the catch-all: it matches every data type, so it takes only
+// the properties every data type carries a field for.
+type FilterDataType = 'all' | 'error' | 'metric' | 'log' | 'span';
 
 type DataTypeOption = {label: string; value: FilterDataType};
 
@@ -97,10 +100,13 @@ type DataTypeSpec = {
   feature?: string;
 };
 
+// Declaration order is the order of the data type dropdown.
 const DATA_TYPES: Record<FilterDataType, DataTypeSpec> = {
+  all: {label: t('All Data Types')},
   error: {label: t('Errors')},
   metric: {label: t('Metrics'), feature: 'tracemetrics-ingestion'},
   log: {label: t('Logs'), feature: 'ourlogs-ingestion'},
+  span: {label: t('Spans')},
 };
 
 type ConditionSpec = {
@@ -149,9 +155,11 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
     label: t('Release'),
     placeholder: t('Glob pattern, e.g. 2.41.*'),
     description: {
+      all: t('Matches the release of any data type.'),
       error: t('Matches the release of the error.'),
       log: t('Matches the release attribute of the log.'),
       metric: t('Matches the release attribute of the metric.'),
+      span: t('Matches the release attribute of the span.'),
     },
   },
 };
@@ -177,7 +185,8 @@ function getCondition(property: string): ConditionSpec {
   );
 }
 
-// A data type offers the conditions that read its own fields, plus `release`.
+// A data type offers the conditions that read its own fields, plus the ones every
+// data type carries. The catch-all offers only the latter.
 function getPropertyOptions(dataType: FilterDataType): PropertyOption[] {
   return CONDITION_TYPES.filter(value => {
     const owner = getCondition(value).dataType;
@@ -186,12 +195,13 @@ function getPropertyOptions(dataType: FilterDataType): PropertyOption[] {
 }
 
 // The property a new condition row starts with, and the one existing rows
-// collapse to when the user changes the data type. Every data type owns at least
-// one condition; errors stand in if that ever stops holding.
+// collapse to when the user changes the data type. The catch-all owns no condition
+// of its own, so it falls back to the first one every data type carries.
 function getDefaultProperty(dataType: FilterDataType): ConditionType {
   return (
     CONDITION_TYPES.find(value => getCondition(value).dataType === dataType) ??
-    'error_message'
+    CONDITION_TYPES.find(value => getCondition(value).dataType === undefined) ??
+    'release'
   );
 }
 
@@ -223,18 +233,29 @@ const filterSchema = z.object({
     .min(1),
 });
 
+// An API that does not store the data type derives it the way the old backend did:
+// from the first condition that belongs to one, falling back to errors.
+function getFilterDataType(filter: CustomInboundFilter): FilterDataType {
+  return (
+    filter.dataType ??
+    filter.conditions
+      .map(condition => getCondition(condition.type).dataType)
+      .find(Boolean) ??
+    'error'
+  );
+}
+
+function getDataTypeLabel(filter: CustomInboundFilter): string {
+  const dataType = getFilterDataType(filter);
+  return DATA_TYPES[dataType]?.label ?? dataType;
+}
+
 // Expand the API's per-condition value lists into one editable row per value.
-// The data type is not stored on the filter; every condition property except
-// `release` belongs to one data type, so derive it (release-only filters
-// default to errors).
 function filterToFormValues(filter: CustomInboundFilter): FilterFormValues {
   const conditions = filter.conditions.flatMap(condition =>
     condition.value.map(value => ({property: condition.type, value}))
   );
-  const dataType =
-    conditions
-      .map(condition => getCondition(condition.property).dataType)
-      .find(Boolean) ?? 'error';
+  const dataType = getFilterDataType(filter);
   return {
     name: filter.name ?? '',
     dataType,
@@ -357,7 +378,7 @@ function CustomFilterModal({
       </Header>
       <Body>
         <Stack gap="xl">
-          <Grid columns="4fr 1fr" gap="md">
+          <Grid columns="3fr minmax(180px, 1fr)" gap="md">
             <form.AppField name="name">
               {field => (
                 <field.Layout.Stack label={t('Name')} required>
@@ -406,6 +427,13 @@ function CustomFilterModal({
                   const conditions = conditionsField.state.value;
                   return (
                     <Stack gap="lg">
+                      {dataType === 'all' && (
+                        <Text variant="muted" size="sm">
+                          {t(
+                            'This filter applies to every data type Sentry ingests, including ones added later. Only conditions that every data type carries are available.'
+                          )}
+                        </Text>
+                      )}
                       <Stack gap="sm">
                         {conditions.map((condition, index) => (
                           <Grid
@@ -510,11 +538,21 @@ const CHART_HEADROOM = 1.3;
 // it, and keep the right edge clear for the mark line label.
 const CHART_GRID = {top: 6, bottom: 6, left: 0, right: 25, containLabel: false};
 
-// The categories a custom filter drops data in, one per data type the backend
-// accepts. `error` covers default and security events too, which the stats endpoint
-// folds into it. Byte categories, such as `log_byte`, report the same data a second
-// time in bytes, so counting them would multiply what a filter dropped.
-const STATS_CATEGORIES = ['error', 'log_item', 'trace_metric'];
+// The categories a custom filter drops data in. `error` covers default and security
+// events too, which the stats endpoint folds into it. Transactions, replays, and
+// profile chunks are here because Relay reads an error's release field on those as
+// well, so a release condition drops them alongside errors. Byte categories, such as
+// `log_byte`, report the same data a second time in bytes, so counting them would
+// multiply what a filter dropped.
+const STATS_CATEGORIES = [
+  'error',
+  'transaction',
+  'replay',
+  'profile_chunk',
+  'span',
+  'log_item',
+  'trace_metric',
+];
 
 // A custom filter reports under this reason in ingest outcomes, followed by its id.
 // The backend builds the same string when it sends the filter to Relay.
@@ -580,10 +618,10 @@ function FilteredVolumeCells({
   if (isPending) {
     return (
       <Fragment>
-        <SimpleTable.RowCell data-column-name="trend">
+        <SimpleTable.RowCell columnKey="trend">
           <Placeholder height={`${CHART_HEIGHT}px`} width={`${CHART_WIDTH}px`} />
         </SimpleTable.RowCell>
-        <SimpleTable.RowCell data-column-name="filtered">
+        <SimpleTable.RowCell columnKey="filtered">
           <Flex height={`${CHART_HEIGHT}px`} align="center">
             <Placeholder height="16px" width="40px" />
           </Flex>
@@ -595,12 +633,12 @@ function FilteredVolumeCells({
   if (isError) {
     return (
       <Fragment>
-        <SimpleTable.RowCell data-column-name="trend">
+        <SimpleTable.RowCell columnKey="trend">
           <Flex height={`${CHART_HEIGHT}px`} align="center">
             <Text variant="muted">{'—'}</Text>
           </Flex>
         </SimpleTable.RowCell>
-        <SimpleTable.RowCell data-column-name="filtered">
+        <SimpleTable.RowCell columnKey="filtered">
           <Flex height={`${CHART_HEIGHT}px`} align="center">
             <Text variant="muted">{'—'}</Text>
           </Flex>
@@ -662,7 +700,7 @@ function FilteredVolumeCells({
 
   return (
     <Fragment>
-      <SimpleTable.RowCell data-column-name="trend">
+      <SimpleTable.RowCell columnKey="trend">
         <Container width={`${CHART_WIDTH}px`} height={`${CHART_HEIGHT}px`}>
           <MiniBarChart
             stacked
@@ -684,7 +722,7 @@ function FilteredVolumeCells({
           />
         </Container>
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell data-column-name="filtered">
+      <SimpleTable.RowCell columnKey="filtered">
         <Flex height={`${CHART_HEIGHT}px`} align="center">
           <Text tabular variant={total === 0 ? 'muted' : 'primary'}>
             {formatAbbreviatedNumber(total)}
@@ -702,6 +740,7 @@ function matchesQuery(filter: CustomInboundFilter, query: string) {
   }
   const haystack = [
     filter.name ?? '',
+    getDataTypeLabel(filter),
     ...filter.conditions.flatMap(condition =>
       condition.value.flatMap(value => [
         value,
@@ -789,6 +828,7 @@ export function CustomFilters({project}: {project: Project}) {
         url: listUrl,
         data: {
           name: values.name.trim(),
+          dataType: values.dataType,
           conditions: formValuesToConditions(values),
         },
       }),
@@ -806,7 +846,9 @@ export function CustomFilters({project}: {project: Project}) {
       id,
       data,
     }: {
-      data: Partial<Pick<CustomInboundFilter, 'name' | 'active' | 'conditions'>>;
+      data: Partial<
+        Pick<CustomInboundFilter, 'name' | 'active' | 'dataType' | 'conditions'>
+      >;
       id: string;
     }) =>
       fetchMutation<CustomInboundFilter>({
@@ -842,6 +884,7 @@ export function CustomFilters({project}: {project: Project}) {
       id,
       data: {
         name: values.name.trim(),
+        dataType: values.dataType,
         conditions: formValuesToConditions(values),
       },
     });
@@ -904,6 +947,7 @@ export function CustomFilters({project}: {project: Project}) {
       ) : (
         <Container containerType="inline-size">
           <CustomFiltersTable
+            columns={CUSTOM_FILTER_COLUMNS}
             header={
               <SimpleTable.HeaderRow>
                 <SimpleTable.HeaderCell divider={false}>
@@ -913,18 +957,21 @@ export function CustomFilters({project}: {project: Project}) {
                   {t('Name')}
                 </SimpleTable.HeaderCell>
                 <SimpleTable.HeaderCell divider={false}>
+                  {t('Data Type')}
+                </SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell divider={false}>
                   {t('Conditions')}
                 </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell divider={false} data-column-name="trend">
+                <SimpleTable.HeaderCell divider={false} columnKey="trend">
                   {t('Trend')}
                 </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell divider={false} data-column-name="filtered">
+                <SimpleTable.HeaderCell divider={false} columnKey="filtered">
                   {t('Filtered')}
                 </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell divider={false} data-column-name="created">
+                <SimpleTable.HeaderCell divider={false} columnKey="created">
                   {t('Created')}
                 </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell divider={false} data-column-name="edited">
+                <SimpleTable.HeaderCell divider={false} columnKey="edited">
                   {t('Edited')}
                 </SimpleTable.HeaderCell>
                 <SimpleTable.HeaderCell divider={false}>
@@ -957,6 +1004,11 @@ export function CustomFilters({project}: {project: Project}) {
                   <Text ellipsis>{filter.name}</Text>
                 </SimpleTable.RowCell>
                 <SimpleTable.RowCell>
+                  <Text ellipsis variant="muted">
+                    {getDataTypeLabel(filter)}
+                  </Text>
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell>
                   <Stack align="start" gap="xs">
                     {filter.conditions.flatMap((condition, conditionIndex) =>
                       condition.value.map((value, valueIndex) => (
@@ -977,10 +1029,10 @@ export function CustomFilters({project}: {project: Project}) {
                   isPending={isStatsPending}
                   isError={isStatsError}
                 />
-                <SimpleTable.RowCell whiteSpace="nowrap" data-column-name="created">
+                <SimpleTable.RowCell whiteSpace="nowrap" columnKey="created">
                   <TimeSince date={filter.dateCreated} unitStyle="extraShort" />
                 </SimpleTable.RowCell>
-                <SimpleTable.RowCell whiteSpace="nowrap" data-column-name="edited">
+                <SimpleTable.RowCell whiteSpace="nowrap" columnKey="edited">
                   <TimeSince date={filter.dateUpdated} unitStyle="extraShort" />
                 </SimpleTable.RowCell>
                 <SimpleTable.RowCell>
@@ -1032,43 +1084,18 @@ export function CustomFilters({project}: {project: Project}) {
 // A column joins the table only once the conditions still have room to read at that
 // width. The dates need the most room, so they go first as the table narrows, then
 // the trend, then the total.
+const CUSTOM_FILTER_COLUMNS: TableColumnConfig[] = [
+  {key: 'active', width: '90px'},
+  {key: 'name', width: 'minmax(160px, 1fr)'},
+  {key: 'dataType', width: '120px'},
+  {key: 'conditions', width: 'minmax(240px, 2fr)'},
+  {key: 'trend', visible: {'3xl': true}, width: '190px'},
+  {key: 'filtered', visible: {'2xl': true}, width: '90px'},
+  {key: 'created', visible: {'4xl': true}, width: '90px'},
+  {key: 'edited', visible: {'4xl': true}, width: '90px'},
+  {key: 'action', width: '110px'},
+];
+
 const CustomFiltersTable = styled(SimpleTable)`
-  grid-template-columns: 90px minmax(160px, 1fr) minmax(240px, 2fr) 110px;
   overflow-x: auto;
-
-  [data-column-name='trend'],
-  [data-column-name='filtered'],
-  [data-column-name='created'],
-  [data-column-name='edited'] {
-    display: none;
-  }
-
-  @container (min-width: ${p => p.theme.container['2xl']}) {
-    grid-template-columns: 90px minmax(160px, 1fr) minmax(240px, 2fr) 90px 110px;
-
-    [data-column-name='filtered'] {
-      display: flex;
-    }
-  }
-
-  @container (min-width: ${p => p.theme.container['3xl']}) {
-    grid-template-columns:
-      90px minmax(160px, 1fr) minmax(240px, 2fr) 190px 90px
-      110px;
-
-    [data-column-name='trend'] {
-      display: flex;
-    }
-  }
-
-  @container (min-width: ${p => p.theme.container['4xl']}) {
-    grid-template-columns:
-      90px minmax(160px, 1fr) minmax(240px, 2fr) 190px 90px
-      90px 90px 110px;
-
-    [data-column-name='created'],
-    [data-column-name='edited'] {
-      display: flex;
-    }
-  }
 `;

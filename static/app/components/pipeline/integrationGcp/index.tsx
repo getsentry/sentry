@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -7,9 +7,9 @@ import {Button} from '@sentry/scraps/button';
 import {InlineCode} from '@sentry/scraps/code';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 
+import {GcpVerificationResults} from 'sentry/components/gcpVerificationResults';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {
   PipelineDefinition,
@@ -17,22 +17,15 @@ import type {
 } from 'sentry/components/pipeline/types';
 import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
-import {IconAdd, IconDelete, IconRefresh} from 'sentry/icons';
+import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import type {
-  GcpProjectResult,
   GcpVerificationInput,
   GcpVerifyConnectionResponse,
-} from 'sentry/utils/seer/gcpConnection';
-import {
-  describeService,
-  getFailedServices,
-  getStatusLabel,
-  getStatusVariant,
 } from 'sentry/utils/seer/gcpConnection';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -126,10 +119,21 @@ function GcpSaGenerationStep({
 const gcpCustomerConfigSchema = z.object({
   customerSaEmail: z.email(t('Must be a valid email address')),
   projects: z
-    .array(z.string().regex(GCP_PROJECT_ID_RE, t('Invalid project ID')))
+    .array(z.string())
     .min(1, t('At least one project ID is required'))
-    .max(MAX_PROJECTS),
+    .max(MAX_PROJECTS, t('You can connect up to %s GCP projects', MAX_PROJECTS))
+    .refine(
+      ids => ids.every(id => GCP_PROJECT_ID_RE.test(id)),
+      t(
+        'Project IDs must be 6-30 characters using lowercase letters, digits, and hyphens, and must start with a letter.'
+      )
+    ),
 });
+
+const emptyGcpCustomerConfig: z.infer<typeof gcpCustomerConfigSchema> = {
+  customerSaEmail: '',
+  projects: [],
+};
 
 function GcpCustomerConfigStep({
   advance,
@@ -142,12 +146,12 @@ function GcpCustomerConfigStep({
 >) {
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {customerSaEmail: '', projects: ['']},
+    defaultValues: emptyGcpCustomerConfig,
     validators: {onDynamic: gcpCustomerConfigSchema},
     onSubmit: ({value}) => {
       advance({
         customerSaEmail: value.customerSaEmail,
-        projects: value.projects.map(s => s.trim()).filter(Boolean),
+        projects: value.projects,
       });
     },
   });
@@ -177,48 +181,20 @@ function GcpCustomerConfigStep({
             </field.Layout.Stack>
           )}
         </form.AppField>
-        <form.AppField name="projects" mode="array">
+        <form.AppField name="projects">
           {field => (
-            <Fragment>
-              <Text bold>{t('GCP Project IDs')}</Text>
-              <Stack gap="sm">
-                {field.state.value.map((_, i) => (
-                  <Flex key={i} gap="sm" align="center">
-                    <form.AppField name={`projects[${i}]`}>
-                      {subField => (
-                        <subField.Input
-                          value={subField.state.value}
-                          onChange={subField.handleChange}
-                          placeholder="my-gcp-project"
-                          style={{flex: 1}}
-                        />
-                      )}
-                    </form.AppField>
-                    {field.state.value.length > 1 && (
-                      <Button
-                        aria-label={t('Remove project')}
-                        size="sm"
-                        variant="transparent"
-                        icon={<IconDelete size="xs" />}
-                        onClick={() => field.removeValue(i)}
-                      />
-                    )}
-                  </Flex>
-                ))}
-                {field.state.value.length < MAX_PROJECTS && (
-                  <Flex>
-                    <Button
-                      size="sm"
-                      icon={<IconAdd size="xs" />}
-                      onClick={() => field.pushValue('')}
-                    >
-                      {t('Add Project')}
-                    </Button>
-                  </Flex>
-                )}
-                <field.Meta.Status />
-              </Stack>
-            </Fragment>
+            <field.Layout.Stack label={t('GCP Project IDs')} required>
+              <field.Select
+                multiple
+                creatable
+                options={[]}
+                value={field.state.value}
+                onChange={ids =>
+                  field.handleChange(ids.map(id => id.trim()).filter(Boolean))
+                }
+                placeholder={t('Type a project ID and press enter')}
+              />
+            </field.Layout.Stack>
           )}
         </form.AppField>
         <Flex>
@@ -234,30 +210,6 @@ function GcpCustomerConfigStep({
 interface GcpVerificationStepData {
   customerSaEmail: string;
   projects: string[];
-}
-
-function GcpProjectStatus({project}: {project: GcpProjectResult}) {
-  const failedServices = getFailedServices(project);
-
-  return (
-    <Stack gap="xs">
-      <Flex gap="sm" align="center">
-        <StatusIndicator
-          variant={getStatusVariant(project.connectionStatus)}
-          animationIterationCount={1}
-        />
-        <Text bold>{project.gcpProjectId}</Text>
-        <Text variant="muted" size="sm">
-          {getStatusLabel(project.connectionStatus)}
-        </Text>
-      </Flex>
-      {failedServices.map(service => (
-        <Text key={service.service} variant="muted" size="sm">
-          {describeService(service)}
-        </Text>
-      ))}
-    </Stack>
-  );
 }
 
 function GcpVerificationStep({
@@ -309,6 +261,7 @@ function GcpVerificationStep({
         projects: result.projects.map(project => ({
           gcpProjectId: project.gcpProjectId,
           connectionStatus: project.connectionStatus,
+          services: project.services,
           errorDetail: project.errorDetail ?? null,
         })),
       });
@@ -322,6 +275,7 @@ function GcpVerificationStep({
       projects: (projects ?? []).map(gcpProjectId => ({
         gcpProjectId,
         connectionStatus: 'error' as const,
+        services: [],
         errorDetail: 'Verification could not be completed.',
       })),
     });
@@ -348,22 +302,19 @@ function GcpVerificationStep({
             )}
           </Alert>
         ) : result ? (
-          <Fragment>
-            <Alert variant={isConnected ? 'success' : 'warning'}>
-              {isConnected
-                ? t('Sentry can read telemetry from all of your connected GCP projects.')
-                : t(
-                    'Sentry could not read telemetry from every project. IAM changes can take a couple of minutes to take effect, so re-testing may help. You can also finish setup and re-test from the integration settings page.'
-                  )}
-            </Alert>
-            {result.projects.map(project => (
-              <GcpProjectStatus key={project.gcpProjectId} project={project} />
-            ))}
-          </Fragment>
+          <GcpVerificationResults result={result} />
         ) : null}
       </Stack>
 
-      <Flex gap="md">
+      {!isChecking && !isConnected && !isError && result && (
+        <Text size="sm" variant="muted" density="comfortable">
+          {t(
+            'You can finish setup and re-test from the integration settings page after resolving these issues.'
+          )}
+        </Text>
+      )}
+
+      <Flex gap="md" wrap="wrap">
         <Button
           variant="primary"
           onClick={handleContinue}

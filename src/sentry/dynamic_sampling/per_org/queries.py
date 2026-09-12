@@ -8,31 +8,24 @@ from enum import StrEnum
 from typing import Any, Protocol
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
-from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query, Request
 
 from sentry import options
 from sentry.dynamic_sampling.rules.utils import ProjectId
 from sentry.dynamic_sampling.tasks.common import (
     ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
-    MEASURE_CONFIGS,
     OrganizationDataVolume,
 )
-from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.sentry_metrics import indexer
-from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.outcomes import QueryDefinition, run_outcomes_query_totals
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import LimitBy
 from sentry.snuba.spans_rpc import Spans
-from sentry.utils.snuba import raw_snql_query
 
-# The window recalibration measures an organization over. Shared with the comparison
-# logging, so that the legacy factor it reports is computed over the same window.
+# The window recalibration measures an organization over.
 RECALIBRATION_TIME_INTERVAL = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL
 
 
@@ -190,95 +183,6 @@ def get_outcomes_organization_volume(
         return None
 
     return OrganizationDataVolume(org_id=config.organization.id, total=total, indexed=None)
-
-
-def get_generic_metrics_organization_volume(
-    org_id: int,
-    time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
-    end: datetime | None = None,
-) -> OrganizationDataVolume | None:
-    end_time = end or datetime.now(UTC)
-    start_time = end_time - time_interval
-
-    config = MEASURE_CONFIGS[SamplingMeasure.SEGMENTS]
-    metric_id = indexer.resolve_shared_org(str(config["mri"]))
-
-    where: list[Condition] = [
-        Condition(Column("timestamp"), Op.GTE, start_time),
-        Condition(Column("timestamp"), Op.LT, end_time),
-        Condition(Column("metric_id"), Op.EQ, metric_id),
-        Condition(Column("org_id"), Op.IN, [org_id]),
-    ]
-    for tag_name, tag_value in config["tags"].items():
-        tag_string_id = indexer.resolve_shared_org(tag_name)
-        tag_column = f"tags_raw[{tag_string_id}]"
-        where.append(Condition(Column(tag_column), Op.EQ, tag_value))
-
-    query = Query(
-        match=Entity(EntityKey.GenericOrgMetricsCounters.value),
-        select=[
-            Function("sum", [Column("value")], "total_count"),
-            Column("org_id"),
-        ],
-        groupby=[Column("org_id")],
-        where=where,
-        granularity=Granularity(60),
-    )
-    request = Request(
-        dataset=Dataset.PerformanceMetrics.value,
-        app_id="dynamic_sampling",
-        query=query,
-        tenant_ids={
-            "use_case_id": config["use_case_id"].value,
-            "cross_org_query": 1,
-        },
-    )
-    data = raw_snql_query(
-        request,
-        referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES.value,
-    )["data"]
-
-    if not data:
-        return None
-
-    total = int(data[0]["total_count"])
-    if total <= 0:
-        return None
-
-    return OrganizationDataVolume(org_id=org_id, total=total, indexed=None)
-
-
-def get_generic_metrics_transaction_volumes(
-    org_id: int,
-    project_ids: set[int],
-    max_transactions: int | None = None,
-) -> dict[int, list[tuple[str, float]]]:
-    """
-    Per-transaction volumes of a set of projects from the legacy generic-metrics pipeline,
-    for side-by-side debugging against ``get_eap_transaction_volumes``. Reuses
-    ``FetchProjectTransactionVolumes`` (the same query the legacy pipeline runs) rather
-    than issuing a new one, scanning the org once for every requested project instead of
-    once per project.
-    """
-    from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
-        FetchProjectTransactionVolumes,
-    )
-
-    if max_transactions is None:
-        max_transactions = int(
-            options.get("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions")
-        )
-
-    remaining = set(project_ids)
-    result: dict[int, list[tuple[str, float]]] = {}
-    for project_transactions in FetchProjectTransactionVolumes([org_id], max_transactions):
-        if not remaining:
-            break
-        project_id = project_transactions["project_id"]
-        if project_id in remaining:
-            result[project_id] = project_transactions["transaction_counts"]
-            remaining.discard(project_id)
-    return result
 
 
 def get_eap_project_volumes(

@@ -8,14 +8,22 @@ from scm.errors import ResourceNotFound
 from scm.types import ReviewComment
 
 from sentry.models.pullrequest import PullRequest
-from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
+from sentry.models.repository import Repository
+from sentry.seer.agent.client_models import (
+    AgentFilePatch,
+    FilePatch,
+    MemoryBlock,
+    Message,
+    RepoPRState,
+    SeerRunState,
+)
 from sentry.seer.autofix.autofix_agent import (
     PrIterationNoPullRequestException,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
 from sentry.seer.autofix.pr_iteration.details_store import open_iterations
-from sentry.seer.autofix.pr_iteration.emit import open_pr_iteration_details
+from sentry.seer.autofix.pr_iteration.emit import bootstrap_iteration
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     ConsumeTask,
@@ -31,7 +39,10 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
-from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.logs import (
+    LogCtxIteration,
+    PrIterationLogContext,
+)
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
@@ -65,6 +76,7 @@ from sentry.testutils.cases import TestCase
 TASK_PATH = "sentry.tasks.seer.pr_iteration"
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
 PAUSE_PATH = "sentry.seer.autofix.pr_iteration.pause"
+PR_STATE_PATH = "sentry.seer.autofix.pr_iteration.pr_state"
 
 
 class _CommentScmStub:
@@ -87,6 +99,9 @@ class TriggerPrIterationFromCommentTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
         self.repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
@@ -457,9 +472,6 @@ class TriggerPrIterationFromCommentTest(TestCase):
         # `@sentry stop iterating` already stopped this run, so consume would
         # drop anything queued here. Nothing is queued and nothing is written to
         # the PR: an :eyes: would promise an iteration that never comes.
-        self.create_seer_run(
-            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
-        )
         pause_pr_iteration(
             run_id=67890,
             organization_id=self.organization.id,
@@ -910,6 +922,70 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
     def _call(self) -> None:
         consume_queued_autofix_feedback(run_id=67890, organization_id=self.organization.id)
 
+    def _state_with_open_pr(self) -> SeerRunState:
+        state = self._state()
+        state.repo_pr_states = {
+            "owner/repo": RepoPRState(repo_name="owner/repo", pr_number=7, commit_sha="abc")
+        }
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="owner/repo",
+            provider="integrations:github",
+            external_id="1",
+        )
+        return state
+
+    @patch(f"{PR_STATE_PATH}.metrics.incr")
+    @patch(f"{TASK_PATH}.pause_pr_iteration")
+    @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request")
+    @patch(f"{PR_STATE_PATH}.make_scm")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_closed_pr_stops_the_iteration_before_it_starts(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+        mock_make_scm: MagicMock,
+        mock_get_pull_request: MagicMock,
+        mock_pause: MagicMock,
+        mock_incr: MagicMock,
+    ) -> None:
+        """The run is paused rather than left to re-check on every later trigger."""
+        mock_fetch.return_value = self._state_with_open_pr()
+        mock_get_pull_request.return_value = {"data": {"state": "closed"}}
+
+        self._call()
+
+        mock_trigger.assert_not_called()
+        mock_pop.assert_not_called()
+        assert mock_pause.call_args.kwargs["reason"] == PauseReason.PR_CLOSED
+        mock_incr.assert_any_call("autofix.pr_iteration.pr_closed", tags={"gate": "consume"})
+
+    @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request")
+    @patch(f"{PR_STATE_PATH}.make_scm")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_an_open_pr_still_iterates(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+        mock_make_scm: MagicMock,
+        mock_get_pull_request: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_with_open_pr()
+        mock_pop.return_value = [self._ui_queued()]
+        mock_get_pull_request.return_value = {"data": {"state": "open"}}
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
@@ -994,7 +1070,11 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         )
         try_enqueue_autofix_feedback(
             log_ctx=PrIterationLogContext(
-                MagicMock(), run_state=self._state(), organization_id=self.organization.id
+                MagicMock(),
+                iteration=LogCtxIteration.TRIGGERED,
+                run_state=self._state(),
+                organization_id=self.organization.id,
+                group_id=None,
             ),
             run_id=67890,
             organization_id=self.organization.id,
@@ -1048,6 +1128,53 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         mock_pop.assert_not_called()
         mock_trigger.assert_not_called()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_returns_when_previous_push_has_not_landed(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        state = self._state(
+            blocks=[
+                MemoryBlock(
+                    id="iter0",
+                    message=Message(role="assistant"),
+                    timestamp="2024-01-01T00:00:00Z",
+                    merged_file_patches=[
+                        AgentFilePatch(
+                            repo_name="owner/repo",
+                            patch=FilePatch(path="src/sentry/foo.py", type="M", added=1, removed=0),
+                        )
+                    ],
+                )
+            ]
+        )
+        mock_fetch.return_value = state
+
+        self._call()
+
+        mock_pop.assert_not_called()
+        mock_trigger.assert_not_called()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_drains_when_previous_iteration_had_no_code_changes(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [self._ui_queued()]
+
+        self._call()
+
+        mock_trigger.assert_called_once()
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.fetch_run_status", side_effect=SeerApiError("nope", 500))
@@ -1538,13 +1665,8 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         assert mock_trigger.call_args.kwargs["commit_author"] is None
 
     def _open_iteration_row(self) -> None:
-        open_pr_iteration_details(
-            log_ctx=PrIterationLogContext(
-                MagicMock(),
-                run_state=self._state(),
-                organization_id=self.organization.id,
-                group_id=self.group.id,
-            ),
+        bootstrap_iteration(
+            logger=MagicMock(),
             run_state=self._state(),
             organization_id=self.organization.id,
             group_id=self.group.id,
@@ -1657,7 +1779,11 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
 
     def _log_ctx(self) -> PrIterationLogContext:
         return PrIterationLogContext(
-            self.log, run_state=self._state(), organization_id=self.organization.id
+            self.log,
+            iteration=LogCtxIteration.TRIGGERED,
+            run_state=self._state(),
+            organization_id=self.organization.id,
+            group_id=None,
         )
 
     def _feedback(self) -> Feedback:
