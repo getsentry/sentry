@@ -241,6 +241,27 @@ function ReleasesDetailContainer() {
 
   useRouteAnalyticsParams({release});
 
+  // Strip trailing slashes from the project query param, e.g. `?project=123/`
+  // fails backend validation (it is neither a decimal id nor a slug) and the
+  // page would otherwise render blank because 400 errors are filtered out
+  // below. Replaces the URL so the requests pick up the cleaned value.
+  useEffect(() => {
+    const project = location.query.project;
+
+    if (typeof project === 'string' && project !== project.replace(/\/+$/, '')) {
+      navigate(
+        {
+          ...location,
+          query: {
+            ...location.query,
+            project: project.replace(/\/+$/, ''),
+          },
+        },
+        {replace: true}
+      );
+    }
+  }, [location, navigate]);
+
   // Remove global date time from URL
   useEffect(() => {
     const {start, end, statsPeriod, utc, ...restQuery} = location.query;
