@@ -82,7 +82,7 @@ class TestDataConditionGroupSerializer(TestCase):
         """Serializing multiple DataConditionGroups should not issue per-group
         DB queries (i.e. no N+1 when fetching related actions)."""
 
-        def _build_group():
+        def _build_group() -> DataConditionGroup:
             condition_group = self.create_data_condition_group(
                 organization_id=self.organization.id,
                 logic_type=DataConditionGroup.Type.ANY,
@@ -95,9 +95,7 @@ class TestDataConditionGroupSerializer(TestCase):
                     "target_type": ActionTarget.USER.value,
                 },
             )
-            self.create_data_condition_group_action(
-                condition_group=condition_group, action=action
-            )
+            self.create_data_condition_group_action(condition_group=condition_group, action=action)
             self.create_data_condition(
                 condition_group=condition_group,
                 type=Condition.GREATER,

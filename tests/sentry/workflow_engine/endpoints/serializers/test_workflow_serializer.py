@@ -7,7 +7,7 @@ from sentry.api.serializers import serialize
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.models import Action, DataConditionGroup, WorkflowFireHistory
+from sentry.workflow_engine.models import Action, DataConditionGroup, Workflow, WorkflowFireHistory
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -166,7 +166,7 @@ class TestWorkflowSerializer(TestCase):
         """Serializing multiple workflows should not issue per-workflow or
         per-condition-group DB queries (i.e. no N+1)."""
 
-        def _build_workflow():
+        def _build_workflow() -> Workflow:
             condition_group = self.create_data_condition_group(
                 organization_id=self.organization.id,
                 logic_type=DataConditionGroup.Type.ANY,
@@ -179,9 +179,7 @@ class TestWorkflowSerializer(TestCase):
                     "target_type": ActionTarget.USER.value,
                 },
             )
-            self.create_data_condition_group_action(
-                condition_group=condition_group, action=action
-            )
+            self.create_data_condition_group_action(condition_group=condition_group, action=action)
             self.create_data_condition(
                 condition_group=condition_group,
                 type=Condition.GREATER,
