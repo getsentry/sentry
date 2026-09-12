@@ -125,6 +125,26 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         assert detector.name == "test"
         assert detector.config.get("environment") == "uptime-prod"
 
+    def test_update_without_environment_when_monitor_has_none(self) -> None:
+        """Regression test: updating a monitor created without an environment
+        must not raise Environment.DoesNotExist when environment is omitted from
+        the PUT payload."""
+        detector = self.create_uptime_detector()
+        # Confirm the monitor has no environment set
+        assert detector.config.get("environment") is None
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            detector.linked_project.slug,
+            detector.id,
+            name="updated-name",
+        )
+        detector.refresh_from_db()
+        assert resp.data == serialize(detector, self.user, UptimeDetectorSerializer())
+        assert detector.name == "updated-name"
+        # Environment should remain None
+        assert detector.config.get("environment") is None
+
     def test_user(self) -> None:
         detector = self.create_uptime_detector()
 
