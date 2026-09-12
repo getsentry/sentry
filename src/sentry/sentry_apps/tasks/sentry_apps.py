@@ -38,6 +38,7 @@ from sentry.db.models.base import Model
 from sentry.exceptions import RestrictedIPAddress
 from sentry.hybridcloud.rpc.caching import cell_caching_service
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
+from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -148,6 +149,15 @@ def _webhook_event_data(
         event_context["occurrence"] = convert_dict_key_case(
             event.occurrence.to_dict(), snake_to_camel_case
         )
+        # Include the feedback message in metadata.value for alert integrations.
+        # Copy the dict: as_dict() shares it with event.data.
+        metadata = event_context.get("metadata") or {}
+        if (
+            event.occurrence.type == FeedbackGroup
+            and not metadata.get("value")
+            and event.occurrence.subtitle
+        ):
+            event_context["metadata"] = {**metadata, "value": event.occurrence.subtitle}
 
     # The URL has a regex OR in it ("|") which means `reverse` cannot generate
     # a valid URL (it can't know which option to pick). We have to manually
