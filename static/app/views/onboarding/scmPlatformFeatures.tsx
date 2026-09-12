@@ -121,9 +121,11 @@ export function ScmPlatformFeatures({
     // higher up, so each SCM step declares its own.
     <Stack align="center" gap="2xl" containerType="inline-size">
       <Stack gap="3xl" maxWidth={`min(${SCM_STEP_CONTENT_WIDTH}, 100%)`}>
-        <Heading as="h2" size="4xl">
-          {t('Create your first project')}
-        </Heading>
+        <Container paddingBottom="xl">
+          <Heading as="h2" size="3xl" align="center">
+            {t('Create your first project')}
+          </Heading>
+        </Container>
         <LayoutGroup>
           <Stack gap="md" paddingTop="sm">
             <Heading as="h3" size="lg">

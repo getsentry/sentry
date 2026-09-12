@@ -105,11 +105,11 @@ export function ScmMessaging({
     // higher up, so each SCM step declares its own.
     <Stack align="center" gap="2xl" containerType="inline-size">
       <Stack gap="2xl" maxWidth={`min(${SCM_STEP_CONTENT_WIDTH}, 100%)`} width="100%">
-        <Stack gap="lg">
-          <Heading as="h2" size="3xl">
+        <Stack gap="lg" paddingBottom="xl">
+          <Heading as="h2" size="3xl" align="center">
             {SCM_MESSAGING_TITLE}
           </Heading>
-          <Text variant="muted" size="md" density="comfortable">
+          <Text align="center" variant="muted" size="lg" density="comfortable">
             {t(
               "Choose where to send alerts for your %s project. We'll create the project and its alert rules when you continue.",
               selectedPlatform.name
