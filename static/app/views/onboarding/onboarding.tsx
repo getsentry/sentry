@@ -261,8 +261,9 @@ interface OnboardingStepVariableProps {
 }
 
 function OnboardingStepVariable(props: PropsWithChildren<OnboardingStepVariableProps>) {
+  // The SCM flow centers every step vertically; the legacy flow only its welcome.
   const Component =
-    props.id === OnboardingStepId.WELCOME && !props.hasScmOnboarding
+    props.hasScmOnboarding || props.id === OnboardingStepId.WELCOME
       ? OnboardingStepNewUi
       : OnboardingStep;
 
@@ -438,7 +439,7 @@ export function OnboardingWithoutContext() {
       <Button
         onClick={() => handleGoBack()}
         icon={<IconArrow direction="left" />}
-        variant="link"
+        variant="transparent"
       >
         {t('Back')}
       </Button>
@@ -487,37 +488,15 @@ export function OnboardingWithoutContext() {
   }
 
   return (
-    <Stack as="main" flexGrow={1} data-test-id="targeted-onboarding">
+    <Stack
+      as="main"
+      flexGrow={1}
+      background="secondary"
+      data-test-id="targeted-onboarding"
+    >
       <SentryDocumentTitle title={stepObj.title} />
-      <Header
-        columns={{'screen:2xs': 'repeat(2, 1fr)', 'screen:md': 'repeat(3, 1fr)'}}
-        as="header"
-      >
+      <Header columns="repeat(2, 1fr)" as="header">
         <LogoSvg showWordmark={!hasScmOnboarding} />
-        {stepIndex !== -1 && (
-          <Flex
-            justify="center"
-            display={{
-              'screen:2xs': 'none',
-              'screen:xs': 'none',
-              'screen:sm': 'none',
-              'screen:md': 'flex',
-            }}
-          >
-            <Stepper
-              numSteps={onboardingSteps.length}
-              currentStepIndex={stepIndex}
-              onClick={i => {
-                if (i < stepIndex && shallProjectBeDeleted) {
-                  handleGoBack(i);
-                  return;
-                }
-
-                goToStep(onboardingSteps[i]!);
-              }}
-            />
-          </Flex>
-        )}
         <Flex align="center" justify="end" gap="md">
           <Override
             name="onboarding:targeted-onboarding-header"
@@ -562,7 +541,7 @@ export function OnboardingWithoutContext() {
             <Button
               onClick={() => handleGoBack()}
               icon={<IconArrow direction="left" />}
-              variant="link"
+              variant="transparent"
             >
               {t('Back')}
             </Button>
@@ -590,6 +569,22 @@ export function OnboardingWithoutContext() {
             )}
           </OnboardingStepVariable>
         </AnimatePresence>
+        {stepIndex !== -1 && (
+          <Flex justify="center" paddingTop="3xl">
+            <Stepper
+              numSteps={onboardingSteps.length}
+              currentStepIndex={stepIndex}
+              onClick={i => {
+                if (i < stepIndex && shallProjectBeDeleted) {
+                  handleGoBack(i);
+                  return;
+                }
+
+                goToStep(onboardingSteps[i]!);
+              }}
+            />
+          </Flex>
+        )}
       </ContainerVariable>
     </Stack>
   );
@@ -611,7 +606,7 @@ const OnboardingContainerNewWelcomeUI = styled('div')<{
   flex-direction: column;
   justify-content: center;
   position: relative;
-  background: ${p => p.theme.tokens.background.primary};
+  background: ${p => p.theme.tokens.background.secondary};
   padding: ${p => p.theme.space['2xl']};
   overflow: hidden;
 
@@ -633,7 +628,7 @@ const OnboardingContainer = styled('div')<{
   flex-direction: column;
   position: relative;
   overflow-x: hidden;
-  background: ${p => p.theme.tokens.background.primary};
+  background: ${p => p.theme.tokens.background.secondary};
   padding: ${p => (p.hasScmOnboarding ? '60px' : '120px')} ${p => p.theme.space['2xl']};
   width: 100%;
   margin: 0 auto;
@@ -642,14 +637,12 @@ const OnboardingContainer = styled('div')<{
 `;
 
 const Header = styled(Grid)`
-  background: ${p => p.theme.tokens.background.primary};
   padding: ${p => p.theme.space.md} ${p => p.theme.space['3xl']};
   position: sticky;
   min-height: 60px;
   align-items: center;
   top: 0;
   z-index: 100;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const LogoSvg = styled(LogoSentry)`

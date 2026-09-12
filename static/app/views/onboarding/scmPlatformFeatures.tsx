@@ -119,7 +119,7 @@ export function ScmPlatformFeatures({
     // The onboarding flow has no page-level query container (project creation
     // resolves against `#main`), and the flow's fixed footers preclude one
     // higher up, so each SCM step declares its own.
-    <Stack align="center" gap="2xl" flexGrow={1} containerType="inline-size">
+    <Stack align="center" gap="2xl" containerType="inline-size">
       <Stack gap="3xl" maxWidth={`min(${SCM_STEP_CONTENT_WIDTH}, 100%)`}>
         <Heading as="h2" size="4xl">
           {t('Create your first project')}

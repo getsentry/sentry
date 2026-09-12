@@ -25,7 +25,7 @@ const footerChromeProps = {
   left: 0,
   width: '100%',
   height: FOOTER_HEIGHT,
-  background: 'primary',
+  background: 'secondary',
   borderTop: 'secondary',
   style: {zIndex: 100},
 } as const satisfies ContainerProps;
