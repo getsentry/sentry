@@ -29,6 +29,7 @@ class ProjectCodeOwnersDetailsEndpoint(ProjectCodeOwnersBase):
     owner = ApiOwner.ISSUES
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
     }
 
@@ -52,6 +53,22 @@ class ProjectCodeOwnersDetailsEndpoint(ProjectCodeOwnersBase):
             raise ResourceDoesNotExist
 
         return args, kwargs
+
+    def get(self, request: Request, project: Project, codeowners: ProjectCodeOwners) -> Response:
+        """Return a single CODEOWNERS configuration."""
+        if not self.has_feature(request, project):
+            raise PermissionDenied
+
+        return Response(
+            serialize(
+                codeowners,
+                request.user,
+                serializer=projectcodeowners_serializers.ProjectCodeOwnersSerializer(
+                    expand=["errors", "hasTargetingContext"]
+                ),
+            ),
+            status=status.HTTP_200_OK,
+        )
 
     def put(self, request: Request, project: Project, codeowners: ProjectCodeOwners) -> Response:
         """
