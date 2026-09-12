@@ -141,7 +141,7 @@ describe('ScmPlatformFeatures', () => {
     const props = defaultProps({selectedRepository: mockRepository});
     render(<ScmPlatformFeatures {...props} />, {organization});
 
-    expect(await screen.findByText(/^Available with/)).toBeInTheDocument();
+    expect(await screen.findByText(/setup wizard/)).toBeInTheDocument();
     expect(props.onPlatformChange).toHaveBeenCalledWith(
       expect.objectContaining({key: 'javascript-nextjs'})
     );
@@ -159,14 +159,12 @@ describe('ScmPlatformFeatures', () => {
         {organization}
       );
 
-      expect(await screen.findByText(/^Available with/)).toBeInTheDocument();
+      expect(await screen.findByText(/setup wizard/)).toBeInTheDocument();
       expect(screen.getByText('Error monitoring')).toBeInTheDocument();
       expect(screen.getByText('Tracing')).toBeInTheDocument();
       expect(screen.getByText('Session replay')).toBeInTheDocument();
       expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
-      expect(
-        screen.queryByText('What do you want to instrument?')
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText('What do you want to track?')).not.toBeInTheDocument();
     });
 
     it('renders toggleable cards for curated platforms', async () => {
@@ -182,11 +180,9 @@ describe('ScmPlatformFeatures', () => {
         {organization}
       );
 
-      expect(
-        await screen.findByText('What do you want to instrument?')
-      ).toBeInTheDocument();
+      expect(await screen.findByText('What do you want to track?')).toBeInTheDocument();
       expect(screen.getByRole('checkbox', {name: /Tracing/})).toBeInTheDocument();
-      expect(screen.queryByText(/^Available with/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/setup wizard/)).not.toBeInTheDocument();
     });
 
     it('skips the feature-cards block for platforms in neither map', async () => {
@@ -214,10 +210,8 @@ describe('ScmPlatformFeatures', () => {
 
       await screen.findByRole('button', {name: 'Continue'});
 
-      expect(screen.queryByText(/^Available with/)).not.toBeInTheDocument();
-      expect(
-        screen.queryByText('What do you want to instrument?')
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/setup wizard/)).not.toBeInTheDocument();
+      expect(screen.queryByText('What do you want to track?')).not.toBeInTheDocument();
       expect(screen.queryByText(/unlimited volume for 14 days/)).not.toBeInTheDocument();
     });
   });
@@ -243,11 +237,11 @@ describe('ScmPlatformFeatures', () => {
     );
 
     const changeButton = await screen.findByRole('button', {
-      name: "Doesn't look right? Change platform",
+      name: "Not what you're building? Pick another",
     });
     await userEvent.click(changeButton);
 
-    expect(screen.getByText('Select a platform')).toBeInTheDocument();
+    expect(screen.getByText('Language or framework')).toBeInTheDocument();
   });
 
   it('falls back to manual picker when platform detection fails', async () => {
@@ -262,26 +256,22 @@ describe('ScmPlatformFeatures', () => {
       {organization}
     );
 
-    expect(await screen.findByText('Select a platform')).toBeInTheDocument();
-    expect(
-      screen.queryByText('Auto-detected from your repository')
-    ).not.toBeInTheDocument();
+    expect(await screen.findByText('Language or framework')).toBeInTheDocument();
+    expect(screen.queryByText(/^Detected from /)).not.toBeInTheDocument();
   });
 
   it('renders manual picker when no repository in context', async () => {
     render(<ScmPlatformFeatures {...defaultProps()} />, {organization});
 
-    expect(await screen.findByText('Select a platform')).toBeInTheDocument();
-    expect(
-      screen.queryByText('Auto-detected from your repository')
-    ).not.toBeInTheDocument();
+    expect(await screen.findByText('Language or framework')).toBeInTheDocument();
+    expect(screen.queryByText(/^Detected from /)).not.toBeInTheDocument();
   });
 
   it('continue button is disabled when no platform selected', async () => {
     render(<ScmPlatformFeatures {...defaultProps()} />, {organization});
 
     // Wait for the component to fully settle (CompactSelect triggers async popper updates)
-    await screen.findByText('Select a platform');
+    await screen.findByText('Language or framework');
 
     expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
   });
@@ -323,7 +313,7 @@ describe('ScmPlatformFeatures', () => {
     render(<ScmPlatformFeatures {...props} />, {organization});
 
     // Wait for feature cards to appear
-    await screen.findByText('What do you want to instrument?');
+    await screen.findByText('What do you want to track?');
 
     // Enable profiling — onFeaturesChange should be called with tracing also enabled
     await userEvent.click(screen.getByRole('checkbox', {name: /Profiling/}));
@@ -341,7 +331,7 @@ describe('ScmPlatformFeatures', () => {
     render(<ScmPlatformFeatures {...defaultProps()} />, {organization});
     renderGlobalModal();
 
-    await screen.findByText('Select a platform');
+    await screen.findByText('Language or framework');
 
     // Type into the Select to search and pick a base language
     await userEvent.type(screen.getByRole('textbox'), 'JavaScript');
@@ -359,7 +349,7 @@ describe('ScmPlatformFeatures', () => {
     });
     renderGlobalModal();
 
-    await screen.findByText('Select a platform');
+    await screen.findByText('Language or framework');
 
     // Type into the Select to search and pick a console platform
     await userEvent.type(screen.getByRole('textbox'), 'Nintendo');
@@ -398,7 +388,7 @@ describe('ScmPlatformFeatures', () => {
     render(<ScmPlatformFeatures {...props} />, {organization});
 
     // Wait for feature cards to appear
-    await screen.findByText('What do you want to instrument?');
+    await screen.findByText('What do you want to track?');
 
     // Disable tracing — onFeaturesChange should drop both tracing and profiling
     await userEvent.click(screen.getByRole('checkbox', {name: /Tracing/}));
@@ -421,7 +411,7 @@ describe('ScmPlatformFeatures', () => {
     it('fires step viewed event on mount', async () => {
       render(<ScmPlatformFeatures {...defaultProps()} />, {organization});
 
-      await screen.findByText('Select a platform');
+      await screen.findByText('Language or framework');
 
       expect(trackAnalyticsSpy).toHaveBeenCalledWith(
         'onboarding.scm_platform_features_step_viewed',
@@ -482,7 +472,7 @@ describe('ScmPlatformFeatures', () => {
         {organization}
       );
 
-      await screen.findByText(/^Available with/);
+      await screen.findByText(/setup wizard/);
 
       const detectedCalls = trackAnalyticsSpy.mock.calls.filter(
         ([event, params]) =>
@@ -518,7 +508,7 @@ describe('ScmPlatformFeatures', () => {
       );
 
       // First repo auto-detects Next.js and fires the detected event once.
-      await screen.findByText(/^Available with/);
+      await screen.findByText(/setup wizard/);
       expect(
         trackAnalyticsSpy.mock.calls.filter(
           ([event, params]) =>
@@ -564,7 +554,7 @@ describe('ScmPlatformFeatures', () => {
         {organization}
       );
 
-      await screen.findByText('What do you want to instrument?');
+      await screen.findByText('What do you want to track?');
 
       await userEvent.click(screen.getByRole('checkbox', {name: /Tracing/}));
 
@@ -590,7 +580,7 @@ describe('ScmPlatformFeatures', () => {
       );
 
       const changeButton = await screen.findByRole('button', {
-        name: "Doesn't look right? Change platform",
+        name: "Not what you're building? Pick another",
       });
       await userEvent.click(changeButton);
 

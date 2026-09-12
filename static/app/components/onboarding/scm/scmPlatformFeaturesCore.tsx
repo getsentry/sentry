@@ -409,12 +409,16 @@ export function ScmPlatformFeaturesCore({
           <Flex flexShrink={0}>
             <IconBroadcast size="sm" />
           </Flex>
-          <Heading as="h4">{t('Auto-detected from your repository')}</Heading>
+          <Heading as="h4">
+            {selectedRepository
+              ? t('Detected from %s', selectedRepository.name)
+              : t('Auto-detected from your repository')}
+          </Heading>
         </Flex>
         <Button size="xs" variant="link" onClick={handleChangePlatformClick}>
           {isDetecting
             ? t('Skip detection and select manually')
-            : t("Doesn't look right? Change platform")}
+            : t("Not what you're building? Pick another")}
         </Button>
       </Flex>
       <Stack gap="lg" width="100%">
@@ -462,7 +466,7 @@ export function ScmPlatformFeaturesCore({
       <Flex justify="between" align="end">
         <Flex gap="sm" direction={isOnboarding ? undefined : 'column'}>
           <Heading as="h4">
-            {isOnboarding ? t('Select a platform') : t('Platform')}
+            {isOnboarding ? t('Language or framework') : t('Platform')}
           </Heading>
           {isOnboarding ? null : (
             <Text variant="secondary" density="comfortable" size="sm">
@@ -472,7 +476,7 @@ export function ScmPlatformFeaturesCore({
         </Flex>
         {hasScmConnected && !isDetectionError && hasDetectedPlatforms && (
           <Button size="xs" variant="link" onClick={handleBackToRecommended}>
-            {t('Back to recommended platforms')}
+            {t('Back to what we found')}
           </Button>
         )}
       </Flex>
@@ -486,7 +490,7 @@ export function ScmPlatformFeaturesCore({
           is empty. "Back to recommended platforms" covers reverting. */}
       {detectedPlatformKey ? (
         <Select<(typeof platformOptions)[number]>
-          placeholder={t('Search SDKs...')}
+          placeholder={t('Search')}
           options={platformOptionGroups}
           value={currentPlatformKey ?? null}
           onChange={handleManualPickerChange}
@@ -497,7 +501,7 @@ export function ScmPlatformFeaturesCore({
         />
       ) : (
         <Select<(typeof platformOptions)[number]>
-          placeholder={t('Search SDKs...')}
+          placeholder={t('Search')}
           options={platformOptionGroups}
           value={currentPlatformKey ?? null}
           onChange={handleManualPickerChange}

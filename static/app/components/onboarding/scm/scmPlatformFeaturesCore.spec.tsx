@@ -87,7 +87,7 @@ describe('ScmPlatformFeaturesCore', () => {
   it('renders the manual platform picker when no repository is connected', () => {
     render(<ScmPlatformFeaturesCore {...defaultProps()} />, {organization});
 
-    expect(screen.getByText('Select a platform')).toBeInTheDocument();
+    expect(screen.getByText('Language or framework')).toBeInTheDocument();
   });
 
   it('fires step_viewed analytics in onboarding on mount', () => {
@@ -282,14 +282,14 @@ describe('ScmPlatformFeaturesCore', () => {
 
     // Detection resolves to the auto-detected view; switch into the manual picker.
     await userEvent.click(
-      await screen.findByRole('button', {name: "Doesn't look right? Change platform"})
+      await screen.findByRole('button', {name: "Not what you're building? Pick another"})
     );
 
     // The manual picker is showing (with a route back to the recommendation),
     // but the clear control is suppressed: clearing would desync the picker from
     // the detected fallback.
     expect(
-      screen.getByRole('button', {name: 'Back to recommended platforms'})
+      screen.getByRole('button', {name: 'Back to what we found'})
     ).toBeInTheDocument();
     expect(screen.queryByTestId('icon-close')).not.toBeInTheDocument();
   });
@@ -332,15 +332,13 @@ describe('ScmPlatformFeaturesCore', () => {
     // Select the second detected platform, then open the manual picker.
     await userEvent.click(await screen.findByRole('radio', {name: 'Browser JavaScript'}));
     await userEvent.click(
-      screen.getByRole('button', {name: "Doesn't look right? Change platform"})
+      screen.getByRole('button', {name: "Not what you're building? Pick another"})
     );
     onFeaturesChange.mockClear();
 
     // Returning keeps the chosen detected platform: it is already detected, so
     // nothing is reset and the card stays selected.
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Back to recommended platforms'})
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Back to what we found'}));
 
     expect(await screen.findByRole('radio', {name: 'Browser JavaScript'})).toBeChecked();
     expect(onFeaturesChange).not.toHaveBeenCalled();
@@ -372,11 +370,9 @@ describe('ScmPlatformFeaturesCore', () => {
     // Open the manual picker from the detected view, then return without
     // choosing a different platform.
     await userEvent.click(
-      await screen.findByRole('button', {name: "Doesn't look right? Change platform"})
+      await screen.findByRole('button', {name: "Not what you're building? Pick another"})
     );
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Back to recommended platforms'})
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Back to what we found'}));
 
     expect(onFeaturesChange).not.toHaveBeenCalled();
   });
@@ -411,9 +407,7 @@ describe('ScmPlatformFeaturesCore', () => {
     // Wait for detection so the detected fallback (python) is available.
     await waitFor(() => expect(detectionRequest).toHaveBeenCalled());
 
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Back to recommended platforms'})
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Back to what we found'}));
 
     // Leaving the manual pick reverts to the detected platform and records the
     // selection with the detected source.

@@ -22,11 +22,7 @@ import {type ScmAnalyticsFlow, scmFlowVariantParams} from './scmAnalyticsFlow';
 import {ScmCollapsibleReveal} from './scmCollapsibleReveal';
 import {ScmFeatureInfoCards} from './scmFeatureInfoCards';
 import {ScmFeatureSelectionCards} from './scmFeatureSelectionCards';
-import {
-  DEFAULT_SCM_FEATURES,
-  FEATURE_DISPLAY_ORDER,
-  getPlatformName,
-} from './scmPlatformHelpers';
+import {DEFAULT_SCM_FEATURES, FEATURE_DISPLAY_ORDER} from './scmPlatformHelpers';
 import {useScmFeatureMeta} from './useScmFeatureMeta';
 import {useScmResolvedPlatform} from './useScmResolvedPlatform';
 
@@ -82,7 +78,6 @@ export function ScmFeatureSelectionPanel({
     selectedPlatform,
     selectedRepository,
   });
-  const currentPlatformName = getPlatformName(currentPlatformKey);
 
   // Wizard-driven platforms render an informational variant since the wizard CLI
   // owns product configuration and toggles aren't actionable.
@@ -190,7 +185,6 @@ export function ScmFeatureSelectionPanel({
         availableFeatures={availableFeatures}
         disabledProducts={disabledProducts}
         featureMeta={featureMeta}
-        platformName={currentPlatformName}
         isVolumeLoading={isFeatureMetaLoading}
         isOnboarding={isOnboarding}
       />

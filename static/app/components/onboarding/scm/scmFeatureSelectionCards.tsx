@@ -32,12 +32,12 @@ export function ScmFeatureSelectionCards({
       {isOnboarding ? (
         <Flex justify="between" align="center" gap="md">
           <Heading as="h4" ellipsis>
-            {t('What do you want to instrument?')}
+            {t('What do you want to track?')}
           </Heading>
           {availableFeatures.length > 1 ? (
             <Container>
               <Text size="sm" variant="secondary" wrap="nowrap">
-                {t('Choose one or more')}
+                {t('Pick as many as you like')}
               </Text>
             </Container>
           ) : null}

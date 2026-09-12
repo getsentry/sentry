@@ -121,20 +121,25 @@ export function ScmPlatformFeatures({
     // higher up, so each SCM step declares its own.
     <Stack align="center" gap="2xl" containerType="inline-size">
       <Stack gap="3xl" maxWidth={`min(${SCM_STEP_CONTENT_WIDTH}, 100%)`}>
-        <Container paddingBottom="xl">
+        <Stack gap="lg" paddingBottom="xl">
           <Heading as="h2" size="3xl" align="center">
             {t('Create your first project')}
           </Heading>
-        </Container>
+          <Text align="center" variant="muted" size="lg" density="comfortable">
+            {t(
+              'A project holds everything Sentry collects from one app or service. Start with one, add more later.'
+            )}
+          </Text>
+        </Stack>
         <LayoutGroup>
           <Stack gap="md" paddingTop="sm">
             <Heading as="h3" size="lg">
-              {t('Choose your SDK')}
+              {t('What are you building with?')}
             </Heading>
             <Container>
               <Text variant="muted" size="md" density="comfortable">
                 {t(
-                  'Each Sentry project collects data from one service or app. Select a language or framework you want to get started monitoring with our SDKs.'
+                  'Pick one language or framework. This decides which SDK you’ll install next.'
                 )}
               </Text>
             </Container>

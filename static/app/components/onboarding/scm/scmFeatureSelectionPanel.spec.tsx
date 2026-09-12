@@ -51,9 +51,7 @@ describe('ScmFeatureSelectionPanel', () => {
       }
     );
 
-    expect(
-      await screen.findByText('What do you want to instrument?')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('What do you want to track?')).toBeInTheDocument();
     expect(screen.getByText(/unlimited volume for 14 days/)).toBeInTheDocument();
     expect(screen.getByText('5,000 errors / mo')).toBeInTheDocument();
   });
