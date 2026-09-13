@@ -1298,7 +1298,7 @@ class JiraIntegration(IssueSyncIntegration):
         )
         return transformed_data
 
-    def create_issue(self, data, **kwargs):
+    def create_issue(self, data, user=None, **kwargs):
         client = self.get_client()
         # protect against mis-configured integration submitting a form without an
         # issuetype assigned.

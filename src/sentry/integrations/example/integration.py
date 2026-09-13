@@ -145,7 +145,7 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
         example_project_field = self.generate_example_project_field(default)
         return fields + [example_project_field]
 
-    def create_issue(self, data, **kwargs):
+    def create_issue(self, data, user=None, **kwargs):
         if "assignee" not in data:
             raise IntegrationError("Assignee is required")
         return {

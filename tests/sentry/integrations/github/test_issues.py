@@ -516,8 +516,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         request = responses.calls[-1].request
         payload = orjson.loads(request.body)
         assert payload["body"] == (
-            "This is the description\n\n"
-            f"*Created by {self.user.get_display_name()}*"
+            f"This is the description\n\n*Created by {self.user.get_display_name()}*"
         )
 
     @responses.activate
