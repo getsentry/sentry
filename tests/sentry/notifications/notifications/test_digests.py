@@ -315,10 +315,10 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         assert blocks[0]["text"]["text"] == fallback_text
 
         assert event1.group
-        event1_alert_title = f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{event1.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*{event1.group.title}*>"
+        event1_alert_title = f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{event1.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|{event1.group.title}>"
 
         assert event2.group
-        event2_alert_title = f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{event2.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*{event2.group.title}*>"
+        event2_alert_title = f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{event2.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|{event2.group.title}>"
 
         # digest order not definitive
         try:
