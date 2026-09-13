@@ -34,7 +34,11 @@ def cli(locale):
     for frontend_msg in frontend:
         if frontend_msg.id == "":
             continue
-        msg = catalog.get(frontend_msg.id)
+        # Look up the message with its translation context so
+        # context-specific msgids (e.g. tp('duration', 'm')) stay separate
+        # from context-less msgids with the same text. The context travels
+        # with the Message itself when it is written back.
+        msg = catalog.get(frontend_msg.id, frontend_msg.context)
 
         # If the message is not yet in the catalog, then insert it as
         # such.
