@@ -79,6 +79,27 @@ describe('ReleasesDetailContainer', () => {
     });
   });
 
+  it('strips a trailing slash and removes datetime params in a single navigation', async () => {
+    const {router} = renderContainer({project: '1/', statsPeriod: '24h'});
+
+    await waitFor(() => {
+      expect(router.location.query.project).toBe('1');
+    });
+    expect(router.location.query.statsPeriod).toBeUndefined();
+    expect(router.location.query.start).toBeUndefined();
+    expect(router.location.query.end).toBeUndefined();
+    expect(router.location.query.utc).toBeUndefined();
+  });
+
+  it('removes datetime params while keeping the project query param intact', async () => {
+    const {router} = renderContainer({project: '1', statsPeriod: '24h'});
+
+    await waitFor(() => {
+      expect(router.location.query.statsPeriod).toBeUndefined();
+    });
+    expect(router.location.query.project).toBe('1');
+  });
+
   it('keeps the project query param unchanged when there is no trailing slash', async () => {
     const {router} = renderContainer({project: '1'});
 

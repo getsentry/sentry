@@ -244,37 +244,32 @@ function ReleasesDetailContainer() {
   // Strip trailing slashes from the project query param, e.g. `?project=123/`
   // fails backend validation (it is neither a decimal id nor a slug) and the
   // page would otherwise render blank because 400 errors are filtered out
-  // below. Replaces the URL so the requests pick up the cleaned value.
+  // below. Also remove global date time params from the URL. Both URL
+  // cleanups are applied in a single navigate() call so the two rewrites
+  // cannot race and undo each other.
   useEffect(() => {
-    const project = location.query.project;
+    const {start, end, statsPeriod, utc, project, ...restQuery} = location.query;
 
-    if (typeof project === 'string' && project !== project.replace(/\/+$/, '')) {
-      navigate(
-        {
-          ...location,
-          query: {
-            ...location.query,
-            project: project.replace(/\/+$/, ''),
-          },
-        },
-        {replace: true}
-      );
+    const shouldStripProjectSlash =
+      typeof project === 'string' && project !== project.replace(/\/+$/, '');
+    const shouldRemoveDateTimeParams = !!(start || end || statsPeriod || utc);
+
+    if (!shouldStripProjectSlash && !shouldRemoveDateTimeParams) {
+      return;
     }
-  }, [location, navigate]);
 
-  // Remove global date time from URL
-  useEffect(() => {
-    const {start, end, statsPeriod, utc, ...restQuery} = location.query;
-
-    if (start || end || statsPeriod || utc) {
-      navigate(
-        {
-          ...location,
-          query: restQuery,
+    navigate(
+      {
+        ...location,
+        query: {
+          ...restQuery,
+          ...(project === undefined
+            ? {}
+            : {project: shouldStripProjectSlash ? project.replace(/\/+$/, '') : project}),
         },
-        {replace: true}
-      );
-    }
+      },
+      {replace: true}
+    );
   }, [location, navigate]);
 
   const {data: releaseMeta, isPending, isError, error} = useReleaseMeta({release});
