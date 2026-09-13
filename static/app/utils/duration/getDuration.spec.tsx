@@ -1,7 +1,52 @@
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {MICROSECOND, MINUTE, MONTH} from 'sentry/utils/formatters';
 
+// Mirrors what the po-catalog-loader emits for the Russian catalog: the
+// context-less "m" (millions, used by small_count()) and the
+// "duration"-context "m" (extra-short month/minute label) are separate
+// entries, so a locale can translate them independently.
+// See https://github.com/getsentry/sentry/issues/124240
+const RU_DURATION_LOCALE_DATA = {
+  '': {domain: 'sentry', lang: 'ru', plural_forms: 'nplurals=2; plural=(n != 1);'},
+  m: ['млн'],
+  'duration\u0004m': ['м'],
+};
+
 describe('getDuration()', () => {
+  describe('with a locale that distinguishes duration "m" from millions "m"', () => {
+    beforeEach(() => {
+      // DURATION_LABELS is resolved once at module scope, so a fresh
+      // evaluation of getDuration is needed after the locale switch.
+      jest.resetModules();
+      require('sentry/locale').setLocale(RU_DURATION_LOCALE_DATA);
+    });
+
+    afterEach(() => {
+      jest.resetModules();
+      require('sentry/locale').setLocale({
+        '': {
+          domain: 'sentry',
+          lang: 'en',
+          plural_forms: 'nplurals=2; plural=(n != 1);',
+        },
+      });
+    });
+
+    it('uses the duration-context label for extraShort minutes', () => {
+      const {
+        getDuration: localizedGetDuration,
+      } = require('sentry/utils/duration/getDuration');
+      expect(localizedGetDuration(122, 0, false, true)).toBe('2м');
+    });
+
+    it('uses the duration-context label for extraShort months', () => {
+      const {
+        getDuration: localizedGetDuration,
+      } = require('sentry/utils/duration/getDuration');
+      expect(localizedGetDuration(604800 * 12, 0, false, true)).toBe('3м');
+    });
+  });
+
   it('should format durations', () => {
     expect(getDuration(0.0001, 0, false, false, false, MICROSECOND)).toBe(
       '100 microseconds'
