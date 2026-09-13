@@ -26,6 +26,13 @@ export const seerSettingsRoutes = (): SentryRouteObject => ({
       component: make(() => import('getsentry/views/seerAutomation/connectors')),
     },
     {
+      // Employee-only harness for the Seer onboarding modal. Intentionally not in
+      // the Seer sub-nav; reachable by URL only.
+      path: 'onboarding-lab/',
+      name: t('Onboarding Lab'),
+      component: make(() => import('getsentry/views/seerAutomation/onboardingLab')),
+    },
+    {
       // Legacy autofix page, redirects to /seer/projects/ if seat-based is active
       index: true,
       name: t('Seer Automation'),
