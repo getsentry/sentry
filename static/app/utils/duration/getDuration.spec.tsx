@@ -33,16 +33,19 @@ describe('getDuration()', () => {
     });
 
     it('uses the duration-context label for extraShort minutes', () => {
-      const {getDuration: localizedGetDuration} = require('sentry/utils/duration/getDuration');
+      const {
+        getDuration: localizedGetDuration,
+      } = require('sentry/utils/duration/getDuration');
       expect(localizedGetDuration(122, 0, false, true)).toBe('2м');
     });
 
     it('uses the duration-context label for extraShort months', () => {
-      const {getDuration: localizedGetDuration} = require('sentry/utils/duration/getDuration');
+      const {
+        getDuration: localizedGetDuration,
+      } = require('sentry/utils/duration/getDuration');
       expect(localizedGetDuration(604800 * 12, 0, false, true)).toBe('3м');
     });
   });
-
 
   it('should format durations', () => {
     expect(getDuration(0.0001, 0, false, false, false, MICROSECOND)).toBe(
