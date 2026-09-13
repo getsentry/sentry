@@ -45,7 +45,9 @@ describe('ReleasesDetailContainer', () => {
     jest.clearAllMocks();
 
     ProjectsStore.reset();
-    ProjectsStore.loadInitialData([ProjectFixture({id: String(project.id), slug: project.slug})]);
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: String(project.id), slug: project.slug}),
+    ]);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/test-release/meta/',
