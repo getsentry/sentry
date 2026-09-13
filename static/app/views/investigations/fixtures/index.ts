@@ -27,6 +27,9 @@ export function InvestigationListItemFixture(
     isFavorited: false,
     summary: null,
     summaryDescription: null,
+    // Manual by default: an agentic investigation carries a summary here, and
+    // that is what gates the hypothesis row.
+    orchestration: null,
     titleGeneration: {status: null},
     ...overrides,
   };
@@ -125,10 +128,32 @@ export function InvestigationDetailFixture(
     projectIds: [],
     source: {type: 'manual', ref: {}, revision: null},
     template: null,
+    // Manual by default: an agentic investigation carries a summary here, and
+    // that is what gates the hypothesis row.
+    orchestration: null,
     titleGeneration: {status: null},
     ...detailOverrides,
     blocks,
   };
+}
+
+/**
+ * An investigation with an agentic run behind it. `orchestration` being present
+ * is what tells the detail view to render the hypothesis row, so a fixture
+ * without it exercises the manual path instead.
+ */
+export function InvestigationAgenticDetailFixture(
+  overrides: Partial<InvestigationDetail> = {}
+): InvestigationDetail & {blocks: InvestigationBlock[]} {
+  return InvestigationDetailFixture({
+    orchestration: {
+      phase: 'investigating',
+      status: 'processing',
+      heartbeatAt: '2026-08-27T11:06:30Z',
+      notebookRevision: 5,
+    },
+    ...overrides,
+  });
 }
 
 export function InvestigationTranscriptBlockFixture(

@@ -44,6 +44,10 @@ import {
   shouldDisplayInvestigationBlock,
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/cell';
+import {
+  InvestigationHypotheses,
+  isInvestigationRunSettled,
+} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
 import type {
@@ -92,7 +96,14 @@ export function InvestigationBootstrapPage({investigationId}: {investigationId: 
     ...detailOptions,
     refetchInterval: query => {
       const data = query.state.data?.json;
-      return shouldPollInvestigationBlocks(data?.blocks ?? []) ||
+      // A live agentic run keeps this polling too: the notebook fills in as the
+      // agent writes blocks, and `orchestration` is what gates the hypothesis
+      // row, so a stale copy would leave the row hidden or showing a run that
+      // has since finished.
+      const orchestrationActive =
+        data?.orchestration && !isInvestigationRunSettled(data.orchestration.status);
+      return orchestrationActive ||
+        shouldPollInvestigationBlocks(data?.blocks ?? []) ||
         isTitleGenerationActive(data?.titleGeneration?.status)
         ? 2000
         : false;
@@ -407,6 +418,18 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 summary={investigation.summary}
                 summaryDescription={investigation.summaryDescription}
               />
+
+              {/*
+               * Only an agentic investigation has hypotheses, and `orchestration`
+               * being present is the only thing that says one is: it is null for
+               * manual and template investigations, whose orchestration endpoint
+               * 404s.
+               */}
+              {investigation.orchestration ? (
+                <Stack width="min(100%, 884px)" margin="0 auto" paddingBottom="xl">
+                  <InvestigationHypotheses investigationId={investigation.id} />
+                </Stack>
+              ) : null}
 
               <Stack width="min(100%, 884px)" margin="0 auto">
                 {visibleSummaryBlock ? (

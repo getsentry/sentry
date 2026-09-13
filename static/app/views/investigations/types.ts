@@ -1,5 +1,20 @@
 import type {ToolResult} from 'sentry/views/seerExplorer/types';
 
+/**
+ * The scalar head of an agentic run, served inline with an investigation so a
+ * caller can tell one apart without a second request.
+ *
+ * This is the only marker an investigation carries for being agentic: it is
+ * `null` on manual and template investigations, whose orchestration endpoint
+ * 404s. Anything that needs the full run state fetches the projection.
+ */
+type InvestigationOrchestrationSummary = {
+  heartbeatAt: string | null;
+  notebookRevision: number;
+  phase: InvestigationOrchestrationPhase;
+  status: InvestigationOrchestrationStatus;
+};
+
 export type InvestigationListItem = {
   blockCount: number;
   createdBy: string | null;
@@ -13,6 +28,7 @@ export type InvestigationListItem = {
   summaryDescription: string | null;
   title: string;
   version: number;
+  orchestration?: InvestigationOrchestrationSummary | null;
   titleGeneration?: {
     status: 'pending' | 'running' | 'completed' | 'failed' | null;
   };
@@ -183,7 +199,7 @@ type InvestigationOrchestrationPhase = InvestigationOrchestrationOpenString<
   | 'cancelled'
 >;
 
-type InvestigationOrchestrationStatus = InvestigationOrchestrationOpenString<
+export type InvestigationOrchestrationStatus = InvestigationOrchestrationOpenString<
   'pending' | 'processing' | 'awaiting_input' | 'completed' | 'failed' | 'cancelled'
 >;
 

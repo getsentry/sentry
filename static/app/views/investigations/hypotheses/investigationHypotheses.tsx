@@ -11,28 +11,25 @@ import {
 import {HypothesisList} from 'sentry/views/investigations/hypotheses/hypothesisList';
 import type {
   InvestigationHypothesis,
-  InvestigationOrchestration,
+  InvestigationOrchestrationStatus,
 } from 'sentry/views/investigations/types';
 
 /** How often to re-read the projection while a workflow is still moving. */
 const POLL_INTERVAL_MS = 2000;
 
 /**
- * Whether the workflow has stopped moving on its own. `awaiting_input` is
- * deliberately not settled: the run resumes as soon as input arrives, which may
- * happen from another surface, so polling has to continue.
+ * Whether a workflow has stopped moving on its own.
+ *
+ * `awaiting_input` is deliberately not terminal: the run resumes as soon as
+ * input arrives, which may happen from another surface, so polling has to
+ * continue. Exported because the detail view decides from the summary served
+ * alongside the investigation, and this component from the full projection —
+ * the same three statuses either way.
  */
-function isInvestigationRunSettled(
-  projection: InvestigationOrchestration | undefined
+export function isInvestigationRunSettled(
+  status: InvestigationOrchestrationStatus | undefined
 ): boolean {
-  if (!projection) {
-    return false;
-  }
-  return (
-    projection.status === 'completed' ||
-    projection.status === 'failed' ||
-    projection.status === 'cancelled'
-  );
+  return status === 'completed' || status === 'failed' || status === 'cancelled';
 }
 
 type InvestigationHypothesesProps = {
@@ -67,7 +64,7 @@ export function InvestigationHypotheses({
     ...investigationOrchestrationQueryOptions(organization.slug, investigationId),
     enabled,
     refetchInterval: query =>
-      isInvestigationRunSettled(query.state.data?.json) ? false : POLL_INTERVAL_MS,
+      isInvestigationRunSettled(query.state.data?.json.status) ? false : POLL_INTERVAL_MS,
   });
 
   const commandMutation = useInvestigationOrchestrationCommandMutation(

@@ -28,7 +28,11 @@ import {
   investigationListQueryOptions,
 } from 'sentry/views/investigations/api';
 import InvestigationDetailView from 'sentry/views/investigations/detail';
-import {InvestigationDetailFixture} from 'sentry/views/investigations/fixtures';
+import {
+  InvestigationAgenticDetailFixture,
+  InvestigationDetailFixture,
+  InvestigationOrchestrationFixture,
+} from 'sentry/views/investigations/fixtures';
 
 jest.unmock('@tanstack/react-pacer');
 
@@ -39,6 +43,8 @@ const organization = OrganizationFixture({
 const detailUrl = '/organizations/org-slug/investigations/investigation-1/';
 const titleGenerationUrl =
   '/organizations/org-slug/investigations/investigation-1/title-generation/';
+const orchestrationUrl =
+  '/organizations/org-slug/investigations/investigation-1/orchestration/';
 
 const feedbackForm = {
   appendToDom: jest.fn(),
@@ -1853,5 +1859,48 @@ describe('Investigation detail', () => {
       )
     ).toBeInTheDocument();
     expect(request).not.toHaveBeenCalled();
+  });
+
+  // `orchestration` being present is the only thing that marks an investigation
+  // as agentic, and the orchestration endpoint 404s without a run, so the gate
+  // has to hold in both directions.
+  it('renders the hypothesis row for an agentic investigation', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture(),
+    });
+    const orchestrationRequest = MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture(),
+    });
+
+    renderView();
+
+    expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
+    expect(
+      screen.getByRole('heading', {
+        name: 'Database or cache degradation delayed the response',
+      })
+    ).toBeInTheDocument();
+    expect(orchestrationRequest).toHaveBeenCalled();
+  });
+
+  it('does not reach for orchestration on a manual investigation', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture(),
+    });
+    const orchestrationRequest = MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture(),
+    });
+
+    renderView();
+
+    expect(
+      await screen.findByRole('textbox', {name: 'Investigation title'})
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('investigation-hypotheses')).not.toBeInTheDocument();
+    expect(orchestrationRequest).not.toHaveBeenCalled();
   });
 });
