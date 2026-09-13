@@ -2930,7 +2930,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
             issue_link += issue_link_extra_params
         assert (
             blocks[1]["text"]["text"]
-            == f":large_blue_circle: :chart_with_upwards_trend: <{issue_link}|*N+1 Query*>"
+            == f":large_blue_circle: :chart_with_upwards_trend: <{issue_link}|N+1 Query>"
         )
         assert blocks[2]["elements"][0]["text"] == "/books/"
         assert (
@@ -2961,7 +2961,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
             issue_link += issue_link_extra_params
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <{issue_link}|*{TEST_ISSUE_OCCURRENCE.issue_title}*>"
+            == f":red_circle: <{issue_link}|{TEST_ISSUE_OCCURRENCE.issue_title}>"
         )
 
         if with_culprit:
