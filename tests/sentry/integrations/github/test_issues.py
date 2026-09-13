@@ -482,6 +482,77 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             "repo": "getsentry/sentry",
         }
 
+    @responses.activate
+    def test_create_issue_with_user_attribution(self) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            Repository.objects.create(
+                name="getsentry/sentry",
+                provider="integrations:github",
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+            )
+
+        responses.add(
+            responses.POST,
+            "https://api.github.com/repos/getsentry/sentry/issues",
+            json={
+                "number": 321,
+                "title": "hello",
+                "body": "This is the description",
+                "html_url": "https://github.com/getsentry/sentry/issues/321",
+            },
+        )
+
+        form_data = {
+            "repo": "getsentry/sentry",
+            "title": "hello",
+            "description": "This is the description",
+        }
+
+        result = self.install.create_issue(form_data, user=self.user)
+
+        assert result["key"] == 321
+
+        request = responses.calls[-1].request
+        payload = orjson.loads(request.body)
+        assert payload["body"] == (
+            "This is the description\n\n"
+            f"*Created by {self.user.get_display_name()}*"
+        )
+
+    @responses.activate
+    def test_create_issue_without_user_no_attribution(self) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            Repository.objects.create(
+                name="getsentry/sentry",
+                provider="integrations:github",
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+            )
+
+        responses.add(
+            responses.POST,
+            "https://api.github.com/repos/getsentry/sentry/issues",
+            json={
+                "number": 321,
+                "title": "hello",
+                "body": "This is the description",
+                "html_url": "https://github.com/getsentry/sentry/issues/321",
+            },
+        )
+
+        form_data = {
+            "repo": "getsentry/sentry",
+            "title": "hello",
+            "description": "This is the description",
+        }
+
+        self.install.create_issue(form_data)
+
+        request = responses.calls[-1].request
+        payload = orjson.loads(request.body)
+        assert payload["body"] == "This is the description"
+
     def test_get_issue_with_repo_not_belonging_to_integration(self) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.create(

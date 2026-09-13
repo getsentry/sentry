@@ -294,7 +294,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             )
 
             try:
-                data = installation.create_issue(request.data)
+                data = installation.create_issue(request.data, user=request.user)
             except IntegrationConfigurationError as exc:
                 lifecycle.record_halt(exc)
                 return Response({"non_field_errors": [str(exc)]}, status=400)
