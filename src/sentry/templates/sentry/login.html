@@ -195,7 +195,9 @@
             }
             var isHidden = input.type === 'password';
             input.type = isHidden ? 'text' : 'password';
-            button.setAttribute('aria-pressed', String(!isHidden));
+            // "pressed" means the password is currently visible. isHidden is
+            // the pre-toggle state, so after flipping to visible it is true.
+            button.setAttribute('aria-pressed', String(isHidden));
             var label = button.getAttribute('aria-label');
             button.setAttribute(
               'aria-label',
