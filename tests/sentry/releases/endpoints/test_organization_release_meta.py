@@ -208,3 +208,101 @@ class ReleaseMetaTest(APITestCase):
         data = orjson.loads(response.content)
         assert data["releaseFileCount"] == 40
         assert data["isArtifactBundle"]
+
+    def test_preprod_build_count_matched_by_commit_sha(self) -> None:
+        """Regression test for https://github.com/getsentry/sentry/issues/123124
+
+        A preprod build attaches to the release containing its head commit even
+        when the release version is not named after the artifact's bundle id.
+        """
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        team1 = self.create_team(organization=org)
+        project = self.create_project(teams=[team1], organization=org)
+
+        # Release created by sentry-cli from options.release; its version does
+        # not follow the bundle-id convention
+        release = Release.objects.create(organization_id=org.id, version="android@1.1+930")
+        release.add_project(project)
+
+        head_sha = "c" * 40
+        repo = Repository.objects.create(organization_id=org.id, name=project.name)
+        commit = Commit.objects.create(organization_id=org.id, repository_id=repo.id, key=head_sha)
+        ReleaseCommit.objects.create(
+            organization_id=org.id, release=release, commit=commit, order=1
+        )
+
+        self.create_member(teams=[team1], user=user, organization=org)
+        self.login_as(user=user)
+
+        commit_comparison = self.create_commit_comparison(organization=org, head_sha=head_sha)
+        self.create_preprod_artifact(
+            project=project,
+            app_id="com.mobile",
+            build_version="1.1",
+            build_number=930,
+            commit_comparison=commit_comparison,
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-release-meta",
+            kwargs={"organization_id_or_slug": org.slug, "version": release.version},
+        )
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        data = orjson.loads(response.content)
+        assert data["preprodBuildCount"] == 1
+
+    def test_preprod_build_count_unmatched_commit_not_counted(self) -> None:
+        """A build whose commit is not in the release must not be counted via
+        the commit path; the name-derived path still applies."""
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        team1 = self.create_team(organization=org)
+        project = self.create_project(teams=[team1], organization=org)
+
+        release = Release.objects.create(organization_id=org.id, version="com.mobile@1.1+930")
+        release.add_project(project)
+
+        # Head sha that is not attached to any release's commits
+        other_sha = "d" * 40
+
+        self.create_member(teams=[team1], user=user, organization=org)
+        self.login_as(user=user)
+
+        # Name-matching build with an unrelated commit: counted via name path
+        commit_comparison = self.create_commit_comparison(organization=org, head_sha=other_sha)
+        self.create_preprod_artifact(
+            project=project,
+            app_id="com.mobile",
+            build_version="1.1",
+            build_number=930,
+            commit_comparison=commit_comparison,
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-release-meta",
+            kwargs={"organization_id_or_slug": org.slug, "version": release.version},
+        )
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        data = orjson.loads(response.content)
+        assert data["preprodBuildCount"] == 1
+
+        # A build with a different app_id whose commit is not in the release
+        # must NOT be counted
+        other_comparison = self.create_commit_comparison(organization=org, head_sha="e" * 40)
+        self.create_preprod_artifact(
+            project=project,
+            app_id="com.other",
+            build_version="9.9",
+            build_number=1,
+            commit_comparison=other_comparison,
+        )
+
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        data = orjson.loads(response.content)
+        assert data["preprodBuildCount"] == 1
