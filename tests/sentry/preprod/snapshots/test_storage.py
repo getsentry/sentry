@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 from objectstore_client import RequestError
+from urllib3.exceptions import HTTPError
 
 from sentry.objectstore import UsecaseId
 from sentry.preprod.snapshots.storage import SnapshotStorage, get_snapshot_storage
@@ -67,12 +68,15 @@ def test_delete_ignores_missing(sessions) -> None:
     legacy.delete.assert_called_once_with("k")
 
 
-def test_delete_raises_first_non_404_after_trying_both(sessions) -> None:
+@pytest.mark.parametrize("primary_error", [RequestError("primary", 500, ""), HTTPError("primary")])
+def test_delete_raises_first_non_404_after_trying_both(
+    sessions, primary_error: RequestError | HTTPError
+) -> None:
     primary, legacy = sessions
-    primary.delete.side_effect = RequestError("primary", 500, "")
+    primary.delete.side_effect = primary_error
     legacy.delete.side_effect = RequestError("legacy", 503, "")
     storage = SnapshotStorage(primary, [legacy])
-    with pytest.raises(RequestError, match="primary"):
+    with pytest.raises(type(primary_error), match="primary"):
         storage.delete("k")
     legacy.delete.assert_called_once_with("k")
 

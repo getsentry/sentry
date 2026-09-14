@@ -5,6 +5,7 @@ from typing import IO, Literal
 
 from objectstore_client import Compression, GetResponse, Metadata, RequestError, Session
 from objectstore_client.multipart import MultipartUpload
+from urllib3.exceptions import HTTPError
 
 from sentry.models.project import Project
 from sentry.objectstore import UsecaseId, get_session
@@ -55,13 +56,15 @@ class SnapshotStorage:
         )
 
     def delete(self, key: str) -> None:
-        error: RequestError | None = None
+        error: RequestError | HTTPError | None = None
         for session in (self._primary, *self._legacy):
             try:
                 session.delete(key)
-            except RequestError as e:
-                if e.status != 404 and error is None:
-                    error = e
+            except (RequestError, HTTPError) as caught_error:
+                if error is None and (
+                    not isinstance(caught_error, RequestError) or caught_error.status != 404
+                ):
+                    error = caught_error
         if error is not None:
             raise error
 
