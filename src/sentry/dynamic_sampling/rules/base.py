@@ -84,7 +84,10 @@ def get_guarded_project_sample_rate(organization: Organization, project: Project
     if is_recently_added(model=project) or is_recently_added(model=organization):
         return 1.0
 
-    return get_project_sample_rate(org_id=organization.id, project_id=project.id)
+    balanced_sample_rate = get_project_sample_rate(org_id=organization.id, project_id=project.id)
+    if balanced_sample_rate is None:
+        return float(sample_rate)
+    return balanced_sample_rate
 
 
 def _get_rules_of_enabled_biases(

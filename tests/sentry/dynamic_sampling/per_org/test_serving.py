@@ -4,6 +4,7 @@ from collections.abc import Iterator
 from unittest.mock import patch
 
 import pytest
+from redis.exceptions import RedisError
 
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org import cache as per_org_cache
@@ -76,6 +77,42 @@ class TestGetProjectSampleRate:
 
         assert get_project_sample_rate(ORG_ID, PROJECT_ID) == 1.0
         assert emitted_sources == [("project_sample_rate", "per_org_no_data")]
+
+    def test_an_unreadable_cache_serves_nothing(
+        self, emitted_sources: list[tuple[str, str]]
+    ) -> None:
+        store_project_sample_rate(0.8)
+
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.cache.get_project_sample_rate",
+                side_effect=RedisError("connection refused"),
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.serving.sentry_sdk.capture_exception"
+            ) as capture,
+        ):
+            assert get_project_sample_rate(ORG_ID, PROJECT_ID) is None
+
+        assert capture.call_count == 1
+        assert emitted_sources == [("project_sample_rate", "per_org_error")]
+
+    def test_a_corrupt_stored_rate_serves_nothing(
+        self, emitted_sources: list[tuple[str, str]]
+    ) -> None:
+        get_redis_client_for_ds().hset(
+            per_org_cache.generate_project_sample_rates_cache_key(ORG_ID),
+            str(PROJECT_ID),
+            "not a rate",
+        )
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.serving.sentry_sdk.capture_exception"
+        ) as capture:
+            assert get_project_sample_rate(ORG_ID, PROJECT_ID) is None
+
+        assert capture.call_count == 1
+        assert emitted_sources == [("project_sample_rate", "per_org_error")]
 
 
 @pytest.mark.django_db

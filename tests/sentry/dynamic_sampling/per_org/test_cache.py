@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import timedelta
 from unittest.mock import DEFAULT, MagicMock, patch
 
+import pytest
+
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
 from sentry.dynamic_sampling.per_org.cache import (
@@ -247,6 +249,13 @@ class PerOrgSampleRateCacheTest(TestCase):
         assert get_project_sample_rate(self.organization.id, self.project.id) == 0.25
         assert get_project_sample_rate(self.organization.id, other.id) == 1.0
         assert get_project_sample_rate(self.organization.id, missing.id) is None
+
+    def test_a_corrupt_project_sample_rate_raises(self) -> None:
+        cache_key = generate_project_sample_rates_cache_key(self.organization.id)
+        self.redis.hset(cache_key, str(self.project.id), "not a rate")
+
+        with pytest.raises(ValueError):
+            get_project_sample_rate(self.organization.id, self.project.id)
 
     def test_project_sample_rates_skip_a_rate_that_did_not_move(self) -> None:
         other = self.create_project(organization=self.organization)

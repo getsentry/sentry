@@ -41,6 +41,8 @@ class ServingSource(StrEnum):
     PER_ORG = "per_org"
     # No pass has stored a value for the organization yet.
     PER_ORG_NO_DATA = "per_org_no_data"
+    # The cache could not be read, so rule generation served its own fallback.
+    PER_ORG_ERROR = "per_org_error"
 
 
 def emit_serving_source(value: ServedValue, source: ServingSource) -> None:

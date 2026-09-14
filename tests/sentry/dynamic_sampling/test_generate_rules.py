@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
+from redis.exceptions import RedisError
 from sentry_relay.processing import normalize_project_config
 
 from sentry.constants import HEALTH_CHECK_GLOBS
@@ -145,6 +146,33 @@ def test_generate_rules_return_uniform_rules_with_rate(
     get_enabled_user_biases.assert_called_with(
         default_old_project.get_option("sentry:dynamic_sampling_biases", None)
     )
+    _validate_rules(default_old_project)
+
+
+@django_db_all
+@patch("sentry.dynamic_sampling.rules.base.get_enabled_user_biases")
+@patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
+def test_generate_rules_serve_the_blended_rate_when_the_cache_cannot_be_read(
+    get_blended_sample_rate, get_enabled_user_biases, default_old_project
+):
+    get_enabled_user_biases.return_value = {}
+    get_blended_sample_rate.return_value = 0.1
+    store_per_org_project_sample_rate(default_old_project, 0.5)
+
+    with patch(
+        "sentry.dynamic_sampling.per_org.cache.get_project_sample_rate",
+        side_effect=RedisError("connection refused"),
+    ):
+        rules = generate_rules(default_old_project)
+
+    assert rules == [
+        {
+            "condition": {"inner": [], "op": "and"},
+            "id": 1000,
+            "samplingValue": {"type": "sampleRate", "value": 0.1},
+            "type": "trace",
+        },
+    ]
     _validate_rules(default_old_project)
 
 

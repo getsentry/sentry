@@ -171,17 +171,14 @@ def set_project_sample_rates(org_id: int, rebalanced_projects: Iterable[Rebalanc
 
 
 def get_project_sample_rate(org_id: int, project_id: int) -> float | None:
-    """The balanced sample rate of a project, or None when this pipeline has not stored one."""
+    """The balanced sample rate of a project, or None when this pipeline has not stored one.
+
+    Raises when the cache cannot be read or holds a value that is not a rate.
+    """
     redis_client = get_redis_client_for_ds()
     cache_key = generate_project_sample_rates_cache_key(org_id)
-    try:
-        value = redis_client.hget(name=cache_key, key=str(project_id))
-        if value is None:
-            return None
-        return float(value)
-    except (TypeError, ValueError) as exc:
-        sentry_sdk.capture_exception(exc)
-        return None
+    value = redis_client.hget(name=cache_key, key=str(project_id))
+    return None if value is None else float(value)
 
 
 def set_transaction_sample_rates(
