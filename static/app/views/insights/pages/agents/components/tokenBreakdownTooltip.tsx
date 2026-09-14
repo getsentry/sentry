@@ -41,12 +41,15 @@ export function TokenBreakdownTooltip({
 
 function CompleteBreakdown({breakdown}: {breakdown: TokenBreakdownDetails}) {
   const hasInputSubcategories = breakdown.cacheRead > 0 || breakdown.cacheWrite > 0;
-  const hasOutputSubcategories = breakdown.reasoning > 0;
+  const reasoning = Number.isFinite(breakdown.reasoning)
+    ? Math.min(Math.max(0, breakdown.reasoning), Math.max(0, breakdown.output))
+    : 0;
+  const hasOutputSubcategories = reasoning > 0;
   const nonCachedInput = Math.max(
     0,
     breakdown.input - breakdown.cacheRead - breakdown.cacheWrite
   );
-  const nonReasoningOutput = Math.max(0, breakdown.output - breakdown.reasoning);
+  const nonReasoningOutput = Math.max(0, breakdown.output - reasoning);
 
   return (
     <Fragment>
@@ -77,7 +80,7 @@ function CompleteBreakdown({breakdown}: {breakdown: TokenBreakdownDetails}) {
           <TokenBreakdownSubrow>{t('Non-reasoning')}</TokenBreakdownSubrow>
           <span>{nonReasoningOutput.toLocaleString()}</span>
           <TokenBreakdownSubrow>{t('Reasoning')}</TokenBreakdownSubrow>
-          <span>{breakdown.reasoning.toLocaleString()}</span>
+          <span>{reasoning.toLocaleString()}</span>
         </Fragment>
       )}
     </Fragment>

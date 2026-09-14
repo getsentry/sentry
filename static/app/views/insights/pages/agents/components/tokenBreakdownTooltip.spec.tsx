@@ -29,6 +29,27 @@ describe('TokenBreakdownTooltip', () => {
     expect(screen.getByText('5')).toBeInTheDocument();
   });
 
+  it('caps reasoning tokens at the output total', () => {
+    render(
+      <TokenBreakdownTooltip
+        breakdowns={[
+          {
+            cacheRead: 0,
+            cacheWrite: 0,
+            input: 40,
+            isComplete: true,
+            output: 10,
+            reasoning: 30,
+            total: 50,
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText('Non-reasoning').nextElementSibling).toHaveTextContent('0');
+    expect(screen.getByText('Reasoning').nextElementSibling).toHaveTextContent('10');
+  });
+
   it('omits subcategories that have no tokens', () => {
     render(
       <TokenBreakdownTooltip
