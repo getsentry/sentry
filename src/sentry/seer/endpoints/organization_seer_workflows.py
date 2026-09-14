@@ -85,6 +85,10 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
                 executions__seer_run__agent__extras__project_ids__contained_by=[
                     str(project.id) for project in projects
                 ],
+            ) & (
+                # Until scanned projects are recorded, only the triggering user can see the run.
+                ~Q(executions__seer_run__agent__extras__project_ids=[])
+                | Q(executions__seer_run__user_id=request.user.id)
             )
 
         runs = (

@@ -550,6 +550,64 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert response.status_code == 200
         assert response.data == []
 
+    def test_running_history_without_recorded_projects_is_visible_only_to_creator(self) -> None:
+        self._assert_history_without_recorded_projects_is_visible_only_to_creator("running")
+
+    def test_failed_history_without_recorded_projects_is_visible_only_to_creator(self) -> None:
+        self._assert_history_without_recorded_projects_is_visible_only_to_creator("failed")
+
+    def test_empty_completed_history_is_visible_only_to_creator(self) -> None:
+        self._assert_history_without_recorded_projects_is_visible_only_to_creator("complete")
+
+    def _assert_history_without_recorded_projects_is_visible_only_to_creator(
+        self, status: str
+    ) -> None:
+        agent_run = self.trigger()
+        agent_run.update(extras={**agent_run.extras, "status": status})
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member")
+
+        with self.feature(FEATURE):
+            response = self.client.get(self.url)
+        assert response.status_code == 200
+        assert [run["id"] for run in response.data] == [
+            str(agent_run.run.workflow_execution.run_id)
+        ]
+
+        self.login_as(member)
+        with self.feature(FEATURE):
+            response = self.client.get(self.url)
+        assert response.status_code == 200
+        assert response.data == []
+
+        team = self.create_team(organization=self.organization, members=[member])
+        self.create_project(organization=self.organization, teams=[team])
+        with self.feature(FEATURE):
+            response = self.client.get(self.url)
+        assert response.status_code == 200
+        assert response.data == []
+
+    def test_history_with_recorded_projects_is_visible_to_other_project_members(self) -> None:
+        agent_run = self.trigger()
+        deliver_monitor_cleanup_result(
+            self.organization.id, agent_run.run.uuid, "completed", self.result(), None
+        )
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member = self.create_user()
+        self.create_member(
+            organization=self.organization, user=member, role="member", teams=[self.team]
+        )
+        self.login_as(member)
+        with self.feature(FEATURE):
+            response = self.client.get(self.url)
+        assert response.status_code == 200
+        assert [run["id"] for run in response.data] == [
+            str(agent_run.run.workflow_execution.run_id)
+        ]
+
     def test_workflow_helpers_support_other_result_shapes(self) -> None:
         workflow_run = create_workflow_run(
             SeerAgentClient(self.organization, self.user),
