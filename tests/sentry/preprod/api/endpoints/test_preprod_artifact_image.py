@@ -1,7 +1,9 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 from django.urls import reverse
+from objectstore_client import RequestError
 
+from sentry.objectstore import UsecaseId
 from sentry.testutils.cases import APITestCase
 
 
@@ -34,6 +36,66 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         mock_session.get.return_value = mock_result
 
         return mock_session
+
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
+    def test_app_icon_reads_preprod_size(self, mock_get_session) -> None:
+        image_id = "icn_123456789abc"
+        icon_data = b"app icon"
+        primary = self._create_mock_session(icon_data, "image/png")
+        mock_get_session.return_value = primary
+
+        response = self.client.get(self._get_url(image_id))
+
+        assert response.status_code == 200
+        assert response.content == icon_data
+        assert response["Content-Type"] == "image/png"
+        mock_get_session.assert_called_once_with(UsecaseId.PREPROD_SIZE, self.project)
+        primary.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{image_id}")
+
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
+    def test_app_icon_falls_back_to_preprod(self, mock_get_session) -> None:
+        image_id = "icn_123456789abc"
+        object_key = f"{self.org.id}/{self.project.id}/{image_id}"
+        icon_data = b"legacy app icon"
+        primary = MagicMock()
+        primary.get.return_value = None
+        fallback = self._create_mock_session(icon_data, "image/png")
+        mock_get_session.side_effect = [primary, fallback]
+
+        response = self.client.get(self._get_url(image_id))
+
+        assert response.status_code == 200
+        assert response.content == icon_data
+        assert mock_get_session.call_args_list == [
+            call(UsecaseId.PREPROD_SIZE, self.project),
+            call(UsecaseId.PREPROD, self.project),
+        ]
+        primary.get.assert_called_once_with(object_key)
+        fallback.get.assert_called_once_with(object_key)
+
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
+    def test_app_icon_missing_from_both_usecases(self, mock_get_session) -> None:
+        session = MagicMock()
+        session.get.return_value = None
+        mock_get_session.return_value = session
+
+        response = self.client.get(self._get_url("icn_123456789abc"))
+
+        assert response.status_code == 404
+        assert response.data == {"detail": "Image not found"}
+        assert mock_get_session.call_args_list == [
+            call(UsecaseId.PREPROD_SIZE, self.project),
+            call(UsecaseId.PREPROD, self.project),
+        ]
+
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
+    def test_app_icon_storage_error_does_not_fall_back(self, mock_get_session) -> None:
+        mock_get_session.return_value.get.side_effect = RequestError("unavailable", 503, "")
+
+        response = self.client.get(self._get_url("icn_123456789abc"))
+
+        assert response.status_code == 500
+        mock_get_session.assert_called_once_with(UsecaseId.PREPROD_SIZE, self.project)
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_snapshot_storage")
     def test_successful_image_retrieval_png(self, mock_get_session):
