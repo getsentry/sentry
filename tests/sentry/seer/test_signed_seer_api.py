@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.test import override_settings
+from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.seer.signed_seer_api import (
@@ -19,6 +20,8 @@ PATH = "/v0/some/url"
 def run_test_case(
     path: str = PATH,
     shared_secret: str = "secret-one",
+    response_status: int = 200,
+    urlopen_side_effect: Exception | None = None,
     **kwargs,
 ):
     """
@@ -30,6 +33,8 @@ def run_test_case(
     mock.host = "localhost"
     mock.port = None
     mock.scheme = "http"
+    mock.urlopen.return_value.status = response_status
+    mock.urlopen.side_effect = urlopen_side_effect
     with override_settings(SEER_API_SHARED_SECRET=shared_secret):
         make_signed_seer_api_request(
             mock,
@@ -137,6 +142,41 @@ def test_times_request_with_metrics_endpoint(mock_metrics_timer: MagicMock) -> N
         "seer.request_to_seer",
         sample_rate=1.0,
         tags={"endpoint": PATH},
+    )
+
+
+@pytest.mark.django_db
+@patch("sentry.seer.signed_seer_api.metrics.incr")
+def test_counts_request_by_status(mock_metrics_incr: MagicMock) -> None:
+    run_test_case(response_status=202, metrics_endpoint="/v0/some/:resource")
+
+    mock_metrics_incr.assert_called_once_with(
+        "seer.requests",
+        sample_rate=1.0,
+        tags={"endpoint": "/v0/some/:resource", "result": "202"},
+    )
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("error", "result"),
+    [
+        (TimeoutError("timed out"), "TimeoutError"),
+        (MaxRetryError(pool=MagicMock(), url=PATH), "MaxRetryError"),
+        (ValueError("bad response"), "ValueError"),
+    ],
+)
+@patch("sentry.seer.signed_seer_api.metrics.incr")
+def test_counts_request_exception(
+    mock_metrics_incr: MagicMock, error: Exception, result: str
+) -> None:
+    with pytest.raises(type(error)):
+        run_test_case(urlopen_side_effect=error)
+
+    mock_metrics_incr.assert_called_once_with(
+        "seer.requests",
+        sample_rate=1.0,
+        tags={"endpoint": PATH, "result": result},
     )
 
 

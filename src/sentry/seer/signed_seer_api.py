@@ -187,17 +187,30 @@ def make_signed_seer_api_request(
     if metrics_endpoint is not None:
         timer_tags["endpoint"] = metrics_endpoint
 
-    with metrics.timer(
-        "seer.request_to_seer",
-        sample_rate=1.0,
-        tags=timer_tags,
-    ):
-        return connection_pool.urlopen(
-            method,
-            request_target,
-            body=body,
-            headers=headers,
-            **options,
+    result = "unknown"
+    try:
+        with metrics.timer(
+            "seer.request_to_seer",
+            sample_rate=1.0,
+            tags=timer_tags,
+        ):
+            response = connection_pool.urlopen(
+                method,
+                request_target,
+                body=body,
+                headers=headers,
+                **options,
+            )
+            result = str(response.status)
+            return response
+    except Exception as error:
+        result = type(error).__name__
+        raise
+    finally:
+        metrics.incr(
+            "seer.requests",
+            sample_rate=1.0,
+            tags={**timer_tags, "result": result},
         )
 
 
