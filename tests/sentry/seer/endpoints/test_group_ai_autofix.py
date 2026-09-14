@@ -464,10 +464,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
-    def test_post_continue_while_processing_returns_the_run_in_flight(
+    def test_post_continue_while_processing_returns_409_with_the_run_in_flight(
         self, mock_trigger_explorer, mock_run_state
     ):
-        """A step posted while one is still running hands back the live run untouched.
+        """A step posted while one is still running is refused, and names the live run.
 
         Even a truncating re-run stays out: it would delete the blocks the live
         worker is still writing.
@@ -489,8 +489,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             format="json",
         )
 
-        assert response.status_code == 202, response.data
-        assert response.data == {"run_id": 555, "sentry_run_id": str(run.uuid)}
+        assert response.status_code == 409, response.data
+        assert response.data["code"] == "run_in_flight"
+        assert response.data["run_id"] == 555
+        assert response.data["sentry_run_id"] == str(run.uuid)
         mock_trigger_explorer.assert_not_called()
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
@@ -731,7 +733,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
     def test_insert_index_unknown_run_returns_404(self, mock_run_state, mock_trigger_explorer):
-        """The re-run guard surfaces an unknown run as 404, not 403."""
+        """The run-state lookup surfaces an unknown run as 404, not 403."""
         group = self.create_group()
         mock_run_state.side_effect = SeerPermissionError("Unknown run id for group")
 
@@ -776,6 +778,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 409, response.data
+        # Not recoverable: a caller must show this one, not swallow it.
+        assert "code" not in response.data
         mock_trigger_explorer.assert_not_called()
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")

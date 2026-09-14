@@ -95,6 +95,10 @@ logger = logging.getLogger(__name__)
 
 SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
 
+# Marks the one 409 from this endpoint that a caller can recover from on its own:
+# the run named in the body is alive, so polling it is the whole remedy.
+RUN_IN_FLIGHT_CODE = "run_in_flight"
+
 PAUSED_PR_ITERATION_DETAIL = {
     PauseReason.USER_STOP: "Iteration was stopped for this pull request",
     PauseReason.RUN_ERRORED: "Seer can no longer iterate on this pull request",
@@ -454,13 +458,21 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
 
                     # Seer accepts a step while one is still processing, and the two
                     # workers then write to the same run state; a truncating re-run
-                    # even deletes the blocks the live worker is appending to. Hand
-                    # back the run in flight instead: callers poll it exactly as they
-                    # would a step they had just queued.
+                    # even deletes the blocks the live worker is appending to. Refuse
+                    # the step and hand back the run in flight, so a caller that can
+                    # recover silently has the ids to poll.
+                    #
+                    # The code, not the detail text, is what callers branch on: this
+                    # 409 is recoverable, the re-run 409 below is not.
                     if run_state.status == "processing":
                         return Response(
-                            {"run_id": resolved_run_id, "sentry_run_id": resolved_sentry_run_id},
-                            status=status.HTTP_202_ACCEPTED,
+                            {
+                                "detail": "A step is already running for this autofix run",
+                                "code": RUN_IN_FLIGHT_CODE,
+                                "run_id": resolved_run_id,
+                                "sentry_run_id": resolved_sentry_run_id,
+                            },
+                            status=status.HTTP_409_CONFLICT,
                         )
 
                     # A truncating re-run would strand a PR/coding agent (they live
