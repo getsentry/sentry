@@ -1,19 +1,17 @@
 import {useMemo} from 'react';
 
-import {Container, Grid} from '@sentry/scraps/layout';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  FORTY_EIGHT_HOURS,
-  getDiffInMinutes,
-  GranularityLadder,
-  ONE_HOUR,
-  ONE_WEEK,
-  SIX_HOURS,
-  TWENTY_FOUR_HOURS,
-} from 'sentry/components/charts/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {PageFilterDatetime} from 'sentry/types/core';
+import {
+  ChartIntervalUnspecifiedStrategy,
+  useChartInterval,
+} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -36,19 +34,6 @@ import {SpanFields} from 'sentry/views/insights/types';
 const AI_CLIENT_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:ai_client`;
 const COUNT = `count(${SpanFields.SPAN_DURATION})`;
 const COST = `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`;
-
-const AGENT_CHART_INTERVALS = new GranularityLadder([
-  [ONE_WEEK, '1d'],
-  [FORTY_EIGHT_HOURS, '6h'],
-  [TWENTY_FOUR_HOURS, '1h'],
-  [SIX_HOURS, '30m'],
-  [ONE_HOUR, '5m'],
-  [0, '1m'],
-]);
-
-export function getAgentChartInterval(datetime: PageFilterDatetime): string {
-  return AGENT_CHART_INTERVALS.getInterval(getDiffInMinutes(datetime));
-}
 
 function createGroupedWidget({
   id,
@@ -98,7 +83,12 @@ export function AgentsCharts() {
   const location = useLocation();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const chartInterval = getAgentChartInterval(selection.datetime);
+  const [chartInterval, setChartInterval, chartIntervalOptions] = useChartInterval({
+    unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_BIGGEST,
+  });
+  const chartIntervalLabel =
+    chartIntervalOptions.find(({value}) => value === chartInterval)?.label ??
+    chartInterval;
 
   const agentRunsQuery = useCombinedQuery(getAgentRunsFilter());
   const estimatedCostQuery = useCombinedQuery(AI_CLIENT_FILTER);
@@ -168,26 +158,52 @@ export function AgentsCharts() {
 
   return (
     <Container containerType="inline-size">
-      <Grid columns={{zero: 'minmax(0, 1fr)', xl: 'repeat(3, minmax(0, 1fr))'}} gap="md">
-        {widgets.map(widget => (
-          <Container key={widget.id} minHeight="240px" minWidth="0">
-            <DashboardsMEPProvider>
-              <WidgetCard
-                disableFullscreen
-                disableTableActions
-                disableZoom
-                dashboardFilters={dashboard.filters}
-                selection={selection}
-                showContextMenu={false}
-                widget={widget}
-                widgetInterval={chartInterval}
-                widgetLegendState={widgetLegendState}
-                widgetLimitReached={false}
-              />
-            </DashboardsMEPProvider>
-          </Container>
-        ))}
-      </Grid>
+      <Stack gap="sm">
+        <Flex justify="end">
+          <Tooltip title={t('Time interval displayed in the charts')}>
+            <CompactSelect
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  aria-label={t('Chart interval: %s', chartIntervalLabel)}
+                  icon={<IconClock />}
+                  size="xs"
+                  variant="transparent"
+                >
+                  {chartIntervalLabel}
+                </OverlayTrigger.Button>
+              )}
+              menuTitle={t('Interval')}
+              options={chartIntervalOptions}
+              value={chartInterval}
+              onChange={option => setChartInterval(option.value)}
+            />
+          </Tooltip>
+        </Flex>
+        <Grid
+          columns={{zero: 'minmax(0, 1fr)', xl: 'repeat(3, minmax(0, 1fr))'}}
+          gap="md"
+        >
+          {widgets.map(widget => (
+            <Container key={widget.id} minHeight="240px" minWidth="0">
+              <DashboardsMEPProvider>
+                <WidgetCard
+                  disableFullscreen
+                  disableTableActions
+                  disableZoom
+                  dashboardFilters={dashboard.filters}
+                  selection={selection}
+                  showContextMenu={false}
+                  widget={widget}
+                  widgetInterval={chartInterval}
+                  widgetLegendState={widgetLegendState}
+                  widgetLimitReached={false}
+                />
+              </DashboardsMEPProvider>
+            </Container>
+          ))}
+        </Grid>
+      </Stack>
     </Container>
   );
 }

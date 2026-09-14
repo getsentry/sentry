@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -83,6 +83,10 @@ describe('ConversationsOverviewPage', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      body: [],
+    });
   });
 
   afterEach(() => {
@@ -101,6 +105,20 @@ describe('ConversationsOverviewPage', () => {
     expect(screen.getByText('Agent runs')).toBeInTheDocument();
     expect(screen.getByText('Estimated Cost')).toBeInTheDocument();
     expect(screen.getByText('Tool calls')).toBeInTheDocument();
+  });
+
+  it('changes the interval for all agent charts', async () => {
+    const {router} = render(<ConversationsOverviewPage />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: /^Chart interval:/}));
+    await userEvent.click(screen.getByRole('option', {name: '3 hours'}));
+
+    await waitFor(() => {
+      expect(router.location.query.interval).toBe('3h');
+    });
+    expect(
+      screen.getByRole('button', {name: 'Chart interval: 3 hours'})
+    ).toBeInTheDocument();
   });
 
   it('defaults to traces and shows conversation onboarding on demand', async () => {
