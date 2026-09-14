@@ -112,9 +112,16 @@ type ColumnWidths = Partial<Record<ColumnKey, number>>;
 const CELL_MAX_CHARS = 256;
 
 export function getConversationDuration(
-  conversation: Pick<Conversation, 'startTimestamp' | 'endTimestamp'>
+  conversation: Pick<
+    Conversation,
+    'startTimestamp' | 'endTimestamp' | 'generationDuration'
+  >
 ): number {
-  return Math.max(0, conversation.endTimestamp - conversation.startTimestamp);
+  const elapsedDuration = conversation.endTimestamp - conversation.startTimestamp;
+  if (elapsedDuration < 0) {
+    return 0;
+  }
+  return elapsedDuration || conversation.generationDuration;
 }
 
 export function normalizeUserField(value: string | null | undefined): string | null {

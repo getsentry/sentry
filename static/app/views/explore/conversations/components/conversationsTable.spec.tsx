@@ -145,6 +145,17 @@ describe('ConversationsTable', () => {
     ).toBe(420_000);
   });
 
+  it('uses generation duration when a single span has no elapsed duration', () => {
+    expect(
+      getConversationDuration({
+        ...BASE_CONVERSATION,
+        startTimestamp: 1_000,
+        endTimestamp: 1_000,
+        generationDuration: 750,
+      })
+    ).toBe(750);
+  });
+
   it('clamps conversation duration when timestamps are out of order', () => {
     expect(
       getConversationDuration({
