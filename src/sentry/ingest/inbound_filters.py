@@ -556,9 +556,26 @@ def _field_matcher(name: str) -> _ConditionMatcher:
     return match
 
 
+def _cidr_matcher(name: str) -> _ConditionMatcher:
+    def match(values: list[str]) -> RuleCondition:
+        return {"op": "cidr", "name": name, "value": values}
+
+    return match
+
+
+# Conditions on the envelope rather than the item. Every data type carries them the
+# same way, so they need no per-data-type field and the catch-all uses them as is.
+# `envelope.client_ip` is the address the envelope was sent from, the same one the
+# legacy `clientIps` filter reads, and needs a Relay that knows the `cidr` operator:
+# an older Relay never matches the condition, so the filter is inactive there.
+_ENVELOPE_MATCHERS: _ConditionMatchers = {
+    CustomInboundFilterConditionType.IP_ADDRESS: _cidr_matcher("envelope.client_ip"),
+}
+
+
 # Replays, sessions, profiles and transactions are not selectable data types: Relay
 # reads their release under `event.release`, so they cannot be told apart from errors.
-_MATCHERS_BY_SINGLE_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMatchers] = {
+_ITEM_MATCHERS_BY_SINGLE_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMatchers] = {
     CustomInboundFilterDataType.ERROR: {
         CustomInboundFilterConditionType.ERROR_TYPE: _custom_error_type_condition,
         CustomInboundFilterConditionType.ERROR_MESSAGE: _custom_error_message_condition,
@@ -596,7 +613,7 @@ def _any_condition_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionM
 
 
 def _build_all_data_types_matchers() -> _ConditionMatchers:
-    per_data_type = list(_MATCHERS_BY_SINGLE_DATA_TYPE.values())
+    per_data_type = list(_ITEM_MATCHERS_BY_SINGLE_DATA_TYPE.values())
     shared_condition_types = set.intersection(*(set(matchers.keys()) for matchers in per_data_type))
 
     return {
@@ -608,9 +625,14 @@ def _build_all_data_types_matchers() -> _ConditionMatchers:
     }
 
 
-_MATCHERS_BY_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMatchers] = {
+_ITEM_MATCHERS_BY_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMatchers] = {
     CustomInboundFilterDataType.ALL: _build_all_data_types_matchers(),
-    **_MATCHERS_BY_SINGLE_DATA_TYPE,
+    **_ITEM_MATCHERS_BY_SINGLE_DATA_TYPE,
+}
+
+_MATCHERS_BY_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMatchers] = {
+    data_type: {**item_matchers, **_ENVELOPE_MATCHERS}
+    for data_type, item_matchers in _ITEM_MATCHERS_BY_DATA_TYPE.items()
 }
 
 
