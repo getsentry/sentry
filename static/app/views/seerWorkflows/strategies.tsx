@@ -18,6 +18,15 @@ type StrategyMeta = {
 };
 
 export const STRATEGY_META: Record<WorkflowKind, StrategyMeta> = {
+  duplicate_monitors: {
+    label: 'Duplicate monitors',
+    summary: 'Finds possible duplicate metric monitors for review.',
+    Icon: IconLab,
+    frequencies: [],
+    visibility: 'configurable',
+    category: 'reliability',
+    outputs: ['monitor_annotation'],
+  },
   agentic_triage: {
     label: 'Agentic triage',
     summary:
