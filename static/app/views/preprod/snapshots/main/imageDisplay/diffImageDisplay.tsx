@@ -10,7 +10,10 @@ import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {t} from 'sentry/locale';
 import {computeMaskSize} from 'sentry/views/preprod/snapshots/main/computeMaskSize';
 import {DiffOverlay} from 'sentry/views/preprod/snapshots/main/diffOverlay';
-import {getSnapshotImageUrl} from 'sentry/views/preprod/types/snapshotTypes';
+import {
+  getSnapshotImageUrl,
+  getSnapshotImageUrlForKey,
+} from 'sentry/views/preprod/types/snapshotTypes';
 import type {SnapshotDiffPair} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {useBufferedImageGroup} from './useBufferedImageUrl';
@@ -51,7 +54,7 @@ export function DiffImageDisplay({
   const baseImageUrl = getSnapshotImageUrl(imageBaseUrl, pair.base_image);
   const headImageUrl = getSnapshotImageUrl(imageBaseUrl, pair.head_image);
   const diffMaskUrl = pair.diff_image_key
-    ? `${diffImageBaseUrl}${pair.diff_image_key}/`
+    ? getSnapshotImageUrlForKey(diffImageBaseUrl, pair.diff_image_key)
     : null;
 
   const maskSize = computeMaskSize(pair.base_image, pair.head_image);
