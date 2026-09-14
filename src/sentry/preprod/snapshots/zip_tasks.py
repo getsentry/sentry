@@ -23,7 +23,7 @@ from sentry.preprod.snapshots.zip_builder import (
 )
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import preprod_tasks
+from sentry.taskworker.namespaces import preprod_snapshots_tasks, preprod_tasks
 from sentry.users.services.user.service import user_service
 from sentry.utils.email import MessageBuilder
 
@@ -109,7 +109,8 @@ def _upload_archive_multipart(session: Session, key: str, tmp: IO[bytes]) -> Non
 
 @instrumented_task(
     name="sentry.preprod.tasks.build_snapshot_images_zip",
-    namespace=preprod_tasks,
+    namespace=preprod_snapshots_tasks,
+    alias_namespace=preprod_tasks,
     silo_mode=SiloMode.CELL,
     processing_deadline_duration=900,
 )
