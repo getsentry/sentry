@@ -645,9 +645,6 @@ class Referrer(StrEnum):
     DASHBOARDS_SLACK_UNFURL = "dashboards.slack.unfurl"
     DISCOVER_SLACK_UNFURL = "discover.slack.unfurl"
     EXPLORE_SLACK_UNFURL = "explore.slack.unfurl"
-    DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES = (
-        "dynamic_sampling.counters.get_org_transaction_volumes"
-    )
     DYNAMIC_SAMPLING_PER_ORG_GET_EAP_ORG_VOLUME = "dynamic_sampling.per_org.get_eap_org_volume"
     DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES = (
         "dynamic_sampling.per_org.get_eap_project_volumes"
