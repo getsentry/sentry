@@ -110,6 +110,7 @@ _KNOWN_SCM_PROVIDERS = frozenset(
         IntegrationProviderSlug.BITBUCKET_SERVER,
         IntegrationProviderSlug.AZURE_DEVOPS,
         IntegrationProviderSlug.PERFORCE,
+        IntegrationProviderSlug.CURSOR_ORIGIN,
     }
 )
 

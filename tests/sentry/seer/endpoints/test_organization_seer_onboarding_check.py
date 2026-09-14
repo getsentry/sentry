@@ -88,6 +88,27 @@ class TestHasSupportedScmIntegration(TestCase):
 
         assert not has_supported_scm_integration(self.organization)
 
+    @with_feature("organizations:seer-cursor-origin-support")
+    def test_cursor_origin_integration_with_feature_flag(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            name="Cursor Origin Test",
+            external_id="i_0123456789",
+        )
+
+        assert has_supported_scm_integration(self.organization)
+
+    def test_cursor_origin_integration_without_feature_flag(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            name="Cursor Origin Test",
+            external_id="i_0123456789",
+        )
+
+        assert not has_supported_scm_integration(self.organization)
+
 
 class TestIsCodeReviewEnabled(TestCase):
     """Unit tests for is_code_review_enabled()"""

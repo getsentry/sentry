@@ -420,7 +420,13 @@ def deserialize_raw_event(event: SubscriptionEvent) -> EventType | None:
     elif event["type"] == "gitlab":
         raise SCMProviderNotSupported("GitLab has not been implemented.")
     else:
-        assert_never(event["type"])
+        # Deliberately a runtime raise rather than assert_never. The union comes
+        # from the installed sentry-scm, so exhaustiveness here depends on which
+        # build is present: a release that predates a provider makes a branch for
+        # it unreachable, while a newer one makes its absence a non-exhaustive
+        # match. Either way mypy fails somewhere that looks unrelated to the
+        # provider actually being added.
+        raise SCMProviderNotSupported(f"{event['type']} has not been implemented.")
 
 
 def serialize_event(event: EventType) -> str:
