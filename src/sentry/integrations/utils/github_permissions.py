@@ -113,7 +113,9 @@ def get_missing_github_app_permissions(
     expected = parse_github_app_permissions(
         required_permissions, source="required_permissions_option"
     )
-    actual = parse_github_app_permissions(metadata.get("permissions", {}), source="installation")
+
+    integration_permissions = metadata.get("permissions") or {}
+    actual = parse_github_app_permissions(integration_permissions, source="installation")
 
     if expected.unreadable or actual.unreadable:
         return None

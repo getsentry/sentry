@@ -34,6 +34,12 @@ from sentry.testutils.helpers.options import override_options
             [{"expected": {"scope": "contents", "level": 2}, "actual": None}],
         ),
         (
+            # An install whose metadata has no permissions recorded at all.
+            {"contents": "write"},
+            None,
+            [{"expected": {"scope": "contents", "level": 2}, "actual": None}],
+        ),
+        (
             {"contents": "write"},
             {"contents": "read"},
             [
