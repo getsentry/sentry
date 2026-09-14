@@ -233,6 +233,25 @@ describe('getHighlightedSpanAttributes', () => {
     );
   });
 
+  it('defaults missing reasoning tokens to zero', () => {
+    const result = getHighlightedSpanAttributes({
+      spanId: '123',
+      attributes: {
+        'gen_ai.operation.type': 'ai_client',
+        'gen_ai.usage.input_tokens': '100',
+        'gen_ai.usage.output_tokens': '50',
+        'gen_ai.usage.total_tokens': '150',
+      },
+    });
+
+    const tokens = result.find(attr => attr.name === 'Tokens');
+    expect(tokens?.value).toEqual(
+      expect.objectContaining({
+        props: expect.objectContaining({reasoningTokens: 0}),
+      })
+    );
+  });
+
   it('shows cache and reasoning as included in the input and output totals', async () => {
     const result = getHighlightedSpanAttributes({
       spanId: '123',

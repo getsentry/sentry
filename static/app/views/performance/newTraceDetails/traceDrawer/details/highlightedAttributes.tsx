@@ -170,7 +170,7 @@ function getAISpanAttributes({
           cachedTokens={Number(cachedTokens)}
           cacheWriteTokens={Number(cacheWriteTokens)}
           outputTokens={Number(outputTokens)}
-          reasoningTokens={Number(reasoningTokens)}
+          reasoningTokens={Number(reasoningTokens ?? 0)}
           totalTokens={Number(totalTokens)}
         />
       ),
