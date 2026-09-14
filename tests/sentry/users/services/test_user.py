@@ -1,9 +1,12 @@
+from typing import Any
+
 from django.db import connections
 from django.test.utils import CaptureQueriesContext
 
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.users.models.user import User
 from sentry.users.models.userpermission import UserPermission
 from sentry.users.services.user.service import user_service
 
@@ -112,12 +115,19 @@ class UserServiceTest(TestCase):
 
 @all_silo_test
 class ResolveFuzzyUserTest(TestCase):
-    def _member(self, *, email: str, name: str = "", username: str | None = None, **kwargs):
+    def _member(
+        self,
+        *,
+        email: str,
+        name: str = "",
+        username: str | None = None,
+        **kwargs: Any,
+    ) -> User:
         user = self.create_user(email=email, name=name, username=username or email, **kwargs)
         self.create_member(user=user, organization=self.organization)
         return user
 
-    def _resolve(self, **kwargs) -> int | None:
+    def _resolve(self, **kwargs: Any) -> int | None:
         return user_service.resolve_fuzzy_user(organization_id=self.organization.id, **kwargs)
 
     def test_exact_email(self) -> None:
