@@ -472,7 +472,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             {"id": str(self.duplicate.id), "name": "Copy", "enabled": self.duplicate.enabled},
         ]
 
-    def test_invalid_result_marks_run_failed(self) -> None:
+    def test_invalid_results_report_safe_errors(self) -> None:
         run = self.trigger()
         deliver_monitor_cleanup_result(
             self.organization.id, run.run.uuid, "completed", {"schema_version": 1, "data": {}}, None
@@ -480,6 +480,17 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         run.refresh_from_db()
         assert run.extras["status"] == "failed"
         assert not run.extras["results"]
+        assert run.extras["error"] == "Seer returned results that could not be loaded."
+
+        run = self.trigger()
+        result = self.result()
+        result["data"]["projects"][0]["project_id"] = "999999999"
+        deliver_monitor_cleanup_result(
+            self.organization.id, run.run.uuid, "completed", result, None
+        )
+        run.refresh_from_db()
+        assert run.extras["status"] == "failed"
+        assert run.extras["error"] == "Some scanned projects are no longer accessible."
 
     def test_requires_feature_and_seer_access(self) -> None:
         with patch("sentry.seer.monitor_cleanup.runs.ratelimits.is_limited") as limit:
@@ -516,7 +527,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
 
     def test_callback_for_deleted_user_marks_run_failed(self) -> None:
         agent_run = self.trigger()
-        agent_run.run.update(user_id=None)
+        agent_run.run.update(user_id=999999999)
         deliver_monitor_cleanup_result(
             self.organization.id, agent_run.run.uuid, "completed", self.result(), None
         )
