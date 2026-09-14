@@ -56,7 +56,6 @@ class OrganizationSamplingProjectSpanCountsEndpoint(OrganizationEndpoint):
                 "totals": span_count.count,
             }
             for span_count in span_counts
-            if span_count.root_project_id in slugs_by_id and span_count.project_id in slugs_by_id
         ]
 
         return Response(status=200, data={"data": [rows], "start": start, "end": end})

@@ -72,7 +72,7 @@ class RootProjectSpanCount:
 
     root_project_id: int
     project_id: int
-    count: float
+    count: int
 
 
 def _get_aggregate_int(row: Mapping[str, Any], column: str) -> int:
@@ -266,9 +266,12 @@ def get_eap_span_counts_by_root_project(
 
     Spans of every kind count, not only segments. A span without a DSC project id
     belongs to a trace that carried no sampling context, so its own project stands in
-    as the root project.
+    as the root project. The DSC is written by the client, so it can name a deleted
+    project or a project of another organization; traces rooted outside ``projects``
+    are left out.
     """
-    counts: defaultdict[tuple[int, int], float] = defaultdict(float)
+    project_ids = {project.id for project in projects}
+    counts: defaultdict[tuple[int, int], int] = defaultdict(int)
 
     for row in run_eap_spans_table_query_in_chunks(
         {
@@ -297,13 +300,15 @@ def get_eap_span_counts_by_root_project(
             "sampling_mode": SAMPLING_MODE_HIGHEST_ACCURACY,
         }
     ):
-        count = _get_aggregate_float(row, DynamicSamplingQueryFields.COUNT)
-        if count <= 0:
+        count = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT)
+        if count < 1:
             continue
 
-        project_id = _get_aggregate_int(row, DynamicSamplingQueryFields.PROJECT_ID)
+        project_id = int(row[DynamicSamplingQueryFields.PROJECT_ID])
         dsc_project_id = row.get(DynamicSamplingQueryFields.DSC_PROJECT_ID)
         root_project_id = project_id if dsc_project_id is None else int(dsc_project_id)
+        if root_project_id not in project_ids:
+            continue
         counts[(root_project_id, project_id)] += count
 
     return [

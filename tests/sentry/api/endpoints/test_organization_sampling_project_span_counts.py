@@ -53,7 +53,7 @@ class OrganizationSamplingProjectSpanCountsTest(APITestCase, SnubaTestCase, Span
         return response.data
 
     @staticmethod
-    def row(root: Project, project: Project, totals: float) -> dict[str, Any]:
+    def row(root: Project, project: Project, totals: int) -> dict[str, Any]:
         return {
             "by": {"project": root.slug, "target_project_id": str(project.id)},
             "totals": totals,
@@ -95,6 +95,15 @@ class OrganizationSamplingProjectSpanCountsTest(APITestCase, SnubaTestCase, Span
         data = self.get_counts()
 
         assert data["data"] == [[self.row(self.other, self.other, 2)]]
+
+    def test_ignores_traces_rooted_outside_the_organization(self) -> None:
+        foreign_root = self.create_project(organization=self.create_organization())
+        self.store_span(self.other, root=foreign_root)
+        self.store_span(self.other, root=self.other)
+
+        data = self.get_counts()
+
+        assert data["data"] == [[self.row(self.other, self.other, 1)]]
 
     def test_stats_period_selects_spans_by_time(self) -> None:
         self.store_span(self.root, root=self.root, start_ts=before_now(days=5))
