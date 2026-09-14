@@ -10,6 +10,7 @@ from taskbroker_client.retry import Retry
 from sentry import audit_log
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import uptime_tasks
+from sentry.uptime.config_drift import check_config_drift
 from sentry.uptime.config_producer import produce_config, produce_config_removal
 from sentry.uptime.models import (
     UptimeRegionScheduleMode,
@@ -234,3 +235,41 @@ def broken_monitor_checker(**kwargs):
             logger.exception("uptime.subscriptions.disable_broken_failed")
 
     metrics.incr("uptime.subscriptions.disable_broken", amount=count, sample_rate=1.0)
+
+
+@instrumented_task(
+    name="sentry.uptime.tasks.config_drift_checker",
+    namespace=uptime_tasks,
+    # Walks the whole region table, so the 10s default deadline is too short.
+    processing_deadline_duration=60 * 10,
+)
+def config_drift_checker(**kwargs):
+    """
+    Compares the checker configs stored in each config redis cluster against Postgres and
+    reports the difference as metrics. This task only reads; repairs happen elsewhere.
+    """
+    for reading in check_config_drift():
+        tags = {"cluster": reading.store.cluster}
+        metrics.gauge(
+            "uptime.config_drift.missing", len(reading.missing), tags=tags, sample_rate=1.0
+        )
+        metrics.gauge(
+            "uptime.config_drift.orphaned", len(reading.orphaned), tags=tags, sample_rate=1.0
+        )
+        metrics.gauge(
+            "uptime.config_drift.null_subscription_id",
+            reading.null_subscription_ids,
+            tags=tags,
+            sample_rate=1.0,
+        )
+        logger.info(
+            "uptime.config_drift.reading",
+            extra={
+                "cluster": reading.store.cluster,
+                "expected": reading.expected,
+                "stored": reading.stored,
+                "missing": len(reading.missing),
+                "orphaned": len(reading.orphaned),
+                "null_subscription_ids": reading.null_subscription_ids,
+            },
+        )

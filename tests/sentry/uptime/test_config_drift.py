@@ -24,7 +24,10 @@ from sentry.uptime.config_producer import (
     produce_config,
 )
 from sentry.uptime.models import UptimeSubscription, UptimeSubscriptionRegion
-from sentry.uptime.subscriptions.tasks import uptime_subscription_to_check_config
+from sentry.uptime.subscriptions.tasks import (
+    config_drift_checker,
+    uptime_subscription_to_check_config,
+)
 from sentry.utils import redis
 
 REGIONS = [
@@ -171,3 +174,56 @@ class CheckConfigDriftTest(UptimeTestCase):
                 '"uptime_uptimesubscription"."subscription_id"',
                 '"uptime_uptimesubscriptionregion"."region_slug"',
             ], sql
+
+
+@override_settings(UPTIME_REGIONS=REGIONS)
+class ConfigDriftCheckerTest(UptimeTestCase):
+    @mock.patch("sentry.uptime.subscriptions.tasks.metrics")
+    def test_emits_gauges_per_store(self, mock_metrics: mock.MagicMock) -> None:
+        lost_on_b = self.create_uptime_subscription(
+            subscription_id=uuid4().hex, region_slugs=["a1", "b1"]
+        )
+        _publish(lost_on_b, ["a1"])
+        self.create_uptime_subscription(region_slugs=["a1"])
+
+        config_drift_checker()
+
+        tags = {"cluster": "default"}
+        assert mock_metrics.gauge.mock_calls == [
+            mock.call("uptime.config_drift.missing", 0, tags=tags, sample_rate=1.0),
+            mock.call("uptime.config_drift.orphaned", 0, tags=tags, sample_rate=1.0),
+            mock.call("uptime.config_drift.null_subscription_id", 1, tags=tags, sample_rate=1.0),
+            mock.call("uptime.config_drift.missing", 1, tags=tags, sample_rate=1.0),
+            mock.call("uptime.config_drift.orphaned", 0, tags=tags, sample_rate=1.0),
+            mock.call("uptime.config_drift.null_subscription_id", 0, tags=tags, sample_rate=1.0),
+        ]
+
+    def test_writes_nothing_to_postgres(self) -> None:
+        never_published = self.create_uptime_subscription(region_slugs=["a1"])
+        db = UptimeSubscriptionRegion.objects.using_replica().db
+
+        with CaptureQueriesContext(connections[db]) as queries:
+            config_drift_checker()
+
+        assert queries.captured_queries
+        writes = [
+            q["sql"]
+            for q in queries.captured_queries
+            if q["sql"].startswith(("INSERT", "UPDATE", "DELETE"))
+        ]
+        assert writes == []
+        never_published.refresh_from_db()
+        assert never_published.subscription_id is None
+
+    def test_writes_nothing_to_redis(self) -> None:
+        published = self.create_uptime_subscription(
+            subscription_id=uuid4().hex, region_slugs=["a1"]
+        )
+        _publish(published, ["a1"])
+        cluster = redis.redis_clusters.get_binary("default")
+        before = {key: cluster.hgetall(key) for key in cluster.keys(b"*uptime:*")}
+        assert before
+
+        config_drift_checker()
+
+        assert {key: cluster.hgetall(key) for key in cluster.keys(b"*uptime:*")} == before
