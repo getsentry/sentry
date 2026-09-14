@@ -34,7 +34,7 @@ class OrganizationSamplingEffectiveSampleRateEndpointTest(APITestCase, SnubaTest
         with self.feature("organizations:dynamic-sampling"):
             response = self.get_success_response(self.organization.slug)
 
-        assert response.data == {"effectiveSampleRate": pytest.approx(0.5, rel=1e-6)}
+        assert response.data == {"eapEffectiveSampleRate": pytest.approx(0.5, rel=1e-6)}
 
     def test_no_data(self) -> None:
         self.create_project(teams=[self.team])
@@ -42,4 +42,4 @@ class OrganizationSamplingEffectiveSampleRateEndpointTest(APITestCase, SnubaTest
         with self.feature("organizations:dynamic-sampling"):
             response = self.get_success_response(self.organization.slug)
 
-        assert response.data == {"effectiveSampleRate": None}
+        assert response.data == {"eapEffectiveSampleRate": None}

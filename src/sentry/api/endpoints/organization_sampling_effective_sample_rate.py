@@ -25,7 +25,7 @@ SAMPLE_RATE_WINDOW = timedelta(hours=24)
 
 
 class OrganizationSamplingEffectiveSampleRateResponse(TypedDict):
-    effectiveSampleRate: float | None
+    eapEffectiveSampleRate: float | None
 
 
 @cell_silo_endpoint
@@ -70,4 +70,6 @@ class OrganizationSamplingEffectiveSampleRateEndpoint(OrganizationEndpoint):
             organization, projects, time_interval=SAMPLE_RATE_WINDOW
         )
 
-        return Response(status=200, data={"effectiveSampleRate": get_effective_sample_rate(volume)})
+        return Response(
+            status=200, data={"eapEffectiveSampleRate": get_effective_sample_rate(volume)}
+        )
