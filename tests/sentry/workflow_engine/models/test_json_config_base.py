@@ -53,12 +53,13 @@ class JSONConfigBaseTest(BaseGroupTypeTest):
             description = "Example"
             category = GroupCategory.DB_QUERY.value
 
-        detector_settings_registry.register(TestGroupType.slug)(
-            DetectorSettings(config_schema=self.example_schema)
-        )
-        detector_settings_registry.register(ExampleGroupType.slug)(
-            DetectorSettings(config_schema={"type": "object", "additionalProperties": False})
-        )
+        @detector_settings_registry.register(TestGroupType.slug)
+        class TestDetectorSettings(DetectorSettings):
+            config_schema = self.example_schema
+
+        @detector_settings_registry.register(ExampleGroupType.slug)
+        class ExampleDetectorSettings(DetectorSettings):
+            config_schema = {"type": "object", "additionalProperties": False}
 
 
 # TODO - Move this to the detector model test
@@ -108,11 +109,9 @@ class TestMetricIssueDetectorConfig(JSONConfigBaseTest, APITestCase):
             description = "Metric alert fired"
             category = GroupCategory.METRIC.value
 
-        detector_settings_registry.register(TestGroupType.slug)(
-            DetectorSettings(
-                config_schema=detector_settings_registry.get(MetricIssue.slug).config_schema,
-            )
-        )
+        @detector_settings_registry.register(TestGroupType.slug)
+        class TestDetectorSettings(DetectorSettings):
+            config_schema = detector_settings_registry.get(MetricIssue.slug).config_schema
 
     def test_detector_correct_schema(self) -> None:
         self.create_detector(

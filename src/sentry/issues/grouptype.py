@@ -279,7 +279,7 @@ class GroupType:
     always_trigger_seer_automation: ClassVar[bool] = False
 
     @classproperty
-    def detector_settings(cls) -> DetectorSettings | None:
+    def detector_settings(cls) -> type[DetectorSettings] | None:
         try:
             return detector_settings_registry.get(cls.slug)
         except NoRegistrationExistsError:

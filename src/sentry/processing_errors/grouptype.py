@@ -270,13 +270,9 @@ class SourcemapConfigurationType(GroupType):
     in_default_search = False
 
 
-detector_settings_registry.register(SourcemapConfigurationType.slug)(
-    DetectorSettings(
-        handler=SourcemapDetectorHandler,
-        validator=None,
-        config_schema={},
-    )
-)
+@detector_settings_registry.register(SourcemapConfigurationType.slug)
+class SourcemapConfigurationDetectorSettings(DetectorSettings):
+    handler = SourcemapDetectorHandler
 
 
 @dataclass(frozen=True)
