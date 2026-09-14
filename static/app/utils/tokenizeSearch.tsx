@@ -605,6 +605,24 @@ export class MutableSearch {
 }
 
 /**
+ * The grammar only allows a value list directly after a filter's `:`, behind an
+ * optional wildcard operator (`text_in_filter` / `numeric_in_filter`). A `[`
+ * anywhere else is ordinary text.
+ */
+function opensBracketedList(queryChars: string[], openIdx: number): boolean {
+  let idx = openIdx;
+
+  for (const op of Object.values(WildcardOperators)) {
+    if (idx >= op.length && queryChars.slice(idx - op.length, idx).join('') === op) {
+      idx -= op.length;
+      break;
+    }
+  }
+
+  return queryChars[idx - 1] === ':';
+}
+
+/**
  * Whether the unquoted `[` at `openIdx` is closed by a matching unquoted `]`
  * later in the query. An unclosed bracket is plain text, not the start of a
  * list, so the splitter must not swallow the rest of the query waiting for its
@@ -663,8 +681,8 @@ function splitSearchIntoTokens(query: string) {
   let quoteEnclosed = false;
   // The search grammar allows whitespace between the items of a bracketed
   // list, e.g. `key:[a, b]`, so a space inside brackets does not end the
-  // token. Only a bracket that is closed later counts; an unclosed `[` is
-  // ordinary text.
+  // token. Only a `[` in list position that is closed later counts; a stray or
+  // unclosed bracket is ordinary text and keeps splitting on whitespace.
   let bracketDepth = 0;
 
   for (let idx = 0; idx < queryChars.length; idx++) {
@@ -672,8 +690,16 @@ function splitSearchIntoTokens(query: string) {
     const nextChar = queryChars.length - 1 > idx ? queryChars[idx + 1]! : null;
     token += char;
 
-    if (!quoteEnclosed && char === '[' && hasClosingBracket(queryChars, idx)) {
-      bracketDepth++;
+    if (!quoteEnclosed && char === '[') {
+      if (bracketDepth > 0) {
+        // Already inside a list, so track nesting to find the matching `]`.
+        bracketDepth++;
+      } else if (
+        opensBracketedList(queryChars, idx) &&
+        hasClosingBracket(queryChars, idx)
+      ) {
+        bracketDepth = 1;
+      }
     } else if (!quoteEnclosed && char === ']' && bracketDepth > 0) {
       bracketDepth--;
     }
