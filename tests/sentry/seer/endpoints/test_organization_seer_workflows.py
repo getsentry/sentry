@@ -472,10 +472,15 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert run.extras["status"] == "failed"
         assert not run.extras["results"]
 
-    def test_requires_feature(self) -> None:
+    def test_requires_feature_and_seer_access(self) -> None:
         self.get_error_response(
             self.organization.slug, strategy="duplicate_monitors", status_code=404
         )
+        with self.feature({FEATURE: True, "organizations:gen-ai-features": False}):
+            response = self.get_error_response(
+                self.organization.slug, strategy="duplicate_monitors", status_code=403
+            )
+        assert response.data == {"detail": "Seer is not available for this organization."}
 
     def test_requires_organization_access(self) -> None:
         other = self.create_organization()

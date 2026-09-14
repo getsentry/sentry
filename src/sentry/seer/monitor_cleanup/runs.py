@@ -30,7 +30,7 @@ def create_monitor_cleanup_run(request: Request, organization: Organization) -> 
     try:
         client = SeerAgentClient(organization=organization, user=cast(User | RpcUser, request.user))
     except SeerPermissionError as error:
-        raise PermissionDenied(str(error)) from error
+        raise PermissionDenied("Seer is not available for this organization.") from error
     return create_workflow_run(
         client,
         strategy=SeerWorkflowStrategy.DUPLICATE_MONITORS,
