@@ -1,14 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {VisualizationWidget} from 'sentry/views/dashboards/widgetCard/visualizationWidget';
 import {WidgetCardDataLoader} from 'sentry/views/dashboards/widgetCard/widgetCardDataLoader';
 
-jest.mock('sentry/components/pageFilters/usePageFilters');
 jest.mock('sentry/views/dashboards/widgetCard/widgetCardDataLoader');
 jest.mock(
   'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization',
@@ -36,7 +35,7 @@ const spansBreakdownWidget = {
   ],
 };
 
-const selection = PageFilterStateFixture().selection;
+const selection = PageFiltersFixture();
 
 // Series name format for a grouped SPANS query: "<groupValue> : <aggregate>"
 const timeseriesResults = [
@@ -57,7 +56,7 @@ const tableResults = [
 ];
 
 beforeEach(() => {
-  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
+  PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/releases/stats/',
     body: [],
@@ -74,6 +73,10 @@ beforeEach(() => {
       sampleCount: undefined,
     })
   );
+});
+
+afterEach(() => {
+  PageFiltersStore.reset();
 });
 
 describe('VisualizationWidget breakdown series labels', () => {
