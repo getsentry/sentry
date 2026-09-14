@@ -11,6 +11,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
+import {Switch} from '@sentry/scraps/switch';
 
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
@@ -111,6 +112,14 @@ function ManageDashboards() {
   );
   const sortOptions = getSortOptions({isOnlyPrebuilt, hasUserLastVisited});
 
+  const hasHideDashboards = organization.features.includes('dashboards-hide-dashboards');
+  const showHidden =
+    hasHideDashboards && decodeScalar(location.query.showHidden) === 'true';
+  const filters = [
+    ...(isOnlyPrebuilt ? [DashboardFilter.ONLY_PREBUILT] : []),
+    ...(showHidden ? [DashboardFilter.SHOW_USER_HIDDEN] : []),
+  ];
+
   const {
     data: dashboardsResponse,
     isLoading,
@@ -123,7 +132,7 @@ function ManageDashboards() {
         sort: getActiveSort()?.value,
         pin: 'favorites',
         per_page: DASHBOARD_TABLE_NUM_ROWS,
-        ...(isOnlyPrebuilt ? {filter: DashboardFilter.ONLY_PREBUILT} : {}),
+        ...(filters.length > 0 ? {filter: filters} : {}),
       },
     }),
     select: selectJsonWithHeaders,
@@ -224,6 +233,21 @@ function ManageDashboards() {
     });
   };
 
+  function handleShowHiddenChange() {
+    trackAnalytics('dashboards_manage.toggle_show_hidden', {
+      organization,
+      show_hidden: !showHidden,
+    });
+    navigate({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        cursor: undefined,
+        showHidden: showHidden ? undefined : 'true',
+      },
+    });
+  }
+
   function getQuery() {
     const {query} = location.query;
 
@@ -234,7 +258,12 @@ function ManageDashboards() {
     const activeSort = getActiveSort();
     return (
       <Grid
-        columns={{zero: 'auto', xl: 'auto max-content max-content'}}
+        columns={{
+          zero: 'auto',
+          xl: hasHideDashboards
+            ? 'auto max-content max-content max-content'
+            : 'auto max-content max-content',
+        }}
         gap="md"
         marginBottom="xl"
       >
@@ -253,6 +282,16 @@ function ManageDashboards() {
           position="bottom-end"
           data-test-id="sort-by-select"
         />
+        {hasHideDashboards && (
+          <Flex as="label" align="center" gap="md" htmlFor="show-hidden-dashboards">
+            {t('Show hidden')}
+            <Switch
+              id="show-hidden-dashboards"
+              checked={showHidden}
+              onChange={handleShowHiddenChange}
+            />
+          </Flex>
+        )}
         {areAiFeaturesAllowed ? (
           <DashboardCreateLimitWrapper>
             {({

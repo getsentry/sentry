@@ -419,4 +419,89 @@ describe('Dashboards - DashboardTable', () => {
       ).toBeInTheDocument();
     });
   });
+
+  describe('hiding dashboards', () => {
+    const organizationWithHide = OrganizationFixture({
+      features: [
+        'dashboards-basic',
+        'dashboards-edit',
+        'discover-query',
+        'dashboards-hide-dashboards',
+      ],
+    });
+
+    it('hides a visible dashboard', async () => {
+      const hideMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/hidden/',
+        method: 'PUT',
+      });
+
+      render(
+        <DashboardTable
+          onDashboardsChange={jest.fn()}
+          organization={organizationWithHide}
+          dashboards={[DashboardListItemFixture({id: '1', title: 'Dashboard 1'})]}
+          location={location}
+          isOnlyPrebuilt={false}
+        />,
+        {organization: organizationWithHide}
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Hide Dashboard'}));
+
+      await waitFor(() => {
+        expect(hideMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/dashboards/1/hidden/',
+          expect.objectContaining({data: {shouldHide: true}})
+        );
+      });
+    });
+
+    it('unhides a hidden dashboard', async () => {
+      const unhideMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/hidden/',
+        method: 'PUT',
+      });
+
+      render(
+        <DashboardTable
+          onDashboardsChange={jest.fn()}
+          organization={organizationWithHide}
+          dashboards={[
+            DashboardListItemFixture({id: '1', title: 'Dashboard 1', isHidden: true}),
+          ]}
+          location={location}
+          isOnlyPrebuilt={false}
+        />,
+        {organization: organizationWithHide}
+      );
+
+      expect(await screen.findByText('Hidden')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Unhide Dashboard'}));
+
+      await waitFor(() => {
+        expect(unhideMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/dashboards/1/hidden/',
+          expect.objectContaining({data: {shouldHide: false}})
+        );
+      });
+    });
+
+    it('does not render the hide button without the feature', async () => {
+      render(
+        <DashboardTable
+          onDashboardsChange={jest.fn()}
+          organization={organization}
+          dashboards={dashboards}
+          location={location}
+          isOnlyPrebuilt={false}
+        />
+      );
+
+      expect(await screen.findByText('Dashboard 1')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Hide Dashboard'})
+      ).not.toBeInTheDocument();
+    });
+  });
 });

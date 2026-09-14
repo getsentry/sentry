@@ -21,7 +21,7 @@ export function dashboardsApiOptions(
   options?: {
     query?: {
       cursor?: QueryParamValue;
-      filter?: string;
+      filter?: string | string[];
       per_page?: number;
       pin?: string;
       query?: QueryParamValue;

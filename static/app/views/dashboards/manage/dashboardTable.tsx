@@ -3,6 +3,7 @@ import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -22,7 +23,7 @@ import {
   type GridColumnSort,
 } from 'sentry/components/tables/gridEditable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
+import {IconCopy, IconDelete, IconHide, IconShow, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
@@ -33,6 +34,7 @@ import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {useToggleDashboardFavorite} from 'sentry/views/dashboards/hooks/useToggleDashboardFavorite';
+import {useToggleDashboardHidden} from 'sentry/views/dashboards/hooks/useToggleDashboardHidden';
 import type {
   DashboardDetails,
   DashboardListItem,
@@ -108,9 +110,11 @@ function DashboardTable({
   const handleDeleteDashboard = useDeleteDashboard({
     onSuccess: onDashboardsChange,
   });
+  const toggleHidden = useToggleDashboardHidden();
   const hasUserLastVisited = organization.features.includes(
     'dashboards-user-last-visited'
   );
+  const hasHideDashboards = organization.features.includes('dashboards-hide-dashboards');
 
   // TODO: When `dashboards-user-last-visited` is fully rolled out, delete the
   // flag-off `columnOrder` branch below, the `createdBy` SortKeys entry and its
@@ -183,6 +187,22 @@ function DashboardTable({
             />
           )}
         </DashboardCreateLimitWrapper>
+        {hasHideDashboards && (
+          <StyledButton
+            onClick={e => {
+              e.stopPropagation();
+              toggleHidden({dashboard: dataRow, shouldHide: !dataRow.isHidden});
+            }}
+            variant="transparent"
+            aria-label={dataRow.isHidden ? t('Unhide Dashboard') : t('Hide Dashboard')}
+            data-test-id="dashboard-toggle-hidden"
+            icon={dataRow.isHidden ? <IconShow /> : <IconHide />}
+            size="sm"
+            tooltipProps={{
+              title: dataRow.isHidden ? t('Unhide dashboard') : t('Hide dashboard'),
+            }}
+          />
+        )}
         <StyledButton
           onClick={e => {
             e.stopPropagation();
@@ -254,11 +274,14 @@ function DashboardTable({
 
     if (column.key === ResponseKeys.NAME) {
       return (
-        <Text ellipsis variant="accent">
-          <Link to={`/organizations/${organization.slug}/dashboard/${dataRow.id}/`}>
-            {dataRow[ResponseKeys.NAME]}
-          </Link>
-        </Text>
+        <Flex align="center" gap="sm">
+          <Text ellipsis variant="accent">
+            <Link to={`/organizations/${organization.slug}/dashboard/${dataRow.id}/`}>
+              {dataRow[ResponseKeys.NAME]}
+            </Link>
+          </Text>
+          {dataRow.isHidden && <Tag variant="muted">{t('Hidden')}</Tag>}
+        </Flex>
       );
     }
 

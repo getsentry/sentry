@@ -99,6 +99,8 @@ export type DashboardsEventParameters = {
   'dashboards_manage.paginate': Record<string, unknown>;
   'dashboards_manage.search': Record<string, unknown>;
   'dashboards_manage.toggle_favorite': {dashboard_id: string; favorited: boolean};
+  'dashboards_manage.toggle_hidden': {dashboard_id: string; hidden: boolean};
+  'dashboards_manage.toggle_show_hidden': {show_hidden: boolean};
   'dashboards_views.insights_redirect': {
     dashboard_id: string;
     prebuilt_id: number;
@@ -195,6 +197,9 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards_manage.duplicate': 'Dashboards Manager: Dashboard Duplicated',
   'dashboards_manage.paginate': 'Dashboards Manager: Paginate',
   'dashboards_manage.toggle_favorite': 'Dashboards Manager: Dashboard Favorite Toggled',
+  'dashboards_manage.toggle_hidden': 'Dashboards Manager: Dashboard Hidden Toggled',
+  'dashboards_manage.toggle_show_hidden':
+    'Dashboards Manager: Show Hidden Dashboards Toggled',
   'dashboards_views.widget_viewer.edit': 'Widget Viewer: Edit Widget Modal Opened',
   'dashboards_views.widget_viewer.open': 'Widget Viewer: Opened',
   'dashboards_views.widget_viewer.open_source':
