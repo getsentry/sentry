@@ -25,6 +25,8 @@ import {
 
 export const DROPPED_DATA_SERIES_ID = '__dropped_data__';
 
+const CLIENT_DISCARD_LABEL = 'Client discard';
+
 // ECharts does not use the documented 20% `barCategoryGap` when the option is
 // omitted. For a single stacked series it picks max(35 - 4, 15)% = 31%, so
 // bars fill 69% of the time slot. Matching that keeps pills from overrunning
@@ -68,10 +70,21 @@ interface DroppedDataSeriesProps {
 }
 
 function formatBucketTooltip(bucket: Bucket): string {
-  const annotationLines = bucket.annotations
+  // Multiple annotations in a bucket can share a label (e.g. different `INVALID`
+  // reasons all render as "Invalid or malformed"). Sum their counts so each
+  // label shows a single combined line. A Map preserves first-seen order.
+  const countsByLabel = new Map<string, number>();
+  for (const annotation of bucket.annotations) {
+    countsByLabel.set(
+      annotation.label,
+      (countsByLabel.get(annotation.label) ?? 0) + annotation.droppedCount
+    );
+  }
+
+  const annotationLines = Array.from(countsByLabel.entries())
     .map(
-      annotation =>
-        `<div>${escape(annotation.label)} — ${annotation.droppedCount.toLocaleString()}</div>`
+      ([label, droppedCount]) =>
+        `<div>${escape(label)} — ${droppedCount.toLocaleString()}</div>`
     )
     .join('');
 
@@ -216,7 +229,12 @@ export function useDroppedDataBand({
   const chartRef = useRef<ReactEchartsRef | null>(null);
 
   const buckets = useMemo(
-    () => groupIntoBuckets(annotations ?? []).filter(bucket => bucket.severity > 0),
+    () =>
+      groupIntoBuckets(
+        (annotations ?? []).filter(
+          annotation => annotation.label !== CLIENT_DISCARD_LABEL
+        )
+      ).filter(bucket => bucket.severity > 0),
     [annotations]
   );
 
