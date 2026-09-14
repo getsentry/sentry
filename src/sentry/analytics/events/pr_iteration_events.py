@@ -86,23 +86,6 @@ class AiAutofixPrIterationFeedbackBatchBlockedEvent(analytics.Event):
     outcome: str
 
 
-@analytics.eventclass("ai.autofix.pr_iteration.check_suite_concluded")
-class AiAutofixPrIterationCheckSuiteConcludedEvent(analytics.Event):
-    """One CI check suite that concluded on a PR with an Autofix run.
-
-    Join to a feedback batch on ``head_sha``.
-    """
-
-    organization_id: int
-    run_id: int
-    head_sha: str
-    conclusion: str
-    app_name: str
-    check_suite_id: int
-    updated_at: str | None = None
-
-
 analytics.register(AiAutofixPrIterationMissingPermissionsEvent)
 analytics.register(AiAutofixPrIterationFeedbackBatchCompletedEvent)
 analytics.register(AiAutofixPrIterationFeedbackBatchBlockedEvent)
-analytics.register(AiAutofixPrIterationCheckSuiteConcludedEvent)

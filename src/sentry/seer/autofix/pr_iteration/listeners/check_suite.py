@@ -4,10 +4,6 @@ import orjson
 import sentry_sdk
 from pydantic import ValidationError
 
-from sentry import analytics
-from sentry.analytics.events.pr_iteration_events import (
-    AiAutofixPrIterationCheckSuiteConcludedEvent,
-)
 from sentry.scm.private.event_stream import scm_event_stream
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.autofix.constants import AutofixReferrer
@@ -17,7 +13,6 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     GREEN_CONCLUSIONS,
     READY_FOR_REVIEW_EXTRA,
     REVIEW_REQUESTS_EXTRA,
-    GithubCheckSuiteEvent,
     ResolvedGreenCheckSuite,
     confirm_green_check_suite,
     green_review_side_effects_enabled,
@@ -127,31 +122,6 @@ def _retrigger_deferred_iteration(
     )
 
 
-def _record_check_suite_concluded(
-    log_ctx: PrIterationLogContext,
-    *,
-    event: GithubCheckSuiteEvent,
-    organization_id: int,
-    run_id: int,
-) -> None:
-    """Record one concluded suite so Hex can join it to the batch that pushed the commit."""
-    try:
-        suite = event.check_suite
-        analytics.record(
-            AiAutofixPrIterationCheckSuiteConcludedEvent(
-                organization_id=organization_id,
-                run_id=run_id,
-                head_sha=suite.head_sha,
-                conclusion=suite.conclusion or "",
-                app_name=suite.app.name,
-                check_suite_id=suite.id,
-                updated_at=suite.updated_at,
-            )
-        )
-    except Exception:
-        log_ctx.error("autofix.pr_iteration.check_suite.analytics_failed")
-
-
 @scm_event_stream.listen_for(event_type="check_suite")
 def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
     if check_suite_event.action != "completed":
@@ -182,12 +152,6 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
             organization_id=resolved.organization.id,
             group_id=resolved.autofix_run.group_id,
             create=False,
-        )
-        _record_check_suite_concluded(
-            log_ctx,
-            event=resolved.event,
-            organization_id=resolved.organization.id,
-            run_id=run_state.run_id,
         )
         # Peek the queue for parked check-suite feedback on this head, then
         # ``should_defer_pr_iteration`` (GitHub sweep) only if something is
@@ -262,9 +226,6 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
         run_state=agent_state,
         organization_id=organization_id,
         group_id=autofix_run.group_id,
-    )
-    _record_check_suite_concluded(
-        log_ctx, event=source.event, organization_id=organization_id, run_id=agent_state.run_id
     )
 
     # Report failures here rather than only in the SCM event stream so they
