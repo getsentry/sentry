@@ -815,7 +815,6 @@ export interface EventTransaction extends Omit<
   >;
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
-  perfProblem?: PerformanceDetectorData;
 }
 
 export interface AggregateEventTransaction extends Omit<
