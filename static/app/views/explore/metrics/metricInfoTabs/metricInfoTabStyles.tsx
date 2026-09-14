@@ -63,6 +63,8 @@ export const StyledSimpleTableRowCell = styled(SimpleTable.RowCell)<{
   source: MetricsSamplesTableSource;
   noPadding?: boolean;
 }>`
+  /* Leave room for 24px cell actions and their hover and focus outlines. */
+  min-height: 32px;
   padding: ${p =>
     p.noPadding
       ? 0
