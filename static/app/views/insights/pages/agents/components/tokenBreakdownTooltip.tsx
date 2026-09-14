@@ -2,9 +2,10 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
+
+import {ModelName} from './modelName';
 
 export interface TokenBreakdownDetails {
   cacheRead: number;
@@ -23,14 +24,10 @@ export function TokenBreakdownTooltip({
   breakdowns: TokenBreakdownDetails[];
 }) {
   return (
-    <Stack gap="md">
+    <Stack gap="0">
       {breakdowns.map((breakdown, index) => (
-        <BreakdownGroup key={breakdown.model ?? index}>
-          {breakdown.model && (
-            <Text size="sm" bold align="left">
-              {breakdown.model}
-            </Text>
-          )}
+        <BreakdownGroup gap="sm" key={breakdown.model ?? index}>
+          {breakdown.model && <ModelName modelId={breakdown.model} size={14} gap="sm" />}
           <TokenBreakdownGrid>
             {breakdown.isComplete ? <CompleteBreakdown breakdown={breakdown} /> : null}
             <span>{t('Total')}</span>
@@ -87,13 +84,18 @@ function CompleteBreakdown({breakdown}: {breakdown: TokenBreakdownDetails}) {
   );
 }
 
-const BreakdownGroup = styled('div')`
+const BreakdownGroup = styled(Stack)`
   width: 100%;
+  padding-bottom: ${p => p.theme.space.md};
   text-align: left;
 
   & + & {
     border-top: 1px solid ${p => p.theme.tokens.border.primary};
     padding-top: ${p => p.theme.space.md};
+  }
+
+  &:last-child {
+    padding-bottom: 0;
   }
 `;
 
