@@ -44,8 +44,6 @@ class CodeMapping(NamedTuple):
 SLASH = "/"
 BACKSLASH = "\\"  # This is the Python representation of a single backslash
 
-CodeMappingKey = tuple[str, str]
-
 
 def derive_code_mappings(
     organization: Organization,
@@ -73,7 +71,7 @@ class CodeMappingTreesHelper:
     def __init__(self, trees: Mapping[str, RepoTree]):
         self.trees = trees
         # Multiple source roots may legitimately share the same stack root in one monorepo.
-        self.code_mappings: dict[CodeMappingKey, CodeMapping] = {}
+        self.code_mappings: dict[CodeMapping, CodeMapping] = {}
 
     def generate_code_mappings(
         self, frames: Sequence[Mapping[str, Any]], platform: str | None = None
@@ -171,12 +169,11 @@ class CodeMappingTreesHelper:
         for stackframes in buckets.values():
             for frame_filename in stackframes:
                 for code_mapping in self._find_code_mappings(frame_filename):
-                    mapping_key = (code_mapping.stacktrace_root, code_mapping.source_path)
-                    if mapping_key not in self.code_mappings:
+                    if code_mapping not in self.code_mappings:
                         # This allows processing some stack frames that
                         # were matching more than one file
                         reprocess = True
-                        self.code_mappings[mapping_key] = code_mapping
+                        self.code_mappings[code_mapping] = code_mapping
         return reprocess
 
     def _find_code_mappings(self, frame_filename: FrameInfo) -> list[CodeMapping]:
@@ -201,15 +198,13 @@ class CodeMappingTreesHelper:
             logger.warning("No files matched for %s", frame_filename.raw_path)
             return []
 
-        unique_code_mappings = {
-            (code_mapping.stacktrace_root, code_mapping.source_path): code_mapping
-            for code_mapping in code_mappings
-        }
-        if len({code_mapping.repo.name for code_mapping in unique_code_mappings.values()}) > 1:
+        # Keep repository identity so equal roots in different repositories stay ambiguous.
+        unique_code_mappings = list(dict.fromkeys(code_mappings))
+        if len({code_mapping.repo for code_mapping in unique_code_mappings}) > 1:
             logger.warning("More than one repo matched %s", frame_filename.raw_path)
             return []
 
-        return list(unique_code_mappings.values())
+        return unique_code_mappings
 
     def _generate_code_mapping_from_tree(
         self,
@@ -303,7 +298,7 @@ class CodeMappingTreesHelper:
         return any(
             code_mapping.source_path
             for code_mapping in self.code_mappings.values()
-            if src_file.startswith(f"{code_mapping.source_path}/")
+            if src_file.startswith(f"{code_mapping.source_path.rstrip('/')}/")
         )
 
     def __repr__(self) -> str:
