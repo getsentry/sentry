@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Literal
 from unittest.mock import patch
 
 from sentry.seer.agent.client_models import (
@@ -242,7 +243,9 @@ def _step_checkpoints(mock_metrics) -> list[str]:
     ]
 
 
-def _unsynced_state(status: str = "completed") -> SeerRunState:
+def _unsynced_state(
+    status: Literal["processing", "completed", "error", "awaiting_user_input"] = "completed",
+) -> SeerRunState:
     state = _state(
         [_iteration_block(0, commit_sha="iteration-sha")],
         repo_pr_states={"test-repo": RepoPRState(repo_name="test-repo", commit_sha="synced-sha")},
