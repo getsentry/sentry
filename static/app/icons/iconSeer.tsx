@@ -10,7 +10,7 @@ import {useIconDefaults} from './useIconDefaults';
 const supportsCssDAnimation =
   typeof CSS !== 'undefined' &&
   CSS.supports('d: path("M0 0")') &&
-  !(/Safari\//.test(navigator.userAgent) && !/Chrom/.test(navigator.userAgent));
+  !(/Safari\//.test(navigator?.userAgent) && !/Chrom/.test(navigator?.userAgent));
 
 interface IconSeerProps extends SVGIconProps {
   animation?: 'idle' | 'loading';
