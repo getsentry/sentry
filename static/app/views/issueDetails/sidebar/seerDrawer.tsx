@@ -16,6 +16,7 @@ export const useOpenSeerDrawer = ({group, project}: {group: Group; project: Proj
   const navigate = useNavigate();
   const location = useLocation();
   const locationRef = useRef(location); // prevents stale location in onClose
+  // oxlint-disable-next-line react/refs
   locationRef.current = location; // sync on every render
   const organization = useOrganization();
 

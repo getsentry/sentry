@@ -58,6 +58,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
   }, [props.event]);
 
   const projectsRef = useRef(projects);
+  // oxlint-disable-next-line react/refs
   projectsRef.current = projects;
 
   useEffect(() => {
