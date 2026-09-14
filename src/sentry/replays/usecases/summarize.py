@@ -348,13 +348,13 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
     try:
         match event_type:
             case EventType.CLICK:
-                message = event["data"]["payload"]["message"]
+                message = event["data"]["payload"].get("message", "an element")
                 return f"User clicked on {message} at {timestamp}"
             case EventType.DEAD_CLICK:
-                message = event["data"]["payload"]["message"]
+                message = event["data"]["payload"].get("message", "an element")
                 return f"User clicked on {message} but the triggered action was slow to complete at {timestamp}"
             case EventType.RAGE_CLICK:
-                message = event["data"]["payload"]["message"]
+                message = event["data"]["payload"].get("message", "an element")
                 return f"User rage clicked on {message} but the triggered action was slow to complete at {timestamp}"
             case EventType.NAVIGATION_SPAN:
                 # for web replays, we favor NAVIGATION_SPAN
