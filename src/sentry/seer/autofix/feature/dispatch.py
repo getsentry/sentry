@@ -21,7 +21,6 @@ from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.feature.models import (
     FEATURE_ID,
     AutofixFeaturePayload,
-    AutofixRCATweaks,
     RCAStepArgs,
 )
 from sentry.seer.autofix.steps import AutofixStep
@@ -73,7 +72,6 @@ def trigger_autofix_feature(
             )
             raise NoSeerQuotaException()
 
-    rca_step_args = args.step_args
     payload = AutofixFeaturePayload(
         group_id=group.id,
         project_id=group.project_id,
@@ -81,12 +79,6 @@ def trigger_autofix_feature(
         title=group.title or "Unknown error",
         culprit=group.culprit or "unknown",
         on_completion_hook=extract_hook_definition(AutofixOnCompletionHook, call_on_failure=True),
-        repo_pins=rca_step_args.repo_pins,
-        tweaks=AutofixRCATweaks(
-            intelligence_level=rca_step_args.intelligence_level,
-            reasoning_effort=rca_step_args.reasoning_effort,
-            user_context=args.user_context,
-        ),
         step=args.step,
         user_context=args.user_context,
         stopping_point=(args.stopping_point.value if args.stopping_point is not None else None),
