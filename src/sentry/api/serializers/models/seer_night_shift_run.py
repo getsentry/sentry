@@ -14,14 +14,13 @@ from sentry.api.serializers.models.pullrequest import (
 )
 from sentry.models.group import Group
 from sentry.models.pullrequest import PullRequest
-from sentry.seer.models.night_shift import (
-    SeerNightShiftRun,
-    SeerNightShiftRunErrorType,
-    SeerNightShiftRunResult,
-    SeerNightShiftRunShard,
-)
+from sentry.seer.models.night_shift import SeerNightShiftRunErrorType, SeerNightShiftRunResult
 from sentry.seer.models.run import SeerRunPullRequest
-from sentry.seer.models.workflow import SeerWorkflowStrategy
+from sentry.seer.models.workflow import (
+    SeerWorkflowRun,
+    SeerWorkflowRunExecution,
+    SeerWorkflowStrategy,
+)
 
 
 class SeerNightShiftRunResultResponse(TypedDict):
@@ -49,14 +48,14 @@ class SeerNightShiftRunIssueResponse(TypedDict):
     dateAdded: str
 
 
-class SeerNightShiftSeerRunResponse(TypedDict):
+class SeerWorkflowRunExecutionResponse(TypedDict):
     seerRunId: str | None
 
 
-class SeerNightShiftShardSerializer(Serializer[SeerNightShiftSeerRunResponse]):
+class SeerWorkflowRunExecutionSerializer(Serializer[SeerWorkflowRunExecutionResponse]):
     def serialize(
-        self, obj: SeerNightShiftRunShard, attrs: Mapping[str, Any], user: Any, **kwargs: Any
-    ) -> SeerNightShiftSeerRunResponse:
+        self, obj: SeerWorkflowRunExecution, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+    ) -> SeerWorkflowRunExecutionResponse:
         state_id = obj.seer_run.seer_run_state_id if obj.seer_run is not None else None
         return {"seerRunId": str(state_id) if state_id is not None else None}
 
@@ -69,21 +68,21 @@ class SeerNightShiftRunResponse(TypedDict):
     errorType: SeerNightShiftRunErrorType | None
     results: list[SeerNightShiftRunResultResponse]
     issues: list[SeerNightShiftRunIssueResponse]
-    seerRuns: list[SeerNightShiftSeerRunResponse]
+    seerRuns: list[SeerWorkflowRunExecutionResponse]
     triageStrategy: str
 
 
-@register(SeerNightShiftRun)
+@register(SeerWorkflowRun)
 class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
     def get_attrs(
-        self, item_list: Sequence[SeerNightShiftRun], user: Any, **kwargs: Any
-    ) -> dict[SeerNightShiftRun, dict[str, Any]]:
+        self, item_list: Sequence[SeerWorkflowRun], user: Any, **kwargs: Any
+    ) -> dict[SeerWorkflowRun, dict[str, Any]]:
         prefetch_related_objects(
             item_list,
             "results",
             Prefetch(
-                "shards",
-                queryset=SeerNightShiftRunShard.objects.order_by("id").select_related("seer_run"),
+                "executions",
+                queryset=SeerWorkflowRunExecution.objects.order_by("id").select_related("seer_run"),
             ),
         )
 
@@ -148,7 +147,7 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
 
     def serialize(
         self,
-        obj: SeerNightShiftRun,
+        obj: SeerWorkflowRun,
         attrs: Mapping[str, Any],
         user: Any,
         **kwargs: Any,
@@ -163,7 +162,7 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
             error_details = next(
                 (
                     s.extras
-                    for s in obj.shards.all()
+                    for s in obj.executions.all()
                     if (s.extras or {}).get("error_message") or (s.extras or {}).get("error_type")
                 ),
                 {},
@@ -187,7 +186,9 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
                 )
                 for r in triage_results
             ],
-            "seerRuns": serialize(list(obj.shards.all()), user, SeerNightShiftShardSerializer()),
+            "seerRuns": serialize(
+                list(obj.executions.all()), user, SeerWorkflowRunExecutionSerializer()
+            ),
             # Match the pre-migration column behavior: always "agentic_triage"
             # in this PR. The multi-kind feature PR will refine this once
             # other kinds can produce runs.

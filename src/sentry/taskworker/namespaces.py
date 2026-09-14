@@ -231,6 +231,16 @@ preprod_tasks = app.taskregistry.create_namespace(
     app_feature="preprod",
 )
 
+preprod_size_tasks = app.taskregistry.create_namespace(
+    "preprod.size",
+    app_feature="preprod_size",
+)
+
+preprod_snapshots_tasks = app.taskregistry.create_namespace(
+    "preprod.snapshots",
+    app_feature="preprod_snapshots",
+)
+
 profiling_tasks = app.taskregistry.create_namespace(
     "profiling",
     app_feature="profiles",

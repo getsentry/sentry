@@ -11,7 +11,7 @@ export const noStaticTranslations = ESLintUtils.RuleCreator.withoutDocs({
     schema: [],
     messages: {
       forbidden:
-        'td() must use ATTRIBUTE_SEARCH_METADATA[key].brief from @sentry/conventions',
+        'td() must use ATTRIBUTE_SEARCH_METADATA[key].brief from @sentry/conventions/attributes/search',
     },
   },
 

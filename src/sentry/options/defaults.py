@@ -668,6 +668,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "relay.generic-metrics.disabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -1040,28 +1047,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Transaction events
-# True => kill switch to disable ingestion of transaction events for internal project.
-register(
-    "transaction-events.force-disable-internal-project",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
-# Killswitch for sending internal errors to the internal project or
-# `SENTRY_SDK_CONFIG.relay_dsn`. Set to `0` to only send to
-# `SENTRY_SDK_CONFIG.dsn` (the "upstream transport") and nothing else.
-#
-# Note: A value that is neither 0 nor 1 is regarded as 0
-register("store.use-relay-dsn-sample-rate", default=1, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# A rate that enables statsd item sending (DDM data) to s4s
-register("store.allow-s4s-ddm-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Sample rate for transaction/span data sent to S4S upstream (1.0 = keep all, 0.05 = keep 5%)
-register("store.s4s-transaction-sample-rate", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 
 # Killswitch to stop storing any reprocessing payloads.
 register("store.reprocessing-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1389,6 +1374,14 @@ register(
     type=Float,
     default=0.10,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Fuzzy resolution always runs after an exact email miss so its proposal can be
+# inspected. This controls whether that proposal is used in the delivered prediction.
+register(
+    "seer.smart_assignment.fuzzy_user_matching.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Spread child run_auto_transition_issues_* tasks across this many seconds
@@ -2410,7 +2403,8 @@ register(
     30,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Toggles emitting the smallest-transaction sampling-factor bucket metric during transaction rebalancing.
+# Nothing reads this option any more. It stays registered until the options automator
+# has unset it, since the automator can only unset a registered option.
 register(
     "dynamic-sampling.boost_low_volume_transactions.emit_smallest_transaction_factor_metric",
     default=False,
@@ -2459,37 +2453,35 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Killswitch for the legacy dynamic sampling pipeline. When set to True, the four
-# scheduled jobs (sliding_window_org, boost_low_volume_projects,
-# boost_low_volume_transactions, recalibrate_orgs) exit before they do any work.
+# Nothing reads this option any more. It stays registered until the options automator
+# has unset it, since the automator can only unset a registered option.
 register(
     "dynamic-sampling.legacy.killswitch",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deterministic % rollout of the per-org dynamic sampling pipeline, keyed on
-# organization id. A value of 0.0 disables the pipeline for every org; 1.0
-# enables it for every org. Intermediate values select a stable hash-based
-# subset so toggling the rate up and down does not reshuffle which orgs run.
+# Share of organizations the per-org dynamic sampling pipeline runs for, keyed on
+# organization id. 1.0 runs it for every org and is the default, so that the pipeline
+# works without any option set; 0.0 stops it for every org. Intermediate values select a
+# stable hash-based subset, so lowering and raising the rate does not reshuffle which
+# orgs run.
 register(
     "dynamic-sampling.per_org.rollout-rate",
     type=Float,
-    default=0.0,
+    default=1.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deterministic % rollout of serving the per-org pipeline's results, keyed on organization
-# id. Above 0.0, rule generation reads the project, transaction and recalibration sample
-# rates of the selected orgs from the per-org caches instead of the legacy ones. An org
-# only has per-org cache entries once dynamic-sampling.per_org.rollout-rate selects it too.
-# An org switches over as a whole:
-# until a pass has stored its project sample rates, rule generation serves all of its
-# values from the legacy caches, and from then on all of them from the per-org ones.
+# Share of organizations whose rules read the project, transaction and recalibration
+# sample rates from the per-org pipeline's caches, keyed on organization id. 1.0 serves
+# every org from them and is the default; 0.0 serves every org from the legacy caches. An
+# org only has per-org cache entries once dynamic-sampling.per_org.rollout-rate selects it
+# too, and a project without a stored per-org rate is sampled in full.
 register(
     "dynamic-sampling.per_org.serving-rollout-rate",
     type=Float,
-    default=0.0,
+    default=1.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2514,34 +2506,13 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "dynamic-sampling.per_org.project-balancing-debug-project-ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "dynamic-sampling.per_org.transaction-volume-debug-project-ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
+# Nothing reads this option any more. It stays registered until the options automator
+# has unset it, since the automator can only unset a registered option.
 register(
     "dynamic-sampling.per_org.sample-rates-summary-log-rollout-rate",
     type=Float,
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Organizations for which the per-org pipeline logs the EAP-vs-outcomes sliding-window
-# sample rate comparison. Empty disables the comparison entirely.
-register(
-    "dynamic-sampling.per_org.sliding-window-comparison-org-ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Per-project sample rate overrides for custom dynamic sampling. Maps a stringified
@@ -2554,11 +2525,8 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Controls the intensity of dynamic sampling transaction rebalancing. 0.0 = explict rebalancing
-# not performed, 1.0= full rebalancing (tries to bring everything to mean). Note that even at 0.0
-# there will still be some rebalancing between the explicit and implicit transactions ( so setting rebalancing
-# to 0.0 is not the same as no rebalancing. To effectively disable rebalancing set the number of explicit
-# transactions to be rebalance (both small and large) to 0.
+# Nothing reads this option any more. It stays registered until the options automator
+# has unset it, since the automator can only unset a registered option.
 register(
     "dynamic-sampling.prioritise_transactions.rebalance_intensity",
     default=0.8,
@@ -2574,16 +2542,6 @@ register(
 )
 register(
     "hybrid_cloud.disable_tombstone_cleanup",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "hybrid_cloud.write_deletion_watermark_to_postgres",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "hybrid_cloud.read_deletion_watermark_from_postgres",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -3676,6 +3634,12 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "workflow_engine.tasks.health_check_organization.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "workflow_engine.group.type_id.open_periods_type_denylist",
@@ -4462,4 +4426,11 @@ register(
     default=[],
     type=Sequence,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "preprod.snapshots.auto-approve-sibling-diffs.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

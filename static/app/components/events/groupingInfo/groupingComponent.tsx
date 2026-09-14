@@ -1,11 +1,10 @@
-import {Activity, useState} from 'react';
+import {Activity, useId, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 
 import {IconChevron} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import type {EventGroupComponent} from 'sentry/types/event';
 
 import {GroupingComponentChildren} from './groupingComponentChildren';
@@ -18,6 +17,7 @@ type Props = {
 };
 
 export function GroupingComponent({component, showNonContributing}: Props) {
+  const contentId = useId();
   const shouldInlineValue = shouldInlineComponentValue(component);
   const GroupingComponentListItems =
     component.id === 'stacktrace'
@@ -36,7 +36,9 @@ export function GroupingComponent({component, showNonContributing}: Props) {
           variant="link"
           icon={<IconChevron direction={folded ? 'right' : 'down'} legacySize="10px" />}
           onClick={() => setFolded(!folded)}
-          aria-label={folded ? t('expand') : t('collapse')}
+          aria-label={component.name || component.id}
+          aria-expanded={!folded}
+          aria-controls={contentId}
         />
       )}
 
@@ -47,7 +49,11 @@ export function GroupingComponent({component, showNonContributing}: Props) {
         </span>
 
         <Activity mode={folded ? 'hidden' : 'visible'}>
-          <GroupingComponentList isInline={shouldInlineValue} hasFold={canFold}>
+          <GroupingComponentList
+            id={contentId}
+            isInline={shouldInlineValue}
+            hasFold={canFold}
+          >
             <GroupingComponentListItems
               component={component}
               showNonContributing={showNonContributing}
@@ -68,7 +74,7 @@ const CollapseButtonWrapper = styled('div')`
 const CollapseButton = styled(Button)<{folded: boolean}>`
   grid-column: 1;
   border: none;
-  opacity: ${p => (p.folded ? 1 : 0.25)};
+  opacity: ${p => (p.folded ? 1 : 0.65)};
   transition: opacity 0.2s ease;
   align-self: ${p => (p.folded ? 'center' : 'baseline')};
   color: ${p =>

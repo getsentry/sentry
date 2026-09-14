@@ -248,7 +248,8 @@ def format_missing_base_snapshot_pr_comment(
 ) -> str:
     base_sha_markdown = format_commit_sha_markdown(base_sha, repo_url=base_repo_url)
     message = (
-        f"No base snapshot found for {base_sha_markdown}. "
-        "Make sure snapshots are uploaded from your main branch."
+        f"Base commit {base_sha_markdown} did not produce snapshots to compare against. "
+        "Did its snapshot job fail? "
+        "Try rebasing this branch on a commit with a successful snapshot job."
     )
     return _format_solo_comment(artifacts, snapshot_metrics_map, message, project=project)
