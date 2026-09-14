@@ -1,5 +1,5 @@
 import {createContext, useContext, useEffect} from 'react';
-import {GEN_AI_CONVERSATION_ID} from '@sentry/conventions/attributes';
+import {SEARCH_GEN_AI__CONVERSATION__ID} from '@sentry/conventions/attributes/search';
 import * as Sentry from '@sentry/react';
 
 /**
@@ -94,7 +94,7 @@ export function useTrackEmbedRendered({
       // The message has no such pair: `gen_ai.response.id` means the
       // provider's completion id, not a Seer block id, so writing a block id
       // there would put two meanings behind one key.
-      [GEN_AI_CONVERSATION_ID]: scope.conversationId,
+      [SEARCH_GEN_AI__CONVERSATION__ID]: scope.conversationId,
       'seer_embed.conversation_id': scope.conversationId,
       'seer_embed.message_id': scope.messageId,
       // Pre-composed because the query layer cannot concatenate attributes:

@@ -1,23 +1,14 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {ThresholdsSection as Thresholds} from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
 import {
   useWidgetBuilderContext,
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
-jest.mock('sentry/utils/useNavigate');
 describe('Thresholds', () => {
-  let mockNavigate!: jest.Mock;
-
-  beforeEach(() => {
-    mockNavigate = jest.fn();
-    jest.mocked(useNavigate).mockReturnValue(mockNavigate);
-  });
-
   it('sets thresholds to undefined if the thresholds are fully wiped', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <Thresholds dataType="duration" dataUnit="millisecond" />
       </WidgetBuilderProvider>,
@@ -35,18 +26,13 @@ describe('Thresholds', () => {
 
     await userEvent.clear(screen.getByLabelText('First Maximum'));
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          thresholds: undefined,
-        }),
-      }),
-      expect.anything()
-    );
+    await waitFor(() => {
+      expect(router.location.query).not.toHaveProperty('thresholds');
+    });
   });
 
   it('sets a threshold when applied', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <Thresholds dataType="duration" dataUnit="millisecond" />
       </WidgetBuilderProvider>
@@ -56,18 +42,15 @@ describe('Thresholds', () => {
     await userEvent.type(screen.getByLabelText('Second Maximum'), '200');
     await userEvent.tab();
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          thresholds: '{"max_values":{"max1":100,"max2":200},"unit":null}',
-        }),
-      }),
-      expect.anything()
-    );
+    await waitFor(() => {
+      expect(router.location.query.thresholds).toBe(
+        '{"max_values":{"max1":100,"max2":200},"unit":null}'
+      );
+    });
   });
 
   it('updates the unit when applied', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <Thresholds dataType="duration" dataUnit="millisecond" />
       </WidgetBuilderProvider>,
@@ -86,14 +69,11 @@ describe('Thresholds', () => {
     await userEvent.click(screen.getAllByText('millisecond')[0]!);
     await userEvent.click(screen.getByText('second'));
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          thresholds: '{"max_values":{"max1":100,"max2":200},"unit":"second"}',
-        }),
-      }),
-      expect.anything()
-    );
+    await waitFor(() => {
+      expect(router.location.query.thresholds).toBe(
+        '{"max_values":{"max1":100,"max2":200},"unit":"second"}'
+      );
+    });
   });
 
   it('displays error', async () => {
@@ -122,7 +102,7 @@ describe('Thresholds', () => {
   });
 
   it('accepts decimal values', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <Thresholds dataType="duration" dataUnit="millisecond" />
       </WidgetBuilderProvider>
@@ -134,14 +114,11 @@ describe('Thresholds', () => {
     expect((await screen.findAllByDisplayValue('0.5'))[0]).toBeInTheDocument();
     expect((await screen.findAllByDisplayValue('100.5456'))[0]).toBeInTheDocument();
 
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          thresholds: '{"max_values":{"max1":0.5,"max2":100.5456},"unit":null}',
-        }),
-      }),
-      expect.anything()
-    );
+    await waitFor(() => {
+      expect(router.location.query.thresholds).toBe(
+        '{"max_values":{"max1":0.5,"max2":100.5456},"unit":null}'
+      );
+    });
   });
 
   it('preserves preferred polarity when thresholds are cleared', async () => {

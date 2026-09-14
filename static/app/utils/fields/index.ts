@@ -1,4 +1,4 @@
-import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions';
+import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions/attributes/search';
 
 import {t, td} from 'sentry/locale';
 import {

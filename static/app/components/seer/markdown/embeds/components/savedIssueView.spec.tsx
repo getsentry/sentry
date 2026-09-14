@@ -40,9 +40,14 @@ describe('saved issue view embed', () => {
 
     renderEmbed({name: 'savedIssueView', data: {id: view.id}});
 
+    // The block's name is the collapse toggle; the link out is a separate target.
     expect(
-      await screen.findByRole('link', {name: view.name}, {timeout: 10_000})
-    ).toHaveAttribute('href', '/organizations/org-slug/issues/views/77/');
+      await screen.findByRole('button', {name: view.name}, {timeout: 10_000})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'View Issues'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/views/77/'
+    );
     expect(await screen.findByText(issue.shortId)).toBeInTheDocument();
     expect(viewRequest).toHaveBeenCalled();
     await waitFor(() =>

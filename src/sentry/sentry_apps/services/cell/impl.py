@@ -48,6 +48,14 @@ from sentry.users.services.user import RpcUser
 COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
 
 
+def _get_external_issue_action_actor(
+    installation: RpcSentryAppInstallation, user: RpcUser
+) -> GroupActionActor:
+    if user.is_sentry_app:
+        return GroupActionActor.sentry_app(installation.sentry_app.id)
+    return GroupActionActor.user(user.id)
+
+
 class DatabaseBackedSentryAppCellService(SentryAppCellService):
     def get_select_options(
         self,
@@ -158,7 +166,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
                 )
             )
 
-        actor = GroupActionActor.user(user.id)
+        actor = _get_external_issue_action_actor(installation, user)
         try:
             with action_context_scope(source=ActionSource.API, actor=actor):
                 external_issue = IssueLinkCreator(
@@ -241,7 +249,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
                 )
             )
 
-        actor = GroupActionActor.user(user.id)
+        actor = _get_external_issue_action_actor(installation, user)
         try:
             external_issue_creator = ExternalIssueCreator(
                 install=installation,
@@ -341,7 +349,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             source=ActionSource.API,
             group_id=platform_external_issue.group_id,
             project=issue_project,
-            actor=GroupActionActor.user(user.id),
+            actor=_get_external_issue_action_actor(installation, user),
         )
 
         deletions.exec_sync(platform_external_issue)

@@ -150,6 +150,20 @@ register(
 )
 
 register(
+    "hybrid_cloud.write_outbox_backfill_watermark_to_postgres",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "hybrid_cloud.read_outbox_backfill_watermark_from_postgres",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "hybrid_cloud.authentication.disabled_organization_shards",
     type=Sequence,
     default=[],

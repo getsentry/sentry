@@ -51,16 +51,19 @@ function GroupLayoutBody({children}: {children: React.ReactNode}) {
   );
 }
 
-function EventDetailsSection({children}: {children: React.ReactNode}) {
+function IssueDetailsColumn({children}: {children: React.ReactNode}) {
   const {isSidebarOpen} = useIssueDetails();
 
   return (
-    <EventSection
-      as="section"
-      background="secondary"
-      borderRight={isSidebarOpen ? {zero: 'none', '4xl': 'primary'} : 'none'}
-      borderBottom={{zero: 'primary', '4xl': 'none'}}
-    >
+    <Container borderRight={isSidebarOpen ? {zero: 'none', '4xl': 'primary'} : 'none'}>
+      {children}
+    </Container>
+  );
+}
+
+function EventDetailsSection({children}: {children: React.ReactNode}) {
+  return (
+    <EventSection as="section" background="secondary">
       {children}
     </EventSection>
   );
@@ -182,7 +185,7 @@ export function GroupDetailsLayout({
       >
         <GroupHeader group={group} event={event ?? null} project={project} />
         <GroupLayoutBody>
-          <div>
+          <IssueDetailsColumn>
             <SharedTourElement<IssueDetailsTour>
               id={IssueDetailsTour.AGGREGATES}
               demoTourId={DemoTourStep.ISSUES_AGGREGATES}
@@ -225,7 +228,7 @@ export function GroupDetailsLayout({
                 </div>
               )}
             </SharedTourElement>
-          </div>
+          </IssueDetailsColumn>
           <IssueDetailsSidebar group={group} event={event} project={project} />
         </GroupLayoutBody>
       </Container>
@@ -273,7 +276,14 @@ const NavigationSidebarWrapper = styled(Sticky, {
 `;
 
 const ContentPadding = styled('div')`
-  min-height: 100vh;
   padding: 0 var(--issue-details-inset, ${p => p.theme.space['2xl']})
     ${p => p.theme.space['2xl']} var(--issue-details-inset, ${p => p.theme.space['2xl']});
+
+  /* Fill the column beside the sidebar so a short tab keeps the secondary
+     background and the scroll position stable. Below this width the sidebar
+     stacks under the content, and the floor would only push it a full viewport
+     down. That is the common case once the Seer panel narrows the app content. */
+  @container (min-width: ${p => p.theme.container['4xl']}) {
+    min-height: 100vh;
+  }
 `;

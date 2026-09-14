@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Container, type ContainerProps} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import {KeyValueTable, KeyValueTableRow} from 'sentry/components/tables/keyValueTable';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -59,7 +59,7 @@ export type KeyValueTuple = {
 
 export function keyValueTableOrNotFound(data: KeyValueTuple[], notFoundText: string) {
   return data.length ? (
-    <StyledKeyValueTable noMargin>
+    <StyledKeyValueTable>
       {data.map(({key, value, type}) => (
         <KeyValueTableRow
           key={key}

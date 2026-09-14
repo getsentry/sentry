@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -7,9 +7,9 @@ import {Button} from '@sentry/scraps/button';
 import {InlineCode} from '@sentry/scraps/code';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 
+import {GcpVerificationResults} from 'sentry/components/gcpVerificationResults';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {
   PipelineDefinition,
@@ -24,15 +24,8 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import type {
-  GcpProjectResult,
   GcpVerificationInput,
   GcpVerifyConnectionResponse,
-} from 'sentry/utils/seer/gcpConnection';
-import {
-  describeService,
-  getFailedServices,
-  getStatusLabel,
-  getStatusVariant,
 } from 'sentry/utils/seer/gcpConnection';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -219,30 +212,6 @@ interface GcpVerificationStepData {
   projects: string[];
 }
 
-function GcpProjectStatus({project}: {project: GcpProjectResult}) {
-  const failedServices = getFailedServices(project);
-
-  return (
-    <Stack gap="xs">
-      <Flex gap="sm" align="center">
-        <StatusIndicator
-          variant={getStatusVariant(project.connectionStatus)}
-          animationIterationCount={1}
-        />
-        <Text bold>{project.gcpProjectId}</Text>
-        <Text variant="muted" size="sm">
-          {getStatusLabel(project.connectionStatus)}
-        </Text>
-      </Flex>
-      {failedServices.map(service => (
-        <Text key={service.service} variant="muted" size="sm">
-          {describeService(service)}
-        </Text>
-      ))}
-    </Stack>
-  );
-}
-
 function GcpVerificationStep({
   advance,
   isAdvancing,
@@ -292,6 +261,7 @@ function GcpVerificationStep({
         projects: result.projects.map(project => ({
           gcpProjectId: project.gcpProjectId,
           connectionStatus: project.connectionStatus,
+          services: project.services,
           errorDetail: project.errorDetail ?? null,
         })),
       });
@@ -305,6 +275,7 @@ function GcpVerificationStep({
       projects: (projects ?? []).map(gcpProjectId => ({
         gcpProjectId,
         connectionStatus: 'error' as const,
+        services: [],
         errorDetail: 'Verification could not be completed.',
       })),
     });
@@ -331,22 +302,19 @@ function GcpVerificationStep({
             )}
           </Alert>
         ) : result ? (
-          <Fragment>
-            <Alert variant={isConnected ? 'success' : 'warning'}>
-              {isConnected
-                ? t('Sentry can read telemetry from all of your connected GCP projects.')
-                : t(
-                    'Sentry could not read telemetry from every project. IAM changes can take a couple of minutes to take effect, so re-testing may help. You can also finish setup and re-test from the integration settings page.'
-                  )}
-            </Alert>
-            {result.projects.map(project => (
-              <GcpProjectStatus key={project.gcpProjectId} project={project} />
-            ))}
-          </Fragment>
+          <GcpVerificationResults result={result} />
         ) : null}
       </Stack>
 
-      <Flex gap="md">
+      {!isChecking && !isConnected && !isError && result && (
+        <Text size="sm" variant="muted" density="comfortable">
+          {t(
+            'You can finish setup and re-test from the integration settings page after resolving these issues.'
+          )}
+        </Text>
+      )}
+
+      <Flex gap="md" wrap="wrap">
         <Button
           variant="primary"
           onClick={handleContinue}
