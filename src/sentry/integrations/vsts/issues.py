@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import re
 from abc import ABC
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import TYPE_CHECKING, Any, NoReturn
+from urllib.parse import ParseResult
 
 from django.urls import reverse
 from django.utils.translation import gettext as _
@@ -16,6 +18,7 @@ from sentry.integrations.mixins.issues import IntegrationSyncTargetNotFound, Iss
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.integrations.types import IntegrationIssueConfigField, IntegrationProviderSlug
+from sentry.integrations.utils.issue_url import parse_issue_url
 from sentry.models.activity import Activity
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -247,6 +250,34 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
             "description": description,
             "metadata": {"display_name": "{}#{}".format(project_name, created_item["id"])},
         }
+
+    def get_issue_link_data(self, url: str) -> dict[str, str]:
+        parsed = parse_issue_url(url)
+        base = parse_issue_url(self.instance)
+
+        def account_and_path(parsed_url: ParseResult) -> tuple[str | None, str]:
+            if parsed_url.hostname == "dev.azure.com":
+                account, _, path = parsed_url.path.lstrip("/").partition("/")
+                return account.casefold(), f"/{path}"
+            if parsed_url.hostname and parsed_url.hostname.endswith(".visualstudio.com"):
+                return parsed_url.hostname.removesuffix(".visualstudio.com"), parsed_url.path
+            return None, parsed_url.path
+
+        account, path = account_and_path(parsed)
+        installed_account, _ = account_and_path(base)
+        match = re.fullmatch(r"/(?:[^/]+/)?_workitems/edit/(\d+)", path)
+        default_port = 443 if base.scheme == "https" else 80
+        if (
+            not account
+            or account != installed_account
+            or parsed.scheme != base.scheme
+            or (parsed.port or default_port) != (base.port or default_port)
+            or not match
+        ):
+            raise IntegrationFormError(
+                {"externalIssue": "Issue URL does not belong to this installation"}
+            )
+        return {"externalIssue": match[1]}
 
     def get_issue(self, issue_id: int, **kwargs: Any) -> Mapping[str, Any]:
         client = self.get_client()
