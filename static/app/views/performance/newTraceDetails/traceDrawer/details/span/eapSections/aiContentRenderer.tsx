@@ -111,10 +111,15 @@ interface AIContentRendererProps {
 
 /**
  * Tag names (case-insensitive, punctuation-insensitive) whose collapsible
- * blocks start expanded — the user's own message is the most useful content in
- * a transcript, so we don't hide it behind a caret.
+ * blocks start expanded because they contain the most useful context in a
+ * transcript.
  */
-const EXPANDED_BY_DEFAULT_TAGS = new Set(['usermessage', 'usermsg', 'userinput']);
+const EXPANDED_BY_DEFAULT_TAGS = new Set([
+  'currentinstruction',
+  'usermessage',
+  'usermsg',
+  'userinput',
+]);
 
 function isExpandedByDefaultTag(tagName: string): boolean {
   return EXPANDED_BY_DEFAULT_TAGS.has(tagName.toLowerCase().replace(/[-_]/g, ''));
@@ -125,11 +130,13 @@ function XmlTagBlock({
   attributes,
   content,
   collapsible,
+  defaultOpen,
 }: {
   attributes: string;
   content: string;
   tagName: string;
   collapsible?: boolean;
+  defaultOpen?: boolean;
 }) {
   const theme = useTheme();
   // Show the tag as it appears in the raw text (name + attributes), kept to a
@@ -154,7 +161,10 @@ function XmlTagBlock({
   if (collapsible) {
     return (
       <Container margin="sm 0">
-        <CollapsibleContent title={label} defaultOpen={isExpandedByDefaultTag(tagName)}>
+        <CollapsibleContent
+          title={label}
+          defaultOpen={defaultOpen || isExpandedByDefaultTag(tagName)}
+        >
           <Container paddingTop="md" paddingLeft="md">
             {body}
           </Container>
@@ -178,14 +188,20 @@ function XmlTagBlock({
 function MarkdownWithXmlRenderer({
   text,
   collapsibleXmlTags,
+  expandOnlyTag,
 }: {
   text: string;
   collapsibleXmlTags?: boolean;
+  expandOnlyTag?: boolean;
 }) {
   const segments = useMemo(
     () => parseXmlTagSegments(preprocessInlineXmlTags(text)),
     [text]
   );
+  const onlyTag =
+    expandOnlyTag &&
+    segments.filter(segment => segment.type === 'xml-tag').length === 1 &&
+    segments.every(segment => segment.type === 'xml-tag' || !segment.content.trim());
 
   return (
     <Fragment>
@@ -197,6 +213,7 @@ function MarkdownWithXmlRenderer({
             attributes={segment.attributes}
             content={segment.content}
             collapsible={collapsibleXmlTags}
+            defaultOpen={onlyTag}
           />
         ) : (
           <FencedMarkdown key={i} raw={segment.content} />
@@ -236,13 +253,13 @@ export function AIContentRenderer({
 
     case 'markdown-with-xml':
       if (inline) {
-        return <MarkdownWithXmlRenderer text={text} collapsibleXmlTags />;
+        return <MarkdownWithXmlRenderer text={text} collapsibleXmlTags expandOnlyTag />;
       }
       return (
         <TraceDrawerComponents.MultilineText
           clip={clipText}
           renderFormatted={rawText => (
-            <MarkdownWithXmlRenderer text={rawText} collapsibleXmlTags />
+            <MarkdownWithXmlRenderer text={rawText} collapsibleXmlTags expandOnlyTag />
           )}
         >
           {text}
