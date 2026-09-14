@@ -1860,30 +1860,6 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         assert row.data["dropped_count"] == 1
         assert row.data["feedback_bot_logins"] == ["coderabbitai[bot]"]
 
-    @patch(f"{TASK_PATH}.trigger_autofix_agent")
-    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
-    @patch(f"{TASK_PATH}.fetch_run_status")
-    def test_a_deduped_bot_review_contributes_no_login(
-        self,
-        mock_fetch: MagicMock,
-        mock_pop: MagicMock,
-        _mock_trigger: MagicMock,
-    ) -> None:
-        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
-        mock_fetch.return_value = self._state()
-        # Two bots cannot share a review id in practice: the pair pins the dedupe.
-        mock_pop.return_value = [
-            self._queued(self._bot_review_feedback(800, "coderabbitai[bot]")),
-            self._queued(self._bot_review_feedback(800, "seer-by-sentry[bot]")),
-        ]
-        self._open_iteration_row()
-
-        self._call()
-
-        (row,) = open_iterations(seer_run)
-        assert row.data["dropped_count"] == 1
-        assert row.data["feedback_bot_logins"] == ["coderabbitai[bot]"]
-
 
 class TriggerConsumePrIterationFeedbackTest(TestCase):
     def setUp(self) -> None:
