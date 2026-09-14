@@ -467,6 +467,13 @@ def consume_queued_autofix_feedback(
                 organization_id=organization_id,
                 reason=PauseReason.PR_CLOSED,
             )
+            record_pr_iteration_blocked(
+                log_ctx=log_ctx,
+                run_state=state,
+                run_id=run_id,
+                organization_id=organization_id,
+                outcome=outcome_for_pause(log_ctx, PauseReason.PR_CLOSED.value),
+            )
             log_ctx.info(
                 "autofix.pr_iteration.consume_feedback.skipped",
                 trigger_id=trigger_id,
