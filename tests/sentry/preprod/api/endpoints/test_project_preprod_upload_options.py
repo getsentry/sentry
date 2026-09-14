@@ -67,7 +67,7 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data["objectstore"]["usecase"] == "preprod_snapshots"
-        mock_get_session.assert_called_once_with(UsecaseId.SNAPSHOTS, self.project)
+        mock_get_session.assert_called_once_with(UsecaseId.PREPROD_SNAPSHOTS, self.project)
 
     @patch("sentry.preprod.api.endpoints.project_preprod_upload_options.get_session")
     def test_omitted_param_stays_preprod_after_flip(self, mock_get_session) -> None:

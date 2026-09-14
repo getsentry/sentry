@@ -110,6 +110,6 @@ def test_factory_follows_option(mock_get_session) -> None:
     with override_options({"preprod.snapshots.snapshots-usecase.enabled": True}):
         get_snapshot_storage(42, org=7)
     assert mock_get_session.call_args_list == [
-        call(UsecaseId.SNAPSHOTS, 42, org=7),
+        call(UsecaseId.PREPROD_SNAPSHOTS, 42, org=7),
         call(UsecaseId.PREPROD, 42, org=7),
     ]
