@@ -75,6 +75,7 @@ from sentry.models.custominboundfilter import (
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
+    DashboardHiddenUser,
     DashboardLastVisited,
     DashboardRevision,
 )
@@ -574,6 +575,10 @@ class ExhaustiveFixtures(Fixtures):
             dashboard=dashboard,
             user_id=owner_id,
             organization=org,
+        )
+        DashboardHiddenUser.objects.create(
+            user_id=owner_id,
+            dashboard=dashboard,
         )
         DashboardLastVisited.objects.create(
             user_id=owner_id,

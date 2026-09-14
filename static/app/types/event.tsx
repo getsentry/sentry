@@ -13,7 +13,7 @@ import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
-import type {IssueAttachment, IssueCategory, IssueType, UserReport} from './group';
+import type {IssueAttachment, IssueCategory, UserReport} from './group';
 import type {PlatformKey} from './platform';
 import type {Release} from './release';
 import type {StackTraceMechanism, StacktraceType} from './stacktrace';
@@ -695,13 +695,6 @@ type EventUser = {
   username?: string | null;
 };
 
-type PerformanceDetectorData = {
-  causeSpanIds: string[];
-  offenderSpanIds: string[];
-  parentSpanIds: string[];
-  issueType?: IssueType;
-};
-
 export type EventEvidenceDisplay = {
   important: boolean;
   name: string;
@@ -815,7 +808,6 @@ export interface EventTransaction extends Omit<
   >;
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
-  perfProblem?: PerformanceDetectorData;
 }
 
 export interface AggregateEventTransaction extends Omit<

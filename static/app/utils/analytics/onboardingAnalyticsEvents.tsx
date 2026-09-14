@@ -167,6 +167,7 @@ export type OnboardingEventParameters = {
   'onboarding.scm_welcome_agent_command_copied': {
     source: 'install_command' | 'prompt';
   };
+  'onboarding.scm_welcome_agentic_setup_viewed': Record<string, unknown>;
   'onboarding.scm_welcome_continue_clicked': Record<string, unknown>;
   'onboarding.scm_welcome_present_agentic_interstitial_clicked': Record<string, unknown>;
   'onboarding.scm_welcome_step_viewed': Record<string, unknown>;
@@ -293,6 +294,8 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.scm_view_sample_event_clicked': 'Onboarding: SCM View Sample Event Clicked',
   'onboarding.scm_welcome_agent_command_copied':
     'Onboarding: SCM Welcome Agent Command Copied',
+  'onboarding.scm_welcome_agentic_setup_viewed':
+    'Onboarding: SCM Welcome Agentic Setup Viewed',
   'onboarding.scm_welcome_continue_clicked': 'Onboarding: SCM Welcome Continue Clicked',
   'onboarding.scm_welcome_present_agentic_interstitial_clicked':
     'Onboarding: SCM Welcome Present Agentic Interstitial Clicked',
