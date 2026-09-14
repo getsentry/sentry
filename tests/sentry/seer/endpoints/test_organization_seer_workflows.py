@@ -1,12 +1,18 @@
 from datetime import datetime
 from unittest.mock import Mock, patch
 
+import pytest
+
+from sentry.hybridcloud.models.outbox import CellOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.pullrequest import PullRequestLifecycleState
+from sentry.receivers.outbox.cell import handle_seer_run_create
+from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.models.night_shift import (
     SeerNightShiftRunErrorType,
     SeerNightShiftRunResult,
 )
-from sentry.seer.models.run import SeerAgentRun, SeerRunPullRequest
+from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunPullRequest
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowRun,
@@ -15,8 +21,15 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.monitor_cleanup.constants import FEATURE
 from sentry.seer.monitor_cleanup.runs import deliver_monitor_cleanup_result
+from sentry.seer.workflows.runs import (
+    create_workflow_run,
+    deliver_workflow_result,
+    finish_workflow_run,
+)
+from sentry.seer.workflows.schemas import WorkflowResult
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.outbox import outbox_runner
 
 
 class OrganizationSeerWorkflowsTest(APITestCase):
@@ -368,9 +381,21 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         )
         assert workflow_run.executions.count() == 1
         assert run.run.user_id == self.user.id
-        assert run.run.seer_run_state_id == 1234
+        assert run.run.seer_run_state_id is None
+        assert run.run.mirror_status == SeerRunMirrorStatus.PENDING
         assert run.extras["status"] == "running"
         assert run.extras["results"] == []
+        self.dispatch.assert_not_called()
+        assert CellOutbox.objects.filter(
+            category=OutboxCategory.SEER_RUN_CREATE, object_identifier=run.run_id
+        ).exists()
+
+        with outbox_runner():
+            pass
+
+        dispatched_run = SeerRun.objects.get(id=run.run_id)
+        assert dispatched_run.seer_run_state_id == 1234
+        assert dispatched_run.mirror_status == SeerRunMirrorStatus.LIVE
         self.dispatch.assert_called_once()
         body = self.dispatch.call_args.args[0]
         assert body["feature_id"] == body["referrer"] == "monitor_cleanup"
@@ -407,13 +432,38 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             datetime.fromisoformat(response.json()[0]["dateCompleted"]) == output["dateCompleted"]
         )
 
-    def test_dispatch_failure_returns_error(self) -> None:
+    def test_dispatch_failure_appears_in_history(self) -> None:
         self.dispatch.return_value = Mock(status=422)
+        run = self.trigger()
+        self.dispatch.assert_not_called()
+        with outbox_runner():
+            pass
+        run.run.refresh_from_db()
+        assert run.run.mirror_status == SeerRunMirrorStatus.FAILED
         with self.feature(FEATURE):
-            response = self.get_error_response(
-                self.organization.slug, strategy="duplicate_monitors", status_code=500
-            )
-        assert response.data["detail"] == "Internal Error"
+            response = self.client.get(self.url)
+        assert response.status_code == 200
+        assert response.data[0]["extras"] == {"status": "failed"}
+        assert response.data[0]["errorMessage"] == "Seer could not start this workflow."
+
+    def test_transient_dispatch_failure_can_retry(self) -> None:
+        run = self.trigger()
+        outbox = CellOutbox.objects.get(
+            category=OutboxCategory.SEER_RUN_CREATE, object_identifier=run.run_id
+        )
+        self.dispatch.return_value = Mock(status=503)
+        with pytest.raises(RuntimeError, match="transient error 503"):
+            handle_seer_run_create(run.run_id, outbox.payload)
+        run.run.refresh_from_db()
+        assert run.run.mirror_status == SeerRunMirrorStatus.PENDING
+        assert CellOutbox.objects.filter(id=outbox.id).exists()
+
+        self.dispatch.return_value = Mock(status=200, json=Mock(return_value={"run_id": 1234}))
+        with outbox_runner():
+            pass
+        run.run.refresh_from_db()
+        assert run.run.mirror_status == SeerRunMirrorStatus.LIVE
+        assert not CellOutbox.objects.filter(id=outbox.id).exists()
 
     def test_history_combines_workflows_and_respects_feature_flags(self) -> None:
         older = Factories.create_seer_workflow_run(organization=self.organization)
@@ -499,6 +549,118 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             response = self.client.get(self.url)
         assert response.status_code == 200
         assert response.data == []
+
+    def test_workflow_helpers_support_other_result_shapes(self) -> None:
+        workflow_run = create_workflow_run(
+            SeerAgentClient(self.organization, self.user),
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
+            feature_id="test_workflow",
+            title="Test workflow",
+            payload={"scope": "organization"},
+            extras={"summary": None},
+        )
+        seer_run = workflow_run.executions.get().seer_run
+        assert seer_run is not None
+        self.dispatch.assert_not_called()
+        assert workflow_run.workflow_config is not None
+        assert workflow_run.workflow_config.strategy == SeerWorkflowStrategy.AGENTIC_TRIAGE
+        assert seer_run.agent.extras == {
+            "status": "running",
+            "date_completed": None,
+            "error": None,
+            "summary": None,
+        }
+        parser = Mock(
+            return_value=WorkflowResult(extras={"summary": "Work finished"}, status="partial")
+        )
+        deliver_workflow_result(
+            feature_id="test_workflow",
+            organization_id=self.organization.id,
+            run_uuid=seer_run.uuid,
+            status="completed",
+            result={"summary": "raw output"},
+            error=None,
+            parse_result=parser,
+        )
+        parser.assert_called_once_with({"summary": "raw output"}, seer_run.agent)
+        seer_run.agent.refresh_from_db()
+        assert seer_run.agent.extras["status"] == "partial"
+        assert seer_run.agent.extras["summary"] == "Work finished"
+        assert seer_run.agent.extras["date_completed"] is not None
+
+        finish_workflow_run(
+            seer_run.id,
+            organization_id=self.organization.id,
+            feature_id="test_workflow",
+            error="Late failure",
+        )
+        seer_run.agent.refresh_from_db()
+        assert seer_run.agent.extras["status"] == "partial"
+        assert seer_run.agent.extras["error"] is None
+
+    def test_workflow_creation_rolls_back_if_execution_creation_fails(self) -> None:
+        with (
+            patch(
+                "sentry.seer.workflows.runs.SeerWorkflowRunExecution.objects.create",
+                side_effect=RuntimeError("Cannot create execution"),
+            ),
+            pytest.raises(RuntimeError, match="Cannot create execution"),
+        ):
+            create_workflow_run(
+                SeerAgentClient(self.organization, self.user),
+                strategy=SeerWorkflowStrategy.DUPLICATE_MONITORS,
+                feature_id="monitor_cleanup",
+                title="Monitor cleanup",
+                payload={},
+            )
+        assert not SeerWorkflowRun.objects.filter(organization=self.organization).exists()
+        assert not SeerRun.objects.filter(organization=self.organization).exists()
+        assert not SeerAgentRun.objects.filter(run__organization=self.organization).exists()
+        assert not CellOutbox.objects.filter(category=OutboxCategory.SEER_RUN_CREATE).exists()
+        self.dispatch.assert_not_called()
+
+    def test_workflow_delivery_and_finish_are_scoped_to_feature(self) -> None:
+        agent_run = self.trigger()
+        parser = Mock()
+        deliver_workflow_result(
+            feature_id="different_workflow",
+            organization_id=self.organization.id,
+            run_uuid=agent_run.run.uuid,
+            status="completed",
+            result={},
+            error=None,
+            parse_result=parser,
+        )
+        parser.assert_not_called()
+        finish_workflow_run(
+            agent_run.run_id,
+            organization_id=self.organization.id,
+            feature_id="different_workflow",
+            error="Wrong workflow",
+        )
+        agent_run.refresh_from_db()
+        assert agent_run.extras["status"] == "running"
+
+    def test_callback_for_deleted_user_marks_run_failed(self) -> None:
+        agent_run = self.trigger()
+        agent_run.run.update(user_id=None)
+        deliver_monitor_cleanup_result(
+            self.organization.id, agent_run.run.uuid, "completed", self.result(), None
+        )
+        agent_run.refresh_from_db()
+        assert agent_run.extras["status"] == "failed"
+        assert agent_run.extras["error"] == "The triggering user no longer exists."
+
+    def test_partial_project_marks_workflow_partial(self) -> None:
+        agent_run = self.trigger()
+        result = self.result()
+        result["data"]["projects"][0]["scan_status"] = "partial"
+        deliver_monitor_cleanup_result(
+            self.organization.id, agent_run.run.uuid, "completed", result, None
+        )
+        agent_run.refresh_from_db()
+        assert agent_run.extras["status"] == "partial"
+        assert len(agent_run.extras["results"]) == 1
 
     def trigger(self):
         with self.feature(FEATURE):

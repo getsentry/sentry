@@ -5,6 +5,8 @@ from typing import Literal, NotRequired, TypedDict
 
 from pydantic import BaseModel, Field
 
+from sentry.seer.workflows.schemas import WorkflowRunExtras, WorkflowRunStatus
+
 
 class SeerMonitorPropertyValue(BaseModel):
     monitor_id: int
@@ -89,10 +91,7 @@ class MonitorCleanupComparisonValue(TypedDict):
     value: str
 
 
-class MonitorCleanupRunExtras(TypedDict):
-    status: Literal["running", "complete", "partial", "failed"]
-    date_completed: str | None
-    error: str | None
+class MonitorCleanupRunExtras(WorkflowRunExtras):
     project_ids: list[str]
     results: list[MonitorCleanupOutput]
 
@@ -112,7 +111,7 @@ class MonitorCleanupRunResponse(TypedDict):
 
 
 class MonitorCleanupRunStatus(TypedDict):
-    status: Literal["running", "complete", "partial", "failed"]
+    status: WorkflowRunStatus
 
 
 class MonitorCleanupResultResponse(TypedDict):

@@ -30,6 +30,7 @@ from sentry.seer.models.workflow import SeerWorkflowRun, SeerWorkflowStrategy
 from sentry.seer.monitor_cleanup.constants import FEATURE
 from sentry.seer.monitor_cleanup.runs import create_monitor_cleanup_run
 from sentry.seer.monitor_cleanup.schemas import MonitorCleanupRunExtras, MonitorCleanupRunResponse
+from sentry.seer.workflows.runs import get_workflow_run_status
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -145,17 +146,18 @@ def _serialize_monitor_cleanup_run(run: SeerWorkflowRun) -> MonitorCleanupRunRes
     assert execution.seer_run is not None
     agent_run = execution.seer_run.agent
     extras: MonitorCleanupRunExtras = agent_run.extras
+    status = get_workflow_run_status(agent_run)
     run_uuid = str(agent_run.run.uuid)
     return {
         "id": str(run.id),
         "seerRunId": run_uuid,
         "dateAdded": run.date_added,
-        "dateCompleted": datetime.fromisoformat(extras["date_completed"])
-        if extras["date_completed"] is not None
+        "dateCompleted": datetime.fromisoformat(status["date_completed"])
+        if status["date_completed"] is not None
         else None,
         "strategy": "duplicate_monitors",
-        "extras": {"status": extras["status"]},
-        "errorMessage": extras["error"],
+        "extras": {"status": status["status"]},
+        "errorMessage": status["error"],
         "results": [
             {
                 "id": f"{run_uuid}:{output['projectId']}",
