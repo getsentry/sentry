@@ -177,14 +177,10 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
         }
 
     def get_issue_link_data(self, url: str) -> dict[str, str]:
-        domain = self.model.metadata["domain_name"]
-        account = domain.removeprefix("bitbucket.org/")
         path = get_issue_url_path(url, "https://bitbucket.org")
         match = re.fullmatch(r"/([^/]+/[^/]+)/issues/(\d+)(?:/[^/]+)?", path)
-        if not match or match[1].split("/")[0].casefold() != account.casefold():
-            raise IntegrationFormError(
-                {"externalIssue": "Issue URL does not belong to this installation"}
-            )
+        if not match:
+            raise IntegrationFormError({"externalIssue": "Invalid Bitbucket issue URL"})
         return {"repo": match[1], "externalIssue": match[2]}
 
     def get_issue(self, issue_id, **kwargs):

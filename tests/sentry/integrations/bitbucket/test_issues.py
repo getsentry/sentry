@@ -57,13 +57,11 @@ class BitbucketIssueTest(APITestCase):
 
     def test_issue_url(self) -> None:
         installation = self.integration.get_installation(self.organization.id)
-        for domain_name in ("myaccount", "bitbucket.org/myaccount"):
-            installation.model.metadata["domain_name"] = domain_name
-            assert installation.get_issue_link_data(
-                "https://bitbucket.org/myaccount/myrepo/issues/3/issue-title"
-            ) == {"repo": "myaccount/myrepo", "externalIssue": "3"}
+        assert installation.get_issue_link_data(
+            "https://bitbucket.org/myaccount/myrepo/issues/3/issue-title"
+        ) == {"repo": "myaccount/myrepo", "externalIssue": "3"}
         with pytest.raises(IntegrationFormError):
-            installation.get_issue_link_data("https://bitbucket.org/other/myrepo/issues/3")
+            installation.get_issue_link_data("https://other.example.org/myaccount/myrepo/issues/3")
 
     @responses.activate
     def test_link_issue(self) -> None:

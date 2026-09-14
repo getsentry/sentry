@@ -317,9 +317,10 @@ class GroupIntegrationDetailsTest(APITestCase):
             organization=self.organization,
             provider="bitbucket",
             external_id="connect:123",
-            name="myaccount",
+            name="Example User",
             metadata={
-                "domain_name": "bitbucket.org/myaccount",
+                "type": "user",
+                "domain_name": "Example User",
                 "base_url": "https://api.bitbucket.org",
                 "shared_secret": "shared-secret",
                 "subject": "connect:123",
@@ -365,7 +366,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{integration.id}/"
         with self.feature("organizations:integrations-issue-basic"):
             for data in (
-                {"externalIssue": "https://bitbucket.org/other/myrepo/issues/3"},
+                {"externalIssue": "https://other.example.org/myaccount/myrepo/issues/3"},
                 {
                     "externalIssue": "https://bitbucket.org/myaccount/myrepo/issues/3",
                     "repo": "myaccount/other-repo",
