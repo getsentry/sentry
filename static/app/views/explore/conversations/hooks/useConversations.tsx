@@ -67,8 +67,7 @@ export const CONVERSATION_FIELDS = {
   duration: {
     key: 'conversation.duration',
     valueType: FieldValueType.DURATION,
-    description: t('Combined duration of all non-agent AI spans.'),
-    sortable: true,
+    description: t('Combined duration of all AI spans.'),
   },
   generationDuration: {
     key: 'conversation.generationDuration',
