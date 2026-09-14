@@ -49,6 +49,9 @@ const PLUGIN_ICONS = {
   aws_lambda: aws,
   claude_code,
   cursor,
+  // Origin is a Cursor product and ships no separate mark of its own, so it uses
+  // the Cursor logo. Swap this if Origin gets its own.
+  cursor_origin: cursor,
   datadog,
   datadog_pat: datadog,
   asana,
