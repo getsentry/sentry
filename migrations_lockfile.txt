@@ -33,7 +33,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0034_add_seer_autofix_issue_data
+seer: 0035_generalize_workflow_run_models
 
 sentry: 1173_dashboardhiddenuser
 
