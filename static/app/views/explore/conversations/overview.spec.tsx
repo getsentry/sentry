@@ -98,9 +98,9 @@ describe('ConversationsOverviewPage', () => {
       'aria-selected',
       'true'
     );
-    expect(screen.getByText('Agent Runs by Agent Name')).toBeInTheDocument();
-    expect(screen.getByText('Estimated Cost by Model')).toBeInTheDocument();
-    expect(screen.getByText('Tool Calls by Tool Name')).toBeInTheDocument();
+    expect(screen.getByText('Agent runs')).toBeInTheDocument();
+    expect(screen.getByText('Estimated Cost')).toBeInTheDocument();
+    expect(screen.getByText('Tool calls')).toBeInTheDocument();
   });
 
   it('defaults to traces and shows conversation onboarding on demand', async () => {

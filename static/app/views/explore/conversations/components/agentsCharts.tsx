@@ -83,7 +83,7 @@ export function AgentsCharts() {
     () => [
       createBreakdownWidget({
         id: 'explore-agents-agent-runs',
-        title: t('Agent Runs by Agent Name'),
+        title: t('Agent runs'),
         description: t('Number of agent runs grouped by agent name.'),
         query: agentRunsQuery,
         groupBy: SpanFields.GEN_AI_AGENT_NAME,
@@ -93,7 +93,7 @@ export function AgentsCharts() {
       }),
       createBreakdownWidget({
         id: 'explore-agents-estimated-cost',
-        title: t('Estimated Cost by Model'),
+        title: t('Estimated Cost'),
         description: t('Estimated cost of LLM calls grouped by response model.'),
         query: estimatedCostQuery,
         groupBy: SpanFields.GEN_AI_RESPONSE_MODEL,
@@ -103,7 +103,7 @@ export function AgentsCharts() {
       }),
       createBreakdownWidget({
         id: 'explore-agents-tool-calls',
-        title: t('Tool Calls by Tool Name'),
+        title: t('Tool calls'),
         description: t('Number of tool calls grouped by tool name.'),
         query: toolCallsQuery,
         groupBy: SpanFields.GEN_AI_TOOL_NAME,
@@ -151,7 +151,6 @@ export function AgentsCharts() {
                 dashboardFilters={dashboard.filters}
                 selection={selection}
                 showContextMenu={false}
-                showConfidenceWarning
                 widget={widget}
                 widgetLegendState={widgetLegendState}
                 widgetLimitReached={false}
