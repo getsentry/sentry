@@ -75,7 +75,7 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
                 description=(
                     "Use preprod_size_app_icon for size-analysis app icons, or "
                     "preprod_snapshots for snapshot images and diff masks. "
-                    "When omitted, images are read from legacy preprod storage."
+                    "When omitted, images use the shared snapshot reader and its fallback."
                 ),
             ),
         ],
@@ -95,14 +95,15 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
 
         object_key = f"{organization_id}/{project_id}/{image_id}"
         is_app_icon = image_type == PREPROD_SIZE_APP_ICON
-        usecase = UsecaseId.PREPROD_SIZE if is_app_icon else UsecaseId.PREPROD
-        session = get_session(usecase, project)
 
         try:
-            result = session.get(object_key)
-            if result is None and is_app_icon:
-                # TODO: On January 1, 2027, remove the preprod fallback for app icons.
-                result = get_session(UsecaseId.PREPROD, project).get(object_key)
+            if is_app_icon:
+                result = get_session(UsecaseId.PREPROD_SIZE, project).get(object_key)
+                if result is None:
+                    # TODO: On January 1, 2027, remove the preprod fallback for app icons.
+                    result = get_session(UsecaseId.PREPROD, project).get(object_key)
+            else:
+                result = get_snapshot_storage(project).get(object_key)
             if result is None:
                 return Response({"detail": "Image not found"}, status=404)
 

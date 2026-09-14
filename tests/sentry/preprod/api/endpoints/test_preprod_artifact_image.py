@@ -4,6 +4,7 @@ from django.urls import reverse
 from objectstore_client import RequestError
 
 from sentry.objectstore import UsecaseId
+from sentry.preprod.snapshots.storage import SnapshotStorage
 from sentry.testutils.cases import APITestCase
 
 
@@ -51,41 +52,47 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         mock_get_session.assert_called_once_with(UsecaseId.PREPROD_SIZE, self.project)
         primary.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{image_id}")
 
-    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
-    def test_explicit_snapshot_type_uses_snapshot_storage(self, mock_get_session) -> None:
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_snapshot_storage")
+    def test_explicit_snapshot_type_uses_shared_fallback(self, mock_get_snapshot_storage) -> None:
         image_id = "opaque-snapshot-id"
+        object_key = f"{self.org.id}/{self.project.id}/{image_id}"
         image_data = b"snapshot image"
-        session = self._create_mock_session(image_data, "image/png")
-        mock_get_session.return_value = session
+        primary = MagicMock()
+        primary.get.return_value = None
+        fallback = self._create_mock_session(image_data, "image/png")
+        mock_get_snapshot_storage.return_value = SnapshotStorage(primary, fallback)
 
         response = self.client.get(self._get_url(image_id), {"image_type": "preprod_snapshots"})
 
         assert response.status_code == 200
         assert response.content == image_data
-        mock_get_session.assert_called_once_with(UsecaseId.PREPROD, self.project)
-        session.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{image_id}")
+        mock_get_snapshot_storage.assert_called_once_with(self.project)
+        primary.get.assert_called_once_with(object_key)
+        fallback.get.assert_called_once_with(object_key)
 
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_snapshot_storage")
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
-    def test_rejects_unknown_image_type(self, mock_get_session) -> None:
+    def test_rejects_unknown_image_type(self, mock_get_session, mock_get_snapshot_storage) -> None:
         response = self.client.get(self._get_url("opaque-image-id"), {"image_type": "attachments"})
 
         assert response.status_code == 400
         assert response.data == {"detail": "Invalid image_type"}
         mock_get_session.assert_not_called()
+        mock_get_snapshot_storage.assert_not_called()
 
-    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
-    def test_omitted_image_type_ignores_icon_prefix(self, mock_get_session) -> None:
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_snapshot_storage")
+    def test_omitted_image_type_ignores_icon_prefix(self, mock_get_snapshot_storage) -> None:
         image_id = "icn_123456789abc"
         icon_data = b"app icon"
         session = self._create_mock_session(icon_data, "image/png")
-        mock_get_session.return_value = session
+        mock_get_snapshot_storage.return_value = session
 
         response = self.client.get(self._get_url(image_id))
 
         assert response.status_code == 200
         assert response.content == icon_data
         assert response["Content-Type"] == "image/png"
-        mock_get_session.assert_called_once_with(UsecaseId.PREPROD, self.project)
+        mock_get_snapshot_storage.assert_called_once_with(self.project)
         session.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{image_id}")
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
