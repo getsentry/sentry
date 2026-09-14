@@ -150,7 +150,9 @@ def make_signed_seer_api_request(
     metric_tags: dict[str, Any] | None = None,
     method: str = "POST",
     viewer_context: SeerViewerContext | None = None,
+    metrics_endpoint: str | None = None,
 ) -> BaseHTTPResponse:
+    """Use metrics_endpoint as a low-cardinality endpoint tag when the request path varies."""
     host = connection_pool.host
     if connection_pool.port:
         host += ":" + str(connection_pool.port)
@@ -186,10 +188,14 @@ def make_signed_seer_api_request(
 
     request_target = f"{parsed.path}?{parsed.query}" if parsed.query else parsed.path
 
+    timer_tags = {"endpoint": parsed.path, **(metric_tags or {})}
+    if metrics_endpoint is not None:
+        timer_tags["endpoint"] = metrics_endpoint
+
     with metrics.timer(
         "seer.request_to_seer",
         sample_rate=1.0,
-        tags={"endpoint": parsed.path, **(metric_tags or {})},
+        tags=timer_tags,
     ):
         return connection_pool.urlopen(
             method,
@@ -756,6 +762,7 @@ def make_delete_grouping_records_by_project_request(
         seer_grouping_default_connection_pool,
         f"/v0/issues/similar-issues/grouping-record/delete/{project_id}",
         body=b"",
+        metrics_endpoint="/v0/issues/similar-issues/grouping-record/delete/:project_id",
         method="GET",
         timeout=timeout,
         viewer_context=viewer_context,

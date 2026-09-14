@@ -44,7 +44,7 @@ function ExploreSecondaryNavigationImpl() {
     navItems.push({label: 'Logs', to: `${baseUrl}/logs/`});
   }
   if (organization.features.includes('tracemetrics-enabled')) {
-    navItems.push({label: 'Metrics', badge: 'new', to: `${baseUrl}/metrics/`});
+    navItems.push({label: 'Metrics', to: `${baseUrl}/metrics/`});
   }
   if (organization.features.includes('explore-errors')) {
     navItems.push({label: 'Errors', badge: 'alpha', to: `${baseUrl}/errors-v2/`});
@@ -67,6 +67,7 @@ function ExploreSecondaryNavigationImpl() {
   if (organization.features.includes('gen-ai-conversations')) {
     navItems.push({
       label: 'Agents',
+      badge: 'new',
       to: `${baseUrl}/${EXPLORE_AGENTS_SUB_PATH}/`,
     });
   }
@@ -124,7 +125,6 @@ function ExploreSecondaryNavigationImpl() {
                 <SecondaryNavigation.Link
                   to={`${baseUrl}/metrics/`}
                   analyticsItemName="explore_metrics"
-                  trailingItems={<FeatureBadge type="new" />}
                 >
                   {t('Metrics')}
                 </SecondaryNavigation.Link>
@@ -211,6 +211,7 @@ function ExploreSecondaryNavigationImpl() {
                     search: '?statsPeriod=24h&referrer=sidebar',
                   }}
                   analyticsItemName="explore_conversations"
+                  trailingItems={<FeatureBadge type="new" />}
                 >
                   {t('Agents')}
                 </SecondaryNavigation.Link>

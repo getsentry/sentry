@@ -2,12 +2,12 @@ import {useCallback, useEffect, useMemo, useRef} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
+import {useDebouncedCallback} from '@tanstack/react-pacer';
 import type {DistributedOmit} from 'type-fest';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import type {ControlProps, GeneralSelectValue, StylesConfig} from '@sentry/scraps/select';
+import type {ControlProps, SelectValue, StylesConfig} from '@sentry/scraps/select';
 import {Select, createFilter} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -19,9 +19,11 @@ import {IconAdd, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils/defined';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
 
 const StyledIconUser = styled(IconUser)`
   margin-left: ${p => p.theme.space['2xs']};
@@ -49,9 +51,9 @@ const optionFilter = createFilter({
   stringify: option => `${option.label} ${option.value}`,
 });
 
-const filterOption = (canditate: any, input: any) =>
+const filterOption = (candidate: Parameters<typeof optionFilter>[0], input: string) =>
   // Never filter out the create team option
-  canditate.data.value === CREATE_TEAM_VALUE || optionFilter(canditate, input);
+  candidate.data.value === CREATE_TEAM_VALUE || optionFilter(candidate, input);
 
 // Ensures that the svg icon is white when selected
 const getUnassignedSelectStyles = (theme: Theme): StylesConfig => ({
@@ -84,7 +86,7 @@ const getPlaceholderSelectStyles = (theme: Theme): StylesConfig => ({
 });
 
 type Props = DistributedOmit<ControlProps, 'onChange'> & {
-  onChange: (value: any) => any;
+  onChange: (value: any) => void;
   /**
    * Controls whether the dropdown allows to create a new team
    */
@@ -118,7 +120,7 @@ type TeamActor = {
   type: 'team';
 };
 
-export interface TeamOption extends GeneralSelectValue {
+export interface TeamOption extends SelectValue<string | null> {
   actor: TeamActor | null;
   searchKey: string;
 }
@@ -140,13 +142,19 @@ export function TeamSelector(props: Props) {
   const api = useApi();
   const {teams: initialTeams, fetching, onSearch} = useTeams();
 
-  let teams = initialTeams;
-  if (filterByUserMembership) {
-    teams = initialTeams.filter(team => team.isMember);
-  }
+  // The initial team list is paginated, so saved selections may not be loaded yet.
+  const selectedTeamsQuery = useMemo(() => {
+    const values = Array.isArray(value) ? value : [value];
+    const selectedValues = values.filter(defined).map(String);
+    const teamValues = selectedValues.filter(
+      team => team !== '' && team !== CREATE_TEAM_VALUE
+    );
 
-  // TODO(ts) This type could be improved when react-select types are better.
-  const selectRef = useRef<any>(null);
+    return useId ? {ids: teamValues} : {slugs: teamValues};
+  }, [useId, value]);
+  const {isLoading: loadingSelectedTeams} = useTeamsById(selectedTeamsQuery);
+
+  const selectRef = useRef<{select: {inputRef: HTMLInputElement | null}}>(null);
 
   const canCreateTeam = organization?.access?.includes('project:admin') ?? false;
   const canAddTeam = organization?.access?.includes('project:write') ?? false;
@@ -176,7 +184,7 @@ export function TeamSelector(props: Props) {
     }
 
     const select = selectRef.current.select;
-    const input: HTMLInputElement = select.inputRef;
+    const input = select.inputRef;
 
     if (input) {
       // I don't think there's another way to close `react-select`
@@ -226,8 +234,8 @@ export function TeamSelector(props: Props) {
 
   const handleChange = useCallback(
     (newValue: TeamOption | TeamOption[]) => {
-      if (multiple) {
-        const options = newValue as TeamOption[];
+      if (Array.isArray(newValue)) {
+        const options = newValue;
         const shouldCreate = options.find(option => option.value === CREATE_TEAM_VALUE);
         if (shouldCreate) {
           createTeam().then(newTeamOption => {
@@ -242,16 +250,16 @@ export function TeamSelector(props: Props) {
         return;
       }
 
-      const option = newValue as TeamOption;
+      const option = newValue;
       if (option.value === CREATE_TEAM_VALUE) {
-        createTeam().then(newTramOption => {
-          onChange?.(newTramOption);
+        createTeam().then(newTeamOption => {
+          onChange(newTeamOption);
         });
       } else {
         onChange?.(option);
       }
     },
-    [createTeam, multiple, onChange]
+    [createTeam, onChange]
   );
 
   const createTeamOutsideProjectOption = useCallback(
@@ -293,6 +301,9 @@ export function TeamSelector(props: Props) {
   );
 
   const options = useMemo(() => {
+    const teams = filterByUserMembership
+      ? initialTeams.filter(team => team.isMember)
+      : initialTeams;
     const filteredTeams = teamFilter ? teams.filter(teamFilter) : teams;
 
     const createOption = {
@@ -329,7 +340,8 @@ export function TeamSelector(props: Props) {
     ];
   }, [
     teamFilter,
-    teams,
+    initialTeams,
+    filterByUserMembership,
     canCreateTeam,
     project,
     allowCreate,
@@ -338,9 +350,9 @@ export function TeamSelector(props: Props) {
     createTeamOutsideProjectOption,
   ]);
 
-  const handleInputChange = useMemo(
-    () => debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION),
-    [onSearch]
+  const handleInputChange = useDebouncedCallback(
+    (search: string) => void onSearch(search),
+    {wait: DEFAULT_DEBOUNCE_DURATION}
   );
 
   const styles = useMemo(
@@ -354,28 +366,30 @@ export function TeamSelector(props: Props) {
 
   useEffect(() => {
     // Only take action after we've finished loading the teams
-    if (fetching) {
+    if (fetching || loadingSelectedTeams) {
       return;
     }
 
     // If there is only one team, and our flow wants to enable using that team as a default, update the parent state
-    if (options.length === 1 && useTeamDefaultIfOnlyOne) {
-      const castedValue = multiple ? options : (options[0] as TeamOption);
-      handleChange(castedValue);
+    const onlyOption = options[0];
+    const hasSelection = Array.isArray(value)
+      ? value.length > 0
+      : defined(value) && value !== '';
+    if (!hasSelection && options.length === 1 && onlyOption && useTeamDefaultIfOnlyOne) {
+      handleChange(multiple ? options : onlyOption);
     }
     // We only want to do this once when the component is finished loading for teams and mounted.
     // If the user decides they do not want the default, we should not add the default value back.
-  }, [fetching, useTeamDefaultIfOnlyOne]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fetching, loadingSelectedTeams, useTeamDefaultIfOnlyOne]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Select
       ref={selectRef}
       options={options}
       onInputChange={handleInputChange}
-      getOptionValue={option => option.value}
       filterOption={filterOption}
       styles={styles}
-      isLoading={fetching}
+      isLoading={fetching || loadingSelectedTeams}
       onChange={handleChange as never}
       {...extraProps}
     />

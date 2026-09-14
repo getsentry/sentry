@@ -7,13 +7,9 @@ from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.autofix.utils import AutofixStoppingPoint
-from sentry.seer.models.night_shift import (
-    SeerNightShiftRun,
-    SeerNightShiftRunErrorType,
-    SeerNightShiftRunResult,
-    SeerNightShiftRunShard,
-)
+from sentry.seer.models.night_shift import SeerNightShiftRunErrorType, SeerNightShiftRunResult
 from sentry.seer.models.run import SeerRun
+from sentry.seer.models.workflow import SeerWorkflowRun, SeerWorkflowRunExecution
 from sentry.seer.night_shift.delivery import REASON_MAX_CHARS, deliver_night_shift_result
 from sentry.tasks.seer.night_shift.models import TriageAction
 from sentry.tasks.seer.night_shift.skip_cache import key as skip_cache_key
@@ -28,19 +24,19 @@ from sentry.utils.redis import redis_clusters
 class TestDeliverNightShiftResult(TestCase):
     def _create_night_shift_run(
         self, organization: Organization | None = None, **extras_overrides: Any
-    ) -> SeerNightShiftRun:
-        """Create a sharded SeerNightShiftRun: one shard owning a SeerRun and no
+    ) -> SeerWorkflowRun:
+        """Create a sharded SeerWorkflowRun: one shard owning a SeerRun and no
         legacy scalar seer_run (the steady state after migration)."""
         org = organization or self.create_organization()
         extras = {"options": {}, **extras_overrides}
-        run = SeerNightShiftRun.objects.create(organization=org, extras=extras)
-        SeerNightShiftRunShard.objects.create(
+        run = SeerWorkflowRun.objects.create(organization=org, extras=extras)
+        SeerWorkflowRunExecution.objects.create(
             run=run, seer_run=self.create_seer_run(organization=org)
         )
         return run
 
-    def _run_uuid(self, run: SeerNightShiftRun) -> UUID:
-        seer_run = run.shards.get().seer_run
+    def _run_uuid(self, run: SeerWorkflowRun) -> UUID:
+        seer_run = run.executions.get().seer_run
         assert seer_run is not None
         return seer_run.uuid
 
@@ -48,7 +44,7 @@ class TestDeliverNightShiftResult(TestCase):
         return self.create_seer_run(organization=organization, seer_run_state_id=seer_run_state_id)
 
     def test_missing_run_logs_warning(self) -> None:
-        """When run_uuid doesn't match any SeerNightShiftRun, log and return."""
+        """When run_uuid doesn't match any SeerWorkflowRun, log and return."""
         org = self.create_organization()
 
         with patch("sentry.seer.night_shift.delivery.logger") as mock_logger:
@@ -79,7 +75,7 @@ class TestDeliverNightShiftResult(TestCase):
             mock_logger.warning.assert_called()
             assert "night_shift.delivery.no_result" in mock_logger.warning.call_args.args[0]
 
-        shard = run.shards.get()
+        shard = run.executions.get()
         assert shard.extras["error_message"] == "Seer exploded"
         assert shard.extras["error_type"] == SeerNightShiftRunErrorType.SHARD_DELIVERY_FAILED.value
         assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
@@ -90,11 +86,11 @@ class TestDeliverNightShiftResult(TestCase):
         org = self.create_organization()
         project = self.create_project(organization=org)
         group = self.create_group(project=project)
-        run = SeerNightShiftRun.objects.create(organization=org, extras={"options": {}})
+        run = SeerWorkflowRun.objects.create(organization=org, extras={"options": {}})
         failed_seer_run = self.create_seer_run(organization=org)
         ok_seer_run = self.create_seer_run(organization=org)
-        failed_shard = SeerNightShiftRunShard.objects.create(run=run, seer_run=failed_seer_run)
-        SeerNightShiftRunShard.objects.create(run=run, seer_run=ok_seer_run)
+        failed_shard = SeerWorkflowRunExecution.objects.create(run=run, seer_run=failed_seer_run)
+        SeerWorkflowRunExecution.objects.create(run=run, seer_run=ok_seer_run)
 
         deliver_night_shift_result(
             organization_id=org.id,
@@ -664,7 +660,7 @@ class TestDeliverNightShiftResult(TestCase):
         project = self.create_project(organization=org)
         group = self.create_group(project=project)
         run = self._create_night_shift_run(organization=org)
-        shard = run.shards.get()
+        shard = run.executions.get()
         shard.update(
             extras={
                 "error_type": SeerNightShiftRunErrorType.SHARD_DELIVERY_FAILED.value,
@@ -845,3 +841,82 @@ class TestDeliverNightShiftResult(TestCase):
             )
 
             assert mock_trigger.call_args.kwargs["user_context"] is None
+
+    def test_prompt_version_recorded_on_shard_and_result_rows(self) -> None:
+        """prompt_version is recorded on the shard and denormalized onto every verdict row."""
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        group = self.create_group(project=project)
+        run = self._create_night_shift_run(organization=org)
+
+        result = {
+            "verdicts": [
+                {"group_id": group.id, "action": TriageAction.SKIP.value, "reason": "not fixable"}
+            ]
+        }
+
+        with patch("sentry.seer.night_shift.delivery.trigger_autofix_agent"):
+            deliver_night_shift_result(
+                organization_id=org.id,
+                run_uuid=self._run_uuid(run),
+                status="completed",
+                result=result,
+                error=None,
+                prompt_version="2026-09-02.1",
+            )
+
+        redis = redis_clusters.get("default")
+        redis.delete(skip_cache_key(group.id))
+
+        shard = run.executions.get()
+        assert shard.extras["prompt_version"] == "2026-09-02.1"
+        result_row = SeerNightShiftRunResult.objects.get(run=run)
+        assert result_row.extras["prompt_version"] == "2026-09-02.1"
+
+    def test_prompt_version_recorded_on_error_delivery(self) -> None:
+        """Errored deliveries write no verdict rows, so prompt_version lands only on the shard."""
+        run = self._create_night_shift_run()
+
+        deliver_night_shift_result(
+            organization_id=run.organization_id,
+            run_uuid=self._run_uuid(run),
+            status="error",
+            result=None,
+            error="Seer exploded",
+            prompt_version="2026-09-02.1",
+        )
+
+        shard = run.executions.get()
+        assert shard.extras["prompt_version"] == "2026-09-02.1"
+        assert shard.extras["error_message"] == "Seer exploded"
+        assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
+
+    def test_absent_prompt_version_leaves_extras_clean(self) -> None:
+        """Deliveries without a prompt_version (older Seer) must not write the key."""
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        group = self.create_group(project=project)
+        run = self._create_night_shift_run(organization=org)
+
+        result = {
+            "verdicts": [
+                {"group_id": group.id, "action": TriageAction.SKIP.value, "reason": "not fixable"}
+            ]
+        }
+
+        with patch("sentry.seer.night_shift.delivery.trigger_autofix_agent"):
+            deliver_night_shift_result(
+                organization_id=org.id,
+                run_uuid=self._run_uuid(run),
+                status="completed",
+                result=result,
+                error=None,
+            )
+
+        redis = redis_clusters.get("default")
+        redis.delete(skip_cache_key(group.id))
+
+        shard = run.executions.get()
+        assert "prompt_version" not in shard.extras
+        result_row = SeerNightShiftRunResult.objects.get(run=run)
+        assert "prompt_version" not in result_row.extras

@@ -1,10 +1,6 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
-
-import {act, renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import type {AggregationKeyWithAlias, Column} from 'sentry/utils/discover/fields';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {
@@ -14,37 +10,42 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useNavigate');
+type Query = Record<string, string | number | string[]>;
 
-const mockedUsedLocation = jest.mocked(useLocation);
-const mockedUseNavigate = jest.mocked(useNavigate);
+function renderWidgetBuilderState(query: Query = {}) {
+  return renderHookWithProviders(() => useWidgetBuilderState(), {
+    additionalWrapper: WidgetBuilderProvider,
+    initialRouterConfig: {location: {pathname: '/mock-pathname/', query}},
+  });
+}
+
+/**
+ * nuqs queues URL writes behind a timer, so tests that assert on the URL have
+ * to let that queue drain first.
+ */
+function flushUrlUpdates() {
+  act(() => {
+    jest.runAllTimers();
+  });
+}
 
 describe('useWidgetBuilderState', () => {
-  let mockNavigate!: jest.Mock;
   beforeEach(() => {
-    mockNavigate = jest.fn();
-    mockedUseNavigate.mockReturnValue(mockNavigate);
     jest.useFakeTimers();
   });
 
   afterEach(() => {
+    // nuqs' update queue is a module singleton, so anything a test leaves
+    // pending would be applied on top of the next test's initial URL.
+    flushUrlUpdates();
     jest.useRealTimers();
     jest.clearAllMocks();
   });
 
   it('returns the widget builder state from the query params', () => {
-    mockedUsedLocation.mockReturnValue(
-      LocationFixture({
-        query: {
-          title: 'test',
-          description: 'lalala this is a description',
-        },
-      })
-    );
-
-    const {result} = renderHook(() => useWidgetBuilderState(), {
-      wrapper: WidgetBuilderProvider,
+    const {result} = renderWidgetBuilderState({
+      title: 'test',
+      description: 'lalala this is a description',
     });
 
     expect(result.current.state.title).toBe('test');
@@ -52,9 +53,7 @@ describe('useWidgetBuilderState', () => {
   });
 
   it('sets the new title and description in the query params', () => {
-    const {result} = renderHook(() => useWidgetBuilderState(), {
-      wrapper: WidgetBuilderProvider,
-    });
+    const {result, router} = renderWidgetBuilderState();
     act(() => {
       result.current.dispatch({
         type: BuilderStateAction.SET_TITLE,
@@ -69,26 +68,16 @@ describe('useWidgetBuilderState', () => {
       });
     });
 
-    jest.runAllTimers();
+    flushUrlUpdates();
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({title: 'new title'}),
-      }),
-      expect.anything()
-    );
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({description: 'new description'}),
-      }),
-      expect.anything()
+    expect(router.location.query).toEqual(expect.objectContaining({title: 'new title'}));
+    expect(router.location.query).toEqual(
+      expect.objectContaining({description: 'new description'})
     );
   });
 
-  it('does not update the url when the updateUrl option is false', () => {
-    const {result} = renderHook(() => useWidgetBuilderState(), {
-      wrapper: WidgetBuilderProvider,
-    });
+  it('defers the url write while a field is still being typed into', () => {
+    const {result, router} = renderWidgetBuilderState();
 
     act(() => {
       result.current.dispatch(
@@ -96,46 +85,41 @@ describe('useWidgetBuilderState', () => {
           type: BuilderStateAction.SET_TITLE,
           payload: 'new title',
         },
-        {updateUrl: false}
+        {debounceUrl: true}
       );
     });
 
-    expect(mockNavigate).not.toHaveBeenCalled();
+    // Readable straight away, but nothing has reached the URL yet
+    expect(result.current.state.title).toBe('new title');
+    expect(router.location.query).toEqual({});
+
+    // Committing writes it through, cancelling the pending debounce
+    act(() => {
+      result.current.dispatch({
+        type: BuilderStateAction.SET_TITLE,
+        payload: 'new title',
+      });
+    });
+    flushUrlUpdates();
+
+    expect(router.location.query).toEqual(expect.objectContaining({title: 'new title'}));
   });
 
   describe('display type', () => {
     it('returns the display type from the query params', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {displayType: DisplayType.AREA},
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
-      });
+      const {result} = renderWidgetBuilderState({displayType: DisplayType.AREA});
 
       expect(result.current.state.displayType).toBe(DisplayType.AREA);
     });
 
     it('returns a default display type from the query params when the display type is not valid', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {displayType: 'invalid'},
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
-      });
+      const {result} = renderWidgetBuilderState({displayType: 'invalid'});
 
       expect(result.current.state.displayType).toBe(DisplayType.TABLE);
     });
 
     it('sets the display type in the query params', () => {
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
-      });
+      const {result, router} = renderWidgetBuilderState();
 
       act(() => {
         result.current.dispatch({
@@ -144,29 +128,18 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      jest.runAllTimers();
+      flushUrlUpdates();
 
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({displayType: DisplayType.AREA}),
-        }),
-        expect.anything()
+      expect(router.location.query).toEqual(
+        expect.objectContaining({displayType: DisplayType.AREA})
       );
     });
 
     it('persists the values when going from timeseries to timeseries', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.LINE,
-            field: ['event.type'],
-            yAxis: ['count()', 'count_unique(user)'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.LINE,
+        field: ['event.type'],
+        yAxis: ['count()', 'count_unique(user)'],
       });
 
       expect(result.current.state.displayType).toBe(DisplayType.LINE);
@@ -212,18 +185,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('concatenates the values when going from timeseries to table', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.LINE,
-            field: ['event.type'],
-            yAxis: ['count()', 'count_unique(user)'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.LINE,
+        field: ['event.type'],
+        yAxis: ['count()', 'count_unique(user)'],
       });
 
       expect(result.current.state.displayType).toBe(DisplayType.LINE);
@@ -268,24 +233,16 @@ describe('useWidgetBuilderState', () => {
 
     it('separates the values when going from table to timeseries', () => {
       // remember, this takes up to 3 yAxes
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.TABLE,
-            field: [
-              'event.type',
-              'potato',
-              'count()',
-              'count_unique(user)',
-              'count_unique(potato)',
-              'count_unique(thisIsRemoved)',
-            ],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.TABLE,
+        field: [
+          'event.type',
+          'potato',
+          'count()',
+          'count_unique(user)',
+          'count_unique(potato)',
+          'count_unique(thisIsRemoved)',
+        ],
       });
 
       expect(result.current.state.displayType).toBe(DisplayType.TABLE);
@@ -346,18 +303,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('does not duplicate fields when switching dataset in line chart then display type to table', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.LINE,
-            dataset: WidgetType.ERRORS,
-            yAxis: ['count()'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.LINE,
+        dataset: WidgetType.ERRORS,
+        yAxis: ['count()'],
       });
 
       expect(result.current.state.yAxis).toEqual([
@@ -401,18 +350,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('does not duplicate fields when changing display from table to chart', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.TABLE,
-            dataset: WidgetType.ERRORS,
-            field: ['count()'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.TABLE,
+        dataset: WidgetType.ERRORS,
+        field: ['count()'],
       });
 
       expect(result.current.state.fields).toEqual([
@@ -456,18 +397,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('does not duplicate fields when switching dataset in big number then display type to table', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.BIG_NUMBER,
-            dataset: WidgetType.ERRORS,
-            field: ['count()'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.BIG_NUMBER,
+        dataset: WidgetType.ERRORS,
+        field: ['count()'],
       });
 
       expect(result.current.state.fields).toEqual([
@@ -511,18 +444,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('sets the aggregate as fields when switching to big number', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.TABLE,
-            field: ['event.type', 'count()'],
-            sort: ['-count()'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.TABLE,
+        field: ['event.type', 'count()'],
+        sort: ['-count()'],
       });
 
       expect(result.current.state.fields).toEqual([
@@ -552,17 +477,9 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('selects the first filter when switching to big number', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            field: ['event.type', 'count()', 'count_unique(user)'],
-            query: ['event.type:test', 'event.type:test2'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        field: ['event.type', 'count()', 'count_unique(user)'],
+        query: ['event.type:test', 'event.type:test2'],
       });
 
       expect(result.current.state.query).toEqual(['event.type:test', 'event.type:test2']);
@@ -578,16 +495,8 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('keeps only aggregates and clears sort when switching to heat map', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            field: ['event.type', 'count()'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        field: ['event.type', 'count()'],
       });
 
       expect(result.current.state.fields).toEqual([
@@ -618,16 +527,8 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('drops equations when switching to heat map', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            field: ['count()', 'equation|count() * 2'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        field: ['count()', 'equation|count() * 2'],
       });
 
       act(() => {
@@ -648,16 +549,8 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('normalizes the aggregate to count() when switching to heat map', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            field: ['sum(value,test_metric,distribution,none)'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        field: ['sum(value,test_metric,distribution,none)'],
       });
 
       act(() => {
@@ -679,17 +572,9 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('drops non-distribution metrics when switching to heat map', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            field: ['sum(value,test_metric,counter,none)'],
-            dataset: WidgetType.TRACEMETRICS,
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        field: ['sum(value,test_metric,counter,none)'],
+        dataset: WidgetType.TRACEMETRICS,
       });
 
       act(() => {
@@ -713,17 +598,9 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('selects the first filter when switching to heat map', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            field: ['event.type', 'count()'],
-            query: ['event.type:test', 'event.type:test2'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        field: ['event.type', 'count()'],
+        query: ['event.type:test', 'event.type:test2'],
       });
 
       expect(result.current.state.query).toEqual(['event.type:test', 'event.type:test2']);
@@ -739,13 +616,7 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('resets selectedAggregate when the display type is switched', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({query: {selectedAggregate: '0'}})
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
-      });
+      const {result} = renderWidgetBuilderState({selectedAggregate: '0'});
 
       expect(result.current.state.selectedAggregate).toBeUndefined();
 
@@ -760,18 +631,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('preserves thresholds when switching to a display type that supports thresholds', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            dataset: WidgetType.ERRORS,
-            displayType: DisplayType.BIG_NUMBER,
-            thresholds: '{"max_values":{"max1":200,"max2":300},"unit":"milliseconds"}',
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.ERRORS,
+        displayType: DisplayType.BIG_NUMBER,
+        thresholds: '{"max_values":{"max1":200,"max2":300},"unit":"milliseconds"}',
       });
 
       expect(result.current.state.thresholds).toEqual({
@@ -793,18 +656,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('resets thresholds when switching to a display type that does not support thresholds', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            dataset: WidgetType.ERRORS,
-            displayType: DisplayType.BIG_NUMBER,
-            thresholds: '{"max_values":{"max1":200,"max2":300},"unit":"milliseconds"}',
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.ERRORS,
+        displayType: DisplayType.BIG_NUMBER,
+        thresholds: '{"max_values":{"max1":200,"max2":300},"unit":"milliseconds"}',
       });
 
       expect(result.current.state.thresholds).toEqual({
@@ -823,18 +678,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('sets sort to first available sortable field when switching to release table', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.LINE,
-            dataset: WidgetType.RELEASE,
-            field: ['environment', 'crash_free_rate(session)'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.LINE,
+        dataset: WidgetType.RELEASE,
+        field: ['environment', 'crash_free_rate(session)'],
       });
 
       act(() => {
@@ -850,18 +697,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('sets sort to empty array when switching to release table and no sortable fields are available', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.LINE,
-            dataset: WidgetType.RELEASE,
-            field: ['project', 'count_errored(session)'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.LINE,
+        dataset: WidgetType.RELEASE,
+        field: ['project', 'count_errored(session)'],
       });
 
       act(() => {
@@ -875,18 +714,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('sets sort to default sort when switching to chart from non sortable release fields', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            dataset: WidgetType.RELEASE,
-            field: ['project', 'count_errored(session)'],
-            displayType: DisplayType.TABLE,
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.RELEASE,
+        field: ['project', 'count_errored(session)'],
+        displayType: DisplayType.TABLE,
       });
 
       expect(result.current.state.sort).toEqual([]);
@@ -904,18 +735,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('adds the default y-axis when switching a table to a chart with no aggregate', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            dataset: WidgetType.TRANSACTIONS,
-            displayType: DisplayType.TABLE,
-            field: ['transaction'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.TRANSACTIONS,
+        displayType: DisplayType.TABLE,
+        field: ['transaction'],
       });
 
       act(() => {
@@ -938,11 +761,7 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('resets limit when the display type is switched to table', () => {
-      mockedUsedLocation.mockReturnValue(LocationFixture({query: {limit: '3'}}));
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
-      });
+      const {result} = renderWidgetBuilderState({limit: '3'});
 
       expect(result.current.state.limit).toBe(3);
 
@@ -957,23 +776,15 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('resets the limit to a valid option when the display type is switched to a chart', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.TABLE,
-            field: [
-              'count()',
-              'count_unique(user)',
-              'count_web_vitals(measurements.lcp, good)',
-              'project',
-              'environment',
-            ],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.TABLE,
+        field: [
+          'count()',
+          'count_unique(user)',
+          'count_web_vitals(measurements.lcp, good)',
+          'project',
+          'environment',
+        ],
       });
 
       act(() => {
@@ -988,20 +799,12 @@ describe('useWidgetBuilderState', () => {
 
     it('does not reset the limit when switching between timeseries charts', () => {
       // One query and one y-axis is the most permissible setup
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.LINE,
-            limit: '3',
-            field: ['project'],
-            yAxis: ['count()'],
-            query: [''],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.LINE,
+        limit: '3',
+        field: ['project'],
+        yAxis: ['count()'],
+        query: [''],
       });
 
       expect(result.current.state.limit).toBe(3);
@@ -1019,21 +822,13 @@ describe('useWidgetBuilderState', () => {
 
   describe('dataset', () => {
     it('returns the dataset from the query params', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({query: {dataset: WidgetType.ISSUE}})
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
-      });
+      const {result} = renderWidgetBuilderState({dataset: WidgetType.ISSUE});
 
       expect(result.current.state.dataset).toBe(WidgetType.ISSUE);
     });
 
     it('sets the dataset in the query params', () => {
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
-      });
+      const {result, router} = renderWidgetBuilderState();
 
       act(() => {
         result.current.dispatch({
@@ -1042,35 +837,23 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      jest.runAllTimers();
+      flushUrlUpdates();
 
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({dataset: WidgetType.METRICS}),
-        }),
-        expect.anything()
+      expect(router.location.query).toEqual(
+        expect.objectContaining({dataset: WidgetType.METRICS})
       );
     });
 
     it('returns errors as the default dataset', () => {
-      mockedUsedLocation.mockReturnValue(LocationFixture({query: {dataset: 'invalid'}}));
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
-      });
+      const {result} = renderWidgetBuilderState({dataset: 'invalid'});
 
       expect(result.current.state.dataset).toBe(WidgetType.ERRORS);
     });
 
     it('resets the display type to table when the dataset is switched to issues', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.LINE},
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.TRANSACTIONS,
+        displayType: DisplayType.LINE,
       });
 
       expect(result.current.state.displayType).toBe(DisplayType.LINE);
@@ -1086,14 +869,9 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('resets display type to first supported type when switching to dataset with limited display types', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.TABLE},
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.TRANSACTIONS,
+        displayType: DisplayType.TABLE,
       });
 
       expect(result.current.state.displayType).toBe(DisplayType.TABLE);
@@ -1110,22 +888,14 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('resets the fields, yAxis, query, and sort when the dataset is switched', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            title: 'This title should persist',
-            description: 'This description should persist',
-            dataset: WidgetType.TRANSACTIONS,
-            field: ['event.type', 'potato', 'count()'],
-            yAxis: ['count()', 'count_unique(user)'],
-            query: ['event.type = "test"'],
-            sort: ['-testField'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        title: 'This title should persist',
+        description: 'This description should persist',
+        dataset: WidgetType.TRANSACTIONS,
+        field: ['event.type', 'potato', 'count()'],
+        yAxis: ['count()', 'count_unique(user)'],
+        query: ['event.type = "test"'],
+        sort: ['-testField'],
       });
 
       act(() => {
@@ -1155,18 +925,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('resets the yAxis when the dataset is switched from anything to issues', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            dataset: WidgetType.TRANSACTIONS,
-            yAxis: ['count()', 'count_unique(user)'],
-            displayType: DisplayType.LINE,
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.TRANSACTIONS,
+        yAxis: ['count()', 'count_unique(user)'],
+        displayType: DisplayType.LINE,
       });
 
       expect(result.current.state.yAxis).toEqual([
@@ -1193,18 +955,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('resets the sort when the display type is switched and the sort is not in the new fields', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.LINE,
-            field: ['testField', 'testField2'],
-            sort: ['-project.name'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.LINE,
+        field: ['testField', 'testField2'],
+        sort: ['-project.name'],
       });
 
       expect(result.current.state.sort).toEqual([{field: 'project.name', kind: 'desc'}]);
@@ -1225,18 +979,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('keeps sort when the sort is in the new fields', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.LINE,
-            field: ['testField', 'testField2'],
-            sort: ['-testField'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.LINE,
+        field: ['testField', 'testField2'],
+        sort: ['-testField'],
       });
 
       expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'desc'}]);
@@ -1257,18 +1003,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('resets selectedAggregate when the dataset is switched', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            selectedAggregate: '0',
-            displayType: DisplayType.BIG_NUMBER,
-            field: ['count_unique(1)', 'count_unique(2)'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        selectedAggregate: '0',
+        displayType: DisplayType.BIG_NUMBER,
+        field: ['count_unique(1)', 'count_unique(2)'],
       });
 
       expect(result.current.state.selectedAggregate).toBe(0);
@@ -1284,18 +1022,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('resets the sort when the dataset is switched for big number widgets', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            dataset: WidgetType.ERRORS,
-            displayType: DisplayType.BIG_NUMBER,
-            sort: ['-testField'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.ERRORS,
+        displayType: DisplayType.BIG_NUMBER,
+        sort: ['-testField'],
       });
 
       expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'desc'}]);
@@ -1311,18 +1041,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('resets thresholds when the dataset is switched', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            dataset: WidgetType.ERRORS,
-            displayType: DisplayType.BIG_NUMBER,
-            thresholds: '{"max_values":{"max1":200,"max2":300},"unit":"milliseconds"}',
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.ERRORS,
+        displayType: DisplayType.BIG_NUMBER,
+        thresholds: '{"max_values":{"max1":200,"max2":300},"unit":"milliseconds"}',
       });
 
       expect(result.current.state.thresholds).toEqual({
@@ -1341,18 +1063,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('resets the legend alias when the dataset is switched', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            dataset: WidgetType.ERRORS,
-            displayType: DisplayType.LINE,
-            legendAlias: ['test'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.ERRORS,
+        displayType: DisplayType.LINE,
+        legendAlias: ['test'],
       });
 
       expect(result.current.state.legendAlias).toEqual(['test']);
@@ -1370,12 +1084,8 @@ describe('useWidgetBuilderState', () => {
 
   describe('fields', () => {
     it('returns the fields from the query params', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({query: {field: ['event.type', 'potato', 'count()']}})
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        field: ['event.type', 'potato', 'count()'],
       });
 
       expect(result.current.state.fields).toEqual([
@@ -1390,19 +1100,8 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('decodes both JSON formatted fields and non-JSON formatted fields', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            field: [
-              '{"field": "event.type", "alias": "test"}',
-              'p90(transaction.duration)',
-            ],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        field: ['{"field": "event.type", "alias": "test"}', 'p90(transaction.duration)'],
       });
 
       expect(result.current.state.fields).toEqual([
@@ -1428,18 +1127,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('wipes the alias when the dataset is switched', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            dataset: WidgetType.ERRORS,
-            displayType: DisplayType.TABLE,
-            field: ['{"field":"event.type","alias":"test"}'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.ERRORS,
+        displayType: DisplayType.TABLE,
+        field: ['{"field":"event.type","alias":"test"}'],
       });
 
       expect(result.current.state.fields).toEqual([
@@ -1463,17 +1154,9 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('wipes the alias when the display type is switched', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.TABLE,
-            field: ['{"field":"count()","alias":"test"}'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.TABLE,
+        field: ['{"field":"count()","alias":"test"}'],
       });
 
       expect(result.current.state.fields).toEqual([
@@ -1497,14 +1180,9 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('resets the sort when the field that is being sorted is removed', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {field: ['testField'], sort: ['-testField']},
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        field: ['testField'],
+        sort: ['-testField'],
       });
 
       expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'desc'}]);
@@ -1520,14 +1198,9 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('modifies the sort when the field that is being sorted is modified', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {field: ['testField', 'sortField'], sort: ['-sortField']},
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        field: ['testField', 'sortField'],
+        sort: ['-sortField'],
       });
 
       expect(result.current.state.sort).toEqual([{field: 'sortField', kind: 'desc'}]);
@@ -1546,18 +1219,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('does not reset the table sort for issue widgets', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            dataset: WidgetType.ISSUE,
-            field: ['testField'],
-            sort: ['-notInFields'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.ISSUE,
+        field: ['testField'],
+        sort: ['-notInFields'],
       });
 
       expect(result.current.state.sort).toEqual([{field: 'notInFields', kind: 'desc'}]);
@@ -1573,18 +1238,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('adds a default sort when adding a grouping for a timeseries chart', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.LINE,
-            field: [],
-            yAxis: ['count()'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.LINE,
+        field: [],
+        yAxis: ['count()'],
       });
 
       expect(result.current.state.yAxis).toEqual([
@@ -1603,17 +1260,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('ensures that default sort is not an equation', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.LINE,
-            field: [],
-            yAxis: ['equation|count()+1', 'count()'],
-          },
-        })
-      );
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.LINE,
+        field: [],
+        yAxis: ['equation|count()+1', 'count()'],
       });
 
       expect(result.current.state.sort).toEqual([]);
@@ -1629,18 +1279,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('ensures the sort is not a disabled release sort option', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            dataset: WidgetType.RELEASE,
-            field: ['environment, project, crash_free_rate(session)'],
-            sort: ['-crash_free_rate(session)'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.RELEASE,
+        field: ['environment, project, crash_free_rate(session)'],
+        sort: ['-crash_free_rate(session)'],
       });
 
       expect(result.current.state.sort).toEqual([
@@ -1665,18 +1307,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('has no sort when only sortable release field is removed', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            dataset: WidgetType.RELEASE,
-            field: ['release', 'project', 'count_errored(session)'],
-            sort: ['-release'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.RELEASE,
+        field: ['release', 'project', 'count_errored(session)'],
+        sort: ['-release'],
       });
 
       expect(result.current.state.sort).toEqual([{field: 'release', kind: 'desc'}]);
@@ -1698,18 +1332,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('still has no sort when unsortable release field is added', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            dataset: WidgetType.RELEASE,
-            field: ['project', 'count_errored(session)'],
-            sort: [],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.RELEASE,
+        field: ['project', 'count_errored(session)'],
+        sort: [],
       });
 
       expect(result.current.state.sort).toEqual([]);
@@ -1732,18 +1358,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('keeps original sort when an unsortable release field is added', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            dataset: WidgetType.RELEASE,
-            field: ['crash_free_rate(session)'],
-            sort: ['-crash_free_rate(session)'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.RELEASE,
+        field: ['crash_free_rate(session)'],
+        sort: ['-crash_free_rate(session)'],
       });
 
       expect(result.current.state.sort).toEqual([
@@ -1769,20 +1387,12 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('always assigns a limit when there is a y-axis', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            yAxis: ['count()', 'count_unique(user)'],
-            fields: ['event.type'],
-            displayType: DisplayType.LINE,
-            dataset: WidgetType.ERRORS,
-            limit: '5',
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        yAxis: ['count()', 'count_unique(user)'],
+        fields: ['event.type'],
+        displayType: DisplayType.LINE,
+        dataset: WidgetType.ERRORS,
+        limit: '5',
       });
 
       expect(result.current.state.limit).toBe(5);
@@ -1816,19 +1426,11 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('preserves the breakdown legend type when there are multiple group bys', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.LINE,
-            field: ['testField'],
-            yAxis: ['count()'],
-            legendType: 'breakdown',
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.LINE,
+        field: ['testField'],
+        yAxis: ['count()'],
+        legendType: 'breakdown',
       });
 
       expect(result.current.state.legendType).toBe('breakdown');
@@ -1849,17 +1451,9 @@ describe('useWidgetBuilderState', () => {
 
   describe('yAxis', () => {
     it('does not conflict with fields when setting the state', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            field: ['event.type', 'potato', 'count()'],
-            yAxis: ['count()', 'count_unique(user)'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        field: ['event.type', 'potato', 'count()'],
+        yAxis: ['count()', 'count_unique(user)'],
       });
 
       expect(result.current.state.fields).toEqual([
@@ -1886,19 +1480,11 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('clears the sort when the y-axis changes and there is no grouping', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.LINE,
-            field: [],
-            yAxis: ['count()'],
-            sort: ['-count()'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.LINE,
+        field: [],
+        yAxis: ['count()'],
+        sort: ['-count()'],
       });
 
       expect(result.current.state.sort).toEqual([{field: 'count()', kind: 'desc'}]);
@@ -1916,17 +1502,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('updates the limit when the y-axis changes', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            limit: '5',
-            field: ['event.type'],
-            yAxis: ['count()', 'count_unique(user)'],
-          },
-        })
-      );
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        limit: '5',
+        field: ['event.type'],
+        yAxis: ['count()', 'count_unique(user)'],
       });
 
       expect(result.current.state.limit).toBe(5);
@@ -1949,16 +1528,8 @@ describe('useWidgetBuilderState', () => {
 
   describe('sort', () => {
     it('can decode and update sorts', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            sort: ['-testField'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        sort: ['-testField'],
       });
 
       expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'desc'}]);
@@ -1974,17 +1545,9 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('correctly reverses sort between events (freq) and last seen (date) field', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            sort: ['freq'],
-            dataset: WidgetType.ISSUE,
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        sort: ['freq'],
+        dataset: WidgetType.ISSUE,
       });
 
       // We expect desc even though freq doesn't use '-'
@@ -2004,16 +1567,8 @@ describe('useWidgetBuilderState', () => {
 
   describe('limit', () => {
     it('can decode and update limit', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            limit: '4',
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        limit: '4',
       });
 
       expect(result.current.state.limit).toBe(4);
@@ -2031,16 +1586,8 @@ describe('useWidgetBuilderState', () => {
 
   describe('legendAlias', () => {
     it('can decode and update legendAlias', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            legendAlias: ['test', 'test2'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        legendAlias: ['test', 'test2'],
       });
 
       expect(result.current.state.legendAlias).toEqual(['test', 'test2']);
@@ -2058,18 +1605,10 @@ describe('useWidgetBuilderState', () => {
 
   describe('selectedAggregate', () => {
     it('can decode and update selectedAggregate', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            selectedAggregate: '0',
-            displayType: DisplayType.BIG_NUMBER,
-            field: ['count()', 'count_unique(user)'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        selectedAggregate: '0',
+        displayType: DisplayType.BIG_NUMBER,
+        field: ['count()', 'count_unique(user)'],
       });
 
       expect(result.current.state.selectedAggregate).toBe(0);
@@ -2085,18 +1624,10 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('can set selectedAggregate to undefined in the URL', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            selectedAggregate: '0',
-            displayType: DisplayType.BIG_NUMBER,
-            field: ['count()', 'count_unique(user)'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result, router} = renderWidgetBuilderState({
+        selectedAggregate: '0',
+        displayType: DisplayType.BIG_NUMBER,
+        field: ['count()', 'count_unique(user)'],
       });
 
       expect(result.current.state.selectedAggregate).toBe(0);
@@ -2111,31 +1642,21 @@ describe('useWidgetBuilderState', () => {
       // If selectedAggregate is undefined in the URL, then the widget builder state
       // will set the selectedAggregate to the last aggregate
       expect(result.current.state.selectedAggregate).toBe(1);
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({selectedAggregate: undefined}),
-        }),
-        expect.anything()
-      );
+
+      flushUrlUpdates();
+
+      expect(router.location.query).not.toHaveProperty('selectedAggregate');
     });
   });
 
   describe('traceMetric', () => {
     it('resets sort when SET_Y_AXIS changes aggregates for trace metrics', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            dataset: WidgetType.TRACEMETRICS,
-            displayType: DisplayType.LINE,
-            field: ['project'],
-            yAxis: ['sum(value,my.metric,counter,none)'],
-            sort: ['-sum(value,my.metric,counter,none)'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.TRACEMETRICS,
+        displayType: DisplayType.LINE,
+        field: ['project'],
+        yAxis: ['sum(value,my.metric,counter,none)'],
+        sort: ['-sum(value,my.metric,counter,none)'],
       });
 
       // Dispatch SET_Y_AXIS with a different aggregate (simulating metric change)
@@ -2158,20 +1679,12 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('preserves sort when SET_Y_AXIS keeps the same aggregate string for trace metrics', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            dataset: WidgetType.TRACEMETRICS,
-            displayType: DisplayType.LINE,
-            field: ['project'],
-            yAxis: ['sum(value,my.metric,counter,none)'],
-            sort: ['-sum(value,my.metric,counter,none)'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.TRACEMETRICS,
+        displayType: DisplayType.LINE,
+        field: ['project'],
+        yAxis: ['sum(value,my.metric,counter,none)'],
+        sort: ['-sum(value,my.metric,counter,none)'],
       });
 
       // Dispatch SET_Y_AXIS with the same aggregate (e.g., adding a second one)
@@ -2198,21 +1711,13 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('preserves trace metric args when switching from line to categorical bar', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            dataset: WidgetType.TRACEMETRICS,
-            displayType: DisplayType.LINE,
-            yAxis: [
-              'sum(value,my.metric,counter,none)',
-              'per_second(value,my.metric,counter,none)',
-            ],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result, router} = renderWidgetBuilderState({
+        dataset: WidgetType.TRACEMETRICS,
+        displayType: DisplayType.LINE,
+        yAxis: [
+          'sum(value,my.metric,counter,none)',
+          'per_second(value,my.metric,counter,none)',
+        ],
       });
 
       // Verify initial yAxis has args preserved from deserialization.
@@ -2238,75 +1743,54 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      jest.runAllTimers();
+      flushUrlUpdates();
 
       // yAxis should be cleared
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            yAxis: [],
-          }),
-        }),
-        expect.anything()
-      );
+      expect(router.location.query).not.toHaveProperty('yAxis');
 
       // fields should contain the default X-axis (project) plus both aggregates with args
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(router.location.query).toEqual(
         expect.objectContaining({
-          query: expect.objectContaining({
-            field: serializeFields([
-              {kind: FieldValueKind.FIELD, field: 'project'},
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'my.metric', 'counter', 'none'],
-              },
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: [
-                  'per_second' as AggregationKeyWithAlias,
-                  'value',
-                  'my.metric',
-                  'counter',
-                  'none',
-                ],
-              },
-            ]),
-          }),
-        }),
-        expect.anything()
+          field: serializeFields([
+            {kind: FieldValueKind.FIELD, field: 'project'},
+            {
+              kind: FieldValueKind.FUNCTION,
+              function: ['sum', 'value', 'my.metric', 'counter', 'none'],
+            },
+            {
+              kind: FieldValueKind.FUNCTION,
+              function: [
+                'per_second' as AggregationKeyWithAlias,
+                'value',
+                'my.metric',
+                'counter',
+                'none',
+              ],
+            },
+          ]),
+        })
       );
 
       // sort should reference the full aggregate string with args
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(router.location.query).toEqual(
         expect.objectContaining({
-          query: expect.objectContaining({
-            sort: ['-per_second(value,my.metric,counter,none)'],
-          }),
-        }),
-        expect.anything()
+          sort: '-per_second(value,my.metric,counter,none)',
+        })
       );
     });
   });
 
   describe('categorical bar chart actions', () => {
     it('updates only the X-axis field with SET_CATEGORICAL_X_AXIS', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.CATEGORICAL_BAR,
-            field: serializeFields([
-              {kind: FieldValueKind.FIELD, field: 'transaction'},
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['count', '', undefined, undefined],
-              },
-            ]),
+      const {result, router} = renderWidgetBuilderState({
+        displayType: DisplayType.CATEGORICAL_BAR,
+        field: serializeFields([
+          {kind: FieldValueKind.FIELD, field: 'transaction'},
+          {
+            kind: FieldValueKind.FUNCTION,
+            function: ['count', '', undefined, undefined],
           },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+        ]),
       });
 
       act(() => {
@@ -2316,44 +1800,33 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      jest.runAllTimers();
+      flushUrlUpdates();
 
       // Should preserve aggregates while updating X-axis
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(router.location.query).toEqual(
         expect.objectContaining({
-          query: expect.objectContaining({
-            field: serializeFields([
-              {kind: FieldValueKind.FIELD, field: 'project'},
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['count', '', undefined, undefined],
-              },
-            ]),
-          }),
-        }),
-        expect.anything()
+          field: serializeFields([
+            {kind: FieldValueKind.FIELD, field: 'project'},
+            {
+              kind: FieldValueKind.FUNCTION,
+              function: ['count', '', undefined, undefined],
+            },
+          ]),
+        })
       );
     });
 
     it('resets sort to first aggregate when X-axis changes and sort was on old X-axis', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.CATEGORICAL_BAR,
-            field: serializeFields([
-              {kind: FieldValueKind.FIELD, field: 'transaction'},
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['count', '', undefined, undefined],
-              },
-            ]),
-            sort: ['-transaction'],
+      const {result, router} = renderWidgetBuilderState({
+        displayType: DisplayType.CATEGORICAL_BAR,
+        field: serializeFields([
+          {kind: FieldValueKind.FIELD, field: 'transaction'},
+          {
+            kind: FieldValueKind.FUNCTION,
+            function: ['count', '', undefined, undefined],
           },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+        ]),
+        sort: ['-transaction'],
       });
 
       act(() => {
@@ -2363,38 +1836,27 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      jest.runAllTimers();
+      flushUrlUpdates();
 
       // Sort should be reset to first aggregate
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(router.location.query).toEqual(
         expect.objectContaining({
-          query: expect.objectContaining({
-            sort: ['-count()'],
-          }),
-        }),
-        expect.anything()
+          sort: '-count()',
+        })
       );
     });
 
     it('preserves sort when X-axis changes but sort was on aggregate', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.CATEGORICAL_BAR,
-            field: serializeFields([
-              {kind: FieldValueKind.FIELD, field: 'transaction'},
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['count', '', undefined, undefined],
-              },
-            ]),
-            sort: ['-count()'],
+      const {result, router} = renderWidgetBuilderState({
+        displayType: DisplayType.CATEGORICAL_BAR,
+        field: serializeFields([
+          {kind: FieldValueKind.FIELD, field: 'transaction'},
+          {
+            kind: FieldValueKind.FUNCTION,
+            function: ['count', '', undefined, undefined],
           },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+        ]),
+        sort: ['-count()'],
       });
 
       act(() => {
@@ -2404,31 +1866,16 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      jest.runAllTimers();
+      flushUrlUpdates();
 
       // Sort should NOT change since it was already on an aggregate
-      expect(mockNavigate).not.toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            sort: expect.anything(),
-          }),
-        }),
-        expect.anything()
-      );
+      expect(router.location.query).toEqual(expect.objectContaining({sort: '-count()'}));
     });
 
     it('preserves equation as aggregate when switching to categorical bar', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.TABLE,
-            field: ['event.type', 'equation|count() / 5'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result, router} = renderWidgetBuilderState({
+        displayType: DisplayType.TABLE,
+        field: ['event.type', 'equation|count() / 5'],
       });
 
       act(() => {
@@ -2438,48 +1885,34 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      jest.runAllTimers();
+      flushUrlUpdates();
 
       // Equation should be preserved as the aggregate
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(router.location.query).toEqual(
         expect.objectContaining({
-          query: expect.objectContaining({
-            field: serializeFields([
-              {kind: FieldValueKind.FIELD, field: 'event.type'},
-              {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
-            ]),
-          }),
-        }),
-        expect.anything()
+          field: serializeFields([
+            {kind: FieldValueKind.FIELD, field: 'event.type'},
+            {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
+          ]),
+        })
       );
 
       // Sort should use equation[0] alias format
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(router.location.query).toEqual(
         expect.objectContaining({
-          query: expect.objectContaining({
-            sort: ['-equation[0]'],
-          }),
-        }),
-        expect.anything()
+          sort: '-equation[0]',
+        })
       );
     });
 
     it('preserves equation aggregate and equation sort when X-axis changes', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.CATEGORICAL_BAR,
-            field: serializeFields([
-              {kind: FieldValueKind.FIELD, field: 'transaction'},
-              {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
-            ]),
-            sort: ['-equation[0]'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result, router} = renderWidgetBuilderState({
+        displayType: DisplayType.CATEGORICAL_BAR,
+        field: serializeFields([
+          {kind: FieldValueKind.FIELD, field: 'transaction'},
+          {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
+        ]),
+        sort: ['-equation[0]'],
       });
 
       act(() => {
@@ -2489,51 +1922,35 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      jest.runAllTimers();
+      flushUrlUpdates();
 
       // Equation should be preserved in fields
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(router.location.query).toEqual(
         expect.objectContaining({
-          query: expect.objectContaining({
-            field: serializeFields([
-              {kind: FieldValueKind.FIELD, field: 'release'},
-              {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
-            ]),
-          }),
-        }),
-        expect.anything()
+          field: serializeFields([
+            {kind: FieldValueKind.FIELD, field: 'release'},
+            {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
+          ]),
+        })
       );
 
       // Sort should NOT be reset since equation[0] is still valid
-      expect(mockNavigate).not.toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            sort: expect.anything(),
-          }),
-        }),
-        expect.anything()
+      expect(router.location.query).toEqual(
+        expect.objectContaining({sort: '-equation[0]'})
       );
     });
 
     it('resets sort when X-axis changes and sort was on a stale equation alias', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.CATEGORICAL_BAR,
-            field: serializeFields([
-              {kind: FieldValueKind.FIELD, field: 'transaction'},
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['count', '', undefined, undefined],
-              },
-            ]),
-            sort: ['-equation[0]'],
+      const {result, router} = renderWidgetBuilderState({
+        displayType: DisplayType.CATEGORICAL_BAR,
+        field: serializeFields([
+          {kind: FieldValueKind.FIELD, field: 'transaction'},
+          {
+            kind: FieldValueKind.FUNCTION,
+            function: ['count', '', undefined, undefined],
           },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+        ]),
+        sort: ['-equation[0]'],
       });
 
       act(() => {
@@ -2543,32 +1960,21 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      jest.runAllTimers();
+      flushUrlUpdates();
 
       // Sort should be reset to first aggregate since there are no equations in fields
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(router.location.query).toEqual(
         expect.objectContaining({
-          query: expect.objectContaining({
-            sort: ['-count()'],
-          }),
-        }),
-        expect.anything()
+          sort: '-count()',
+        })
       );
     });
 
     it('preserves all aggregates and equations when switching from line to categorical bar', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.LINE,
-            field: [],
-            yAxis: ['count()', 'equation|count() / 5'],
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result, router} = renderWidgetBuilderState({
+        displayType: DisplayType.LINE,
+        field: [],
+        yAxis: ['count()', 'equation|count() / 5'],
       });
 
       act(() => {
@@ -2578,55 +1984,41 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      jest.runAllTimers();
+      flushUrlUpdates();
 
       // Both the function and equation should be preserved
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(router.location.query).toEqual(
         expect.objectContaining({
-          query: expect.objectContaining({
-            field: serializeFields([
-              {kind: FieldValueKind.FIELD, field: 'title'},
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['count', '', undefined, undefined],
-              },
-              {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
-            ]),
-          }),
-        }),
-        expect.anything()
+          field: serializeFields([
+            {kind: FieldValueKind.FIELD, field: 'title'},
+            {
+              kind: FieldValueKind.FUNCTION,
+              function: ['count', '', undefined, undefined],
+            },
+            {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
+          ]),
+        })
       );
 
       // Sort should be on the last aggregate (equation) by default
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(router.location.query).toEqual(
         expect.objectContaining({
-          query: expect.objectContaining({
-            sort: ['-equation[0]'],
-          }),
-        }),
-        expect.anything()
+          sort: '-equation[0]',
+        })
       );
     });
 
     it('selectedAggregate defaults to last aggregate for categorical bar with multiple aggregates', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.CATEGORICAL_BAR,
-            field: serializeFields([
-              {kind: FieldValueKind.FIELD, field: 'transaction'},
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['count', '', undefined, undefined],
-              },
-              {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
-            ]),
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.CATEGORICAL_BAR,
+        field: serializeFields([
+          {kind: FieldValueKind.FIELD, field: 'transaction'},
+          {
+            kind: FieldValueKind.FUNCTION,
+            function: ['count', '', undefined, undefined],
           },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+          {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
+        ]),
       });
 
       // selectedAggregate should default to the last aggregate index (1, since
@@ -2635,23 +2027,15 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('selectedAggregate is undefined for categorical bar with single aggregate', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.CATEGORICAL_BAR,
-            field: serializeFields([
-              {kind: FieldValueKind.FIELD, field: 'transaction'},
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['count', '', undefined, undefined],
-              },
-            ]),
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.CATEGORICAL_BAR,
+        field: serializeFields([
+          {kind: FieldValueKind.FIELD, field: 'transaction'},
+          {
+            kind: FieldValueKind.FUNCTION,
+            function: ['count', '', undefined, undefined],
           },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+        ]),
       });
 
       // selectedAggregate should be undefined when there's only one aggregate
@@ -2659,24 +2043,16 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('sets default X-axis and aggregate when dataset changes with categorical bar', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.CATEGORICAL_BAR,
-            dataset: WidgetType.SPANS,
-            field: serializeFields([
-              {kind: FieldValueKind.FIELD, field: 'browser.name'},
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['count', 'span.duration', undefined, undefined],
-              },
-            ]),
+      const {result, router} = renderWidgetBuilderState({
+        displayType: DisplayType.CATEGORICAL_BAR,
+        dataset: WidgetType.SPANS,
+        field: serializeFields([
+          {kind: FieldValueKind.FIELD, field: 'browser.name'},
+          {
+            kind: FieldValueKind.FUNCTION,
+            function: ['count', 'span.duration', undefined, undefined],
           },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+        ]),
       });
 
       act(() => {
@@ -2686,60 +2062,43 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      jest.runAllTimers();
+      flushUrlUpdates();
 
       // Each state setter makes a separate navigate call - check each one
       // Should set default X-axis field and aggregate for new dataset
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(router.location.query).toEqual(
         expect.objectContaining({
-          query: expect.objectContaining({
-            // Errors dataset defaults: title (X-axis) + count_unique(user) (aggregate)
-            field: serializeFields([
-              {kind: FieldValueKind.FIELD, field: 'title'},
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['count_unique', 'user', undefined, undefined],
-              },
-            ]),
-          }),
-        }),
-        expect.anything()
+          // Errors dataset defaults: title (X-axis) + count_unique(user) (aggregate)
+          field: serializeFields([
+            {kind: FieldValueKind.FIELD, field: 'title'},
+            {
+              kind: FieldValueKind.FUNCTION,
+              function: ['count_unique', 'user', undefined, undefined],
+            },
+          ]),
+        })
       );
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(router.location.query).toEqual(
         expect.objectContaining({
-          query: expect.objectContaining({
-            sort: ['-count_unique(user)'],
-          }),
-        }),
-        expect.anything()
+          sort: '-count_unique(user)',
+        })
       );
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(router.location.query).toEqual(
         expect.objectContaining({
-          query: expect.objectContaining({
-            limit: 20,
-          }),
-        }),
-        expect.anything()
+          limit: '20',
+        })
       );
     });
   });
   describe('text widget actions', () => {
     it('clears fields, yAxis, query, sort, limit, and dataset when switching to text display type', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.TABLE,
-            dataset: WidgetType.ERRORS,
-            field: ['event.type', 'count()'],
-            query: ['event.type:error'],
-            sort: ['-count()'],
-            limit: '5',
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.TABLE,
+        dataset: WidgetType.ERRORS,
+        field: ['event.type', 'count()'],
+        query: ['event.type:error'],
+        sort: ['-count()'],
+        limit: '5',
       });
 
       expect(result.current.state.fields).toEqual([
@@ -2772,17 +2131,9 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('moves URL description into textContent when switching to text display type', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.TABLE,
-            description: 'existing description',
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.TABLE,
+        description: 'existing description',
       });
 
       expect(result.current.state.description).toBe('existing description');
@@ -2801,16 +2152,8 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('clears textContent when switching away from text display type', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.TEXT,
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.TEXT,
       });
 
       act(() => {
@@ -2833,16 +2176,8 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('SET_TEXT_CONTENT updates textContent without navigating', () => {
-      mockedUsedLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            displayType: DisplayType.TEXT,
-          },
-        })
-      );
-
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
+      const {result, router} = renderWidgetBuilderState({
+        displayType: DisplayType.TEXT,
       });
 
       act(() => {
@@ -2852,11 +2187,11 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      jest.runAllTimers();
+      flushUrlUpdates();
 
       expect(result.current.state.textContent!).toBe('new text content');
       // Text content must not be written to the URL to avoid excessive URL length
-      expect(mockNavigate).not.toHaveBeenCalled();
+      expect(router.location.query).not.toHaveProperty('textContent');
     });
   });
 });

@@ -1,6 +1,6 @@
 import type {Location} from 'history';
 
-import {DataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
+import {dataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
 import {getToolBox} from 'sentry/components/charts/components/toolBox';
 import {activateZoomAreaSelect} from 'sentry/components/charts/utils';
 import type {
@@ -12,7 +12,7 @@ import type {
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 type RenderProps = {
-  dataZoom: ReturnType<typeof DataZoomInside>;
+  dataZoom: ReturnType<typeof dataZoomInside>;
   onChartReady: EChartChartReadyHandler;
   onDataZoom: EChartDataZoomHandler;
   onFinished: EChartFinishedHandler;
@@ -122,7 +122,7 @@ export function BarChartZoom({
   return children({
     onChartReady: handleChartReady,
     onFinished: handleChartFinished,
-    dataZoom: DataZoomInside({xAxisIndex}),
+    dataZoom: dataZoomInside({xAxisIndex}),
     // We must include data zoom in the toolbox for the zoom to work,
     // but we do not want to show the toolbox components.
     toolBox: getToolBox(

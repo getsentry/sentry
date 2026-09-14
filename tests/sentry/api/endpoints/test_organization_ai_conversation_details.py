@@ -22,6 +22,64 @@ from sentry.utils.snuba_rpc import SnubaRPCTimeout
 from .test_organization_ai_conversations_base import BaseAIConversationsTestCase
 
 
+def test_parent_fetch_groups_span_ids_by_trace() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    snuba_params = MagicMock()
+    parent_keys = {
+        ("trace-a", "parent-2"),
+        ("trace-b", "parent-3"),
+        ("trace-a", "parent-1"),
+    }
+    parent = {"trace": "trace-a", "span_id": "parent-1"}
+
+    with patch.object(Spans, "run_table_query", return_value={"data": [parent]}) as run_query:
+        result = endpoint._fetch_parent_spans(snuba_params, parent_keys)
+
+    assert result == {("trace-a", "parent-1"): parent}
+    assert run_query.call_args.kwargs["query_string"] == (
+        '(trace:"trace-a" span_id:["parent-1", "parent-2"]) OR (trace:"trace-b" span_id:"parent-3")'
+    )
+    assert run_query.call_args.kwargs["limit"] == 3
+    assert run_query.call_args.kwargs["config"].auto_fields is False
+
+
+def test_parent_repair_uses_spans_from_page() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    conversation_id = uuid4().hex
+    trace_id = uuid4().hex
+    root = {
+        "trace": trace_id,
+        "span_id": "root",
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.operation.type": "invoke_agent",
+    }
+    bridge = {
+        "trace": trace_id,
+        "span_id": "bridge",
+        "parent_span": "root",
+        "gen_ai.conversation.id": conversation_id,
+        "span.op": "http.client",
+    }
+    child = {
+        "trace": trace_id,
+        "span_id": "child",
+        "parent_span": "bridge",
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.operation.type": "ai_client",
+    }
+
+    with (
+        patch.object(Spans, "run_table_query") as run_query,
+        patch(
+            "sentry.ai_monitoring.endpoints.organization_ai_conversation_details.metrics.distribution"
+        ),
+    ):
+        endpoint._repair_parent_links([root, bridge, child], MagicMock(), conversation_id)
+
+    assert child["parent_span"] == "root"
+    run_query.assert_not_called()
+
+
 def test_parent_repair_stops_after_five_hops() -> None:
     endpoint = OrganizationAIConversationDetailsEndpoint()
     conversation_id = uuid4().hex
@@ -297,25 +355,21 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             == f"/api/0/organizations/{self.organization.slug}/agents/conversations/{conversation_id}/"
         )
 
-    def do_request(self, conversation_id, query=None, features=None, **kwargs):
-        if features is None:
-            features = ["organizations:gen-ai-conversations"]
-
+    def do_request(self, conversation_id, query=None, **kwargs):
         query = query or {}
 
-        with self.feature(features):
-            return self.client.get(
-                reverse(
-                    self.view,
-                    kwargs={
-                        "organization_id_or_slug": self.organization.slug,
-                        "conversation_id": conversation_id,
-                    },
-                ),
-                query,
-                format="json",
-                **kwargs,
-            )
+        return self.client.get(
+            reverse(
+                self.view,
+                kwargs={
+                    "organization_id_or_slug": self.organization.slug,
+                    "conversation_id": conversation_id,
+                },
+            ),
+            query,
+            format="json",
+            **kwargs,
+        )
 
     def _store_conversation_span(self, conversation_id, timestamp, project=None) -> None:
         """One minimal span, enough for the conversation to resolve to a project."""
@@ -327,11 +381,6 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             trace_id=uuid4().hex,
             project=project,
         )
-
-    def test_no_feature(self) -> None:
-        conversation_id = uuid4().hex
-        response = self.do_request(conversation_id, features=[])
-        assert response.status_code == 404
 
     def test_no_project(self) -> None:
         conversation_id = uuid4().hex
@@ -359,6 +408,11 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.status_code == 200
         assert response.data["conversationId"] == conversation_id
         assert response.data["title"] is None
+        assert response.data["projects"] == []
+        assert response.data["webUrl"].endswith(
+            f"/organizations/{self.organization.slug}/explore/agents/conversations/"
+            f"{conversation_id}/"
+        )
         assert response.data["spans"] == []
 
     def test_single_trace_conversation(self) -> None:
@@ -1124,8 +1178,17 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         response = self.do_request(conversation_id, query)
 
         assert response.status_code == 200
-        assert set(response.data) == {"conversationId", "title", "spans"}
+        assert set(response.data) == {
+            "conversationId",
+            "title",
+            "projects",
+            "webUrl",
+            "spans",
+        }
         assert response.data["conversationId"] == conversation_id
+        assert response.data["projects"] == [
+            {"id": self.project.id, "name": self.project.name, "slug": self.project.slug}
+        ]
         assert len(response.data["spans"]) == 1
 
     def test_returns_stored_title(self) -> None:
@@ -1246,24 +1309,10 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.status_code == 200
         assert len(response.data["spans"]) == 2
         assert response.data["title"] == "Started here"
-
-    def test_empty_conversation_returns_envelope(self) -> None:
-        now = before_now(days=5).replace(microsecond=0)
-        conversation_id = uuid4().hex
-
-        self._store_conversation_span(uuid4().hex, now)
-
-        query = {
-            "project": [self.project.id],
-            "start": (now - timedelta(hours=1)).isoformat(),
-            "end": (now + timedelta(hours=1)).isoformat(),
-        }
-
-        response = self.do_request(conversation_id, query)
-        assert response.status_code == 200
-        assert response.data["conversationId"] == conversation_id
-        assert response.data["title"] is None
-        assert response.data["spans"] == []
+        assert response.data["projects"] == [
+            {"id": self.project.id, "name": self.project.name, "slug": self.project.slug}
+        ]
+        assert response.data["webUrl"].endswith(f"/{conversation_id}/?project={self.project.id}")
 
     def test_paginates_with_title(self) -> None:
         now = before_now(days=5).replace(microsecond=0)

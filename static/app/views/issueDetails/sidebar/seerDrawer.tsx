@@ -11,18 +11,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export const useOpenSeerDrawer = ({
-  group,
-  project,
-}: {
-  group: Group;
-  project: Project;
-  buttonRef?: React.RefObject<HTMLButtonElement | null>;
-}) => {
+export const useOpenSeerDrawer = ({group, project}: {group: Group; project: Project}) => {
   const {openDrawer} = useDrawer();
   const navigate = useNavigate();
   const location = useLocation();
   const locationRef = useRef(location); // prevents stale location in onClose
+  // oxlint-disable-next-line react/refs
   locationRef.current = location; // sync on every render
   const organization = useOrganization();
 

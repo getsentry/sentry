@@ -5,17 +5,7 @@ from typing import Required, TypedDict
 
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
-from django.db.models import (
-    Case,
-    Exists,
-    F,
-    IntegerField,
-    OrderBy,
-    OuterRef,
-    Subquery,
-    Value,
-    When,
-)
+from django.db.models import Case, Exists, F, IntegerField, OrderBy, OuterRef, Subquery, Value, When
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
@@ -54,7 +44,12 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.fields.text import CharField
 from sentry.locks import locks
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardLastVisited
+from sentry.models.dashboard import (
+    Dashboard,
+    DashboardFavoriteUser,
+    DashboardHiddenUser,
+    DashboardLastVisited,
+)
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
@@ -104,6 +99,7 @@ class PrebuiltDashboard(TypedDict, total=False):
     title: Required[str]
     hidden: bool
     pre_favorited: bool
+    required_feature_flags: list[str]
 
 
 # Prebuilt dashboards store minimal fields in the database. The actual dashboard and widget settings are
@@ -240,6 +236,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.NODE_RUNTIME_METRICS,
         "title": "Node.js Runtime Metrics",
+        "required_feature_flags": ["organizations:tracemetrics-enabled"],
     },
 ]
 
@@ -263,6 +260,10 @@ def get_enabled_prebuilt_dashboards(
         dashboard
         for dashboard in all_prebuilt_dashboards
         if dashboard["prebuilt_id"] in enabled_prebuilt_dashboard_ids
+        and all(
+            features.has(feature, organization)
+            for feature in dashboard.get("required_feature_flags", [])
+        )
     ]
 
 
@@ -519,6 +520,13 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
             if hidden_prebuilt_ids:
                 dashboards = dashboards.exclude(prebuilt_id__in=hidden_prebuilt_ids)
+
+        if "showUserHidden" not in filters:
+            dashboards = dashboards.exclude(
+                id__in=DashboardHiddenUser.objects.filter(user_id=request.user.id).values(
+                    "dashboard_id"
+                )
+            )
 
         query = request.GET.get("query")
         prebuilt_ids = request.GET.getlist("prebuiltId")

@@ -215,7 +215,6 @@ export function IssueDiff({
         LazyComponent={SplitDiffLazy}
         base={combinedBase}
         target={combinedTarget}
-        type="lines"
         loadingFallback={<IssueDiffLoadingSkeletonRows />}
       />
     </Stack>

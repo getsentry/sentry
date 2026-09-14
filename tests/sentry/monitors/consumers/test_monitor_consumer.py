@@ -1,4 +1,5 @@
 import contextlib
+import time
 import uuid
 from collections.abc import Generator, Mapping, Sequence
 from datetime import UTC, datetime, timedelta
@@ -1340,6 +1341,88 @@ class MonitorConsumerTest(TestCase):
 
         checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
         assert len(checkins) == 0
+
+    @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
+    def test_monitor_quotas_timeout_accepts(
+        self, check_accept_monitor_checkin: mock.MagicMock
+    ) -> None:
+        """
+        A hung quotas seat check must fail open so the consumer does not stall.
+        """
+
+        def hang(*args, **kwargs):
+            time.sleep(1.0)
+            return PermitCheckInStatus.DROP
+
+        check_accept_monitor_checkin.side_effect = hang
+
+        monitor = self._create_monitor(slug="my-monitor")
+        with override_options(
+            {
+                "crons.check_accept_monitor_checkin.timeout_rollout_rate": 1.0,
+                "crons.check_accept_monitor_checkin.timeout_sec": 0.05,
+            }
+        ):
+            self.send_checkin(monitor.slug)
+
+        check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
+
+        checkin = MonitorCheckIn.objects.get(monitor_id=monitor.id)
+        assert checkin.status == CheckInStatus.OK
+
+    @mock.patch(
+        "sentry.monitors.consumers.monitor_consumer._CHECK_ACCEPT_SLOTS.acquire",
+        return_value=False,
+    )
+    @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
+    def test_monitor_quotas_shed_accepts(
+        self,
+        check_accept_monitor_checkin: mock.MagicMock,
+        acquire: mock.MagicMock,
+    ) -> None:
+        """
+        When too many seat checks are already in flight, fail open without
+        queuing another stale call.
+        """
+        check_accept_monitor_checkin.return_value = PermitCheckInStatus.DROP
+
+        monitor = self._create_monitor(slug="my-monitor")
+        with override_options({"crons.check_accept_monitor_checkin.timeout_rollout_rate": 1.0}):
+            self.send_checkin(monitor.slug)
+
+        acquire.assert_called_once_with(blocking=False)
+        check_accept_monitor_checkin.assert_not_called()
+
+        checkin = MonitorCheckIn.objects.get(monitor_id=monitor.id)
+        assert checkin.status == CheckInStatus.OK
+
+    @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
+    def test_monitor_quotas_timeout_rollout_disabled(
+        self, check_accept_monitor_checkin: mock.MagicMock
+    ) -> None:
+        """
+        With rollout rate 0, seat acceptance is called directly (no timeout
+        wrapper), so a DROP result still drops the check-in.
+        """
+        check_accept_monitor_checkin.return_value = PermitCheckInStatus.DROP
+
+        monitor = self._create_monitor(slug="my-monitor")
+        with override_options(
+            {
+                "crons.check_accept_monitor_checkin.timeout_rollout_rate": 0.0,
+                # Would fail-open if the wrapper ran; prove it does not.
+                "crons.check_accept_monitor_checkin.timeout_sec": 0.05,
+            }
+        ):
+            self.send_checkin(
+                monitor.slug,
+                expected_error=ProcessingErrorsException(
+                    [{"type": ProcessingErrorType.MONITOR_OVER_QUOTA}],
+                ),
+            )
+
+        check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
+        assert not MonitorCheckIn.objects.filter(monitor_id=monitor.id).exists()
 
     @mock.patch("sentry.quotas.backend.assign_seat")
     @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")

@@ -14,6 +14,7 @@ from sentry.discover.arithmetic import get_equation_alias_index, is_equation, is
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
+    DashboardHiddenUser,
     DashboardLastVisited,
     DashboardRevision,
 )
@@ -458,6 +459,7 @@ class DashboardListResponse(TypedDict):
     widgetPreview: list[dict[str, str]]
     permissions: DashboardPermissionsResponse | None
     isFavorited: bool
+    isHidden: bool
     projects: list[int]
     prebuiltId: int | None
 
@@ -473,6 +475,7 @@ class _Widget(TypedDict):
     created_by: dict[str, Any] | None
     permissions: NotRequired[dict[str, Any]]
     is_favorited: NotRequired[bool]
+    is_hidden: NotRequired[bool]
     projects: list[int]
     environment: list[str]
     filters: DashboardFilters
@@ -554,6 +557,12 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
             ).values_list("dashboard_id", flat=True)
         )
 
+        hidden_dashboard_ids = set(
+            DashboardHiddenUser.objects.filter(
+                user_id=user.id, dashboard_id__in=item_dict.keys()
+            ).values_list("dashboard_id", flat=True)
+        )
+
         permissions = DashboardPermissions.objects.filter(
             dashboard_id__in=item_dict.keys()
         ).prefetch_related("teams_with_edit_access")
@@ -614,6 +623,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
 
             result[dashboard]["created_by"] = serialized_users.get(str(dashboard.created_by_id))
             result[dashboard]["is_favorited"] = dashboard.id in favorited_dashboard_ids
+            result[dashboard]["is_hidden"] = dashboard.id in hidden_dashboard_ids
 
             page_filters, tag_filters = self.get_filters(dashboard)
             result[dashboard]["projects"] = page_filters.get("projects", [])
@@ -632,6 +642,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
             "widgetPreview": attrs.get("widget_preview", []),
             "permissions": attrs.get("permissions", None),
             "isFavorited": attrs.get("is_favorited", False),
+            "isHidden": attrs.get("is_hidden", False),
             "projects": attrs.get("projects", []),
             "environment": attrs.get("environment", []),
             "filters": attrs.get("filters", {}),

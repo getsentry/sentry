@@ -46,7 +46,7 @@ describe('useTourReducer', () => {
     expect(result.current.currentStepId).toBeNull();
     act(() => result.current.startTour());
     expect(result.current.currentStepId).toBe(TestTour.NAME);
-    act(() => result.current.startTour(TestTour.EMAIL));
+    act(() => result.current.setStep(TestTour.EMAIL));
     expect(result.current.currentStepId).toBe(TestTour.EMAIL);
     act(() => result.current.endTour());
     expect(result.current.currentStepId).toBeNull();
@@ -72,7 +72,8 @@ describe('useTourReducer', () => {
     expect(result.current.currentStepId).toBeNull();
     act(() => result.current.previousStep());
     expect(result.current.currentStepId).toBeNull();
-    act(() => result.current.startTour(TestTour.PASSWORD));
+    act(() => result.current.startTour());
+    act(() => result.current.setStep(TestTour.PASSWORD));
     expect(result.current.currentStepId).toBe(TestTour.PASSWORD);
     act(() => result.current.previousStep());
     expect(result.current.currentStepId).toBe(TestTour.EMAIL);

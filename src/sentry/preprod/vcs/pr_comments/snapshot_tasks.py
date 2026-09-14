@@ -9,6 +9,7 @@ from taskbroker_client.retry import Retry
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.preprod.integration_utils import get_commit_context_client
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
@@ -33,7 +34,7 @@ from sentry.preprod.vcs.status_checks.snapshots.config import (
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import preprod_tasks
+from sentry.taskworker.namespaces import preprod_snapshots_tasks, preprod_tasks
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,8 @@ def get_snapshot_pr_comment_reporting_criteria(project: Project) -> SnapshotChan
 
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_snapshot_pr_comment",
-    namespace=preprod_tasks,
+    namespace=preprod_snapshots_tasks,
+    alias_namespace=preprod_tasks,
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=60),
@@ -157,8 +159,19 @@ def create_preprod_snapshot_pr_comment_task(
                     all_artifacts, snapshot_metrics_map, project=artifact.project
                 )
             else:
+                assert commit_comparison.base_sha is not None
+                base_repo_name = commit_comparison.base_repo_name or head_repo_name
+                base_repository = Repository.objects.filter(
+                    organization_id=organization.id,
+                    name=base_repo_name,
+                    provider=f"integrations:{provider}",
+                ).first()
                 comment_body = format_missing_base_snapshot_pr_comment(
-                    all_artifacts, snapshot_metrics_map, project=artifact.project
+                    all_artifacts,
+                    snapshot_metrics_map,
+                    project=artifact.project,
+                    base_sha=commit_comparison.base_sha,
+                    base_repo_url=base_repository.url if base_repository else None,
                 )
         else:
             reporting_criteria = get_snapshot_pr_comment_reporting_criteria(artifact.project)
@@ -221,7 +234,8 @@ def create_preprod_snapshot_pr_comment_task(
 
 @instrumented_task(
     name="sentry.preprod.tasks.post_snapshot_pr_comment",
-    namespace=preprod_tasks,
+    namespace=preprod_snapshots_tasks,
+    alias_namespace=preprod_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=4, on=(ApiError, ConnectionError, TimeoutError)),

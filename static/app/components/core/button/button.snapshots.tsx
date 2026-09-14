@@ -3,8 +3,9 @@ import {ThemeProvider} from '@emotion/react';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 
 import {IconEdit} from 'sentry/icons';
-// eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
+
+import type {ButtonSize} from './types';
 
 const themes = {light: lightTheme, dark: darkTheme};
 
@@ -17,7 +18,7 @@ const allVariants: Array<ButtonProps['variant']> = [
   'transparent',
 ];
 
-const allSizes: Array<ButtonProps['size']> = ['zero', 'xs', 'sm', 'md'];
+const allSizes: ButtonSize[] = ['zero', 'xs', 'sm', 'md'];
 
 describe('Button', () => {
   describe.each(['light', 'dark'] as const)('%s', themeName => {

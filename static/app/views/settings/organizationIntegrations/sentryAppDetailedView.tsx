@@ -349,7 +349,6 @@ export default function SentryAppDetailedView() {
             disabled
             tooltipProps={{
               title: t('Deletion is in progress. This may take a few minutes.'),
-              isHoverable: true,
               position: 'top',
             }}
             data-test-id="pending-deletion-button"

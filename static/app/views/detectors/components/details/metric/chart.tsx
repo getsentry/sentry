@@ -670,7 +670,7 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
     return (
       <ChartContainer>
         <ChartBody>
-          <Flex height={CHART_HEIGHT} justify="center" align="center">
+          <Flex justify="center" align="center">
             <Placeholder height={`${CHART_HEIGHT}px`} />
           </Flex>
         </ChartBody>

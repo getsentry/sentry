@@ -32,6 +32,7 @@ export function useCollapsedNavigation() {
   // Keep a ref so event handlers can read the latest isCollapsed value during
   // React's commit phase (e.g. focusout fires while React is unmounting elements).
   const isCollapsedRef = useRef(isCollapsed);
+  // oxlint-disable-next-line react/refs
   isCollapsedRef.current = isCollapsed;
 
   const isHoveredRef = useRef(false);

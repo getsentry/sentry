@@ -38,7 +38,7 @@ def build_mock_group_evaluation() -> DataConditionGroupEvaluation:
 
 
 def build_mock_occurrence_and_event(
-    handler: DetectorHandler[Any],
+    handler: BaseDetectorHandler[Any],
     value: DataPacketEvaluationType,
     priority: PriorityLevel,
 ) -> tuple[DetectorOccurrence, dict[str, Any]]:
@@ -109,8 +109,8 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             description = "no handler"
             category = GroupCategory.METRIC.value
 
-        class MockDetectorHandler(BaseDetectorHandler[dict[str, Any], int]):
-            def evaluate_impl(
+        class MockDetectorHandler(DetectorHandler[dict[str, Any], int]):
+            def evaluate(
                 self, data_packet: DataPacket[dict[str, Any]]
             ) -> GroupedDetectorEvaluationResult:
                 return GroupedDetectorEvaluationResult(
@@ -141,11 +141,8 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
                 value = self.extract_value(data_packet)
                 return build_mock_occurrence_and_event(self, value, PriorityLevel(priority))
 
-            def extract_dedupe_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
-                return data_packet.packet.get("dedupe", 0)
-
-        class MockDetectorWithUpdateHandler(BaseDetectorHandler[dict[str, Any], int]):
-            def evaluate_impl(
+        class MockDetectorWithUpdateHandler(DetectorHandler[dict[str, Any], int]):
+            def evaluate(
                 self, data_packet: DataPacket[dict[str, Any]]
             ) -> GroupedDetectorEvaluationResult:
                 status_change = StatusChangeMessage(
@@ -182,9 +179,6 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
 
             def extract_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
                 return data_packet.packet.get("value", 0)
-
-            def extract_dedupe_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
-                return data_packet.packet.get("dedupe", 0)
 
         class HandlerGroupType(GroupType):
             type_id = 2

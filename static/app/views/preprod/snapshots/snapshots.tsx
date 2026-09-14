@@ -17,6 +17,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {ModalStore} from 'sentry/stores/modalStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -650,6 +651,7 @@ export default function SnapshotsPage() {
     listItems,
     setSelectedSnapshotKey,
   });
+  // oxlint-disable-next-line react/refs
   navRef.current = {
     navigateSingleView,
     setViewMode,
@@ -667,6 +669,9 @@ export default function SnapshotsPage() {
         e.key !== 'ArrowLeft' &&
         e.key !== 'ArrowRight'
       ) {
+        return;
+      }
+      if (typeof ModalStore.getState().renderer === 'function') {
         return;
       }
       const tag = (e.target as HTMLElement)?.tagName;

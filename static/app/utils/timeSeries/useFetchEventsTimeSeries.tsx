@@ -37,10 +37,6 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    */
   enabled?: boolean;
   /**
-   * If true, the query will exclude the "other" group.
-   */
-  excludeOther?: boolean;
-  /**
    * Whether the request should enable aggregate extrapolation. Extrapolation is on by default.
    */
   extrapolate?: boolean;
@@ -108,7 +104,6 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
 ) {
   const {
     yAxis,
-    excludeOther,
     enabled,
     groupBy,
     extrapolate,
@@ -151,7 +146,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
         path: {organizationIdOrSlug: organization.slug},
         query: {
           partial: 1,
-          excludeOther: excludeOther ? 1 : 0,
+          excludeOther: 0,
           dataset,
           referrer,
           yAxis,

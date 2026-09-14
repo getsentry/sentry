@@ -9,12 +9,17 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
-from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.logs import (
+    LogCtxIteration,
+    PrIterationLogContext,
+)
 from sentry.seer.autofix.pr_iteration.mention import handle_issue_comment_for_autofix_iteration
 from sentry.seer.autofix.pr_iteration.pause import is_pr_iteration_paused
 from sentry.seer.autofix.pr_iteration.queue import (
     _parse_queued_item,
+    clear_queued_autofix_feedback,
     peek_queued_autofix_feedback,
+    pop_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
 )
 from sentry.testutils.cases import TestCase
@@ -97,6 +102,7 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         return try_enqueue_autofix_feedback(
             log_ctx=PrIterationLogContext(
                 self.log,
+                iteration=LogCtxIteration.TRIGGERED,
                 run_state=state,
                 organization_id=self.organization.id,
                 group_id=1,
@@ -202,6 +208,25 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         assert queued[0].feedback.source._autofix_run is None
         assert "autofix_run" not in queued[0].feedback.source.dict()
         mock_resolve.assert_not_called()
+
+    def test_pop_drains_the_queue(self) -> None:
+        first = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="first"))
+        second = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="second"))
+        self._enqueue(run_id=4848, feedback=first)
+        self._enqueue(run_id=4848, feedback=second)
+
+        items = pop_queued_autofix_feedback(4848)
+
+        assert [item.feedback.text for item in items] == ["first", "second"]
+        assert peek_queued_autofix_feedback(4848) == []
+
+    def test_clear_empties_the_queue(self) -> None:
+        feedback = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it"))
+        self._enqueue(run_id=4949, feedback=feedback)
+
+        clear_queued_autofix_feedback(4949)
+
+        assert peek_queued_autofix_feedback(4949) == []
 
 
 class StopCommandEndToEndTest(TestCase):

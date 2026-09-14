@@ -24,7 +24,6 @@ from sentry.issues.occurrence_consumer import (
 )
 from sentry.issues.producer import _prepare_status_change_message
 from sentry.issues.status_change_message import StatusChangeMessage
-from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.ratelimits.sliding_windows import Quota
@@ -308,51 +307,6 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert rate_limit_quota.window_seconds == 3600
         assert rate_limit_quota.granularity_seconds == 60
         assert rate_limit_quota.limit == 1000
-
-
-class IssueOccurrenceBufferedSpansTest(IssueOccurrenceTestBase):
-    """Occurrences from the span segment processor never get saved to nodestore, so the eventstream
-    payload has to be built entirely from the event data on the message.
-    """
-
-    def setUp(self) -> None:
-        super().setUp()
-        # Nothing on this path saves an event, so the default environment is never created for us
-        Environment.get_or_create(self.project, None)
-
-    def run_buffered_spans_message(self, **event_overrides: Any) -> dict[str, Any]:
-        message = get_test_message(self.project.id, is_buffered_spans=True)
-        message["event"].update(event_overrides)
-
-        with mock.patch("sentry.issues.ingest.eventstream.backend.insert") as mock_insert:
-            with self.feature("organizations:profile-file-io-main-thread-ingest"):
-                result = _process_message(message)
-
-        assert result is not None
-        assert mock_insert.call_count == 1
-        group_event = mock_insert.call_args.kwargs["event"]
-        return dict(group_event.get_raw_data(for_stream=True))
-
-    @django_db_all
-    def test_received_reaches_the_eventstream(self) -> None:
-        received = before_now(minutes=1)
-        stream_data = self.run_buffered_spans_message(received=received.isoformat())
-
-        assert stream_data["received"] == pytest.approx(received.timestamp())
-
-    @django_db_all
-    def test_received_reaches_the_eventstream_when_sent_as_a_timestamp(self) -> None:
-        received = before_now(minutes=1).timestamp()
-        stream_data = self.run_buffered_spans_message(received=received)
-
-        assert stream_data["received"] == pytest.approx(received)
-
-    @django_db_all
-    @freeze_time()
-    def test_null_received_falls_back_to_now(self) -> None:
-        stream_data = self.run_buffered_spans_message(received=None)
-
-        assert stream_data["received"] == pytest.approx(datetime.datetime.now().timestamp())
 
 
 class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):

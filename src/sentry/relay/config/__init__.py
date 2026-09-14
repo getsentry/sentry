@@ -48,7 +48,6 @@ from sentry.utils.tracing import start_span
 EXPOSABLE_FEATURES = [
     "organizations:continuous-profiling",
     "organizations:continuous-profiling-perfetto",
-    "organizations:profiling",
     "organizations:session-replay-recording-scrubbing",
     "organizations:session-replay-video-disabled",
     "organizations:session-replay",
@@ -62,6 +61,7 @@ EXPOSABLE_FEATURES = [
     "organizations:view-hierarchy-scrubbing",
     "organizations:performance-issues-spans",
     "organizations:relay-playstation-ingestion",
+    "organizations:gpu-crash-symbolication",
     "projects:span-v2-attachment-processing",
     "projects:trace-attachment-processing",
     "projects:relay-minidump-uploads",

@@ -40,6 +40,10 @@ describe('SecondFactorAuth', () => {
     expect(
       await screen.findByText('Enter the code from your Authenticator')
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Contact support'})).toHaveAttribute(
+      'href',
+      'https://www.sentry.help/'
+    );
   });
 
   it('does not reactivate SMS after switching methods', async () => {
@@ -68,7 +72,7 @@ describe('SecondFactorAuth', () => {
     expect(challengeRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('completes a WebAuthn challenge without additional UI', async () => {
+  it('keeps showing authorization progress while completing a WebAuthn challenge', async () => {
     const user = UserFixture();
     const onComplete = jest.fn();
     const webAuthnResponse = {
@@ -92,10 +96,12 @@ describe('SecondFactorAuth', () => {
         challenge: {webAuthnAuthenticationData: 'challenge'},
       },
     });
+    const authorization = Promise.withResolvers<void>();
     const authRequest = MockApiClient.addMockResponse({
       url: '/auth/2fa/',
       method: 'POST',
       body: {nextUri: '/organizations/', user},
+      asyncDelay: authorization.promise,
     });
 
     render(
@@ -107,9 +113,7 @@ describe('SecondFactorAuth', () => {
     );
 
     expect(
-      screen.getByText(
-        'Waiting for passkey, biometric, or hardware key authentication...'
-      )
+      screen.getByText('Waiting for passkey, biometric, or hardware key')
     ).toBeInTheDocument();
     await waitFor(() => expect(challengeRequest).toHaveBeenCalledTimes(1));
     await waitFor(() =>
@@ -126,9 +130,12 @@ describe('SecondFactorAuth', () => {
         })
       )
     );
+    expect(screen.getByText('Authorizing...')).toBeInTheDocument();
+    act(() => authorization.resolve());
     await waitFor(() =>
       expect(onComplete).toHaveBeenCalledWith({nextUri: '/organizations/', user})
     );
+    expect(screen.getByText('Authorizing...')).toBeInTheDocument();
   });
 
   it('requests a fresh WebAuthn challenge after submission fails', async () => {
@@ -301,7 +308,7 @@ describe('SecondFactorAuth', () => {
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 
-  it('disables navigation while authentication is pending', async () => {
+  it('disables navigation while authentication is processing', async () => {
     const response = Promise.withResolvers<{
       nextUri: string;
       user: ReturnType<typeof UserFixture>;
@@ -329,6 +336,7 @@ describe('SecondFactorAuth', () => {
     expect(screen.getByRole('button', {name: 'Use recovery code'})).toBeDisabled();
     response.resolve({nextUri: '/organizations/', user: UserFixture()});
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole('button', {name: 'Back to Login'})).toBeDisabled();
   });
 
   it('disables authentication controls while cancellation is pending', async () => {

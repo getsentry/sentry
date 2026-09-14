@@ -145,7 +145,19 @@ export function ChartContent({
           ) : null}
         </Stack>
       ) : null}
-      <Container data-test-id="seer-chart-content" height="220px" width="100%">
+      {/*
+        Inline-size containment: without it a wide legend sets this box's
+        min-content width, which no ancestor can shrink below, and the chart
+        overflows its container. Containment computes the width as if the box
+        were empty, so the legend measures against the container instead of
+        dictating it.
+      */}
+      <Container
+        containerType="inline-size"
+        data-test-id="seer-chart-content"
+        height="220px"
+        width="100%"
+      >
         {visualizationComponent}
       </Container>
     </Stack>

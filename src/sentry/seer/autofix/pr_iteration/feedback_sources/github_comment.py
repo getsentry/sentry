@@ -39,14 +39,9 @@ class GithubPullRequestReviewComment(GithubIssueComment):
 
 
 def _blocks_feedback(blocks: Sequence[Any]) -> list[Any]:
-    from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
+    from sentry.seer.autofix.pr_iteration.feedback import blocks_feedback
 
-    items: list[Any] = []
-    for block in blocks:
-        raw = (block.message.metadata or {}).get("feedback")
-        if raw:
-            items.extend(parse_feedback(raw))
-    return items
+    return list(blocks_feedback(blocks))
 
 
 def _processed_github_comment_ids(

@@ -559,6 +559,10 @@ class GroupAssigneesResponse(_DictProxyMixin):
     assignees: dict[str, UserIdentity]
 
 
+class ProjectMembersResponse(_DictProxyMixin):
+    members: list[UserIdentity]
+
+
 class TransactionsForProjectResponse(BaseModel):
     """`get_transactions_for_project` returns `{"transactions": [...]}` over the
     project-scoped registry. Wraps the existing `Transaction` model so the SDK
@@ -958,3 +962,21 @@ class RefreshMonitoringProviderTokenErrorResponse(BaseModel):
 
     def __hash__(self) -> int:
         return id(self)
+
+
+class InvestigationEventDeliveryResponse(BaseModel):
+    accepted: Literal[True] = True
+    duplicate: bool = False
+    application_status: Literal["pending", "applied", "ignored", "failed"] = Field(
+        alias="applicationStatus"
+    )
+    last_applied_sequence: int = Field(alias="lastAppliedSequence", ge=0)
+    next_expected_sequence: int = Field(alias="nextExpectedSequence", ge=1)
+    notebook_revision: int = Field(alias="notebookRevision", ge=0)
+
+    class Config:
+        allow_population_by_field_name = True
+
+    def dict(self, **kwargs: Any) -> dict[str, Any]:
+        kwargs.setdefault("by_alias", True)
+        return super().dict(**kwargs)

@@ -23,6 +23,8 @@ from sentry.api.endpoints.timeseries import (
     StatsResponse,
     TimeSeries,
 )
+from sentry.api.helpers.data_annotations import get_dropped_data_annotations
+from sentry.api.helpers.ingestion_delay import get_ingestion_delay_seconds
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
@@ -51,6 +53,7 @@ from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
+from sentry.snuba.rpc_dataset_common import RPCBase
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
@@ -219,8 +222,31 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 comparison_delta,
                 additional_queries,
             )
+            include_annotations = request.GET.get(
+                "includeAnnotations"
+            ) is not None and features.has(
+                "organizations:explore-data-fidelity-annotations",
+                organization,
+                actor=request.user,
+            )
+            include_measured_ingestion_delay_metadata = request.GET.get(
+                "includeMeasuredIngestionDelayMetadata"
+            ) is not None and features.has(
+                "organizations:measured-ingestion-delay-metadata",
+                organization,
+                actor=request.user,
+            )
             return Response(
-                self.serialize_stats_data(events_stats, axes, snuba_params, rollup, dataset),
+                self.serialize_stats_data(
+                    events_stats,
+                    axes,
+                    snuba_params,
+                    rollup,
+                    dataset,
+                    organization,
+                    include_annotations,
+                    include_measured_ingestion_delay_metadata,
+                ),
                 status=200,
             )
 
@@ -401,6 +427,9 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         snuba_params: SnubaParams,
         rollup: int,
         dataset,
+        organization: Organization,
+        include_annotations: bool = False,
+        include_measured_ingestion_delay_metadata: bool = False,
     ) -> StatsResponse:
         # We need the current timestamp for the Ingestion Delay incomplete reason
         now = datetime.now().timestamp()
@@ -420,6 +449,26 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                         debug_info[key] = keyed_result.data["meta"]["debug_info"]
             # ignore typing here cause we don't want the openapi docs to include debug_info
             stats_meta["debug_info"] = debug_info  #  type: ignore[typeddict-unknown-key]
+        if include_annotations:
+            try:
+                stats_meta["annotations"] = get_dropped_data_annotations(
+                    dataset, snuba_params, rollup
+                )
+            except Exception:
+                sentry_sdk.capture_exception()
+                stats_meta["annotations"] = []
+
+        # Only the EAP RPC datasets allow measured ingestion delay metadata
+        if include_measured_ingestion_delay_metadata and (
+            isinstance(dataset, type) and issubclass(dataset, RPCBase)
+        ):
+            try:
+                delay_seconds = get_ingestion_delay_seconds(dataset, snuba_params)
+                if delay_seconds is not None:
+                    stats_meta["estimatedIngestionDelaySeconds"] = delay_seconds
+            except Exception:
+                sentry_sdk.capture_exception()
+
         response = StatsResponse(
             meta=stats_meta,
             timeSeries=self.serialize_result(result, axes, rollup, now),

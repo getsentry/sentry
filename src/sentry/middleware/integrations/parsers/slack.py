@@ -146,7 +146,7 @@ class SlackRequestParser(BaseRequestParser):
     def handle_dialog(self, request: HttpRequest, action: str, title: str) -> None:
         payload, action_ts = self.parse_slack_payload(request)
 
-        integration = self.get_integration_from_request()
+        integration = self.integration_for_request()
         if not integration:
             raise ValueError("integration not found")
 
@@ -179,7 +179,7 @@ class SlackRequestParser(BaseRequestParser):
             # Add more actions here, ie for buttons in modal
         }
 
-        integration = self.get_integration_from_request()
+        integration = self.integration_for_request()
 
         # if we are able to  send a response to Slack from control itself to beat the 3 second timeout, we should do so
         try:

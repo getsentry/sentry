@@ -180,7 +180,7 @@ export default Storybook.story('GridEditable', story => {
         renderHeadCell,
         renderBodyCell,
       }}
-      height={200}
+      height="200px"
       stickyHeader
     />
   ));
@@ -219,7 +219,7 @@ export default Storybook.story('GridEditable', story => {
                 renderBodyCell,
               }}
               scrollable
-              height={200}
+              height="200px"
             />
           </div>
           <div>
@@ -233,7 +233,7 @@ export default Storybook.story('GridEditable', story => {
               }}
               stickyHeader
               scrollable
-              height={200}
+              height="200px"
             />
           </div>
         </Storybook.SideBySide>

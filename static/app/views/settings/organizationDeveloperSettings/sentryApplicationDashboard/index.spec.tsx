@@ -96,16 +96,22 @@ describe('Sentry Application Dashboard', () => {
       expect(screen.getByTestId('uninstalls')).toHaveTextContent('Total uninstalls2');
     });
 
-    it('shows the request log for org admins', async () => {
+    it('shows the request log summary columns for org admins', async () => {
       renderDashboard(OrganizationFixture({access: ['org:admin']}));
       // The mock response has 1 request
       expect(await screen.findByTestId('request-item')).toBeInTheDocument();
       const requestLog = within(screen.getByTestId('request-item'));
-      // Make sure that all the info is displayed
-      expect(requestLog.getByText('https://example.com/webhook')).toBeInTheDocument();
+      // Make sure that all the summary info is displayed
       expect(requestLog.getByText('400')).toBeInTheDocument();
       expect(requestLog.getByText('issue.assigned')).toBeInTheDocument();
       expect(requestLog.getByText('Test Org')).toBeInTheDocument();
+      expect(requestLog.getByText('Issue')).toBeInTheDocument();
+      expect(requestLog.getByText('42')).toBeInTheDocument();
+      expect(requestLog.queryByRole('link', {name: '42'})).not.toBeInTheDocument();
+      expect(requestLog.getByText('150.00ms')).toBeInTheDocument();
+      expect(
+        requestLog.queryByText('https://example.com/webhook')
+      ).not.toBeInTheDocument();
       expect(webhookRequestMock).toHaveBeenCalledTimes(1);
     });
 
@@ -140,6 +146,20 @@ describe('Sentry Application Dashboard', () => {
 
       expect(await screen.findByTestId('request-item')).toBeInTheDocument();
       expect(webhookRequestMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('labels no-response status codes', async () => {
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/webhook-requests/`,
+        body: [
+          SentryAppWebhookRequestFixture({responseCode: 0}),
+          SentryAppWebhookRequestFixture({responseCode: -1}),
+        ],
+      });
+      renderDashboard();
+
+      expect(await screen.findByText('timeout')).toBeInTheDocument();
+      expect(screen.getByText('connection error')).toBeInTheDocument();
     });
 
     it('shows an empty message if there are no requests', async () => {
@@ -225,12 +245,17 @@ describe('Sentry Application Dashboard', () => {
       // The mock response has 1 request
       expect(await screen.findByTestId('request-item')).toBeInTheDocument();
       const requestLog = within(screen.getByTestId('request-item'));
-      // Make sure that all the info is displayed
-      expect(requestLog.getByText('https://example.com/webhook')).toBeInTheDocument();
+      // Make sure that the summary info is displayed
       expect(requestLog.getByText('400')).toBeInTheDocument();
       expect(requestLog.getByText('issue.assigned')).toBeInTheDocument();
       expect(webhookRequestMock).toHaveBeenCalledTimes(1);
       expect(screen.queryByTestId('org-permission-alert')).not.toBeInTheDocument();
+      expect(requestLog.getByText('Issue')).toBeInTheDocument();
+      expect(requestLog.getByRole('link', {name: '42'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/issues/42/'
+      );
+      expect(requestLog.getByText('150.00ms')).toBeInTheDocument();
 
       // Does not show the integration views
       expect(screen.queryByText('Integration Views')).not.toBeInTheDocument();

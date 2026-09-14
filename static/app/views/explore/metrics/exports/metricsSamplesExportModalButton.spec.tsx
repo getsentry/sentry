@@ -8,6 +8,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -100,8 +101,10 @@ describe('MetricsSamplesExportModalButton', () => {
     });
 
     renderButton();
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
-    await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+    await userEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {name: 'Export'})
+    );
 
     await waitFor(() => {
       expect(exportRequest).toHaveBeenCalled();
@@ -198,12 +201,12 @@ describe('MetricsSamplesExportModalButton', () => {
   it('disables the button when the table has no rows', () => {
     renderButton({rows: []});
 
-    expect(screen.getByRole('button', {name: 'Export Data'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Export'})).toBeDisabled();
   });
 
   it('disables the button when the table errored', () => {
     renderButton({isError: true});
 
-    expect(screen.getByRole('button', {name: 'Export Data'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Export'})).toBeDisabled();
   });
 });
