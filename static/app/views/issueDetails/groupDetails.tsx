@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
+import {parseAsBoolean, useQueryState} from 'nuqs';
 import * as qs from 'query-string';
 
 import {useDrawer} from '@sentry/scraps/drawer';
@@ -36,13 +37,11 @@ import {
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
-import {decodeBoolean} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
@@ -625,11 +624,7 @@ function GroupDetailsContentInner({
   const {isAnyDrawerOpen} = useDrawer();
 
   const {currentTab} = useGroupDetailsRoute();
-  const {seerDrawer} = useLocationQuery({
-    fields: {
-      seerDrawer: decodeBoolean,
-    },
-  });
+  const [seerDrawer] = useQueryState('seerDrawer', parseAsBoolean.withDefault(false));
 
   const {hasAutofixQuota} = useAiConfig(group, project);
 
