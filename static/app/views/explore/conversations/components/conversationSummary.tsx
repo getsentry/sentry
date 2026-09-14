@@ -37,6 +37,10 @@ import {getExploreUrl} from 'sentry/views/explore/utils';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {
+  TokenBreakdownTooltip,
+  type TokenBreakdownDetails,
+} from 'sentry/views/insights/pages/agents/components/tokenBreakdownTooltip';
+import {
   getNumberAttr,
   getStringAttr,
   hasError,
@@ -282,7 +286,12 @@ export function ConversationSummary({
         />
         <Stat
           label={t('Tokens')}
-          value={<TokenCount breakdown={aggregates.tokens} />}
+          value={
+            <TokenCount
+              breakdowns={aggregates.tokenBreakdowns}
+              total={aggregates.totalTokens}
+            />
+          }
           isLoading={isLoading}
         />
         <Stat
@@ -369,20 +378,11 @@ interface ConversationAggregates {
   llmCalls: number;
   /** When the conversation began, or null when no span carries a start time. */
   startTimestamp: number | null;
-  tokens: ConversationTokenBreakdown;
+  tokenBreakdowns: TokenBreakdownDetails[];
   toolCalls: number;
   toolNames: string[];
   totalCost: number;
-}
-
-interface ConversationTokenBreakdown {
-  cacheWrite: number;
-  cached: number;
-  input: number;
-  isComplete: boolean;
-  output: number;
-  reasoning: number;
-  total: number;
+  totalTokens: number;
 }
 
 function getGenAiOpType(node: AITraceSpanNode): string | undefined {
@@ -407,15 +407,7 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
   let toolCalls = 0;
   let errorCount = 0;
   let totalCost = 0;
-  const tokens: ConversationTokenBreakdown = {
-    cacheWrite: 0,
-    cached: 0,
-    input: 0,
-    isComplete: true,
-    output: 0,
-    reasoning: 0,
-    total: 0,
-  };
+  const tokensByModel = new Map<string, TokenBreakdownDetails>();
   let startTimestamp: number | null = null;
   const toolNameSet = new Set<string>();
   const erroredToolNameSet = new Set<string>();
@@ -456,14 +448,30 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
         breakdown.cacheWrite +
         breakdown.output;
 
-      tokens.input += breakdown.netNewInput;
-      tokens.output += Math.max(0, breakdown.output - reasoning);
-      tokens.cached += breakdown.cached;
-      tokens.cacheWrite += breakdown.cacheWrite;
-      tokens.reasoning += reasoning;
-      tokens.isComplete &&= input !== undefined && output !== undefined;
-      tokens.total +=
+      const model =
+        getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ??
+        getStringAttr(node, SpanFields.GEN_AI_REQUEST_MODEL) ??
+        t('Unknown model');
+      const modelTokens = tokensByModel.get(model) ?? {
+        cacheRead: 0,
+        cacheWrite: 0,
+        input: 0,
+        isComplete: true,
+        model,
+        output: 0,
+        reasoning: 0,
+        total: 0,
+      };
+      modelTokens.input +=
+        breakdown.netNewInput + breakdown.cached + breakdown.cacheWrite;
+      modelTokens.output += breakdown.output;
+      modelTokens.cacheRead += breakdown.cached;
+      modelTokens.cacheWrite += breakdown.cacheWrite;
+      modelTokens.reasoning += reasoning;
+      modelTokens.isComplete &&= input !== undefined && output !== undefined;
+      modelTokens.total +=
         input !== undefined && output !== undefined ? componentTotal : reportedTotal;
+      tokensByModel.set(model, modelTokens);
       totalCost += getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS) ?? 0;
     } else if (getIsExecuteToolSpan(opType)) {
       toolCalls++;
@@ -494,7 +502,11 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
     errorCount,
     startTimestamp,
     erroredToolNames: erroredToolNameSet,
-    tokens,
+    tokenBreakdowns: Array.from(tokensByModel.values()),
+    totalTokens: Array.from(tokensByModel.values()).reduce(
+      (total, breakdown) => total + breakdown.total,
+      0
+    ),
     totalCost,
     toolNames,
   };
@@ -568,7 +580,12 @@ export function ConversationAggregatesBar({
       />
       <AggregateItem
         label={t('Tokens')}
-        value={<TokenCount breakdown={aggregates.tokens} />}
+        value={
+          <TokenCount
+            breakdowns={aggregates.tokenBreakdowns}
+            total={aggregates.totalTokens}
+          />
+        }
         isLoading={isLoading}
       />
       <AggregateItem
@@ -647,32 +664,16 @@ export function ConversationAggregatesBar({
   );
 }
 
-function TokenCount({breakdown}: {breakdown: ConversationTokenBreakdown}) {
-  const rows = breakdown.isComplete
-    ? [
-        {label: t('Input'), value: breakdown.input},
-        {label: t('Output'), value: breakdown.output},
-        {label: t('Cached'), value: breakdown.cached},
-        {label: t('Cache Write'), value: breakdown.cacheWrite},
-        {label: t('Reasoning'), value: breakdown.reasoning},
-        {label: t('Total'), value: breakdown.total},
-      ].filter(row => row.value > 0 || row.label === t('Total'))
-    : [{label: t('Total'), value: breakdown.total}];
-
+function TokenCount({
+  breakdowns,
+  total,
+}: {
+  breakdowns: TokenBreakdownDetails[];
+  total: number;
+}) {
   return (
-    <Tooltip
-      title={
-        <TokenBreakdownGrid>
-          {rows.map(row => (
-            <Fragment key={row.label}>
-              <span>{row.label}</span>
-              <span>{row.value.toLocaleString()}</span>
-            </Fragment>
-          ))}
-        </TokenBreakdownGrid>
-      }
-    >
-      <TokenCountValue>{formatAbbreviatedNumber(breakdown.total)}</TokenCountValue>
+    <Tooltip title={<TokenBreakdownTooltip breakdowns={breakdowns} />}>
+      <TokenCountValue>{formatAbbreviatedNumber(total)}</TokenCountValue>
     </Tooltip>
   );
 }
@@ -721,20 +722,6 @@ function AggregateItem({
 const TokenCountValue = styled('span')`
   text-decoration: underline dotted;
   text-underline-offset: ${p => p.theme.space['2xs']};
-`;
-
-const TokenBreakdownGrid = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space.xs};
-
-  > *:nth-child(odd) {
-    text-align: left;
-  }
-
-  > *:nth-child(even) {
-    text-align: right;
-  }
 `;
 
 const AggregateValue = styled(Text)<{isInteractive?: boolean}>`

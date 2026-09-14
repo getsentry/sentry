@@ -256,8 +256,10 @@ describe('getHighlightedSpanAttributes', () => {
     const summary = screen.getByText('100 in + 50 out = 150 total');
     await userEvent.hover(summary.parentElement!);
 
-    expect(await screen.findByText('Cache Read')).toBeInTheDocument();
+    expect(await screen.findByText('Non-cached')).toBeInTheDocument();
+    expect(screen.getByText('Cache Read')).toBeInTheDocument();
     expect(screen.getByText('Cache Write')).toBeInTheDocument();
+    expect(screen.getByText('Non-reasoning')).toBeInTheDocument();
     expect(screen.getByText('Reasoning')).toBeInTheDocument();
   });
 

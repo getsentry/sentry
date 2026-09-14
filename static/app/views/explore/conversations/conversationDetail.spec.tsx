@@ -254,6 +254,7 @@ describe('ConversationDetailPage summary errors', () => {
         'precise.finish_ts': 1000.5,
         'gen_ai.request.messages': JSON.stringify([{role: 'user', content: 'Hello'}]),
         'gen_ai.response.text': 'Hi',
+        'gen_ai.response.model': 'model-alpha',
         // This provider reports input exclusive of cache tokens.
         'gen_ai.usage.input_tokens': 100,
         'gen_ai.usage.output_tokens': 50,
@@ -262,20 +263,32 @@ describe('ConversationDetailPage summary errors', () => {
         'gen_ai.usage.output_tokens.reasoning': 10,
         'gen_ai.usage.total_tokens': 200,
       }),
+      spanFixture({
+        span_id: 'span-tokens-second-model',
+        'span.name': 'second model turn',
+        'precise.start_ts': 1001,
+        'precise.finish_ts': 1001.5,
+        'gen_ai.response.model': 'model-beta',
+        'gen_ai.usage.input_tokens': 20,
+        'gen_ai.usage.output_tokens': 10,
+        'gen_ai.usage.total_tokens': 30,
+      }),
     ]);
     renderPage();
 
-    const tokenCount = await screen.findByText('200');
+    const tokenCount = await screen.findByText('230');
     expect(tokenCount).not.toHaveAttribute('title');
     await userEvent.hover(tokenCount.parentElement!);
 
-    expect(await screen.findByText('Input')).toBeInTheDocument();
-    expect(screen.getByText('100')).toBeInTheDocument();
-    expect(screen.getByText('40')).toBeInTheDocument();
-    expect(screen.getByText('Cached')).toBeInTheDocument();
+    expect(await screen.findByText('model-alpha')).toBeInTheDocument();
+    expect(screen.getByText('model-beta')).toBeInTheDocument();
+    expect(screen.getAllByText('Input')).toHaveLength(2);
+    expect(screen.getByText('Non-cached')).toBeInTheDocument();
+    expect(screen.getByText('Cache Read')).toBeInTheDocument();
     expect(screen.getByText('Cache Write')).toBeInTheDocument();
+    expect(screen.getAllByText('Output')).toHaveLength(2);
+    expect(screen.getByText('Non-reasoning')).toBeInTheDocument();
     expect(screen.getByText('Reasoning')).toBeInTheDocument();
-    expect(screen.getByText('10')).toBeInTheDocument();
   });
 
   it('renders the fire icon in the summary when a span errored', async () => {

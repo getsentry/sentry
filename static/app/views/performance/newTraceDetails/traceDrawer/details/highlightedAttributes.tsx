@@ -17,6 +17,7 @@ import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAt
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
+import {TokenBreakdownTooltip} from 'sentry/views/insights/pages/agents/components/tokenBreakdownTooltip';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
 import {
   NegativeCostInfo,
@@ -398,41 +399,25 @@ function HighlightedTokenAttributes({
   const breakdown = getTokenBreakdown(tokenArgs);
   const mismatch = hasTokenMismatch(tokenArgs);
 
-  const hasCached = breakdown.cached > 0;
-  const hasCacheWrite = breakdown.cacheWrite > 0;
-  const hasReasoning = reasoningTokens > 0;
   const input = breakdown.netNewInput + breakdown.cached + breakdown.cacheWrite;
 
   const abbr = formatAbbreviatedNumber;
   const tokenSummary = `${abbr(input)} ${t('in')} + ${abbr(breakdown.output)} ${t('out')} = ${abbr(breakdown.total)} ${t('total')}`;
 
   const breakdownTooltip = (
-    <TokensTooltipTitle>
-      <span>{t('Input')}</span>
-      <span>{input.toLocaleString()}</span>
-      {hasCached && (
-        <Fragment>
-          <TokenBreakdownSubrow>{t('Cache Read')}</TokenBreakdownSubrow>
-          <span>{breakdown.cached.toLocaleString()}</span>
-        </Fragment>
-      )}
-      {hasCacheWrite && (
-        <Fragment>
-          <TokenBreakdownSubrow>{t('Cache Write')}</TokenBreakdownSubrow>
-          <span>{breakdown.cacheWrite.toLocaleString()}</span>
-        </Fragment>
-      )}
-      <span>{t('Output')}</span>
-      <span>{breakdown.output.toLocaleString()}</span>
-      {hasReasoning && (
-        <Fragment>
-          <TokenBreakdownSubrow>{t('Reasoning')}</TokenBreakdownSubrow>
-          <span>{reasoningTokens.toLocaleString()}</span>
-        </Fragment>
-      )}
-      <span>{t('Total')}</span>
-      <span>{breakdown.total.toLocaleString()}</span>
-    </TokensTooltipTitle>
+    <TokenBreakdownTooltip
+      breakdowns={[
+        {
+          cacheRead: breakdown.cached,
+          cacheWrite: breakdown.cacheWrite,
+          input,
+          isComplete: true,
+          output: breakdown.output,
+          reasoning: reasoningTokens,
+          total: breakdown.total,
+        },
+      ]}
+    />
   );
 
   if (mismatch) {
@@ -498,11 +483,6 @@ function HighlightedContextUtilization({
 
 const TokenSummary = styled('span')`
   white-space: nowrap;
-`;
-
-const TokenBreakdownSubrow = styled('span')`
-  padding-left: ${p => p.theme.space.md};
-  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TokensTooltipTitle = styled('div')`
