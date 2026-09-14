@@ -51,7 +51,7 @@ from sentry.tasks.assemble import (
     set_assemble_status,
 )
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import launchpad_tasks, preprod_tasks
+from sentry.taskworker.namespaces import launchpad_tasks, preprod_size_tasks, preprod_tasks
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.sdk import bind_organization_context
@@ -79,7 +79,8 @@ def process_artifact(
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact",
     retry=Retry(times=3),
-    namespace=preprod_tasks,
+    namespace=preprod_size_tasks,
+    alias_namespace=preprod_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.CELL,
 )
@@ -695,7 +696,8 @@ def _assemble_preprod_artifact_size_analysis(
 
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact_size_analysis",
-    namespace=preprod_tasks,
+    namespace=preprod_size_tasks,
+    alias_namespace=preprod_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.CELL,
 )
@@ -817,7 +819,8 @@ def _assemble_preprod_artifact_installable_app(
 
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact_installable_app",
-    namespace=preprod_tasks,
+    namespace=preprod_size_tasks,
+    alias_namespace=preprod_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.CELL,
 )
@@ -838,7 +841,8 @@ def assemble_preprod_artifact_installable_app(
 
 @instrumented_task(
     name="sentry.preprod.tasks.detect_expired_preprod_artifacts",
-    namespace=preprod_tasks,
+    namespace=preprod_size_tasks,
+    alias_namespace=preprod_tasks,
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )
