@@ -83,6 +83,55 @@ describe('ConversationOnboarding', () => {
     expect(screen.getByRole('button', {name: 'Show More'})).toBeInTheDocument();
   });
 
+  it('tracks agent prompt interactions and setup tab changes', async () => {
+    const {organization} = setupProject('node');
+
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Show More'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.onboarding.interaction',
+      {organization, action: 'expand_prompt'}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show Less'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.onboarding.interaction',
+      {organization, action: 'collapse_prompt'}
+    );
+
+    await userEvent.click(screen.getByRole('tab', {name: 'For you'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.onboarding.interaction',
+      {organization, action: 'switch_tab', tab: 'human'}
+    );
+
+    await userEvent.click(screen.getByRole('tab', {name: 'For your agent'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.onboarding.interaction',
+      {organization, action: 'switch_tab', tab: 'agent'}
+    );
+  });
+
+  it('tracks setup option selections', async () => {
+    const {organization} = setupProject('node');
+
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+    await userEvent.click(await screen.findByRole('tab', {name: 'For you'}));
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Eve'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.onboarding.interaction',
+      {
+        organization,
+        action: 'select_setup_option',
+        option: 'integration',
+        value: 'eve',
+      }
+    );
+  });
+
   it('updates the prompt when the selected project changes', async () => {
     const {organization, project} = setupProject('node');
     const nextProject = ProjectFixture({

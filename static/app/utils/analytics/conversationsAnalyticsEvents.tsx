@@ -15,6 +15,20 @@ export type ConversationsEventParameters = {
   'conversations.message.click': Record<string, unknown>;
   'conversations.message.click-tool-call': Record<string, unknown>;
   'conversations.onboarding.page-view': Record<string, unknown>;
+  'conversations.onboarding.interaction': {
+    action:
+      | 'collapse_prompt'
+      | 'expand_prompt'
+      | 'next_step'
+      | 'previous_step'
+      | 'select_setup_option'
+      | 'switch_tab'
+      | 'view_conversations';
+    option?: string;
+    step?: number;
+    tab?: 'agent' | 'human';
+    value?: string;
+  };
   'conversations.page-view': Record<string, unknown>;
   'conversations.save_as': {
     save_type: 'alert' | 'dashboard';
@@ -32,6 +46,7 @@ export type ConversationsEventParameters = {
 
 export const conversationsEventMap: Record<keyof ConversationsEventParameters, string> = {
   'conversations.onboarding.page-view': 'Conversations: Onboarding Page View',
+  'conversations.onboarding.interaction': 'Conversations: Onboarding Interaction',
   'conversations.page-view': 'Conversations: Page View',
   'conversations.save_as': 'Conversations: Save As',
   'conversations.save_query_modal': 'Conversations: Save Query Modal',
