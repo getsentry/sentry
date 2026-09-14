@@ -1,7 +1,7 @@
 import {
+  useCallback,
   useContext,
   useEffect,
-  useEffectEvent,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -115,79 +115,96 @@ function useOverflowTabs({
   const tabWidthsRef = useRef(new Map<string | number, number>());
 
   // Measures the list against the available space and updates the overflow set.
-  const recompute = useEffectEvent(() => {
-    if (disabled) {
-      setOverflowTabs(prev => (prev.length === 0 ? prev : []));
-      return;
-    }
-
-    const outerWrap = outerWrapRef.current;
-    const tabList = tabListRef.current;
-    if (!outerWrap || !tabList) {
-      return;
-    }
-
-    const elements = tabItemsRef.current ?? {};
-    const gap = parseFloat(getComputedStyle(tabList).columnGap) || 0;
-
-    // Tabs that participate in the layout, in render (visual) order. Tabs with
-    // the `hidden` prop render with `display: none` and take up no space.
-    const keys = tabItems.filter(item => !item.hidden).map(item => item.key);
-
-    // Refresh the cached width of every measurable (currently visible) tab.
-    // Overflowing tabs measure 0; their last known width is kept.
-    for (const key of keys) {
-      const measured = elements[key]?.getBoundingClientRect().width ?? 0;
-      if (measured > 0) {
-        tabWidthsRef.current.set(key, measured);
+  //
+  // We use a ref-based pattern instead of useEffectEvent so that this function
+  // can be safely called from a ResizeObserver/rAF callback without hitting
+  // React's rendering-phase restriction. useEffectEvent throws when invoked
+  // outside of React event handlers or effects, which happens in Firefox where
+  // rAF callbacks can fire during the render/layout phase.
+  //
+  // Pattern: keep the latest implementation in a ref (updated via layout
+  // effect), and expose a stable wrapper via useCallback. The stable wrapper
+  // is safe to invoke from any async context.
+  const recomputeImplRef = useRef<() => void>(() => {});
+  useLayoutEffect(() => {
+    recomputeImplRef.current = () => {
+      if (disabled) {
+        setOverflowTabs(prev => (prev.length === 0 ? prev : []));
+        return;
       }
-    }
 
-    const available = outerWrap.clientWidth;
+      const outerWrap = outerWrapRef.current;
+      const tabList = tabListRef.current;
+      if (!outerWrap || !tabList) {
+        return;
+      }
 
-    // Width required to render every tab, without reserving the trigger.
-    const fullWidth = keys.reduce(
-      (sum: number, key, index) =>
-        sum + (tabWidthsRef.current.get(key) ?? 0) + (index === 0 ? 0 : gap),
-      0
-    );
+      const elements = tabItemsRef.current ?? {};
+      const gap = parseFloat(getComputedStyle(tabList).columnGap) || 0;
 
-    let nextOverflow: Array<string | number>;
-    if (fullWidth <= available) {
-      nextOverflow = [];
-    } else {
-      // Overflow is needed, so leave room for the trigger button.
-      const budget = available - RESERVED_OVERFLOW_TRIGGER_WIDTH;
-      nextOverflow = [];
-      let used = 0;
-      let isOverflowing = false;
-      keys.forEach((key, index) => {
-        if (isOverflowing) {
-          nextOverflow.push(key);
-          return;
+      // Tabs that participate in the layout, in render (visual) order. Tabs with
+      // the `hidden` prop render with `display: none` and take up no space.
+      const keys = tabItems.filter(item => !item.hidden).map(item => item.key);
+
+      // Refresh the cached width of every measurable (currently visible) tab.
+      // Overflowing tabs measure 0; their last known width is kept.
+      for (const key of keys) {
+        const measured = elements[key]?.getBoundingClientRect().width ?? 0;
+        if (measured > 0) {
+          tabWidthsRef.current.set(key, measured);
         }
-        const nextUsed =
-          used + (tabWidthsRef.current.get(key) ?? 0) + (index === 0 ? 0 : gap);
-        // Always keep the first tab visible so the tab bar never collapses to
-        // only the overflow trigger.
-        if (index === 0 || nextUsed <= budget) {
-          used = nextUsed;
-        } else {
-          isOverflowing = true;
-          nextOverflow.push(key);
-        }
-      });
-    }
+      }
 
-    // Bail out when the result is unchanged to avoid re-render churn (and any
-    // observer feedback from hiding/showing tabs).
-    setOverflowTabs(prev =>
-      prev.length === nextOverflow.length &&
-      prev.every((key, index) => key === nextOverflow[index])
-        ? prev
-        : nextOverflow
-    );
+      const available = outerWrap.clientWidth;
+
+      // Width required to render every tab, without reserving the trigger.
+      const fullWidth = keys.reduce(
+        (sum: number, key, index) =>
+          sum + (tabWidthsRef.current.get(key) ?? 0) + (index === 0 ? 0 : gap),
+        0
+      );
+
+      let nextOverflow: Array<string | number>;
+      if (fullWidth <= available) {
+        nextOverflow = [];
+      } else {
+        // Overflow is needed, so leave room for the trigger button.
+        const budget = available - RESERVED_OVERFLOW_TRIGGER_WIDTH;
+        nextOverflow = [];
+        let used = 0;
+        let isOverflowing = false;
+        keys.forEach((key, index) => {
+          if (isOverflowing) {
+            nextOverflow.push(key);
+            return;
+          }
+          const nextUsed =
+            used + (tabWidthsRef.current.get(key) ?? 0) + (index === 0 ? 0 : gap);
+          // Always keep the first tab visible so the tab bar never collapses to
+          // only the overflow trigger.
+          if (index === 0 || nextUsed <= budget) {
+            used = nextUsed;
+          } else {
+            isOverflowing = true;
+            nextOverflow.push(key);
+          }
+        });
+      }
+
+      // Bail out when the result is unchanged to avoid re-render churn (and any
+      // observer feedback from hiding/showing tabs).
+      setOverflowTabs(prev =>
+        prev.length === nextOverflow.length &&
+        prev.every((key, index) => key === nextOverflow[index])
+          ? prev
+          : nextOverflow
+      );
+    };
   });
+
+  // Stable wrapper that dispatches to the latest implementation. This can be
+  // called safely from any async callback (ResizeObserver, rAF, effects).
+  const recompute = useCallback(() => recomputeImplRef.current(), []);
 
   // Recompute whenever an input that affects the overflow result changes: the
   // disabled state, or the set/order/hidden-state of the tabs. Width changes are
@@ -199,9 +216,8 @@ function useOverflowTabs({
   ].join('|');
 
   useLayoutEffect(() => {
-    // oxlint-disable-next-line react/set-state-in-effect
     recompute();
-  }, [recomputeSignature]);
+  }, [recomputeSignature, recompute]);
 
   // Recompute on container resize (available space changes) and on list resize
   // (tabs added/removed/relabeled change its intrinsic width). Keyed only on the
@@ -218,9 +234,9 @@ function useOverflowTabs({
     }
 
     const resizeObserver = new ResizeObserver(() => {
-      // Defer recompute to outside the render/layout phase. In Firefox,
-      // ResizeObserver callbacks can fire synchronously during rendering,
-      // which throws when calling a useEffectEvent-wrapped function.
+      // Defer recompute to outside the render/layout phase as a best-practice
+      // timing guard; avoids measuring mid-layout when dimensions may still be
+      // in flux.
       rafRef.current = requestAnimationFrame(() => recompute());
     });
     resizeObserver.observe(outerWrap);
@@ -232,7 +248,7 @@ function useOverflowTabs({
       }
       resizeObserver.disconnect();
     };
-  }, [disabled, outerWrapRef, tabListRef]);
+  }, [disabled, outerWrapRef, tabListRef, recompute]);
 
   // Tabs with the `hidden` prop render with display: none; never surface them
   // in the overflow menu.
