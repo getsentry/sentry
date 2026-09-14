@@ -269,9 +269,9 @@ describe('ConversationDetailPage summary errors', () => {
         'precise.start_ts': 1001,
         'precise.finish_ts': 1001.5,
         'gen_ai.response.model': 'model-beta',
-        'gen_ai.usage.input_tokens': 20,
-        'gen_ai.usage.output_tokens': 10,
-        'gen_ai.usage.total_tokens': 30,
+        'gen_ai.usage.input_tokens': 200,
+        'gen_ai.usage.output_tokens': 100,
+        'gen_ai.usage.total_tokens': 300,
       }),
       spanFixture({
         span_id: 'span-tokens-unknown-model',
@@ -287,12 +287,15 @@ describe('ConversationDetailPage summary errors', () => {
     ]);
     renderPage();
 
-    const tokenCount = await screen.findByText('240');
+    const tokenCount = await screen.findByText('510');
     expect(tokenCount).not.toHaveAttribute('title');
     await userEvent.hover(tokenCount.parentElement!);
 
-    expect(await screen.findByText('model-alpha')).toBeInTheDocument();
-    expect(screen.getByText('model-beta')).toBeInTheDocument();
+    const modelAlpha = await screen.findByText('model-alpha');
+    const modelBeta = screen.getByText('model-beta');
+    expect(modelBeta.compareDocumentPosition(modelAlpha)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
     expect(screen.getByText('Unknown model')).toBeInTheDocument();
     expect(screen.getAllByText('Input')).toHaveLength(3);
     expect(screen.getByText('Non-cached')).toBeInTheDocument();

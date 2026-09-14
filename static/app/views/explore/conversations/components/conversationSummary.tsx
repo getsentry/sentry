@@ -495,6 +495,9 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
     ...sortedToolNames.filter(name => erroredToolNameSet.has(name)),
     ...sortedToolNames.filter(name => !erroredToolNameSet.has(name)),
   ];
+  const tokenBreakdowns = Array.from(tokensByModel.values()).sort(
+    (a, b) => b.total - a.total
+  );
 
   return {
     llmCalls,
@@ -502,11 +505,8 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
     errorCount,
     startTimestamp,
     erroredToolNames: erroredToolNameSet,
-    tokenBreakdowns: Array.from(tokensByModel.values()),
-    totalTokens: Array.from(tokensByModel.values()).reduce(
-      (total, breakdown) => total + breakdown.total,
-      0
-    ),
+    tokenBreakdowns,
+    totalTokens: tokenBreakdowns.reduce((total, breakdown) => total + breakdown.total, 0),
     totalCost,
     toolNames,
   };
