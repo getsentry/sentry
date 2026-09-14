@@ -1047,28 +1047,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Transaction events
-# True => kill switch to disable ingestion of transaction events for internal project.
-register(
-    "transaction-events.force-disable-internal-project",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
-# Killswitch for sending internal errors to the internal project or
-# `SENTRY_SDK_CONFIG.relay_dsn`. Set to `0` to only send to
-# `SENTRY_SDK_CONFIG.dsn` (the "upstream transport") and nothing else.
-#
-# Note: A value that is neither 0 nor 1 is regarded as 0
-register("store.use-relay-dsn-sample-rate", default=1, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# A rate that enables statsd item sending (DDM data) to s4s
-register("store.allow-s4s-ddm-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Sample rate for transaction/span data sent to S4S upstream (1.0 = keep all, 0.05 = keep 5%)
-register("store.s4s-transaction-sample-rate", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 
 # Killswitch to stop storing any reprocessing payloads.
 register("store.reprocessing-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1396,6 +1374,14 @@ register(
     type=Float,
     default=0.10,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Fuzzy resolution always runs after an exact email miss so its proposal can be
+# inspected. This controls whether that proposal is used in the delivered prediction.
+register(
+    "seer.smart_assignment.fuzzy_user_matching.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Spread child run_auto_transition_issues_* tasks across this many seconds
@@ -3648,6 +3634,12 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "workflow_engine.tasks.health_check_organization.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "workflow_engine.group.type_id.open_periods_type_denylist",
@@ -4434,4 +4426,11 @@ register(
     default=[],
     type=Sequence,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "preprod.snapshots.auto-approve-sibling-diffs.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

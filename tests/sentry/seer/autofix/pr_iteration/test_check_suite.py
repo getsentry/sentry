@@ -102,6 +102,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
         # The gate itself is covered by ``CheckSuiteFlagGateTest``; these tests are
         # about what each branch does with an event that is already through it.
         gate_patcher = patch(
@@ -144,6 +145,18 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
             repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")},
             metadata={"group_id": self.group.id},
         )
+
+    def _resolved_green(self) -> MagicMock:
+        """A resolved green suite carrying real ids.
+
+        ``bootstrap_iteration`` looks the ``SeerRun`` up by run and organization,
+        so those two cannot be bare mock attributes.
+        """
+        resolved = MagicMock()
+        resolved.organization = self.organization
+        resolved.autofix_run.run_state = self._agent_state()
+        resolved.autofix_run.group_id = self.group.id
+        return resolved
 
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     def test_skips_non_completed_action(self, mock_get_state: MagicMock) -> None:
@@ -202,7 +215,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         _mock_peek: MagicMock,
     ) -> None:
         event = self._event(self._raw(), conclusion="success")
-        resolved = MagicMock()
+        resolved = self._resolved_green()
         ctx = MagicMock()
         mock_resolve.return_value = resolved
         mock_confirm.return_value = ctx
@@ -243,7 +256,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
             REVIEW_REQUESTS_EXTRA,
         )
 
-        resolved = MagicMock()
+        resolved = self._resolved_green()
         ctx = MagicMock()
         mock_resolve.return_value = resolved
         mock_confirm.return_value = ctx
@@ -280,7 +293,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         _mock_flag: MagicMock,
         _mock_peek: MagicMock,
     ) -> None:
-        mock_resolve.return_value = MagicMock()
+        mock_resolve.return_value = self._resolved_green()
 
         pr_iteration_from_check_suite_listener(self._event(self._raw(), conclusion="success"))
 
@@ -307,7 +320,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         _mock_peek: MagicMock,
     ) -> None:
         """The resolve no longer implies the review-request flag; the caller checks it."""
-        mock_resolve.return_value = MagicMock()
+        mock_resolve.return_value = self._resolved_green()
 
         pr_iteration_from_check_suite_listener(self._event(self._raw(), conclusion="success"))
 
@@ -335,7 +348,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         _mock_flag: MagicMock,
         _mock_peek: MagicMock,
     ) -> None:
-        mock_resolve.return_value = MagicMock()
+        mock_resolve.return_value = self._resolved_green()
         pr_iteration_from_check_suite_listener(self._event(self._raw(), conclusion="success"))
 
         mock_mark_ready.assert_not_called()
@@ -605,6 +618,7 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
         gate_patcher = patch(
             f"{CHECK_PATH}.resolve_check_suite_flag_gate",
             return_value=CheckSuiteFlagGate(

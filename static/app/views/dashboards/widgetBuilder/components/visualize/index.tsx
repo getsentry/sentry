@@ -1022,19 +1022,16 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                                         type: updateAction,
                                         payload: newFields,
                                       },
-                                      {updateUrl: false}
+                                      {debounceUrl: true}
                                     );
                                   }}
                                   onBlur={e => {
                                     const newFields = cloneDeep(fields);
                                     newFields[index]!.alias = e.target.value;
-                                    dispatch(
-                                      {
-                                        type: updateAction,
-                                        payload: newFields,
-                                      },
-                                      {updateUrl: true}
-                                    );
+                                    dispatch({
+                                      type: updateAction,
+                                      payload: newFields,
+                                    });
                                     trackAnalytics(
                                       'dashboards_views.widget_builder.change',
                                       {

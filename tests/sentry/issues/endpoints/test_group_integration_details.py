@@ -1,6 +1,7 @@
 from typing import Any
 from unittest import mock
 
+import responses
 from django.db.utils import IntegrityError
 
 from sentry.integrations.example.integration import ExampleIntegration
@@ -258,6 +259,55 @@ class GroupIntegrationDetailsTest(APITestCase):
             self.assert_correctly_linked(group, "APP-123", integration, org)
 
         mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
+
+    @responses.activate
+    def test_put_jira_issue_url(self) -> None:
+        self.login_as(self.user)
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="jira",
+            external_id="jira:1",
+            metadata={
+                "base_url": "https://example.atlassian.net",
+                "shared_secret": "shared-secret",
+            },
+        )
+        responses.get(
+            "https://example.atlassian.net/rest/api/2/issue/ABC-123",
+            json={"id": "10001", "fields": {"summary": "Existing issue", "description": "Details"}},
+        )
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{integration.id}/"
+        with self.feature("organizations:integrations-issue-basic"):
+            response = self.client.put(
+                path,
+                data={"externalIssue": "\u00a0https://example.atlassian.net/browse/abc-123\u00a0"},
+            )
+        assert response.status_code == 201
+        assert response.data["key"] == "ABC-123"
+        assert GroupLink.objects.filter(
+            group_id=self.group.id,
+            linked_id=response.data["id"],
+            linked_type=GroupLink.LinkedType.issue,
+            relationship=GroupLink.Relationship.references,
+        ).exists()
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_put_jira_issue_url_rejects_invalid_urls(self) -> None:
+        self.login_as(self.user)
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="jira",
+            external_id="jira:1",
+            metadata={"base_url": "https://example.atlassian.net"},
+        )
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{integration.id}/"
+        with self.feature("organizations:integrations-issue-basic"):
+            for url in ("https://other.atlassian.net/browse/ABC-123", "https://["):
+                response = self.client.put(path, data={"externalIssue": url})
+                assert response.status_code == 400
+        assert not responses.calls
+        assert not GroupLink.objects.filter(group_id=self.group.id).exists()
 
     @mock.patch.object(ExampleIntegration, "get_issue")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")

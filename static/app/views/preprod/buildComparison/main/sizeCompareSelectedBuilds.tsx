@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -9,8 +10,6 @@ import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getBuildNumber,
@@ -188,7 +187,7 @@ export function SizeCompareSelectedBuilds({
   onTriggerComparison,
 }: SizeCompareSelectedBuildsProps) {
   const organization = useOrganization();
-  const {project: projectId} = useLocationQuery({fields: {project: decodeScalar}});
+  const [projectId] = useQueryState('project', parseAsString.withDefault(''));
   const platform = headBuildDetails.app_info?.platform ?? null;
   const project = ProjectsStore.getById(projectId);
 

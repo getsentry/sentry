@@ -15,7 +15,7 @@ from sentry.api.serializers.models.seer_night_shift_run import (  # noqa: F401 -
     SeerNightShiftRunSerializer,
 )
 from sentry.models.organization import Organization
-from sentry.seer.models.night_shift import SeerNightShiftRun
+from sentry.seer.models.workflow import SeerWorkflowRun
 
 
 class OrganizationSeerWorkflowsPermission(OrganizationPermission):
@@ -36,7 +36,7 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:seer-night-shift", organization):
             raise NotFound
 
-        queryset = SeerNightShiftRun.objects.filter(organization_id=organization.id)
+        queryset = SeerWorkflowRun.objects.filter(organization_id=organization.id)
 
         return self.paginate(
             request=request,

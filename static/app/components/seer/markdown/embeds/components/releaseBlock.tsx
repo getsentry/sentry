@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {AvatarList, UserAvatar} from '@sentry/scraps/avatar';
@@ -65,6 +65,32 @@ function getCommitSummary(commitCount: number, authorCount: number) {
       });
 }
 
+/**
+ * Column counts that divide the stats evenly, so their row never ends on a
+ * dangling track: four stats step 1 -> 2 -> 4, three step 1 -> 3. Stats hold
+ * about as much text as each other, which is what makes equal tracks the right
+ * fit here — unlike the detail sections below.
+ */
+function getStatColumns(statCount: number) {
+  return statCount === 4
+    ? {
+        zero: 'minmax(0, 1fr)',
+        '3xs': 'repeat(2, minmax(0, 1fr))',
+        lg: 'repeat(4, minmax(0, 1fr))',
+      }
+    : {zero: 'minmax(0, 1fr)', sm: 'repeat(3, minmax(0, 1fr))'};
+}
+
+/**
+ * Last Commit and Deploys carry far more text than a stat, so they take a row of
+ * their own rather than an equal share of the stats' row. There are at most two
+ * of them, which is what makes `auto-fit` safe here: they either share a row or
+ * stack at full width, and can never strand an empty track. `min(..., 100%)`
+ * keeps the track from overflowing a container narrower than the minimum itself.
+ */
+const DETAIL_MIN_WIDTH = '280px';
+const DETAIL_COLUMNS = `repeat(auto-fit, minmax(min(${DETAIL_MIN_WIDTH}, 100%), 1fr))`;
+
 export function ReleaseBlock({version, projectId}: ReleaseData) {
   const organization = useOrganization();
   const releaseQuery = useQuery(
@@ -105,8 +131,7 @@ export function ReleaseBlock({version, projectId}: ReleaseData) {
           ?.newGroups ?? 0)
       : (release?.newGroups ?? 0);
   const lastCommitTitle = release?.lastCommit?.message?.split(/\r?\n/, 1)[0];
-  const sectionCount =
-    4 + Number((release?.commitCount ?? 0) > 0) + Number(Boolean(release?.lastCommit));
+  const statCount = 3 + Number((release?.commitCount ?? 0) > 0);
 
   return (
     <SeerEmbedBlock
@@ -132,112 +157,107 @@ export function ReleaseBlock({version, projectId}: ReleaseData) {
       ) : releaseQuery.isError || !release ? (
         <Text variant="muted">{t('Unable to load release details')}</Text>
       ) : (
-        <Grid
-          columns={{
-            zero: 'minmax(0, 1fr)',
-            sm: 'repeat(2, minmax(0, 1fr))',
-            lg: `repeat(${sectionCount}, minmax(0, 1fr))`,
-          }}
-          gap="xl"
-        >
-          <Stack gap="xs">
-            <Text bold size="xs" uppercase variant="muted">
-              {t('New Issues')}
-            </Text>
-            <Text size="xl" tabular>
-              {newGroups}
-            </Text>
-          </Stack>
-
-          <Stack gap="xs">
-            <Text bold size="xs" uppercase variant="muted">
-              {t('Date Created')}
-            </Text>
-            <Text>
-              <DateTime date={release.dateCreated} />
-            </Text>
-          </Stack>
-
-          <Stack gap="xs">
-            <Text bold size="xs" uppercase variant="muted">
-              {t('Package')}
-            </Text>
-            <Text ellipsis>{packageName ?? '—'}</Text>
-          </Stack>
-
-          {release.commitCount > 0 ? (
-            <Stack gap="sm">
+        <Fragment>
+          <Grid columns={getStatColumns(statCount)} gap="xl">
+            <Stack gap="xs" minWidth="0">
               <Text bold size="xs" uppercase variant="muted">
-                {getCommitSummary(release.commitCount, release.authors.length)}
+                {t('New Issues')}
               </Text>
-              <Flex>
-                <AvatarList avatarSize={24} typeAvatars="authors" users={authors} />
-              </Flex>
+              <Text size="xl" tabular>
+                {newGroups}
+              </Text>
             </Stack>
-          ) : null}
 
-          {release.lastCommit ? (
-            <Stack
-              column={{zero: 'auto', sm: 'span 2', lg: 'auto'}}
-              gap="xs"
-              minWidth="0"
-            >
+            <Stack gap="xs" minWidth="0">
               <Text bold size="xs" uppercase variant="muted">
-                {t('Last Commit')}
+                {t('Date Created')}
               </Text>
-              <Text ellipsis>
-                <CommitLink
-                  commitId={release.lastCommit.id}
-                  commitTitle={lastCommitTitle}
-                  inline
-                  repository={release.lastCommit.repository}
-                  showIcon={false}
-                />
+              <Text>
+                <DateTime date={release.dateCreated} />
               </Text>
-              <Flex align="center" gap="xs" minWidth="0">
-                {release.lastCommit.author ? (
-                  <UserAvatar size={16} user={release.lastCommit.author} />
-                ) : null}
-                <Text bold ellipsis size="sm">
-                  {release.lastCommit.author?.name ?? t('Unknown author')}
+            </Stack>
+
+            <Stack gap="xs" minWidth="0">
+              <Text bold size="xs" uppercase variant="muted">
+                {t('Package')}
+              </Text>
+              <Text ellipsis>{packageName ?? '—'}</Text>
+            </Stack>
+
+            {release.commitCount > 0 ? (
+              <Stack gap="sm" minWidth="0">
+                <Text bold size="xs" uppercase variant="muted">
+                  {getCommitSummary(release.commitCount, release.authors.length)}
                 </Text>
+                <Flex>
+                  <AvatarList avatarSize={24} typeAvatars="authors" users={authors} />
+                </Flex>
+              </Stack>
+            ) : null}
+          </Grid>
+
+          <Grid columns={DETAIL_COLUMNS} gap="xl">
+            {release.lastCommit ? (
+              <Stack gap="xs" minWidth="0">
+                <Text bold size="xs" uppercase variant="muted">
+                  {t('Last Commit')}
+                </Text>
+                <Text ellipsis>
+                  <CommitLink
+                    commitId={release.lastCommit.id}
+                    commitTitle={lastCommitTitle}
+                    inline
+                    repository={release.lastCommit.repository}
+                    showIcon={false}
+                  />
+                </Text>
+                <Flex align="center" gap="xs" minWidth="0">
+                  {release.lastCommit.author ? (
+                    <Flex flexShrink="0">
+                      <UserAvatar size={16} user={release.lastCommit.author} />
+                    </Flex>
+                  ) : null}
+                  <Text bold ellipsis size="sm">
+                    {release.lastCommit.author?.name ?? t('Unknown author')}
+                  </Text>
+                  <Text size="sm" variant="muted" wrap="nowrap">
+                    <TimeSince date={release.lastCommit.dateCreated} />
+                  </Text>
+                </Flex>
+              </Stack>
+            ) : null}
+
+            <Stack gap="xs" minWidth="0">
+              <Text bold size="xs" uppercase variant="muted">
+                {t('Deploys')}
+              </Text>
+              {deploysQuery.isPending ? (
+                <Flex justify="start">
+                  <LoadingIndicator mini />
+                </Flex>
+              ) : deploysQuery.isError ? (
                 <Text size="sm" variant="muted">
-                  <TimeSince date={release.lastCommit.dateCreated} />
+                  {t('Unable to load deploys')}
                 </Text>
-              </Flex>
+              ) : recentDeploys.length > 0 ? (
+                <Flex align="center" gap="md" wrap="wrap">
+                  {recentDeploys.map(deploy => (
+                    <Flex key={deploy.id} align="center" gap="xs" minWidth="0">
+                      <Tag variant="info">{deploy.environment}</Tag>
+                      <Text size="sm" variant="muted" wrap="nowrap">
+                        <TimeSince date={deploy.dateFinished} />
+                      </Text>
+                    </Flex>
+                  ))}
+                </Flex>
+              ) : (
+                <Text size="sm" variant="muted">
+                  {t('No deploys')}
+                </Text>
+              )}
             </Stack>
-          ) : null}
-
-          <Stack column={{zero: 'auto', sm: 'span 2', lg: 'auto'}} gap="xs" minWidth="0">
-            <Text bold size="xs" uppercase variant="muted">
-              {t('Deploys')}
-            </Text>
-            {deploysQuery.isPending ? (
-              <Flex justify="start">
-                <LoadingIndicator mini />
-              </Flex>
-            ) : deploysQuery.isError ? (
-              <Text size="sm" variant="muted">
-                {t('Unable to load deploys')}
-              </Text>
-            ) : recentDeploys.length > 0 ? (
-              <Flex align="center" gap="md" wrap="wrap">
-                {recentDeploys.map(deploy => (
-                  <Flex key={deploy.id} align="center" gap="xs">
-                    <Tag variant="info">{deploy.environment}</Tag>
-                    <Text size="sm" variant="muted">
-                      <TimeSince date={deploy.dateFinished} />
-                    </Text>
-                  </Flex>
-                ))}
-              </Flex>
-            ) : (
-              <Text size="sm" variant="muted">
-                {t('No deploys')}
-              </Text>
-            )}
-          </Stack>
-        </Grid>
+          </Grid>
+        </Fragment>
       )}
     </SeerEmbedBlock>
   );

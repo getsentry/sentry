@@ -153,6 +153,7 @@ export function InvestigationCell({
 
   const actionItems: MenuItemProps[] = [];
   if (block.kind === 'query') {
+    // oxlint-disable-next-line react/refs
     actionItems.push({
       key: 'rerun',
       label: t('Rerun'),
