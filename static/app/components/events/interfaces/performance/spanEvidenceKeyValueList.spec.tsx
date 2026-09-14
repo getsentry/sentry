@@ -17,164 +17,34 @@ import {extractQueryParameters, extractSpanURLString} from './spanMetrics';
 describe('SpanEvidenceKeyValueList', () => {
   const projectSlug = 'project';
 
-  describe('N+1 Database Queries', () => {
-    const builder = new TransactionEventBuilder('a1', '/');
-    builder.getEventFixture().projectID = '123';
+  describe('N+1 and MN+1 Database Queries', () => {
+    type OffenderSpan = {
+      description: string;
+      op: string;
+      data?: Record<string, any>;
+      hash?: string;
+    };
+    type BuildEventOptions = {
+      isOccurrenceBased?: boolean;
+      patternSize?: number;
+    };
 
-    const parentSpan = new MockSpan({
-      startTimestamp: 0,
-      endTimestamp: 0.2,
-      op: 'http.server',
-      problemSpan: ProblemSpan.PARENT,
-    });
-
-    parentSpan.addChild({
-      startTimestamp: 0.01,
-      endTimestamp: 2.1,
-      op: 'db',
-      description: 'SELECT * FROM books',
-      hash: 'aaa',
-      problemSpan: ProblemSpan.OFFENDER,
-    });
-
-    parentSpan.addChild({
-      startTimestamp: 2.1,
-      endTimestamp: 4,
-      op: 'db',
-      description: 'SELECT * FROM books',
-      hash: 'aaa',
-      problemSpan: ProblemSpan.OFFENDER,
-    });
-
-    builder.addSpan(parentSpan);
-
-    it('Renders relevant fields', () => {
-      render(
-        <SpanEvidenceKeyValueList
-          event={builder.getEventFixture()}
-          projectSlug={projectSlug}
-        />
-      );
-
-      expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.transaction')
-      ).toHaveTextContent('/');
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
-      ).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
-      );
-      expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=4'
-      );
-
-      expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.parent-span')
-      ).toHaveTextContent('http.server');
-
-      expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId(/span-evidence-key-value-list.repeating-spans/)
-      ).toHaveTextContent('SELECT * FROM books');
-      expect(
-        screen.queryByTestId('span-evidence-key-value-list.')
-      ).not.toBeInTheDocument();
-
-      expect(screen.queryByRole('cell', {name: 'Parameter'})).not.toBeInTheDocument();
-      expect(
-        screen.queryByTestId('span-evidence-key-value-list.problem-parameters')
-      ).not.toBeInTheDocument();
-    });
-  });
-
-  describe('N+1 Database Queries with occurrences', () => {
-    const builder = new TransactionEventBuilder('a1', '/', undefined, undefined, true);
-    builder.getEventFixture().projectID = '123';
-
-    const parentSpan = new MockSpan({
-      startTimestamp: 0,
-      endTimestamp: 0.2,
-      op: 'http.server',
-      problemSpan: ProblemSpan.PARENT,
-    });
-
-    parentSpan.addChild({
-      startTimestamp: 0.01,
-      endTimestamp: 2.1,
-      op: 'db',
-      description: 'SELECT * FROM books',
-      hash: 'aaa',
-      problemSpan: ProblemSpan.OFFENDER,
-    });
-
-    parentSpan.addChild({
-      startTimestamp: 2.1,
-      endTimestamp: 4,
-      op: 'db',
-      description: 'SELECT * FROM books',
-      hash: 'aaa',
-      problemSpan: ProblemSpan.OFFENDER,
-    });
-
-    builder.addSpan(parentSpan);
-
-    it('Renders relevant fields', () => {
-      render(
-        <SpanEvidenceKeyValueList
-          event={builder.getEventFixture()}
-          projectSlug={projectSlug}
-        />
-      );
-
-      expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.transaction')
-      ).toHaveTextContent('/');
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
-      ).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
-      );
-      expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=4'
-      );
-
-      expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.parent-span')
-      ).toHaveTextContent('http.server');
-
-      expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId(/span-evidence-key-value-list.repeating-spans/)
-      ).toHaveTextContent('SELECT * FROM books');
-      expect(
-        screen.queryByTestId('span-evidence-key-value-list.')
-      ).not.toBeInTheDocument();
-
-      expect(screen.queryByRole('cell', {name: 'Parameter'})).not.toBeInTheDocument();
-      expect(
-        screen.queryByTestId('span-evidence-key-value-list.problem-parameters')
-      ).not.toBeInTheDocument();
-    });
-  });
-
-  describe('N+1 Database Queries repeating-span deduping', () => {
     function buildEvent(
-      offendingSpans: Array<{
-        description: string;
-        data?: Record<string, any>;
-        hash?: string;
-      }>
+      // N+1 and MN+1 DB issues render the same span evidence component, because they share a group
+      // type, the only differences being how many distinct queries the offending spans contain - an
+      // N+1 repeats a single query, while an MN+1 repeats a pattern of several - and the inclusion
+      // of `patternSize` in MN+1 span evidence.
+      offendingSpans: OffenderSpan[],
+      {isOccurrenceBased = true, patternSize}: BuildEventOptions = {}
     ) {
-      const builder = new TransactionEventBuilder('11211231', '/dog-park');
-      builder.getEventFixture().projectID = '415908';
+      const builder = new TransactionEventBuilder(
+        'a1',
+        '/dogpark',
+        undefined,
+        undefined,
+        isOccurrenceBased
+      );
+      builder.getEventFixture().projectID = '123';
 
       const parentSpan = new MockSpan({
         startTimestamp: 0,
@@ -183,165 +53,64 @@ describe('SpanEvidenceKeyValueList', () => {
         problemSpan: ProblemSpan.PARENT,
       });
 
-      offendingSpans.forEach(({description, data, hash}, i) => {
+      offendingSpans.forEach((span, i) => {
         parentSpan.addChild({
           startTimestamp: i,
           endTimestamp: i + 1,
-          op: 'db',
-          description,
-          data,
-          hash,
           problemSpan: ProblemSpan.OFFENDER,
+          ...span,
         });
       });
 
       builder.addSpan(parentSpan);
-      return builder.getEventFixture();
+      const event = builder.getEventFixture();
+
+      if (patternSize !== undefined) {
+        event.occurrence = {
+          ...event.occurrence,
+          evidenceData: {...event.occurrence?.evidenceData, patternSize},
+        } as EventTransaction['occurrence'];
+      }
+
+      return event;
     }
 
-    it('dedupes on the hash value, not the description, transaction-style spans', () => {
-      // The two `dogs` queries share a hash value but differ in description, so they have to
-      // collapse into a single row. If we compared descriptions instead, they'd get a row each.
-      const event = buildEvent([
-        {
-          description: 'SELECT * FROM dogs WHERE id = 1121',
-          hash: 'dog_pack',
-        },
-        {
-          description: 'SELECT * FROM dogs WHERE id = 1231',
-          hash: 'dog_pack',
-        },
-        {
-          description: 'SELECT * FROM tricks WHERE id = 908',
-          hash: 'talent_show',
-        },
-      ]);
+    it.each([
+      ['occurrence-based', true],
+      ['non-occurrence-based', false],
+    ])('renders relevant fields', (_label, isOccurrenceBased) => {
+      // A plain N+1: the same query, run twice
+      const event = buildEvent(
+        [
+          {
+            op: 'db',
+            description: 'SELECT * FROM dogs WHERE id = 1121',
+            hash: 'dog_pack',
+          },
+          {
+            op: 'db',
+            description: 'SELECT * FROM dogs WHERE id = 1231',
+            hash: 'dog_pack',
+          },
+        ],
+        {isOccurrenceBased}
+      );
 
       render(<SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />);
-
-      // In the span evidence table, the first row gets a different test id than the rest. They all
-      // start with `span-evidence-key-value-list.`, but the first row also has
-      // `repeating-spans-<repeating_span_count>` on the end.
-      const fullTable = screen.getByRole('table');
-      const firstTableRow = screen.getByTestId(
-        'span-evidence-key-value-list.repeating-spans-3'
-      );
-      const remainingTableRows = screen.getAllByTestId('span-evidence-key-value-list.');
-
-      // The second `dogs` query shares a hash value with the first, so it doesn't get a separate
-      // table row.
-      expect(firstTableRow).toHaveTextContent('SELECT * FROM dogs WHERE id = 1121');
-      expect(fullTable).not.toHaveTextContent('SELECT * FROM dogs WHERE id = 1231');
-
-      // Since there are only two distinct hash values, there are only two total rows, or one more
-      // after the first.
-      expect(remainingTableRows).toHaveLength(1);
-      const secondTableRow = screen.getByTestId('span-evidence-key-value-list.');
-      expect(secondTableRow).toHaveTextContent('SELECT * FROM tricks WHERE id = 908');
-    });
-
-    it('dedupes on the hash value, not the description, segment-style spans', () => {
-      // The two `dogs` queries share a hash value but differ in description, so they have to
-      // collapse into a single row. If we compared descriptions instead, they'd get a row each.
-      const event = buildEvent([
-        {
-          description: 'SELECT * FROM dogs WHERE id = 1121',
-          data: {hash: 'dog_pack'},
-        },
-        {
-          description: 'SELECT * FROM dogs WHERE id = 1231',
-          data: {hash: 'dog_pack'},
-        },
-        {
-          description: 'SELECT * FROM tricks WHERE id = 908',
-          data: {hash: 'talent_show'},
-        },
-      ]);
-
-      render(<SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />);
-
-      // In the span evidence table, the first row gets a different test id than the rest. They all
-      // start with `span-evidence-key-value-list.`, but the first row also has
-      // `repeating-spans-<repeating_span_count>` on the end.
-      const fullTable = screen.getByRole('table');
-      const firstTableRow = screen.getByTestId(
-        'span-evidence-key-value-list.repeating-spans-3'
-      );
-      const remainingTableRows = screen.getAllByTestId('span-evidence-key-value-list.');
-
-      // The second `dogs` query shares a hash value with the first, so it doesn't get a separate
-      // table row.
-      expect(firstTableRow).toHaveTextContent('SELECT * FROM dogs WHERE id = 1121');
-      expect(fullTable).not.toHaveTextContent('SELECT * FROM dogs WHERE id = 1231');
-
-      // Since there are only two distinct hash values, there are only two total rows, or one more
-      // after the first.
-      expect(remainingTableRows).toHaveLength(1);
-      const secondTableRow = screen.getByTestId('span-evidence-key-value-list.');
-      expect(secondTableRow).toHaveTextContent('SELECT * FROM tricks WHERE id = 908');
-    });
-  });
-
-  describe('MN+1 Database Queries', () => {
-    const builder = new TransactionEventBuilder('a1', '/');
-    builder.getEventFixture().projectID = '123';
-
-    const parentSpan = new MockSpan({
-      startTimestamp: 0,
-      endTimestamp: 0.2,
-      op: 'http.server',
-      problemSpan: ProblemSpan.PARENT,
-    });
-
-    parentSpan.addChild({
-      startTimestamp: 0.01,
-      endTimestamp: 2.1,
-      op: 'db',
-      description: 'SELECT * FROM books',
-      hash: 'aaa',
-      problemSpan: ProblemSpan.OFFENDER,
-    });
-
-    parentSpan.addChild({
-      startTimestamp: 2.1,
-      endTimestamp: 4,
-      op: 'db.sql.active_record',
-      description: 'SELECT * FROM books WHERE id = %s',
-      hash: 'bbb',
-      problemSpan: ProblemSpan.OFFENDER,
-    });
-
-    builder.addSpan(parentSpan);
-
-    it('Renders relevant fields', () => {
-      const event = builder.getEventFixture();
-      event.occurrence = {
-        ...event.occurrence,
-        evidenceData: {
-          patternSize: 2,
-        },
-      } as EventTransaction['occurrence'];
-
-      render(
-        <SpanEvidenceKeyValueList
-          event={builder.getEventFixture()}
-          projectSlug={projectSlug}
-        />
-      );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
       expect(
         screen.getByTestId('span-evidence-key-value-list.transaction')
-      ).toHaveTextContent('/');
+      ).toHaveTextContent('/dogpark');
       expect(
         screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
       ).toHaveAttribute(
         'href',
-        '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
+        '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2Fdogpark&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
       expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=4'
+        '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=2'
       );
 
       expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
@@ -349,24 +118,152 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.parent-span')
       ).toHaveTextContent('http.server');
 
+      // Both spans are the same query, so they collapse into a single row, labelled with the
+      // number of offending spans
       expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
+
+      // In the span evidence table, the first row gets a different test id than the rest. They all
+      // start with `span-evidence-key-value-list.`, but the first row also has
+      // `repeating-spans-<repeating_span_count>` on the end.
       expect(
         screen.getByTestId('span-evidence-key-value-list.repeating-spans-2')
-      ).toHaveTextContent('SELECT * FROM books');
-      expect(screen.getByTestId('span-evidence-key-value-list.')).toHaveTextContent(
-        'SELECT * FROM books WHERE id = %s'
-      );
+      ).toHaveTextContent('SELECT * FROM dogs WHERE id = 1121');
+      const remainingTableRows = screen.queryAllByTestId('span-evidence-key-value-list.');
+      expect(remainingTableRows).toHaveLength(0);
 
+      // These belong to N+1 API Calls, and shouldn't show up for a DB issue
       expect(screen.queryByRole('cell', {name: 'Parameter'})).not.toBeInTheDocument();
       expect(
         screen.queryByTestId('span-evidence-key-value-list.problem-parameters')
       ).not.toBeInTheDocument();
 
+      // Only MN+1 issues have a pattern
+      expect(screen.queryByRole('cell', {name: 'Pattern Size'})).not.toBeInTheDocument();
+    });
+
+    it('renders the pattern size for MN+1 issues', () => {
+      const pattern = [
+        {
+          op: 'db',
+          description: 'SELECT * FROM dogs WHERE id = 1121',
+          hash: 'dog_pack',
+        },
+        {
+          op: 'db',
+          description: 'SELECT * FROM dogs WHERE id = 1231',
+          hash: 'dog_pack',
+        },
+        {
+          op: 'db',
+          description: 'SELECT * FROM tricks WHERE id = 908',
+          hash: 'talent_show',
+        },
+      ];
+      const event = buildEvent([...pattern, ...pattern], {patternSize: 3});
+
+      render(<SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />);
+
       expect(screen.getByRole('cell', {name: 'Pattern Size'})).toBeInTheDocument();
       expect(
         screen.getByTestId('span-evidence-key-value-list.pattern-size')
-      ).toHaveTextContent('2');
+      ).toHaveTextContent('3');
     });
+
+    it('leaves spans which are not db spans out of the repeating span rows', () => {
+      // An MN+1 pattern can include spans which aren't queries at all - that's the "interspersed
+      // with other spans" part of what the detector looks for.
+      const pattern = [
+        {
+          op: 'db',
+          description: 'SELECT * FROM dogs WHERE id = 1121',
+          hash: 'dog_pack',
+        },
+        {
+          op: 'db',
+          description: 'SELECT * FROM dogs WHERE id = 1231',
+          hash: 'dog_pack',
+        },
+        {
+          op: 'cache.get',
+          description: 'dog_leaderboard',
+          hash: 'cached_leaderboard',
+        },
+        {
+          op: 'db',
+          description: 'SELECT * FROM tricks WHERE id = 908',
+          hash: 'talent_show',
+        },
+      ];
+      const event = buildEvent([...pattern, ...pattern], {patternSize: 4});
+
+      render(<SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />);
+
+      const firstRow = screen.getByTestId(
+        'span-evidence-key-value-list.repeating-spans-6'
+      );
+      const unlabelledRows = screen.getAllByTestId('span-evidence-key-value-list.');
+
+      expect(firstRow).toHaveTextContent('SELECT * FROM dogs WHERE id = 1121');
+      expect(unlabelledRows).toHaveLength(1);
+      expect(unlabelledRows[0]).toHaveTextContent('SELECT * FROM tricks WHERE id = 908');
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.pattern-size')
+      ).toHaveTextContent('4');
+
+      // Only the db spans get rows, so the cache span isn't rendered at all
+      expect(screen.getByRole('table')).not.toHaveTextContent('dog_leaderboard');
+    });
+
+    it.each([
+      ['transaction-derived', (hash: string) => ({hash})],
+      ['segment-derived', (hash: string) => ({data: {hash}})],
+    ])(
+      'dedupes rows by hash value rather than description, %s spans',
+      (_label, hashLocation) => {
+        // The two `dogs` queries differ in description but share a hash value, because our hashing
+        // calculation parameterizes query literals. They should collapse into a single row - if we
+        // compared descriptions instead, they'd get a row each.
+        const event = buildEvent([
+          {
+            op: 'db',
+            description: 'SELECT * FROM dogs WHERE id = 1121',
+            ...hashLocation('dog_pack'),
+          },
+          {
+            op: 'db',
+            description: 'SELECT * FROM dogs WHERE id = 1231',
+            ...hashLocation('dog_pack'),
+          },
+          {
+            op: 'db',
+            description: 'SELECT * FROM tricks WHERE id = 908',
+            ...hashLocation('talent_show'),
+          },
+        ]);
+
+        render(<SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />);
+
+        // Only the first row is labelled, and the number it carries is the total count of offending
+        // spans - not the number of rows, and not the number of times the first row's query ran.
+        // Here that's three offending spans rendered as two rows, the first of which stands in for
+        // two spans.
+        const firstRow = screen.getByTestId(
+          'span-evidence-key-value-list.repeating-spans-3'
+        );
+        const unlabelledRows = screen.getAllByTestId('span-evidence-key-value-list.');
+
+        expect(firstRow).toHaveTextContent('SELECT * FROM dogs WHERE id = 1121');
+        expect(unlabelledRows).toHaveLength(1);
+        expect(unlabelledRows[0]).toHaveTextContent(
+          'SELECT * FROM tricks WHERE id = 908'
+        );
+
+        // The second `dogs` query shares a hash with the first, so it gets no row of its own
+        expect(screen.getByRole('table')).not.toHaveTextContent(
+          'SELECT * FROM dogs WHERE id = 1231'
+        );
+      }
+    );
   });
 
   describe('Consecutive DB Queries', () => {
