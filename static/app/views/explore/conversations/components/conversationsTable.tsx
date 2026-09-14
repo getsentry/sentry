@@ -22,7 +22,7 @@ import {
   type GridColumnSort,
 } from 'sentry/components/tables/gridEditable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconFire, IconUser} from 'sentry/icons';
+import {IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
@@ -45,6 +45,7 @@ import {
 import {getConversationDetailUrl} from 'sentry/views/explore/conversations/utils/urlParams';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
+import {ErrorCell} from 'sentry/views/insights/pages/agents/utils/cells';
 
 // Tool tags wrap across at most this many rows; anything that doesn't fit
 // collapses into a trailing "+N" overflow tag.
@@ -387,7 +388,7 @@ function BodyCell({
         </Text>
       );
     case 'errors':
-      return <ErrorsCell errors={conversation.errors} />;
+      return <ErrorCell value={conversation.errors} />;
     case 'cost':
       return (
         <Text tabular>
@@ -496,24 +497,6 @@ function ConversationUserLabel({user}: {user: Conversation['user']}) {
         </Text>
       </Flex>
     </Tooltip>
-  );
-}
-
-function ErrorsCell({errors}: {errors: number}) {
-  if (errors === 0) {
-    return (
-      <Text tabular variant="muted">
-        0
-      </Text>
-    );
-  }
-  return (
-    <Flex align="center" gap="xs">
-      <Text tabular variant="danger">
-        <Count value={errors} />
-      </Text>
-      <IconFire size="xs" variant="danger" />
-    </Flex>
   );
 }
 
