@@ -11,6 +11,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.receivers.outbox.cell import backfill_scm_integration_config, handle_seer_run_create
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
+from sentry.seer.models.workflow import SeerWorkflowRunStatus
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -219,6 +220,25 @@ class HandleSeerRunCreateTest(TestCase):
         assert sent_body["ref"] == str(run.uuid)
         assert sent_body["external_idempotency_key"] == str(run.uuid)
         assert sent_body["referrer"] == "night_shift"
+
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    def test_terminal_feature_dispatch_failure_finishes_workflow(self, mock_request: Mock) -> None:
+        mock_request.return_value = Mock(status=422)
+        workflow = self.create_seer_workflow_run()
+        run = self.create_seer_run(type=SeerRunType.FEATURE_RUN)
+        execution = self.create_seer_workflow_run_execution(run=workflow, seer_run=run)
+
+        handle_seer_run_create(
+            object_identifier=run.id,
+            payload=self._make_payload({"feature_id": "night_shift", "payload": {}}),
+            shard_identifier=run.id,
+        )
+
+        execution.refresh_from_db()
+        workflow.refresh_from_db()
+        assert execution.status == SeerWorkflowRunStatus.FAILED
+        assert workflow.status == SeerWorkflowRunStatus.FAILED
+        assert workflow.date_completed is not None
 
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
     def test_feature_run_referrer_absent_when_body_carries_none(self, mock_request: Mock) -> None:

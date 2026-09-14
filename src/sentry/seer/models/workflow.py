@@ -5,6 +5,7 @@ from django.db import models
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
 class SeerWorkflowStrategy(models.TextChoices):
@@ -13,6 +14,13 @@ class SeerWorkflowStrategy(models.TextChoices):
 
 class SeerWorkflowSchedule(models.TextChoices):
     DAILY = "daily"
+
+
+class SeerWorkflowRunStatus(models.TextChoices):
+    RUNNING = "running"
+    COMPLETE = "complete"
+    PARTIAL = "partial"
+    FAILED = "failed"
 
 
 @cell_silo_model
@@ -47,3 +55,87 @@ class SeerWorkflowConfig(DefaultFieldsModel):
             strategy=strategy.value,
         )
         return config
+
+
+@cell_silo_model
+class SeerWorkflowRun(DefaultFieldsModel):
+    """One manual or scheduled workflow invocation, owning zero or more executions."""
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
+    workflow_config = FlexibleForeignKey(
+        "seer.SeerWorkflowConfig", on_delete=models.SET_NULL, null=True
+    )
+    strategy = models.CharField(
+        max_length=256,
+        choices=SeerWorkflowStrategy.choices,
+        db_default=SeerWorkflowStrategy.AGENTIC_TRIAGE,
+    )
+    user_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    # NULL identifies invocations created before result completion was tracked.
+    status = models.CharField(
+        max_length=256,
+        choices=SeerWorkflowRunStatus.choices,
+        null=True,
+        db_default=None,
+        default=SeerWorkflowRunStatus.RUNNING,
+    )
+    # Cron-derived schedule window (currently YYYY-MM-DDTHH:MM), nullable for
+    # manual and historical runs.
+    schedule_id = models.CharField(max_length=256, null=True)
+    # Older workers write dispatch completion to this column.
+    date_dispatched = models.DateTimeField(null=True, db_column="date_completed")
+    date_completed = models.DateTimeField(null=True, db_column="date_finished")
+    extras = models.JSONField(db_default={}, default=dict)
+
+    class Meta:
+        app_label = "seer"
+        db_table = "seer_nightshiftrun"
+        indexes = [
+            models.Index(fields=["organization", "date_added"]),
+            models.Index(
+                fields=["organization", "strategy", "-date_added", "-id"],
+                name="seer_workflow_org_strategy_idx",
+            ),
+            models.Index(fields=["date_added"]),
+            models.Index(fields=["workflow_config", "date_added"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "workflow_config", "schedule_id"],
+                condition=models.Q(schedule_id__isnull=False),
+                name="seer_nightshiftrun_unique_org_config_schedule",
+            )
+        ]
+
+    __repr__ = sane_repr("organization_id", "workflow_config_id", "date_added")
+
+
+@cell_silo_model
+class SeerWorkflowRunExecution(DefaultFieldsModel):
+    """One planned feature execution, linked to its SeerRun when dispatched."""
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    run = FlexibleForeignKey(
+        "seer.SeerWorkflowRun", on_delete=models.CASCADE, related_name="executions"
+    )
+    seer_run = models.OneToOneField(
+        "seer.SeerRun", on_delete=models.SET_NULL, null=True, related_name="workflow_execution"
+    )
+    status = models.CharField(
+        max_length=256,
+        choices=SeerWorkflowRunStatus.choices,
+        null=True,
+        db_default=None,
+        default=SeerWorkflowRunStatus.RUNNING,
+    )
+    date_completed = models.DateTimeField(null=True)
+    extras = models.JSONField(db_default={}, default=dict)
+
+    class Meta:
+        app_label = "seer"
+        db_table = "seer_nightshiftrunshard"
+
+    __repr__ = sane_repr("run_id", "seer_run_id")

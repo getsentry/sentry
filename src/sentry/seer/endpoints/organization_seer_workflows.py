@@ -11,11 +11,11 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.seer_night_shift_run import (  # noqa: F401 -- registers serializer
-    SeerNightShiftRunSerializer,
+from sentry.api.serializers.models.seer_workflow_run import (  # noqa: F401 -- registers serializer
+    SeerWorkflowRunSerializer,
 )
 from sentry.models.organization import Organization
-from sentry.seer.models.night_shift import SeerNightShiftRun
+from sentry.seer.models.workflow import SeerWorkflowRun, SeerWorkflowStrategy
 
 
 class OrganizationSeerWorkflowsPermission(OrganizationPermission):
@@ -36,12 +36,14 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:seer-night-shift", organization):
             raise NotFound
 
-        queryset = SeerNightShiftRun.objects.filter(organization_id=organization.id)
+        queryset = SeerWorkflowRun.objects.filter(
+            organization_id=organization.id, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
+        )
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by="-date_added",
+            order_by=("-date_added", "-id"),
             on_results=lambda x: serialize(x, request.user),
             paginator_cls=OffsetPaginator,
         )

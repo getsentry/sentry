@@ -39,15 +39,18 @@ from sentry.seer.autofix.utils import (
     is_seer_seat_based_tier_enabled,
 )
 from sentry.seer.models import SeerPermissionError
-from sentry.seer.models.night_shift import (
-    SeerNightShiftRun,
-    SeerNightShiftRunErrorType,
-    SeerNightShiftRunShard,
-)
+from sentry.seer.models.night_shift import SeerNightShiftRunErrorType
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.seer.models.run import SeerRun
-from sentry.seer.models.workflow import SeerWorkflowConfig, SeerWorkflowStrategy
+from sentry.seer.models.workflow import (
+    SeerWorkflowConfig,
+    SeerWorkflowRun,
+    SeerWorkflowRunExecution,
+    SeerWorkflowRunStatus,
+    SeerWorkflowStrategy,
+)
 from sentry.seer.night_shift.models import NightShiftPayload, TriageCandidate, TriageTweaks
+from sentry.seer.workflows.runs import complete_workflow_dispatch
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.simple_triage import (
     fixability_score_strategy,
@@ -90,7 +93,7 @@ NightShiftRunSource = Literal["cron", "manual"]
 
 class SeerNightShiftRunOptions(TypedDict):
     """Fully-resolved options for a night shift run. Persisted directly onto
-    SeerNightShiftRun.extras["options"]. Construct via build_run_options."""
+    SeerWorkflowRun.extras["options"]. Construct via build_run_options."""
 
     source: NightShiftRunSource
     max_candidates: int
@@ -293,13 +296,13 @@ def run_night_shift_for_org(
         data_category=DataCategory.SEER_AUTOFIX,
     )
     if not has_seer_quota and schedule_id is not None:
-        existing_run = SeerNightShiftRun.objects.filter(
+        existing_run = SeerWorkflowRun.objects.filter(
             organization=organization,
             workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
             schedule_id=schedule_id,
         ).first()
         if existing_run is None or (
-            existing_run.date_completed is None and not existing_run.shards.exists()
+            existing_run.date_dispatched is None and not existing_run.executions.exists()
         ):
             logger.info("night_shift.no_seer_quota", extra={"organization_id": organization.id})
             return None
@@ -325,21 +328,27 @@ def run_night_shift_for_org(
 
     created = schedule_id is None
     if schedule_id is None:
-        run = SeerNightShiftRun.objects.create(
+        run = SeerWorkflowRun.objects.create(
             organization=organization,
             workflow_config=workflow_config,
             extras=extras,
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
+            user_id=triggering_user_id,
         )
     else:
-        run, created = SeerNightShiftRun.objects.get_or_create(
+        run, created = SeerWorkflowRun.objects.get_or_create(
             organization=organization,
             workflow_config=workflow_config,
             schedule_id=schedule_id,
-            defaults={"extras": extras},
+            defaults={
+                "extras": extras,
+                "strategy": SeerWorkflowStrategy.AGENTIC_TRIAGE,
+                "user_id": triggering_user_id,
+            },
         )
 
     if not created:
-        if run.date_completed is not None:
+        if run.date_dispatched is not None:
             logger.info(
                 "night_shift.duplicate_run_skipped",
                 extra={
@@ -396,7 +405,7 @@ def run_night_shift_execution(
     """Heavy phase of a night shift run: eligibility, triage, and optional
     autofix dispatch. Single code path used by both sync invocation (from
     run_night_shift_for_org) and async dispatch (apply_async)."""
-    run = SeerNightShiftRun.objects.select_related("organization").filter(id=run_id).first()
+    run = SeerWorkflowRun.objects.select_related("organization").filter(id=run_id).first()
     if run is None:
         logger.info("night_shift.missing_run", extra={"night_shift_run_id": run_id})
         return None
@@ -418,14 +427,14 @@ def run_night_shift_execution(
         {"organization_id": organization.id, "organization_slug": organization.slug}
     )
 
-    if run.date_completed is not None:
+    if run.date_dispatched is not None:
         logger.info("night_shift.execute_already_complete", extra=log_extra)
         return None
 
     start_time = time.monotonic()
     logger.info("night_shift.execute.start", extra=log_extra)
 
-    if run.shards.exists():
+    if run.executions.exists():
         dispatch_status = _dispatch_pending_shards(run, organization, log_extra, start_time)
         if dispatch_status is not ShardDispatchStatus.COMPLETE:
             logger.info(
@@ -433,7 +442,7 @@ def run_night_shift_execution(
                 extra={**log_extra, "reason": dispatch_status.value},
             )
             return None
-        _complete_run(run)
+        _complete_dispatch(run)
         return None
 
     try:
@@ -456,14 +465,14 @@ def run_night_shift_execution(
 
     if not eligible:
         logger.info("night_shift.no_eligible_projects", extra=log_extra)
-        _complete_run(run)
+        _complete_dispatch(run)
         return None
 
     shard_plans, num_candidates = _build_shard_plans(organization, eligible, resolved_options)
     _update_run_extras(run, {"num_candidates": num_candidates})
     if not shard_plans:
         logger.info("night_shift.no_candidates", extra=log_extra)
-        _complete_run(run)
+        _complete_dispatch(run)
         return None
 
     _maybe_create_shard_plan(run, shard_plans)
@@ -474,7 +483,7 @@ def run_night_shift_execution(
             extra={**log_extra, "reason": dispatch_status.value},
         )
         return None
-    _complete_run(run)
+    _complete_dispatch(run)
 
 
 def _night_shift_cron_expr() -> str:
@@ -604,12 +613,12 @@ def _get_eligible_orgs_from_batch(
 
 
 def _update_run_extras(
-    run: SeerNightShiftRun, updates: Mapping[str, object]
+    run: SeerWorkflowRun, updates: Mapping[str, object]
 ) -> dict[str, object] | None:
-    using = router.db_for_write(SeerNightShiftRun)
+    using = router.db_for_write(SeerWorkflowRun)
     with transaction.atomic(using=using):
-        locked_run = SeerNightShiftRun.objects.select_for_update().get(id=run.id)
-        if locked_run.date_completed is not None:
+        locked_run = SeerWorkflowRun.objects.select_for_update().get(id=run.id)
+        if locked_run.date_dispatched is not None:
             return None
 
         extras = {**(locked_run.extras or {}), **updates}
@@ -618,27 +627,24 @@ def _update_run_extras(
         return extras
 
 
-def _complete_run(run: SeerNightShiftRun) -> None:
-    using = router.db_for_write(SeerNightShiftRun)
-    with transaction.atomic(using=using):
-        locked_run = SeerNightShiftRun.objects.select_for_update().get(id=run.id)
-        if locked_run.date_completed is not None:
-            return
-
-        extras = dict(locked_run.extras or {})
-        extras.pop("error_message", None)
-        extras.pop("error_type", None)
-        locked_run.update(extras=extras, date_completed=timezone.now())
+def _complete_dispatch(run: SeerWorkflowRun) -> None:
+    complete_workflow_dispatch(run.id, organization_id=run.organization_id)
 
 
 def _record_run_error(
-    run: SeerNightShiftRun, error_type: SeerNightShiftRunErrorType, message: str
+    run: SeerWorkflowRun, error_type: SeerNightShiftRunErrorType, message: str
 ) -> None:
-    _update_run_extras(run, {"error_type": error_type.value, "error_message": message})
+    with transaction.atomic(router.db_for_write(SeerWorkflowRun)):
+        if (
+            _update_run_extras(run, {"error_type": error_type.value, "error_message": message})
+            is not None
+            and run.status is not None
+        ):
+            run.update(status=SeerWorkflowRunStatus.FAILED, date_completed=timezone.now())
 
 
 def _fail_run(
-    run: SeerNightShiftRun,
+    run: SeerWorkflowRun,
     *,
     error_type: SeerNightShiftRunErrorType,
     message: str,
@@ -804,24 +810,24 @@ def _build_shard_plans(
 
 
 def _maybe_create_shard_plan(
-    run: SeerNightShiftRun, shard_plans: Sequence[NightShiftShardPlan]
+    run: SeerWorkflowRun, shard_plans: Sequence[NightShiftShardPlan]
 ) -> None:
-    using = router.db_for_write(SeerNightShiftRunShard)
+    using = router.db_for_write(SeerWorkflowRunExecution)
     with transaction.atomic(using=using):
-        locked_run = SeerNightShiftRun.objects.select_for_update().get(id=run.id)
-        if locked_run.shards.exists():
+        locked_run = SeerWorkflowRun.objects.select_for_update().get(id=run.id)
+        if locked_run.executions.exists():
             return
 
-        SeerNightShiftRunShard.objects.bulk_create(
+        SeerWorkflowRunExecution.objects.bulk_create(
             [
-                SeerNightShiftRunShard(run=locked_run, extras=plan.to_extras())
+                SeerWorkflowRunExecution(run=locked_run, extras=plan.to_extras())
                 for plan in shard_plans
             ]
         )
 
 
 def _dispatch_pending_shards(
-    run: SeerNightShiftRun,
+    run: SeerWorkflowRun,
     organization: Organization,
     log_extra: dict[str, object],
     start_time: float,
@@ -838,12 +844,12 @@ def _dispatch_pending_shards(
         )
         return ShardDispatchStatus.NO_SEER_ACCESS
 
-    using = router.db_for_write(SeerNightShiftRunShard)
-    planned_shards = list(run.shards.order_by("id"))
+    using = router.db_for_write(SeerWorkflowRunExecution)
+    planned_shards = list(run.executions.order_by("id"))
     dispatched = 0
     for shard_index, planned_shard in enumerate(planned_shards):
         with transaction.atomic(using=using):
-            shard = SeerNightShiftRunShard.objects.select_for_update().get(id=planned_shard.id)
+            shard = SeerWorkflowRunExecution.objects.select_for_update().get(id=planned_shard.id)
             if shard.seer_run_id is not None:
                 dispatched += 1
                 continue

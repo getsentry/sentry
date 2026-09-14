@@ -41,6 +41,7 @@ from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
+from sentry.seer.workflows.runs import fail_workflow_execution_for_run
 from sentry.users.models.user import User as SentryUser
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user_option import user_option_service
@@ -330,6 +331,8 @@ def enqueue_seer_run(
         )
         run.mirror_status = SeerRunMirrorStatus.FAILED
         run.save(update_fields=["mirror_status"])
+        if run_type == SeerRunType.FEATURE_RUN:
+            fail_workflow_execution_for_run(run, "Seer could not start this execution.")
         raise SeerApiError("Outbox flush failed for SeerRun", 500)
 
     if not flush:
