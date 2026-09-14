@@ -909,16 +909,25 @@ class TestPrIterationCompletionHook(TestCase):
 
         mock_consume.assert_not_called()
 
+    def _failed(self, failure_reason: str | None = None) -> SeerRunState:
+        """A run that died mid-iteration: Seer's sweep or a soft timeout ended it."""
+        state = self._unsynced()
+        state.status = "error"
+        state.failure_reason = failure_reason
+        return state
+
+    @patch(f"{HOOK_PATH}.fetch_run_status")
     @patch(f"{HOOK_PATH}.AutofixOnCompletionHook._consume_queued_feedback")
     @patch(f"{HOOK_PATH}.trigger_push_changes")
-    def test_an_errored_iteration_pauses_instead_of_pushing(self, mock_push, mock_consume):
+    def test_an_errored_iteration_pauses_instead_of_pushing(
+        self, mock_push, mock_consume, mock_fetch
+    ):
         self.create_seer_run(
             organization=self.organization, seer_run_state_id=123, user_id=self.user.id
         )
-        state = self._unsynced()
-        state.status = "error"
+        mock_fetch.return_value = self._failed()
 
-        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+        AutofixOnCompletionHook.execute(self.organization, 123)
 
         mock_push.assert_not_called()
         mock_consume.assert_not_called()
@@ -928,16 +937,64 @@ class TestPrIterationCompletionHook(TestCase):
             == PauseReason.RUN_ERRORED
         )
 
+    @patch(f"{HOOK_PATH}.fetch_run_status")
     @patch(f"{HOOK_PATH}.AutofixOnCompletionHook._consume_queued_feedback")
     @patch(f"{HOOK_PATH}.trigger_push_changes")
-    def test_an_errored_iteration_without_a_run_row_still_stops(self, mock_push, mock_consume):
-        state = self._unsynced()
-        state.status = "error"
+    def test_an_errored_iteration_without_a_run_row_still_stops(
+        self, mock_push, mock_consume, mock_fetch
+    ):
+        mock_fetch.return_value = self._failed()
 
-        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+        AutofixOnCompletionHook.execute(self.organization, 123)
 
         mock_push.assert_not_called()
         mock_consume.assert_not_called()
+
+    @patch(f"{HOOK_PATH}.complete_pr_iteration_details")
+    @patch(f"{HOOK_PATH}.fetch_run_status")
+    def test_a_failed_run_reaches_completion_details_under_its_reason(
+        self, mock_fetch, mock_complete
+    ):
+        for failure_reason, expected in (
+            ("timeout", PrIterationOutcome.TIMEOUT.value),
+            ("stalled", PrIterationOutcome.STALLED.value),
+            (None, PrIterationOutcome.ERRORED.value),
+        ):
+            with self.subTest(failure_reason=failure_reason):
+                mock_complete.reset_mock()
+                mock_fetch.return_value = self._failed(failure_reason=failure_reason)
+
+                AutofixOnCompletionHook.execute(self.organization, 123)
+
+                assert mock_complete.call_args.kwargs["outcome"] == expected
+
+    @patch(f"{HOOK_PATH}.complete_pr_iteration_details")
+    @patch(f"{HOOK_PATH}.fetch_run_status")
+    def test_a_failed_run_on_an_earlier_step_records_nothing(self, mock_fetch, mock_complete):
+        """Only a PR iteration has a row to close; root cause fails on its own terms."""
+        state = run_state(
+            blocks=[root_cause_memory_block()],
+            metadata={"group_id": self.group.id},
+            status="error",
+            failure_reason="timeout",
+        )
+        mock_fetch.return_value = state
+
+        AutofixOnCompletionHook.execute(self.organization, 123)
+
+        mock_complete.assert_not_called()
+
+    @patch(f"{HOOK_PATH}.complete_pr_iteration_details")
+    @patch(f"{HOOK_PATH}.fetch_run_status")
+    def test_a_run_awaiting_user_input_is_not_treated_as_a_failure(self, mock_fetch, mock_complete):
+        """Pausing here would abandon feedback the agent can still act on."""
+        state = self._unsynced()
+        state.status = "awaiting_user_input"
+        mock_fetch.return_value = state
+
+        AutofixOnCompletionHook.execute(self.organization, 123)
+
+        mock_complete.assert_not_called()
 
     @patch(f"{HOOK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_the_hand_back_to_the_queue_schedules_the_drain(self, mock_apply):
@@ -994,20 +1051,6 @@ class TestPrIterationCompletionHook(TestCase):
         )
 
         assert mock_complete.call_args.kwargs["outcome"] == PrIterationOutcome.PUSH_FAILED.value
-
-    @patch(f"{HOOK_PATH}.complete_pr_iteration_details")
-    def test_an_errored_run_reaches_completion_details_with_its_failure_reason(self, mock_complete):
-        self.create_seer_run(
-            organization=self.organization, seer_run_state_id=123, user_id=self.user.id
-        )
-        state = self._unsynced()
-        state.status = "error"
-        state.failure_reason = "timeout"
-
-        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
-
-        mock_complete.assert_called_once()
-        assert mock_complete.call_args.kwargs["outcome"] == "timeout"
 
 
 class TestPipelineConstants(TestCase):
