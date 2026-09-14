@@ -310,6 +310,60 @@ describe('useSpansSeriesQuery', () => {
     expect(mockRequest).not.toHaveBeenCalled();
   });
 
+  it('keeps series results dense when skipping only some invalid _if queries', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          name: 'invalid',
+          fields: ['avg_if(``,span.duration)'],
+          aggregates: ['avg_if(``,span.duration)'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+        {
+          name: 'valid',
+          fields: ['avg(span.duration)'],
+          aggregates: ['avg(span.duration)'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {
+        data: [
+          [1, [{count: 100}]],
+          [2, [{count: 200}]],
+        ],
+      },
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useSpansSeriesQuery({
+        widget,
+        organization: organizationWithConditionalAggregates,
+        pageFilters,
+        enabled: true,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    expect(mockRequest).toHaveBeenCalledTimes(1);
+    expect(result.current.rawData).toHaveLength(1);
+    expect(result.current.rawData.every(Boolean)).toBe(true);
+    expect(result.current.timeseriesResults).toBeDefined();
+    expect(result.current.timeseriesResults!.length).toBeGreaterThan(0);
+    expect(result.current.timeseriesResults!.every(Boolean)).toBe(true);
+  });
+
   it('does not skip invalid _if series requests when the feature is disabled', async () => {
     const widget = WidgetFixture({
       displayType: DisplayType.LINE,

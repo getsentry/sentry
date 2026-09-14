@@ -55,11 +55,11 @@ function getNavigateQueryValues(to: unknown, key: string): string[] {
   }
   if (to && typeof to === 'object' && 'query' in to) {
     const queryValue = (to as {query?: Record<string, unknown>}).query?.[key];
-    if (Array.isArray(queryValue)) {
-      return queryValue.map(String);
+    if (typeof queryValue === 'string') {
+      return [queryValue];
     }
-    if (queryValue !== null && queryValue !== undefined) {
-      return [String(queryValue)];
+    if (Array.isArray(queryValue)) {
+      return queryValue.filter((value): value is string => typeof value === 'string');
     }
   }
   return [];

@@ -1,3 +1,4 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
@@ -252,7 +253,11 @@ describe('spansWidgetQueries', () => {
           </div>
         )}
       </SpansWidgetQueries>,
-      {organization}
+      {
+        organization: OrganizationFixture({
+          features: ['explore-conditional-aggregates'],
+        }),
+      }
     );
 
     expect(await screen.findByText('idle:Invalid series filter')).toBeInTheDocument();

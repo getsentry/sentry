@@ -285,6 +285,9 @@ export function useSpansSeriesQuery(
     const timeseriesResultsUnits: Record<string, DataUnit> = {};
     const rawData: SpansSeriesResponse[] = [];
 
+    // Iterate active queries only and append densely so skipped invalid-_if
+    // queries do not leave undefined holes in series/raw arrays (charts map
+    // these by index; table results already use push).
     activeQueryIndexes.forEach(requestIndex => {
       const q = queryResults[requestIndex];
       if (!q?.data) {
@@ -293,7 +296,7 @@ export function useSpansSeriesQuery(
 
       const responseData = q.data;
 
-      rawData[requestIndex] = responseData;
+      rawData.push(responseData);
 
       const queryForTransform = (
         hasConditionalAggregates
@@ -308,12 +311,11 @@ export function useSpansSeriesQuery(
       );
       const seriesQueryPrefix = getSeriesQueryPrefix(queryForTransform, filteredWidget);
 
-      // Maintain color consistency
-      transformedResult.forEach((result: Series, resultIndex: number) => {
+      transformedResult.forEach((result: Series) => {
         if (seriesQueryPrefix) {
           result.seriesName = `${seriesQueryPrefix}${SERIES_QUERY_DELIMITER}${result.seriesName}`;
         }
-        timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
+        timeseriesResults.push(result);
       });
 
       // Get result types and units from config
@@ -549,7 +551,7 @@ export function useSpansTableQuery(
       }
 
       const responseData = q.data.json;
-      rawData[i] = responseData;
+      rawData.push(responseData);
 
       const queryForTransform = (
         hasConditionalAggregates

@@ -493,7 +493,7 @@ export function SelectRow({
   ]);
 
   return (
-    <SelectRowStack>
+    <Stack width="100%" minWidth="0" gap="md">
       <PrimarySelectRow
         hasColumnParameter={hasColumnParameter}
         elevated={isSelectMenuOpen}
@@ -884,7 +884,7 @@ export function SelectRow({
           searchSource="dashboards"
         />
       ) : null}
-    </SelectRowStack>
+    </Stack>
   );
 }
 
@@ -899,10 +899,4 @@ export const ColumnCompactSelect = styled(CompactSelect)`
 
 const SelectWrapper = styled('div')`
   display: contents;
-`;
-
-const SelectRowStack = styled(Stack)`
-  width: 100%;
-  min-width: 0;
-  gap: ${p => p.theme.space.md};
 `;

@@ -123,11 +123,15 @@ function GridList({showPlaceholder, ...props}: GridListProps) {
         evt.currentTarget.querySelectorAll<HTMLElement>('[role="row"]')
       ).filter(row => row.closest('[role="grid"]') === evt.currentTarget);
 
-      // Prefer free-text rows (caret targets). The leading spacer is zero-width so
-      // start clicks usually land on grid padding — resolve those to the first /
-      // last free-text field by edge, otherwise the nearest free-text caret.
-      const freeTextRows = rows.filter(row =>
-        row.querySelector('[aria-label="Add a term"]')
+      const collectionItems = Array.from(state.collection);
+
+      // Prefer free-text rows (caret targets). Match by token kind rather than
+      // translated aria-label so padding clicks work in every locale. The leading
+      // spacer is zero-width so start clicks usually land on grid padding —
+      // resolve those to the first / last free-text field by edge, otherwise the
+      // nearest free-text caret.
+      const freeTextRows = rows.filter((_, index) =>
+        isTokenFreeText(collectionItems[index]?.value)
       );
       const candidates = freeTextRows.length > 0 ? freeTextRows : rows;
       const nearestRow = resolvePaddingClickRow(
@@ -140,7 +144,6 @@ function GridList({showPlaceholder, ...props}: GridListProps) {
         return;
       }
 
-      const collectionItems = Array.from(state.collection);
       const rowIndex = rows.indexOf(nearestRow);
       const item = collectionItems[rowIndex];
       if (!item) {
