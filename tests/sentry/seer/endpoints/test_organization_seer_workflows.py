@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.pullrequest import PullRequestLifecycleState
@@ -13,7 +15,6 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunExecution,
     SeerWorkflowStrategy,
 )
-from sentry.seer.monitor_cleanup.constants import FEATURE
 from sentry.seer.monitor_cleanup.runs import deliver_monitor_cleanup_result
 from sentry.seer.workflows.runs import create_workflow_run
 from sentry.testutils.cases import APITestCase
@@ -351,7 +352,9 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         Factories.create_seer_workflow_run_execution(run=newer)
         Factories.create_seer_workflow_run(organization=self.create_organization())
 
-        with self.feature([FEATURE, "organizations:seer-night-shift"]):
+        with self.feature(
+            ["organizations:seer-workflows-monitor-cleanup", "organizations:seer-night-shift"]
+        ):
             response = self.get_success_response(self.organization.slug)
             assert response.status_code == 200
             assert [run["id"] for run in response.data] == [
@@ -362,7 +365,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             response = self.get_success_response(self.organization.slug, per_page=2)
             assert [run["id"] for run in response.data] == [str(newer.id), str(cleanup.id)]
 
-        with self.feature(FEATURE):
+        with self.feature("organizations:seer-workflows-monitor-cleanup"):
             response = self.get_success_response(self.organization.slug)
             assert [run["id"] for run in response.data] == [str(cleanup.id)]
 
@@ -384,24 +387,24 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         other_team = self.create_team(organization=self.organization, members=[member])
         self.create_project(organization=self.organization, teams=[other_team])
 
-        with self.feature(FEATURE):
+        with self.feature("organizations:seer-workflows-monitor-cleanup"):
             response = self.get_success_response(self.organization.slug)
         assert [item["id"] for item in response.data] == [str(workflow.id)]
 
         self.login_as(member)
-        with self.feature(FEATURE):
+        with self.feature("organizations:seer-workflows-monitor-cleanup"):
             response = self.get_success_response(self.organization.slug)
         assert response.data == []
 
         run.agent.update(
             extras={**run.agent.extras, "status": "complete", "project_ids": [str(project.id)]}
         )
-        with self.feature(FEATURE):
+        with self.feature("organizations:seer-workflows-monitor-cleanup"):
             response = self.get_success_response(self.organization.slug)
         assert response.data == []
 
         self.create_team_membership(team=self.team, user=member)
-        with self.feature(FEATURE):
+        with self.feature("organizations:seer-workflows-monitor-cleanup"):
             response = self.get_success_response(self.organization.slug)
         assert [item["id"] for item in response.data] == [str(workflow.id)]
 
@@ -441,10 +444,17 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert outbox.payload["body"]["payload"] == {"response_version": 1}
         result = self.result()
         result["data"]["projects"][0]["scan_status"] = "partial"
+        findings = result["data"]["projects"][0]["findings"]
+        findings.extend(
+            [
+                {**findings[0], "monitor_ids": [str(self.keep.id), "999999"]},
+                {**findings[0], "alert_ids": ["999999"]},
+            ]
+        )
         deliver_monitor_cleanup_result(
             self.organization.id, run.run.uuid, "completed", result, None
         )
-        with self.feature(FEATURE):
+        with self.feature("organizations:seer-workflows-monitor-cleanup"):
             response = self.client.get(self.url)
         assert response.status_code == 200
         output = response.data[0]
@@ -454,7 +464,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert output["extras"] == {"status": "partial"}
         assert len(output["results"]) == 1
         assert output["results"][0]["seerRunId"] == str(run.run.uuid)
-        finding = output["results"][0]["extras"]["findings"][0]
+        (finding,) = output["results"][0]["extras"]["findings"]
         assert finding["suggestedKeepId"] == str(self.keep.id)
         assert finding["monitors"] == [
             {"id": str(self.keep.id), "name": "Keep", "enabled": self.keep.enabled},
@@ -471,18 +481,36 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert not run.extras["results"]
 
     def test_requires_feature_and_seer_access(self) -> None:
-        self.get_error_response(
-            self.organization.slug, strategy="duplicate_monitors", status_code=404
-        )
-        with self.feature({FEATURE: True, "organizations:gen-ai-features": False}):
-            response = self.get_error_response(
-                self.organization.slug, strategy="duplicate_monitors", status_code=403
+        with patch("sentry.seer.monitor_cleanup.runs.ratelimits.is_limited") as limit:
+            self.get_error_response(
+                self.organization.slug, strategy="duplicate_monitors", status_code=404
             )
-        assert response.data == {"detail": "Seer is not available for this organization."}
+            with self.feature(
+                {
+                    "organizations:seer-workflows-monitor-cleanup": True,
+                    "organizations:gen-ai-features": False,
+                }
+            ):
+                response = self.get_error_response(
+                    self.organization.slug, strategy="duplicate_monitors", status_code=403
+                )
+            assert response.data == {"detail": "Seer is not available for this organization."}
+            limit.assert_not_called()
+
+            limit.return_value = True
+            with self.feature(
+                ["organizations:seer-workflows-monitor-cleanup", "organizations:gen-ai-features"]
+            ):
+                self.get_error_response(
+                    self.organization.slug, strategy="duplicate_monitors", status_code=429
+                )
+            limit.assert_called_once_with(
+                f"seer-workflow:{self.organization.id}:duplicate_monitors", limit=5, window=3600
+            )
 
     def test_requires_organization_access(self) -> None:
         other = self.create_organization()
-        with self.feature(FEATURE):
+        with self.feature("organizations:seer-workflows-monitor-cleanup"):
             self.get_error_response(other.slug, strategy="duplicate_monitors", status_code=403)
 
     def test_callback_for_deleted_user_marks_run_failed(self) -> None:
@@ -496,7 +524,9 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert agent_run.extras["error"] == "The triggering user no longer exists."
 
     def trigger(self):
-        with self.feature([FEATURE, "organizations:gen-ai-features"]):
+        with self.feature(
+            ["organizations:seer-workflows-monitor-cleanup", "organizations:gen-ai-features"]
+        ):
             response = self.get_success_response(
                 self.organization.slug, strategy="duplicate_monitors", status_code=202
             )

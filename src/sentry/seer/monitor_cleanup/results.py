@@ -73,7 +73,12 @@ def parse_project_monitor_cleanup_result(
         "projectId": str(project_id),
         "scan": {"status": artifact.scan_status, "monitorsScanned": artifact.monitors_scanned},
         "summary": artifact.summary,
-        "findings": [_serialize_finding(finding, monitors, alerts) for finding in findings],
+        "findings": [
+            _serialize_finding(finding, monitors, alerts)
+            for finding in findings
+            if all(monitor_id in monitors for monitor_id in finding.monitor_ids)
+            and all(alert_id in alerts for alert_id in finding.alert_ids)
+        ],
     }
 
 
