@@ -626,7 +626,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response(status=404)
 
         with transaction.atomic(router.db_for_write(GroupLink)):
-            deleted, _ = GroupLink.objects.get_group_issues(group, str(external_issue_id)).delete()
+            deleted, _ = GroupLink.objects.get_group_issues(group, external_issue_id).delete()
 
             # check if other groups reference this external issue
             # and delete if not
