@@ -199,15 +199,17 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             description = "handler update"
             category = GroupCategory.METRIC.value
 
-        detector_settings_registry.register(HandlerGroupType.slug)(
-            DetectorSettings(handler=MockDetectorHandler)
-        )
-        detector_settings_registry.register(HandlerStateGroupType.slug)(
-            DetectorSettings(handler=MockDetectorStateHandler)
-        )
-        detector_settings_registry.register(HandlerUpdateGroupType.slug)(
-            DetectorSettings(handler=MockDetectorWithUpdateHandler)
-        )
+        @detector_settings_registry.register(HandlerGroupType.slug)
+        class HandlerDetectorSettings(DetectorSettings):
+            handler = MockDetectorHandler
+
+        @detector_settings_registry.register(HandlerStateGroupType.slug)
+        class HandlerStateDetectorSettings(DetectorSettings):
+            handler = MockDetectorStateHandler
+
+        @detector_settings_registry.register(HandlerUpdateGroupType.slug)
+        class HandlerUpdateDetectorSettings(DetectorSettings):
+            handler = MockDetectorWithUpdateHandler
 
         self.no_handler_type = NoHandlerGroupType
         self.handler_type = HandlerGroupType

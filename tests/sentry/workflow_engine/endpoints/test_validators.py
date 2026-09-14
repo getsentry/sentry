@@ -136,9 +136,9 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
             description = "no handler"
             category = GroupCategory.METRIC.value
 
-        detector_settings_registry.register(TestGroupType.slug)(
-            DetectorSettings(validator=MetricIssueDetectorValidator)
-        )
+        @detector_settings_registry.register(TestGroupType.slug)
+        class TestDetectorSettings(DetectorSettings):
+            validator = MetricIssueDetectorValidator
 
         with mock.patch.object(grouptype.registry, "get_by_slug") as mock_get_by_slug:
             mock_get_by_slug.return_value = TestGroupType

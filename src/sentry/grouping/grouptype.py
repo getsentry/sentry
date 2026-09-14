@@ -33,10 +33,8 @@ class ErrorGroupType(GroupType):
     released = True
 
 
-detector_settings_registry.register(ErrorGroupType.slug)(
-    DetectorSettings(
-        handler=ErrorDetectorHandler,
-        validator=ErrorDetectorValidator,
-        config_schema={"type": "object", "additionalProperties": False},
-    )
-)
+@detector_settings_registry.register(ErrorGroupType.slug)
+class ErrorDetectorSettings(DetectorSettings):
+    handler = ErrorDetectorHandler
+    validator = ErrorDetectorValidator
+    config_schema = {"type": "object", "additionalProperties": False}

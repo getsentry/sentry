@@ -23,10 +23,6 @@ class MonitorIncidentType(GroupType):
     notification_config = NotificationConfig(context=[])
 
 
-detector_settings_registry.register(MonitorIncidentType.slug)(
-    DetectorSettings(
-        handler=None,
-        validator=MonitorIncidentDetectorValidator,
-        config_schema={},
-    )
-)
+@detector_settings_registry.register(MonitorIncidentType.slug)
+class MonitorIncidentDetectorSettings(DetectorSettings):
+    validator = MonitorIncidentDetectorValidator

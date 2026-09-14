@@ -38,7 +38,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         self.detector_settings_patcher = patch.dict(detector_settings_registry.registrations)
         self.detector_settings_patcher.start()
 
-        class MockDetectorHandler(BaseDetectorHandler[dict[Never, Never], bool]):
+        class MockDetectorHandler(DetectorHandler[dict[Never, Never], bool]):
             def evaluate(
                 self, data_packet: DataPacket[dict[Never, Never]]
             ) -> GroupedDetectorEvaluationResult:
@@ -121,10 +121,11 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             category = GroupCategory.DB_QUERY.value
             released = True
 
+        class MockDetectorSettings(DetectorSettings):
+            handler = MockDetectorHandler
+
         for group_type in (TestMetricGroupType, TestCronsGroupType, TestUptimeGroupType):
-            detector_settings_registry.register(group_type.slug)(
-                DetectorSettings(handler=MockDetectorHandler)
-            )
+            detector_settings_registry.register(group_type.slug)(MockDetectorSettings)
 
         self.expected_type_slugs = sorted(
             [TestMetricGroupType.slug, TestCronsGroupType.slug, TestUptimeGroupType.slug]
