@@ -1448,8 +1448,6 @@ class GithubProxyClientTest(TestCase):
         assert mock_jwt.called
 
         self.integration.refresh_from_db()
-        # Stamped so a reader can tell whether the permissions beside it are
-        # current, and written from the same value debug_data records.
         assert (
             self.integration.metadata.pop("last_refresh_at")
             == self.integration.debug_data["last_refresh_at"]

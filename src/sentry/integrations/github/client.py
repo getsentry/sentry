@@ -343,11 +343,6 @@ class GithubProxyClient(IntegrationProxyClient):
         access_token = data["token"]
         expires_at = datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
         permissions = data.get("permissions")
-        # GitHub only reports permissions when it mints a token, so this is the
-        # only moment we learn them. Stamping when that happened alongside them
-        # is what lets a reader tell a current answer from a months-old one --
-        # debug_data has carried the same stamp for a while, but nothing outside
-        # control silo can see that field.
         last_refresh_at = deprecated_utcnow().isoformat()
         integration.metadata.update(
             {
