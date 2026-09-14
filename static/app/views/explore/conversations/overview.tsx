@@ -1,5 +1,5 @@
-import {Fragment, useEffect, useMemo} from 'react';
-import {parseAsString, useQueryState} from 'nuqs';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 
@@ -26,16 +26,19 @@ import {
   ExploreBodySearch,
 } from 'sentry/views/explore/components/styles';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {AgentsCharts} from 'sentry/views/explore/conversations/components/agentsCharts';
+import {
+  AGENTS_TABLE_TABS,
+  AgentsTable,
+  type AgentsTableTab,
+} from 'sentry/views/explore/conversations/components/agentsTable';
 import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
-import {ConversationsChart} from 'sentry/views/explore/conversations/components/conversationsChart';
-import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {SaveConversationQueryButton} from 'sentry/views/explore/conversations/components/saveConversationQueryButton';
 import {
   CONVERSATION_FIELDS,
   useConversations,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
 import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
-import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
 import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
@@ -68,6 +71,9 @@ const CONVERSATION_FILTER_KEYS: TagCollection = Object.fromEntries(
   ])
 );
 
+const SPANS_CURSOR_URL_PARAM = 'cursor';
+const agentsTableTabParser = parseAsStringLiteral(AGENTS_TABLE_TABS);
+
 function ConversationsOverviewPage() {
   const organization = useOrganization();
   const queryingEnhancementsEnabled = organization.features.includes(
@@ -78,6 +84,8 @@ function ConversationsOverviewPage() {
     maxUpgradableDays: MAX_PICKABLE_DAYS,
   });
   const {
+    hasAgenticSpans,
+    hasConversations,
     showOnboarding,
     isLoading: isOnboardingLoading,
     refetch: refetchOnboarding,
@@ -95,11 +103,35 @@ function ConversationsOverviewPage() {
       conversation => !conversation.firstInput && !conversation.lastOutput
     );
 
+  const [selectedTab, setSelectedTab] = useQueryState(
+    'table',
+    agentsTableTabParser.withOptions({history: 'replace'})
+  );
+  const activeTab: AgentsTableTab =
+    selectedTab ?? (hasConversations ? 'conversations' : 'traces');
+  const isConversationsTab = activeTab === 'conversations';
+  const selectedTabShowsOnboarding = isConversationsTab
+    ? !hasConversations
+    : !hasAgenticSpans;
+
   const [searchQuery, setSearchQuery] = useQueryState(
     'query',
     parseAsString.withOptions({history: 'replace'})
   );
+  const [, setSpansCursor] = useQueryState(
+    SPANS_CURSOR_URL_PARAM,
+    parseAsString.withOptions({history: 'replace'})
+  );
   const {unsetCursor} = useTableCursor();
+
+  const handleTabChange = useCallback(
+    (tab: AgentsTableTab) => {
+      setSelectedTab(tab);
+      unsetCursor();
+      setSpansCursor(null);
+    },
+    [setSelectedTab, setSpansCursor, unsetCursor]
+  );
 
   useEffect(() => {
     trackAnalytics('conversations.page-view', {
@@ -108,53 +140,64 @@ function ConversationsOverviewPage() {
   }, [organization]);
 
   useEffect(() => {
-    if (!isOnboardingLoading) {
-      if (showOnboarding) {
-        trackAnalytics('conversations.onboarding.page-view', {
-          organization,
-        });
-      } else {
-        trackAnalytics('conversations.table.page-view', {
-          organization,
-        });
-      }
+    if (isOnboardingLoading || !isConversationsTab) {
+      return;
     }
-  }, [showOnboarding, isOnboardingLoading, organization]);
+    if (showOnboarding) {
+      trackAnalytics('conversations.onboarding.page-view', {
+        organization,
+      });
+    } else {
+      trackAnalytics('conversations.table.page-view', {
+        organization,
+      });
+    }
+  }, [isConversationsTab, showOnboarding, isOnboardingLoading, organization]);
 
   const searchQueryBuilderProps: UseSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: searchQuery ?? '',
       onSearch: (newQuery, {queryIsValid}) => {
-        // The conversations API can't express negation (and other invalid
-        // syntax), so don't apply a query the builder has flagged as invalid.
         if (!queryIsValid) {
           return;
         }
         setSearchQuery(newQuery);
         unsetCursor();
+        setSpansCursor(null);
       },
-      searchSource: 'conversations',
-      disableRecentSearches: true,
-      // The conversations API cannot express negation given how it fetches
-      // conversations, so hide negation operators from the search suggestions.
-      disallowNegation: true,
-      replaceRawSearchKeys: ['gen_ai.conversation.id', 'gen_ai.input.messages'],
-      matchKeySuggestions: [
-        {key: 'gen_ai.conversation.id', valuePattern: /^[0-9a-fA-F]{8,32}$/},
-        {key: 'gen_ai.conversation.id', valuePattern: /^resp_/},
-        {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
-        {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
-      ],
+      searchSource: isConversationsTab ? 'conversations' : 'agents',
+      disableRecentSearches: isConversationsTab,
+      ...(isConversationsTab
+        ? {
+            // The conversations API cannot express negation, so hide negation
+            // operators and add direct-ID matching for conversation searches.
+            disallowNegation: true,
+            replaceRawSearchKeys: ['gen_ai.conversation.id', 'gen_ai.input.messages'],
+            matchKeySuggestions: [
+              {
+                key: 'gen_ai.conversation.id',
+                valuePattern: /^[0-9a-fA-F]{8,32}$/,
+              },
+              {key: 'gen_ai.conversation.id', valuePattern: /^resp_/},
+              {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
+              {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
+            ],
+          }
+        : {}),
     }),
-    [searchQuery, setSearchQuery, unsetCursor]
+    [isConversationsTab, searchQuery, setSearchQuery, setSpansCursor, unsetCursor]
   );
 
   const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =
     useSpanSearchQueryBuilderProps(searchQueryBuilderProps);
 
-  // Value counts are span-level and can imply conversation results that the list
-  // will not return. Strip them so autocomplete only shows attribute values.
   const searchQueryBuilderProviderProps = useMemo(() => {
+    if (!isConversationsTab) {
+      return spanSearchQueryBuilderProviderProps;
+    }
+
+    // Value counts are span-level and can imply conversation results that the
+    // list will not return. Strip them for conversation autocomplete.
     const getTagValuesWithoutCounts: GetTagValues = async params => {
       const values = await spanSearchQueryBuilderProviderProps.getTagValues(params);
       return values.map(value =>
@@ -189,7 +232,14 @@ function ConversationsOverviewPage() {
         CONVERSATION_FIELD_DEFINITIONS[key] ?? fieldDefinitionGetter(key, options),
       getTagValues: getTagValuesWithoutCounts,
     };
-  }, [queryingEnhancementsEnabled, spanSearchQueryBuilderProviderProps]);
+  }, [
+    isConversationsTab,
+    queryingEnhancementsEnabled,
+    spanSearchQueryBuilderProviderProps,
+  ]);
+
+  const resetParamsOnFilterChange = [TableUrlParams.CURSOR, SPANS_CURSOR_URL_PARAM];
+  const showSearch = !isOnboardingLoading && !selectedTabShowsOnboarding;
 
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
@@ -200,25 +250,34 @@ function ConversationsOverviewPage() {
               <Flex gap="md" align="center" wrap="wrap">
                 <PageFilterBar condensed>
                   <ProjectPageFilter
-                    resetParamsOnChange={[TableUrlParams.CURSOR, FilterUrlParams.AGENT]}
+                    resetParamsOnChange={[
+                      ...resetParamsOnFilterChange,
+                      FilterUrlParams.AGENT,
+                    ]}
                   />
-                  <EnvironmentPageFilter resetParamsOnChange={[TableUrlParams.CURSOR]} />
+                  <EnvironmentPageFilter
+                    resetParamsOnChange={resetParamsOnFilterChange}
+                  />
                   <DatePageFilter
                     {...datePageFilterProps}
-                    resetParamsOnChange={[TableUrlParams.CURSOR]}
+                    resetParamsOnChange={resetParamsOnFilterChange}
                   />
                 </PageFilterBar>
                 <AgentSelector referrer={Referrer.AGENT_NAMES} />
               </Flex>
-              {!showOnboarding && !isOnboardingLoading && (
+              {showSearch && (
                 <Flex flex={1} minWidth="300px">
                   <TraceItemSearchQueryBuilder
                     {...spanSearchQueryBuilderProps}
-                    placeholder={t('Search or paste a conversation ID')}
+                    placeholder={
+                      isConversationsTab
+                        ? t('Search or paste a conversation ID')
+                        : t('Search spans')
+                    }
                   />
                 </Flex>
               )}
-              {!showOnboarding && !isOnboardingLoading && <SaveConversationQueryButton />}
+              {showSearch && isConversationsTab && <SaveConversationQueryButton />}
             </Flex>
           </Stack>
         </Layout.Main>
@@ -227,13 +286,19 @@ function ConversationsOverviewPage() {
         <Stack flex={1} minWidth="0" padding="xl" gap="md">
           {isOnboardingLoading ? (
             <LoadingIndicator />
-          ) : showOnboarding ? (
-            <ConversationOnboarding onDismiss={refetchOnboarding} />
           ) : (
             <Fragment>
-              {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
-              <ConversationsChart />
-              <ConversationsTable />
+              {hasAgenticSpans && <AgentsCharts />}
+              {isConversationsTab && showMissingMessagesAlert && (
+                <ConversationMissingMessagesAlert />
+              )}
+              <AgentsTable
+                activeTab={activeTab}
+                hasAgenticSpans={hasAgenticSpans}
+                hasConversations={hasConversations}
+                onConversationOnboardingDismiss={refetchOnboarding}
+                onTabChange={handleTabChange}
+              />
             </Fragment>
           )}
         </Stack>

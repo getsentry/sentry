@@ -1,0 +1,88 @@
+import {Stack} from '@sentry/scraps/layout';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
+import {t} from 'sentry/locale';
+import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
+import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
+import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
+import {Tab} from 'sentry/views/explore/hooks/useTab';
+import {SPANS_TABLE_LIMIT} from 'sentry/views/explore/spans/constants';
+import {useValidatedSpansTabColumns} from 'sentry/views/explore/spans/hooks/useValidatedSpansTabColumns';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
+import {SpansTable} from 'sentry/views/explore/tables/spansTable';
+import {TracesTable} from 'sentry/views/insights/pages/agents/components/tracesTable';
+import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
+import {Onboarding as AgentMonitoringOnboarding} from 'sentry/views/insights/pages/agents/onboarding';
+import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
+
+export const AGENTS_TABLE_TABS = ['conversations', 'traces', 'spans'] as const;
+export type AgentsTableTab = (typeof AGENTS_TABLE_TABS)[number];
+
+interface AgentsTableProps {
+  activeTab: AgentsTableTab;
+  hasAgenticSpans: boolean;
+  hasConversations: boolean;
+  onConversationOnboardingDismiss: () => void;
+  onTabChange: (tab: AgentsTableTab) => void;
+}
+
+export function AgentsTable({
+  activeTab,
+  hasAgenticSpans,
+  hasConversations,
+  onConversationOnboardingDismiss,
+  onTabChange,
+}: AgentsTableProps) {
+  return (
+    <Stack gap="md">
+      <Tabs value={activeTab} onChange={onTabChange} size="sm">
+        <TabList variant="floating">
+          <TabList.Item key="conversations">{t('Conversations')}</TabList.Item>
+          <TabList.Item key="traces">{t('Traces')}</TabList.Item>
+          <TabList.Item key="spans">{t('Spans')}</TabList.Item>
+        </TabList>
+      </Tabs>
+      {activeTab === 'conversations' &&
+        (hasConversations ? (
+          <ConversationsTable />
+        ) : (
+          <ConversationOnboarding onDismiss={onConversationOnboardingDismiss} />
+        ))}
+      {activeTab === 'traces' &&
+        (hasAgenticSpans ? <TracesTable /> : <AgentMonitoringOnboarding />)}
+      {activeTab === 'spans' &&
+        (hasAgenticSpans ? <AgentsSpansTable /> : <AgentMonitoringOnboarding />)}
+    </Stack>
+  );
+}
+
+function AgentsSpansTable() {
+  return (
+    <SpansQueryParamsProvider>
+      <AgentsSpansTableContent />
+    </SpansQueryParamsProvider>
+  );
+}
+
+function AgentsSpansTableContent() {
+  const query = useCombinedQuery(getHasAiSpansFilter());
+  const spansTableResult = useExploreSpansTable({
+    query,
+    limit: SPANS_TABLE_LIMIT,
+    enabled: true,
+  });
+  const {
+    attributes: {boolean: booleanTags, number: numberTags, string: stringTags},
+    fieldTypes: validatedFieldTypes,
+  } = useValidatedSpansTabColumns(Tab.SPAN);
+
+  return (
+    <SpansTable
+      booleanTags={booleanTags}
+      numberTags={numberTags}
+      spansTableResult={spansTableResult}
+      stringTags={stringTags}
+      validatedFieldTypes={validatedFieldTypes}
+    />
+  );
+}

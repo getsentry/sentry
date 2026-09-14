@@ -6,12 +6,15 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 
 import {useShowConversationOnboarding} from './useShowConversationOnboarding';
 
 jest.mock('sentry/views/insights/common/queries/useDiscover', () => ({
   useSpans: jest.fn(),
 }));
+
+jest.mock('sentry/views/insights/common/queries/useHasFirstSpan');
 
 jest.mock('sentry/utils/useLocalStorageState', () => ({
   useLocalStorageState: jest.fn(),
@@ -20,6 +23,7 @@ jest.mock('sentry/utils/useLocalStorageState', () => ({
 jest.mock('sentry/components/pageFilters/usePageFilters');
 
 const mockUseSpans = jest.mocked(useSpans);
+const mockUseHasFirstSpan = jest.mocked(useHasFirstSpan);
 const mockUseLocalStorageState = jest.mocked(useLocalStorageState);
 const mockUsePageFilters = jest.mocked(usePageFilters);
 
@@ -29,6 +33,7 @@ describe('useShowConversationOnboarding', () => {
 
   beforeEach(() => {
     mockSetProjectsWithConversations = jest.fn();
+    mockUseHasFirstSpan.mockReturnValue(false);
 
     mockUsePageFilters.mockReturnValue({
       isReady: true,
@@ -60,7 +65,26 @@ describe('useShowConversationOnboarding', () => {
     });
 
     expect(result.current.showOnboarding).toBe(true);
+    expect(result.current.hasConversations).toBe(false);
     expect(result.current.isLoading).toBe(false);
+  });
+
+  it('reports agentic spans without conversations', () => {
+    mockUseHasFirstSpan.mockReturnValue(true);
+    mockUseLocalStorageState.mockReturnValue([[], mockSetProjectsWithConversations]);
+    mockUseSpans.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      refetch: jest.fn(),
+    } as any);
+
+    const {result} = renderHookWithProviders(useShowConversationOnboarding, {
+      organization,
+    });
+
+    expect(result.current.hasAgenticSpans).toBe(true);
+    expect(result.current.hasConversations).toBe(false);
   });
 
   it('does not show onboarding when query returns data', () => {
@@ -77,6 +101,8 @@ describe('useShowConversationOnboarding', () => {
     });
 
     expect(result.current.showOnboarding).toBe(false);
+    expect(result.current.hasConversations).toBe(true);
+    expect(result.current.hasAgenticSpans).toBe(true);
     expect(result.current.isLoading).toBe(false);
   });
 
