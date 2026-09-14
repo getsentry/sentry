@@ -14,6 +14,7 @@ import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import type {
   SeerWorkflowResult,
   WorkflowRunStatus,
+  WorkflowRow,
 } from 'sentry/views/seerWorkflows/types';
 
 const resourceSchema = z.object({
@@ -48,7 +49,47 @@ const outputSchema = z.object({
 });
 type Finding = z.infer<typeof outputSchema>['findings'][number];
 
-export function getMonitorFindingSummary(results: SeerWorkflowResult[]) {
+export function MonitorCleanupSummary({row}: {row: WorkflowRow}) {
+  return (
+    <Text size="sm" variant={row.status === 'failed' ? 'danger' : 'primary'}>
+      {getMonitorRunSummary(row)}
+    </Text>
+  );
+}
+
+export function MonitorCleanupRunResults({
+  row,
+  organizationSlug,
+}: {
+  organizationSlug: string;
+  row: WorkflowRow;
+}) {
+  const results = row.results.filter(result => result.kind === 'duplicate_monitors');
+  return (
+    <Stack gap="md">
+      {results.length === 0 && <Text>{getMonitorRunSummary(row)}</Text>}
+      <MonitorCleanupResults
+        runStatus={row.runStatus}
+        results={results}
+        organizationSlug={organizationSlug}
+      />
+    </Stack>
+  );
+}
+
+function getMonitorRunSummary(row: WorkflowRow) {
+  if (row.status === 'running') {
+    return t('Scanning monitors…');
+  }
+  if (row.status === 'failed') {
+    return t('Monitor scan failed');
+  }
+  const results = row.results.filter(result => result.kind === 'duplicate_monitors');
+  const findings = results.length ? getMonitorFindingSummary(results) : t('No findings');
+  return row.status === 'partial' ? t('Incomplete scan — %s', findings) : findings;
+}
+
+function getMonitorFindingSummary(results: SeerWorkflowResult[]) {
   const counts = {
     exact_duplicate: 0,
     overlapping_coverage: 0,

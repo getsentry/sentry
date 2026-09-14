@@ -1,87 +1,22 @@
-import type {PullRequest, PullRequestStatus} from 'sentry/types/integrations';
-
-export type SeerNightShiftRunPullRequest = PullRequest & {
-  status: PullRequestStatus | null;
-};
-
-export type SeerNightShiftRunIssue = {
-  action: string;
-  dateAdded: string;
-  groupId: string;
-  groupShortId: string | null;
-  groupTitle: string | null;
-  id: string;
-  reason: string | null;
-  seerRunId: string | null;
-  skipReason: string | null;
-  pullRequests?: SeerNightShiftRunPullRequest[];
-};
-
-// A Seer run dispatched by a night shift run, openable in Explorer.
-type SeerNightShiftSeerRun = {
-  seerRunId: string | null;
-};
-
-type SeerNightShiftRunOptions = {
-  dry_run?: boolean;
-  extra_triage_instructions?: string;
-  intelligence_level?: 'low' | 'medium' | 'high';
-  max_candidates?: number;
-  reasoning_effort?: 'low' | 'medium' | 'high';
-  source?: string;
-};
-
-export type SeerNightShiftRunExtras = {
-  coverage?: {complete: number; failed: number; partial: number; total: number};
-  options?: SeerNightShiftRunOptions;
-  status?: WorkflowRunStatus;
-  target_project_ids?: number[];
-  triggering_user_id?: number;
-};
-
-export type SeerNightShiftRunErrorType =
-  | 'no_quota'
-  | 'eligible_projects_failed'
-  | 'no_seer_access'
-  | 'invalid_shard_plan'
-  | 'shard_dispatch_failed'
-  | 'shard_delivery_failed'
-  | 'unknown';
-
-export type SeerNightShiftRun = {
-  dateAdded: string;
-  errorMessage: string | null;
-  errorType: SeerNightShiftRunErrorType | null;
-  extras: SeerNightShiftRunExtras;
-  id: string;
-  issues: SeerNightShiftRunIssue[];
-  seerRuns: SeerNightShiftSeerRun[];
-  triageStrategy: string;
-  results?: SeerWorkflowResult[];
-  strategy?: 'agentic_triage';
-};
+import type {NightShiftRow} from 'sentry/views/seerWorkflows/nightShift';
 
 export type WorkflowRunStatus = 'running' | 'complete' | 'partial' | 'failed';
 
-export type SeerWorkflowRun<Strategy extends WorkflowStrategy> = {
+export type SeerWorkflowRun = {
   dateAdded: string;
   dateCompleted: string | null;
   errorMessage: string | null;
-  extras: {status: WorkflowRunStatus};
+  extras: {status?: WorkflowRunStatus};
   id: string;
   results: SeerWorkflowResult[];
-  seerRunId: string;
-  strategy: Strategy;
+  strategy: WorkflowStrategy;
+  seerRunId?: string;
 };
-
-export type SeerWorkflowRunResponse =
-  | SeerNightShiftRun
-  | SeerWorkflowRun<Exclude<WorkflowStrategy, 'agentic_triage'>>;
 
 export type WorkflowStrategy = 'agentic_triage' | 'duplicate_monitors';
 
 export type WorkflowRunCreateRequest = {
-  strategy: 'duplicate_monitors';
+  strategy: WorkflowStrategy;
 };
 
 export type SeerWorkflowResult = {
@@ -117,23 +52,15 @@ export type OutputId =
 export type WorkflowRow = {
   dateAdded: string;
   id: string;
+  results: SeerWorkflowResult[];
   runId: string;
   status: WorkflowRowStatus;
   strategy: WorkflowStrategy;
   errorMessage?: string | null;
-  monitorCleanup?: {
-    results: SeerWorkflowResult[];
-    seerRunId: string;
-    runStatus?: WorkflowRunStatus;
-  };
-  options?: SeerNightShiftRunOptions;
   resultText?: string;
+  runStatus?: WorkflowRunStatus;
+  seerRunId?: string;
   source?: string;
   summary?: string;
-  triage?: {
-    issues: SeerNightShiftRunIssue[];
-    seerRuns: SeerNightShiftSeerRun[];
-    dryRun?: boolean;
-    maxCandidates?: number;
-  };
+  triage?: NightShiftRow;
 };

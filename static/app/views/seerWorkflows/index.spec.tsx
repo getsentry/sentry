@@ -116,7 +116,7 @@ describe('SeerWorkflows', () => {
     expect(screen.getAllByText('No findings')).not.toHaveLength(0);
   }, 10000);
 
-  it('keeps the running scan visible when a background poll fails', async () => {
+  it('polls running Night Shift workflows and keeps them visible when a background poll fails', async () => {
     jest.useFakeTimers();
     const url = `/organizations/${organization.slug}/seer/workflows/`;
     MockApiClient.addMockResponse({
@@ -124,10 +124,12 @@ describe('SeerWorkflows', () => {
       body: [
         {
           id: '1',
-          strategy: 'duplicate_monitors',
+          strategy: 'agentic_triage',
           dateAdded: '2026-09-09T00:00:00Z',
           extras: {status: 'running'},
           results: [],
+          issues: [],
+          seerRuns: [],
         },
       ],
     });
@@ -215,7 +217,7 @@ describe('SeerWorkflows', () => {
         {
           id: '1',
           dateAdded: '2026-04-20T00:00:00Z',
-          triageStrategy: 'agentic',
+          strategy: 'agentic_triage',
           errorMessage: 'Unexpected Seer error',
           errorType: 'unknown',
           extras: {},
@@ -244,7 +246,7 @@ describe('SeerWorkflows', () => {
         {
           id: '1',
           dateAdded: '2026-04-20T00:00:00Z',
-          triageStrategy: 'agentic',
+          strategy: 'agentic_triage',
           errorMessage: 'Backend diagnostic details',
           errorType,
           extras: {},
@@ -266,7 +268,7 @@ describe('SeerWorkflows', () => {
         {
           id: '1',
           dateAdded: '2026-04-20T00:00:00Z',
-          triageStrategy: 'agentic',
+          strategy: 'agentic_triage',
           errorMessage: null,
           extras: {foo: 'bar'},
           issues: [
@@ -315,7 +317,7 @@ describe('SeerWorkflows', () => {
         {
           id: '1',
           dateAdded: '2026-04-20T00:00:00Z',
-          triageStrategy: 'agentic',
+          strategy: 'agentic_triage',
           errorMessage: null,
           extras: {},
           issues: [
@@ -355,7 +357,7 @@ describe('SeerWorkflows', () => {
         {
           id: '1',
           dateAdded: '2026-04-20T00:00:00Z',
-          triageStrategy: 'agentic',
+          strategy: 'agentic_triage',
           errorMessage: null,
           extras: {},
           issues: [
@@ -409,7 +411,7 @@ describe('SeerWorkflows', () => {
         {
           id: '1',
           dateAdded: '2026-04-20T00:00:00Z',
-          triageStrategy: 'agentic',
+          strategy: 'agentic_triage',
           errorMessage: null,
           extras: {},
           issues: [
@@ -455,7 +457,7 @@ describe('SeerWorkflows', () => {
         {
           id: '1',
           dateAdded: '2026-04-20T00:00:00Z',
-          triageStrategy: 'agentic',
+          strategy: 'agentic_triage',
           errorMessage: null,
           extras: {},
           issues: [],
@@ -481,7 +483,7 @@ describe('SeerWorkflows', () => {
         {
           id: 'older',
           dateAdded: '2026-04-10T00:00:00Z',
-          triageStrategy: 'agentic',
+          strategy: 'agentic_triage',
           errorMessage: null,
           extras: {options: {source: 'cron'}},
           issues: [
@@ -499,7 +501,7 @@ describe('SeerWorkflows', () => {
         {
           id: 'newer',
           dateAdded: '2026-04-20T00:00:00Z',
-          triageStrategy: 'agentic',
+          strategy: 'agentic_triage',
           errorMessage: null,
           extras: {options: {source: 'cron'}},
           issues: [
@@ -561,7 +563,7 @@ describe('SeerWorkflows', () => {
         {
           id: '1',
           dateAdded: '2026-04-20T00:00:00Z',
-          triageStrategy: 'agentic',
+          strategy: 'agentic_triage',
           errorMessage: null,
           extras: {options: {source: 'cron'}},
           issues: [
@@ -579,7 +581,7 @@ describe('SeerWorkflows', () => {
         {
           id: '2',
           dateAdded: '2026-04-21T00:00:00Z',
-          triageStrategy: 'agentic',
+          strategy: 'agentic_triage',
           errorMessage: 'Unexpected Seer error',
           errorType: 'unknown',
           extras: {options: {source: 'cron'}},
@@ -609,7 +611,7 @@ describe('SeerWorkflows', () => {
         {
           id: '1',
           dateAdded: '2026-04-20T00:00:00Z',
-          triageStrategy: 'agentic',
+          strategy: 'agentic_triage',
           errorMessage: null,
           extras: {options: {source: 'cron'}},
           issues: [
@@ -652,7 +654,7 @@ describe('SeerWorkflows', () => {
         {
           id: 'newer-failed',
           dateAdded: '2026-04-21T00:00:00Z',
-          triageStrategy: 'agentic',
+          strategy: 'agentic_triage',
           errorMessage: 'Unexpected Seer error',
           errorType: 'unknown',
           extras: {},
@@ -661,7 +663,7 @@ describe('SeerWorkflows', () => {
         {
           id: 'older-succeeded',
           dateAdded: '2026-04-20T00:00:00Z',
-          triageStrategy: 'agentic',
+          strategy: 'agentic_triage',
           errorMessage: null,
           extras: {},
           issues: [
