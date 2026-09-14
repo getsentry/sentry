@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -17,6 +18,10 @@ describe('SeerWorkflows', () => {
     MockApiClient.clearMockResponses();
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('hides the monitor scan trigger when its flag is disabled', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/workflows/`,
@@ -29,7 +34,7 @@ describe('SeerWorkflows', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('starts a scan, expands its running row, and polls for completion', async () => {
+  it('clears filters when starting a scan, expands it, and polls for completion', async () => {
     const scanOrganization = OrganizationFixture({
       features: ['seer-workflows-monitor-cleanup'],
     });
@@ -56,10 +61,11 @@ describe('SeerWorkflows', () => {
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${scanOrganization.slug}/issues/autofix/workflows/`,
+          query: {status: 'succeeded', strategy: 'agentic_triage', source: 'scheduled'},
         },
       },
     });
-    expect(await screen.findByRole('button', {name: 'Expand run'})).toBeInTheDocument();
+    expect(await screen.findByText('No runs match your filters.')).toBeInTheDocument();
     const runningRun = {
       ...previousRun,
       id: '2',
@@ -107,6 +113,37 @@ describe('SeerWorkflows', () => {
     expect(screen.getAllByRole('img', {name: 'Succeeded'})).toHaveLength(2);
     expect(screen.getAllByText('No findings')).not.toHaveLength(0);
   }, 10000);
+
+  it('keeps the running scan visible when a background poll fails', async () => {
+    jest.useFakeTimers();
+    const url = `/organizations/${organization.slug}/seer/workflows/`;
+    MockApiClient.addMockResponse({
+      url,
+      body: [
+        {
+          id: '1',
+          strategy: 'duplicate_monitors',
+          dateAdded: '2026-09-09T00:00:00Z',
+          extras: {status: 'running'},
+          results: [],
+        },
+      ],
+    });
+    render(<SeerWorkflows />, {organization});
+    expect(await screen.findByRole('img', {name: 'Running'})).toBeInTheDocument();
+
+    const failedPoll = MockApiClient.addMockResponse({
+      url,
+      statusCode: 503,
+      body: {detail: 'Service unavailable'},
+    });
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(5000);
+    });
+    expect(failedPoll).toHaveBeenCalled();
+    expect(screen.getByRole('img', {name: 'Running'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: /retry/i})).not.toBeInTheDocument();
+  });
 
   it('renders structured duplicate monitor findings in workflow history', async () => {
     MockApiClient.addMockResponse({

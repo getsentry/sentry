@@ -93,6 +93,7 @@ function SeerWorkflows() {
         data: {strategy: 'duplicate_monitors'},
       }),
     onSuccess: async result => {
+      clearAllFilters();
       setExpanded(previous =>
         new Set(previous).add(`${result.runId}:duplicate_monitors`)
       );
@@ -300,7 +301,7 @@ function SeerWorkflows() {
           </Flex>
         </Stack>
 
-        {isError ? (
+        {isError && data === undefined ? (
           <LoadingError onRetry={refetch} />
         ) : isPending ? (
           <LoadingIndicator />
