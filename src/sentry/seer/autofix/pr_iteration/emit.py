@@ -241,6 +241,7 @@ def record_pr_iteration_counts(
     queued_count: int,
     dropped_count: int,
     automated_feedback_count: int,
+    feedback_bot_logins: list[str],
 ) -> None:
     """Write what the drain saw onto the row it claimed."""
     try:
@@ -259,6 +260,7 @@ def record_pr_iteration_counts(
             queued_count=queued_count,
             dropped_count=dropped_count,
             automated_feedback_count=automated_feedback_count,
+            feedback_bot_logins=feedback_bot_logins,
         )
     except Exception:
         log_ctx.error("autofix.pr_iteration.details.counts_failed")
