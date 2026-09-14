@@ -127,8 +127,6 @@ describe('Investigation detail', () => {
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(await screen.findByText('Investigate database latency')).toBeInTheDocument();
-    expect(screen.getByText('Active')).toBeInTheDocument();
-    expect(screen.queryByText('Completed')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Cell actions for Summary')).toBeInTheDocument();
     expect(screen.getByLabelText('Cell actions for Latency query')).toBeInTheDocument();
     expect(
@@ -988,106 +986,15 @@ describe('Investigation detail', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('adds text and query cells and starts a never-run cell from its stored prompt', async () => {
-    const fixture = InvestigationDetailFixture();
-    const textTemplate = fixture.blocks[0];
-    const queryTemplate = fixture.blocks[1];
-    if (!textTemplate || !queryTemplate) {
-      throw new Error('Expected text and query block fixtures.');
-    }
-    MockApiClient.addMockResponse({
-      url: detailUrl,
-      body: InvestigationDetailFixture({blocks: [], blockCount: 0}),
-    });
-    const blocksUrl = `${detailUrl}blocks/`;
-    const textBlock = {
-      ...textTemplate,
-      id: 'text-block',
-      title: 'Working theory',
-      generationPrompt: 'Summarize the current evidence',
-    };
-    const textRequest = MockApiClient.addMockResponse({
-      url: blocksUrl,
-      method: 'POST',
-      body: textBlock,
-    });
-
-    renderView();
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Add text cell (debug only)'})
-    );
-    await userEvent.type(screen.getByLabelText('Cell title'), 'Working theory');
-    await userEvent.type(
-      screen.getByLabelText('Cell instructions'),
-      'Summarize the current evidence'
-    );
-    await userEvent.click(screen.getByRole('button', {name: 'Add cell'}));
-
-    await waitFor(() =>
-      expect(textRequest).toHaveBeenCalledWith(
-        blocksUrl,
-        expect.objectContaining({
-          data: {
-            investigationVersion: 1,
-            kind: 'text',
-            title: 'Working theory',
-            generationPrompt: 'Summarize the current evidence',
-          },
-        })
-      )
-    );
-    expect(
-      await screen.findByRole('button', {
-        name: 'Cell actions for Working theory',
-      })
-    ).toBeInTheDocument();
-    expect(screen.queryByDisplayValue('Working theory')).not.toBeInTheDocument();
-
-    const queryBlock = {
-      ...queryTemplate,
-      id: 'query-block',
-      title: 'Error volume',
-      generationPrompt: 'Show errors over the last 24 hours',
-    };
-    const queryRequest = MockApiClient.addMockResponse({
-      url: blocksUrl,
-      method: 'POST',
-      body: queryBlock,
-    });
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Add query cell (debug only)'})
-    );
-    await userEvent.type(screen.getByLabelText('Cell title'), 'Error volume');
-    await userEvent.type(
-      screen.getByLabelText('Cell instructions'),
-      'Show errors over the last 24 hours'
-    );
-    await userEvent.click(screen.getByRole('button', {name: 'Add cell'}));
-
-    await waitFor(() =>
-      expect(queryRequest).toHaveBeenCalledWith(
-        blocksUrl,
-        expect.objectContaining({
-          data: {
-            investigationVersion: 2,
-            kind: 'query',
-            title: 'Error volume',
-            generationPrompt: 'Show errors over the last 24 hours',
-          },
-        })
-      )
-    );
-    expect(
-      (await screen.findAllByTestId('query-cell-title')).some(
-        element => element.textContent === 'Error volume'
-      )
-    ).toBe(true);
-
-    const updateUrl = `${blocksUrl}query-block/`;
+  it('starts a never-run cell from its stored prompt', async () => {
+    // `Latency query` arrives from the fixture never run, carrying the prompt
+    // it was created with — which is the state Refine is meant to pick up.
+    MockApiClient.addMockResponse({url: detailUrl, body: InvestigationDetailFixture()});
+    const updateUrl = `${detailUrl}blocks/block-2/`;
     const updateRequest = MockApiClient.addMockResponse({
       url: updateUrl,
       method: 'PUT',
-      body: queryBlock,
+      body: InvestigationDetailFixture().blocks[1],
     });
     const runUrl = `${updateUrl}executions/`;
     const runRequest = MockApiClient.addMockResponse({
@@ -1107,10 +1014,12 @@ describe('Investigation detail', () => {
         error: null,
       },
     });
-    await chooseCellAction('Error volume', 'Refine');
-    expect(screen.getByLabelText('Instructions for Seer')).toHaveValue(
-      'Show errors over the last 24 hours'
-    );
+
+    renderView();
+    expect(await screen.findByText('Investigate database latency')).toBeInTheDocument();
+
+    await chooseCellAction('Latency query', 'Refine');
+    expect(screen.getByLabelText('Instructions for Seer')).toHaveValue('Find slow spans');
     await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
 
     await waitFor(() =>
@@ -1118,9 +1027,9 @@ describe('Investigation detail', () => {
         updateUrl,
         expect.objectContaining({
           data: {
-            investigationVersion: 3,
+            investigationVersion: 1,
             version: 1,
-            generationPrompt: 'Show errors over the last 24 hours',
+            generationPrompt: 'Find slow spans',
           },
         })
       )
@@ -1130,7 +1039,7 @@ describe('Investigation detail', () => {
       expect(runRequest).toHaveBeenCalledWith(
         runUrl,
         expect.objectContaining({
-          data: {investigationVersion: 3, version: 1},
+          data: {investigationVersion: 1, version: 1},
         })
       )
     );

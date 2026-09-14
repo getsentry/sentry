@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 import {InvestigationsPage} from 'sentry/views/investigations';
@@ -83,22 +83,22 @@ describe('InvestigationFixtureApi', () => {
       investigation.title
     );
 
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Add query cell (debug only)'})
-    );
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Cell title'}),
-      'Slow checkouts'
-    );
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Cell instructions'}),
-      'Compare checkout p95 before and after the deploy.'
-    );
-    await userEvent.click(screen.getByRole('button', {name: 'Add cell'}));
+    // Renaming is the detail mutation the page drives itself. Blurring the
+    // field cancels the debounce and writes immediately, so this needs no timer.
+    const titleField = screen.getByRole('textbox', {name: 'Investigation title'});
+    await userEvent.clear(titleField);
+    await userEvent.type(titleField, 'Invoice PDF timeouts everywhere');
+    await userEvent.tab();
 
-    expect(
-      await screen.findByRole('button', {name: 'Toggle Slow checkouts'})
-    ).toBeInTheDocument();
+    // Read back through the fixture API rather than the field: the input would
+    // show the new title from the optimistic cache update either way, so only a
+    // fresh fetch proves the fixture backend actually stored it.
+    await waitFor(async () => {
+      const stored = await QUERY_API_CLIENT.requestPromise(
+        `/organizations/storybook-investigation-detail-test/investigations/${investigation.id}/`
+      );
+      expect(stored.title).toBe('Invoice PDF timeouts everywhere');
+    });
   });
 
   it('keeps fixture IDs and block positions unique across mutations', async () => {

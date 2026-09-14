@@ -11,7 +11,6 @@ import type {
   InvestigationCandidate,
   InvestigationBlock,
   InvestigationBlockExecutionStart,
-  InvestigationBlockKind,
   InvestigationDetail,
   InvestigationExecutionDetail,
   InvestigationListItem,
@@ -211,13 +210,6 @@ type FavoriteVariables = {
   shouldFavorite: boolean;
 };
 
-type AddBlockVariables = {
-  investigation: InvestigationDetail;
-  kind: InvestigationBlockKind;
-  prompt: string;
-  title: string;
-};
-
 type RunBlockVariables = {
   block: InvestigationBlock;
   investigationVersion: number;
@@ -374,60 +366,6 @@ export function useRenameInvestigationMutation(
         queryKey: investigationListQueryOptions({organizationSlug}).queryKey,
       });
       await options?.onSuccess?.(updated, savedTitle, onMutateResult, context);
-    },
-  });
-}
-
-export function useAddInvestigationBlockMutation(
-  organizationSlug: string,
-  investigationId: string,
-  options?: MutationOptions<InvestigationBlock, AddBlockVariables>
-) {
-  const queryClient = useQueryClient();
-  const detailOptions = getInvestigationDetailQueryOptions(
-    organizationSlug,
-    investigationId
-  );
-
-  return useMutation({
-    ...options,
-    mutationFn: ({investigation, kind, prompt, title}) =>
-      fetchMutation<InvestigationBlock>({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/',
-          {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              investigationId,
-            },
-          }
-        ),
-        method: 'POST',
-        data: {
-          investigationVersion: investigation.version,
-          kind,
-          title,
-          generationPrompt: prompt,
-        },
-      }),
-    onSuccess: async (block, variables, onMutateResult, context) => {
-      queryClient.setQueryData(detailOptions.queryKey, current =>
-        current
-          ? {
-              ...current,
-              json: {
-                ...current.json,
-                blockCount: current.json.blockCount + 1,
-                blocks: [...(current.json.blocks ?? []), block],
-                version: current.json.version + 1,
-              },
-            }
-          : current
-      );
-      await queryClient.invalidateQueries({
-        queryKey: investigationListQueryOptions({organizationSlug}).queryKey,
-      });
-      await options?.onSuccess?.(block, variables, onMutateResult, context);
     },
   });
 }
