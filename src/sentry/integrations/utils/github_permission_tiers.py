@@ -23,6 +23,9 @@ instead speaks for whatever the app requires that no other tier claims, which is
 both the permissions predating the history we have and any scope a future app
 version starts requiring before someone adds a tier for it.
 
+We parse permission levels once into numbers and log when we get an
+unexpected level.
+
 A set that is not a point on the order -- satisfying a tier while falling short
 of a lower one -- is a combination we do not understand, so it is logged and
 treated as nothing to say rather than guessed at. That is also what a missing
@@ -36,7 +39,10 @@ import logging
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 
-from sentry.integrations.utils.github_permissions import PERMISSION_LEVELS
+from sentry.integrations.utils.github_permissions import (
+    PermissionLevel,
+    parse_github_app_permissions,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +58,7 @@ class PermissionTier:
     # The permission raise this tier introduced, as scope -> minimum level. Not
     # the full set the feature needs: the rest came with lower tiers. Empty on
     # BASELINE_TIER, whose requirements are derived by exclusion instead.
-    introduced: Mapping[str, str] = field(default_factory=dict)
+    introduced: Mapping[str, PermissionLevel] = field(default_factory=dict)
 
 
 BASELINE_TIER = PermissionTier(
@@ -69,7 +75,7 @@ PR_COMMENTS_TIER = PermissionTier(
     order=1,
     name="Pull request comments",
     description="Comment on pull requests to link them to the Sentry issues they caused.",
-    introduced={"pull_requests": "write"},
+    introduced={"pull_requests": PermissionLevel.WRITE},
 )
 
 CODE_REVIEW_TIER = PermissionTier(
@@ -77,7 +83,7 @@ CODE_REVIEW_TIER = PermissionTier(
     order=2,
     name="Seer Code Review",
     description="Review your pull requests and report the result as a check run.",
-    introduced={"checks": "write", "statuses": "write"},
+    introduced={"checks": PermissionLevel.WRITE, "statuses": PermissionLevel.WRITE},
 )
 
 AUTOFIX_PULL_REQUESTS_TIER = PermissionTier(
@@ -85,7 +91,7 @@ AUTOFIX_PULL_REQUESTS_TIER = PermissionTier(
     order=3,
     name="Autofix pull requests",
     description="Push a branch and open a pull request with a fix for an issue.",
-    introduced={"contents": "write"},
+    introduced={"contents": PermissionLevel.WRITE},
 )
 
 PR_ITERATION_TIER = PermissionTier(
@@ -97,9 +103,9 @@ PR_ITERATION_TIER = PermissionTier(
         "request it opened to a passing build."
     ),
     introduced={
-        "actions": "write",
-        "code_quality": "read",
-        "security_events": "read",
+        "actions": PermissionLevel.WRITE,
+        "code_quality": PermissionLevel.READ,
+        "security_events": PermissionLevel.READ,
     },
 )
 
@@ -118,41 +124,41 @@ TIERS: tuple[PermissionTier, ...] = tuple(
 )
 
 
-def _level(level: str | None) -> int:
-    return PERMISSION_LEVELS.get(level or "", 0)
+def _names(levels: Mapping[str, PermissionLevel]) -> dict[str, str]:
+    """Levels as GitHub words, for a log a person has to read."""
+    return {scope: level.name.lower() for scope, level in levels.items()}
 
 
-def _falls_short(permissions: Mapping[str, str], requirements: Mapping[str, str]) -> bool:
+def _falls_short(
+    levels: Mapping[str, PermissionLevel], requirements: Mapping[str, PermissionLevel]
+) -> bool:
     return any(
-        _level(permissions.get(scope)) < _level(level) for scope, level in requirements.items()
+        (held := levels.get(scope)) is None or held < level for scope, level in requirements.items()
     )
 
 
-def _baseline_tier_reqs(required_permissions: Mapping[str, str]) -> dict[str, str]:
-    """The requirements in ``required_permissions`` that no tier claims a scope for.
-
-    These are what ``BASELINE_TIER`` speaks for. A scope showing up here that we
-    did not expect to means the app started requiring something new and nobody
-    added a tier for it, so users are being asked to accept a permission we
-    cannot name a feature for.
-    """
-    claimed: dict[str, int] = {}
+def _baseline_tier_reqs(
+    required_levels: Mapping[str, PermissionLevel],
+) -> dict[str, PermissionLevel]:
+    """BASELINE_TIER's permissions: the remainder of the required permissions against the tiers' expected
+    permissions"""
+    claimed: dict[str, PermissionLevel] = {}
     for tier in TIERS:
         for scope, level in tier.introduced.items():
-            claimed[scope] = max(claimed.get(scope, 0), _level(level))
+            claimed[scope] = max(claimed.get(scope, PermissionLevel.READ), level)
 
     return {
         scope: level
-        for scope, level in required_permissions.items()
-        if claimed.get(scope, 0) < _level(level)
+        for scope, level in required_levels.items()
+        if scope not in claimed or claimed[scope] < level
     }
 
 
 def _requirements(
-    tier: PermissionTier, required_permissions: Mapping[str, str]
-) -> Mapping[str, str]:
+    tier: PermissionTier, required_levels: Mapping[str, PermissionLevel]
+) -> Mapping[str, PermissionLevel]:
     if tier is BASELINE_TIER:
-        return _baseline_tier_reqs(required_permissions)
+        return _baseline_tier_reqs(required_levels)
 
     return tier.introduced
 
@@ -162,23 +168,17 @@ def get_permission_tiers(
 ) -> list[PermissionTier]:
     """Tiers an install holding ``permissions`` falls short of, highest order first.
 
-    ``permissions`` is the installation's own scope -> level map as GitHub
-    reports it in ``Integration.metadata["permissions"]``; ``required_permissions``
-    is what the current app version asks for, from the
-    ``github-app.required-permissions`` option.
+    ``permissions`` is the installation's own scope.
+    ``required_permissions`` is from the ``github-app.required-permissions`` option.
 
-    Empty when the install is current. When its permissions are not a point on
-    the order we cannot trust the state, so rather than guess we log it and
-    conservatively assume every tier is missing, returning them all. That covers
-    both an inconsistent set and falling short of ``BASELINE_TIER``, whose
-    permissions predate everything. Scopes beyond what any tier asks for are
-    ignored. A level we do not recognise counts as not held.
+    Empty when the install is current.
     """
-    behind = [
-        tier
-        for tier in TIERS
-        if _falls_short(permissions, _requirements(tier, required_permissions))
-    ]
+    levels = parse_github_app_permissions(permissions, source="installation").levels
+    required_levels = parse_github_app_permissions(
+        required_permissions, source="required_permissions_option"
+    ).levels
+
+    behind = [tier for tier in TIERS if _falls_short(levels, _requirements(tier, required_levels))]
     if not behind:
         return []
 
@@ -186,8 +186,8 @@ def get_permission_tiers(
         logger.warning(
             "github_permission_tiers.short_of_baseline",
             extra={
-                "expected_permissions": dict(_baseline_tier_reqs(required_permissions)),
-                "permissions": dict(permissions),
+                "expected_levels": _names(_baseline_tier_reqs(required_levels)),
+                "levels": _names(levels),
             },
         )
         return list(TIERS)
@@ -199,7 +199,7 @@ def get_permission_tiers(
             "github_permission_tiers.inconsistent_permissions",
             extra={
                 "behind_tiers": [tier.key for tier in behind],
-                "permissions": dict(permissions),
+                "levels": _names(levels),
             },
         )
         return list(TIERS)
