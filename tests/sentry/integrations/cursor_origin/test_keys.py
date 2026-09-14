@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 from typing import Any
+from unittest import mock
 from unittest.mock import patch
 
 from django.core.cache import cache
@@ -49,13 +50,13 @@ class CursorOriginKeysTestCase(TestCase):
         super().setUp()
         cache.clear()
 
-    def _urlopen(self, payload: Any):
+    def _urlopen(self, payload: Any) -> mock._patch[mock.MagicMock]:
         return patch(
             "sentry.integrations.cursor_origin.keys.safe_urlopen",
             return_value=_FakeResponse(payload),
         )
 
-    def _urlopen_failing(self):
+    def _urlopen_failing(self) -> mock._patch[mock.MagicMock]:
         return patch(
             "sentry.integrations.cursor_origin.keys.safe_urlopen",
             side_effect=Exception("origin unreachable"),
