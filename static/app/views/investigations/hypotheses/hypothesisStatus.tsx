@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import {Flex} from '@sentry/scraps/layout';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
@@ -208,25 +210,64 @@ export function HypothesisStatus({hypothesis}: HypothesisStatusProps) {
   const confidence = getHypothesisConfidencePercent(hypothesis);
 
   return (
-    // "Evidence checked" is both a status and the heading over the steps, so
-    // this needs to be addressable on its own.
-    <Flex align="center" gap="xs" data-test-id="hypothesis-status">
-      {inFlight ? (
-        // Live work gets a ring rather than a dot: the agent is doing
-        // something, not resting in a state. Every other status is a place the
-        // hypothesis has come to a stop, however briefly.
-        <Flex width="12px" height="12px" align="center" justify="center">
-          <LoadingIndicator size={12} />
+    // The dot and its label are one statement, so they are one color.
+    //
+    // Left to themselves they disagree: `StatusIndicator` fills from the
+    // `background.*.vibrant` ramp while `Text` paints from `content.*`, which
+    // is darker in every variant — several steps for `muted`. Side by side the
+    // dot read as a lighter mark unrelated to the label it belongs to.
+    //
+    // `Text` already owns that variant-to-token mapping, `muted` ->
+    // `content.secondary` included, so its render-prop form hands the styling
+    // to the row itself rather than to a span inside it. The dot then picks the
+    // color up as `currentColor`, and there is no second copy of the table here
+    // to fall out of step with the design system.
+    <Text size="sm" variant={variant} bold>
+      {({className}) => (
+        // "Evidence checked" is both a status and the heading over the steps,
+        // so this needs to be addressable on its own.
+        <Flex
+          className={className}
+          align="center"
+          gap="xs"
+          data-test-id="hypothesis-status"
+        >
+          {inFlight ? (
+            // Live work gets a ring rather than a dot: the agent is doing
+            // something, not resting in a state. Every other status is a place
+            // the hypothesis has come to a stop, however briefly.
+            <Flex width="12px" height="12px" align="center" justify="center">
+              <LoadingIndicator size={12} />
+            </Flex>
+          ) : (
+            <StatusDot>
+              <StatusIndicator variant={variant} animationIterationCount={1} />
+            </StatusDot>
+          )}
+          {confidence === null
+            ? label
+            : // Translators: e.g. "Supported · 86% Confidence"
+              t('%s · %s%% Confidence', label, confidence)}
         </Flex>
-      ) : (
-        <StatusIndicator variant={variant} animationIterationCount={1} />
       )}
-      <Text size="sm" variant={variant} bold>
-        {confidence === null
-          ? label
-          : // Translators: e.g. "Supported · 86% Confidence"
-            t('%s · %s%% Confidence', label, confidence)}
-      </Text>
-    </Flex>
+    </Text>
   );
 }
+
+/**
+ * Pins the dot to the line's color.
+ *
+ * `StatusIndicator` exposes no color of its own — the variant is the whole API
+ * — so this repaints the dot it draws in `::after`. The pulse behind it
+ * (`::before`) is deliberately left on its translucent token: it is a halo, and
+ * giving it the text color would make it a second, solid dot. `variant` is
+ * still passed through, so if this override ever stops matching, the dot falls
+ * back to its own ramp rather than disappearing.
+ */
+const StatusDot = styled('span')`
+  display: inline-flex;
+
+  & > span::after {
+    background-color: currentColor;
+  }
+`;
