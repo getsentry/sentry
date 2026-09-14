@@ -75,7 +75,7 @@ describe('SeerWorkflows', () => {
     expect(startScan).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Monitor scan'}));
 
-    expect(await screen.findByRole('img', {name: 'Running'})).toBeInTheDocument();
+    expect(await screen.findByRole('status', {name: 'Running'})).toBeInTheDocument();
     expect(screen.getAllByText('Scanning monitors…')).not.toHaveLength(0);
     expect(startScan).toHaveBeenCalledTimes(1);
     expect(startScan).toHaveBeenCalledWith(
@@ -107,7 +107,8 @@ describe('SeerWorkflows', () => {
     };
     MockApiClient.addMockResponse({url, body: [completedRun, previousRun]});
     await waitFor(
-      () => expect(screen.queryByRole('img', {name: 'Running'})).not.toBeInTheDocument(),
+      () =>
+        expect(screen.queryByRole('status', {name: 'Running'})).not.toBeInTheDocument(),
       {timeout: 7000}
     );
     expect(screen.getAllByRole('img', {name: 'Succeeded'})).toHaveLength(2);
@@ -130,7 +131,7 @@ describe('SeerWorkflows', () => {
       ],
     });
     render(<SeerWorkflows />, {organization});
-    expect(await screen.findByRole('img', {name: 'Running'})).toBeInTheDocument();
+    expect(await screen.findByRole('status', {name: 'Running'})).toBeInTheDocument();
 
     const failedPoll = MockApiClient.addMockResponse({
       url,
@@ -141,7 +142,7 @@ describe('SeerWorkflows', () => {
       await jest.advanceTimersByTimeAsync(5000);
     });
     expect(failedPoll).toHaveBeenCalled();
-    expect(screen.getByRole('img', {name: 'Running'})).toBeInTheDocument();
+    expect(screen.getByRole('status', {name: 'Running'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /retry/i})).not.toBeInTheDocument();
   });
 

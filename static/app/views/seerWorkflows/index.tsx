@@ -3,6 +3,7 @@ import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Spinner} from '@sentry/scraps/chat';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -31,7 +32,6 @@ import {
   IconOpen,
   IconPullRequest,
   IconPullRequestClosed,
-  IconRefresh,
   IconUser,
   IconWarning,
 } from 'sentry/icons';
@@ -574,10 +574,9 @@ const STATUS_VARIANT = {
   succeeded: {Icon: IconCheckmark, label: 'Succeeded', text: 'success'},
   failed: {Icon: IconClose, label: 'Failed', text: 'danger'},
   skipped: {Icon: IconWarning, label: 'Skipped', text: 'muted'},
-  running: {Icon: IconRefresh, label: 'Running', text: 'warning'},
   partial: {Icon: IconWarning, label: 'Incomplete', text: 'warning'},
 } as const satisfies Record<
-  RunStatus,
+  Exclude<RunStatus, 'running'>,
   {
     Icon: React.ComponentType<{size?: 'xs' | 'sm' | 'md'}>;
     label: string;
@@ -586,6 +585,14 @@ const STATUS_VARIANT = {
 >;
 
 function StatusIcon({status}: {status: RunStatus}) {
+  if (status === 'running') {
+    return (
+      <Tooltip title={t('Running')} skipWrapper>
+        <Spinner role="status" aria-label={t('Running')} />
+      </Tooltip>
+    );
+  }
+
   const {Icon, label, text} = STATUS_VARIANT[status];
   return (
     <Tooltip title={label} skipWrapper>
