@@ -1,5 +1,6 @@
 from .bitbucket import BitbucketRequestParser
 from .bitbucket_server import BitbucketServerRequestParser
+from .cursor_origin import CursorOriginRequestParser
 from .discord import DiscordRequestParser
 from .github import GithubRequestParser
 from .github_enterprise import GithubEnterpriseRequestParser
@@ -16,6 +17,7 @@ from .vsts import VstsRequestParser
 __all__ = (
     "BitbucketRequestParser",
     "BitbucketServerRequestParser",
+    "CursorOriginRequestParser",
     "DiscordRequestParser",
     "GoogleRequestParser",
     "GithubEnterpriseRequestParser",
