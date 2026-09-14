@@ -230,7 +230,6 @@ describe('MonitorCleanupResults', () => {
       'href',
       '/organizations/org-slug/monitors/alerts/20/'
     );
-    expect(screen.getByText('Disabled')).toBeInTheDocument();
     expect(screen.queryByText('Suggested keep')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Delete duplicates'})

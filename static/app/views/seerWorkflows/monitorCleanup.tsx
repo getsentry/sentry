@@ -8,7 +8,7 @@ import {Link} from '@sentry/scraps/link';
 import {Table} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {IconGraph, IconProject} from 'sentry/icons';
+import {IconProject} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
@@ -20,7 +20,6 @@ import type {
 const monitor = z.object({
   id: z.string().regex(/^\d+$/),
   name: z.string(),
-  enabled: z.boolean(),
 });
 const comparison = z.array(
   z.object({
@@ -190,7 +189,6 @@ function FindingCard({
       <Stack gap="sm">
         {item.monitors.map(member => (
           <Flex key={member.id} gap="sm" align="center" wrap="wrap">
-            <IconGraph type="area" size="xs" />
             <Link to={makeMonitorDetailsPathname(organizationSlug, member.id)}>
               <Text size="sm" variant="accent">
                 {member.name}
@@ -198,11 +196,6 @@ function FindingCard({
             </Link>
             {canSuggestKeep && member.id === item.suggestedKeepId && (
               <Tag variant="success">{t('Suggested keep')}</Tag>
-            )}
-            {member.enabled === false && (
-              <Text size="xs" variant="muted">
-                {t('Disabled')}
-              </Text>
             )}
           </Flex>
         ))}
@@ -220,11 +213,6 @@ function FindingCard({
               {alert.name}
             </Text>
           </Link>
-          {alert.enabled === false && (
-            <Text size="xs" variant="muted">
-              {t('Disabled')}
-            </Text>
-          )}
         </Flex>
       ))}
       <Disclosure size="sm">
