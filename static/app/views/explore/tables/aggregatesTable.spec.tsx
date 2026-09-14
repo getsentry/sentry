@@ -1,7 +1,7 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -299,6 +299,13 @@ describe('AggregatesTable', () => {
     );
 
     await userEvent.click(screen.getByText('123'));
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+
+    await userEvent.click(
+      within(screen.getByRole('cell', {name: '123'})).getByRole('button', {
+        name: 'Actions',
+      })
+    );
 
     expect(
       await screen.findByRole('menuitemradio', {name: 'Show values greater than'})

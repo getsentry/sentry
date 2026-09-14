@@ -348,6 +348,9 @@ describe('AttributeBreakdownViewerModal', () => {
       // First cell should be the Value column (Chrome)
       const valueCell = cells[0]!;
       const valueCellButton = within(valueCell).getByRole('button');
+      await userEvent.click(within(valueCell).getByText('Chrome'));
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+      expect(valueCellButton).not.toHaveTextContent('Chrome');
       await userEvent.click(valueCellButton);
 
       // Verify all expected menu items are present
