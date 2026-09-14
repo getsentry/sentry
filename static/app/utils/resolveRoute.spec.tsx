@@ -98,6 +98,32 @@ describe('resolveRoute', () => {
     );
   });
 
+  it('should swap the --- prefix when switching orgs behind a proxy', () => {
+    // A Coder workspace app cannot spend a DNS label on the org, so the org
+    // rides in front of the single label it owns.
+    window.__SENTRY_DEV_UI = true;
+    window.__SENTRY_DEV_UI_PROXY_HOST = 'dev-ui--ws--owner.coder.sentry.dev';
+    setWindowLocation('http://acme---dev-ui--ws--owner.coder.sentry.dev');
+
+    const result = resolveRoute('/issues/', organization, otherOrg);
+    expect(result).toBe('https://other-org---dev-ui--ws--owner.coder.sentry.dev/issues/');
+  });
+
+  it('should swap the --- prefix on a Vercel multi-tenant preview URL', () => {
+    window.__SENTRY_DEV_UI = true;
+    setWindowLocation('http://acme---sentry-git-my-branch.sentry.dev');
+
+    mockDeployPreviewConfig.mockReturnValue({
+      branch: 'test',
+      commitSha: 'abc123',
+      githubOrg: 'getsentry',
+      githubRepo: 'sentry',
+    });
+
+    const result = resolveRoute('/issues/', organization, otherOrg);
+    expect(result).toBe('https://other-org---sentry-git-my-branch.sentry.dev/issues/');
+  });
+
   it('will not replace domains with dev-ui mode and an unsafe host', () => {
     window.__SENTRY_DEV_UI = true;
     setWindowLocation('http://bad-domain.com');

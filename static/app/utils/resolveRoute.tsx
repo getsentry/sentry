@@ -13,19 +13,30 @@ function localizeDomain(domain?: string) {
   if (!window.__SENTRY_DEV_UI || !domain) {
     return domain;
   }
-  // Neither Vercel previews nor a reverse proxy (ngrok, a Coder workspace app)
-  // can put an organization slug in a subdomain, and the proxy host is the only
-  // one the browser can reach us on. Stay put rather than sending the user to
-  // production.
-  if (DEPLOY_PREVIEW_CONFIG || window.__SENTRY_DEV_UI_PROXY_HOST) {
+  const slugDomain = extractSlug(window.location.host);
+
+  // A Vercel preview or a proxy host is the only host the browser can reach us
+  // on, so we stay put rather than sending the user to production. An `acme---`
+  // prefix is an explicit organization on exactly those hosts though, and
+  // outranks this -- without it there is nowhere else to go.
+  if (
+    slugDomain?.separator !== '---' &&
+    (DEPLOY_PREVIEW_CONFIG || window.__SENTRY_DEV_UI_PROXY_HOST)
+  ) {
     return `https://${window.location.host}`;
   }
 
-  const slugDomain = extractSlug(window.location.host);
   if (!slugDomain) {
     return domain;
   }
-  return domain.replace('sentry.io', slugDomain.domain);
+
+  // Swap sentry.io for the host we're being served from. A leading dot means
+  // there is an organization in front of it, which has to be reattached with
+  // whichever separator this host uses -- `acme.localhost:7999`, but
+  // `acme---dev-ui--ws--owner.coder.sentry.dev`.
+  return domain.replace(/(\.)?sentry\.io/, (_match, dot) =>
+    dot ? `${slugDomain.separator}${slugDomain.domain}` : slugDomain.domain
+  );
 }
 
 /**

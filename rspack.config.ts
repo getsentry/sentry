@@ -801,13 +801,6 @@ if (IS_UI_DEV_ONLY) {
   const KNOWN_DOMAINS = /\.?((?:localhost|dev\.getsentry\.net|sentry\.dev)(?::\d*)?)$/;
 
   const extractSlug = (hostname: string) => {
-    // Behind a proxy the hostname identifies the tunnel, not an organization.
-    // `foo--workspace--owner.coder.sentry.dev` would otherwise match the
-    // `sentry.dev` arm below and yield `foo--workspace--owner` as an org slug.
-    if (SENTRY_DEVSERVER_NGROK) {
-      return null;
-    }
-
     const match = hostname.match(KNOWN_DOMAINS);
     if (!match) {
       return null;
@@ -817,8 +810,24 @@ if (IS_UI_DEV_ONLY) {
       matchedExpression, // Expression includes optional leading `.`
     ] = match;
 
-    const [slug] = hostname.replace(matchedExpression, '').split('.');
-    return slug;
+    const [firstLabel] = hostname.replace(matchedExpression, '').split('.');
+
+    // `acme---rest-of-the-label`. A wildcard cert covers one DNS label, so hosts
+    // that cannot spend one on the organization prefix the label they do own.
+    // Coder workspace apps and Vercel multi-tenant preview URLs both do this.
+    const prefixIndex = firstLabel!.indexOf('---');
+    if (prefixIndex !== -1) {
+      return firstLabel!.slice(0, prefixIndex);
+    }
+
+    // Without a prefix, a proxy's hostname is entirely its own --
+    // `dev-ui--workspace--owner` is the tunnel's name for itself, and would
+    // otherwise match the `sentry.dev` arm above and read as an org slug.
+    if (SENTRY_DEVSERVER_NGROK) {
+      return null;
+    }
+
+    return firstLabel;
   };
 
   // Try and load certificates from mkcert if available. Use $ pnpm mkcert-localhost
@@ -870,7 +879,11 @@ if (IS_UI_DEV_ONLY) {
           'Document-Policy': 'js-profiling',
           origin: 'https://sentry.io',
         },
-        cookieDomainRewrite: {'.sentry.io': SENTRY_DEVSERVER_NGROK ?? 'localhost'},
+        // Drop the Domain attribute so the session cookie is scoped to whichever
+        // host the browser is on. A fixed value cannot work across all of them:
+        // `acme---dev-ui--ws--owner.coder.sentry.dev` is a sibling of the proxy
+        // host, not a child, so the browser rejects a cookie scoped to either.
+        cookieDomainRewrite: {'.sentry.io': ''},
         logger: proxyLoggerQuiet,
         router: req => {
           const host = req.headers.host!.split(':')[0]!;
@@ -894,7 +907,11 @@ if (IS_UI_DEV_ONLY) {
           'Document-Policy': 'js-profiling',
           origin: 'https://sentry.io',
         },
-        cookieDomainRewrite: {'.sentry.io': SENTRY_DEVSERVER_NGROK ?? 'localhost'},
+        // Drop the Domain attribute so the session cookie is scoped to whichever
+        // host the browser is on. A fixed value cannot work across all of them:
+        // `acme---dev-ui--ws--owner.coder.sentry.dev` is a sibling of the proxy
+        // host, not a child, so the browser rejects a cookie scoped to either.
+        cookieDomainRewrite: {'.sentry.io': ''},
         logger: proxyLoggerQuiet,
         pathRewrite: {
           '^/region/[^/]*': '',

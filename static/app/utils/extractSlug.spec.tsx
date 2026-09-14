@@ -1,6 +1,15 @@
 import {extractSlug} from 'sentry/utils/extractSlug';
 
 describe('extractSlug', () => {
+  let devUiProxyHost: any;
+
+  beforeEach(() => {
+    devUiProxyHost = window.__SENTRY_DEV_UI_PROXY_HOST;
+  });
+  afterEach(() => {
+    window.__SENTRY_DEV_UI_PROXY_HOST = devUiProxyHost;
+  });
+
   it.each([
     {hostname: 'example.com'},
     {hostname: 'example.com:443'},
@@ -66,6 +75,67 @@ describe('extractSlug', () => {
       domain: 'sentry-inst123.sentry.dev:7999',
     },
   ])('should split "$slug" & "$domain" from $hostname', ({hostname, slug, domain}) => {
-    expect(extractSlug(hostname)).toStrictEqual({slug, domain});
+    expect(extractSlug(hostname)).toStrictEqual({slug, domain, separator: '.'});
+  });
+
+  describe('--- prefixed hosts', () => {
+    // A wildcard certificate covers one DNS label, so hosts that cannot spend a
+    // label on the organization prefix the single label they own instead.
+    it.each([
+      {
+        name: 'Coder workspace app',
+        hostname: 'acme---dev-ui--workspace--owner.coder.sentry.dev',
+        slug: 'acme',
+        domain: 'dev-ui--workspace--owner.coder.sentry.dev',
+      },
+      {
+        name: 'Vercel multi-tenant preview URL',
+        hostname: 'acme---sentry-git-my-branch.sentry.dev',
+        slug: 'acme',
+        domain: 'sentry-git-my-branch.sentry.dev',
+      },
+      {
+        name: 'a port is kept on the domain',
+        hostname: 'acme---dev-ui--workspace--owner.localhost:7999',
+        slug: 'acme',
+        domain: 'dev-ui--workspace--owner.localhost:7999',
+      },
+      {
+        name: 'a slug containing a double dash is not split early',
+        hostname: 'acme--corp---dev-ui--workspace--owner.coder.sentry.dev',
+        slug: 'acme--corp',
+        domain: 'dev-ui--workspace--owner.coder.sentry.dev',
+      },
+    ])('splits $name', ({hostname, slug, domain}) => {
+      expect(extractSlug(hostname)).toStrictEqual({
+        slug,
+        domain,
+        separator: '---',
+      });
+    });
+
+    it('still reads a prefix while behind a proxy', () => {
+      window.__SENTRY_DEV_UI_PROXY_HOST = 'dev-ui--workspace--owner.coder.sentry.dev';
+
+      expect(
+        extractSlug('acme---dev-ui--workspace--owner.coder.sentry.dev')
+      ).toStrictEqual({
+        slug: 'acme',
+        domain: 'dev-ui--workspace--owner.coder.sentry.dev',
+        separator: '---',
+      });
+    });
+
+    it('reads no organization from a proxy host without a prefix', () => {
+      // `dev-ui--workspace--owner` is the tunnel's name for itself. Without this
+      // it matches the `sentry.dev` arm and reads as an organization slug.
+      window.__SENTRY_DEV_UI_PROXY_HOST = 'dev-ui--workspace--owner.coder.sentry.dev';
+
+      expect(extractSlug('dev-ui--workspace--owner.coder.sentry.dev')).toBeNull();
+    });
+
+    it('does not read a prefix off an unknown host', () => {
+      expect(extractSlug('acme---evil.example.com')).toBeNull();
+    });
   });
 });
