@@ -64,7 +64,7 @@ import type {
   SeerNightShiftRunErrorType,
   SeerNightShiftRunIssue,
   SeerNightShiftRunPullRequest,
-  SeerWorkflowRun,
+  SeerWorkflowRunResponse,
   WorkflowRow,
   WorkflowRowStatus,
   WorkflowRunCreateRequest,
@@ -109,7 +109,7 @@ function SeerWorkflows() {
   });
 
   const {data, isPending, isError, refetch} = useQuery({
-    ...apiOptions.as<SeerWorkflowRun[]>()(
+    ...apiOptions.as<SeerWorkflowRunResponse[]>()(
       '/organizations/$organizationIdOrSlug/seer/workflows/',
       {
         path: {organizationIdOrSlug: organization.slug},
@@ -1015,7 +1015,7 @@ function TriageIssuesDebugAddendum({row}: {row: WorkflowRow}) {
   );
 }
 
-function toWorkflowRow(run: SeerWorkflowRun): WorkflowRow {
+function toWorkflowRow(run: SeerWorkflowRunResponse): WorkflowRow {
   if (run.strategy === 'duplicate_monitors') {
     const status = run.extras.status;
     const results = (run.results ?? []).filter(

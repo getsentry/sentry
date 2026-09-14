@@ -63,7 +63,7 @@ export type SeerNightShiftRun = {
 
 export type WorkflowRunStatus = 'running' | 'complete' | 'partial' | 'failed';
 
-export type MonitorCleanupRun = {
+export type SeerWorkflowRun<Strategy extends WorkflowStrategy> = {
   dateAdded: string;
   dateCompleted: string | null;
   errorMessage: string | null;
@@ -71,10 +71,12 @@ export type MonitorCleanupRun = {
   id: string;
   results: SeerWorkflowResult[];
   seerRunId: string;
-  strategy: 'duplicate_monitors';
+  strategy: Strategy;
 };
 
-export type SeerWorkflowRun = SeerNightShiftRun | MonitorCleanupRun;
+export type SeerWorkflowRunResponse =
+  | SeerNightShiftRun
+  | SeerWorkflowRun<Exclude<WorkflowStrategy, 'agentic_triage'>>;
 
 export type WorkflowStrategy = 'agentic_triage' | 'duplicate_monitors';
 
