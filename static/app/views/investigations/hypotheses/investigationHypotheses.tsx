@@ -22,34 +22,18 @@ import type {
 const POLL_INTERVAL_MS = 2000;
 
 /**
- * Statuses where the agent is not going to move on its own. The first three
- * have stopped for good; `awaiting_input` has stopped recoverably, blocked on a
- * person.
- */
-const STOPPED_STATUSES = new Set<string>([
-  'completed',
-  'failed',
-  'cancelled',
-  'awaiting_input',
-]);
-
-/**
- * Whether a run is still advancing, and so worth polling.
+ * Whether a workflow has stopped moving on its own.
  *
- * `awaiting_input` counts as stopped even though it can resume: an
- * investigation created without a prompt starts there and stays there until
- * someone supplies one, so polling it would be a permanent two-second request
- * loop on a run nobody is driving. Supplying input from this client writes the
- * new projection straight into the cache, which starts it again.
- *
- * Exported because the detail view decides from the summary served alongside
- * the investigation and this component from the full projection — the same
- * statuses either way.
+ * `awaiting_input` is deliberately not terminal: the run resumes as soon as
+ * input arrives, which may happen from another surface, so polling has to
+ * continue. Exported because the detail view decides from the summary served
+ * alongside the investigation, and this component from the full projection —
+ * the same three statuses either way.
  */
-export function shouldPollInvestigationRun(
+export function isInvestigationRunSettled(
   status: InvestigationOrchestrationStatus | undefined
 ): boolean {
-  return status === undefined || !STOPPED_STATUSES.has(status);
+  return status === 'completed' || status === 'failed' || status === 'cancelled';
 }
 
 type InvestigationHypothesesProps = {
@@ -84,9 +68,7 @@ export function InvestigationHypotheses({
     ...investigationOrchestrationQueryOptions(organization.slug, investigationId),
     enabled,
     refetchInterval: query =>
-      shouldPollInvestigationRun(query.state.data?.json.status)
-        ? POLL_INTERVAL_MS
-        : false,
+      isInvestigationRunSettled(query.state.data?.json.status) ? false : POLL_INTERVAL_MS,
   });
 
   const commandMutation = useInvestigationOrchestrationCommandMutation(

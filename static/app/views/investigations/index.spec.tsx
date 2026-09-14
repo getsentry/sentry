@@ -231,10 +231,7 @@ describe('Explore Investigations', () => {
     await waitFor(() =>
       expect(createRequest).toHaveBeenCalledWith(
         listUrl,
-        expect.objectContaining({
-          // A source with no templateKey is what makes this agentic.
-          data: {title: 'Untitled investigation', source: {type: 'manual'}},
-        })
+        expect.objectContaining({data: {title: 'Untitled investigation'}})
       )
     );
     expect(await screen.findByText('Untitled investigation')).toBeInTheDocument();

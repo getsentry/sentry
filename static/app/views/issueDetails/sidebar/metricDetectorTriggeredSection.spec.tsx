@@ -293,9 +293,9 @@ describe('MetricDetectorTriggeredSection', () => {
       expect(launchMock).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          // No templateKey: the server builds an agentic run from the metric
-          // snapshot rather than a fixed notebook.
           data: {
+            templateKey: 'breached_metric',
+            templateVersion: 1,
             source: {
               type: 'metric_open_period',
               ref: {groupId: defaultGroup.id, openPeriodId: '101'},
