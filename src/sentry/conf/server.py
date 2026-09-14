@@ -1227,7 +1227,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "schedule": crontab("*/30", "*", "*", "*", "*"),
     },
     "preprod-detect-expired-artifacts": {
-        "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
+        "task": "preprod.size:sentry.preprod.tasks.detect_expired_preprod_artifacts",
         "schedule": crontab("*/30", "*", "*", "*", "*"),
     },
     "web-vitals-issue-detection": {
