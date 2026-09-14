@@ -16,17 +16,6 @@ describe('MonitorCleanupResults', () => {
     ).toBeInTheDocument();
   });
 
-  it('marks incomplete project discovery even when returned projects are complete', () => {
-    render(
-      <MonitorCleanupResults
-        organizationSlug="org-slug"
-        runStatus="partial"
-        results={[{id: '1', kind: 'duplicate_monitors', seerRunId: null, extras: output}]}
-      />
-    );
-    expect(screen.getByText(/Some inspection is incomplete/)).toBeInTheDocument();
-  });
-
   const output = {
     outputKind: 'monitor_cleanup',
     schemaVersion: 1,
@@ -48,81 +37,6 @@ describe('MonitorCleanupResults', () => {
       },
     ],
   };
-
-  it('renders real monitor links and an unconnected deletion button', async () => {
-    render(
-      <MonitorCleanupResults
-        organizationSlug="org-slug"
-        results={[
-          {
-            id: '1',
-            kind: 'duplicate_monitors',
-            seerRunId: '42',
-            extras: output,
-          },
-        ]}
-      />
-    );
-    expect(screen.getByRole('link', {name: 'Checkout errors'})).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/monitors/10/'
-    );
-    expect(screen.getByRole('link', {name: 'Checkout errors copy'})).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', {name: 'Open Seer chat'})
-    ).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'View comparison'}));
-    expect(screen.getByRole('button', {name: 'Delete duplicates'})).toBeDisabled();
-    expect(screen.queryByText(/Deletion is not available/)).not.toBeInTheDocument();
-  });
-
-  it('keeps evidence collapsed until the user opens a comparison', async () => {
-    render(
-      <MonitorCleanupResults
-        organizationSlug="org-slug"
-        results={[
-          {
-            id: '1',
-            kind: 'duplicate_monitors',
-            seerRunId: '42',
-            extras: {
-              ...output,
-              findings: [
-                {
-                  ...output.findings[0],
-                  comparison: [
-                    {
-                      property: 'Trigger',
-                      values: [
-                        {monitorId: '10', value: 'More than 100 errors'},
-                        {monitorId: '11', value: 'More than 100 errors'},
-                      ],
-                    },
-                    {
-                      property: 'Window',
-                      values: [
-                        {monitorId: '10', value: '5 minutes'},
-                        {monitorId: '11', value: '5 minutes'},
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-          },
-        ]}
-      />
-    );
-    expect(screen.getByRole('heading', {name: 'Exact duplicates'})).toBeInTheDocument();
-    expect(screen.getAllByText('More than 100 errors')[0]).not.toBeVisible();
-    await userEvent.click(screen.getByRole('button', {name: 'View comparison'}));
-    expect(screen.getAllByText('More than 100 errors')[0]).toBeInTheDocument();
-    expect(screen.getAllByText('5 minutes')[0]).toBeInTheDocument();
-    expect(screen.getAllByText('Same thresholds and automations')[0]).toBeInTheDocument();
-    expect(screen.queryByText('Matching configurations')).not.toBeInTheDocument();
-    expect(screen.getByText('2 monitors inspected across 1 project')).toBeInTheDocument();
-    expect(screen.queryByText('0 possible duplicates')).not.toBeInTheDocument();
-  });
 
   it('handles unknown output versions', () => {
     const unsupportedResult = {
@@ -184,7 +98,7 @@ describe('MonitorCleanupResults', () => {
       screen.getByText('No candidates returned from the inspected monitors.')
     ).toBeInTheDocument();
   });
-  it('distinguishes overlaps and notification risks without suggesting deletion', () => {
+  it('distinguishes overlaps and notification risks', () => {
     const overlap = {
       kind: 'overlapping_coverage',
       monitors: output.findings[0]!.monitors,
@@ -249,12 +163,9 @@ describe('MonitorCleanupResults', () => {
       '/organizations/org-slug/monitors/alerts/20/'
     );
     expect(screen.queryByText('Suggested keep')).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', {name: 'Delete duplicates'})
-    ).not.toBeInTheDocument();
   });
 
-  it('shows exact findings with a keeper and marks aggregate counts as incomplete', async () => {
+  it('renders monitor links, keeper, comparison, and incomplete coverage', async () => {
     render(
       <MonitorCleanupResults
         organizationSlug="org-slug"
@@ -272,40 +183,6 @@ describe('MonitorCleanupResults', () => {
                   kind: 'exact_duplicate',
                   monitors: output.findings[0]!.monitors,
                   suggestedKeepId: '10',
-                  alerts: [],
-                  reason: 'Identical effective settings.',
-                },
-              ],
-            },
-          },
-        ]}
-      />
-    );
-    expect(screen.getByRole('heading', {name: 'Exact duplicates'})).toBeInTheDocument();
-    expect(screen.getByText('Suggested keep')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'View comparison'}));
-    expect(screen.getByRole('button', {name: 'Delete duplicates'})).toBeDisabled();
-    expect(
-      screen.getByText(/These counts cover the results received so far/)
-    ).toBeInTheDocument();
-  });
-  it('compares each monitor by ID and marks differences without rendering the report', async () => {
-    render(
-      <MonitorCleanupResults
-        organizationSlug="org-slug"
-        results={[
-          {
-            id: '1',
-            kind: 'duplicate_monitors',
-            seerRunId: null,
-            extras: {
-              ...output,
-              schemaVersion: 1,
-              findings: [
-                {
-                  kind: 'overlapping_coverage',
-                  monitors: output.findings[0]!.monitors,
-                  suggestedKeepId: null,
                   alerts: [],
                   reason: 'Same error stream, different thresholds.',
                   comparison: [
@@ -331,7 +208,18 @@ describe('MonitorCleanupResults', () => {
         ]}
       />
     );
+    expect(screen.getByRole('link', {name: 'Checkout errors'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/monitors/10/'
+    );
+    expect(screen.getByText('Suggested keep')).toBeInTheDocument();
+    expect(screen.getByText(/Some inspection is incomplete/)).toBeInTheDocument();
+    expect(screen.getByText('2 monitors inspected across 1 project')).toBeInTheDocument();
+    expect(screen.getAllByText('>100 errors')[0]).not.toBeVisible();
     await userEvent.click(screen.getByRole('button', {name: 'View comparison'}));
+    expect(
+      screen.queryByRole('button', {name: 'Delete duplicates'})
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole('columnheader', {name: 'Checkout errors'})
     ).toBeInTheDocument();

@@ -1,7 +1,6 @@
 import {z} from 'zod';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -218,16 +217,9 @@ function FindingCard({
       <Disclosure size="sm">
         <Disclosure.Title>{t('View comparison')}</Disclosure.Title>
         <Disclosure.Content>
-          <Stack gap="lg" paddingTop="md">
+          <Container paddingTop="md">
             <PropertyComparison item={item} />
-            {canSuggestKeep && (
-              <Flex>
-                <Button variant="danger" disabled size="sm">
-                  {t('Delete duplicates')}
-                </Button>
-              </Flex>
-            )}
-          </Stack>
+          </Container>
         </Disclosure.Content>
       </Disclosure>
     </Stack>
