@@ -192,6 +192,12 @@ def trigger_consume_pr_iteration_feedback(
     delay: int | None = None,
     triggered_by: str = "feedback",
 ) -> None:
+    set_pr_iteration_attributes(
+        run_id=run_id,
+        organization_id=organization_id,
+        group_id=run_state.metadata.get("group_id") if run_state.metadata else None,
+    )
+
     if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
         record_pause_blocked("trigger_consume")
         # The reason costs a second read, paid only on this branch. Nothing
@@ -259,11 +265,6 @@ def trigger_consume_pr_iteration_feedback(
 
     countdown = None
     trigger_id = None
-    set_pr_iteration_attributes(
-        run_id=run_id,
-        organization_id=organization_id,
-        group_id=run_state.metadata.get("group_id") if run_state.metadata else None,
-    )
 
     if decision.task is not None:
         countdown = delay if delay is not None else decision.task.countdown()
