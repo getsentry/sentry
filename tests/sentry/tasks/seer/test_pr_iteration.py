@@ -1730,7 +1730,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         *,
         decision: TriggerDecision | None = None,
         delay: int | None = None,
-        bypass: bool = False,
+        source: str = ConsumeTriggerSource.FEEDBACK,
     ) -> None:
         feedback = self._feedback()
         ctx: AbstractContextManager[Any] = (
@@ -1746,7 +1746,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
                 feedback=feedback,
                 run_state=self._state(),
                 delay=delay,
-                bypass=bypass,
+                source=source,
             )
 
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
@@ -1761,7 +1761,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         )
 
         with patch(f"{PAUSE_PATH}.metrics") as mock_metrics:
-            self._trigger(bypass=True)
+            self._trigger(source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER)
 
         mock_apply.assert_not_called()
         mock_metrics.incr.assert_any_call(
@@ -1780,7 +1780,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
             reason=PauseReason.USER_STOP,
         )
 
-        self._trigger(bypass=True)
+        self._trigger(source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER)
 
         mock_apply.assert_not_called()
         (_, kwargs) = self.log.info.call_args
@@ -1821,7 +1821,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
     def test_missing_permissions_skips_scheduling_even_with_bypass(
         self, mock_apply: MagicMock, _mock_block: MagicMock
     ) -> None:
-        self._trigger(bypass=True)
+        self._trigger(source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER)
 
         mock_apply.assert_not_called()
 
@@ -1829,7 +1829,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
     def test_bypass_ignores_should_trigger(self, mock_apply: MagicMock) -> None:
         self._trigger(
             decision=TriggerDecision(task=None, reason="no_trigger"),
-            bypass=True,
+            source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER,
         )
 
         mock_apply.assert_called_once()

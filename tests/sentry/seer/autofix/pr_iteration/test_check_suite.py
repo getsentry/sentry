@@ -715,7 +715,7 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
             organization_id=self.organization.id,
             feedback=parked.feedback,
             run_state=resolved.autofix_run.run_state,
-            bypass=True,
+            source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER,
         )
         mock_defer.assert_called_once_with(resolved)
         mock_confirm.assert_not_called()

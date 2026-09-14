@@ -117,7 +117,7 @@ def _retrigger_deferred_iteration(
         organization_id=resolved.organization.id,
         feedback=parked.feedback,
         run_state=run_state,
-        bypass=True,
+        source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER,
     )
 
 

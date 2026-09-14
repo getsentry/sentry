@@ -159,6 +159,12 @@ def _get_feedback_actor_user_id(items: list[QueuedAutofixFeedback]) -> int | Non
     return None
 
 
+# sources that we want to bypass `should_trigger` checks for
+_BYPASSES_SHOULD_TRIGGER = frozenset(
+    {ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER, ConsumeTriggerSource.UI_CONSUME}
+)
+
+
 def _organization_for_gate(run_id: int, organization_id: int) -> Organization | None:
     try:
         return Organization.objects.get_from_cache(id=organization_id)
@@ -177,21 +183,16 @@ def trigger_consume_pr_iteration_feedback(
     organization_id: int,
     feedback: Feedback,
     run_state: SeerRunState,
-    bypass: bool = False,
+    source: str = ConsumeTriggerSource.FEEDBACK,
     delay: int | None = None,
 ) -> None:
-    # Determined up front so every ``feedback.trigger`` line carries it, the
-    # gates below included: it is the only field naming who asked for this
-    # consume. ``should_trigger`` can still upgrade it to a time-limit defer.
-    trigger_source = (
-        ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER if bypass else ConsumeTriggerSource.FEEDBACK
-    )
+    bypass = source in _BYPASSES_SHOULD_TRIGGER
 
     if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
         record_pause_blocked("trigger_consume")
         log_ctx.info(
             "autofix.pr_iteration.feedback.trigger",
-            trigger_source=trigger_source,
+            trigger_source=source,
             outcome="not_triggered",
             reason="paused",
             countdown=None,
@@ -215,7 +216,7 @@ def trigger_consume_pr_iteration_feedback(
     ):
         log_ctx.info(
             "autofix.pr_iteration.feedback.trigger",
-            trigger_source=trigger_source,
+            trigger_source=source,
             outcome="not_triggered",
             reason="missing_github_permissions",
             countdown=None,
@@ -233,7 +234,7 @@ def trigger_consume_pr_iteration_feedback(
     else:
         decision = feedback.source.should_trigger(run_state)
         if isinstance(decision.task, ConsumeTask.Later):
-            trigger_source = ConsumeTriggerSource.TIME_LIMIT_DEFER
+            source = ConsumeTriggerSource.TIME_LIMIT_DEFER
 
     countdown = None
     trigger_id = None
@@ -246,7 +247,7 @@ def trigger_consume_pr_iteration_feedback(
                 "run_id": run_id,
                 "organization_id": organization_id,
                 "trigger_id": trigger_id,
-                "trigger_source": trigger_source,
+                "trigger_source": source,
             },
             countdown=countdown,
         )
@@ -264,7 +265,7 @@ def trigger_consume_pr_iteration_feedback(
         reason=decision.reason,
         countdown=countdown,
         trigger_id=trigger_id,
-        trigger_source=trigger_source,
+        trigger_source=source,
         bypass=bypass,
         delay=delay,
         feedback_source=feedback.source.type,

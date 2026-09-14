@@ -75,6 +75,7 @@ class ConsumeTriggerSource:
     COMPLETION = "completion"
     GREEN_CHECK_SUITE_DEFER = "green_check_suite_defer"
     TIME_LIMIT_DEFER = "time_limit_defer"
+    UI_CONSUME = "ui_consume"
 
 
 class FeedbackSourceBase(BaseModel):
