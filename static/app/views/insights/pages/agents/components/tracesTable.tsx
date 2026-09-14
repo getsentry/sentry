@@ -386,16 +386,18 @@ const BodyCell = memo(function BodyCellImpl({
       return <DurationCell milliseconds={dataRow.duration} />;
     case 'errors':
       return (
-        <ErrorCell
-          value={dataRow.errors}
-          target={getExploreUrl({
-            query: `${query} span.status:[internal_error,error] trace:[${dataRow.traceId}]`,
-            organization,
-            selection,
-            referrer: Referrer.TRACES_TABLE,
-          })}
-          isLoading={dataRow.isSpanDataLoading}
-        />
+        <Flex justify="end" width="100%">
+          <ErrorCell
+            value={dataRow.errors}
+            target={getExploreUrl({
+              query: `${query} span.status:[internal_error,error] trace:[${dataRow.traceId}]`,
+              organization,
+              selection,
+              referrer: Referrer.TRACES_TABLE,
+            })}
+            isLoading={dataRow.isSpanDataLoading}
+          />
+        </Flex>
       );
     case 'llmCalls':
     case 'toolCalls':
