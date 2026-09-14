@@ -33,6 +33,10 @@ export const noRestrictedModuleMocks = ESLintUtils.RuleCreator.withoutDocs({
     },
   },
   create(context) {
+    if (!context.sourceCode.text.includes('jest')) {
+      return {};
+    }
+
     const importTracker = createImportTracker();
 
     return {
