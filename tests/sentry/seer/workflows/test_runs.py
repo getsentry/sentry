@@ -25,11 +25,11 @@ class WorkflowRunTest(TestCase):
         dispatch.assert_not_called()
         workflow = run.workflow_execution.run
         assert workflow.organization_id == self.organization.id
+        assert workflow.date_completed is None
         assert workflow.workflow_config is not None
         assert workflow.workflow_config.strategy == SeerWorkflowStrategy.AGENTIC_TRIAGE
         assert run.agent.extras == {
             "status": "running",
-            "date_completed": None,
             "error": None,
             "summary": None,
         }
@@ -68,9 +68,13 @@ class WorkflowRunTest(TestCase):
         run.agent.refresh_from_db()
         assert run.agent.extras["status"] == "partial"
         assert run.agent.extras["summary"] == "Finished"
-        assert run.agent.extras["date_completed"] is not None
+        workflow = run.workflow_execution.run
+        workflow.refresh_from_db()
+        assert workflow.date_completed is not None
+        assert "date_completed" not in run.agent.extras
         parser.assert_called_once_with({"raw": "output"}, run.agent)
         completed_extras = run.agent.extras.copy()
+        completed_at = workflow.date_completed
 
         deliver(status="error", result=None, error="Late failure")
         finish_workflow_run(
@@ -81,6 +85,8 @@ class WorkflowRunTest(TestCase):
         )
         run.agent.refresh_from_db()
         assert run.agent.extras == completed_extras
+        workflow.refresh_from_db()
+        assert workflow.date_completed == completed_at
 
     def test_delivery_and_finish_are_scoped_to_organization_and_feature(self) -> None:
         run = self.create_run()
@@ -108,6 +114,7 @@ class WorkflowRunTest(TestCase):
         parser.assert_not_called()
         run.agent.refresh_from_db()
         assert run.agent.extras["status"] == "running"
+        assert SeerWorkflowRun.objects.get(executions__seer_run=run).date_completed is None
 
     def test_failed_delivery_records_safe_error_without_parsing(self) -> None:
         run = self.create_run()
@@ -124,7 +131,7 @@ class WorkflowRunTest(TestCase):
         parser.assert_not_called()
         run.agent.refresh_from_db()
         assert run.agent.extras["status"] == "failed"
-        assert run.agent.extras["date_completed"] is not None
+        assert SeerWorkflowRun.objects.get(executions__seer_run=run).date_completed is not None
         assert run.agent.extras["error"] == "Seer could not complete this workflow."
 
     def test_dispatch_failure_is_reported_without_overwriting_a_completed_result(self) -> None:
@@ -132,7 +139,6 @@ class WorkflowRunTest(TestCase):
         run.update(mirror_status=SeerRunMirrorStatus.FAILED)
         assert get_workflow_run_status(run.agent) == {
             "status": "failed",
-            "date_completed": None,
             "error": "Seer could not start this workflow.",
         }
         finish_workflow_run(
@@ -144,7 +150,7 @@ class WorkflowRunTest(TestCase):
         run.agent.refresh_from_db()
         status = get_workflow_run_status(run.agent)
         assert status["status"] == "complete"
-        assert status["date_completed"] is not None
+        assert SeerWorkflowRun.objects.get(executions__seer_run=run).date_completed is not None
         assert status["error"] is None
 
     def create_run(self) -> SeerRun:

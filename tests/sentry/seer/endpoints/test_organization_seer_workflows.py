@@ -461,6 +461,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert output["id"] == str(run.run.workflow_execution.run_id)
         assert output["seerRunId"] == str(run.run.uuid)
         assert output["dateCompleted"] is not None
+        assert output["dateCompleted"] == run.run.workflow_execution.run.date_completed
         assert output["extras"] == {"status": "partial"}
         assert len(output["results"]) == 1
         assert output["results"][0]["seerRunId"] == str(run.run.uuid)

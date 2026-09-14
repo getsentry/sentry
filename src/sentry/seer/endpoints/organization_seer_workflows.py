@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import datetime
 from functools import partial
 from typing import TypedDict
 
@@ -153,9 +152,7 @@ def _serialize_monitor_cleanup_run(run: SeerWorkflowRun) -> MonitorCleanupRunRes
         "id": str(run.id),
         "seerRunId": run_uuid,
         "dateAdded": run.date_added,
-        "dateCompleted": datetime.fromisoformat(status["date_completed"])
-        if status["date_completed"] is not None
-        else None,
+        "dateCompleted": run.date_completed,
         "strategy": "duplicate_monitors",
         "extras": {"status": status["status"]},
         "errorMessage": status["error"],
