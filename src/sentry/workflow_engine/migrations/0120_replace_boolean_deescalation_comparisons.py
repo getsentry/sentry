@@ -21,7 +21,11 @@ def replace_boolean_deescalation_comparisons(
     ).values_list("id", flat=True)
 
     for condition_ids in chunked(
-        RangeQuerySetWrapperWithProgressBar(conditions, step=BATCH_SIZE),
+        RangeQuerySetWrapperWithProgressBar(
+            conditions,
+            step=BATCH_SIZE,
+            result_value_getter=lambda condition_id: condition_id,
+        ),
         BATCH_SIZE,
     ):
         DataCondition.objects.filter(id__in=condition_ids).update(comparison=75)
