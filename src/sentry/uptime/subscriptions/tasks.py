@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
+from collections.abc import Collection
 from datetime import timedelta
 from uuid import uuid4
 
+from django.conf import settings
 from django.utils import timezone
 from taskbroker_client.retry import Retry
 
@@ -28,6 +31,8 @@ logger = logging.getLogger(__name__)
 
 SUBSCRIPTION_STATUS_MAX_AGE = timedelta(minutes=10)
 BROKEN_MONITOR_AGE_LIMIT = timedelta(days=7)
+# After a wiped cluster the missing set is the whole cluster, so bound the tasks one run can queue.
+CONFIG_REPAIR_MAX_TASKS = 1000
 
 
 @instrumented_task(
@@ -297,3 +302,58 @@ def config_drift_checker(**kwargs):
                 "null_subscription_ids": reading.null_subscription_ids,
             },
         )
+
+
+def repair_missing_configs(
+    missing: Collection[tuple[str, str]],
+    *,
+    limit: int = CONFIG_REPAIR_MAX_TASKS,
+    dry_run: bool = False,
+) -> int:
+    """
+    Queues a region-scoped update for each missing (subscription_id, cluster) pair, at most
+    ``limit`` per call. Returns the number queued (or reported, in dry run).
+    """
+    if limit < 0:
+        raise ValueError(f"limit must be non-negative, got {limit}")
+    slugs_by_cluster: dict[str, set[str]] = defaultdict(set)
+    for region in settings.UPTIME_REGIONS:
+        slugs_by_cluster[region.config_redis_cluster].add(region.slug)
+    unknown = {cluster for _, cluster in missing} - slugs_by_cluster.keys()
+    if unknown:
+        raise ValueError(f"Unknown config redis clusters: {sorted(unknown)}")
+
+    pairs = sorted(set(missing))[:limit]
+    pk_by_subscription_id: dict[str, int] = {}
+    slugs_by_subscription_id: dict[str, set[str]] = defaultdict(set)
+    for subscription_id, pk, region_slug in UptimeSubscriptionRegion.objects.filter(
+        uptime_subscription__subscription_id__in={sid for sid, _ in pairs}
+    ).values_list("uptime_subscription__subscription_id", "uptime_subscription_id", "region_slug"):
+        assert subscription_id is not None
+        pk_by_subscription_id[subscription_id] = pk
+        slugs_by_subscription_id[subscription_id].add(region_slug)
+
+    queued = 0
+    for subscription_id, cluster in pairs:
+        region_slugs = sorted(slugs_by_subscription_id[subscription_id] & slugs_by_cluster[cluster])
+        if not region_slugs:
+            # Deleted, or no longer on this cluster, since the diff was taken.
+            metrics.incr("uptime.config_repair.skipped", tags={"cluster": cluster}, sample_rate=1.0)
+            continue
+        if not dry_run:
+            update_remote_uptime_subscription.delay(
+                uptime_subscription_id=pk_by_subscription_id[subscription_id],
+                region_slugs=region_slugs,
+            )
+            metrics.incr("uptime.config_repair.queued", tags={"cluster": cluster}, sample_rate=1.0)
+        queued += 1
+        logger.info(
+            "uptime.config_repair.queued",
+            extra={
+                "subscription_id": subscription_id,
+                "cluster": cluster,
+                "region_slugs": region_slugs,
+                "dry_run": dry_run,
+            },
+        )
+    return queued
