@@ -120,7 +120,7 @@ def bootstrap_iteration(
         # A partial unique constraint allows one waiting row for each run, so a
         # racing opener gets the winner's row rather than a second one. The data
         # stamps only a row opened here; one already waiting keeps its own.
-        iteration, _ = SeerRunPrIteration.objects.get_or_create(
+        SeerRunPrIteration.objects.get_or_create(
             seer_run=seer_run,
             triggered=False,
             defaults={
@@ -132,17 +132,20 @@ def bootstrap_iteration(
                 }
             },
         )
-        set_pr_iteration_attributes(iteration_id=iteration.id)
 
     # Reads back the row just settled above, so the context reflects what is
     # actually in the table rather than what this call believes it wrote.
-    return PrIterationLogContext.for_run(
+    ctx = PrIterationLogContext.for_run(
         logger,
         run_state,
         organization_id,
         group_id,
         iteration=LogCtxIteration.UNTRIGGERED,
     )
+
+    set_pr_iteration_attributes(iteration_id=ctx.iteration_id)
+
+    return ctx
 
 
 def trigger_pr_iteration_details(

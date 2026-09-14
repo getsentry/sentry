@@ -243,14 +243,16 @@ def trigger_consume_pr_iteration_feedback(
 
     countdown = None
     trigger_id = None
+    set_pr_iteration_attributes(
+        run_id=run_id,
+        organization_id=organization_id,
+        group_id=run_state.metadata.get("group_id") if run_state.metadata else None,
+    )
 
     if decision.task is not None:
         countdown = delay if delay is not None else decision.task.countdown()
         trigger_id = uuid4().hex
         set_pr_iteration_attributes(
-            run_id=run_id,
-            organization_id=organization_id,
-            group_id=run_state.metadata.get("group_id") if run_state.metadata else None,
             trigger_id=trigger_id,
         )
         consume_queued_autofix_feedback.apply_async(
@@ -399,6 +401,12 @@ def consume_queued_autofix_feedback(
     )
 
     with lock.acquire():
+        set_pr_iteration_attributes(
+            run_id=run_id,
+            organization_id=organization_id,
+            trigger_id=trigger_id,
+        )
+
         # A task with a countdown can start after the pause.
         if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
             record_pause_blocked("consume")
@@ -433,15 +441,12 @@ def consume_queued_autofix_feedback(
             return
 
         group_id = state.metadata.get("group_id") if state.metadata else None
+        set_pr_iteration_attributes(group_id=group_id)
+
         log_ctx = PrIterationLogContext.for_run(
             logger, state, organization_id, group_id, iteration=LogCtxIteration.UNTRIGGERED
         )
-        set_pr_iteration_attributes(
-            run_id=run_id,
-            organization_id=organization_id,
-            group_id=group_id,
-            trigger_id=trigger_id,
-        )
+
         task_state = current_task()
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.started",
@@ -1186,6 +1191,13 @@ def trigger_pr_iteration_from_comment(
     pr_number: int,
     feedback: str,
 ) -> None:
+    """
+    Resolve the Autofix run behind ``pr_number`` and kick off a PR iteration.
+
+    The body runs under its own isolation scope and trace: this stage is one of
+    four the flow is followed by, and it is joined to the others by the ids in
+    ``pr_iteration.tracing`` rather than by the trace it was queued from.
+    """
     with (
         sentry_sdk.isolation_scope(),
         start_span(
@@ -1555,6 +1567,13 @@ def trigger_pr_iteration_from_review(
     author_is_bot: bool = False,
     delivery_authenticated: bool = True,
 ) -> None:
+    """
+    Resolve the Autofix run behind a submitted PR review and kick off an iteration.
+
+    The body runs under its own isolation scope and trace: this stage is one of
+    four the flow is followed by, and it is joined to the others by the ids in
+    ``pr_iteration.tracing`` rather than by the trace it was queued from.
+    """
     with (
         sentry_sdk.isolation_scope(),
         start_span(

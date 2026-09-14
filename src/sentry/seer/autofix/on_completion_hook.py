@@ -264,9 +264,8 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         current_step, _ = cls._get_current_step(state)
         log_ctx = cls._iteration_log_context(organization, group, state)
         set_pr_iteration_attributes(
-            run_id=run_id,
-            organization_id=organization.id,
             group_id=group.id,
+            iteration_id=log_ctx.iteration_id,
         )
         if current_step == AutofixStep.PR_ITERATION:
             has_changes, is_synced = state.has_code_changes()
