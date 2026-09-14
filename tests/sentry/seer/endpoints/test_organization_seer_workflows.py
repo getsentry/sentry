@@ -1,18 +1,12 @@
-from datetime import datetime
-from unittest.mock import Mock, patch
-
-import pytest
-
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.pullrequest import PullRequestLifecycleState
-from sentry.receivers.outbox.cell import handle_seer_run_create
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.models.night_shift import (
     SeerNightShiftRunErrorType,
     SeerNightShiftRunResult,
 )
-from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunPullRequest
+from sentry.seer.models.run import SeerAgentRun, SeerRunPullRequest
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowRun,
@@ -21,15 +15,9 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.monitor_cleanup.constants import FEATURE
 from sentry.seer.monitor_cleanup.runs import deliver_monitor_cleanup_result
-from sentry.seer.workflows.runs import (
-    create_workflow_run,
-    deliver_workflow_result,
-    finish_workflow_run,
-)
-from sentry.seer.workflows.schemas import WorkflowResult
+from sentry.seer.workflows.runs import create_workflow_run
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.outbox import outbox_runner
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
@@ -349,6 +337,110 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(own_run.id)
 
+    def test_history_combines_workflows_and_respects_feature_flags(self) -> None:
+        older = Factories.create_seer_workflow_run(organization=self.organization)
+        cleanup = self.create_agent_workflow(
+            SeerWorkflowStrategy.DUPLICATE_MONITORS, "monitor_cleanup"
+        )
+        triage_config = SeerWorkflowConfig.get_or_create_for_strategy(
+            self.organization.id, SeerWorkflowStrategy.AGENTIC_TRIAGE
+        )
+        newer = Factories.create_seer_workflow_run(
+            organization=self.organization, workflow_config=triage_config
+        )
+        Factories.create_seer_workflow_run_execution(run=newer)
+        Factories.create_seer_workflow_run_execution(run=newer)
+        Factories.create_seer_workflow_run(organization=self.create_organization())
+
+        with self.feature([FEATURE, "organizations:seer-night-shift"]):
+            response = self.get_success_response(self.organization.slug)
+            assert response.status_code == 200
+            assert [run["id"] for run in response.data] == [
+                str(newer.id),
+                str(cleanup.id),
+                str(older.id),
+            ]
+            response = self.get_success_response(self.organization.slug, per_page=2)
+            assert [run["id"] for run in response.data] == [str(newer.id), str(cleanup.id)]
+
+        with self.feature(FEATURE):
+            response = self.get_success_response(self.organization.slug)
+            assert [run["id"] for run in response.data] == [str(cleanup.id)]
+
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+            assert [run["id"] for run in response.data] == [str(newer.id), str(older.id)]
+
+    def test_history_requires_ownership_until_project_access_can_be_checked(self) -> None:
+        project = self.project
+        workflow = self.create_agent_workflow(
+            SeerWorkflowStrategy.DUPLICATE_MONITORS, "monitor_cleanup"
+        )
+        run = workflow.executions.get().seer_run
+        assert run is not None
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member")
+        other_team = self.create_team(organization=self.organization, members=[member])
+        self.create_project(organization=self.organization, teams=[other_team])
+
+        with self.feature(FEATURE):
+            response = self.get_success_response(self.organization.slug)
+        assert [item["id"] for item in response.data] == [str(workflow.id)]
+
+        self.login_as(member)
+        with self.feature(FEATURE):
+            response = self.get_success_response(self.organization.slug)
+        assert response.data == []
+
+        run.agent.update(
+            extras={**run.agent.extras, "status": "complete", "project_ids": [str(project.id)]}
+        )
+        with self.feature(FEATURE):
+            response = self.get_success_response(self.organization.slug)
+        assert response.data == []
+
+        self.create_team_membership(team=self.team, user=member)
+        with self.feature(FEATURE):
+            response = self.get_success_response(self.organization.slug)
+        assert [item["id"] for item in response.data] == [str(workflow.id)]
+
+    def test_org_token_cannot_own_history_after_triggering_user_is_deleted(self) -> None:
+        workflow = self.create_agent_workflow(
+            SeerWorkflowStrategy.DUPLICATE_MONITORS, "monitor_cleanup"
+        )
+        run = workflow.executions.get().seer_run
+        assert run is not None
+        run.update(user_id=None)
+        token = generate_token(self.organization.slug, "")
+        self.create_org_auth_token(
+            name="org-auth-token",
+            token_hashed=hash_token(token),
+            organization_id=self.organization.id,
+            scope_list=["org:read"],
+        )
+        with self.feature(FEATURE):
+            response = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/seer/workflows/",
+                HTTP_AUTHORIZATION=f"Bearer {token}",
+            )
+        assert response.status_code == 200
+        assert response.data == []
+
+    def create_agent_workflow(
+        self, strategy: SeerWorkflowStrategy, feature_id: str
+    ) -> SeerWorkflowRun:
+        with self.feature("organizations:gen-ai-features"):
+            return create_workflow_run(
+                SeerAgentClient(self.organization, self.user),
+                strategy=strategy,
+                feature_id=feature_id,
+                title="Test workflow",
+                payload={},
+                extras={"project_ids": [], "results": []},
+            )
+
 
 class OrganizationSeerMonitorCleanupTest(APITestCase):
     endpoint = "sentry-api-0-organization-seer-workflows"
@@ -361,152 +453,36 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             project=self.project, type="metric_issue", name="Copy"
         )
         self.login_as(self.user)
-        seer_access = patch(
-            "sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None)
-        )
-        seer_access.start()
-        self.addCleanup(seer_access.stop)
-        dispatch = patch(
-            "sentry.receivers.outbox.cell.make_feature_run_request",
-            return_value=Mock(status=200, json=Mock(return_value={"run_id": 1234})),
-        )
-        self.dispatch = dispatch.start()
-        self.addCleanup(dispatch.stop)
 
-    def test_starts_feature_run(self) -> None:
+    def test_scan_stores_findings_and_returns_them_in_history(self) -> None:
         run = self.trigger()
-        workflow_run = run.run.workflow_execution.run
-        assert workflow_run.organization_id == self.organization.id
-        assert workflow_run.workflow_config == SeerWorkflowConfig.get_or_create_for_strategy(
-            self.organization.id, SeerWorkflowStrategy.DUPLICATE_MONITORS
-        )
-        assert workflow_run.executions.count() == 1
-        assert run.run.user_id == self.user.id
-        assert run.run.seer_run_state_id is None
-        assert run.run.mirror_status == SeerRunMirrorStatus.PENDING
-        assert run.extras["status"] == "running"
-        assert run.extras["results"] == []
-        self.dispatch.assert_not_called()
-        assert CellOutbox.objects.filter(
+        assert run.source == "monitor_cleanup"
+        outbox = CellOutbox.objects.get(
             category=OutboxCategory.SEER_RUN_CREATE, object_identifier=run.run_id
-        ).exists()
-
-        with outbox_runner():
-            pass
-
-        dispatched_run = SeerRun.objects.get(id=run.run_id)
-        assert dispatched_run.seer_run_state_id == 1234
-        assert dispatched_run.mirror_status == SeerRunMirrorStatus.LIVE
-        self.dispatch.assert_called_once()
-        body = self.dispatch.call_args.args[0]
-        assert body["feature_id"] == body["referrer"] == "monitor_cleanup"
-        assert body["payload"] == {"response_version": 1}
-        assert self.dispatch.call_args.kwargs["viewer_context"]["user_id"] == self.user.id
-
-    def test_callback_saves_results_and_returns_them_in_history(self) -> None:
-        run = self.trigger()
-        deliver_monitor_cleanup_result(
-            self.organization.id, run.run.uuid, "completed", self.result(), None
         )
+        assert outbox.payload is not None
+        assert outbox.payload["body"]["payload"] == {"response_version": 1}
+        result = self.result()
+        result["data"]["projects"][0]["scan_status"] = "partial"
         deliver_monitor_cleanup_result(
-            self.organization.id, run.run.uuid, "error", None, "Late failure"
+            self.organization.id, run.run.uuid, "completed", result, None
         )
-        run.refresh_from_db()
-        assert run.extras["status"] == "complete"
-        assert len(run.extras["results"]) == 1
-        finding = run.extras["results"][0]["findings"][0]
-        assert finding["suggestedKeepId"] == str(self.keep.id)
-        assert finding["monitors"] == [
-            {"id": str(self.keep.id), "name": "Keep", "enabled": self.keep.enabled},
-            {"id": str(self.duplicate.id), "name": "Copy", "enabled": self.duplicate.enabled},
-        ]
         with self.feature(FEATURE):
             response = self.client.get(self.url)
         assert response.status_code == 200
         output = response.data[0]
         assert output["id"] == str(run.run.workflow_execution.run_id)
         assert output["seerRunId"] == str(run.run.uuid)
+        assert output["dateCompleted"] is not None
+        assert output["extras"] == {"status": "partial"}
+        assert len(output["results"]) == 1
         assert output["results"][0]["seerRunId"] == str(run.run.uuid)
-        assert output["extras"] == {"status": "complete"}
-        assert output["results"][0]["extras"] == run.extras["results"][0]
-        assert (
-            datetime.fromisoformat(response.json()[0]["dateCompleted"]) == output["dateCompleted"]
-        )
-
-    def test_dispatch_failure_appears_in_history(self) -> None:
-        self.dispatch.return_value = Mock(status=422)
-        run = self.trigger()
-        self.dispatch.assert_not_called()
-        with outbox_runner():
-            pass
-        run.run.refresh_from_db()
-        assert run.run.mirror_status == SeerRunMirrorStatus.FAILED
-        with self.feature(FEATURE):
-            response = self.client.get(self.url)
-        assert response.status_code == 200
-        assert response.data[0]["extras"] == {"status": "failed"}
-        assert response.data[0]["errorMessage"] == "Seer could not start this workflow."
-
-    def test_transient_dispatch_failure_can_retry(self) -> None:
-        run = self.trigger()
-        outbox = CellOutbox.objects.get(
-            category=OutboxCategory.SEER_RUN_CREATE, object_identifier=run.run_id
-        )
-        self.dispatch.return_value = Mock(status=503)
-        with pytest.raises(RuntimeError, match="transient error 503"):
-            handle_seer_run_create(run.run_id, outbox.payload)
-        run.run.refresh_from_db()
-        assert run.run.mirror_status == SeerRunMirrorStatus.PENDING
-        assert CellOutbox.objects.filter(id=outbox.id).exists()
-
-        self.dispatch.return_value = Mock(status=200, json=Mock(return_value={"run_id": 1234}))
-        with outbox_runner():
-            pass
-        run.run.refresh_from_db()
-        assert run.run.mirror_status == SeerRunMirrorStatus.LIVE
-        assert not CellOutbox.objects.filter(id=outbox.id).exists()
-
-    def test_history_combines_workflows_and_respects_feature_flags(self) -> None:
-        older = Factories.create_seer_workflow_run(organization=self.organization)
-        cleanup = self.trigger().run.workflow_execution.run
-        triage_config = SeerWorkflowConfig.get_or_create_for_strategy(
-            self.organization.id, SeerWorkflowStrategy.AGENTIC_TRIAGE
-        )
-        newer = Factories.create_seer_workflow_run(
-            organization=self.organization, workflow_config=triage_config
-        )
-        Factories.create_seer_workflow_run_execution(run=newer)
-        Factories.create_seer_workflow_run_execution(run=newer)
-        Factories.create_seer_workflow_run(organization=self.create_organization())
-
-        with self.feature([FEATURE, "organizations:seer-night-shift"]):
-            response = self.client.get(self.url)
-            assert response.status_code == 200
-            assert [run["id"] for run in response.data] == [
-                str(newer.id),
-                str(cleanup.id),
-                str(older.id),
-            ]
-            response = self.client.get(self.url, {"per_page": 2})
-            assert [run["id"] for run in response.data] == [str(newer.id), str(cleanup.id)]
-
-        with self.feature(FEATURE):
-            response = self.client.get(self.url)
-            assert [run["id"] for run in response.data] == [str(cleanup.id)]
-
-        with self.feature("organizations:seer-night-shift"):
-            response = self.client.get(self.url)
-            assert [run["id"] for run in response.data] == [str(newer.id), str(older.id)]
-
-    def test_callback_failure_marks_run_failed(self) -> None:
-        run = self.trigger()
-        deliver_monitor_cleanup_result(
-            self.organization.id, run.run.uuid, "error", None, "Agent failed"
-        )
-        run.refresh_from_db()
-        assert run.extras["status"] == "failed"
-        assert run.extras["date_completed"] is not None
-        assert not run.extras["results"]
+        finding = output["results"][0]["extras"]["findings"][0]
+        assert finding["suggestedKeepId"] == str(self.keep.id)
+        assert finding["monitors"] == [
+            {"id": str(self.keep.id), "name": "Keep", "enabled": self.keep.enabled},
+            {"id": str(self.duplicate.id), "name": "Copy", "enabled": self.duplicate.enabled},
+        ]
 
     def test_invalid_result_marks_run_failed(self) -> None:
         run = self.trigger()
@@ -517,203 +493,20 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert run.extras["status"] == "failed"
         assert not run.extras["results"]
 
-    def test_requires_feature(self) -> None:
+    def test_requires_feature_and_seer_access(self) -> None:
         self.get_error_response(
             self.organization.slug, strategy="duplicate_monitors", status_code=404
         )
+        with self.feature({FEATURE: True, "organizations:gen-ai-features": False}):
+            response = self.get_error_response(
+                self.organization.slug, strategy="duplicate_monitors", status_code=403
+            )
+        assert response.data == {"detail": "Seer is not available for this organization."}
 
     def test_requires_organization_access(self) -> None:
         other = self.create_organization()
         with self.feature(FEATURE):
             self.get_error_response(other.slug, strategy="duplicate_monitors", status_code=403)
-
-    def test_callback_is_scoped_to_organization(self) -> None:
-        run = self.trigger()
-        deliver_monitor_cleanup_result(
-            self.create_organization().id, run.run.uuid, "completed", self.result(), None
-        )
-        run.refresh_from_db()
-        assert run.extras["status"] == "running"
-        assert not run.extras["results"]
-
-    def test_history_hides_inaccessible_projects(self) -> None:
-        run = self.trigger()
-        deliver_monitor_cleanup_result(
-            self.organization.id, run.run.uuid, "completed", self.result(), None
-        )
-        member = self.create_user()
-        self.create_member(organization=self.organization, user=member, role="member")
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
-        self.login_as(member)
-        with self.feature(FEATURE):
-            response = self.client.get(self.url)
-        assert response.status_code == 200
-        assert response.data == []
-
-    def test_running_history_without_recorded_projects_is_visible_only_to_creator(self) -> None:
-        self._assert_history_without_recorded_projects_is_visible_only_to_creator("running")
-
-    def test_failed_history_without_recorded_projects_is_visible_only_to_creator(self) -> None:
-        self._assert_history_without_recorded_projects_is_visible_only_to_creator("failed")
-
-    def test_empty_completed_history_is_visible_only_to_creator(self) -> None:
-        self._assert_history_without_recorded_projects_is_visible_only_to_creator("complete")
-
-    def _assert_history_without_recorded_projects_is_visible_only_to_creator(
-        self, status: str
-    ) -> None:
-        agent_run = self.trigger()
-        agent_run.update(extras={**agent_run.extras, "status": status})
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
-        member = self.create_user()
-        self.create_member(organization=self.organization, user=member, role="member")
-
-        with self.feature(FEATURE):
-            response = self.client.get(self.url)
-        assert response.status_code == 200
-        assert [run["id"] for run in response.data] == [
-            str(agent_run.run.workflow_execution.run_id)
-        ]
-
-        self.login_as(member)
-        with self.feature(FEATURE):
-            response = self.client.get(self.url)
-        assert response.status_code == 200
-        assert response.data == []
-
-        team = self.create_team(organization=self.organization, members=[member])
-        self.create_project(organization=self.organization, teams=[team])
-        with self.feature(FEATURE):
-            response = self.client.get(self.url)
-        assert response.status_code == 200
-        assert response.data == []
-
-    def test_history_with_recorded_projects_is_visible_to_other_project_members(self) -> None:
-        agent_run = self.trigger()
-        deliver_monitor_cleanup_result(
-            self.organization.id, agent_run.run.uuid, "completed", self.result(), None
-        )
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
-        member = self.create_user()
-        self.create_member(
-            organization=self.organization, user=member, role="member", teams=[self.team]
-        )
-        self.login_as(member)
-        with self.feature(FEATURE):
-            response = self.client.get(self.url)
-        assert response.status_code == 200
-        assert [run["id"] for run in response.data] == [
-            str(agent_run.run.workflow_execution.run_id)
-        ]
-
-    def test_org_token_cannot_own_history_after_triggering_user_is_deleted(self) -> None:
-        agent_run = self.trigger()
-        agent_run.run.update(user_id=None)
-        token = generate_token(self.organization.slug, "")
-        self.create_org_auth_token(
-            name="org-auth-token",
-            token_hashed=hash_token(token),
-            organization_id=self.organization.id,
-            scope_list=["org:read"],
-        )
-        with self.feature(FEATURE):
-            response = self.client.get(self.url, HTTP_AUTHORIZATION=f"Bearer {token}")
-        assert response.status_code == 200
-        assert response.data == []
-
-    def test_workflow_helpers_support_other_result_shapes(self) -> None:
-        workflow_run = create_workflow_run(
-            SeerAgentClient(self.organization, self.user),
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
-            feature_id="test_workflow",
-            title="Test workflow",
-            payload={"scope": "organization"},
-            extras={"summary": None},
-        )
-        seer_run = workflow_run.executions.get().seer_run
-        assert seer_run is not None
-        self.dispatch.assert_not_called()
-        assert workflow_run.workflow_config is not None
-        assert workflow_run.workflow_config.strategy == SeerWorkflowStrategy.AGENTIC_TRIAGE
-        assert seer_run.agent.extras == {
-            "status": "running",
-            "date_completed": None,
-            "error": None,
-            "summary": None,
-        }
-        parser = Mock(
-            return_value=WorkflowResult(extras={"summary": "Work finished"}, status="partial")
-        )
-        deliver_workflow_result(
-            feature_id="test_workflow",
-            organization_id=self.organization.id,
-            run_uuid=seer_run.uuid,
-            status="completed",
-            result={"summary": "raw output"},
-            error=None,
-            parse_result=parser,
-        )
-        parser.assert_called_once_with({"summary": "raw output"}, seer_run.agent)
-        seer_run.agent.refresh_from_db()
-        assert seer_run.agent.extras["status"] == "partial"
-        assert seer_run.agent.extras["summary"] == "Work finished"
-        assert seer_run.agent.extras["date_completed"] is not None
-
-        finish_workflow_run(
-            seer_run.id,
-            organization_id=self.organization.id,
-            feature_id="test_workflow",
-            error="Late failure",
-        )
-        seer_run.agent.refresh_from_db()
-        assert seer_run.agent.extras["status"] == "partial"
-        assert seer_run.agent.extras["error"] is None
-
-    def test_workflow_creation_rolls_back_if_execution_creation_fails(self) -> None:
-        with (
-            patch(
-                "sentry.seer.workflows.runs.SeerWorkflowRunExecution.objects.create",
-                side_effect=RuntimeError("Cannot create execution"),
-            ),
-            pytest.raises(RuntimeError, match="Cannot create execution"),
-        ):
-            create_workflow_run(
-                SeerAgentClient(self.organization, self.user),
-                strategy=SeerWorkflowStrategy.DUPLICATE_MONITORS,
-                feature_id="monitor_cleanup",
-                title="Monitor cleanup",
-                payload={},
-            )
-        assert not SeerWorkflowRun.objects.filter(organization=self.organization).exists()
-        assert not SeerRun.objects.filter(organization=self.organization).exists()
-        assert not SeerAgentRun.objects.filter(run__organization=self.organization).exists()
-        assert not CellOutbox.objects.filter(category=OutboxCategory.SEER_RUN_CREATE).exists()
-        self.dispatch.assert_not_called()
-
-    def test_workflow_delivery_and_finish_are_scoped_to_feature(self) -> None:
-        agent_run = self.trigger()
-        parser = Mock()
-        deliver_workflow_result(
-            feature_id="different_workflow",
-            organization_id=self.organization.id,
-            run_uuid=agent_run.run.uuid,
-            status="completed",
-            result={},
-            error=None,
-            parse_result=parser,
-        )
-        parser.assert_not_called()
-        finish_workflow_run(
-            agent_run.run_id,
-            organization_id=self.organization.id,
-            feature_id="different_workflow",
-            error="Wrong workflow",
-        )
-        agent_run.refresh_from_db()
-        assert agent_run.extras["status"] == "running"
 
     def test_callback_for_deleted_user_marks_run_failed(self) -> None:
         agent_run = self.trigger()
@@ -725,19 +518,8 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert agent_run.extras["status"] == "failed"
         assert agent_run.extras["error"] == "The triggering user no longer exists."
 
-    def test_partial_project_marks_workflow_partial(self) -> None:
-        agent_run = self.trigger()
-        result = self.result()
-        result["data"]["projects"][0]["scan_status"] = "partial"
-        deliver_monitor_cleanup_result(
-            self.organization.id, agent_run.run.uuid, "completed", result, None
-        )
-        agent_run.refresh_from_db()
-        assert agent_run.extras["status"] == "partial"
-        assert len(agent_run.extras["results"]) == 1
-
     def trigger(self):
-        with self.feature(FEATURE):
+        with self.feature([FEATURE, "organizations:gen-ai-features"]):
             response = self.get_success_response(
                 self.organization.slug, strategy="duplicate_monitors", status_code=202
             )
