@@ -38,6 +38,28 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         return mock_session
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
+    def test_explicit_app_icon_type_does_not_require_prefix(self, mock_get_session) -> None:
+        image_id = "opaque-icon-id"
+        icon_data = b"app icon"
+        primary = self._create_mock_session(icon_data, "image/png")
+        mock_get_session.return_value = primary
+
+        response = self.client.get(self._get_url(image_id), {"image_type": "preprod_size_app_icon"})
+
+        assert response.status_code == 200
+        assert response.content == icon_data
+        mock_get_session.assert_called_once_with(UsecaseId.PREPROD_SIZE, self.project)
+        primary.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{image_id}")
+
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
+    def test_rejects_unknown_image_type(self, mock_get_session) -> None:
+        response = self.client.get(self._get_url("icn_123456789abc"), {"image_type": "attachments"})
+
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid image_type"}
+        mock_get_session.assert_not_called()
+
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
     def test_app_icon_reads_preprod_size(self, mock_get_session) -> None:
         image_id = "icn_123456789abc"
         icon_data = b"app icon"

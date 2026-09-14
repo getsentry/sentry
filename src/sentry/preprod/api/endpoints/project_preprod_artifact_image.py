@@ -5,6 +5,7 @@ import os
 from urllib.parse import quote
 
 from django.http import HttpResponse
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from objectstore_client import RequestError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -20,6 +21,8 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
+
+PREPROD_SIZE_APP_ICON = "preprod_size_app_icon"
 
 
 def _content_disposition(raw_filename: str | None) -> str | None:
@@ -60,17 +63,38 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
         }
     )
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="image_type",
+                type=str,
+                location="query",
+                required=False,
+                enum=[PREPROD_SIZE_APP_ICON],
+                description=(
+                    "Use preprod_size_app_icon to request a size-analysis app icon. "
+                    "When omitted, legacy app icons are recognized by their icn_ prefix."
+                ),
+            ),
+        ],
+    )
     def get(
         self,
         request: Request,
         project: Project,
         image_id: str,
     ) -> HttpResponse:
+        image_type = request.GET.get("image_type")
+        if image_type not in (None, PREPROD_SIZE_APP_ICON):
+            return Response({"detail": "Invalid image_type"}, status=400)
+
         organization_id = project.organization_id
         project_id = project.id
 
         object_key = f"{organization_id}/{project_id}/{image_id}"
-        is_app_icon = image_id.startswith("icn_")
+        is_app_icon = image_type == PREPROD_SIZE_APP_ICON or (
+            image_type is None and image_id.startswith("icn_")
+        )
         usecase = UsecaseId.PREPROD_SIZE if is_app_icon else UsecaseId.PREPROD
         session = get_session(usecase, project)
 
