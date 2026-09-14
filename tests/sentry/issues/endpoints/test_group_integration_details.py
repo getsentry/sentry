@@ -292,7 +292,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    def test_put_jira_issue_url_rejects_other_installation(self) -> None:
+    def test_put_jira_issue_url_rejects_invalid_urls(self) -> None:
         self.login_as(self.user)
         integration = self.create_integration(
             organization=self.organization,
@@ -302,10 +302,9 @@ class GroupIntegrationDetailsTest(APITestCase):
         )
         path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{integration.id}/"
         with self.feature("organizations:integrations-issue-basic"):
-            response = self.client.put(
-                path, data={"externalIssue": "https://other.atlassian.net/browse/ABC-123"}
-            )
-        assert response.status_code == 400
+            for url in ("https://other.atlassian.net/browse/ABC-123", "https://["):
+                response = self.client.put(path, data={"externalIssue": url})
+                assert response.status_code == 400
         assert not responses.calls
         assert not GroupLink.objects.filter(group_id=self.group.id).exists()
 

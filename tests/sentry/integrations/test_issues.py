@@ -46,14 +46,28 @@ def test_issue_url_rejects_invalid_installation_urls(url: str) -> None:
         get_issue_url_path(url, "https://tracker.example.com/tracker")
 
 
-def test_issue_url_ignores_fragment_and_default_port() -> None:
-    assert (
-        get_issue_url_path(
+@pytest.mark.parametrize(
+    "url,base_url,expected",
+    [
+        (
+            "https://tracker.example.com/issues/1",
+            "https://tracker.example.com",
+            "/issues/1",
+        ),
+        (
+            "https://tracker.example.com/tracker/issues/1",
+            "https://tracker.example.com/tracker",
+            "/issues/1",
+        ),
+        (
             "https://TRACKER.example.com:443/tracker/issues/1/?view=1#comment",
             "https://tracker.example.com/tracker",
-        )
-        == "/issues/1"
-    )
+            "/issues/1",
+        ),
+    ],
+)
+def test_issue_url_path(url: str, base_url: str, expected: str) -> None:
+    assert get_issue_url_path(url, base_url) == expected
 
 
 class IssueSyncIntegration(TestCase):

@@ -68,6 +68,7 @@ from sentry.signals import integration_issue_created, integration_issue_linked
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils.urls import urlsplit_best_effort
 
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
 
@@ -434,8 +435,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         elif not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 
-        external_issue_id = request.data.get("externalIssue")
-        if not external_issue_id:
+        external_issue = request.data.get("externalIssue")
+        if not external_issue:
             return Response({"externalIssue": ["Issue ID is required"]}, status=400)
 
         organization_id = group.project.organization_id
@@ -460,17 +461,19 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
             try:
                 link_data = request.data.copy()
-                if isinstance(external_issue_id, str) and "://" in external_issue_id:
-                    url_data = installation.get_issue_link_data(external_issue_id)
-                    if (
-                        link_data.get("repo")
-                        and url_data.get("repo")
-                        and str(link_data["repo"]).casefold() != url_data["repo"].casefold()
-                    ):
-                        raise IntegrationFormError(
-                            {"repo": "Repository does not match the issue URL"}
-                        )
-                    link_data.update(url_data)
+                if isinstance(external_issue, str):
+                    scheme, netloc, _, _ = urlsplit_best_effort(external_issue)
+                    if scheme and netloc:
+                        url_data = installation.get_issue_link_data(external_issue)
+                        if (
+                            link_data.get("repo")
+                            and url_data.get("repo")
+                            and str(link_data["repo"]).casefold() != url_data["repo"].casefold()
+                        ):
+                            raise IntegrationFormError(
+                                {"repo": "Repository does not match the issue URL"}
+                            )
+                        link_data.update(url_data)
                 data = installation.get_issue(link_data["externalIssue"], data=link_data)
             except IntegrationFormError as exc:
                 lifecycle.record_halt(exc)
