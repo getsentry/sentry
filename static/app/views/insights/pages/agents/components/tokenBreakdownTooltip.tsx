@@ -25,9 +25,9 @@ export function TokenBreakdownTooltip({
   return (
     <Stack gap="md">
       {breakdowns.map((breakdown, index) => (
-        <Fragment key={breakdown.model ?? index}>
+        <BreakdownGroup key={breakdown.model ?? index}>
           {breakdown.model && (
-            <Text size="sm" bold>
+            <Text size="sm" bold align="left">
               {breakdown.model}
             </Text>
           )}
@@ -36,7 +36,7 @@ export function TokenBreakdownTooltip({
             <span>{t('Total')}</span>
             <span>{breakdown.total.toLocaleString()}</span>
           </TokenBreakdownGrid>
-        </Fragment>
+        </BreakdownGroup>
       ))}
     </Stack>
   );
@@ -86,6 +86,16 @@ function CompleteBreakdown({breakdown}: {breakdown: TokenBreakdownDetails}) {
     </Fragment>
   );
 }
+
+const BreakdownGroup = styled('div')`
+  width: 100%;
+  text-align: left;
+
+  & + & {
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
+    padding-top: ${p => p.theme.space.md};
+  }
+`;
 
 const TokenBreakdownGrid = styled('div')`
   display: grid;
