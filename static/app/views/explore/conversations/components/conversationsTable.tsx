@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Separator} from '@sentry/scraps/separator';
@@ -245,6 +245,14 @@ export function ConversationsTable() {
     () => collapseToolsColumnWhenUnused(columnOrder, hasNoTools),
     [columnOrder, hasNoTools]
   );
+  const staticColumnWidths = useMemo(
+    () =>
+      storedWidths.conversation === undefined ||
+      storedWidths.conversation === COL_WIDTH_UNDEFINED
+        ? {conversation: `minmax(${COL_WIDTH_MINIMUM}px, 1fr)`}
+        : undefined,
+    [storedWidths.conversation]
+  );
 
   const handlePaginate: typeof setCursor = (cursor, path, query, pageDelta) => {
     trackAnalytics('conversations.table.paginate', {
@@ -286,9 +294,6 @@ export function ConversationsTable() {
         justify={RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'end' : 'start'}
       >
         {column.name}
-        {/* Raise the conversation column's growth-limit so it absorbs the
-            leftover width instead of the last column stretching. */}
-        {column.key === 'conversation' && <Container width="100vw" />}
       </Flex>
     ),
     []
@@ -339,6 +344,7 @@ export function ConversationsTable() {
             renderHeadCell,
             renderBodyCell,
             onResizeColumn: handleResizeColumn,
+            staticColumnWidths,
           }}
           onRowClick={handleRowClick}
           isRowClickable={() => true}
