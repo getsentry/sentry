@@ -55,6 +55,31 @@ describe('GroupingComponent', () => {
     );
   });
 
+  it('preserves a visible frame’s disclosure state when the filter changes', async () => {
+    const tree = component(
+      'stacktrace',
+      ['first', 'second', 'third'].map(name =>
+        component('frame', [component('function', [name])])
+      )
+    );
+    const {rerender} = render(
+      <GroupingComponent component={tree} showNonContributing={false} />
+    );
+    await userEvent.click(screen.getAllByRole('button', {name: 'frame'})[0]!);
+    rerender(<GroupingComponent component={tree} showNonContributing />);
+    expect(screen.getAllByRole('button', {name: 'frame'})[0]).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    expect(screen.getByText('third')).toBeVisible();
+    rerender(<GroupingComponent component={tree} showNonContributing={false} />);
+    expect(screen.getAllByRole('button', {name: 'frame'})[0]).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    expect(screen.getByRole('button', {name: 'show 1 similar'})).toBeVisible();
+  });
+
   it('expands similar frames and resets their default when the filter changes', async () => {
     const tree = component(
       'stacktrace',

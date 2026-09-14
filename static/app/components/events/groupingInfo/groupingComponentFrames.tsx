@@ -7,61 +7,53 @@ import {IconAdd, IconSubtract} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 
 interface GroupingComponentFramesProps {
-  initialCollapsed: boolean;
   items: React.ReactNode[];
+  showNonContributing: boolean;
 }
 
 export function GroupingComponentFrames({
   items,
-  initialCollapsed,
+  showNonContributing,
 }: GroupingComponentFramesProps) {
-  const [collapsed, setCollapsed] = useState(initialCollapsed);
+  const [collapsed, setCollapsed] = useState(!showNonContributing);
+  const [previousShowNonContributing, setPreviousShowNonContributing] =
+    useState(showNonContributing);
   const isCollapsible = items.length > 2;
+
+  // Reset the frame limit without remounting nested disclosures.
+  if (previousShowNonContributing !== showNonContributing) {
+    setPreviousShowNonContributing(showNonContributing);
+    setCollapsed(!showNonContributing);
+  }
+
+  const visibleItems = collapsed ? items.slice(0, 2) : items;
 
   return (
     <Fragment>
-      {items.map((item, index) => {
-        if (!collapsed || index < 2) {
-          return (
-            <GroupingComponentListItem isCollapsible={isCollapsible} key={index}>
-              {item}
-            </GroupingComponentListItem>
-          );
-        }
+      {visibleItems.map((item, index) => (
+        <GroupingComponentListItem isCollapsible={isCollapsible} key={index}>
+          {item}
+        </GroupingComponentListItem>
+      ))}
 
-        if (index === 2) {
-          return (
-            <GroupingComponentListItem key={index}>
-              <ToggleCollapse
-                size="sm"
-                variant="link"
-                icon={<IconAdd legacySize="8px" />}
-                onClick={() => setCollapsed(false)}
-                aria-expanded={false}
-              >
-                {tct('show [numberOfFrames] similar', {
-                  numberOfFrames: items.length - 2,
-                })}
-              </ToggleCollapse>
-            </GroupingComponentListItem>
-          );
-        }
-
-        return null;
-      })}
-
-      {!collapsed && items.length > 2 && (
-        <GroupingComponentListItem>
+      {isCollapsible && (
+        <GroupingComponentListItem key="toggle">
           <ToggleCollapse
             size="sm"
             variant="link"
-            icon={<IconSubtract legacySize="8px" />}
-            onClick={() => setCollapsed(true)}
-            aria-expanded
+            icon={
+              collapsed ? <IconAdd legacySize="8px" /> : <IconSubtract legacySize="8px" />
+            }
+            onClick={() => setCollapsed(previous => !previous)}
+            aria-expanded={!collapsed}
           >
-            {tct('collapse [numberOfFrames] similar', {
-              numberOfFrames: items.length - 2,
-            })}
+            {collapsed
+              ? tct('show [numberOfFrames] similar', {
+                  numberOfFrames: items.length - 2,
+                })
+              : tct('collapse [numberOfFrames] similar', {
+                  numberOfFrames: items.length - 2,
+                })}
           </ToggleCollapse>
         </GroupingComponentListItem>
       )}

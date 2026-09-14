@@ -16,7 +16,7 @@ export function GroupingComponentStacktrace({component, showNonContributing}: Pr
     <Fragment>
       {getFrameGroups(component, showNonContributing).map((group, index) => (
         <GroupingComponentFrames
-          key={`${showNonContributing}-${index}`}
+          key={index}
           items={group.data.map((v, idx) => (
             <GroupingComponent
               key={idx}
@@ -24,7 +24,7 @@ export function GroupingComponentStacktrace({component, showNonContributing}: Pr
               showNonContributing={showNonContributing}
             />
           ))}
-          initialCollapsed={!showNonContributing}
+          showNonContributing={showNonContributing}
         />
       ))}
     </Fragment>
