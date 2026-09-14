@@ -209,6 +209,11 @@ def test_hydration_disables_aggregate_extrapolation(run_bulk_table_queries: Magi
     run_bulk_table_queries.assert_called_once()
     queries = run_bulk_table_queries.call_args.args[0]
     assert all(query.resolver.config.disable_aggregate_extrapolation for query in queries)
+    aggregations_query = next(query for query in queries if query.name == "aggregations")
+    assert (
+        f"{AI_CONVERSATIONS_FIELDS['conversation.duration'][0]} as duration"
+        in aggregations_query.selected_columns
+    )
 
 
 @patch(
@@ -226,6 +231,10 @@ def test_single_query_hydration_uses_one_aggregate_query(run_table_query: MagicM
     assert query["config"].disable_aggregate_extrapolation is True
     assert "min(timestamp) as start_timestamp" in query["selected_columns"]
     assert "max(timestamp) as end_timestamp" in query["selected_columns"]
+    assert (
+        f"{AI_CONVERSATIONS_FIELDS['conversation.duration'][0]} as duration"
+        in query["selected_columns"]
+    )
     assert query["orderby"] is None
     assert query["limit"] == 1
 
@@ -857,6 +866,50 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         # lastOutput: gen_ai.response.text from last ai_client span
         assert conversation["firstInput"] == "Hello, I need help"
         assert conversation["lastOutput"] == last_response_text
+
+    @pytest.mark.parametrize("enhancements_enabled", [False, True])
+    def test_duration_sums_non_agent_gen_ai_spans(self, enhancements_enabled: bool) -> None:
+        now = before_now(days=15).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            operation_type="agent",
+            duration=7000,
+        )
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            operation_type="ai_client",
+            duration=2000,
+        )
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            operation_type="tool",
+            duration=3000,
+        )
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            operation_type="tool",
+            duration=4000,
+        )
+
+        with self.feature(
+            {"organizations:gen-ai-conversations-querying-enhancements": enhancements_enabled}
+        ):
+            response = self.do_request(
+                {
+                    "project": [self.project.id],
+                    "start": (now - timedelta(hours=1)).isoformat(),
+                    "end": (now + timedelta(hours=1)).isoformat(),
+                }
+            )
+
+        assert response.status_code == 200
+        assert response.data[0]["duration"] == 9000
 
     def _store_minimal_conversation(self, conversation_id: str, timestamp) -> None:
         self.store_ai_span(

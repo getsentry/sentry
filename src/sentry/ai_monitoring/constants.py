@@ -4,7 +4,7 @@ AI_CONVERSATIONS_FIELDS = {
     "conversation.conversationId": ("gen_ai.conversation.id", "gen_ai.conversation.id"),
     "conversation.age": ("max(timestamp)", "max(timestamp)"),
     "conversation.duration": (
-        "sum_if(`has:gen_ai.operation.type`,span.duration)",
+        "sum_if(`has:gen_ai.operation.type !gen_ai.operation.type:agent`,span.duration)",
         "duration",
     ),
     "conversation.generationDuration": (
