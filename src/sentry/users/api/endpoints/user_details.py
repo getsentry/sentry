@@ -1,10 +1,11 @@
 import logging
+from dataclasses import dataclass
 from datetime import timedelta
-from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any
 
 from django.conf import settings
 from django.contrib.auth import logout
+from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from django.utils import timezone as django_timezone
 from django.utils.translation import gettext_lazy as _
@@ -36,6 +37,7 @@ from sentry.users.api.bases.user import UserAndStaffPermission, UserEndpoint
 from sentry.users.api.serializers.user import DetailedSelfUserSerializer
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.dates import get_timezone_choices
 
@@ -44,6 +46,17 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 
 TIMEZONE_CHOICES = get_timezone_choices()
+
+
+@dataclass(frozen=True)
+class DeletedAccountInfo:
+    """Stand-in for a User row that a hard delete already removed.
+
+    Satisfies `SecurityEmailAccount`, which is all the deletion email needs.
+    """
+
+    id: int
+    email: str
 
 
 def user_can_elevate(target_user: User) -> bool:
@@ -62,7 +75,9 @@ def user_can_elevate(target_user: User) -> bool:
     return org_member_exists
 
 
-def record_user_deactivation(*, user: User, actor: Any, ip_address: str) -> None:
+def record_user_deactivation(
+    *, user: User, actor: User | RpcUser | AnonymousUser, ip_address: str
+) -> None:
     deactivation_datetime = django_timezone.now()
     scheduled_deletion_datetime = deactivation_datetime + timedelta(days=30)
 
@@ -93,7 +108,7 @@ def record_user_deactivation(*, user: User, actor: Any, ip_address: str) -> None
 
 
 def record_hard_user_deletion(
-    *, user_id: int, user_email: str, actor: Any, ip_address: str
+    *, user_id: int, user_email: str, actor: User | RpcUser | AnonymousUser, ip_address: str
 ) -> None:
     deletion_datetime = django_timezone.now()
 
@@ -109,12 +124,12 @@ def record_hard_user_deletion(
     except Exception as e:
         capture_exception(e)
 
-    # We create a minimal object with id and email since the User was already deleted.
-    # This is only used for email template rendering.
-    account_info = SimpleNamespace(id=user_id, email=user_email)
+    # The User was already deleted, so pass a minimal stand-in. This is only used
+    # for logging and email template rendering.
+    account_info = DeletedAccountInfo(id=user_id, email=user_email)
 
     capture_security_activity(
-        account=cast(Any, account_info),
+        account=account_info,
         type="user.removed",
         actor=actor,
         ip_address=ip_address,
