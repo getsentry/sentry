@@ -68,6 +68,11 @@ const SENTRY_BACKEND_PORT = env.SENTRY_BACKEND_PORT;
 const SENTRY_WEBPACK_PROXY_HOST = env.SENTRY_WEBPACK_PROXY_HOST;
 const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
 const SENTRY_RELEASE_VERSION = env.SENTRY_RELEASE_VERSION;
+// The public hostname the devserver is reached at when it is served through a
+// reverse proxy (ngrok, a Coder workspace app, any other tunnel). When this is
+// set, the browser's hostname belongs to the proxy, not to us -- so nothing may
+// be inferred from it, TLS is terminated upstream, and cookies have to be
+// rewritten to the proxy's host.
 const SENTRY_DEVSERVER_NGROK = env.SENTRY_DEVSERVER_NGROK;
 
 // Used by sentry devserver runner to force using webpack-dev-server
@@ -791,12 +796,18 @@ if (
 //
 // Various sentry pages still rely on django to serve html views.
 if (IS_UI_DEV_ONLY) {
-  // XXX: If you change this also change its sibiling in:
-  // - static/index.ejs
+  // XXX: If you change this also change its sibling in:
   // - static/app/utils/extractSlug.tsx
   const KNOWN_DOMAINS = /\.?((?:localhost|dev\.getsentry\.net|sentry\.dev)(?::\d*)?)$/;
 
   const extractSlug = (hostname: string) => {
+    // Behind a proxy the hostname identifies the tunnel, not an organization.
+    // `foo--workspace--owner.coder.sentry.dev` would otherwise match the
+    // `sentry.dev` arm below and yield `foo--workspace--owner` as an org slug.
+    if (SENTRY_DEVSERVER_NGROK) {
+      return null;
+    }
+
     const match = hostname.match(KNOWN_DOMAINS);
     if (!match) {
       return null;
@@ -823,10 +834,16 @@ if (IS_UI_DEV_ONLY) {
   appConfig.devServer = {
     ...appConfig.devServer,
     compress: true,
-    server: {
-      type: 'https',
-      options: httpsOptions,
-    },
+    // TLS is terminated by the proxy, so the inner hop is plain HTTP. Beyond
+    // being redundant, a self-signed inner hop breaks proxies that health-check
+    // the upstream with a verifying HTTP client -- Coder's agent is one, so an
+    // HTTPS dev-ui reads as permanently unhealthy there even though it loads.
+    server: SENTRY_DEVSERVER_NGROK
+      ? {type: 'http'}
+      : {
+          type: 'https',
+          options: httpsOptions,
+        },
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Credentials': 'true',
@@ -853,7 +870,7 @@ if (IS_UI_DEV_ONLY) {
           'Document-Policy': 'js-profiling',
           origin: 'https://sentry.io',
         },
-        cookieDomainRewrite: {'.sentry.io': 'localhost'},
+        cookieDomainRewrite: {'.sentry.io': SENTRY_DEVSERVER_NGROK ?? 'localhost'},
         logger: proxyLoggerQuiet,
         router: req => {
           const host = req.headers.host!.split(':')[0]!;
@@ -877,7 +894,7 @@ if (IS_UI_DEV_ONLY) {
           'Document-Policy': 'js-profiling',
           origin: 'https://sentry.io',
         },
-        cookieDomainRewrite: {'.sentry.io': 'localhost'},
+        cookieDomainRewrite: {'.sentry.io': SENTRY_DEVSERVER_NGROK ?? 'localhost'},
         logger: proxyLoggerQuiet,
         pathRewrite: {
           '^/region/[^/]*': '',
@@ -926,6 +943,11 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
       title: 'Sentry',
       window: {
         __SENTRY_DEV_UI: true,
+        // Tells the app its hostname belongs to a reverse proxy, so it must not
+        // read an organization slug out of it or navigate away from it.
+        ...(SENTRY_DEVSERVER_NGROK
+          ? {__SENTRY_DEV_UI_PROXY_HOST: SENTRY_DEVSERVER_NGROK}
+          : {}),
       },
     })
   );

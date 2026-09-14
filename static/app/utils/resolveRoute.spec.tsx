@@ -21,6 +21,7 @@ jest.mock('sentry/constants', () => {
 
 describe('resolveRoute', () => {
   let devUi: any;
+  let devUiProxyHost: any;
   let configState: Config;
 
   const organization = OrganizationFixture();
@@ -30,11 +31,13 @@ describe('resolveRoute', () => {
 
   beforeEach(() => {
     devUi = window.__SENTRY_DEV_UI;
+    devUiProxyHost = window.__SENTRY_DEV_UI_PROXY_HOST;
     configState = ConfigStore.getState();
     ConfigStore.set('features', new Set(['system:multi-region']));
   });
   afterEach(() => {
     window.__SENTRY_DEV_UI = devUi;
+    window.__SENTRY_DEV_UI_PROXY_HOST = devUiProxyHost;
     ConfigStore.loadInitialData(configState);
 
     mockDeployPreviewConfig.mockReset();
@@ -75,6 +78,23 @@ describe('resolveRoute', () => {
     );
     expect(result).toBe(
       'https://sentry-abc123.sentry.dev/organizations/other-org/issues/'
+    );
+  });
+
+  it('should use path slugs behind a reverse proxy', () => {
+    // A Coder workspace app (or ngrok) can't have additional subdomains, and
+    // its host is the only one the browser can reach the devserver on.
+    window.__SENTRY_DEV_UI = true;
+    window.__SENTRY_DEV_UI_PROXY_HOST = 'dev-ui--ws--owner.coder.sentry.dev';
+    setWindowLocation('http://dev-ui--ws--owner.coder.sentry.dev');
+
+    const result = resolveRoute(
+      `/organizations/${otherOrg.slug}/issues/`,
+      organization,
+      otherOrg
+    );
+    expect(result).toBe(
+      'https://dev-ui--ws--owner.coder.sentry.dev/organizations/other-org/issues/'
     );
   });
 

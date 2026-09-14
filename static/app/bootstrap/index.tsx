@@ -24,7 +24,14 @@ async function bootWithHydration() {
   // Shim up the initialData payload to quack like it came from
   // a customer-domains initial request. Because our initial call to BOOTSTRAP_URL
   // will not be on a customer domain, the response will not include this context.
-  if (data.customerDomain === null && window.__SENTRY_DEV_UI) {
+  //
+  // Behind a reverse proxy the hostname identifies the tunnel, so there is no
+  // slug in it to shim with -- run org-less, the way a Vercel preview does.
+  if (
+    data.customerDomain === null &&
+    window.__SENTRY_DEV_UI &&
+    !window.__SENTRY_DEV_UI_PROXY_HOST
+  ) {
     const domain = extractSlug(window.location.host);
     if (domain) {
       data.customerDomain = {

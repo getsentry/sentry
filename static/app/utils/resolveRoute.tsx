@@ -13,8 +13,11 @@ function localizeDomain(domain?: string) {
   if (!window.__SENTRY_DEV_UI || !domain) {
     return domain;
   }
-  // Vercel doesn't support subdomains, stay on the current host.
-  if (DEPLOY_PREVIEW_CONFIG) {
+  // Neither Vercel previews nor a reverse proxy (ngrok, a Coder workspace app)
+  // can put an organization slug in a subdomain, and the proxy host is the only
+  // one the browser can reach us on. Stay put rather than sending the user to
+  // production.
+  if (DEPLOY_PREVIEW_CONFIG || window.__SENTRY_DEV_UI_PROXY_HOST) {
     return `https://${window.location.host}`;
   }
 

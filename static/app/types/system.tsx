@@ -85,6 +85,16 @@ declare global {
      */
     __SENTRY_DEV_UI?: boolean;
     /**
+     * The public hostname dev-ui is reached at when it is served through a
+     * reverse proxy (ngrok, a Coder workspace app, any other tunnel). Set from
+     * SENTRY_DEVSERVER_NGROK by webpack-devserver + html-webpack.
+     *
+     * When this is set, `window.location.host` belongs to the proxy rather than
+     * to us: it carries no organization slug, and it is the only host the
+     * browser can reach the app on.
+     */
+    __SENTRY_DEV_UI_PROXY_HOST?: string;
+    /**
      * Sentrys version string
      */
     __SENTRY__VERSION?: string;
