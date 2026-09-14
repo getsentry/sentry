@@ -132,6 +132,17 @@ class MalformedJwksTest(CursorOriginKeysTestCase):
         with self._urlopen({"keys": [_jwk("bad", "!!!not base64!!!"), _jwk("key-1", KEY_A)]}):
             assert [k.kid for k in fetch_public_keys()] == ["key-1"]
 
+    def test_junk_that_decodes_to_a_valid_length_is_rejected(self) -> None:
+        """Out-of-alphabet characters must not be silently discarded.
+
+        Stripping them can leave exactly 32 bytes, which passes the length guard.
+        """
+        good = _b64url(KEY_A)
+        junk = good[:20] + "!!!!" + good[20:]
+
+        with self._urlopen({"keys": [_jwk("junk", junk), _jwk("key-1", KEY_A)]}):
+            assert [k.kid for k in fetch_public_keys()] == ["key-1"]
+
     def test_wrong_length_key_is_skipped(self) -> None:
         with self._urlopen({"keys": [_jwk("short", b"\x01" * 16), _jwk("key-1", KEY_A)]}):
             assert [k.kid for k in fetch_public_keys()] == ["key-1"]

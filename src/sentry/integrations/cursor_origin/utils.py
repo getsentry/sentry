@@ -29,6 +29,8 @@ def get_jwt(app_id: str | None = None, private_key: str | None = None) -> str:
         app_id = str(options.get("cursor-origin-app.id"))
     if private_key is None:
         private_key = options.get("cursor-origin-app.private-key")
+    if not app_id:
+        raise ValueError("cursor-origin-app.id is not configured")
 
     now = int(time.time())
     return jwt.encode(

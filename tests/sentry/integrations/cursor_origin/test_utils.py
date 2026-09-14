@@ -78,6 +78,12 @@ class GetJwtTest(TestCase):
 
         assert "cursor-origin-app.private-key" in str(excinfo.value)
 
+    def test_unconfigured_app_id_names_the_option(self) -> None:
+        with pytest.raises(ValueError) as excinfo:
+            get_jwt(app_id="", private_key=self.pem)
+
+        assert "cursor-origin-app.id" in str(excinfo.value)
+
     def test_non_ed25519_key_is_rejected(self) -> None:
         """A well-formed PEM of the wrong type is a configuration error, not an algorithm one."""
         rsa_pem = (
