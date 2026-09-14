@@ -4947,10 +4947,7 @@ class OrganizationDashboardHiddenTest(OrganizationDashboardDetailsTestCase):
         )
 
     def test_hide_dashboard(self) -> None:
-        with self.feature("organizations:dashboards-hide-dashboards"):
-            response = self.do_request(
-                "put", self.url(self.dashboard.id), data={"shouldHide": True}
-            )
+        response = self.do_request("put", self.url(self.dashboard.id), data={"shouldHide": True})
         assert response.status_code == 204
         assert DashboardHiddenUser.objects.filter(
             user_id=self.user.id, dashboard=self.dashboard
@@ -4958,10 +4955,7 @@ class OrganizationDashboardHiddenTest(OrganizationDashboardDetailsTestCase):
 
     def test_hide_already_hidden_dashboard(self) -> None:
         self.create_dashboard_hidden_user(dashboard=self.dashboard, user=self.user)
-        with self.feature("organizations:dashboards-hide-dashboards"):
-            response = self.do_request(
-                "put", self.url(self.dashboard.id), data={"shouldHide": True}
-            )
+        response = self.do_request("put", self.url(self.dashboard.id), data={"shouldHide": True})
         assert response.status_code == 204
         assert (
             DashboardHiddenUser.objects.filter(
@@ -4975,10 +4969,7 @@ class OrganizationDashboardHiddenTest(OrganizationDashboardDetailsTestCase):
         self.create_member(user=other_user, organization=self.organization)
         self.create_dashboard_hidden_user(dashboard=self.dashboard, user=self.user)
         self.create_dashboard_hidden_user(dashboard=self.dashboard, user=other_user)
-        with self.feature("organizations:dashboards-hide-dashboards"):
-            response = self.do_request(
-                "put", self.url(self.dashboard.id), data={"shouldHide": False}
-            )
+        response = self.do_request("put", self.url(self.dashboard.id), data={"shouldHide": False})
         assert response.status_code == 204
         assert not DashboardHiddenUser.objects.filter(
             user_id=self.user.id, dashboard=self.dashboard
@@ -4991,8 +4982,7 @@ class OrganizationDashboardHiddenTest(OrganizationDashboardDetailsTestCase):
         prebuilt = Dashboard.objects.create(
             title="Prebuilt", organization=self.organization, prebuilt_id=1
         )
-        with self.feature("organizations:dashboards-hide-dashboards"):
-            response = self.do_request("put", self.url(prebuilt.id), data={"shouldHide": True})
+        response = self.do_request("put", self.url(prebuilt.id), data={"shouldHide": True})
         assert response.status_code == 204
         assert DashboardHiddenUser.objects.filter(user_id=self.user.id, dashboard=prebuilt).exists()
 
@@ -5001,35 +4991,23 @@ class OrganizationDashboardHiddenTest(OrganizationDashboardDetailsTestCase):
         self.create_member(user=other_user, organization=self.organization)
         DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=self.dashboard)
         self.login_as(user=other_user)
-        with self.feature("organizations:dashboards-hide-dashboards"):
-            response = self.do_request(
-                "put", self.url(self.dashboard.id), data={"shouldHide": True}
-            )
+        response = self.do_request("put", self.url(self.dashboard.id), data={"shouldHide": True})
         assert response.status_code == 204
         assert DashboardHiddenUser.objects.filter(
             user_id=other_user.id, dashboard=self.dashboard
         ).exists()
 
     def test_hide_dashboard_missing_should_hide(self) -> None:
-        with self.feature("organizations:dashboards-hide-dashboards"):
-            response = self.do_request("put", self.url(self.dashboard.id), data={})
+        response = self.do_request("put", self.url(self.dashboard.id), data={})
         assert response.status_code == 400
         assert not DashboardHiddenUser.objects.filter(dashboard=self.dashboard).exists()
 
     def test_hide_dashboard_from_other_organization(self) -> None:
         other_org = self.create_organization()
         other_dashboard = self.create_dashboard(organization=other_org)
-        with self.feature("organizations:dashboards-hide-dashboards"):
-            response = self.do_request(
-                "put", self.url(other_dashboard.id), data={"shouldHide": True}
-            )
+        response = self.do_request("put", self.url(other_dashboard.id), data={"shouldHide": True})
         assert response.status_code == 404
         assert not DashboardHiddenUser.objects.filter(dashboard=other_dashboard).exists()
-
-    def test_hide_dashboard_without_feature(self) -> None:
-        response = self.do_request("put", self.url(self.dashboard.id), data={"shouldHide": True})
-        assert response.status_code == 404
-        assert not DashboardHiddenUser.objects.filter(dashboard=self.dashboard).exists()
 
 
 class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTestCase):

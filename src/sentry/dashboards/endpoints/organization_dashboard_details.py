@@ -368,9 +368,7 @@ class OrganizationDashboardHiddenEndpoint(OrganizationDashboardBase):
         """
         Toggle hidden status for current user by hiding or unhiding the dashboard
         """
-        if not features.has(
-            "organizations:dashboards-hide-dashboards", organization, actor=request.user
-        ):
+        if not features.has(EDIT_FEATURE, organization, actor=request.user):
             return Response(status=404)
 
         if not request.user.is_authenticated:

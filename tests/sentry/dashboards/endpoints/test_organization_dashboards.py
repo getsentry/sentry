@@ -2137,8 +2137,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     def test_user_hidden_dashboards_excluded_by_default(self) -> None:
         self.create_dashboard_hidden_user(dashboard=self.dashboard, user=self.user)
 
-        with self.feature("organizations:dashboards-hide-dashboards"):
-            response = self.do_request("get", self.url)
+        response = self.do_request("get", self.url)
 
         assert response.status_code == 200, response.content
         dashboard_ids = {d["id"] for d in response.data}
@@ -2149,8 +2148,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     def test_user_hidden_dashboards_included_with_show_user_hidden_filter(self) -> None:
         self.create_dashboard_hidden_user(dashboard=self.dashboard, user=self.user)
 
-        with self.feature("organizations:dashboards-hide-dashboards"):
-            response = self.do_request("get", self.url, {"filter": "showUserHidden"})
+        response = self.do_request("get", self.url, {"filter": "showUserHidden"})
 
         assert response.status_code == 200, response.content
         hidden_by_id = {d["id"]: d["isHidden"] for d in response.data}
@@ -2162,20 +2160,11 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         self.create_member(user=other_user, organization=self.organization)
         self.create_dashboard_hidden_user(dashboard=self.dashboard, user=other_user)
 
-        with self.feature("organizations:dashboards-hide-dashboards"):
-            response = self.do_request("get", self.url)
+        response = self.do_request("get", self.url)
 
         assert response.status_code == 200, response.content
         hidden_by_id = {d["id"]: d["isHidden"] for d in response.data}
         assert hidden_by_id[str(self.dashboard.id)] is False
-
-    def test_user_hidden_dashboards_not_excluded_without_feature(self) -> None:
-        self.create_dashboard_hidden_user(dashboard=self.dashboard, user=self.user)
-
-        response = self.do_request("get", self.url)
-
-        assert response.status_code == 200, response.content
-        assert str(self.dashboard.id) in {d["id"] for d in response.data}
 
     def test_post_errors_widget_with_is_filter(self) -> None:
         data: dict[str, Any] = {
