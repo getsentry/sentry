@@ -31,6 +31,7 @@ function StoreCapture({
 }: {
   storeRef: React.MutableRefObject<ReturnType<typeof TestCollection.useStore> | null>;
 }) {
+  // oxlint-disable-next-line react/refs
   storeRef.current = TestCollection.useStore();
   return null;
 }
@@ -285,10 +286,12 @@ describe('Collection', () => {
       return null;
     }
     function CaptureA() {
+      // oxlint-disable-next-line react/immutability
       storeRefA.current = A.useStore();
       return null;
     }
     function CaptureB() {
+      // oxlint-disable-next-line react/immutability
       storeRefB.current = B.useStore();
       return null;
     }

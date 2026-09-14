@@ -5,6 +5,7 @@ import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   type AggregationKey,
 } from 'sentry/utils/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
@@ -34,6 +35,10 @@ export const SpansTabCrossEventSearchBar = memo(
     const mode = useQueryParamsMode();
     const crossEvents = useQueryParamsCrossEvents();
     const setCrossEvents = useSetQueryParamsCrossEvents();
+    const organization = useOrganization();
+    const supportsArrays = organization.features.includes(
+      'trace-item-array-query-support'
+    );
 
     const traceItemType =
       type === 'logs' ? TraceItemDataset.LOGS : TraceItemDataset.SPANS;
@@ -44,6 +49,8 @@ export const SpansTabCrossEventSearchBar = memo(
       useTraceItemDatasetAttributes(traceItemType, {}, 'string');
     const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
       useTraceItemDatasetAttributes(traceItemType, {}, 'boolean');
+    const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
+      useTraceItemDatasetAttributes(traceItemType, {enabled: supportsArrays}, 'array');
 
     const eapSpanSearchQueryBuilderProps = useMemo(
       () => ({
@@ -76,6 +83,7 @@ export const SpansTabCrossEventSearchBar = memo(
             : undefined,
         supportedAggregates:
           mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+        arrayAttributes: supportsArrays ? arrayAttributes : {},
         booleanAttributes,
         numberAttributes,
         stringAttributes,
@@ -83,12 +91,15 @@ export const SpansTabCrossEventSearchBar = memo(
           {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
           {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
         ],
+        arraySecondaryAliases: supportsArrays ? arraySecondaryAliases : {},
         booleanSecondaryAliases,
         numberSecondaryAliases,
         stringSecondaryAliases,
         replaceRawSearchKeys: type === 'logs' ? ['message'] : ['span.description'],
       }),
       [
+        arrayAttributes,
+        arraySecondaryAliases,
         booleanAttributes,
         booleanSecondaryAliases,
         crossEvents,
@@ -100,6 +111,7 @@ export const SpansTabCrossEventSearchBar = memo(
         setCrossEvents,
         stringSecondaryAliases,
         stringAttributes,
+        supportsArrays,
         type,
       ]
     );

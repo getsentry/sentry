@@ -76,8 +76,9 @@ function initDemoAnalytics() {
 
     const queueScript = document.createElement('script');
     queueScript.id = 'plausible-queue-script';
-    queueScript.textContent =
-      'window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }';
+    queueScript.append(
+      'window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }'
+    );
 
     document.head.appendChild(mainScript);
     document.head.appendChild(queueScript);

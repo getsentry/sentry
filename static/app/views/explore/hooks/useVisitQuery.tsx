@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
 
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -11,7 +12,9 @@ export function useVisitQuery() {
     async (id: string) => {
       try {
         await api.requestPromise(
-          `/organizations/${organization.slug}/explore/saved/${id}/visit/`,
+          getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/visit/', {
+            path: {organizationIdOrSlug: organization.slug, id},
+          }),
           {
             method: 'POST',
           }

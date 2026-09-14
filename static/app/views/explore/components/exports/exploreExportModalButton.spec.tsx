@@ -65,7 +65,7 @@ describe('ExploreExportModalButton', () => {
   it('opens the modal and fires onOpen when clicked', async () => {
     const {onOpen} = renderButton();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(onOpen).toHaveBeenCalled();
@@ -74,7 +74,7 @@ describe('ExploreExportModalButton', () => {
   it('fires onClose with escape_key when closed via Escape', async () => {
     const {onClose} = renderButton();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
 
     await userEvent.keyboard('{Escape}');
@@ -87,7 +87,7 @@ describe('ExploreExportModalButton', () => {
   it('fires onClose once with cancel_button when the Cancel button is clicked', async () => {
     const {onClose} = renderButton();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Cancel'}));
 
     await waitFor(() => {
@@ -99,7 +99,7 @@ describe('ExploreExportModalButton', () => {
   it('disables the button with a tooltip when data is empty', async () => {
     renderButton({isDataEmpty: true});
 
-    const button = screen.getByRole('button', {name: 'Export Data'});
+    const button = screen.getByRole('button', {name: 'Export'});
     expect(button).toBeDisabled();
     await userEvent.hover(button);
     expect(await screen.findByText('No data to export')).toBeInTheDocument();

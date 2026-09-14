@@ -29,7 +29,6 @@ export function getProductCheckoutDescription({
 }: {
   product: AddOnCategory;
   withPunctuation: boolean;
-  includedBudget?: string;
 }) {
   if (product === AddOnCategory.LEGACY_SEER) {
     return tct('Detect and fix issues faster with our AI agent[punctuation]', {
@@ -123,7 +122,7 @@ export function ProductSelect({
                 ariaRole="checkbox"
                 topDecoration={
                   <Flex align="center" gap="lg">
-                    <IconSeer animation="waiting" size="lg" />
+                    <IconSeer animation="idle" size="lg" />
                     <Heading as="h2">
                       {t('Detect and fix issues faster with our AI agent')}
                     </Heading>
@@ -189,7 +188,6 @@ export function ProductSelect({
                               {getSingularCategoryName({
                                 plan: activePlan,
                                 category: category as DataCategory,
-                                hadCustomDynamicSampling: false,
                               })}
                               {' - '}
                               {eventPrice &&

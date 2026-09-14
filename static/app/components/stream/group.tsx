@@ -584,6 +584,7 @@ export function StreamGroup({
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const reviewed =
     // Original state had an inbox reason
+    // oxlint-disable-next-line react/refs
     originalInboxState.current?.reason !== undefined &&
     // Updated state has been removed from inbox
     !group.inbox &&
@@ -605,7 +606,6 @@ export function StreamGroup({
   const groupCount = (
     <Tooltip
       disabled={!useFilteredStats}
-      isHoverable
       title={
         <CountTooltipContent>
           <h4>{issueTypeConfig.customCopy.eventUnits}</h4>
@@ -643,7 +643,6 @@ export function StreamGroup({
 
   const groupUsersCount = (
     <Tooltip
-      isHoverable
       disabled={!usePageFilters}
       title={
         <CountTooltipContent>

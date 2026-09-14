@@ -1,6 +1,6 @@
 import type {QueryClient} from '@tanstack/react-query';
 
-import {investigationDetailQueryOptions} from 'sentry/views/investigations/api';
+import {getInvestigationDetailQueryOptions} from 'sentry/views/investigations/api';
 import type {InvestigationDetail} from 'sentry/views/investigations/types';
 
 export function updateInvestigationCache(
@@ -9,7 +9,7 @@ export function updateInvestigationCache(
   investigationId: string,
   update: (current: InvestigationDetail) => InvestigationDetail
 ) {
-  const options = investigationDetailQueryOptions(organizationSlug, investigationId);
+  const options = getInvestigationDetailQueryOptions(organizationSlug, investigationId);
 
   queryClient.setQueryData(options.queryKey, previous =>
     previous

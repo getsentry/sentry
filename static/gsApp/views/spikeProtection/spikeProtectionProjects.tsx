@@ -4,8 +4,10 @@ import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -20,6 +22,7 @@ import type {
   NotificationAction,
 } from 'sentry/types/notificationActions';
 import type {ProjectSummaryWithOptions} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -44,6 +47,8 @@ import {AccordionRow} from './components/accordionRow';
 interface Props {
   subscription: Subscription;
 }
+
+const PROJECT_COLUMNS: TableColumnConfig[] = [{key: 'project', width: 'auto'}];
 
 function SpikeProtectionProjects({subscription}: Props) {
   const [projects, setProjects] = useState([] as ProjectSummaryWithOptions[]);
@@ -77,7 +82,9 @@ function SpikeProtectionProjects({subscription}: Props) {
       }
       setIsFetchingProjects(true);
       const [data, _, resp] = await api.requestPromise(
-        `/organizations/${organization.slug}/projects/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           includeAllArgs: true,
           query: {
@@ -106,7 +113,9 @@ function SpikeProtectionProjects({subscription}: Props) {
 
   const fetchAvailableNotificationActions = useCallback(async () => {
     const data = await api.requestPromise(
-      `/organizations/${organization.slug}/notifications/available-actions/`
+      getApiUrl('/organizations/$organizationIdOrSlug/notifications/available-actions/', {
+        path: {organizationIdOrSlug: organization.slug},
+      })
     );
     setAvailableNotificationActions(data.actions);
   }, [api, organization]);
@@ -128,7 +137,9 @@ function SpikeProtectionProjects({subscription}: Props) {
   ) => {
     const projectId = project.id;
     const data = await api.requestPromise(
-      `/organizations/${organization.slug}/notifications/actions/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/notifications/actions/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {triggerType, project: projectId}}
     );
 
@@ -146,8 +157,13 @@ function SpikeProtectionProjects({subscription}: Props) {
   const updateAllProjects = async (isEnabling: boolean) => {
     try {
       await api.requestPromise(
-        `/organizations/${organization.slug}/spike-protections/?projectSlug=$all`,
-        {method: isEnabling ? 'POST' : 'DELETE', data: {projects: []}}
+        `${getApiUrl('/organizations/$organizationIdOrSlug/spike-protections/', {
+          path: {organizationIdOrSlug: organization.slug},
+        })}?projectSlug=$all`,
+        {
+          method: isEnabling ? 'POST' : 'DELETE',
+          data: {projects: []},
+        }
       );
       const newProjects = projects.map(p => ({
         ...p,
@@ -168,6 +184,7 @@ function SpikeProtectionProjects({subscription}: Props) {
 
   useEffect(() => {
     fetchProjects();
+    // oxlint-disable-next-line react/set-state-in-effect
     fetchData();
   }, [fetchProjects, fetchData]);
 
@@ -271,10 +288,14 @@ function SpikeProtectionProjects({subscription}: Props) {
         </ButtonBar>
       </Flex>
       <StyledSimpleTable
+        columns={PROJECT_COLUMNS}
         header={
           <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>
-              <Text variant="muted">{t('Projects')}</Text>
+              <Flex gap="xs" align="center">
+                <Text variant="muted">{t('Projects')}</Text>
+                <InfoTip title={t('Expand a project to add a notification action')} />
+              </Flex>
             </SimpleTable.HeaderCell>
           </SimpleTable.HeaderRow>
         }
@@ -294,6 +315,7 @@ function SpikeProtectionProjects({subscription}: Props) {
               <SimpleTable.RowCell
                 gap="xl"
                 padding="xl"
+                overflow="visible"
                 data-test-id={`${project.slug}-accordion-row${
                   isAccordionDisabled ? '-disabled' : ''
                 }`}
@@ -332,10 +354,6 @@ const StyledSearch = styled(SearchBar)`
 const StyledSimpleTable = styled(SimpleTable)`
   align-items: center;
   overflow: visible;
-
-  [role='cell'] {
-    padding: 0;
-  }
 `;
 
 const StyledProjectBadge = styled(ProjectBadge)`

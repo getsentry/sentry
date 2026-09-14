@@ -1,13 +1,13 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
+import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -52,7 +52,7 @@ function Skeletons({numberOfRows}: {numberOfRows: number}) {
           <SimpleTable.RowCell>
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell data-column-name="action-filters">
+          <SimpleTable.RowCell columnKey="action-filters">
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
         </SimpleTable.Row>
@@ -61,7 +61,13 @@ function Skeletons({numberOfRows}: {numberOfRows: number}) {
   );
 }
 
+const AUTOMATIONS_COLUMNS: TableColumnConfig[] = [
+  {key: 'name', width: '1fr'},
+  {key: 'action-filters', width: {zero: '120px', sm: '180px'}},
+];
+
 function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
+  const getPaginationCaption = useGetPaginationCaption();
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   const onSearch = useCallback((query: string) => {
@@ -95,22 +101,19 @@ function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
         });
 
   const table = (
-    <SimpleTableWithColumns
+    <SimpleTable
+      columns={AUTOMATIONS_COLUMNS}
       header={
         <SimpleTable.HeaderRow>
           <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="action-filters">
+          <SimpleTable.HeaderCell columnKey="action-filters">
             {t('Actions')}
           </SimpleTable.HeaderCell>
         </SimpleTable.HeaderRow>
       }
     >
       {isPending && <Skeletons numberOfRows={AUTOMATIONS_PER_PAGE} />}
-      {isError && (
-        <SimpleTable.Empty>
-          <LoadingError />
-        </SimpleTable.Empty>
-      )}
+      {isError && <SimpleTable.Error />}
       {isSuccess && automations?.length === 0 && (
         <SimpleTable.Empty>
           {searchQuery ? t('No matching alerts found') : emptyMessage}
@@ -125,12 +128,12 @@ function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
             <SimpleTable.RowCell>
               <AutomationTitleCell automation={automation} />
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell data-column-name="action-filters">
+            <SimpleTable.RowCell columnKey="action-filters">
               <ActionCell actions={getAutomationActions(automation)} />
             </SimpleTable.RowCell>
           </SimpleTable.Row>
         ))}
-    </SimpleTableWithColumns>
+    </SimpleTable>
   );
 
   return (
@@ -237,7 +240,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
               icon={<IconAdd />}
               onClick={openCreateDrawer}
               disabled={!canEditWorkflowConnections}
-              tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+              tooltipProps={{title: permissionTooltipText}}
             >
               {t('New Alert')}
             </Button>
@@ -245,7 +248,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
               size="xs"
               onClick={toggleDrawer}
               disabled={!canEditWorkflowConnections}
-              tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+              tooltipProps={{title: permissionTooltipText}}
               icon={<IconEdit />}
             >
               {t('Edit Alerts')}
@@ -263,7 +266,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
                     size="sm"
                     onClick={toggleDrawer}
                     disabled={!canEditWorkflowConnections}
-                    tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+                    tooltipProps={{title: permissionTooltipText}}
                   >
                     {t('Connect Existing Alerts')}
                   </Button>
@@ -272,7 +275,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
                     icon={<IconAdd />}
                     onClick={openCreateDrawer}
                     disabled={!canEditWorkflowConnections}
-                    tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+                    tooltipProps={{title: permissionTooltipText}}
                   >
                     {t('Create a New Alert')}
                   </Button>
@@ -322,14 +325,6 @@ export function DetectorDetailsAutomations({detector}: Props) {
     </Fragment>
   );
 }
-
-const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 1fr 180px;
-
-  @container (max-width: ${p => p.theme.container.sm}) {
-    grid-template-columns: 1fr 120px;
-  }
-`;
 
 const InlineProjectName = styled(Flex)`
   vertical-align: bottom;

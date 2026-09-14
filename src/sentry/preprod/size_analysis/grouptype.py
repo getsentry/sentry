@@ -15,7 +15,7 @@ from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.handlers.detector.base import (
-    BaseDetectorHandler,
+    DetectorHandler,
     DetectorOccurrence,
     GroupedDetectorEvaluationResult,
 )
@@ -191,7 +191,7 @@ SizeAnalysisEvaluation: TypeAlias = int | float
 
 
 class PreprodSizeAnalysisDetectorHandler(
-    BaseDetectorHandler[SizeAnalysisValue, SizeAnalysisEvaluation]
+    DetectorHandler[SizeAnalysisValue, SizeAnalysisEvaluation]
 ):
     def _matches_query(self, data_packet: SizeAnalysisDataPacket) -> bool:
         query = self.detector.config.get("query", "")
@@ -216,7 +216,7 @@ class PreprodSizeAnalysisDetectorHandler(
             )
             return False
 
-    def evaluate_impl(self, data_packet: SizeAnalysisDataPacket) -> GroupedDetectorEvaluationResult:
+    def evaluate(self, data_packet: SizeAnalysisDataPacket) -> GroupedDetectorEvaluationResult:
         if not self._matches_query(data_packet):
             return GroupedDetectorEvaluationResult(result={}, tainted=False)
 
@@ -394,9 +394,6 @@ class PreprodSizeAnalysisDetectorHandler(
         }
 
         return occurrence, event_data
-
-    def extract_dedupe_value(self, data_packet: SizeAnalysisDataPacket) -> int:
-        raise NotImplementedError
 
 
 class PreprodSizeAnalysisDetectorValidator(BaseDetectorTypeValidator):

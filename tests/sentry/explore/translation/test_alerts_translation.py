@@ -712,7 +712,6 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     @patch("sentry.snuba.tasks._create_rpc_in_snuba")
     @patch("sentry.explore.translation.alerts_translation.handle_send_historical_data_to_seer")
     @patch(
@@ -810,7 +809,6 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     @patch("sentry.snuba.tasks._delete_from_snuba")
     @patch("sentry.snuba.tasks._create_snql_in_snuba")
     @patch("sentry.snuba.tasks._create_rpc_in_snuba")

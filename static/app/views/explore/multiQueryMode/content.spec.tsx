@@ -11,6 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {useGetSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
 
@@ -106,6 +107,7 @@ describe('MultiQueryModeContent', () => {
   it('changes to count(span.duration) when using count', async () => {
     let queries: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -184,6 +186,7 @@ describe('MultiQueryModeContent', () => {
   it('changes to epm() when using epm', async () => {
     let queries: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -249,6 +252,7 @@ describe('MultiQueryModeContent', () => {
   it('changes to failure_rate() when using failure_rate', async () => {
     let queries: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -327,6 +331,7 @@ describe('MultiQueryModeContent', () => {
   it('defaults count_unique argument to span.op', async () => {
     let queries: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -410,6 +415,7 @@ describe('MultiQueryModeContent', () => {
   it('updates visualization and outdated sorts', async () => {
     let queries: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -458,6 +464,7 @@ describe('MultiQueryModeContent', () => {
   it('explicitly selecting visualization persists it', async () => {
     let queries: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -494,6 +501,7 @@ describe('MultiQueryModeContent', () => {
   it('updates sorts', async () => {
     let queries: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -536,6 +544,7 @@ describe('MultiQueryModeContent', () => {
   it('updates group bys and outdated sorts', async () => {
     let queries: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -578,6 +587,7 @@ describe('MultiQueryModeContent', () => {
   it('allows changing a query', async () => {
     let queries: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -623,6 +633,7 @@ describe('MultiQueryModeContent', () => {
   it('allows changing case insensitivity', async () => {
     let queries: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -665,6 +676,7 @@ describe('MultiQueryModeContent', () => {
   it('allows adding a query', async () => {
     let queries: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -719,6 +731,7 @@ describe('MultiQueryModeContent', () => {
   it('allows duplicating a query', async () => {
     let queries: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -780,6 +793,7 @@ describe('MultiQueryModeContent', () => {
   it('allows deleting a query', async () => {
     let queries: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -884,6 +898,7 @@ describe('MultiQueryModeContent', () => {
   it('calls events and stats APIs', async () => {
     let queries: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -1032,6 +1047,7 @@ describe('MultiQueryModeContent', () => {
 
     let queries: any;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -1116,7 +1132,11 @@ describe('MultiQueryModeContent', () => {
     expect(await screen.findByText('New Query')).toBeInTheDocument();
   });
 
-  it('highlights save button when query has changes', async () => {
+  it('clears the save highlight and refreshes saved queries after updating', async () => {
+    const listRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/`,
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/explore/saved/123/`,
       method: 'GET',
@@ -1151,7 +1171,12 @@ describe('MultiQueryModeContent', () => {
       method: 'POST',
     });
 
-    render(<MultiQueryModeContent />, {
+    function Component() {
+      useGetSavedQueries({});
+      return <MultiQueryModeContent />;
+    }
+
+    render(<Component />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -1160,11 +1185,48 @@ describe('MultiQueryModeContent', () => {
             queries:
               '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
             id: '123',
+            project: project.id,
+            statsPeriod: '7d',
           },
         },
       },
     });
     // No good way to check for highlighted css, so we just check for the text
     expect(await screen.findByText('Save')).toBeInTheDocument();
+    await waitFor(() => expect(listRequest).toHaveBeenCalledTimes(1));
+
+    const updatedQuery = {
+      id: '123',
+      query: [
+        {
+          query: '',
+          fields: ['id', 'span.duration', 'timestamp'],
+          groupby: [],
+          orderby: '-timestamp',
+          visualize: [{yAxes: ['avg(span.duration)']}],
+          mode: 'samples',
+        },
+      ],
+      range: '7d',
+      projects: [Number(project.id)],
+      environment: [],
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/123/`,
+      method: 'PUT',
+      body: updatedQuery,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/123/`,
+      body: updatedQuery,
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Existing Query'})
+    );
+
+    expect(await screen.findByText('Save as…')).toBeInTheDocument();
+    await waitFor(() => expect(listRequest).toHaveBeenCalledTimes(2));
   });
 });

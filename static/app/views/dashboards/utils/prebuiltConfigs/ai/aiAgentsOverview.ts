@@ -217,6 +217,7 @@ const AGENTS_TRACES_TABLE: PrebuiltWidget = {
   title: t('Traces'),
   description: t('Agent traces with duration, token, cost, and tool usage.'),
   displayType: DisplayType.AGENTS_TRACES_TABLE,
+  widgetType: WidgetType.SPANS,
   interval: '1h',
   tableWidths: DEFAULT_TRACES_TABLE_WIDTHS,
   limit: MAX_TABLE_LIMIT,

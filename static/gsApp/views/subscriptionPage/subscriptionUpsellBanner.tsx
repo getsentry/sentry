@@ -219,7 +219,7 @@ const BannerImage = styled('img')`
   pointer-events: none;
   max-height: 90%;
 
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
+  @container (min-width: ${p => p.theme.container['5xl']}) {
     display: block;
   }
 `;

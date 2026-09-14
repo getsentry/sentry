@@ -198,14 +198,14 @@ export function canvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
     return cloneNode;
   }
 
-  async function preload(currentEvent?: eventWithTime, preloadCount = PRELOAD_SIZE) {
+  async function preload(currentEvent?: eventWithTime) {
     const foundIndex =
       nextPreloadIndex > -1
         ? nextPreloadIndex
         : findIndex(canvasMutationEvents, currentEvent);
     const startIndex = foundIndex > -1 ? foundIndex : 0;
     const eventsToPreload = canvasMutationEvents
-      .slice(startIndex, startIndex + preloadCount)
+      .slice(startIndex, startIndex + PRELOAD_SIZE)
       .filter(
         ({timestamp}) =>
           !currentEvent || timestamp - currentEvent.timestamp <= BUFFER_TIME

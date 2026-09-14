@@ -10,9 +10,9 @@ import {useNumberFieldState} from '@react-stately/numberfield';
 import {Button} from '@sentry/scraps/button';
 import type {InputStylesProps} from '@sentry/scraps/input';
 import {InputGroup} from '@sentry/scraps/input';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {IconChevron} from 'sentry/icons/iconChevron';
-import {t} from 'sentry/locale';
 
 interface NumberInputProps
   extends
@@ -40,6 +40,7 @@ export function NumberInput({
   className,
   ...props
 }: NumberInputProps) {
+  const {t} = useTranslation();
   const localRef = useRef<HTMLInputElement>(null);
 
   const ariaProps = {

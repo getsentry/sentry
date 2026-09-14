@@ -3,7 +3,7 @@ import {Fragment, useCallback, useMemo, useState, type ReactNode} from 'react';
 import {useMatches} from 'react-router-dom';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
+import type {Location, LocationDescriptor} from 'history';
 import groupBy from 'lodash/groupBy';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -13,8 +13,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {GridEditable} from 'sentry/components/tables/gridEditable';
-import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
-import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
@@ -24,7 +22,6 @@ import {toArray} from 'sentry/utils/array/toArray';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
   fieldAlignment,
@@ -32,6 +29,7 @@ import {
   isSpanOperationBreakdownField,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
+import {getEventViewColumnSort} from 'sentry/utils/discover/getEventViewColumnSort';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
@@ -97,7 +95,6 @@ type Props = {
   customColumns?: Array<'attachments' | 'minidump'>;
   excludedTags?: string[];
   hidePagination?: boolean;
-  isRegressionIssue?: boolean;
   issueId?: string;
   projectSlug?: string;
   referrer?: string;
@@ -108,6 +105,13 @@ type Props = {
     totalEventsCount: string | number;
   }) => ReactNode;
 };
+
+const UNSORTABLE_FIELDS = new Set([
+  'id',
+  'trace',
+  'replayId',
+  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+]);
 
 export function EventsTable({
   eventView,
@@ -121,7 +125,6 @@ export function EventsTable({
   customColumns,
   excludedTags,
   hidePagination,
-  isRegressionIssue,
   issueId,
   projectSlug,
   referrer,
@@ -228,7 +231,7 @@ export function EventsTable({
       if (field === 'id' || field === 'trace') {
         const isIssue = !!issueId;
         let target: LocationDescriptor | null = null;
-        if (isIssue && !isRegressionIssue && field === 'id') {
+        if (isIssue && field === 'id') {
           target = {
             pathname: `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`,
           };
@@ -361,7 +364,6 @@ export function EventsTable({
       projectSlug,
       transactionName,
       issueId,
-      isRegressionIssue,
       replayLinkGenerator,
       handleCellAction,
     ]
@@ -388,41 +390,32 @@ export function EventsTable({
     [organization]
   );
 
+  const getColumnSort = useCallback(
+    (tableMeta: TableData['meta'], column: TableColumn<keyof TableDataRow>) => {
+      const field = {field: column.name, width: column.width};
+      const currentSort = eventView.sortForField(field, tableMeta);
+
+      return getEventViewColumnSort({
+        align: fieldAlignment(column.name, column.type, tableMeta),
+        canSort: !UNSORTABLE_FIELDS.has(column.name),
+        eventView,
+        field,
+        location,
+        meta: tableMeta,
+        onSort: () => onSortClick(currentSort?.kind, currentSort?.field),
+      });
+    },
+    [eventView, location, onSortClick]
+  );
+
   const renderHeadCell = useCallback(
     (
       tableMeta: TableData['meta'],
       column: TableColumn<keyof TableDataRow>,
       title: React.ReactNode
     ): React.ReactNode => {
-      const align = fieldAlignment(column.name, column.type, tableMeta);
-      const field = {field: column.name, width: column.width};
-
-      function generateSortLink(): LocationDescriptorObject | undefined {
-        if (!tableMeta) {
-          return undefined;
-        }
-
-        const nextEventView = eventView.sortOnField(field, tableMeta);
-        const queryStringObject = nextEventView.generateQueryStringObject();
-
-        return {
-          ...location,
-          query: {...location.query, sort: queryStringObject.sort},
-        };
-      }
-      const currentSort = eventView.sortForField(field, tableMeta);
-      const canSort =
-        field.field !== 'id' &&
-        field.field !== 'trace' &&
-        field.field !== 'replayId' &&
-        field.field !== SPAN_OP_RELATIVE_BREAKDOWN_FIELD &&
-        isFieldSortable(field, tableMeta);
-
-      const currentSortKind = currentSort ? currentSort.kind : undefined;
-      const currentSortField = currentSort ? currentSort.field : undefined;
-
-      if (field.field === SPAN_OP_RELATIVE_BREAKDOWN_FIELD) {
-        title = (
+      if (column.name === SPAN_OP_RELATIVE_BREAKDOWN_FIELD) {
+        return (
           <OperationSort
             title={OperationTitle}
             eventView={eventView}
@@ -432,19 +425,9 @@ export function EventsTable({
         );
       }
 
-      const sortLink = (
-        <SortLink
-          align={align}
-          title={title || field.field}
-          direction={currentSortKind}
-          canSort={canSort}
-          generateSortLink={generateSortLink}
-          onClick={() => onSortClick(currentSortKind, currentSortField)}
-        />
-      );
-      return sortLink;
+      return title || column.name;
     },
-    [eventView, location, onSortClick]
+    [eventView, location]
   );
 
   const renderHeadCellWithMeta = useCallback(
@@ -509,13 +492,11 @@ export function EventsTable({
       (col: TableColumn<string | number>) => col.name === SPAN_OP_RELATIVE_BREAKDOWN_FIELD
     );
 
-  const {columns, handleResizeColumn} = useStateBasedColumnResize({
-    columns: eventView.getColumns(),
-  });
-
-  const columnOrder = columns.filter((col: TableColumn<string | number>) =>
-    shouldRenderColumn(containsSpanOpsBreakdown, col.name)
-  );
+  const columnOrder = eventView
+    .getColumns()
+    .filter((col: TableColumn<string | number>) =>
+      shouldRenderColumn(containsSpanOpsBreakdown, col.name)
+    );
 
   if (customColumns?.includes('attachments') && attachments.length) {
     columnOrder.push({
@@ -602,9 +583,8 @@ export function EventsTable({
                         }
                         data={tableData?.data ?? []}
                         columnOrder={columnOrder}
-                        columnSortBy={eventView.getSorts()}
                         grid={{
-                          onResizeColumn: handleResizeColumn,
+                          getColumnSort: column => getColumnSort(tableData?.meta, column),
                           renderHeadCell: renderHeadCellWithMeta(tableData?.meta) as any,
                           renderBodyCell: renderBodyCellWithData(tableData) as any,
                         }}

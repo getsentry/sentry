@@ -716,7 +716,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
 
 
 def models_which_use_expiry_deletions() -> list[tuple[type[BaseModel], str, str]]:
-    from sentry.models.eventattachment import EventAttachment
+    from sentry.models.eventattachment import EventAttachment, PendingEventAttachment
     from sentry.models.profilechunkattachment import ProfileChunkAttachment
 
     # Models deleted based on their per-record expiry date, independent of --days.
@@ -724,6 +724,7 @@ def models_which_use_expiry_deletions() -> list[tuple[type[BaseModel], str, str]
     # regardless of the --days value passed to the cleanup command.
     return [
         (EventAttachment, "date_expires", "date_expires"),
+        (PendingEventAttachment, "date_expires", "date_expires"),
         (ProfileChunkAttachment, "date_expires", "date_expires"),
     ]
 
@@ -792,6 +793,7 @@ def remove_cross_project_bulk_query_models(
 def generate_bulk_query_deletes() -> list[tuple[type[BaseModel], str, str | None]]:
     from django.apps import apps
 
+    from sentry.ai_monitoring.models import AIConversationMetadata
     from sentry.models.groupemailthread import GroupEmailThread
     from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
     from sentry.models.userreport import UserReport
@@ -806,6 +808,7 @@ def generate_bulk_query_deletes() -> list[tuple[type[BaseModel], str, str | None
         additional_bulk_query_deletes.append((model_tp, entry[1], entry[2]))
 
     BULK_QUERY_DELETES = [
+        (AIConversationMetadata, "date_updated", "date_updated"),
         (UserReport, "date_added", None),
         (GroupEmailThread, "date", None),
         (GroupOpenPeriodActivity, "date_added", None),

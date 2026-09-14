@@ -18,7 +18,6 @@ export interface FormPanelProps {
    */
   fields: FieldObject[];
   access?: Set<Scope>;
-  additionalFieldProps?: Record<string, any>;
   /**
    * Can the PanelBody be hidden with a click?
    */
@@ -50,7 +49,6 @@ export interface FormPanelProps {
 }
 
 export function FormPanel({
-  additionalFieldProps = {},
   title,
   fields,
   access,
@@ -118,7 +116,6 @@ export function FormPanel({
               disabled={disabled}
               key={field.name}
               {...otherProps}
-              {...additionalFieldProps}
               field={fieldConfig}
               highlighted={otherProps.highlighted === `#${field.name}`}
             />

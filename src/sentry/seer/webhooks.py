@@ -7,12 +7,16 @@ REVIEW_COMMAND = f"{MARKER} review"
 # Shared patterns for bounded @sentry mentions (whitespace or string edges only).
 MARKER_PATTERN = re.compile(r"(?:^|\s)@sentry(?=\s|$)", re.IGNORECASE)
 REVIEW_PATTERN = re.compile(r"(?:^|\s)@sentry review(?=\s|$)", re.IGNORECASE)
+STOP_PATTERN = re.compile(r"(?:^|\s)@sentry stop iterating(?=\s|$)", re.IGNORECASE)
 
 
 class SentryCommand: ...
 
 
 class SentryReviewCommand(SentryCommand): ...
+
+
+class SentryStopCommand(SentryCommand): ...
 
 
 @dataclass
@@ -37,6 +41,9 @@ def sentry_command(comment_body: str | None) -> SentryCommand | None:
 
     if REVIEW_PATTERN.search(comment_body):
         return SentryReviewCommand()
+
+    if STOP_PATTERN.search(comment_body):
+        return SentryStopCommand()
 
     feedback = " ".join(_remove_bounded_sentry_mentions(comment_body).split())
     if not feedback:

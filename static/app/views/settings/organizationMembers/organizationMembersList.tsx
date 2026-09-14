@@ -134,10 +134,15 @@ function OrganizationMembersList() {
   );
 
   const removeMember = async (id: string) => {
-    await api.requestPromise(`/organizations/${organization.slug}/members/${id}/`, {
-      method: 'DELETE',
-      data: {},
-    });
+    await api.requestPromise(
+      getApiUrl('/organizations/$organizationIdOrSlug/members/$memberId/', {
+        path: {organizationIdOrSlug: organization.slug, memberId: id},
+      }),
+      {
+        method: 'DELETE',
+        data: {},
+      }
+    );
 
     queryClient.setQueryData(membersQueryOptions.queryKey, prevData =>
       prevData
@@ -230,7 +235,9 @@ function OrganizationMembersList() {
   }: any) => {
     try {
       await api.requestPromise(
-        `/organizations/${organization.slug}/invite-requests/${inviteRequest.id}/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/invite-requests/$memberId/', {
+          path: {organizationIdOrSlug: organization.slug, memberId: inviteRequest.id},
+        }),
         {
           method,
           data,

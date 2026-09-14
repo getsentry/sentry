@@ -2,6 +2,7 @@ import {useEffect, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -53,7 +54,10 @@ export function useTraceExploreAiQuerySetup({
     (async () => {
       try {
         await fetchMutation({
-          url: `/organizations/${organization.slug}/trace-explorer-ai/setup/`,
+          url: getApiUrl(
+            '/organizations/$organizationIdOrSlug/trace-explorer-ai/setup/',
+            {path: {organizationIdOrSlug: organization.slug}}
+          ),
           method: 'POST',
           data: {
             org_id: organization.id,

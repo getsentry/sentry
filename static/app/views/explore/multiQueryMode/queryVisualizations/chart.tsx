@@ -107,7 +107,6 @@ export function MultiQueryModeChart({
   if (defined(yAxes[0])) {
     items.push(
       getSaveAsAlertMenuItem({
-        organization,
         to: getAlertsUrl({
           project,
           query: queryParts.query,

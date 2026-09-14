@@ -28,17 +28,6 @@ export interface SeerRawResponse {
   project_ids?: number[] | null;
 }
 
-export interface NoneOfTheseItem {
-  key: 'none-of-these';
-  label: string;
-}
-
-interface AskSeerSearchItem<S extends string> {
-  key: S extends 'none-of-these' ? never : S;
-}
-
-export type AskSeerSearchItems<T> = (AskSeerSearchItem<string> & T) | NoneOfTheseItem;
-
 export interface QueryTokensProps {
   /**
    * Cross-event (same-trace) sibling filters the agent attached to the query.

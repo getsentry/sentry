@@ -115,6 +115,7 @@ export function WidgetContainer(props: Props) {
   };
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setChartSettingState(_chartSetting);
   }, [rest.defaultChartSetting, _chartSetting]);
 

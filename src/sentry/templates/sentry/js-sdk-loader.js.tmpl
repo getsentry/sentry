@@ -1,4 +1,4 @@
-{% load sentry_helpers %}(function sentryLoader(_window, _document, _errorEvent, _unhandledrejectionEvent, _namespace, _publicKey, _sdkBundleUrl, _loaderInitConfig, _lazy) {
+{% load sentry_helpers %}(function sentryLoader(_window, _document, _errorEvent, _unhandledrejectionEvent, _namespace, _publicKey, _sdkBundleUrl, _loaderInitConfig, _lazy, _queueableApis) {
     var lazy = _lazy;
     for (var i = 0; i < document.scripts.length; i++) {
         if (document.scripts[i].src.indexOf(_publicKey) > -1) {
@@ -226,16 +226,9 @@
             injectCDNScriptTag();
         });
     };
-    [
-        'init',
-        'addBreadcrumb',
-        'captureMessage',
-        'captureException',
-        'captureEvent',
-        'configureScope',
-        'withScope',
-        'showReportDialog',
-    ].forEach(function (f) {
+    // The list of queueable APIs is injected by the backend, based on the SDK version
+    // the loader serves (see `QUEUEABLE_SDK_APIS` in `js_sdk_loader.py`).
+    _queueableApis.forEach(function (f) {
         _window[_namespace][f] = function () {
             enqueue({ f: f, a: arguments });
         };
@@ -247,4 +240,4 @@
             injectCDNScriptTag();
         });
     }
-})(window, document, 'error', 'unhandledrejection', 'Sentry', '{{ publicKey|safe }}', '{{ jsSdkUrl|safe }}', {{ config|to_json|safe }}, {{ isLazy|safe|lower }});
+})(window, document, 'error', 'unhandledrejection', 'Sentry', '{{ publicKey|safe }}', '{{ jsSdkUrl|safe }}', {{ config|to_json|safe }}, {{ isLazy|safe|lower }}, {{ queueableApis|to_json|safe }});

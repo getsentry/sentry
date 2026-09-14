@@ -15,7 +15,6 @@ GUIDES = {
     "span_op_breakdowns_and_tag_explorer": 17,
     "team_key_transactions": 18,
     "project_transaction_threshold": 19,
-    "project_transaction_threshold_override": 20,
     "semver": 22,
     "release_stages": 23,
     "new_page_filters": 24,

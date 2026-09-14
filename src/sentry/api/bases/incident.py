@@ -3,7 +3,6 @@ from typing import Any
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 
-from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import to_valid_int_id
@@ -36,9 +35,6 @@ class IncidentEndpoint(OrganizationEndpoint):
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         args, kwargs = super().convert_args(request, *args, **kwargs)
         organization = kwargs["organization"]
-
-        if not features.has("organizations:incidents", organization, actor=request.user):
-            raise ResourceDoesNotExist
 
         validated_incident_identifier = to_valid_int_id(
             "incident_identifier", incident_identifier, raise_404=True

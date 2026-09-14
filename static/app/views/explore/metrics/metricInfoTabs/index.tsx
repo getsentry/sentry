@@ -1,12 +1,9 @@
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
 import {AggregatesTab} from 'sentry/views/explore/metrics/metricInfoTabs/aggregatesTab';
-import {
-  StyledTabPanels,
-  TabListWrapper,
-} from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
+import {StyledTabPanels} from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import {SamplesTab} from 'sentry/views/explore/metrics/metricInfoTabs/samplesTab';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
@@ -19,10 +16,15 @@ import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 
 interface MetricInfoTabsProps {
   traceMetric: TraceMetric;
+  additionalActions?: React.ReactNode;
   isMetricOptionsEmpty?: boolean;
 }
 
-export function MetricInfoTabs({traceMetric, isMetricOptionsEmpty}: MetricInfoTabsProps) {
+export function MetricInfoTabs({
+  traceMetric,
+  additionalActions,
+  isMetricOptionsEmpty,
+}: MetricInfoTabsProps) {
   const visualize = useMetricVisualize();
   const queryParamsMode = useQueryParamsMode();
   const setAggregatesMode = useSetQueryParamsMode();
@@ -37,24 +39,23 @@ export function MetricInfoTabs({traceMetric, isMetricOptionsEmpty}: MetricInfoTa
     >
       <Container paddingRight="xl" paddingLeft="xl" paddingBottom="md" paddingTop="md">
         {visualize.visible ? (
-          <Flex direction="row" justify="between" align="center">
-            <TabListWrapper>
-              <TabList variant="floating">
-                <TabList.Item
-                  key={Mode.SAMPLES}
-                  disabled={isVisualizeEquation(visualize)}
-                  tooltip={{
-                    title: isVisualizeEquation(visualize)
-                      ? t('Samples are not available for equations')
-                      : undefined,
-                  }}
-                >
-                  {t('Samples')}
-                </TabList.Item>
-                <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
-              </TabList>
-            </TabListWrapper>
-          </Flex>
+          <Grid columns="minmax(0, 1fr) auto" gap="md" align="center">
+            <TabList variant="floating">
+              <TabList.Item
+                key={Mode.SAMPLES}
+                disabled={isVisualizeEquation(visualize)}
+                tooltip={{
+                  title: isVisualizeEquation(visualize)
+                    ? t('Samples are not available for equations')
+                    : undefined,
+                }}
+              >
+                {t('Samples')}
+              </TabList.Item>
+              <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
+            </TabList>
+            {additionalActions}
+          </Grid>
         ) : null}
         {visualize.visible ? (
           <Container height="312px">

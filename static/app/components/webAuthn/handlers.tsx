@@ -72,7 +72,9 @@ export async function handleEnroll(challengeData: ChallengeData) {
 /**
  * Perform a WebAuthn assertion (login) using an existing credential.
  */
-export async function handleSign(challengeData: ChallengeData) {
+export async function handleSign(
+  challengeData: Pick<ChallengeData, 'webAuthnAuthenticationData'>
+) {
   if (!challengeData.webAuthnAuthenticationData) {
     return null;
   }

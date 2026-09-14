@@ -37,7 +37,7 @@ const mockMember = MemberFixture({
 });
 
 function setupSharedMocks() {
-  jest.resetAllMocks();
+  jest.clearAllMocks();
   MockApiClient.clearMockResponses();
   ProjectsStore.loadInitialData([project]);
 

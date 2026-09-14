@@ -1,3 +1,5 @@
+import {useRef} from 'react';
+
 import {DiffFileType} from 'sentry/components/events/autofix/types';
 import {t} from 'sentry/locale';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
@@ -33,13 +35,27 @@ function groupByRepo(codeChanges: OverviewCodeChangeFile[]): RepoFileGroup[] {
   return [...groups.values()];
 }
 
-export function CodeChanges({codeChanges}: {codeChanges: OverviewCodeChangeFile[]}) {
+export function CodeChanges({
+  codeChanges,
+  onFirstExpand,
+}: {
+  codeChanges: OverviewCodeChangeFile[];
+  onFirstExpand?: () => void;
+}) {
   const {expandedKeys, toggle} = useExpandedKeys();
+  const firedRef = useRef(false);
+  const handleToggle = (key: string, expanded: boolean) => {
+    if (expanded && !firedRef.current) {
+      firedRef.current = true;
+      onFirstExpand?.();
+    }
+    toggle(key, expanded);
+  };
   return (
     <ChangedFilesSection
       groups={groupByRepo(codeChanges)}
       expandedKeys={expandedKeys}
-      onToggle={toggle}
+      onToggle={handleToggle}
     />
   );
 }

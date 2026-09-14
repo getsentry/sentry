@@ -8,6 +8,7 @@ import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -29,7 +30,6 @@ import {
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -57,7 +57,6 @@ import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTracesApiOptions} from 'sentry/views/explore/hooks/useTraces';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
-import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
@@ -95,8 +94,6 @@ interface TableData {
   isSpanDataLoading?: boolean;
 }
 
-const EMPTY_ARRAY: never[] = [];
-
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'traceId', name: t('Trace ID'), width: 110},
   {key: 'agents', name: t('Agents / Trace Root'), width: COL_WIDTH_UNDEFINED},
@@ -106,7 +103,7 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'toolCalls', name: t('Tool Calls'), width: 110},
   {key: 'totalTokens', name: t('Total Tokens'), width: 120},
   {key: 'totalCost', name: t('Total Cost'), width: 120},
-  {key: 'timestamp', name: t('Timestamp'), width: 100},
+  {key: 'age', name: t('Age'), width: 110},
 ];
 
 const rightAlignColumns = new Set([
@@ -116,7 +113,7 @@ const rightAlignColumns = new Set([
   'totalTokens',
   'toolCalls',
   'totalCost',
-  'timestamp',
+  'age',
 ]);
 
 const DEFAULT_LIMIT = 10;
@@ -125,7 +122,6 @@ interface TracesTableProps {
   dashboardFilters?: DashboardFilters;
   frameless?: boolean;
   limit?: number;
-  linkToTraceView?: boolean;
   tableWidths?: number[];
 }
 
@@ -135,16 +131,16 @@ export function TracesTable({
   limit = DEFAULT_LIMIT,
   tableWidths,
 }: TracesTableProps) {
-  const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
-    columns:
-      // If table widths are provided, use them to override the default column widths
+  const columnOrder = useMemo(
+    () =>
       tableWidths?.length === defaultColumnOrder.length
         ? defaultColumnOrder.map((column, index) => ({
             ...column,
             width: tableWidths[index],
           }))
         : defaultColumnOrder,
-  });
+    [tableWidths]
+  );
 
   const combinedQuery =
     applyDashboardFilters({
@@ -169,6 +165,7 @@ export function TracesTable({
 
   const pageLinks = tracesRequest?.data?.headers.Link;
   const tracesData = tracesRequest.data?.json?.data;
+  const hasTraces = Boolean(tracesData?.length);
 
   const spansRequest = useSpans(
     {
@@ -182,7 +179,7 @@ export function TracesTable({
         'sum(gen_ai.cost.total_tokens)',
       ],
       limit: tracesData?.length ?? 0,
-      enabled: Boolean(tracesData && tracesData.length > 0),
+      enabled: hasTraces,
       samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
       extrapolationMode: 'none',
     },
@@ -195,7 +192,7 @@ export function TracesTable({
       fields: ['trace', 'gen_ai.agent.name', 'gen_ai.function_id', 'timestamp'],
       sorts: [{field: 'timestamp', kind: 'asc'}],
       samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
-      enabled: Boolean(tracesData && tracesData.length > 0),
+      enabled: hasTraces,
     },
     Referrer.TRACES_TABLE
   );
@@ -220,7 +217,7 @@ export function TracesTable({
       search: `span.status:[internal_error,error] trace:[${tracesData?.map(span => `"${span.trace}"`).join(',')}] has:gen_ai.operation.name`,
       fields: ['trace', 'count(span.duration)'],
       limit: tracesData?.length ?? 0,
-      enabled: Boolean(tracesData && tracesData.length > 0),
+      enabled: hasTraces,
       samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
       extrapolationMode: 'none',
     },
@@ -292,7 +289,7 @@ export function TracesTable({
     return (
       <HeadCell align={rightAlignColumns.has(column.key) ? 'right' : 'left'}>
         {column.name}
-        {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
+        {column.key === 'age' && <IconArrow direction="down" size="xs" />}
         {column.key === 'agents' && <CellExpander />}
       </HeadCell>
     );
@@ -310,7 +307,7 @@ export function TracesTable({
         bodyStyle: FRAMELESS_STYLES,
         resizable: true,
         scrollable: true,
-        height: '100%',
+        height: '100%' as const,
       }
     : {};
 
@@ -321,11 +318,9 @@ export function TracesTable({
       data={tableData}
       stickyHeader
       columnOrder={columnOrder}
-      columnSortBy={EMPTY_ARRAY}
       grid={{
         renderBodyCell,
         renderHeadCell,
-        onResizeColumn: handleResizeColumn,
       }}
       {...additionalGridProps}
     />
@@ -391,16 +386,18 @@ const BodyCell = memo(function BodyCellImpl({
       return <DurationCell milliseconds={dataRow.duration} />;
     case 'errors':
       return (
-        <ErrorCell
-          value={dataRow.errors}
-          target={getExploreUrl({
-            query: `${query} span.status:[internal_error,error] trace:[${dataRow.traceId}]`,
-            organization,
-            selection,
-            referrer: Referrer.TRACES_TABLE,
-          })}
-          isLoading={dataRow.isSpanDataLoading}
-        />
+        <Flex justify="end" width="100%">
+          <ErrorCell
+            value={dataRow.errors}
+            target={getExploreUrl({
+              query: `${query} span.status:[internal_error,error] trace:[${dataRow.traceId}]`,
+              organization,
+              selection,
+              referrer: Referrer.TRACES_TABLE,
+            })}
+            isLoading={dataRow.isSpanDataLoading}
+          />
+        </Flex>
       );
     case 'llmCalls':
     case 'toolCalls':
@@ -414,11 +411,11 @@ const BodyCell = memo(function BodyCellImpl({
         return <NumberPlaceholder />;
       }
       return <CurrencyCell value={dataRow.totalCost} />;
-    case 'timestamp':
+    case 'age':
       return (
-        <TextAlignRight>
+        <Text align="right" variant="muted">
           <TimeSince unitStyle="short" date={new Date(dataRow.timestamp)} />
-        </TextAlignRight>
+        </Text>
       );
     default:
       return null;

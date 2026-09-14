@@ -1,7 +1,6 @@
 import type React from 'react';
 import {createContext, useContext} from 'react';
 
-import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
 import {useWidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
 const WidgetBuilderContext = createContext<
@@ -25,11 +24,7 @@ function WidgetBuilderStateProvider({children}: WidgetBuilderProviderProps) {
 }
 
 export function WidgetBuilderProvider({children}: WidgetBuilderProviderProps) {
-  return (
-    <UrlParamBatchProvider>
-      <WidgetBuilderStateProvider>{children}</WidgetBuilderStateProvider>
-    </UrlParamBatchProvider>
-  );
+  return <WidgetBuilderStateProvider>{children}</WidgetBuilderStateProvider>;
 }
 
 /**

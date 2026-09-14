@@ -629,6 +629,7 @@ function Folder(props: {node: StoryTreeNode}) {
   }, [storySlug, props.node]);
 
   if (hasActiveChild && !props.node.expanded) {
+    // oxlint-disable-next-line react/immutability
     props.node.expanded = true;
     setExpanded(true);
   }
@@ -645,6 +646,7 @@ function Folder(props: {node: StoryTreeNode}) {
     <li>
       <FolderName
         onClick={() => {
+          // oxlint-disable-next-line react/immutability
           props.node.expanded = !props.node.expanded;
           if (props.node.expanded) {
             for (const child of Object.values(props.node.children)) {
@@ -685,7 +687,7 @@ function File(props: {node: StoryTreeNode}) {
       <FolderLink
         to={{
           pathname: normalizeUrl(
-            `/organizations/${organization.slug}/stories/${props.node.category}/${props.node.slug}/`
+            `/organizations/${organization.slug}/scraps/${props.node.category}/${props.node.slug}/`
           ),
         }}
         aria-current={active ? 'page' : undefined}

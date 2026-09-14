@@ -9,9 +9,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import type {OverviewRun} from './types';
+import type {AutofixStateKey, OverviewRun} from './types';
 
-export function useOpenSeerLink(run: OverviewRun) {
+export function useOpenSeerLink(run: OverviewRun, section: AutofixStateKey) {
   const organization = useOrganization();
   const location = useLocation();
   const to = useMemo(
@@ -27,22 +27,25 @@ export function useOpenSeerLink(run: OverviewRun) {
         organization,
         group_id: run.groupId,
         run_id: run.seerRunId,
+        section,
       }),
-    [organization, run.groupId, run.seerRunId]
+    [organization, run.groupId, run.seerRunId, section]
   );
   return {to, trackOpen};
 }
 
 export function OpenSeerButton({
   run,
+  section,
   size,
   variant = 'secondary',
 }: {
   run: OverviewRun;
+  section: AutofixStateKey;
   size: 'xs' | 'sm';
   variant?: 'primary' | 'secondary';
 }) {
-  const {to, trackOpen} = useOpenSeerLink(run);
+  const {to, trackOpen} = useOpenSeerLink(run, section);
   return (
     <Tooltip title={t('Open Seer')} skipWrapper>
       <LinkButton

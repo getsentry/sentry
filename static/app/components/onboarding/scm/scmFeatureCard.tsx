@@ -101,7 +101,6 @@ export function ScmFeatureCard({
                   role="presentation"
                   tabIndex={-1}
                   readOnly
-                  size="sm"
                 />
               </Tooltip>
             </Flex>

@@ -897,8 +897,6 @@ def query_trace_data(
                             "sdk_name": span.get("sdk.name", ""),
                             "sdk_version": span.get("sdk.version", ""),
                             "origin": span.get("origin", ""),
-                            "project_id": str(span.get("project.id", "")),
-                            "project_slug": span.get("project.slug", ""),
                         },
                     )
             if span["id"] in id_to_occurrence:

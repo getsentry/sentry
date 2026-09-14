@@ -5,12 +5,12 @@ import {motion, type HTMLMotionProps, type Transition} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import type {Indicator} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconCheckmark, IconRefresh, IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import type {Theme} from 'sentry/utils/theme';
 
 interface ToastProps {
@@ -19,6 +19,8 @@ interface ToastProps {
 }
 
 export function Toast({indicator, onDismiss, ...props}: ToastProps) {
+  const {t} = useTranslation();
+
   return (
     <ToastContainer
       onClick={

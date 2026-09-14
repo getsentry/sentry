@@ -15,35 +15,23 @@ class TestIsMetricSubscriptionAllowed:
             mock_features.has.side_effect = lambda name, *a, **kw: name in enabled
             yield
 
-    # -- Events: requires :incidents --
+    # -- Events: ungated --
 
-    def test_events_without_incidents(self) -> None:
+    def test_events_always_allowed(self) -> None:
         with self.fake_features(set()):
-            assert is_metric_subscription_allowed(Dataset.Events.value, self.org) is False
-
-    def test_events_with_incidents(self) -> None:
-        with self.fake_features({"organizations:incidents"}):
             assert is_metric_subscription_allowed(Dataset.Events.value, self.org) is True
 
-    # -- Transactions: requires :incidents + :performance-view --
+    # -- Transactions: requires :performance-view --
 
     def test_transactions_without_any_features(self) -> None:
         with self.fake_features(set()):
             assert is_metric_subscription_allowed(Dataset.Transactions.value, self.org) is False
 
-    def test_transactions_with_only_performance_view(self) -> None:
+    def test_transactions_with_performance_view(self) -> None:
         with self.fake_features({"organizations:performance-view"}):
-            assert is_metric_subscription_allowed(Dataset.Transactions.value, self.org) is False
-
-    def test_transactions_with_only_incidents(self) -> None:
-        with self.fake_features({"organizations:incidents"}):
-            assert is_metric_subscription_allowed(Dataset.Transactions.value, self.org) is False
-
-    def test_transactions_with_both_features(self) -> None:
-        with self.fake_features({"organizations:incidents", "organizations:performance-view"}):
             assert is_metric_subscription_allowed(Dataset.Transactions.value, self.org) is True
 
-    # -- EAP: requires :incidents + :visibility-explore-view --
+    # -- EAP: requires :visibility-explore-view --
 
     def test_eap_without_any_features(self) -> None:
         with self.fake_features(set()):
@@ -52,24 +40,8 @@ class TestIsMetricSubscriptionAllowed:
                 is False
             )
 
-    def test_eap_with_only_explore_view(self) -> None:
+    def test_eap_with_explore_view(self) -> None:
         with self.fake_features({"organizations:visibility-explore-view"}):
-            assert (
-                is_metric_subscription_allowed(Dataset.EventsAnalyticsPlatform.value, self.org)
-                is False
-            )
-
-    def test_eap_with_only_incidents(self) -> None:
-        with self.fake_features({"organizations:incidents"}):
-            assert (
-                is_metric_subscription_allowed(Dataset.EventsAnalyticsPlatform.value, self.org)
-                is False
-            )
-
-    def test_eap_with_both_features(self) -> None:
-        with self.fake_features(
-            {"organizations:incidents", "organizations:visibility-explore-view"}
-        ):
             assert (
                 is_metric_subscription_allowed(Dataset.EventsAnalyticsPlatform.value, self.org)
                 is True
@@ -91,10 +63,6 @@ class TestIsMetricSubscriptionAllowed:
 
     # -- Unknown / other datasets: always allowed --
 
-    def test_unknown_dataset_without_incidents(self) -> None:
+    def test_unknown_dataset_always_allowed(self) -> None:
         with self.fake_features(set()):
-            assert is_metric_subscription_allowed("unknown_dataset", self.org) is True
-
-    def test_unknown_dataset_with_incidents(self) -> None:
-        with self.fake_features({"organizations:incidents"}):
             assert is_metric_subscription_allowed("unknown_dataset", self.org) is True

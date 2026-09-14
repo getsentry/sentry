@@ -53,14 +53,23 @@ describe('SpanQueryParamsProvider', () => {
   let setVisualizes: ReturnType<typeof useSetQueryParamsVisualizes>;
 
   function Component() {
+    // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
     queryParams = useQueryParams();
+    // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
     setQueryParams = useSetQueryParams();
+    // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
     setFields = useSetQueryParamsFields();
+    // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
     setGroupBys = useSetQueryParamsGroupBys();
+    // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
     setMode = useSetQueryParamsMode();
+    // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
     setQuery = useSetQueryParamsQuery();
+    // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
     setSortBys = useSetQueryParamsSortBys();
+    // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
     setAggregateSortBys = useSetQueryParamsAggregateSortBys();
+    // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
     setVisualizes = useSetQueryParamsVisualizes();
     return <br />;
   }

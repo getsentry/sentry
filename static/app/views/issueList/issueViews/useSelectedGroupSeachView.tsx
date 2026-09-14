@@ -1,5 +1,4 @@
-import {useQueryClient} from '@tanstack/react-query';
-import {useQuery} from '@tanstack/react-query';
+import {useQueryClient, useQuery} from '@tanstack/react-query';
 
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';

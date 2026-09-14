@@ -1,9 +1,9 @@
 import {Fragment, type ReactNode} from 'react';
 
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {CrumbErrorTitle} from 'sentry/components/replays/breadcrumbs/errorTitle';
 import {SelectorList} from 'sentry/components/replays/breadcrumbs/selectorList';
 import {
@@ -520,8 +520,7 @@ function WebVitalTitle(frame: WebVitalFrame) {
   return (
     <Flex align="center" gap="xs">
       {t('Web Vital: ') + toTitleCase(explodeSlug(frame.description))}
-      <QuestionTooltip
-        isHoverable
+      <InfoTip
         size="xs"
         title={
           <Fragment>

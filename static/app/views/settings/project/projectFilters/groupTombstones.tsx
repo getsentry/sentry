@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Pagination} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -23,11 +23,21 @@ import {t} from 'sentry/locale';
 import type {GroupTombstone} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+const TOMBSTONE_COLUMNS: TableColumnConfig[] = [
+  {key: 'issue', width: 'minmax(220px, 1fr)'},
+  {key: 'dateDiscarded', width: 'max-content'},
+  {key: 'lastSeen', width: 'max-content'},
+  {key: 'events', width: 'max-content'},
+  {key: 'member', width: 'max-content'},
+  {key: 'actions', width: 'max-content'},
+];
 
 interface GroupTombstoneRowProps {
   data: GroupTombstone;
@@ -42,7 +52,7 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
 
   return (
     <SimpleTable.Row>
-      <StyledBox>
+      <SimpleTable.RowCell>
         <div>
           <Heading as="h5" size="lg">
             {title}
@@ -53,7 +63,7 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
             type={data.type}
           />
         </div>
-      </StyledBox>
+      </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">
         {data.dateAdded ? (
           <TimeSince date={data.dateAdded} unitStyle="short" suffix="ago" />
@@ -96,7 +106,6 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
           disabled={disabled}
         >
           <Button
-            type="button"
             aria-label={t('Undiscard')}
             tooltipProps={{
               title: disabled
@@ -143,7 +152,16 @@ export function GroupTombstones({project}: GroupTombstonesProps) {
   const handleUndiscard = (tombstoneId: GroupTombstone['id']) => {
     api
       .requestPromise(
-        `/projects/${organization.slug}/${project.slug}/tombstones/${tombstoneId}/`,
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/tombstones/$tombstoneId/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+              tombstoneId,
+            },
+          }
+        ),
         {
           method: 'DELETE',
         }
@@ -176,23 +194,22 @@ export function GroupTombstones({project}: GroupTombstonesProps) {
       <Access access={['project:write']} project={project}>
         {({hasAccess}) => (
           <Fragment>
-            <StyledSimpleTable
+            <SimpleTable
+              columns={TOMBSTONE_COLUMNS}
               header={
                 <SimpleTable.HeaderRow>
-                  <SimpleTable.HeaderCell>
-                    <LeftAlignedColumn>{t('Issue')}</LeftAlignedColumn>
+                  <SimpleTable.HeaderCell>{t('Issue')}</SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell align="right">
+                    {t('Date Discarded')}
                   </SimpleTable.HeaderCell>
-                  <SimpleTable.HeaderCell>
-                    <RightAlignedColumn>{t('Date Discarded')}</RightAlignedColumn>
+                  <SimpleTable.HeaderCell align="right">
+                    {t('Last Seen')}
                   </SimpleTable.HeaderCell>
-                  <SimpleTable.HeaderCell>
-                    <RightAlignedColumn>{t('Last Seen')}</RightAlignedColumn>
+                  <SimpleTable.HeaderCell align="right">
+                    {t('Events')}
                   </SimpleTable.HeaderCell>
-                  <SimpleTable.HeaderCell>
-                    <RightAlignedColumn>{t('Events')}</RightAlignedColumn>
-                  </SimpleTable.HeaderCell>
-                  <SimpleTable.HeaderCell>
-                    <CenteredAlignedColumn>{t('Member')}</CenteredAlignedColumn>
+                  <SimpleTable.HeaderCell align="center">
+                    {t('Member')}
                   </SimpleTable.HeaderCell>
                   <SimpleTable.HeaderCell />
                 </SimpleTable.HeaderRow>
@@ -210,7 +227,7 @@ export function GroupTombstones({project}: GroupTombstonesProps) {
               ) : (
                 <SimpleTable.Empty>{t('You have no discarded issues')}</SimpleTable.Empty>
               )}
-            </StyledSimpleTable>
+            </SimpleTable>
             {tombstonesPageLinks && <Pagination pageLinks={tombstonesPageLinks} />}
           </Fragment>
         )}
@@ -218,32 +235,3 @@ export function GroupTombstones({project}: GroupTombstonesProps) {
     </ErrorBoundary>
   );
 }
-
-const StyledBox = styled(SimpleTable.RowCell)`
-  flex: 1;
-  align-items: center;
-  min-width: 0; /* keep child content from stretching flex item */
-`;
-
-const StyledSimpleTable = styled(SimpleTable)`
-  grid-template-columns:
-    minmax(220px, 1fr)
-    max-content max-content max-content max-content max-content;
-`;
-
-const Column = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const RightAlignedColumn = styled(Column)`
-  justify-content: flex-end;
-`;
-
-const LeftAlignedColumn = styled(Column)`
-  justify-content: flex-start;
-`;
-
-const CenteredAlignedColumn = styled(Column)`
-  justify-content: center;
-`;

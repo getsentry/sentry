@@ -35,7 +35,7 @@ export function StoryHeader() {
   const organization = useOrganization();
   return (
     <HeaderGrid>
-      <Link to={normalizeUrl(`/organizations/${organization.slug}/stories/`)}>
+      <Link to={normalizeUrl(`/organizations/${organization.slug}/scraps/`)}>
         <Heading as="h1" variant="accent">
           <Flex align="center" gap="md">
             <StyledScrapsLogo />

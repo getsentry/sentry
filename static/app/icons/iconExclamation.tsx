@@ -2,7 +2,7 @@ import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
 /**
- * @deprecated This icon will be removed in new UI.
+ * @deprecated Use `IconWarning` instead.
  */
 export function IconExclamation(props: SVGIconProps) {
   return (

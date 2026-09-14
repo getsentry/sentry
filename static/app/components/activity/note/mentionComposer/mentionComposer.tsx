@@ -1,6 +1,7 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 
 import {TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
@@ -20,20 +21,33 @@ import {memberUsersQueryOptions} from 'sentry/utils/members/shared';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 
-interface MentionComposerProps {
+interface CreateComposerProps {
+  onSubmit: (data: NoteType) => Promise<void>;
   initialValue?: string;
   minHeight?: number;
-  onSubmit?: (data: NoteType) => Promise<void>;
   onValueChange?: (value: string) => void;
   placeholder?: string;
   variant?: 'compact' | 'full';
 }
 
+interface EditComposerProps {
+  initialValue: string;
+  onCancel: () => void;
+  onSubmit: (data: NoteType) => Promise<void>;
+  minHeight?: number;
+  placeholder?: string;
+  variant?: 'compact' | 'full';
+}
+
+type MentionComposerProps =
+  | ({mode: 'create'} & CreateComposerProps)
+  | ({mode: 'edit'} & EditComposerProps);
+
 type EditorMode = 'write' | 'preview';
 
 type MentionEntity = {kind: 'member'; user: User} | {kind: 'team'; team: Team};
 
-export function MentionComposer(props: MentionComposerProps) {
+function useMentionSources() {
   const organization = useOrganization();
   const {teams} = useTeams();
 
@@ -72,7 +86,7 @@ export function MentionComposer(props: MentionComposerProps) {
     [organization.slug, teamSuggestions]
   );
 
-  return <Composer {...props} sources={sources} />;
+  return sources;
 }
 
 function getMemberMentionQueryOptions(orgSlug: string, query: string) {
@@ -151,44 +165,53 @@ function serializeNoteMentions(value: MentionInputValue): string {
   return text;
 }
 
-function Composer({
-  sources,
-  initialValue = '',
-  minHeight = 140,
-  onValueChange,
-  onSubmit,
-  placeholder = t('Add a comment.\nTag users with @, or teams with #'),
-  variant = 'full',
-}: MentionComposerProps & {
-  sources: ReadonlyArray<MentionSource<MentionEntity>>;
-}) {
+export function MentionComposer(props: MentionComposerProps) {
+  const {
+    initialValue = '',
+    minHeight = 140,
+    onSubmit,
+    placeholder = t('Add a comment.\nTag users with @, or teams with #'),
+    variant = 'full',
+  } = props;
+  const sources = useMentionSources();
+  const isEditing = props.mode === 'edit';
   const [editorMode, setEditorMode] = useState<EditorMode>('write');
-  const [hasFocusedEditor, setHasFocusedEditor] = useState(false);
+  const [hasFocusedEditor, setHasFocusedEditor] = useState(isEditing);
   const initialEditorValue: MentionInputValue = {text: initialValue, mentions: []};
   const isCompact = variant === 'compact';
-
-  const submitNote = useCallback(
-    async (value: MentionInputValue) => {
-      const validMentionIds = value.mentions.flatMap(mention =>
-        value.text.slice(mention.start, mention.end) === mention.text ? mention.id : []
-      );
-      const uniqueMentionIds = [...new Set(validMentionIds)];
-      const data = {
-        text: serializeNoteMentions(value),
-        mentions: uniqueMentionIds,
-      };
-
-      await onSubmit?.(data);
-    },
-    [onSubmit]
-  );
 
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
       value: initialEditorValue,
     },
-    onSubmit: ({value}) => submitNote(value.value),
+    onSubmit: async ({value}) => {
+      const editorValue = value.value;
+      const validMentionIds = editorValue.mentions.flatMap(mention =>
+        editorValue.text.slice(mention.start, mention.end) === mention.text
+          ? mention.id
+          : []
+      );
+      const uniqueMentionIds = [...new Set(validMentionIds)];
+      const data = {
+        text: serializeNoteMentions(editorValue),
+        mentions: uniqueMentionIds,
+      };
+
+      await onSubmit(data);
+
+      if (props.mode === 'create') {
+        form.reset(
+          {value: {text: '', mentions: []}},
+          {
+            // Prevent a saved draft from being restored after reset.
+            keepDefaultValues: true,
+          }
+        );
+        setEditorMode('write');
+        setHasFocusedEditor(false);
+      }
+    },
   });
 
   return (
@@ -201,12 +224,14 @@ function Composer({
                 <MentionInput
                   {...fieldProps}
                   ref={ref}
-                  aria-label={t('Add a comment')}
+                  aria-label={isEditing ? t('Edit comment') : t('Add a comment')}
                   sources={sources}
                   placeholder={placeholder}
                   onChange={nextValue => {
                     field.handleChange(nextValue);
-                    onValueChange?.(nextValue.text);
+                    if (props.mode === 'create') {
+                      props.onValueChange?.(nextValue.text);
+                    }
                   }}
                   onFocus={() => setHasFocusedEditor(true)}
                   onKeyDown={event => {
@@ -249,19 +274,40 @@ function Composer({
           paddingTop="sm"
         >
           {!isCompact && (
-            <EditorControls mode={editorMode} onModeChange={setEditorMode} />
+            <EditorControls
+              isEditing={isEditing}
+              mode={editorMode}
+              onModeChange={setEditorMode}
+            />
           )}
-          <form.Subscribe selector={state => state.values.value.text.trim() === ''}>
-            {isEmpty => (
-              <form.SubmitButton
-                size="xs"
-                disabled={isEmpty}
-                aria-label={isCompact ? t('Submit comment') : undefined}
-              >
-                {t('Comment')}
-              </form.SubmitButton>
+          <Flex align="center" gap="sm">
+            {props.mode === 'edit' && (
+              <form.Subscribe selector={state => state.isSubmitting}>
+                {isSubmitting => (
+                  <Button size="xs" onClick={props.onCancel} disabled={isSubmitting}>
+                    {t('Cancel')}
+                  </Button>
+                )}
+              </form.Subscribe>
             )}
-          </form.Subscribe>
+            <form.Subscribe selector={state => state.values.value.text.trim() === ''}>
+              {isEmpty => (
+                <form.SubmitButton
+                  size="xs"
+                  disabled={isEmpty}
+                  aria-label={
+                    isEditing
+                      ? t('Save comment')
+                      : isCompact
+                        ? t('Submit comment')
+                        : undefined
+                  }
+                >
+                  {isEditing ? t('Save') : t('Comment')}
+                </form.SubmitButton>
+              )}
+            </form.Subscribe>
+          </Flex>
         </Flex>
       )}
     </form.AppForm>
@@ -269,9 +315,11 @@ function Composer({
 }
 
 function EditorControls({
+  isEditing,
   mode,
   onModeChange,
 }: {
+  isEditing: boolean;
   mode: EditorMode;
   onModeChange: (mode: EditorMode) => void;
 }) {
@@ -283,7 +331,9 @@ function EditorControls({
         value={mode}
         onChange={onModeChange}
       >
-        <SegmentedControl.Item key="write">{t('Write')}</SegmentedControl.Item>
+        <SegmentedControl.Item key="write">
+          {isEditing ? t('Edit') : t('Write')}
+        </SegmentedControl.Item>
         <SegmentedControl.Item key="preview">{t('Preview')}</SegmentedControl.Item>
       </SegmentedControl>
       <Flex as="span" align="center" gap="xs" display={{zero: 'none', sm: 'inline-flex'}}>

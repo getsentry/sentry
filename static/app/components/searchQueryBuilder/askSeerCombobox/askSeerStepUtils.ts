@@ -155,25 +155,6 @@ export function formatStep(
 }
 
 /**
- * Count occurrences of each step key up to (and excluding) the given index.
- * Uses normalized keys to handle comma-separated parallel calls.
- */
-export function countOccurrences(
-  steps: AskSeerStep[],
-  targetKey: string,
-  upToIndex: number
-): number {
-  let count = 0;
-  for (let i = 0; i < upToIndex && i < steps.length; i++) {
-    const step = steps[i];
-    if (step && normalizeStepKey(step) === targetKey) {
-      count++;
-    }
-  }
-  return count;
-}
-
-/**
  * Deduplicate consecutive steps with the same key (parallel tool calls).
  * Returns a list of unique steps, collapsing consecutive duplicates.
  * Uses normalized keys to handle comma-separated parallel calls.

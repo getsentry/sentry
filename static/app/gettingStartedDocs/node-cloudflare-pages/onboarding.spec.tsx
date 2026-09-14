@@ -40,26 +40,6 @@ describe('cloudflare-pages onboarding docs', () => {
     ).toBeInTheDocument();
   });
 
-  it('enables logs by setting enableLogs to true', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
-    });
-
-    expect(
-      screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
-    ).toBeInTheDocument();
-  });
-
-  it('does not enable logs when not selected', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.ERROR_MONITORING],
-    });
-
-    expect(
-      screen.queryByText(textWithMarkupMatcher(/enableLogs: true/))
-    ).not.toBeInTheDocument();
-  });
-
   it('displays logs integration next step when logs are selected', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],

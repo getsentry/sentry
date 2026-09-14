@@ -2,13 +2,13 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {CanvasSupportNotice} from 'sentry/components/replays/canvasSupportNotice';
 import {
   JetpackComposePiiNotice,
@@ -70,8 +70,7 @@ export function ReplayView({isLoading, layout, toggleFullscreen, toggleLayout}: 
             ) : isVideoReplay ? (
               <Flex align="center" flex="1" gap="md" width="100%">
                 {replay?.getReplay()?.sdk.name?.includes('flutter') ? (
-                  <QuestionTooltip
-                    isHoverable
+                  <InfoTip
                     title={tct(
                       'In order to see the correct screen name, you need to configure the [link:Sentry Routing Instrumentation].',
                       {

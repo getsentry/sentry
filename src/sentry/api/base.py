@@ -29,10 +29,12 @@ logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.api")
 api_access_logger = logging.getLogger("sentry.access.api")
 
-from sentry import analytics, tsdb
+from sentry import analytics, features, tsdb
 from sentry.analytics.events.release_set_commits import ReleaseSetCommitsLocalEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.client_kind import FEATURE_FLAG as CLIENT_KIND_FEATURE_FLAG
+from sentry.api.client_kind import set_client_kind_attributes
 from sentry.api.exceptions import (
     INSUFFICIENT_SCOPE_ATTR,
     InsufficientScope,
@@ -41,10 +43,13 @@ from sentry.api.exceptions import (
 )
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
+from sentry.auth.scope_declaration import bind_endpoint_scope_declaration
 from sentry.auth.staff import has_staff_option
 from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
 from sentry.middleware import is_frontend_request
+from sentry.models.organization import Organization
 from sentry.organizations.absolute_url import generate_organization_url
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.seer import agent_token
 from sentry.silo.base import SiloLimit, SiloMode
@@ -112,6 +117,23 @@ DEFAULT_AUTHENTICATION = (
     ViewerContextAuthentication,
     SessionAuthentication,
 )
+
+
+def _with_endpoint_scope_declaration(
+    func: Callable[..., Response],
+) -> Callable[..., Response]:
+    @functools.wraps(func)
+    def wrapper(self: Endpoint, request: Request, *args: Any, **kwargs: Any) -> Response:
+        assert request.method is not None
+        endpoint = f"{type(self).__module__}.{type(self).__qualname__}"
+        with bind_endpoint_scope_declaration(
+            endpoint=endpoint,
+            method=request.method,
+            permission_classes=self.permission_classes,
+        ):
+            return func(self, request, *args, **kwargs)
+
+    return wrapper
 
 
 def allow_cors_options(func):
@@ -413,6 +435,7 @@ class Endpoint(APIView):
 
     @csrf_exempt
     @allow_cors_options
+    @_with_endpoint_scope_declaration
     def dispatch(self, request: Request, *args, **kwargs) -> Response:
         """
         Identical to rest framework's dispatch except we add the ability
@@ -474,6 +497,17 @@ class Endpoint(APIView):
                     (args, kwargs) = self.convert_args(request, *args, **kwargs)
                     self.args = args
                     self.kwargs = kwargs
+
+                    # Resolved solely to check the opt-in; everything else is
+                    # derived from the request. Both sources are conventions rather
+                    # than contracts, so the result is type-checked before use.
+                    organization = kwargs.get("organization") or getattr(
+                        request, "organization", None
+                    )
+                    if isinstance(organization, (Organization, RpcOrganization)) and features.has(
+                        CLIENT_KIND_FEATURE_FLAG, organization, actor=request.user
+                    ):
+                        set_client_kind_attributes(request)
                 else:
                     handler = self.http_method_not_allowed
 

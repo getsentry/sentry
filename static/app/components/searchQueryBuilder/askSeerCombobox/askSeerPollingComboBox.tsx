@@ -1,7 +1,5 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 
-import {Stack} from '@sentry/scraps/layout';
-
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {
@@ -9,8 +7,6 @@ import {
   type AskSeerComboBoxProps,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerLoadingStatus} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerLoadingStatus';
-import {AskSeerProgressBlocks} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerProgressBlocks';
-import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
 import {BaseAskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/baseAskSeerComboBox';
 import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {useAskSeerPolling} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useAskSeerPolling';
@@ -56,7 +52,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
   const hasTrackedFetchErrorRef = useRef(false);
-  const hasAskSeerUxRework = organization.features.includes('gen-ai-ask-seer-ux-rework');
   const [searchQuery, setSearchQuery] = useState(() =>
     formatQueryToNaturalLanguage(initialQuery)
   );
@@ -123,13 +118,8 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     );
   }
 
-  const loadingContent = hasAskSeerUxRework ? (
+  const loadingContent = (
     <AskSeerLoadingStatus completedSteps={completedSteps} currentStep={currentStep} />
-  ) : (
-    <Stack flex="1">
-      <AskSeerSearchHeader title={t("I'm on it...")} loading />
-      <AskSeerProgressBlocks completedSteps={completedSteps} currentStep={currentStep} />
-    </Stack>
   );
 
   return (

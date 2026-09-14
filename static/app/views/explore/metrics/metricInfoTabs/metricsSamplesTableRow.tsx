@@ -25,7 +25,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
+import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/cellActions';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {DEFAULT_YAXIS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/metricDetails';

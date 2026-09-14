@@ -44,11 +44,19 @@ class BufferTest(TestCase):
         self.buf.process(Group, columns, filters)
         assert Group.objects.get(id=group.id).times_seen == group.times_seen + 1
 
-    def test_process_saves_data_without_existing_row(self) -> None:
+    @mock.patch("sentry.buffer.base.buffer_incr_complete.send_robust")
+    def test_process_saves_data_without_existing_row(self, send_robust: mock.MagicMock) -> None:
         columns = {"new_groups": 1}
         filters = {"project_id": self.project.id, "release_id": self.release.id}
-        self.buf.process(ReleaseProject, columns, filters)
-        assert ReleaseProject.objects.filter(new_groups=1, **filters).exists()
+        ReleaseProject.objects.filter(**filters).delete()
+        adopted = timezone.now()
+
+        self.buf.process(ReleaseProject, columns, filters, {"adopted": adopted})
+
+        release_project = ReleaseProject.objects.get(**filters)
+        assert release_project.new_groups == 1
+        assert release_project.adopted == adopted
+        assert send_robust.call_args.kwargs["created"] is True
 
     def test_process_saves_extra(self) -> None:
         group = Group.objects.create(project=Project(id=1))
@@ -75,8 +83,7 @@ class BufferTest(TestCase):
         release_project_ = ReleaseProject.objects.get(id=release_project.id)
         assert release_project_.new_groups == 1
 
-    @mock.patch("sentry.models.Group.objects.create_or_update")
-    def test_signal_only(self, create_or_update: mock.MagicMock) -> None:
+    def test_signal_only(self) -> None:
         group = Group.objects.create(project=Project(id=1))
         columns = {"times_seen": 1}
         filters = {"id": group.id, "project_id": 1}

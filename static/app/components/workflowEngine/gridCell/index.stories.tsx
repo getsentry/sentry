@@ -139,7 +139,6 @@ export default Storybook.story('Grid Cell Components', story => {
       <GridEditable
         data={data}
         columnOrder={TitleTable}
-        columnSortBy={[]}
         grid={{
           renderHeadCell,
           renderBodyCell,
@@ -153,7 +152,6 @@ export default Storybook.story('Grid Cell Components', story => {
       <GridEditable
         data={data}
         columnOrder={actionTable}
-        columnSortBy={[]}
         grid={{
           renderHeadCell,
           renderBodyCell,
@@ -167,7 +165,6 @@ export default Storybook.story('Grid Cell Components', story => {
       <GridEditable
         data={data}
         columnOrder={timeAgoTable}
-        columnSortBy={[]}
         grid={{
           renderHeadCell,
           renderBodyCell,
@@ -181,7 +178,6 @@ export default Storybook.story('Grid Cell Components', story => {
       <GridEditable
         data={data}
         columnOrder={linkedGroupsTable}
-        columnSortBy={[]}
         grid={{
           renderHeadCell,
           renderBodyCell,
@@ -195,7 +191,6 @@ export default Storybook.story('Grid Cell Components', story => {
       <GridEditable
         data={data}
         columnOrder={openIssuesTable}
-        columnSortBy={[]}
         grid={{
           renderHeadCell,
           renderBodyCell,
@@ -209,7 +204,6 @@ export default Storybook.story('Grid Cell Components', story => {
       <GridEditable
         data={data}
         columnOrder={userTable}
-        columnSortBy={[]}
         grid={{
           renderHeadCell,
           renderBodyCell,

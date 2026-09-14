@@ -15614,7 +15614,7 @@ _Plus 72 more_
 
 - Add coding-workflows to fetch issues by @kddubey in [#107920](https://github.com/getsentry/sentry/pull/107920)
 - Add autopilot module to CODEOWNERS for telemetry-experience by @vgrozdanic in [#107324](https://github.com/getsentry/sentry/pull/107324)
-- Add `design-eng` to `static/eslint/` by @natemoo-re in [#107159](https://github.com/getsentry/sentry/pull/107159)
+- Add `design-eng` to `static/oxlint/` by @natemoo-re in [#107159](https://github.com/getsentry/sentry/pull/107159)
 
 #### Conversations
 

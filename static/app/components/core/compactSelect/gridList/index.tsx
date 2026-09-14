@@ -16,8 +16,7 @@ import {
 } from '@sentry/scraps/compactSelect';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {Container} from '@sentry/scraps/layout';
-
-import {t} from 'sentry/locale';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {GridListOption, type GridListOptionProps} from './option';
 import {GridListSection} from './section';
@@ -80,6 +79,7 @@ function GridList<T extends ListItemBase>({
   virtualized,
   ...props
 }: GridListProps<T>) {
+  const {t} = useTranslation();
   const ref = useRef<HTMLUListElement>(null);
   const labelId = useId();
   const {gridProps} = useGridList(
@@ -123,14 +123,18 @@ function GridList<T extends ListItemBase>({
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel id={labelId}>{label}</ListLabel>}
       {overlayIsOpen && (
+        // oxlint-disable-next-line react/refs
         <Container ref={virtualizer.scrollElementRef} height="100%" overflowY="auto">
+          {/* oxlint-disable-next-line react/refs */}
           <Container {...virtualizer.wrapperProps}>
             <ListWrap
               {...mergedProps}
+              // oxlint-disable-next-line react/refs
               style={{...mergedProps.style, ...virtualizer.listWrapStyle}}
               onKeyDown={onKeyDown}
               ref={ref}
             >
+              {/* oxlint-disable-next-line react/refs */}
               {virtualizer.items.map(row => {
                 const item = listItems[row.index];
                 if (!item) {

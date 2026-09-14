@@ -27,23 +27,31 @@ export function useSuperGroups(groupIds: string[]): {
   // avoid a redundant refetch.
   const requestedGroupIds = useMemo(() => {
     const prev = requestedGroupIdsRef.current;
+    // oxlint-disable-next-line react/refs
     if (groupIds.length === 0 || prev.length < groupIds.length) {
       return groupIds;
     }
+    // oxlint-disable-next-line react/refs
     const prevSet = new Set(prev);
     return groupIds.every(id => prevSet.has(id)) ? prev : groupIds;
   }, [groupIds]);
 
+  // oxlint-disable-next-line react/refs
   requestedGroupIdsRef.current = requestedGroupIds;
+  // oxlint-disable-next-line react/refs
   const enabled = hasTopIssuesUI && requestedGroupIds.length > 0;
 
   const {data: response, isLoading} = useApiQuery<{data: SupergroupDetail[]}>(
+    // oxlint-disable-next-line react/refs
     [
       getApiUrl('/organizations/$organizationIdOrSlug/seer/supergroups/by-group/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
+      // oxlint-disable-next-line react/refs
       {
+        // oxlint-disable-next-line react/refs
         query: {
+          // oxlint-disable-next-line react/refs
           group_id: requestedGroupIds,
           status: 'unresolved',
         },

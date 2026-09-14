@@ -76,7 +76,7 @@ function FullscreenModalContent({
   const [localHighlightInsights, setLocalHighlightInsights] = useState(
     initialHighlightInsights
   );
-  const filteredRoot = filterTreemapElement(unfilteredRoot, localSearch, '');
+  const filteredRoot = filterTreemapElement(unfilteredRoot, localSearch);
 
   const handleSearchChange = (value: string) => {
     setLocalSearch(value);
@@ -501,6 +501,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     },
   ];
   if (!isFullscreen) {
+    // oxlint-disable-next-line react/refs
     treemapControlButtons.push({
       ariaLabel: t('Open Full-Screen View'),
       title: t('Fullscreen'),
