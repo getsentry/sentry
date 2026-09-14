@@ -14,6 +14,7 @@ from sentry.seer.monitor_cleanup.schemas import (
     SeerMonitorFinding,
     SeerOrganizationMonitorCleanupArtifact,
 )
+from sentry.seer.workflows.schemas import WorkflowResultError
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
 
@@ -29,12 +30,12 @@ def parse_monitor_cleanup_results(
     }
     user = user_service.get_user(user_id=user_id)
     if user is None:
-        raise ValueError("The triggering user no longer exists.")
+        raise WorkflowResultError("The triggering user no longer exists.")
     user_access = access.from_user(user, organization)
     if projects.keys() != set(project_ids) or not user_access.has_projects_access(
         projects.values()
     ):
-        raise ValueError("Some scanned projects are no longer accessible.")
+        raise WorkflowResultError("Some scanned projects are no longer accessible.")
     outputs: list[MonitorCleanupOutput] = []
     for project_artifact in artifact.projects:
         project = projects[project_artifact.project_id]
