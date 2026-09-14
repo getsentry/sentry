@@ -95,7 +95,6 @@ const COLUMN_DEFAULTS: Record<ColumnKey, {name: string; width: number}> = {
 const RIGHT_ALIGNED_COLUMNS = new Set<ColumnKey>(['age']);
 
 const SORT_FIELD_BY_COLUMN: Partial<Record<ColumnKey, ConversationSortField>> = {
-  duration: CONVERSATION_FIELDS.generationDuration.key,
   messages: CONVERSATION_FIELDS.messages.key,
   errors: CONVERSATION_FIELDS.errors.key,
   cost: CONVERSATION_FIELDS.totalCost.key,
@@ -111,6 +110,12 @@ type ColumnWidths = Partial<Record<ColumnKey, number>>;
 
 // Plain-text title/first-message is ellipsized to this length before rendering.
 const CELL_MAX_CHARS = 256;
+
+export function getConversationDuration(
+  conversation: Pick<Conversation, 'startTimestamp' | 'endTimestamp'>
+): number {
+  return Math.max(0, conversation.endTimestamp - conversation.startTimestamp);
+}
 
 export function normalizeUserField(value: string | null | undefined): string | null {
   if (!value || value.toLowerCase() === 'none') {
@@ -375,7 +380,7 @@ function BodyCell({
       return (
         <Text tabular>
           <PerformanceDuration
-            milliseconds={conversation.generationDuration}
+            milliseconds={getConversationDuration(conversation)}
             abbreviation
           />
         </Text>

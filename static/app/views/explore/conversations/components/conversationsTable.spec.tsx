@@ -12,6 +12,7 @@ import {
 import {
   collapseToolsColumnWhenUnused,
   ConversationsTable,
+  getConversationDuration,
   getUserDisplayName,
   getVisibleToolCount,
   parseStoredColumnWidths,
@@ -21,6 +22,7 @@ const COLUMN_WIDTHS_STORAGE_KEY = 'conversation-table-column-widths';
 
 const BASE_CONVERSATION = {
   conversationId: 'conv-1',
+  duration: 5000,
   endTimestamp: 2000,
   errors: 0,
   firstInput: null,
@@ -131,6 +133,26 @@ describe('ConversationsTable', () => {
     renderTable();
 
     expect(await screen.findByText('sarah@example.com')).toBeInTheDocument();
+  });
+
+  it('uses elapsed wall-clock time for conversation duration', () => {
+    expect(
+      getConversationDuration({
+        ...BASE_CONVERSATION,
+        startTimestamp: 1_000,
+        endTimestamp: 421_000,
+      })
+    ).toBe(420_000);
+  });
+
+  it('clamps conversation duration when timestamps are out of order', () => {
+    expect(
+      getConversationDuration({
+        ...BASE_CONVERSATION,
+        startTimestamp: 2_000,
+        endTimestamp: 1_000,
+      })
+    ).toBe(0);
   });
 
   it('uses the user ID when no other identifying fields are available', () => {
@@ -285,6 +307,7 @@ describe('ConversationsTable', () => {
       'descending'
     );
     expect(screen.queryByRole('button', {name: 'Conversation'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Duration'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Tools'})).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Cost'}));
