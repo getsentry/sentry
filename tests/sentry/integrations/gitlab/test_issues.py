@@ -44,6 +44,27 @@ class GitlabIssuesTest(GitLabTestCase):
             == "https://example.gitlab.com/project/project/issues/7"
         )
 
+    def test_issue_url_with_deployment_prefix(self) -> None:
+        self.installation.model.metadata.update(
+            base_url="https://example.gitlab.com/gitlab", domain_name="example.gitlab.com/team"
+        )
+        for issue_path in ("issues/13", "-/issues/13"):
+            assert self.installation.get_issue_link_data(
+                f"https://example.gitlab.com/gitlab/team/subgroup/project/{issue_path}?view=1#note"
+            ) == {"externalIssue": "team/subgroup/project#13"}
+
+    def test_issue_url_rejects_other_installations(self) -> None:
+        self.installation.model.metadata.update(
+            base_url="https://example.gitlab.com/gitlab", domain_name="example.gitlab.com/team"
+        )
+        for url in (
+            "https://other.gitlab.com/gitlab/team/project/-/issues/13",
+            "https://example.gitlab.com/gitlab-archive/team/project/-/issues/13",
+            "https://example.gitlab.com/gitlab/team-other/project/-/issues/13",
+        ):
+            with pytest.raises(IntegrationFormError):
+                self.installation.get_issue_link_data(url)
+
     @responses.activate
     def test_get_create_issue_config(self) -> None:
         group_description = (
