@@ -379,6 +379,7 @@ interface ConversationTokenBreakdown {
   cacheWrite: number;
   cached: number;
   input: number;
+  isComplete: boolean;
   output: number;
   reasoning: number;
   total: number;
@@ -410,6 +411,7 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
     cacheWrite: 0,
     cached: 0,
     input: 0,
+    isComplete: true,
     output: 0,
     reasoning: 0,
     total: 0,
@@ -459,6 +461,7 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
       tokens.cached += breakdown.cached;
       tokens.cacheWrite += breakdown.cacheWrite;
       tokens.reasoning += reasoning;
+      tokens.isComplete &&= input !== undefined && output !== undefined;
       tokens.total +=
         input !== undefined && output !== undefined ? componentTotal : reportedTotal;
       totalCost += getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS) ?? 0;
@@ -645,14 +648,16 @@ export function ConversationAggregatesBar({
 }
 
 function TokenCount({breakdown}: {breakdown: ConversationTokenBreakdown}) {
-  const rows = [
-    {label: t('Input'), value: breakdown.input},
-    {label: t('Output'), value: breakdown.output},
-    {label: t('Cached'), value: breakdown.cached},
-    {label: t('Cache Write'), value: breakdown.cacheWrite},
-    {label: t('Reasoning'), value: breakdown.reasoning},
-    {label: t('Total'), value: breakdown.total},
-  ].filter(row => row.value > 0 || row.label === t('Total'));
+  const rows = breakdown.isComplete
+    ? [
+        {label: t('Input'), value: breakdown.input},
+        {label: t('Output'), value: breakdown.output},
+        {label: t('Cached'), value: breakdown.cached},
+        {label: t('Cache Write'), value: breakdown.cacheWrite},
+        {label: t('Reasoning'), value: breakdown.reasoning},
+        {label: t('Total'), value: breakdown.total},
+      ].filter(row => row.value > 0 || row.label === t('Total'))
+    : [{label: t('Total'), value: breakdown.total}];
 
   return (
     <Tooltip

@@ -237,7 +237,12 @@ describe('ConversationDetailPage summary errors', () => {
     ]);
     renderPage();
 
-    expect(await screen.findByText('150')).toBeInTheDocument();
+    const tokenCount = await screen.findByText('150');
+    await userEvent.hover(tokenCount.parentElement!);
+
+    expect(await screen.findAllByText('150')).toHaveLength(2);
+    expect(screen.queryByText('Input')).not.toBeInTheDocument();
+    expect(screen.queryByText('Output')).not.toBeInTheDocument();
   });
 
   it('shows the Junior-style token breakdown in the summary tooltip', async () => {
