@@ -399,12 +399,9 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         response: HttpResponseBase | None = None,
     ) -> None:
         """
-        Single source of truth for a failed request: emits `proxy_failure` and stamps the
-        internal/upstream header from the same classification, so the counter and the
-        header cannot drift as terminal paths are added.
-
-        `response` is None only for a mid-stream failure, where the headers have already
-        been flushed and there is nothing left to stamp.
+        Helper method to track failure metrics, and pass through the
+        PROXY_INTERNAL_FAILURE_HEADER header on the response for clients to
+        classify failures appropriately.
         """
         header_value = "true" if failure_type in INTERNAL_FAILURE_TYPES else "false"
 

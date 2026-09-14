@@ -185,9 +185,8 @@ class IntegrationProxyClient(ApiClient):
             if not self._should_proxy_to_control:
                 raise
             # The Control Silo aborted its StreamingHttpResponse partway through the body
-            # (see integration_proxy.iter_response), so what we have is truncated. Surface
-            # that as a connection failure rather than letting a raw requests exception
-            # escape, which callers have no way to classify.
+            # meaning the response is truncated. We still want to track this, as
+            #  well as raise this to the caller potentially.
             self.track_response_data("chunked_encoding_error", e)
             raise ApiConnectionResetError("Proxied response truncated", url=request.url) from e
 
@@ -195,15 +194,13 @@ class IntegrationProxyClient(ApiClient):
             self._should_proxy_to_control
             and response.headers.get(PROXY_INTERNAL_FAILURE_HEADER) == "true"
         ):
-            # The proxy failed before or instead of reaching the third party, so this status
-            # is ours. Raise here, before _request can map it to a provider-shaped error that
-            # the caller would blame the integration for. Reading the body is safe: region
-            # callers never stream, so nothing is consumed out from under them.
+            # The PROXY_INTERNAL_FAILURE_HEADER is set by the proxy when it
+            # either encounters an internal error, or validation fails.
             error = IntegrationProxyInternalError(
                 response.text, response.status_code, url=request.url
             )
-            # Raising from _do_send skips both of _request's track_response_data calls, so
-            # emit it here or these requests vanish from the http_response metric.
+            # Raising here would normally skip response metrics tracking, so
+            # we explicitly track it here instead.
             self.track_response_data(response.status_code, error, resp=response)
             raise error
 
