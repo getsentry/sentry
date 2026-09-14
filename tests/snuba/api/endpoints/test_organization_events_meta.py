@@ -14,7 +14,6 @@ from sentry.testutils.cases import (
 )
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
-from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
@@ -95,43 +94,6 @@ class OrganizationEventsMetaEndpoint(
 
         assert response.status_code == 200, response.content
         assert response.data["count"] == 1
-
-    def test_custom_measurements_query_uses_units(self) -> None:
-        self.store_transaction_metric(
-            33,
-            metric="measurements.custom",
-            internal_metric="d:transactions/measurements.custom@second",
-            entity="metrics_distributions",
-            tags={"transaction": "foo_transaction"},
-            timestamp=self.min_ago,
-        )
-        data = load_data("transaction", timestamp=self.min_ago)
-        data["measurements"] = {
-            "custom": {"value": 0.199, "unit": "second"},
-        }
-        self.store_event(data, self.project.id)
-        data = load_data("transaction", timestamp=self.min_ago)
-        data["measurements"] = {
-            "custom": {"value": 0.201, "unit": "second"},
-        }
-        self.store_event(data, self.project.id)
-        url = reverse(
-            "sentry-api-0-organization-events-meta",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
-        )
-        features = {
-            "organizations:discover-basic": True,
-        }
-        for dataset in ["discover", "transactions"]:
-            query = {
-                "field": ["measurements.custom"],
-                "query": "measurements.custom:>200",
-                "dataset": dataset,
-            }
-            with self.feature(features):
-                response = self.client.get(url, query, format="json")
-            assert response.status_code == 200, response.content
-            assert response.data["count"] == 1
 
     def test_invalid_query(self) -> None:
         with self.feature(self.features):

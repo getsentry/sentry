@@ -17,7 +17,7 @@ const MOCK_MISSING_INSTRUMENTATION_CONTEXT: MissingInstrumentationContext = {
 };
 
 const MOCK_REDACTION = {
-  ['package']: {
+  package: {
     '': {
       chunks: [
         {

@@ -747,8 +747,19 @@ class OrganizationProfilingChunksTest(APITestCase):
 
         assert response.status_code == 400
         assert response.data == {
-            "detail": ErrorDetail(string="profiler_id must be specified.", code="parse_error")
+            "profiler_id": [ErrorDetail(string="This field is required.", code="required")]
         }
+
+    @patch("sentry.api.endpoints.organization_profiling_profiles.get_chunk_ids")
+    def test_rejects_invalid_profiler_id(self, mock_get_chunk_ids: MagicMock) -> None:
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                {"project": [self.project.id], "profiler_id": "not-a-uuid"},
+            )
+
+        assert response.status_code == 400
+        mock_get_chunk_ids.assert_not_called()
 
     @patch(
         "sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service",
@@ -833,8 +844,19 @@ class OrganizationProfilingChunkAttachmentsTest(APITestCase):
             response = self.client.get(self.url, {"project": [self.project.id]})
         assert response.status_code == 400
         assert response.data == {
-            "detail": ErrorDetail(string="profiler_id must be specified.", code="parse_error")
+            "profiler_id": [ErrorDetail(string="This field is required.", code="required")]
         }
+
+    @patch("sentry.api.endpoints.organization_profiling_profiles.get_chunk_ids")
+    def test_rejects_invalid_profiler_id(self, mock_get_chunk_ids: MagicMock) -> None:
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                {"project": [self.project.id], "profiler_id": "not-a-uuid"},
+            )
+
+        assert response.status_code == 400
+        mock_get_chunk_ids.assert_not_called()
 
     @patch("sentry.profiles.profile_chunks.raw_snql_query")
     def test_lists_attachments_for_resolved_chunks(self, mock_raw_snql_query: MagicMock) -> None:

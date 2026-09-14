@@ -41,10 +41,7 @@ export const VITAL_DESCRIPTIONS: Partial<
       'First Contentful Paint (FCP) measures the amount of time the first content takes to render in the viewport. Like FP, this could also show up in any form from the document object model (DOM), such as images, SVGs, or text blocks.'
     ),
     link: (
-      <ExternalLink
-        openInNewTab
-        href="https://blog.sentry.io/how-to-make-your-web-page-faster-before-it-even-loads/"
-      >
+      <ExternalLink href="https://blog.sentry.io/how-to-make-your-web-page-faster-before-it-even-loads/">
         How do I fix my FCP?
       </ExternalLink>
     ),
@@ -57,10 +54,7 @@ export const VITAL_DESCRIPTIONS: Partial<
       'Cumulative Layout Shift (CLS) is the sum of individual layout shift scores for every unexpected element shift during the rendering process. Imagine navigating to an article and trying to click a link before the page finishes loading. Before your cursor even gets there, the link may have shifted down due to an image rendering. Rather than using duration for this Web Vital, the CLS score represents the degree of disruptive and visually unstable shifts.'
     ),
     link: (
-      <ExternalLink
-        openInNewTab
-        href="https://blog.sentry.io/from-lcp-to-cls-improve-your-core-web-vitals-with-image-loading-best/"
-      >
+      <ExternalLink href="https://blog.sentry.io/from-lcp-to-cls-improve-your-core-web-vitals-with-image-loading-best/">
         How do I fix my CLS score?
       </ExternalLink>
     ),
@@ -73,10 +67,7 @@ export const VITAL_DESCRIPTIONS: Partial<
       'Largest Contentful Paint (LCP) measures the render time for the largest content to appear in the viewport. This may be in any form from the document object model (DOM), such as images, SVGs, or text blocks. It’s the largest pixel area in the viewport, thus most visually defining. LCP helps developers understand how long it takes to see the main content on the page.'
     ),
     link: (
-      <ExternalLink
-        openInNewTab
-        href="https://blog.sentry.io/from-lcp-to-cls-improve-your-core-web-vitals-with-image-loading-best/"
-      >
+      <ExternalLink href="https://blog.sentry.io/from-lcp-to-cls-improve-your-core-web-vitals-with-image-loading-best/">
         How do I fix my LCP score?
       </ExternalLink>
     ),
@@ -89,10 +80,7 @@ export const VITAL_DESCRIPTIONS: Partial<
       'Time to First Byte (TTFB) is a foundational metric for measuring connection setup time and web server responsiveness in both the lab and the field. It helps identify when a web server is too slow to respond to requests. In the case of navigation requests—that is, requests for an HTML document—it precedes every other meaningful loading performance metric.'
     ),
     link: (
-      <ExternalLink
-        openInNewTab
-        href="https://blog.sentry.io/how-i-fixed-my-brutal-ttfb/"
-      >
+      <ExternalLink href="https://blog.sentry.io/how-i-fixed-my-brutal-ttfb/">
         How do I fix my TTFB score?
       </ExternalLink>
     ),
@@ -105,7 +93,7 @@ export const VITAL_DESCRIPTIONS: Partial<
       "Interaction to Next Paint (INP) is a metric that assesses a page's overall responsiveness to user interactions by observing the latency of all click, tap, and keyboard interactions that occur throughout the lifespan of a user's visit to a page. The final INP value is the longest interaction observed, ignoring outliers."
     ),
     link: (
-      <ExternalLink openInNewTab href="https://blog.sentry.io/what-is-inp/">
+      <ExternalLink href="https://blog.sentry.io/what-is-inp/">
         How do I fix my INP score?
       </ExternalLink>
     ),

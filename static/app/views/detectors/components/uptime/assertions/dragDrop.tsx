@@ -54,7 +54,7 @@ export function AssertionsDndContext({children}: {children: React.ReactNode}) {
     </DndContext>
   );
 }
-interface DroppableProps extends React.HTMLAttributes<HTMLDivElement> {
+interface DroppableProps {
   disabled: boolean;
   groupId: string;
   idIndex: number;
@@ -63,7 +63,7 @@ interface DroppableProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export function DroppableHitbox(props: DroppableProps) {
-  const {idIndex, op, groupId, position, disabled, ...rest} = props;
+  const {idIndex, op, groupId, position, disabled} = props;
 
   const {active} = useDndContext();
   const activeData = active?.data.current;
@@ -87,11 +87,13 @@ export function DroppableHitbox(props: DroppableProps) {
     before: {bottom: isGroup ? 'calc(100% - 10px)' : '50%'},
     after: {top: isGroup ? 'calc(100% - 10px)' : '50%'},
     inside: {inset: '0px', top: '-10px', left: '-12px'},
-  };
+  } as const;
 
   const offset = offsetConfig[position];
   const groupHitboxAdjust =
-    isGroup && position === 'after' ? {bottom: '-10px', top: 'calc(100%)'} : {};
+    isGroup && position === 'after'
+      ? ({bottom: '-10px', top: 'calc(100%)'} as const)
+      : {};
 
   return (
     <Container
@@ -100,7 +102,6 @@ export function DroppableHitbox(props: DroppableProps) {
       inset="0px"
       {...offset}
       {...groupHitboxAdjust}
-      {...rest}
       style={{pointerEvents: 'none'}}
     />
   );

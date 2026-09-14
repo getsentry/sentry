@@ -1,35 +1,36 @@
 import {useRef} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Stack, type FlexProps} from '@sentry/scraps/layout';
+import {
+  Container,
+  Flex,
+  type FlexProps,
+  Grid,
+  type GridProps,
+  Stack,
+  type ContainerProps,
+} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {useIsStuck} from 'sentry/utils/useIsStuck';
 import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 
-export const ExploreControlSection = styled('aside')<{expanded: boolean}>`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+type ExploreControlSectionProps = ContainerProps<'aside'> & {expanded: boolean};
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    border-bottom: none;
-    ${p =>
-      p.expanded
-        ? css`
-            width: 343px; /* 300px for the toolbar + padding */
-            padding: ${p.theme.space.md} ${p.theme.space.xl};
-            border-right: 1px solid ${p.theme.tokens.border.primary};
-          `
-        : css`
-            overflow: hidden;
-            width: 0px;
-            padding: 0px;
-            border-right: none;
-          `}
-  }
-`;
+export function ExploreControlSection({expanded, ...props}: ExploreControlSectionProps) {
+  return (
+    <Container
+      as="aside"
+      padding={expanded ? 'md xl' : '0'}
+      borderBottom={expanded ? {zero: 'primary', xl: 'none'} : 'none'}
+      borderRight={{zero: 'none', xl: expanded ? 'primary' : 'none'}}
+      overflow={expanded ? 'visible' : 'hidden'}
+      width={{zero: 'auto', xl: expanded ? '343px' : '0px'}}
+      {...props}
+    />
+  );
+}
 
 export function ExploreContentSection(props: FlexProps) {
   return (
@@ -44,14 +45,11 @@ export function ExploreContentSection(props: FlexProps) {
   );
 }
 
-export const ExploreFilterSection = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.md};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: minmax(300px, auto) 1fr;
-  }
-`;
+export function ExploreFilterSection(props: GridProps) {
+  return (
+    <Grid gap="md" columns={{zero: '1fr', xl: 'minmax(300px, auto) 1fr'}} {...props} />
+  );
+}
 
 function StuckAwareExploreBodySearch(props: React.ComponentProps<typeof Layout.Body>) {
   const elementRef = useRef<HTMLDivElement>(null);
@@ -76,28 +74,21 @@ export const ExploreBodySearch = styled(StuckAwareExploreBodySearch)`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding-bottom: ${p => p.theme.space.xl};
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding-bottom: ${p => p.theme.space.xl};
-  }
-
   &[data-stuck] {
     /* Content dropdowns should scroll underneath the sticky search controls. */
     z-index: ${p => p.theme.zIndex.stickyHeader};
   }
 `;
 
-export const ExploreBodyContent = styled('div')`
-  background-color: ${p => p.theme.tokens.background.primary};
-  flex-grow: 1;
-
-  display: flex;
-  flex-direction: column;
-  padding: 0px;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    display: flex;
-    flex-direction: row;
-    padding: 0px;
-    gap: 0px;
-  }
-`;
+export function ExploreBodyContent(props: FlexProps) {
+  return (
+    <Flex
+      background="primary"
+      flexGrow={1}
+      direction={{zero: 'column', xl: 'row'}}
+      padding="0"
+      gap="0"
+      {...props}
+    />
+  );
+}

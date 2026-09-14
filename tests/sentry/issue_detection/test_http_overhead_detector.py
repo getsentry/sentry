@@ -324,7 +324,11 @@ class HTTPOverheadDetectorTest(TestCase):
         span["organization_id"] = self.project.organization.id
         event["spans"] = [span]
 
-        for invalid_value in ["dogs are great", "NaN", "[Filtered]"]:
+        for invalid_value, expected_description in [
+            ("NaN", "non_number_float"),
+            ("[Filtered]", "non_number_string"),
+            ("dogs are great", "non_number_string"),
+        ]:
             event["spans"][0]["data"]["http.request.request_start"] = invalid_value
 
             assert self.find_problems(event) == []
@@ -338,7 +342,10 @@ class HTTPOverheadDetectorTest(TestCase):
                     "org_id": span["organization_id"],
                     "key": "http.request.request_start",
                     "value": invalid_value,
-                    "error": f"ValueError(\"could not convert string to `request_start` value: '{invalid_value}'\")",
+                    "error": (
+                        f"ValueError(\"Couldn't convert <{expected_description}> to <float>. "
+                        + f'Invalid value: {invalid_value}")'
+                    ),
                 },
             )
 

@@ -133,23 +133,29 @@ export function ConversationSpanDetail({
 
   return (
     <SpanDetailCard ref={scrollContainerRef} embedded={embedded}>
-      <Flex align="center" gap="lg" flexShrink={0}>
-        <Flex flex="1" minWidth="0" align="center" gap="md">
-          <AiSpanStatusIcon node={node} />
-          <InfoText title={title} mode="overflowOnly" size="lg" bold>
-            {title}
-          </InfoText>
+      <Container flexShrink={0}>
+        <Flex align="center" gap="lg">
+          <Flex flex="1" minWidth="0" align="center" gap="md">
+            <AiSpanStatusIcon node={node} />
+            <InfoText title={title} mode="overflowOnly" size="lg" bold>
+              {title}
+            </InfoText>
+          </Flex>
+          {onClose ? (
+            <Button
+              size="sm"
+              variant="transparent"
+              icon={<IconClose />}
+              aria-label={t('Close')}
+              onClick={onClose}
+            />
+          ) : null}
         </Flex>
-        {onClose ? (
-          <Button
-            size="sm"
-            variant="transparent"
-            icon={<IconClose />}
-            aria-label={t('Close')}
-            onClick={onClose}
-          />
-        ) : null}
-      </Flex>
+        <TraceDrawerComponents.SubtitleWithCopyButton
+          subTitle={`ID: ${node.id}`}
+          clipboardText={node.id}
+        />
+      </Container>
 
       <Stack gap="lg" flexShrink={0}>
         <Flex align="center" gap="sm" wrap="wrap">
@@ -186,18 +192,12 @@ export function ConversationSpanDetail({
       ) : isError ? (
         <EmptyTab message={t('Failed to load span details')} />
       ) : (
-        <TabStateProvider<DetailTab>
-          value={activeTab}
-          onChange={onTabChange}
-          disableOverflow
-        >
-          <Flex flexShrink={0}>
-            <TabList>
-              <TabList.Item key="input">{t('Input')}</TabList.Item>
-              <TabList.Item key="output">{t('Output')}</TabList.Item>
-              <TabList.Item key="attributes">{t('Attributes')}</TabList.Item>
-            </TabList>
-          </Flex>
+        <TabStateProvider<DetailTab> value={activeTab} onChange={onTabChange}>
+          <TabList>
+            <TabList.Item key="input">{t('Input')}</TabList.Item>
+            <TabList.Item key="output">{t('Output')}</TabList.Item>
+            <TabList.Item key="attributes">{t('Attributes')}</TabList.Item>
+          </TabList>
 
           <Container
             flex="0 0 auto"
@@ -489,10 +489,13 @@ function EmptyTab({message}: {message: string}) {
 function SpanDetailSkeleton({embedded}: {embedded?: boolean}) {
   return (
     <SpanDetailCard embedded={embedded}>
-      <Flex align="center" gap="lg" flexShrink={0}>
-        <Placeholder height="16px" width="16px" />
-        <Placeholder height="16px" width="180px" />
-      </Flex>
+      <Container flexShrink={0}>
+        <Flex align="center" gap="lg">
+          <Placeholder height="16px" width="16px" />
+          <Placeholder height="16px" width="180px" />
+        </Flex>
+        <Placeholder height="14px" width="160px" />
+      </Container>
       <Stack gap="md" flexShrink={0}>
         <Placeholder height="16px" width="60px" />
         <SpanMetadataSkeleton />

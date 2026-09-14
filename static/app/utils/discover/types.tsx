@@ -122,6 +122,17 @@ export const CONDITIONS_ARGUMENTS: Array<{value: string; label?: string}> = [
   },
 ];
 
+export const EQUALITY_CONDITIONS_ARGUMENTS: Array<{value: string; label?: string}> = [
+  {
+    label: 'is equal to',
+    value: 'equals',
+  },
+  {
+    label: 'is not equal to',
+    value: 'notEquals',
+  },
+];
+
 export const WEB_VITALS_QUALITY: Array<{value: string; label?: string}> = [
   {
     label: 'good',

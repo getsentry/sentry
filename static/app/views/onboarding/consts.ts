@@ -1,5 +1,7 @@
 import type {MotionProps} from 'framer-motion';
 
+import type {IconSize} from 'sentry/utils/theme';
+
 export const ONBOARDING_WELCOME_SCREEN_SOURCE = 'targeted_onboarding';
 
 // Child element animation - used by each staggered item
@@ -20,3 +22,6 @@ export const ONBOARDING_WELCOME_STAGGER_ITEM: MotionProps = {
  * Matches the Figma content area width (516px).
  */
 export const SCM_STEP_CONTENT_WIDTH = '630px';
+
+export const SETUP_CARD_ICON_SIZE: IconSize = 'md';
+export const SETUP_CARD_MARKER_PX = '24px';

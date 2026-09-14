@@ -7,6 +7,7 @@ from sentry.auth.services.auth import AuthenticatedToken
 from sentry.seer.signed_seer_api import (
     SeerViewerContext,
     _resolve_viewer_context,
+    make_delete_grouping_records_by_project_request,
     make_signed_seer_api_request,
 )
 from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
@@ -122,6 +123,33 @@ def test_times_request(mock_metrics_timer: MagicMock, path: str) -> None:
             # In both cases the path is the same, because query params are stripped
             "endpoint": PATH,
         },
+    )
+
+
+@pytest.mark.django_db
+@patch("sentry.seer.signed_seer_api.metrics.timer")
+def test_times_request_with_metrics_endpoint(mock_metrics_timer: MagicMock) -> None:
+    run_test_case(
+        path=f"{PATH}/12345?dogs=great",
+        metrics_endpoint=PATH,
+    )
+    mock_metrics_timer.assert_called_with(
+        "seer.request_to_seer",
+        sample_rate=1.0,
+        tags={"endpoint": PATH},
+    )
+
+
+@patch("sentry.seer.signed_seer_api.make_signed_seer_api_request")
+def test_delete_grouping_records_uses_generic_metrics_endpoint(
+    mock_seer_request: MagicMock,
+) -> None:
+    make_delete_grouping_records_by_project_request({"project_id": 4512086077276160})
+
+    assert mock_seer_request.call_args.args[1].endswith("/delete/4512086077276160")
+    assert (
+        mock_seer_request.call_args.kwargs["metrics_endpoint"]
+        == "/v0/issues/similar-issues/grouping-record/delete/:project_id"
     )
 
 

@@ -247,8 +247,8 @@ export function EventGraph({
   const [legendSelected, setLegendSelected] = useLocalStorageState(
     'issue-details-graph-legend',
     {
-      ['Feature Flags']: true,
-      ['Releases']: false,
+      'Feature Flags': true,
+      Releases: false,
     }
   );
 

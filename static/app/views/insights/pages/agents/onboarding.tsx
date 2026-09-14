@@ -6,6 +6,7 @@ import {PlatformIcon} from 'platformicons';
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -53,11 +54,12 @@ import {LLM_ONBOARDING_COPY_MARKDOWN} from 'sentry/views/insights/pages/agents/l
 import {
   AGENT_INTEGRATION_ICONS,
   AGENT_INTEGRATION_LABELS,
-  CLOUDFLARE_AGENT_INTEGRATIONS,
+  AgentIntegration,
   DENO_AGENT_INTEGRATIONS,
   DEPLOYMENT_TARGET_ICONS,
   DEPLOYMENT_TARGET_LABELS,
   DeploymentTarget,
+  getIntegrationDeploymentTarget,
   NODE_AGENT_INTEGRATIONS,
   PHP_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
@@ -104,6 +106,7 @@ function useAiSpanWaiter(project: Project) {
 
   useEffect(() => {
     if (hasEvents && shouldRefetch) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setShouldRefetch(false);
     }
   }, [hasEvents, shouldRefetch]);
@@ -172,7 +175,7 @@ function OnboardingPanel({
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
           <TabSelectionScope>
             <div>
-              <HeaderWrapper>
+              <Flex justify="between" gap="2xl" radius="md" padding="3xl">
                 <HeaderText>
                   <Title>{t('Monitor AI Agents')}</Title>
                   <SubTitle>
@@ -203,8 +206,10 @@ function OnboardingPanel({
                     </li>
                   </BulletList>
                 </HeaderText>
-                <Image src={emptyTraceImg} />
-              </HeaderWrapper>
+                <Container display={{zero: 'none', xl: 'block'}}>
+                  {imageProps => <Image {...imageProps} src={emptyTraceImg} />}
+                </Container>
+              </Flex>
               <Divider />
               <Body>
                 <Setup>{children}</Setup>
@@ -274,25 +279,15 @@ export function Onboarding() {
       }
     : {};
 
-  const selectedDeploymentTarget = useUrlPlatformOptions(deploymentTargetOptions)
-    .deploymentTarget as DeploymentTarget | undefined;
-  // Cloudflare Workers projects are pinned to the Cloudflare runtime; other Node
-  // projects follow the selector (defaulting to Node).
-  const deploymentTarget = isCloudflareWorkers
-    ? DeploymentTarget.CLOUDFLARE
-    : selectedDeploymentTarget;
-  const isCloudflareTarget =
-    isNodePlatform && deploymentTarget === DeploymentTarget.CLOUDFLARE;
-
+  // The SDK list is no longer filtered by runtime: Node projects see every
+  // Node/Cloudflare agent SDK, and the chosen SDK drives the runtime below.
   const integrations = isPythonPlatform
     ? PYTHON_AGENT_INTEGRATIONS
     : isDenoPlatform
       ? DENO_AGENT_INTEGRATIONS
       : isPhpPlatform
         ? PHP_AGENT_INTEGRATIONS
-        : isCloudflareTarget
-          ? CLOUDFLARE_AGENT_INTEGRATIONS
-          : NODE_AGENT_INTEGRATIONS;
+        : NODE_AGENT_INTEGRATIONS;
 
   const platformOptions: BasePlatformOptions = {
     integration: {
@@ -319,6 +314,20 @@ export function Onboarding() {
   };
 
   const selectedPlatformOptions = useUrlPlatformOptions(platformOptions);
+
+  // A runtime-specific SDK (e.g. Workers AI -> Cloudflare, Mastra -> Node) pins
+  // the runtime and locks the selector; otherwise the user's dropdown choice
+  // wins (the selector defaults to Node). Cloudflare Workers projects stay
+  // pinned to Cloudflare regardless of the SDK.
+  const integrationDeploymentTarget = getIntegrationDeploymentTarget(
+    selectedPlatformOptions.integration
+  );
+  const selectedDeploymentTarget = selectedPlatformOptions.deploymentTarget as
+    | DeploymentTarget
+    | undefined;
+  const deploymentTarget = isCloudflareWorkers
+    ? DeploymentTarget.CLOUDFLARE
+    : (integrationDeploymentTarget ?? selectedDeploymentTarget);
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -384,22 +393,31 @@ export function Onboarding() {
         <PlatformOptionDropdown
           platformOptions={platformOptions}
           connectors={{deploymentTarget: t('on')}}
+          lockedValues={
+            integrationDeploymentTarget
+              ? {deploymentTarget: integrationDeploymentTarget}
+              : undefined
+          }
         />
       </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
-      <DescriptionWrapper>
-        <p>
-          {tct(
-            'To use [link:Conversations], set a conversation ID for each chat. Sentry uses the [code:gen_ai.conversation.id] attribute to group related AI spans.',
-            {
-              code: <code />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/ai/monitoring/conversations/" />
-              ),
-            }
-          )}
-        </p>
-      </DescriptionWrapper>
+      {/* Eve only drains OpenTelemetry traces, so there's no Sentry SDK call to
+          set a conversation ID - hide the Conversations pointer for it. */}
+      {selectedPlatformOptions.integration !== AgentIntegration.EVE && (
+        <DescriptionWrapper>
+          <p>
+            {tct(
+              'To use [link:Conversations], set a conversation ID for each chat. Sentry uses the [code:gen_ai.conversation.id] attribute to group related AI spans.',
+              {
+                code: <code />,
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/ai/monitoring/conversations/" />
+                ),
+              }
+            )}
+          </p>
+        </DescriptionWrapper>
+      )}
       <GuidedSteps
         // Remount when the integration or runtime changes so the stepper doesn't
         // carry over stale per-step state from the previous selection.
@@ -546,14 +564,6 @@ const Title = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${p => p.theme.space['2xl']};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space['3xl']};
-`;
-
 const BodyTitle = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
@@ -597,14 +607,9 @@ const Arcade = styled('iframe')`
 `;
 
 const Image = styled('img')`
-  display: block;
   pointer-events: none;
   height: 120px;
   overflow: hidden;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
 `;
 
 const Divider = styled('hr')`

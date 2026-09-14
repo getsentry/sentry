@@ -1,4 +1,4 @@
-import {Fragment, type MouseEventHandler, useEffect, useRef} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -255,13 +255,12 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
   );
 }
 
-interface PrimaryNavigationUnreadIndicatorProps extends React.HTMLAttributes<HTMLSpanElement> {
+interface PrimaryNavigationUnreadIndicatorProps {
   variant: 'accent' | 'danger' | 'warning';
 }
 
 function PrimaryNavigationUnreadIndicator({
   variant,
-  ...props
 }: PrimaryNavigationUnreadIndicatorProps) {
   const indicatorPosition: Pick<ContainerProps, 'top' | 'right' | 'left'> = {
     top: '0',
@@ -272,7 +271,7 @@ function PrimaryNavigationUnreadIndicator({
     <Container position="absolute" {...indicatorPosition}>
       {p => (
         <StatusIndicator
-          {...mergeProps(p, props)}
+          {...p}
           animationIterationCount={14}
           variant={variant}
           data-unread-indicator
@@ -288,7 +287,6 @@ interface PrimaryNavigationMenuProps extends PrimaryNavigationItemBaseProps {
   children?: React.ReactNode;
   icon?: React.ReactNode;
   indicator?: 'accent' | 'danger' | 'warning';
-  onOpen?: MouseEventHandler<HTMLButtonElement>;
 }
 
 function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
@@ -334,7 +332,6 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
                   });
                 }
                 triggerProps.onClick?.(event);
-                props.onOpen?.(event);
               }}
               icon={
                 props.indicator ? (

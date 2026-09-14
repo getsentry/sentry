@@ -1,5 +1,6 @@
+from datetime import timedelta
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 from uuid import UUID
 
 from django.utils import timezone
@@ -10,6 +11,7 @@ from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
 from sentry.seer.smart_assignment.delivery import deliver_smart_assignment_result
 from sentry.seer.smart_assignment.models import SEER_FEATURE_ID, SmartAssignmentScore
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
 
 METRICS_PATH = "sentry.seer.smart_assignment.delivery.metrics"
@@ -85,6 +87,41 @@ class DeliverSmartAssignmentResultTest(TestCase):
         self._assert_outcome(mock_metrics, "resolved")
 
     @patch(METRICS_PATH)
+    def test_records_run_duration_and_candidate_counts(self, mock_metrics: MagicMock) -> None:
+        self.seer_run.update(last_triggered_at=timezone.now() - timedelta(seconds=30))
+        alice = self.create_user(username="alice")
+        self.create_member(user=alice, organization=self.organization)
+
+        self._deliver(
+            {
+                "candidates": [
+                    {"identifier": "alice", "identifier_kind": "username"},
+                    {"identifier": "missing", "identifier_kind": "username"},
+                ]
+            }
+        )
+
+        mock_metrics.distribution.assert_any_call(
+            "smart_assignment.run.duration",
+            ANY,
+            tags={"status": "completed"},
+            unit="second",
+            sample_rate=1.0,
+        )
+        mock_metrics.distribution.assert_any_call(
+            "smart_assignment.prediction.candidates",
+            2,
+            tags={"outcome": "resolved"},
+            sample_rate=1.0,
+        )
+        mock_metrics.distribution.assert_any_call(
+            "smart_assignment.prediction.resolved_candidates",
+            1,
+            tags={"outcome": "resolved"},
+            sample_rate=1.0,
+        )
+
+    @patch(METRICS_PATH)
     def test_creates_completion_activity_referencing_run(self, mock_metrics: MagicMock) -> None:
         # The delivered verdict is handed off via a SMART_ASSIGNMENT_COMPLETED
         # activity that points back at the Seer run and carries the resolved picks.
@@ -144,6 +181,119 @@ class DeliverSmartAssignmentResultTest(TestCase):
         self._deliver(result)
 
         assert self._extras()["predicted_assignee_user_ids"] == [carol.id]
+        self._assert_outcome(mock_metrics, "resolved")
+
+    @patch(METRICS_PATH)
+    def test_email_kind_resolves_by_unverified_email(self, mock_metrics: MagicMock) -> None:
+        carol = self.create_user(email="carol@example.com")
+        self.create_member(user=carol, organization=self.organization)
+        self.create_useremail(user=carol, email="carol-secondary@example.com", is_verified=False)
+        result = {
+            "candidates": [
+                {
+                    "identifier": "carol-secondary@example.com",
+                    "identifier_kind": "email",
+                    "reason": "unlinked commit author",
+                    "confidence": "low",
+                },
+            ]
+        }
+
+        self._deliver(result)
+
+        assert self._extras()["predicted_assignee_user_ids"] == [carol.id]
+        self._assert_outcome(mock_metrics, "resolved")
+
+    @override_options({"seer.smart_assignment.fuzzy_user_matching.enabled": True})
+    @patch(METRICS_PATH)
+    def test_email_kind_fuzzy_matches_local_part(self, mock_metrics: MagicMock) -> None:
+        dana = self.create_user(email="dana.reed@sentry.io", name="Dana Reed", username="dana")
+        self.create_member(user=dana, organization=self.organization)
+        self._deliver(
+            {
+                "candidates": [
+                    {
+                        "identifier": "dana.reed@gmail.com",
+                        "identifier_kind": "email",
+                        "reason": "unlinked commit author",
+                        "confidence": "low",
+                    }
+                ]
+            }
+        )
+
+        assert self._extras()["predicted_assignee_user_ids"] == [dana.id]
+        self._assert_outcome(mock_metrics, "resolved")
+
+    @patch(METRICS_PATH)
+    def test_fuzzy_matching_can_be_disabled(self, mock_metrics: MagicMock) -> None:
+        dana = self.create_user(email="dana.reed@sentry.io", name="Dana Reed", username="dana")
+        self.create_member(user=dana, organization=self.organization)
+        with (
+            override_options({"seer.smart_assignment.fuzzy_user_matching.enabled": False}),
+            patch("sentry.seer.smart_assignment.delivery.logger") as mock_logger,
+        ):
+            self._deliver(
+                {
+                    "candidates": [
+                        {
+                            "identifier": "dana.reed@gmail.com",
+                            "identifier_kind": "email",
+                        }
+                    ]
+                }
+            )
+
+        assert self._extras()["predicted_assignee_user_ids"] == [None]
+        log_extra = mock_logger.info.call_args.kwargs["extra"]
+        assert log_extra["user_id"] == dana.id
+        self._assert_outcome(mock_metrics, "unlinked")
+
+    @override_options({"seer.smart_assignment.fuzzy_user_matching.enabled": True})
+    @patch(METRICS_PATH)
+    def test_email_kind_ambiguous_local_part_is_unlinked(self, mock_metrics: MagicMock) -> None:
+        self.create_member(
+            user=self.create_user(email="alice@sentry.io", username="alice-work"),
+            organization=self.organization,
+        )
+        self.create_member(
+            user=self.create_user(email="alice@contractor.io", username="alice-contract"),
+            organization=self.organization,
+        )
+        self._deliver(
+            {
+                "candidates": [
+                    {
+                        "identifier": "alice@gmail.com",
+                        "identifier_kind": "email",
+                        "reason": "unlinked commit author",
+                        "confidence": "low",
+                    }
+                ]
+            }
+        )
+
+        assert self._extras()["predicted_assignee_user_ids"] == [None]
+        self._assert_outcome(mock_metrics, "unlinked")
+
+    @override_options({"seer.smart_assignment.fuzzy_user_matching.enabled": True})
+    @patch(METRICS_PATH)
+    def test_email_kind_fuzzy_matches_name(self, mock_metrics: MagicMock) -> None:
+        dana = self.create_user(email="other@sentry.io", name="Dana Reed", username="dreed")
+        self.create_member(user=dana, organization=self.organization)
+        self._deliver(
+            {
+                "candidates": [
+                    {
+                        "name": "Dana Reed",
+                        "identifier": "unrelated@gmail.com",
+                        "identifier_kind": "email",
+                    }
+                ]
+            }
+        )
+
+        assert self._extras()["predicted_assignee_user_ids"] == [dana.id]
         self._assert_outcome(mock_metrics, "resolved")
 
     @patch(METRICS_PATH)

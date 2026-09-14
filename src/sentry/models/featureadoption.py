@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 from typing import ClassVar, cast
 
 import rb
@@ -23,6 +24,7 @@ from sentry.utils.services import build_instance_from_options
 logger = logging.getLogger(__name__)
 
 FEATURE_ADOPTION_REDIS_KEY = "organization-feature-adoption:{}"
+FEATURE_ADOPTION_CACHE_TTL = int(timedelta(days=90).total_seconds())
 
 # Languages
 manager.add(0, "python", "Python", "language")
@@ -149,7 +151,10 @@ class FeatureAdoptionRedisBackend:
             return False
 
         org_key = self.key_tpl.format(organization_id)
-        self.get_client(org_key).sadd(org_key, *args)
+        pipe = self.get_client(org_key).pipeline()
+        pipe.sadd(org_key, *args)
+        pipe.expire(org_key, FEATURE_ADOPTION_CACHE_TTL)
+        pipe.execute()
         return True
 
 
@@ -212,13 +217,9 @@ class FeatureAdoptionManager(BaseManager["FeatureAdoption"]):
 
         try:
             with transaction.atomic(router.db_for_write(FeatureAdoption)):
-                self.bulk_create(features)
+                # Skip existing rows and keep the new ones
+                self.bulk_create(features, ignore_conflicts=True)
         except IntegrityError:
-            # This can occur if redis somehow loses the set of complete features and
-            # we attempt to insert duplicate (org_id, feature_id) rows
-            # This also will happen if we get parallel processes running `bulk_record` and
-            # `get_all_cache` returns in the second process before the first process
-            # can `bulk_set_cache`.
             pass
 
         return self.bulk_set_cache(organization_id, *incomplete_feature_ids)

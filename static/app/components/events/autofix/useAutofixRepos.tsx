@@ -5,7 +5,7 @@ import type {Group} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-function autofixReposApiOptions(orgSlug: string, group: Group) {
+function autofixReposApiOptions(orgSlug: string, group: Pick<Group, 'id'>) {
   return apiOptions.as<AutofixReposResponse>()(
     '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/repos/',
     {
@@ -19,7 +19,7 @@ export function useAutofixRepos({
   group,
   enabled = true,
 }: {
-  group: Group;
+  group: Pick<Group, 'id'>;
   enabled?: boolean;
 }) {
   const organization = useOrganization();

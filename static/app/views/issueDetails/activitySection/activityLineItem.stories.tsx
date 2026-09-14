@@ -473,9 +473,9 @@ function ActivityFeedExamples({items}: {items: ActivityFeedItem[]}) {
           <ActivityLineNote
             key={`${item.activity.id}-${index}`}
             activity={item.activity}
-            group={group}
             inputVariant="compact"
             onDelete={async () => {}}
+            onUpdate={async () => {}}
           />
         ) : (
           <ActivityLine
@@ -501,9 +501,9 @@ function CommentExample() {
     <ActivityLineList>
       <ActivityLineNote
         activity={{...note, user: activeUser}}
-        group={group}
         inputVariant="full"
         onDelete={async () => {}}
+        onUpdate={async () => {}}
       />
     </ActivityLineList>
   );

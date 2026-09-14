@@ -1,12 +1,19 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQuery} from '@tanstack/react-query';
 
-import {Select, type GeneralSelectValue, type StylesConfig} from '@sentry/scraps/select';
-import type {SelectValue} from '@sentry/scraps/select';
+import {
+  Select,
+  CheckWrap,
+  components,
+  type SingleValueProps,
+  type StylesConfig,
+  type SelectValue,
+} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IdBadge} from 'sentry/components/idBadge';
+import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
@@ -15,12 +22,9 @@ import {
   memberUsersQueryOptions,
   selectUsersFromMembers,
 } from 'sentry/utils/members/shared';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 const getSearchKeyForUser = (user: User) =>
   `${user.email?.toLowerCase()} ${user.name?.toLowerCase()}`;
-
-const EMPTY_USERS: User[] = [];
 
 type SelectMemberValue = null | number | string | undefined;
 
@@ -33,6 +37,7 @@ interface MentionableUser extends SelectValue<string> {
   };
   label: React.ReactElement;
   searchKey: string;
+  user: User;
 }
 
 interface Props {
@@ -40,7 +45,6 @@ interface Props {
   organization: Organization;
   value: SelectMemberValue;
   'aria-label'?: string;
-  disabled?: boolean;
   projectIds?: readonly string[];
   styles?: StylesConfig;
 }
@@ -49,14 +53,59 @@ interface FilterOption {
   data: MentionableUser;
 }
 
-function isMentionableUser(option: GeneralSelectValue): option is MentionableUser {
-  const actor = (option as Partial<MentionableUser>).actor;
-
-  return typeof option.value === 'string' && actor?.type === 'user';
+function filterMemberOption(option: FilterOption, filterText: string) {
+  return option.data.searchKey.includes(filterText.toLowerCase());
 }
 
-function filterMemberOption(option: FilterOption, filterText: string) {
-  return option?.data?.searchKey?.includes(filterText.toLowerCase());
+function SelectedMember(props: SingleValueProps<MentionableUser>) {
+  return (
+    <components.SingleValue {...props}>
+      <UserBadge avatarSize={20} user={props.data.user} hideEmail />
+    </components.SingleValue>
+  );
+}
+
+const memberSelectComponents = {SingleValue: SelectedMember};
+
+function createMentionableUser(user: User): MentionableUser {
+  return {
+    value: user.id,
+    label: (
+      <UserBadge
+        avatarSize={20}
+        user={user}
+        minHeight="32px"
+        hideEmail
+        description={user.name && user.name !== user.email ? user.email : undefined}
+      />
+    ),
+    searchKey: getSearchKeyForUser(user),
+    user,
+    actor: {
+      type: 'user',
+      email: user.email,
+      id: user.id,
+      name: user.name,
+    },
+  };
+}
+
+function createUnmentionableUser(user: User): MentionableUser {
+  const option = createMentionableUser(user);
+  return {
+    ...option,
+    disabled: true,
+    label: (
+      <DisabledLabel>
+        <Tooltip
+          position="left"
+          title={t('%s is not a member of project', user.name || user.email)}
+        >
+          {option.label}
+        </Tooltip>
+      </DisabledLabel>
+    ),
+  };
 }
 
 /**
@@ -64,7 +113,6 @@ function filterMemberOption(option: FilterOption, filterText: string) {
  */
 function SelectMembers({
   'aria-label': ariaLabel,
-  disabled,
   onChange,
   organization,
   projectIds,
@@ -72,7 +120,7 @@ function SelectMembers({
   value,
 }: Props) {
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 250);
+  const [debouncedSearch] = useDebouncedValue(search, {wait: 250});
   const {data: users = [], isPending: memberListLoading} = useQuery({
     ...useProjectMembersQueryOptions(projectIds),
     select: resp => selectUsersFromMembers(resp.json),
@@ -85,82 +133,46 @@ function SelectMembers({
     enabled: debouncedSearch !== '',
     placeholderData: previousData => (debouncedSearch ? previousData : undefined),
   });
-  const searchedUsers = debouncedSearch
-    ? (searchMembersQuery.data ?? EMPTY_USERS)
-    : EMPTY_USERS;
   const searchLoading = debouncedSearch !== '' && searchMembersQuery.isFetching;
 
-  const renderUserBadge = useCallback(
-    (user: User) => <IdBadge avatarSize={24} user={user} hideEmail disableLink />,
-    []
-  );
-
-  const createMentionableUser = useCallback(
-    (user: User): MentionableUser => ({
-      value: user.id,
-      label: renderUserBadge(user),
-      searchKey: getSearchKeyForUser(user),
-      actor: {
-        type: 'user',
-        email: user.email,
-        id: user.id,
-        name: user.name,
-      },
-    }),
-    [renderUserBadge]
-  );
-
-  const createUnmentionableUser = useCallback(
-    (user: User): MentionableUser => ({
-      ...createMentionableUser(user),
-      disabled: true,
-      label: (
-        <DisabledLabel>
-          <Tooltip
-            position="left"
-            title={t('%s is not a member of project', user.name || user.email)}
-          >
-            {renderUserBadge(user)}
-          </Tooltip>
-        </DisabledLabel>
-      ),
-    }),
-    [createMentionableUser, renderUserBadge]
-  );
-
-  const usersInProjectById = useMemo(() => new Set(users.map(({id}) => id)), [users]);
-  const mentionableUsers = useMemo(
-    () => users.map(createMentionableUser),
-    [createMentionableUser, users]
-  );
-  const unmentionableUsers = useMemo(
-    () =>
-      searchedUsers
+  const currentOptions = useMemo(() => {
+    const searchedUsers = debouncedSearch ? (searchMembersQuery.data ?? []) : [];
+    const usersInProjectById = new Set(users.map(({id}) => id));
+    return [
+      ...users.map(createMentionableUser),
+      ...searchedUsers
         .filter(user => !usersInProjectById.has(user.id))
         .map(createUnmentionableUser),
-    [createUnmentionableUser, searchedUsers, usersInProjectById]
-  );
+    ];
+  }, [users, debouncedSearch, searchMembersQuery.data]);
 
-  const currentOptions = useMemo(
-    () => [...mentionableUsers, ...unmentionableUsers],
-    [mentionableUsers, unmentionableUsers]
-  );
+  const selectedValue = value === null || value === undefined ? undefined : String(value);
+  const hasSelectedMember = currentOptions.some(option => option.value === selectedValue);
 
-  const handleInputChange = (nextInputValue: string) => {
-    setSearch(nextInputValue);
-  };
-  const handleChange = (option: GeneralSelectValue | GeneralSelectValue[] | null) => {
-    if (!option || Array.isArray(option)) {
-      return;
-    }
-
-    if (isMentionableUser(option)) {
-      onChange(option);
-    }
-  };
   const selectStyles: StylesConfig = useMemo(
     () => ({
       ...styles,
+      menu: (provided, state) => ({
+        ...provided,
+        ...styles?.menu?.(provided, state),
+        width: 320,
+      }),
+      menuList: (provided, state) => ({
+        ...provided,
+        ...styles?.menuList?.(provided, state),
+        '.option > div': {
+          paddingBlock: 4,
+        },
+        [String(CheckWrap)]: {
+          height: 32,
+        },
+      }),
+      input: (provided, state) => ({
+        ...provided,
+        ...styles?.input?.(provided, state),
+        // Align the caret after the selected member's 20px avatar and 6px gap.
+        paddingLeft: hasSelectedMember && !search ? 26 : 0,
+      }),
       option: (provided, state) => ({
         ...provided,
         svg: {
@@ -168,30 +180,32 @@ function SelectMembers({
         },
       }),
     }),
-    [styles]
+    [styles, hasSelectedMember, search]
   );
 
   // Keep the select disabled until project-scoped members have loaded so the
   // default option set is complete before users can search.
   if (memberListLoading) {
     return (
-      <StyledSelectControl aria-label={ariaLabel} isDisabled placeholder={t('Loading')} />
+      <Select
+        aria-label={ariaLabel}
+        isDisabled
+        placeholder={t('Loading')}
+        styles={selectStyles}
+      />
     );
   }
 
-  const selectedValue = value === null || value === undefined ? undefined : String(value);
-  const selectedOption = currentOptions.find(option => option.value === selectedValue);
-
   return (
-    <StyledSelectControl
+    <Select<MentionableUser>
       aria-label={ariaLabel}
       options={currentOptions}
+      components={memberSelectComponents}
       filterOption={filterMemberOption}
-      isDisabled={disabled}
       isLoading={searchLoading}
-      onInputChange={handleInputChange}
-      onChange={handleChange}
-      value={selectedOption}
+      onInputChange={setSearch}
+      onChange={option => onChange(option)}
+      value={selectedValue}
       styles={selectStyles}
     />
   );
@@ -201,16 +215,6 @@ const DisabledLabel = styled('div')`
   display: flex;
   opacity: 0.5;
   overflow: hidden; /* Needed so that "Add to team" button can fit */
-`;
-
-const StyledSelectControl = styled(Select)`
-  .Select-value {
-    display: flex;
-    align-items: center;
-  }
-  .Select-input {
-    margin-left: 32px;
-  }
 `;
 
 // eslint-disable-next-line @sentry/no-default-exports

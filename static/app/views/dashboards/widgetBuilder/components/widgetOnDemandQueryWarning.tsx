@@ -58,15 +58,13 @@ export function WidgetOnDemandQueryWarning(props: {
 
 export function OnDemandWarningIcon({
   msg,
-  isHoverable,
   variant = 'muted',
 }: {
   msg: React.ReactNode;
-  isHoverable?: boolean;
   variant?: 'primary' | 'warning' | 'danger' | 'muted';
 }) {
   return (
-    <Tooltip skipWrapper title={msg} isHoverable={isHoverable}>
+    <Tooltip skipWrapper title={msg}>
       <HoverableIconWarning variant={variant} />
     </Tooltip>
   );

@@ -30,6 +30,19 @@ import {
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 
+export function isProjectNameManuallyModified(
+  projectDetailsForm: ProjectDetailsFormState | undefined
+): boolean {
+  if (!projectDetailsForm) {
+    return false;
+  }
+  if (projectDetailsForm.wasNameManuallyModified !== undefined) {
+    return projectDetailsForm.wasNameManuallyModified;
+  }
+  // Sessions stored before this flag existed contain an explicit project name.
+  return projectDetailsForm.projectName !== undefined;
+}
+
 export function getSubmitTooltipText({
   platform,
   projectName,
@@ -80,7 +93,7 @@ interface UseScmProjectDetailsOptions {
   /**
    * Live form state, owned by the host. Fields absent from the form derive
    * their defaults (platform-based name, first admin team, default alert
-   * config), so the host clearing the form makes the fields re-derive.
+   * config).
    */
   onProjectDetailsFormChange: (form: ProjectDetailsFormState) => void;
   projectDetailsForm: ProjectDetailsFormState | undefined;
@@ -149,9 +162,10 @@ export function useScmProjectDetails({
   );
 
   // Provides the messaging-integration notification picker (notificationProps,
-  // rendered in ScmAlertFrequencySection) and the side-effect that creates the
-  // chosen notification rule at project creation.
-  const {createNotificationAction, notificationProps} = useScmNotificationAction(
+  // rendered in ScmAlertFrequencySection) and resolves its selected action for
+  // the workflow created alongside the project.
+  const {getIntegrationAction, notificationProps} = useScmNotificationAction(
+    // oxlint-disable-next-line react/refs
     restoredNotificationSelectionRef.current
   );
 
@@ -164,7 +178,7 @@ export function useScmProjectDetails({
   const defaultName = slugify(selectedPlatform?.key ?? '');
 
   // Fields absent from the host-owned form fall back to derived defaults, so
-  // a host clearing the form (e.g. on a platform change) re-derives them.
+  // a host resetting a field (e.g. the name on a platform change) re-derives it.
   const projectNameResolved = projectDetailsForm?.projectName ?? defaultName;
   const teamSlugResolved = projectDetailsForm?.teamSlug ?? firstAdminTeam?.slug ?? '';
   const alertRuleConfig =
@@ -177,7 +191,12 @@ export function useScmProjectDetails({
 
   const onProjectNameChange = useCallback(
     (value: string) => {
-      onProjectDetailsFormChange({...projectDetailsForm, projectName: slugify(value)});
+      const projectName = slugify(value);
+      onProjectDetailsFormChange({
+        ...projectDetailsForm,
+        projectName,
+        wasNameManuallyModified: projectName.length > 0,
+      });
     },
     [onProjectDetailsFormChange, projectDetailsForm]
   );
@@ -190,7 +209,7 @@ export function useScmProjectDetails({
         variant: 'scm',
       });
     }
-  }, [projectDetailsForm?.projectName, defaultName, organization]);
+  }, [projectDetailsForm, defaultName, organization]);
 
   const onTeamChange = useCallback(
     ({value}: {value: string}) => {
@@ -288,6 +307,7 @@ export function useScmProjectDetails({
   const notificationRestoreComplete =
     notificationProps.queryError ||
     (notificationProps.querySuccess && notificationPickerSettled);
+  // oxlint-disable-next-line react/refs
   if (!notificationRestoreCompleteRef.current && notificationRestoreComplete) {
     notificationRestoreCompleteRef.current = true;
   }
@@ -302,6 +322,7 @@ export function useScmProjectDetails({
     !isCompleting &&
     !isLoadingTeams &&
     projectsLoaded &&
+    // oxlint-disable-next-line react/refs
     notificationRestoreCompleteRef.current;
 
   const existingProject = createdProjectSlug
@@ -312,19 +333,28 @@ export function useScmProjectDetails({
   // snapshot because the Project model tracks it; alert fields are not on the
   // Project record so we compare those against the saved form snapshot.
   const samePlatform = existingProject?.platform === selectedPlatform?.key;
+  // oxlint-disable-next-line react/refs
   const savedForm = savedFormRef.current;
   const savedAlert = savedForm?.alertRuleConfig;
   const nothingChanged =
     samePlatform &&
+    // oxlint-disable-next-line react/refs
     !!savedForm &&
+    // oxlint-disable-next-line react/refs
     projectNameResolved === savedForm.projectName &&
+    // oxlint-disable-next-line react/refs
     teamSlugResolved === savedForm.teamSlug &&
+    // oxlint-disable-next-line react/refs
     alertRuleConfig.alertSetting === savedAlert?.alertSetting &&
+    // oxlint-disable-next-line react/refs
     alertRuleConfig.interval === savedAlert?.interval &&
+    // oxlint-disable-next-line react/refs
     alertRuleConfig.metric === savedAlert?.metric &&
+    // oxlint-disable-next-line react/refs
     alertRuleConfig.threshold === savedAlert?.threshold &&
     isEqual(
       hasNotificationAction ? buildNotificationSelection(notificationProps) : undefined,
+      // oxlint-disable-next-line react/refs
       savedForm?.notificationSelection
     );
 
@@ -348,6 +378,7 @@ export function useScmProjectDetails({
       teamSlug: teamSlugResolved,
       alertRuleConfig,
       notificationSelection,
+      wasNameManuallyModified: isProjectNameManuallyModified(projectDetailsForm),
     };
     // Mirror the legacy project_creation_page.created `issue_alert` breakdown
     // (see createProject.tsx): Custom > Default > No Rule, derived from the
@@ -378,7 +409,7 @@ export function useScmProjectDetails({
           platform: selectedPlatform.key,
           issue_alert: issueAlert,
           notification_rule_created: false,
-          rule_ids: [],
+          workflow_ids: [],
           variant: 'scm',
         });
         onComplete({project: existingProject, projectDetailsForm: submittedForm});
@@ -391,7 +422,7 @@ export function useScmProjectDetails({
           platform: selectedPlatform,
           team: isOrgMemberWithNoAccess ? undefined : teamSlugResolved,
           alertRuleConfig: getRequestDataFragment(alertRuleConfig),
-          createNotificationAction,
+          getIntegrationAction,
         })
         .catch(error => {
           trackAnalytics('project_creation.project_details_create_failed', {
@@ -411,7 +442,7 @@ export function useScmProjectDetails({
       if (!creation) {
         return;
       }
-      const {project, ruleIds, notificationRule} = creation;
+      const {project, workflowIds, notificationRule} = creation;
 
       if (selectedRepository?.id) {
         await linkProjectToRepository({
@@ -427,7 +458,7 @@ export function useScmProjectDetails({
         platform: selectedPlatform.key,
         issue_alert: issueAlert,
         notification_rule_created: !!notificationRule,
-        rule_ids: ruleIds,
+        workflow_ids: workflowIds,
         variant: 'scm',
       });
 
@@ -440,7 +471,7 @@ export function useScmProjectDetails({
     accessTeams,
     alertRuleConfig,
     canSubmit,
-    createNotificationAction,
+    getIntegrationAction,
     createProjectAndRules,
     existingProject,
     hasNotificationAction,
@@ -449,12 +480,14 @@ export function useScmProjectDetails({
     notificationProps,
     onComplete,
     organization,
+    projectDetailsForm,
     projectNameResolved,
     selectedPlatform,
     selectedRepository,
     teamSlugResolved,
   ]);
 
+  // oxlint-disable-next-line react/refs
   return {
     projectName: projectNameResolved,
     onProjectNameChange,

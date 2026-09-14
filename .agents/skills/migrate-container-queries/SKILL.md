@@ -1,11 +1,11 @@
 ---
 name: migrate-container-queries
-description: Guide for migrating viewport media queries (@media, useMedia) to container queries in Sentry's frontend. Use when migrating responsive layout to container queries, replacing @media/useMedia, refactoring styled responsive components to Container/Flex/Grid primitives, or working on the DE container-query migration.
+description: "Guide for migrating viewport media queries (@media, useMedia, and screen:-prefixed responsive props) to container queries in Sentry's frontend. Use when migrating responsive layout to container queries, replacing @media/useMedia/screen: breakpoints, refactoring styled responsive components to Container/Flex/Grid primitives, or working on the DE container-query migration."
 ---
 
 # Container Query Migration Guide
 
-Migrate viewport-based responsive logic (`@media` + `useMedia`) to container queries so components respond to their own available space instead of the raw viewport.
+Migrate viewport-based responsive logic (`@media`, `useMedia`, and `screen:`-prefixed responsive props) to container queries so components respond to their own available space instead of the raw viewport.
 
 > **Always do a visual check.** After every migration, resize the _element_ (not just the window) and confirm the layout is identical and flips at the intended width. A good way to narrow an element without touching the window is to open a resizable panel next to it — e.g. drag out the Seer explorer sidebar, which squeezes the middle content. The token scales differ, so a mechanical swap that compiles can still render wrong.
 
@@ -41,6 +41,20 @@ Breakpoint and container scales have **different keys and different pixel values
 ## Genuine viewport width → `screen:` keys, not `useMedia`
 
 When layout truly must follow the _window_ (not the component's room), don't keep `useMedia` — use a `screen:`-prefixed responsive prop, which resolves against the viewport on the `theme.breakpoints` scale: `direction={{zero: 'column', 'screen:lg': 'row'}}`. Bare keys and `screen:` keys can mix on one prop. Prefer bare (container) keys; reach for `screen:` only when the viewport genuinely drives the layout.
+
+## Existing `screen:` props are migration candidates
+
+`screen:`-prefixed responsive props compile to viewport media queries. Audit them in the same pass as `@media` and `useMedia`. If the layout responds to the component's available width, remove the `screen:` prefix and use bare container keys. Map the old viewport breakpoint by pixel value, and add an explicit container base when the narrow layout differs:
+
+```tsx
+// Old — viewport width drives a component layout
+<Grid columns={{'screen:2xs': '1fr', 'screen:sm': 'auto 1fr auto auto'}} />
+
+// New — component width drives the layout; screen sm (800px) → container xl (768px)
+<Grid columns={{zero: '1fr', xl: 'auto 1fr auto auto'}} />
+```
+
+Keep the `screen:` key only when the window itself is the intended source of truth. `screen:` is not a container-query migration target just because it is already a responsive prop.
 
 ## Keep `useMedia` only for non-width media features
 
@@ -116,6 +130,7 @@ Took the lowest rung that fits (above). Then verify the gotchas:
 - [ ] Mapped to the `container` token with the nearest pixel value, not the same name — e.g. `breakpoints.sm` → `container.xl`, not `container.sm`
 - [ ] For width read in JS, used `useResponsivePropValue({...})` for a threshold boolean; reserved `useContainerBreakpoint()` for branching on the key — never `=== 'zero'` to mean "narrow" (that's only <320px)
 - [ ] Routed genuine viewport-width cases to `screen:` keys; kept `useMedia` only for non-width media features
+- [ ] Audited existing `screen:`-prefixed layout props — migrated component-width cases to bare container keys and kept `screen:` only for genuine viewport-width behavior
 - [ ] Added `container-type` only when a subtree needs its own; used `inline-size`
 - [ ] Confirmed a query-container ancestor exists (`@container` silently no-ops without one)
 - [ ] **Visual check:** resized the element and confirmed identical output flipping at the intended width

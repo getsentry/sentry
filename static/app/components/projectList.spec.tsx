@@ -15,9 +15,7 @@ describe('ProjectList', () => {
   });
 
   it('renders all projects when there is no overflow', async () => {
-    render(
-      <ProjectList projectSlugs={['project1', 'project2']} maxVisibleProjects={2} />
-    );
+    render(<ProjectList projectSlugs={['project1', 'project2']} />);
 
     // Project avatars render decorative platform icons (alt=""), so they are
     // queried by test id rather than the img role.
@@ -25,12 +23,7 @@ describe('ProjectList', () => {
   });
 
   it('renders the collapsed projects when there is overflow', async () => {
-    render(
-      <ProjectList
-        projectSlugs={['project1', 'project2', 'project3']}
-        maxVisibleProjects={2}
-      />
-    );
+    render(<ProjectList projectSlugs={['project1', 'project2', 'project3']} />);
 
     // Should show project 1 and the collapsed badge
     expect(await screen.findAllByTestId(/^platform-icon-/)).toHaveLength(1);

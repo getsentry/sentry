@@ -14,7 +14,6 @@ from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIn
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.activity import Activity
 from sentry.models.repository import Repository
-from sentry.models.rule import Rule
 from sentry.rules import rules
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
@@ -129,24 +128,21 @@ class GitHubEnterpriseEnterpriseTicketRulesTestCase(RuleTestCase, BaseAPITestCas
         )
 
         # Create a new Rule
-        rule_object = Rule.objects.create(
+        rule_object = self.create_project_rule(
             project=self.project,
-            label="hello world",
-            data={
-                "action_match": "any",
-                "frequency": 5,
-                "conditions": [],
-                "actions": [
-                    {
-                        "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
-                        "integration": self.integration.id,
-                        "dynamic_form_fields": [{"random": "garbage"}],
-                        "repo": self.repo,
-                        "assignee": self.assignee,
-                        "labels": self.labels,
-                    }
-                ],
-            },
+            name="hello world",
+            action_match="any",
+            frequency=5,
+            action_data=[
+                {
+                    "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
+                    "integration": self.integration.id,
+                    "dynamic_form_fields": [{"random": "garbage"}],
+                    "repo": self.repo,
+                    "assignee": self.assignee,
+                    "labels": self.labels,
+                }
+            ],
         )
 
         event = self.get_group_event()

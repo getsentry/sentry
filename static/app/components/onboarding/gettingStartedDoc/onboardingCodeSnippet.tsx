@@ -1,17 +1,23 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {createPortal} from 'react-dom';
-import beautify from 'js-beautify';
 
 import {CodeBlock} from '@sentry/scraps/code';
 
 import {AuthTokenGenerator} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {useRegisteredTabSelection} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {PACKAGE_LOADING_PLACEHOLDER} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
+import {useFormattedCode} from 'sentry/utils/useFormattedCode';
 
 interface OnboardingCodeSnippetProps extends Omit<
   React.ComponentProps<typeof CodeBlock>,
   'onAfterHighlight'
 > {}
+
+const JAVASCRIPT_FORMAT_OPTIONS = {
+  indent_size: 2,
+  e4x: true,
+  brace_style: 'preserve-inline',
+} as const;
 
 /**
  * Replaces tokens in a DOM element with a span element.
@@ -49,6 +55,12 @@ export function OnboardingCodeSnippet({
     [children]
   );
 
+  const {formattedCode} = useFormattedCode({
+    code: children,
+    language: language === 'javascript' ? 'javascript' : null,
+    options: JAVASCRIPT_FORMAT_OPTIONS,
+  });
+
   return (
     <Fragment>
       <CodeBlock
@@ -59,14 +71,7 @@ export function OnboardingCodeSnippet({
         {...props}
         onAfterHighlight={handleAfterHighlight}
       >
-        {/* Trim whitespace from code snippets and beautify javascript code */}
-        {language === 'javascript'
-          ? beautify.js(children, {
-              indent_size: 2,
-              e4x: true,
-              brace_style: 'preserve-inline',
-            })
-          : children.trim()}
+        {formattedCode}
       </CodeBlock>
       {authTokenNodes.map(node => createPortal(<AuthTokenGenerator />, node))}
     </Fragment>
@@ -86,21 +91,9 @@ interface TabbedCodeSnippetProps {
    * An array of tabs to be displayed
    */
   tabs: CodeSnippetTab[];
-  /**
-   * A callback to be invoked when the configuration is copied to the clipboard
-   */
-  onCopy?: () => void;
-  /**
-   * A callback to be invoked when the configuration is selected and copied to the clipboard
-   */
-  onSelectAndCopy?: () => void;
 }
 
-export function TabbedCodeSnippet({
-  tabs,
-  onCopy,
-  onSelectAndCopy,
-}: TabbedCodeSnippetProps) {
+export function TabbedCodeSnippet({tabs}: TabbedCodeSnippetProps) {
   const [selectedTabValue, setSelectedTabValue] = useRegisteredTabSelection(tabs);
   const resolvedTab = tabs.find(tab => tab.value === selectedTabValue) ?? tabs[0]!;
   const {code, language, filename} = resolvedTab;
@@ -108,8 +101,6 @@ export function TabbedCodeSnippet({
   return (
     <OnboardingCodeSnippet
       language={language}
-      onCopy={onCopy}
-      onSelectAndCopy={onSelectAndCopy}
       tabs={tabs}
       selectedTab={selectedTabValue}
       onTabClick={setSelectedTabValue}

@@ -19,7 +19,7 @@ from sentry.preprod.vcs.status_checks.size.tasks import evaluate_size_and_format
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import preprod_tasks
+from sentry.taskworker.namespaces import preprod_size_tasks, preprod_tasks
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,8 @@ RULES_OPTION_KEY = "sentry:preprod_size_pr_comments_rules"
 
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_size_pr_comment",
-    namespace=preprod_tasks,
+    namespace=preprod_size_tasks,
+    alias_namespace=preprod_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.CELL,
     retry=Retry(times=5, delay=60 * 5),
@@ -67,16 +68,6 @@ def create_preprod_size_pr_comment_task(
     rules = get_status_check_rules(artifact.project, option_key=RULES_OPTION_KEY)
     evaluation = evaluate_size_and_format_messages(artifact.project, all_artifacts, rules)
 
-    # Unlike the status check (which posts a neutral "skipped" check regardless),
-    # a comment should only exist when there is size data to report. No evaluated
-    # artifacts means every sibling was skipped or had no size metrics.
-    if not evaluation.evaluated_artifacts:
-        logger.info(
-            "preprod.size_pr_comments.create.no_size_data",
-            extra={"preprod_artifact_id": artifact.id},
-        )
-        return
-
     triggered_rules = evaluation.triggered_rules
     comment_body = format_size_pr_comment(evaluation.title, evaluation.subtitle, evaluation.summary)
 
@@ -91,6 +82,15 @@ def create_preprod_size_pr_comment_task(
                 target_id=commit_comparison.id,
                 comment_type=COMMENT_TYPE,
             )
+
+            # Do not create a comment when there is no size data, but update an
+            # existing comment so stale processing content is not left behind.
+            if not evaluation.evaluated_artifacts and not existing_comment_id:
+                logger.info(
+                    "preprod.size_pr_comments.create.no_size_data",
+                    extra={"preprod_artifact_id": artifact.id},
+                )
+                return
 
             # The trigger check gates first creation only; once a comment exists it is
             # always updated to reflect current state. With no rules configured, post a

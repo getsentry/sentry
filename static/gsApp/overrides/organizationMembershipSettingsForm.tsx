@@ -8,6 +8,7 @@ import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {MembershipSettingsProps} from 'sentry/types/overrides';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {
   membershipSchema,
@@ -18,7 +19,9 @@ export function OrganizationMembershipSettingsForm({
   organization,
   onSave,
 }: MembershipSettingsProps) {
-  const endpoint = `/organizations/${organization.slug}/`;
+  const endpoint = getApiUrl('/organizations/$organizationIdOrSlug/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
   const features = new Set(organization.features);
   const access = new Set(organization.access);
 

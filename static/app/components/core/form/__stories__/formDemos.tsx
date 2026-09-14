@@ -17,8 +17,7 @@ import {
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
-
-import {t} from 'sentry/locale';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 // form.mdx demos
 
@@ -28,6 +27,7 @@ const quickStartSchema = z.object({
 });
 
 export function QuickStartDemo() {
+  const {t} = useTranslation();
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
@@ -78,6 +78,7 @@ export function QuickStartDemo() {
 }
 
 export function CompactDemo() {
+  const {t} = useTranslation();
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {field1: '', field2: '', field3: '', field4: ''},
@@ -141,6 +142,7 @@ const conditionalSchema = z.object({
 });
 
 export function ConditionalDemo() {
+  const {t} = useTranslation();
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {plan: 'free', billingEmail: ''},
@@ -200,6 +202,7 @@ export function ConditionalDemo() {
 // fields.mdx demos
 
 export function BaseFieldDemo() {
+  const {t} = useTranslation();
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {color: '#3c74dd'},
@@ -253,6 +256,7 @@ const basicSchema = z.object({
 });
 
 export function BasicAutoSaveDemo() {
+  const {t} = useTranslation();
   // Simulated server state for demonstration
   const [serverState, setServerState] = useState({displayName: 'Jane Doe'});
 
@@ -300,6 +304,7 @@ const TAG_OPTIONS = [
 ];
 
 export function FullAutoSaveDemo() {
+  const {t} = useTranslation();
   const fullMutationOptions = {
     mutationFn: async (data: Record<string, unknown>) => {
       await sleep(1000);

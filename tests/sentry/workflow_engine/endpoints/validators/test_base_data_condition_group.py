@@ -149,6 +149,44 @@ class TestBaseDataConditionGroupValidatorCreate(TestBaseDataConditionGroupValida
         assert condition.comparison == 1
         assert condition.condition_group == result
 
+    def test_create_operator_condition__non_short_circuit_logic_type(self) -> None:
+        self.valid_data["logicType"] = DataConditionGroup.Type.ALL
+        self.valid_data["conditions"] = [
+            {
+                "type": Condition.EQUAL,
+                "comparison": 1,
+                "conditionResult": True,
+            }
+        ]
+
+        validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
+        validator.is_valid(raise_exception=True)
+        result = validator.create(validator.validated_data)
+
+        assert result.logic_type == DataConditionGroup.Type.ALL
+        assert result.conditions.count() == 1
+
+    def test_create_action_filter__non_short_circuit_logic_type(self) -> None:
+        self.valid_data["logicType"] = DataConditionGroup.Type.ALL
+        self.valid_data["conditions"] = [
+            {
+                "type": Condition.AGE_COMPARISON,
+                "comparison": {
+                    "comparison_type": "older",
+                    "value": 1,
+                    "time": "day",
+                },
+                "conditionResult": True,
+            }
+        ]
+
+        validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
+        validator.is_valid(raise_exception=True)
+        result = validator.create(validator.validated_data)
+
+        assert result.logic_type == DataConditionGroup.Type.ALL
+        assert result.conditions.count() == 1
+
     def test_create_trigger__valid_logic_type(self) -> None:
         valid_data = {
             "organizationId": self.organization.id,
@@ -194,7 +232,9 @@ class TestBaseDataConditionGroupValidatorCreate(TestBaseDataConditionGroupValida
             "logicType": DataConditionGroup.Type.ALL,
             "conditions": [
                 {
-                    "type": Condition.FIRST_SEEN_EVENT,
+                    # This trigger was never included in the former TRIGGER_CONDITIONS list.
+                    # Its handler metadata must be the source of truth for validation.
+                    "type": Condition.EVERY_EVENT,
                     "comparison": True,
                     "conditionResult": True,
                 }

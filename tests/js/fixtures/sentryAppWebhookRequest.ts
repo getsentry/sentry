@@ -14,6 +14,10 @@ export function SentryAppWebhookRequestFixture(
       name: 'Test Org',
     },
     responseCode: 400,
+    durationMs: 150,
+    requestId: 'abc-123',
+    subjectType: 'group',
+    subjectId: '42',
 
     ...params,
   };

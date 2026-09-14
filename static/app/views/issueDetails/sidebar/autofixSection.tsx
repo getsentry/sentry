@@ -5,6 +5,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {
   type AutofixSection,
   getAutofixArtifactFromSection,
@@ -59,9 +60,8 @@ export function AutofixSection({group, project}: AutofixSectionProps) {
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
-  const issueTypeSupportsSeer = Boolean(
-    issueTypeConfig.autofix || issueTypeConfig.issueSummary
-  );
+  const issueTypeSupportsSeer =
+    issueTypeConfig.autofix || issueTypeConfig.issueSummary.enabled;
 
   if (!aiConfig.areAiFeaturesAllowed || !issueTypeSupportsSeer) {
     if (!issueTypeConfig.resources) {
@@ -98,12 +98,12 @@ export function AutofixSection({group, project}: AutofixSectionProps) {
       sectionKey={SectionKey.SEER}
       preventCollapse={false}
     >
-      <AutofixContentHook aiConfig={aiConfig} group={group} project={project} />
+      <AutofixQuotaContent aiConfig={aiConfig} group={group} project={project} />
     </SidebarFoldSection>
   );
 }
 
-const AutofixContentHook = registerLLMContext(
+export const AutofixQuotaContent = registerLLMContext(
   'autofix',
   OverrideOrDefault({
     overrideName: 'component:ai-configure-seer-quota-sidebar',
@@ -113,6 +113,8 @@ const AutofixContentHook = registerLLMContext(
 
 export function AutofixContent({aiConfig, group, project}: AutofixContentProps) {
   const organization = useOrganization();
+  const analyticsArea = useAnalyticsArea() || 'seer';
+  const setupAnalyticsEventKey = `${analyticsArea}.seer_setup_clicked`;
   const autofix = useExplorerAutofix(group);
   const {data: setupCheck, isPending} = useQuery(
     getSeerOnboardingCheckQueryOptions({organization})
@@ -219,8 +221,12 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
               <LinkButton
                 to={`/settings/${organization.slug}/seer/onboarding/`}
                 icon={<IconSeer />}
-                analyticsEventKey="issue_details.seer_setup_clicked"
-                analyticsEventName="Issue Details: Seer Setup Clicked"
+                analyticsEventKey={setupAnalyticsEventKey}
+                analyticsEventName={
+                  analyticsArea === 'issue_inbox'
+                    ? 'Issue Inbox: Seer Setup Clicked'
+                    : 'Seer: Setup Clicked'
+                }
                 analyticsParams={{group_id: group.id, setup_type: 'organization'}}
               >
                 {t('Set Up Seer')}
@@ -229,8 +235,12 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
               <LinkButton
                 to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                 icon={<IconSeer />}
-                analyticsEventKey="issue_details.seer_setup_clicked"
-                analyticsEventName="Issue Details: Seer Setup Clicked"
+                analyticsEventKey={setupAnalyticsEventKey}
+                analyticsEventName={
+                  analyticsArea === 'issue_inbox'
+                    ? 'Issue Inbox: Seer Setup Clicked'
+                    : 'Seer: Setup Clicked'
+                }
                 analyticsParams={{group_id: group.id, setup_type: 'project'}}
               >
                 {t('Set Up Seer for This Project')}

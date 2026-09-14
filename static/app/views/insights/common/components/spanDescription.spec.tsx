@@ -121,7 +121,7 @@ describe('DatabaseSpanDescription', () => {
             project: project.slug,
             span_id: spanId,
             'span.description': sampleMongoDBQuery,
-            'db.system': 'mongodb',
+            'db.system.name': 'mongodb',
           },
         ],
       },

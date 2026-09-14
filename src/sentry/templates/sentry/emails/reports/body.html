@@ -236,7 +236,7 @@
     <h4 class="total-count-title" style="font-weight: bold;">Total Issues</h4>
     <h1 style="margin: 0; font-weight: bold;" class="total-count">
       {{ trends.total_issue_count|small_count:1 }}
-      {% if show_week_over_week_metric and trends.issue_pct_change %}
+      {% if trends.issue_pct_change %}
       <span style="font-size: 14px; font-weight: 500; margin-left: 8px; padding: 2px 8px; border-radius: 6px; vertical-align: middle; background-color: {{ trends.issue_pct_change.bg_color }}; color: {{ trends.issue_pct_change.text_color }};">{{ trends.issue_pct_change.arrow }}&nbsp;{{ trends.issue_pct_change.pct }}</span>
       {% endif %}
     </h1>
@@ -278,7 +278,7 @@
     <h4 class="total-count-title" style="font-weight: bold;">Total Errors</h4>
     <h1 style="margin: 0; font-weight: bold;" class="total-count">
       {{ trends.total_error_count|small_count:1 }}
-      {% if show_week_over_week_metric and trends.error_pct_change %}
+      {% if trends.error_pct_change %}
       <span style="font-size: 14px; font-weight: 500; margin-left: 8px; padding: 2px 8px; border-radius: 6px; vertical-align: middle; background-color: {{ trends.error_pct_change.bg_color }}; color: {{ trends.error_pct_change.text_color }};">{{ trends.error_pct_change.arrow }}&nbsp;{{ trends.error_pct_change.pct }}</span>
       {% endif %}
     </h1>
@@ -484,7 +484,7 @@
     <h4 class="total-count-title" style="font-weight: bold; margin-top: 0; margin-bottom: 0;">Total Spans</h4>
     <h1 style="margin: 0; font-weight: bold;">
       {{ total_spans_count|small_count:1 }}
-      {% if show_week_over_week_metric and spans_pct_change %}
+      {% if spans_pct_change %}
       <span style="font-size: 14px; font-weight: 500; margin-left: 8px; padding: 2px 8px; border-radius: 6px; vertical-align: middle; background-color: {{ spans_pct_change.bg_color }}; color: {{ spans_pct_change.text_color }};">{{ spans_pct_change.arrow }}&nbsp;{{ spans_pct_change.pct }}</span>
       {% endif %}
     </h1>

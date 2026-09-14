@@ -141,4 +141,37 @@ describe('useExploreTimeseries', () => {
       })
     );
   });
+
+  it('does not query when the only series has an invalid conditional filter', () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      method: 'GET',
+    });
+
+    renderHookWithProviders(
+      () =>
+        useExploreTimeseries({
+          query: 'test value',
+          enabled: true,
+        }),
+      {
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {
+              aggregateField: [
+                JSON.stringify({groupBy: ''}),
+                JSON.stringify({
+                  yAxes: ['count_if(`p95(span.duration):>100`,span.duration)'],
+                }),
+              ],
+            },
+          },
+        },
+      }
+    );
+
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
 });

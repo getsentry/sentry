@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 from taskbroker_client.retry import RetryTaskError
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
 from sentry.incidents.models.incident import TriggerStatus
@@ -400,6 +401,7 @@ class TicketingIssueAlertHandler(BaseIssueAlertHandler):
                 integration_id=integration_id,
                 organization_id=organization_id,
                 status=ObjectStatus.ACTIVE,
+                using_replica=options.get("integration_service.get_integration.using_replica"),
             )
         integration_name = integration.name if integration else "[removed]"
         return cls.label_template.format(integration=integration_name)

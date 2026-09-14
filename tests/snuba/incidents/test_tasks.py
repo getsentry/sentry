@@ -138,24 +138,23 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
         subscriber_registry[INCIDENTS_SNUBA_SUBSCRIPTION_TYPE] = shutdown_callback
 
-        with self.feature("organizations:incidents"):
-            with self.tasks(), self.capture_on_commit_callbacks(execute=True):
-                # Integration test: verify taskbroker raw mode successfully processes
-                # subscription updates through the workflow engine without error.
-                _process_subscription_message(json.dumps(message).encode(), Dataset.Metrics)
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
+            # Integration test: verify taskbroker raw mode successfully processes
+            # subscription updates through the workflow engine without error.
+            _process_subscription_message(json.dumps(message).encode(), Dataset.Metrics)
 
-            # Verify the callback was invoked
-            assert callback_invoked, "Subscription processor callback should have been invoked"
+        # Verify the callback was invoked
+        assert callback_invoked, "Subscription processor callback should have been invoked"
 
-            # Verify workflow engine evaluated the detector correctly
-            detector_state = DetectorState.objects.filter(detector=self.detector).first()
-            assert detector_state is not None
-            assert detector_state.is_triggered
+        # Verify workflow engine evaluated the detector correctly
+        detector_state = DetectorState.objects.filter(detector=self.detector).first()
+        assert detector_state is not None
+        assert detector_state.is_triggered
 
-            # Note: This test verifies subscription processing through the workflow engine.
-            # IssueOccurrences are created but not persisted to Groups in this test since
-            # that would require the occurrence consumer to be running, which is outside
-            # the scope of this taskbroker raw-mode integration test.
+        # Note: This test verifies subscription processing through the workflow engine.
+        # IssueOccurrences are created but not persisted to Groups in this test since
+        # that would require the occurrence consumer to be running, which is outside
+        # the scope of this taskbroker raw-mode integration test.
 
     def test_raw_subscription_task(self) -> None:
         self.run_test()

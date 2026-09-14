@@ -1,5 +1,6 @@
+import {useDebouncedValue} from '@tanstack/react-pacer';
+
 import {t} from 'sentry/locale';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {SchedulePreview} from 'sentry/views/detectors/components/forms/common/schedulePreview';
 import {SchedulePreviewStatus} from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleBuckets';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
@@ -25,12 +26,15 @@ export function PreviewSection() {
   const recoveryThreshold = useCronDetectorFormField('recoveryThreshold');
 
   // Debouncing typed fields
-  const debouncedScheduleCrontab = useDebouncedValue(scheduleCrontab, DEBOUNCE_DELAY);
-  const debouncedFailureIssueThreshold = useDebouncedValue(
-    failureIssueThreshold,
-    DEBOUNCE_DELAY
-  );
-  const debouncedRecoveryThreshold = useDebouncedValue(recoveryThreshold, DEBOUNCE_DELAY);
+  const [debouncedScheduleCrontab] = useDebouncedValue(scheduleCrontab, {
+    wait: DEBOUNCE_DELAY,
+  });
+  const [debouncedFailureIssueThreshold] = useDebouncedValue(failureIssueThreshold, {
+    wait: DEBOUNCE_DELAY,
+  });
+  const [debouncedRecoveryThreshold] = useDebouncedValue(recoveryThreshold, {
+    wait: DEBOUNCE_DELAY,
+  });
 
   const schedule =
     scheduleType === ScheduleType.CRONTAB

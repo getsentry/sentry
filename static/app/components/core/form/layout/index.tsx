@@ -7,8 +7,9 @@ import {
   Container,
   Flex,
   Stack,
+  useHasContainerQuery,
+  useResponsivePropValue,
   type FlexProps,
-  type StackProps,
 } from '@sentry/scraps/layout';
 
 interface LayoutProps {
@@ -24,6 +25,13 @@ interface RowLayoutProps extends LayoutProps {
 }
 
 function RowLayout(props: RowLayoutProps) {
+  const isStackAtBreakpoint = useResponsivePropValue({zero: true, md: false});
+  const isStackLayout = useHasContainerQuery() && isStackAtBreakpoint;
+
+  return isStackLayout ? <StackLayout {...props} /> : <RowLayoutContent {...props} />;
+}
+
+function RowLayoutContent(props: RowLayoutProps) {
   const isCompact = props.variant === 'compact';
   const field = useFieldContext();
 
@@ -56,22 +64,12 @@ function RowLayout(props: RowLayoutProps) {
   );
 }
 
-interface StackLayoutProps extends LayoutProps {
-  padding?: StackProps['padding'];
-}
-
-function StackLayout(props: StackLayoutProps) {
+function StackLayout(props: LayoutProps) {
   const isCompact = props.variant === 'compact';
   const field = useFieldContext();
 
   return (
-    <HighlightableFlex
-      id={field.name}
-      direction="column"
-      gap="md"
-      padding={props.padding}
-      flexGrow={1}
-    >
+    <HighlightableFlex id={field.name} direction="column" gap="md" flexGrow={1}>
       <Flex gap="xs" align="center">
         <FieldMeta.Label
           required={props.required}

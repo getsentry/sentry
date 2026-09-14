@@ -8,6 +8,7 @@ interface OrganizationSeerSetupResponse {
     hasAutofixQuota: boolean;
     hasScannerQuota: boolean;
   };
+  hasFreeAutofixAccess: boolean;
 }
 
 export function makeOrganizationSeerSetupQueryKey(orgSlug: string): ApiQueryKey {
@@ -41,6 +42,7 @@ export function useOrganizationSeerSetup(
       hasAutofixQuota: Boolean(queryData.data?.billing?.hasAutofixQuota),
       hasScannerQuota: Boolean(queryData.data?.billing?.hasScannerQuota),
     },
+    hasFreeAutofixAccess: Boolean(queryData.data?.hasFreeAutofixAccess),
     areAiFeaturesAllowed,
   };
 }

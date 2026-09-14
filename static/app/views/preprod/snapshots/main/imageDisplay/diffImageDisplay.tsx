@@ -126,12 +126,14 @@ function SplitView({
               {t('Base')}
             </Text>
           </Container>
+          {/* oxlint-disable-next-line react/refs */}
           <ZoomContainer ref={zoom1.containerRef} style={splitZoomContainerStyle}>
             <Flex
               justify="center"
               align="center"
               width="100%"
               height="100%"
+              // oxlint-disable-next-line react/refs
               style={zoomTransformStyle(zoom1.transform)}
             >
               {displayBaseUrl && (
@@ -152,12 +154,14 @@ function SplitView({
               {headLabel}
             </Text>
           </Container>
+          {/* oxlint-disable-next-line react/refs */}
           <ZoomContainer ref={zoom2.containerRef} style={splitZoomContainerStyle}>
             <Flex
               justify="center"
               align="center"
               width="100%"
               height="100%"
+              // oxlint-disable-next-line react/refs
               style={zoomTransformStyle(zoom2.transform)}
             >
               {displayHeadUrl && (
@@ -183,8 +187,11 @@ function SplitView({
         </Stack>
       </Grid>
       <ZoomControls
+        // oxlint-disable-next-line react/refs
         onZoomIn={zoom2.zoomIn}
+        // oxlint-disable-next-line react/refs
         onZoomOut={zoom2.zoomOut}
+        // oxlint-disable-next-line react/refs
         onReset={zoom2.resetZoom}
       />
     </ZoomableArea>
@@ -292,8 +299,6 @@ function OnionView({
         </Text>
         <Flex width="200px">
           <Slider
-            min={0}
-            max={100}
             value={opacity}
             onChange={onOpacityChange}
             formatOptions={{style: 'unit', unit: 'percent'}}

@@ -5,7 +5,6 @@ import {mergeProps} from '@react-aria/utils';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {QueryStatus} from '@tanstack/react-query';
 
-import {ListBox} from '@sentry/scraps/compactSelect';
 import {Container} from '@sentry/scraps/layout';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -23,7 +22,7 @@ import {
 } from './dom';
 import {findActiveMention, getRequestKey, type ActiveMention} from './matching';
 import {type Mention, type MentionInputValue, reconcileMentions} from './model';
-import {CaretAnchor, MentionEditor, SuggestionStatus} from './styles';
+import {CaretAnchor, MentionEditor, SuggestionListBox, SuggestionStatus} from './styles';
 import type {MentionInputProps} from './types';
 import {useMentionSuggestions} from './useMentionSuggestions';
 
@@ -164,6 +163,7 @@ export function MentionInput<TSuggestion>({
     getSuggestion,
     listBoxId,
     listBoxRef,
+    listBoxScrollRef,
     listState,
     queryStatus,
   } = useMentionSuggestions({
@@ -173,7 +173,7 @@ export function MentionInput<TSuggestion>({
   });
   const hasSuggestions = queryStatus === 'success' && suggestionCount > 0;
 
-  const updateActiveMention = (nextValue = value) => {
+  const updateActiveMention = () => {
     const input = inputRef.current;
     if (!input) {
       setActiveMention(null);
@@ -182,7 +182,7 @@ export function MentionInput<TSuggestion>({
 
     const selection = getEditorSelection(input);
     const nextActiveMention = selection
-      ? findActiveMention(nextValue, selection.start, selection.end, sources)
+      ? findActiveMention(value, selection.start, selection.end, sources)
       : null;
     const nextRequestKey = getRequestKey(nextActiveMention);
     setActiveMention(
@@ -201,7 +201,6 @@ export function MentionInput<TSuggestion>({
     position: 'bottom-start',
     offset: 4,
     shouldApplyMinWidth: false,
-    shouldCloseOnBlur: false,
     isKeyboardDismissDisabled: true,
     onClose: () => setActiveMention(null),
     shouldCloseOnInteractOutside: element => !inputRef.current?.contains(element),
@@ -292,6 +291,7 @@ export function MentionInput<TSuggestion>({
     );
   };
 
+  // oxlint-disable-next-line react/refs
   const inputProps = mergeProps(editorProps, {
     style: {minHeight, ...style},
     role: 'combobox',
@@ -389,31 +389,27 @@ export function MentionInput<TSuggestion>({
           zIndex={theme.zIndex.dropdown}
         >
           <Overlay>
-            <Container
-              minWidth="220px"
-              maxWidth="360px"
-              maxHeight="200px"
-              overflowY="auto"
-            >
-              {hasSuggestions ? (
-                <ListBox
-                  id={listBoxId}
-                  aria-label={t('%s suggestions', activeSource.label)}
-                  autoFocus="first"
-                  ref={listBoxRef}
-                  listState={listState}
-                  overlayIsOpen
-                  onAction={selectSuggestion}
-                  selectionMode="none"
-                  shouldUseVirtualFocus
-                  size="sm"
-                />
-              ) : (
+            {hasSuggestions ? (
+              <SuggestionListBox
+                id={listBoxId}
+                aria-label={t('%s suggestions', activeSource.label)}
+                autoFocus="first"
+                ref={listBoxRef}
+                scrollContainerRef={listBoxScrollRef}
+                listState={listState}
+                overlayIsOpen
+                onAction={selectSuggestion}
+                selectionMode="none"
+                shouldUseVirtualFocus
+                size="sm"
+              />
+            ) : (
+              <Container minWidth="220px" maxWidth="360px">
                 <SuggestionStatus>
                   {getSuggestionStatusMessage(queryStatus)}
                 </SuggestionStatus>
-              )}
-            </Container>
+              </Container>
+            )}
           </Overlay>
         </PositionWrapper>
       ) : null}

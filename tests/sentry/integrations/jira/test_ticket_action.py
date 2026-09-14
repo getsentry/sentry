@@ -10,7 +10,6 @@ from sentry.integrations.jira import JiraCreateTicketAction, JiraIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.activity import Activity
-from sentry.models.rule import Rule
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiInvalidRequestError,
@@ -64,24 +63,21 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         )[0]
 
     def configure_valid_alert_rule(self):
-        rule_object = Rule.objects.create(
+        rule_object = self.create_project_rule(
             project=self.project,
-            label="hello world",
-            data={
-                "action_match": "any",
-                "frequency": 5,
-                "conditions": [],
-                "actions": [
-                    {
-                        "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
-                        "integration": self.integration.id,
-                        "dynamic_form_fields": [{"name": "project"}],
-                        "issuetype": "1",
-                        "name": "Create a Jira ticket in the Jira Cloud account",
-                        "project": "10000",
-                    }
-                ],
-            },
+            name="hello world",
+            action_match="any",
+            frequency=5,
+            action_data=[
+                {
+                    "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+                    "integration": self.integration.id,
+                    "dynamic_form_fields": [{"name": "project"}],
+                    "issuetype": "1",
+                    "name": "Create a Jira ticket in the Jira Cloud account",
+                    "project": "10000",
+                }
+            ],
         )
         return rule_object
 

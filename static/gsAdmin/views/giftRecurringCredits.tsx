@@ -40,7 +40,7 @@ const GIFTABLE_CATEGORIES = new Set([
   'trace_metric_byte',
 ]);
 
-const MAX_BILLING_PERIODS = 24;
+const MAX_BILLING_PERIODS = 60;
 
 // Display-unit handling: admins enter GB for byte categories and hours for
 // continuous profiling; the backend takes raw storage units and applies no

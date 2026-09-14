@@ -166,6 +166,11 @@ issues_tasks = app.taskregistry.create_namespace(
     app_feature="issueplatform",
 )
 
+issues_action_log_tasks = app.taskregistry.create_namespace(
+    "issues.action_log",
+    app_feature="issueplatform",
+)
+
 issues_merge_tasks = app.taskregistry.create_namespace(
     "issues.merge",
     app_feature="issueplatform",
@@ -173,6 +178,11 @@ issues_merge_tasks = app.taskregistry.create_namespace(
 
 issues_reprocessing_tasks = app.taskregistry.create_namespace(
     "issues.reprocessing",
+    app_feature="issueplatform",
+)
+
+issues_long_tasks = app.taskregistry.create_namespace(
+    "issues.long",
     app_feature="issueplatform",
 )
 
@@ -219,6 +229,16 @@ performance_tasks = app.taskregistry.create_namespace(
 preprod_tasks = app.taskregistry.create_namespace(
     "preprod",
     app_feature="preprod",
+)
+
+preprod_size_tasks = app.taskregistry.create_namespace(
+    "preprod.size",
+    app_feature="preprod_size",
+)
+
+preprod_snapshots_tasks = app.taskregistry.create_namespace(
+    "preprod.snapshots",
+    app_feature="preprod_snapshots",
 )
 
 profiling_tasks = app.taskregistry.create_namespace(
@@ -319,6 +339,23 @@ sentryapp_control_tasks = app.taskregistry.create_namespace(
 
 symbolication_tasks = app.taskregistry.create_namespace(
     "symbolication",
+    app_feature="errors",
+)
+
+symbolication_js_tasks = app.taskregistry.create_namespace(
+    "symbolication.js",
+    app_feature="errors",
+)
+
+symbolication_jvm_tasks = app.taskregistry.create_namespace(
+    "symbolication.jvm",
+    app_feature="errors",
+)
+
+# GPU crash symbolication (teapot), isolated from `symbolication` so a slow
+# teapot can't back up the native CPU symbolication queue.
+gpu_crash_dump_tasks = app.taskregistry.create_namespace(
+    "gpu.crash_dump",
     app_feature="errors",
 )
 

@@ -1,7 +1,7 @@
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {t} from 'sentry/locale';
@@ -10,18 +10,16 @@ import type {SeerAutofixStoppingPoint} from 'sentry/utils/seer/types';
 
 export function StoppingPointDropdownMenu({
   isDisabled,
-  size = 'xs',
   onChange,
 }: {
   isDisabled: boolean;
   onChange: (value: SeerAutofixStoppingPoint) => void;
-  size?: DropdownMenuProps['size'];
 }) {
   const stoppingPointOptions = useStoppingPointSelectOptions();
   return (
     <DropdownMenu
       isDisabled={isDisabled}
-      size={size}
+      size="xs"
       triggerLabel={t('Automation Steps')}
       items={stoppingPointOptions.map(option => ({
         key: option.value,

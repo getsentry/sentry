@@ -1,5 +1,4 @@
-import {useMutation} from '@tanstack/react-query';
-import {useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -32,7 +31,10 @@ export function DirectEnableButton({
   const {mutate: enable, isPending} = useMutation({
     mutationFn: () =>
       fetchMutation({
-        url: `/organizations/${organization.slug}/integrations/direct-enable/${providerSlug}/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/integrations/direct-enable/$providerKey/',
+          {path: {organizationIdOrSlug: organization.slug, providerKey: providerSlug}}
+        ),
         method: 'POST',
         data: {},
       }),

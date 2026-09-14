@@ -1,6 +1,8 @@
 import {
   getCodingAgentResultLink,
   getRepoPullRequestLink,
+  hasCreatedPullRequests,
+  isCreatedPullRequestState,
 } from 'sentry/components/events/autofix/pullRequests';
 import type {
   ExplorerCodingAgentState,
@@ -63,6 +65,46 @@ describe('getCodingAgentResultLink', () => {
 
   it('returns null when the agent reported no URL', () => {
     expect(getCodingAgentResultLink(makeResult())).toBeNull();
+  });
+});
+
+describe('isCreatedPullRequestState', () => {
+  it('is false for a failed create with no PR number', () => {
+    expect(
+      isCreatedPullRequestState(
+        makeRepoPRState({
+          pr_creation_status: 'error',
+          pr_number: null,
+          pr_url: null,
+        })
+      )
+    ).toBe(false);
+  });
+
+  it('is true for an errored push onto an already-open PR', () => {
+    expect(
+      isCreatedPullRequestState(makeRepoPRState({pr_creation_status: 'error'}))
+    ).toBe(true);
+  });
+
+  it('is true while creation is in flight', () => {
+    expect(
+      isCreatedPullRequestState(makeRepoPRState({pr_creation_status: 'creating'}))
+    ).toBe(true);
+  });
+});
+
+describe('hasCreatedPullRequests', () => {
+  it('ignores a failed create', () => {
+    expect(
+      hasCreatedPullRequests({
+        'org/repo': makeRepoPRState({
+          pr_creation_status: 'error',
+          pr_number: null,
+          pr_url: null,
+        }),
+      })
+    ).toBe(false);
   });
 });
 

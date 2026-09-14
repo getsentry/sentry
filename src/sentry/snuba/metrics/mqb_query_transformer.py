@@ -263,13 +263,12 @@ def _transform_orderby(query_orderby):
 
 def _derive_mri_to_apply(project_ids, select, orderby):
     mri_dictionary = {
-        "generic_metrics_distributions": TransactionMRI.DURATION.value,
-        "generic_metrics_sets": TransactionMRI.USER.value,
+        "generic_metrics_counters": TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
     }
-    mri_to_apply = TransactionMRI.DURATION.value
+    mri_to_apply = TransactionMRI.COUNT_PER_ROOT_PROJECT.value
 
     # We first check if there is an order by field that has the team_key_transaction, otherwise
-    # we just use the default mri of duration.
+    # we just use the default counter MRI.
     has_order_by_team_key_transaction = False
     if orderby is not None:
         for orderby_field in orderby:
@@ -286,7 +285,7 @@ def _derive_mri_to_apply(project_ids, select, orderby):
             # means that it must be the only one, therefore we want to infer the MRI type of the team_key_transaction
             # from one entity in the select in order to save up a query. This is just an optimization for the edge case
             # in which the select has a different entity than the default entity for the team_key_transaction, which
-            # is the distribution, inferred from TransactionMRI.DURATION.
+            # is the counter, inferred from TransactionMRI.COUNT_PER_ROOT_PROJECT.
             for select_field in select:
                 if select_field.op != TEAM_KEY_TRANSACTION_OP:
                     expr = metric_object_factory(select_field.op, select_field.metric_mri)

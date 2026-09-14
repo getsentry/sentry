@@ -24,7 +24,7 @@ export function GroupingComponentStacktrace({component, showNonContributing}: Pr
               showNonContributing={showNonContributing}
             />
           ))}
-          initialCollapsed={!showNonContributing}
+          showNonContributing={showNonContributing}
         />
       ))}
     </Fragment>

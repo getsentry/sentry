@@ -1,12 +1,11 @@
 from datetime import datetime
 from typing import NotRequired, TypedDict
 
-from drf_spectacular.utils import extend_schema_serializer
-
 from sentry.api.serializers.models.role import (
     OrganizationRoleSerializerResponse,
     TeamRoleSerializerResponse,
 )
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.integrations.api.serializers.models.external_actor import ExternalActorResponse
 from sentry.users.api.serializers.user import UserSerializerResponse
 
@@ -66,7 +65,12 @@ class _TeamRole(TypedDict):
     role: str | None
 
 
-@extend_schema_serializer(exclude_fields=["role", "roleName"])
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "role": "Deprecated, use orgRole.",
+        "roleName": "Deprecated, derived from orgRole.",
+    }
+)
 class OrganizationMemberResponse(TypedDict):
     externalUsers: NotRequired[list[ExternalActorResponse]]
     role: NotRequired[str]  # Deprecated: use orgRole
@@ -94,7 +98,11 @@ class OrganizationMemberWithProjectsResponse(OrganizationMemberResponse):
     projects: list[str]
 
 
-@extend_schema_serializer(exclude_fields=["roles"])
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "roles": "Deprecated, use orgRoleList.",
+    }
+)
 class OrganizationMemberWithRolesResponse(OrganizationMemberWithTeamsResponse):
     roles: NotRequired[list[OrganizationRoleSerializerResponse]]  # Deprecated: use orgRoleList
     invite_link: str | None

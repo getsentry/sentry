@@ -25,7 +25,7 @@ We simplify this set of conditions for the span buffer:
 * Relay writes is_segment based on some other attributes for us, so that we don't have to look at N span-local attributes. This simplifies condition 2.
 * The span buffer is sharded by project. Therefore, condition 4 is handled by the code for condition 3, although with some delay.
 
-Segments are flushed out to `buffered-segments` topic under two conditions:
+Segments are flushed out to the `process_segment` task under two conditions:
 
 * If the segment has a root span, it is flushed out after `spans.buffer.root-timeout` seconds of inactivity.
 * Otherwise, it is flushed out after `spans.buffer.timeout` seconds of inactivity.

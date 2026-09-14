@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {ListBox} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -40,6 +41,12 @@ export const CaretAnchor = styled('span')`
   height: 1px;
   visibility: hidden;
   pointer-events: none;
+`;
+
+export const SuggestionListBox = styled(ListBox)`
+  min-width: 220px;
+  max-width: 360px;
+  max-height: 200px;
 `;
 
 export function SuggestionStatus({children}: {children: React.ReactNode}) {

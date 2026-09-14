@@ -1,10 +1,10 @@
 import type {Theme} from '@emotion/react';
 import type {SeriesOption} from 'echarts';
 
-import {XAxis} from 'sentry/components/charts/components/xAxis';
-import {AreaSeries} from 'sentry/components/charts/series/areaSeries';
-import {BarSeries} from 'sentry/components/charts/series/barSeries';
-import {LineSeries} from 'sentry/components/charts/series/lineSeries';
+import {createXAxisOptions} from 'sentry/components/charts/components/xAxis';
+import {createAreaSeries} from 'sentry/components/charts/series/areaSeries';
+import {createBarSeries} from 'sentry/components/charts/series/barSeries';
+import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import {lightenHexToRgb} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {EventsStats} from 'sentry/types/organization';
@@ -14,7 +14,7 @@ import type {RenderDescriptor} from './types';
 import {ChartType} from './types';
 
 export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartType>> => {
-  const discoverxAxis = XAxis({
+  const discoverxAxis = createXAxisOptions({
     theme,
     splitNumber: 3,
     isGroupedByDate: true,
@@ -33,7 +33,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
     ) => {
       if (Array.isArray(data.stats.data)) {
         const color = theme.chart.getColorPalette(data.stats.data.length - 1);
-        const areaSeries = AreaSeries({
+        const areaSeries = createAreaSeries({
           name: data.seriesName,
           data: data.stats.data.map(([timestamp, countsForTimestamp]) => [
             timestamp * 1000,
@@ -59,7 +59,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
       const series = stats
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
         .map((s, i) =>
-          AreaSeries({
+          createAreaSeries({
             name: s.key,
             stack: 'area',
             data: s.data.map(
@@ -94,7 +94,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
       if (Array.isArray(data.stats.data)) {
         const color = theme.chart.getColorPalette(data.stats.data.length - 1);
 
-        const barSeries = BarSeries({
+        const barSeries = createBarSeries({
           name: data.seriesName,
           data: data.stats.data.map(([timestamp, countsForTimestamp]) => ({
             value: [
@@ -122,7 +122,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
       const series = stats
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
         .map((s, i) =>
-          BarSeries({
+          createBarSeries({
             name: s.key,
             stack: 'area',
             data: s.data.map(
@@ -158,7 +158,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
       if (Array.isArray(data.stats.data)) {
         const color = theme.chart.getColorPalette(data.stats.data.length - 1);
 
-        const areaSeries = AreaSeries({
+        const areaSeries = createAreaSeries({
           data: data.stats.data.map(([timestamp, countsForTimestamp]) => [
             timestamp * 1000,
             countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
@@ -188,7 +188,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
       const series = stats
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
         .map((topSeries, i) =>
-          AreaSeries({
+          createAreaSeries({
             stack: 'area',
             data: topSeries.data.map(
               ([timestamp, countsForTimestamp]: [number, Array<{count: number}>]) => [
@@ -222,7 +222,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
       if (Array.isArray(data.stats.data)) {
         const color = theme.chart.getColorPalette(data.stats.data.length - 1);
 
-        const lineSeries = LineSeries({
+        const lineSeries = createLineSeries({
           data: data.stats.data.map(([timestamp, countsForTimestamp]) => [
             timestamp * 1000,
             countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
@@ -251,7 +251,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
       const series = stats
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
         .map((topSeries, i) =>
-          LineSeries({
+          createLineSeries({
             data: topSeries.data.map(
               ([timestamp, countsForTimestamp]: [number, Array<{count: number}>]) => [
                 timestamp * 1000,
@@ -284,7 +284,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
       if (Array.isArray(data.stats.data)) {
         const color = theme.chart.getColorPalette(data.stats.data.length - 1);
 
-        const areaSeries = AreaSeries({
+        const areaSeries = createAreaSeries({
           data: data.stats.data.map(([timestamp, countsForTimestamp]) => [
             timestamp * 1000,
             countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
@@ -313,7 +313,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
       const series = stats
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
         .map((topSeries, i) =>
-          BarSeries({
+          createBarSeries({
             stack: 'area',
             data: topSeries.data.map(
               ([timestamp, countsForTimestamp]: [number, Array<{count: number}>]) => [
@@ -348,7 +348,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
         const current = data.stats.data.slice(dataMiddleIndex);
         const previous = data.stats.data.slice(0, dataMiddleIndex);
         const color = theme.chart.getColorPalette(data.stats.data.length - 1);
-        const areaSeries = AreaSeries({
+        const areaSeries = createAreaSeries({
           name: data.seriesName,
           data: current.map(([timestamp, countsForTimestamp]) => [
             timestamp * 1000,
@@ -358,7 +358,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
           areaStyle: {color: color?.[0], opacity: 1},
         });
 
-        const previousPeriod = LineSeries({
+        const previousPeriod = createLineSeries({
           name: t('previous %s', data.seriesName),
           data: previous.map(([_, countsForTimestamp], i) => [
             current[i]![0] * 1000,
@@ -392,7 +392,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
           const current = s.data.slice(dataMiddleIndex);
           const previous = s.data.slice(0, dataMiddleIndex);
           areaSeries.push(
-            AreaSeries({
+            createAreaSeries({
               name: s.key,
               stack: 'area',
               data: s.data
@@ -408,7 +408,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
             })
           );
           lineSeries.push(
-            LineSeries({
+            createLineSeries({
               name: t('previous %s', s.key),
               stack: 'previous',
               data: previous.map(

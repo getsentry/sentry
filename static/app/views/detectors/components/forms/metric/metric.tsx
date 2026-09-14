@@ -474,7 +474,6 @@ function CustomizeMetricSection({step}: {step?: number}) {
             />
             <Tooltip
               title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
-              isHoverable
               disabled={!isTransactionsDataset}
             >
               <DisabledSection disabled={isTransactionsDataset}>
@@ -485,7 +484,6 @@ function CustomizeMetricSection({step}: {step?: number}) {
         </Stack>
         <Tooltip
           title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
-          isHoverable
           disabled={!isTransactionsDataset}
         >
           <DisabledSection disabled={isTransactionsDataset}>
@@ -496,7 +494,6 @@ function CustomizeMetricSection({step}: {step?: number}) {
         dataset === DetectorDataset.METRICS ? null : (
           <Tooltip
             title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
-            isHoverable
             disabled={!isTransactionsDataset}
           >
             <FilterRow disabled={isTransactionsDataset}>
@@ -540,15 +537,11 @@ function DetectSection({step}: {step?: number}) {
             <WarningIcon
               id="thresholds-warning-icon"
               tooltipProps={{
-                isHoverable: true,
                 title: tct(
                   'Your thresholds may need to be adjusted to take into account [samplingLink:sampling].',
                   {
                     samplingLink: (
-                      <ExternalLink
-                        href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer"
-                        openInNewTab
-                      />
+                      <ExternalLink href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer" />
                     ),
                   }
                 ),
@@ -682,10 +675,7 @@ function MigratedAlertWarningListener() {
             'The thresholds on this chart may look off. This is because, once saved, alerts will now take into account [samplingLink:sampling rate]. Before clicking save, take the time to update your [thresholdsLink:thresholds]. Cancel to continue running this alert in compatibility mode.',
             {
               samplingLink: (
-                <ExternalLink
-                  href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer"
-                  openInNewTab
-                />
+                <ExternalLink href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer" />
               ),
               thresholdsLink: (
                 <Link

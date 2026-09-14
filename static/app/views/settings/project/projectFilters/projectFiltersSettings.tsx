@@ -35,6 +35,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {makeDetailedProjectApiOptions} from 'sentry/utils/project/useDetailedProject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -575,7 +576,6 @@ type ProjectBooleanFilterId = keyof z.infer<typeof projectBooleanSchema>;
 function StandardFilter({
   description,
   filter,
-  filtersEndpoint,
   hasAccess,
   organization,
   project,
@@ -583,7 +583,6 @@ function StandardFilter({
 }: {
   description: (typeof filterDescriptions)[keyof typeof filterDescriptions];
   filter: Filter;
-  filtersEndpoint: string;
   hasAccess: boolean;
   onUpdate: (filterId: string, active: boolean | string[]) => boolean | string[];
   organization: Organization;
@@ -605,7 +604,16 @@ function StandardFilter({
             new_state: data[name] ? 'enabled' : 'disabled',
           });
           return fetchMutation({
-            url: `${filtersEndpoint}${filter.id}/`,
+            url: getApiUrl(
+              '/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/$filterId/',
+              {
+                path: {
+                  organizationIdOrSlug: organization.slug,
+                  projectIdOrSlug: project.slug,
+                  filterId: filter.id,
+                },
+              }
+            ),
             method: 'PUT',
             data: {active: data[name]},
           });
@@ -637,7 +645,6 @@ export function ProjectFiltersSettings({project, params}: Props) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const {projectId: projectSlug} = params;
-  const filtersEndpoint = `/projects/${organization.slug}/${projectSlug}/filters/`;
   const detailedProjectQueryOptions = makeDetailedProjectApiOptions({
     orgSlug: organization.slug,
     projectSlug,
@@ -730,7 +737,16 @@ export function ProjectFiltersSettings({project, params}: Props) {
                             new_state: newSubfilters.toSorted().join(','),
                           });
                           return fetchMutation({
-                            url: `${filtersEndpoint}${filter.id}/`,
+                            url: getApiUrl(
+                              '/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/$filterId/',
+                              {
+                                path: {
+                                  organizationIdOrSlug: organization.slug,
+                                  projectIdOrSlug: projectSlug,
+                                  filterId: filter.id,
+                                },
+                              }
+                            ),
                             method: 'PUT',
                             data: {subfilters: newSubfilters},
                           });
@@ -790,7 +806,6 @@ export function ProjectFiltersSettings({project, params}: Props) {
                     key={filter.id}
                     description={desc}
                     filter={filter}
-                    filtersEndpoint={filtersEndpoint}
                     hasAccess={hasAccess}
                     organization={organization}
                     project={project}

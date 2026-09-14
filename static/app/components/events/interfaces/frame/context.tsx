@@ -40,7 +40,6 @@ type Props = {
   hasContextVars?: boolean;
   hasScmSourceContext?: boolean;
   isExpanded?: boolean;
-  isFirst?: boolean;
   platform?: PlatformKey;
   registersMeta?: Record<any, any>;
 };
