@@ -53,7 +53,6 @@ function createBreakdownWidget({
     displayType: DisplayType.BAR,
     widgetType: WidgetType.SPANS,
     interval: '1h',
-    legendType: 'breakdown',
     limit: 3,
     queries: [
       {
