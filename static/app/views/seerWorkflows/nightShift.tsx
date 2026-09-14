@@ -105,6 +105,9 @@ export function getNightShiftRow(run: SeerWorkflowRun) {
 }
 
 export function NightShiftSummary({row}: {row: WorkflowRow}) {
+  if (row.status === 'running') {
+    return <Text size="sm">{t('Triaging issues…')}</Text>;
+  }
   if (row.resultText || row.status === 'failed') {
     return (
       <Text size="sm" variant={row.status === 'failed' ? 'danger' : 'primary'}>

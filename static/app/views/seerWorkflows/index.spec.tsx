@@ -136,6 +136,9 @@ describe('SeerWorkflows', () => {
     render(<SeerWorkflows />, {organization});
     expect(await screen.findByRole('status', {name: 'Running'})).toBeInTheDocument();
 
+    expect(screen.getByText('Triaging issues…')).toBeInTheDocument();
+    expect(screen.queryByText('No issues processed')).not.toBeInTheDocument();
+
     const failedPoll = MockApiClient.addMockResponse({
       url,
       statusCode: 503,
