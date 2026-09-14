@@ -261,9 +261,13 @@ class VstsIssueSyncTest(VstsIssueBase):
             self.integration.create_issue(form_data)
 
     def test_issue_url(self) -> None:
+        self.integration.model.metadata["domain_name"] = (
+            "https://Fabrikam-Fiber-Inc.VisualStudio.COM/"
+        )
         for url in (
             "https://fabrikam-fiber-inc.visualstudio.com/project/_workitems/edit/309",
-            "https://dev.azure.com/fabrikam-fiber-inc/project/_workitems/edit/309?view=1",
+            "https://FABRIKAM-FIBER-INC.visualstudio.com/project/_workitems/edit/309",
+            "https://dev.azure.com/FABRIKAM-FIBER-INC/project/_workitems/edit/309?view=1",
         ):
             assert self.integration.get_issue_link_data(url) == {"externalIssue": "309"}
         with pytest.raises(IntegrationFormError):
