@@ -1,4 +1,5 @@
 from django.db.models import Q
+from django.db.models.functions import Coalesce
 
 from sentry.models.activity import Activity
 from sentry.models.groupresolution import GroupResolution
@@ -28,13 +29,16 @@ def clear_expired_resolutions(release_id):
     except Release.DoesNotExist:
         return
 
+    release_order = release.date_released or release.date_added
     resolution_list = list(
         GroupResolution.objects.filter(
             Q(type=GroupResolution.Type.in_next_release) | Q(type__isnull=True),
             release__projects__in=[p.id for p in release.projects.all()],
-            release__date_added__lt=release.date_added,
             status=GroupResolution.Status.pending,
-        ).exclude(release=release)
+        )
+        .alias(resolution_release_order=Coalesce("release__date_released", "release__date_added"))
+        .filter(resolution_release_order__lt=release_order)
+        .exclude(release=release)
     )
 
     if not resolution_list:

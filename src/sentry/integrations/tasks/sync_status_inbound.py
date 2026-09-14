@@ -10,7 +10,10 @@ from taskbroker_client.retry import Retry
 
 from sentry import analytics, options
 from sentry.analytics.events.issue_resolved import IssueResolvedEvent
-from sentry.api.helpers.group_index.update import get_current_release_version_of_group
+from sentry.api.helpers.group_index.update import (
+    get_current_release_version_of_group,
+    get_next_release,
+)
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
@@ -143,21 +146,8 @@ def get_resolutions_and_activity_data_for_groups(
                             # been released, there is no point in setting GroupResolution to
                             # be of type in_next_release but rather in_release would suffice
 
-                            date_order_q = Q(date_added__gt=current_release_obj.date_added) | Q(
-                                date_added=current_release_obj.date_added,
-                                id__gt=current_release_obj.id,
-                            )
-                            # Find the next release after the current_release_version
-                            # i.e. the release that resolves the issue
-                            resolved_in_release = (
-                                Release.objects.filter(
-                                    date_order_q,
-                                    projects=group.project,
-                                    organization_id=organization_id,
-                                )
-                                .extra(select={"sort": "COALESCE(date_released, date_added)"})
-                                .order_by("sort", "id")[:1]
-                                .get()
+                            resolved_in_release = get_next_release(
+                                group.project, current_release_obj
                             )
                             resolution_params.update({"release": resolved_in_release})
                             activity_data.update({"version": resolved_in_release.version})

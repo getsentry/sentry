@@ -75,3 +75,63 @@ class ClearExpiredResolutionsTest(TestCase):
 
         activity2 = Activity.objects.get(id=activity2.id)
         assert activity2.data["version"] == ""
+
+    def test_finalized_release_order_prevents_old_release_from_expiring_resolution(self) -> None:
+        now = timezone.now()
+        project = self.create_project()
+        resolution_release = self.create_release(
+            project=project,
+            version="resolution-release",
+            date_added=now - timedelta(minutes=30),
+            date_released=now - timedelta(minutes=10),
+        )
+        late_registered_old_release = self.create_release(
+            project=project,
+            version="old-release",
+            date_added=now,
+            date_released=now - timedelta(minutes=60),
+        )
+        group = self.create_group(project=project, status=GroupStatus.RESOLVED)
+        resolution = GroupResolution.objects.create(
+            group=group,
+            release=resolution_release,
+            type=GroupResolution.Type.in_next_release,
+            status=GroupResolution.Status.pending,
+        )
+
+        clear_expired_resolutions(late_registered_old_release.id)
+
+        resolution.refresh_from_db()
+        assert resolution.release == resolution_release
+        assert resolution.type == GroupResolution.Type.in_next_release
+        assert resolution.status == GroupResolution.Status.pending
+
+    def test_finalized_release_order_expires_older_resolution(self) -> None:
+        now = timezone.now()
+        project = self.create_project()
+        resolution_release = self.create_release(
+            project=project,
+            version="resolution-release",
+            date_added=now,
+            date_released=now - timedelta(minutes=60),
+        )
+        next_release = self.create_release(
+            project=project,
+            version="next-release",
+            date_added=now - timedelta(minutes=30),
+            date_released=now - timedelta(minutes=10),
+        )
+        group = self.create_group(project=project, status=GroupStatus.RESOLVED)
+        resolution = GroupResolution.objects.create(
+            group=group,
+            release=resolution_release,
+            type=GroupResolution.Type.in_next_release,
+            status=GroupResolution.Status.pending,
+        )
+
+        clear_expired_resolutions(next_release.id)
+
+        resolution.refresh_from_db()
+        assert resolution.release == next_release
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.status == GroupResolution.Status.resolved

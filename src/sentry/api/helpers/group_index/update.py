@@ -12,6 +12,7 @@ import rest_framework
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q, QuerySet
+from django.db.models.functions import Coalesce
 from django.db.models.signals import post_save
 from django.utils import timezone as django_timezone
 from rest_framework import serializers
@@ -572,23 +573,7 @@ def process_group_resolution(
                             organization_id=group.project.organization_id,
                         )
 
-                        date_order_q = Q(date_added__gt=current_release_obj.date_added) | Q(
-                            date_added=current_release_obj.date_added,
-                            id__gt=current_release_obj.id,
-                        )
-
-                        # Find the next release after the current_release_version
-                        # i.e. the release that resolves the issue
-                        resolved_in_release = (
-                            Release.objects.filter(
-                                date_order_q,
-                                projects=group.project,
-                                organization_id=group.project.organization_id,
-                            )
-                            .extra(select={"sort": "COALESCE(date_released, date_added)"})
-                            .order_by("sort", "id")[:1]
-                            .get()
-                        )
+                        resolved_in_release = get_next_release(group.project, current_release_obj)
 
                         # If we get here, we assume it exists and so we update
                         # GroupResolution and Activity
@@ -876,6 +861,23 @@ def get_release_to_resolve_by(project: Project) -> Release | None:
         org_id=project.organization_id, project_id=project.id
     )
     return greatest_semver_release(project) if follows_semver else most_recent_release(project)
+
+
+def get_next_release(project: Project, current_release: Release) -> Release:
+    current_release_order = current_release.date_released or current_release.date_added
+    return (
+        Release.objects.filter(
+            projects=project,
+            organization_id=project.organization_id,
+        )
+        .alias(release_order=Coalesce("date_released", "date_added"))
+        .filter(
+            Q(release_order__gt=current_release_order)
+            | Q(release_order=current_release_order, id__gt=current_release.id)
+        )
+        .order_by("release_order", "id")[:1]
+        .get()
+    )
 
 
 def most_recent_release(project: Project) -> Release | None:
