@@ -1,9 +1,12 @@
+from base64 import b64encode
+
 from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.user import User
+from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.models.useremail import UserEmail
 from sentry.users.services.user.service import user_service
 
@@ -21,6 +24,42 @@ class DatabaseBackedUserService(TestCase):
         assert new_user_count == old_user_count + 1
         assert user.flags.newsletter_consent_prompt
         assert result.created
+
+    def test_update_user_avatar_upload(self) -> None:
+        user = self.create_user(email="avatar@email.com")
+        avatar_b64 = b64encode(self.load_fixture("avatar.jpg")).decode()
+
+        user_service.update_user_avatar(
+            user_id=user.id, avatar_b64=avatar_b64, filename=f"{user.id}.png"
+        )
+
+        avatar = UserAvatar.objects.get(user_id=user.id)
+        assert avatar.get_avatar_type_display() == "upload"
+        assert avatar.get_file_id()
+
+        # The denormalized User fields are kept in sync with the stored avatar.
+        user.refresh_from_db()
+        assert user.avatar_type == avatar.avatar_type
+        assert user.avatar_url is not None
+        assert avatar.ident in user.avatar_url
+
+    def test_update_user_avatar_clear_resets_to_letter_avatar(self) -> None:
+        user = self.create_user(email="avatar@email.com")
+        avatar_b64 = b64encode(self.load_fixture("avatar.jpg")).decode()
+        user_service.update_user_avatar(
+            user_id=user.id, avatar_b64=avatar_b64, filename=f"{user.id}.png"
+        )
+
+        # An empty payload resets the user to the default letter avatar.
+        user_service.update_user_avatar(user_id=user.id, avatar_b64=None, filename=f"{user.id}.png")
+
+        avatar = UserAvatar.objects.get(user_id=user.id)
+        assert avatar.get_avatar_type_display() == "letter_avatar"
+
+        # Clearing also resets the denormalized User fields.
+        user.refresh_from_db()
+        assert user.avatar_type == avatar.avatar_type
+        assert user.avatar_url is None
 
     def test_get_no_existing(self) -> None:
         rpc_user = user_service.get_user_by_email(email="test@email.com")

@@ -211,6 +211,32 @@ class AuthIdentityHandler:
 
             organization_service.update_membership_flags(organization_member=member)
 
+    def _apply_sso_avatar(self, user: User | AnonymousUser) -> None:
+        """
+        Sync the user's profile picture from the SSO identity on login.
+
+        Only SAML providers populate ``identity["avatar"]`` (see
+        ``SAML2Provider.build_identity``), so this is a no-op for other providers.
+        Failures are swallowed so a bad profile picture never blocks login.
+        """
+        avatar_b64 = self.identity.get("avatar")
+        if not avatar_b64 or not user.is_authenticated:
+            return
+        if not getattr(self.provider, "is_saml", False):
+            return
+
+        try:
+            user_service.update_user_avatar(
+                user_id=user.id,
+                avatar_b64=avatar_b64,
+                filename=f"{user.id}.png",
+            )
+        except Exception:
+            logger.exception(
+                "sso.login-pipeline.avatar-sync-failed",
+                extra={"user_id": user.id, "organization_id": self.organization.id},
+            )
+
     def handle_existing_identity(
         self,
         state: AuthHelperSessionStore,
@@ -238,6 +264,8 @@ class AuthIdentityHandler:
 
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
+
+        self._apply_sso_avatar(user)
 
         data = state.data
         subdomain = None
@@ -506,6 +534,8 @@ class AuthIdentityHandler:
             )
 
             messages.add_message(self.request, messages.SUCCESS, OK_LINK_IDENTITY)
+
+        self._apply_sso_avatar(self.user)
 
         return auth_identity
 
@@ -956,6 +986,8 @@ class AuthIdentityHandler:
         )
 
         self._handle_new_membership(auth_identity)
+
+        self._apply_sso_avatar(user)
 
         return auth_identity
 
