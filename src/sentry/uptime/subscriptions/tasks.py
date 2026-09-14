@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
+from collections.abc import Collection
 from datetime import timedelta
 from uuid import uuid4
 
@@ -37,6 +39,8 @@ logger = logging.getLogger(__name__)
 
 SUBSCRIPTION_STATUS_MAX_AGE = timedelta(minutes=10)
 BROKEN_MONITOR_AGE_LIMIT = timedelta(days=7)
+# After a wiped store the missing set is the whole slice, so bound the tasks queued per store.
+CONFIG_REPAIR_MAX_TASKS = 1000
 
 
 @instrumented_task(
@@ -359,3 +363,43 @@ def check_orphaned_configs(cluster: str, key_prefix: str, partition: int, **kwar
             "uptime.config_drift.orphaned",
             extra={"partition": partition, "cluster": store.cluster, "count": orphaned},
         )
+
+
+def repair_missing_configs(
+    store: ConfigStore, subscription_ids: Collection[str], *, limit: int = CONFIG_REPAIR_MAX_TASKS
+) -> int:
+    """
+    Queues a region-scoped update for each subscription whose config is missing from ``store``,
+    at most ``limit`` per call. Returns the number queued.
+    """
+    ids = sorted(set(subscription_ids))[:limit]
+    slugs_by_subscription: dict[tuple[int, str], set[str]] = defaultdict(set)
+    for subscription_id, pk, region_slug in UptimeSubscriptionRegion.objects.filter(
+        uptime_subscription__subscription_id__in=ids,
+        uptime_subscription__status=UptimeSubscription.Status.ACTIVE.value,
+        region_slug__in=store.region_slugs,
+    ).values_list("uptime_subscription__subscription_id", "uptime_subscription_id", "region_slug"):
+        assert subscription_id is not None
+        slugs_by_subscription[(pk, subscription_id)].add(region_slug)
+
+    for (pk, subscription_id), slugs in slugs_by_subscription.items():
+        region_slugs = sorted(slugs)
+        update_remote_uptime_subscription.delay(
+            uptime_subscription_id=pk, region_slugs=region_slugs
+        )
+        logger.info(
+            "uptime.config_repair.queued",
+            extra={
+                "subscription_id": subscription_id,
+                "cluster": store.cluster,
+                "region_slugs": region_slugs,
+            },
+        )
+    queued = len(slugs_by_subscription)
+    tags = {"cluster": store.cluster}
+    metrics.incr("uptime.config_repair.queued", amount=queued, tags=tags, sample_rate=1.0)
+    # Skipped: deleted, disabled, or no longer on this store, since the sweep read it.
+    metrics.incr(
+        "uptime.config_repair.skipped", amount=len(ids) - queued, tags=tags, sample_rate=1.0
+    )
+    return queued
