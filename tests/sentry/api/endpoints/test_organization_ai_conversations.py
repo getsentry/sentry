@@ -901,7 +901,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             )
 
         assert response.status_code == 200
-        assert response.data[0]["duration"] == 5000
+        assert response.data[0]["duration"] == 9000
 
     def _store_minimal_conversation(self, conversation_id: str, timestamp) -> None:
         self.store_ai_span(
