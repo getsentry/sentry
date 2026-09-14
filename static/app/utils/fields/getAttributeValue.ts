@@ -1,4 +1,3 @@
-import type {AttributeValue} from '@sentry/conventions/attributes';
 import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions/attributes/search';
 
 const TYPED_TAG_KEY_RE = /tags\[(\S*),(\S*)\]/;
@@ -17,6 +16,8 @@ type AttributeValueByKind = {
 };
 
 type AttributeValueKind = keyof AttributeValueByKind;
+
+type AttributeValue = Exclude<AttributeValueByKind[AttributeValueKind], bigint>;
 
 type AttributeEntry = {
   name: string;

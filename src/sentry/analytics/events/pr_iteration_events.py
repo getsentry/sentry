@@ -47,7 +47,6 @@ class AiAutofixPrIterationFeedbackBatchCompletedEvent(analytics.Event):
 
     # Outcome, written when the iteration ends. See ``PrIterationOutcome`` for
     # the values Sentry knows about.
-    duration_ms: int
     outcome: str
 
 
