@@ -30,7 +30,11 @@ from sentry.analytics.events.pr_iteration_events import (
 )
 from sentry.models.group import Group
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.autofix.autofix_agent import get_latest_iteration_index
+from sentry.seer.autofix.autofix_agent import (
+    get_iterations,
+    get_latest_iteration_index,
+    iteration_repos,
+)
 from sentry.seer.autofix.pr_iteration.current_iteration import triggered_iteration_id
 from sentry.seer.autofix.pr_iteration.details_store import (
     claim_iteration,
@@ -284,6 +288,24 @@ def discard_pr_iteration_details(
         log_ctx.error("autofix.pr_iteration.details.discard_failed")
 
 
+def _pushed_head_shas(run_state: SeerRunState) -> list[str]:
+    """The commit SHAs the latest iteration pushed, one for each repository."""
+    try:
+        iterations = get_iterations(run_state)
+    except Exception:
+        return []
+
+    if not iterations:
+        return []
+
+    shas = {
+        pr_state.commit_sha
+        for repo in iteration_repos(iterations[-1])
+        if (pr_state := run_state.repo_pr_states.get(repo)) and pr_state.commit_sha
+    }
+    return sorted(shas)
+
+
 def _build_event(
     log_ctx: PrIterationLogContext,
     iteration: SeerRunPrIteration,
@@ -291,6 +313,7 @@ def _build_event(
     *,
     iteration_index: int,
     outcome: str,
+    head_shas: list[str] | None = None,
 ) -> EventT | None:
     """An event filled from an iteration's row. None when that row is incomplete.
 
@@ -305,6 +328,8 @@ def _build_event(
     # event reports what the drain wrote instead.
     if "duration_ms" in known:
         payload["duration_ms"] = int((timezone.now() - iteration.date_added).total_seconds() * 1000)
+    if head_shas is not None and "head_shas" in known:
+        payload["head_shas"] = head_shas
     try:
         return event_cls(
             iteration_id=iteration.id,
@@ -415,12 +440,18 @@ def complete_pr_iteration_details(
             log_ctx.info("autofix.pr_iteration.details.skipped", reason="already_emitted")
             return
 
+        head_shas = (
+            _pushed_head_shas(run_state)
+            if outcome == PrIterationOutcome.ALREADY_PUSHED.value
+            else []
+        )
         event = _build_event(
             log_ctx,
             iteration,
             AiAutofixPrIterationFeedbackBatchCompletedEvent,
             iteration_index=get_latest_iteration_index(run_state),
             outcome=outcome,
+            head_shas=head_shas,
         )
         if event is None or not remove_iteration(iteration):
             return
