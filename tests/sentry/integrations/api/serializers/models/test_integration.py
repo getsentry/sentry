@@ -3,6 +3,7 @@ from unittest.mock import call, patch
 
 from sentry.api.serializers import serialize
 from sentry.integrations.api.serializers.models.integration import IntegrationConfigSerializer
+from sentry.integrations.utils.github_permission_tiers import PR_ITERATION_TIER
 from sentry.integrations.utils.github_permissions import GITHUB_APP_REQUIRED_PERMISSIONS
 from sentry.organizations.services.organization import organization_service
 from sentry.shared_integrations.exceptions import ApiError
@@ -54,6 +55,46 @@ class IntegrationSerializerTest(TestCase):
         result = serialize(integration, self.user)
 
         assert result["outOfDate"] is False
+
+    def test_github_missing_features_lists_tiers_oldest_first(self) -> None:
+        # only the PR iteration tier is missing.
+        integration = self.create_provider_integration(
+            provider="github",
+            external_id="3",
+            name="octocat",
+            metadata={
+                "permissions": {
+                    "administration": "read",
+                    "issues": "write",
+                    "metadata": "read",
+                    "repository_hooks": "write",
+                    "pull_requests": "write",
+                    "checks": "write",
+                    "statuses": "write",
+                    "contents": "write",
+                }
+            },
+        )
+
+        result = serialize(integration, self.user)
+
+        assert result["outOfDate"] is True
+        assert result["missingFeatures"] == [
+            {
+                "key": PR_ITERATION_TIER.key,
+                "name": PR_ITERATION_TIER.name,
+                "description": PR_ITERATION_TIER.description,
+            }
+        ]
+
+    def test_non_github_provider_has_no_missing_features(self) -> None:
+        integration = self.create_provider_integration(
+            provider="opsgenie", external_id="opsgenie:2", name="Team B", metadata={}
+        )
+
+        result = serialize(integration, self.user)
+
+        assert result["missingFeatures"] is None
 
     def test_full_organizations_are_scoped_to_each_batch(self) -> None:
         other_organization = self.create_organization()

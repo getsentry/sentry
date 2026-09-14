@@ -19,13 +19,26 @@ from sentry.integrations.services.integration import (
     integration_service,
 )
 from sentry.integrations.types import IntegrationIssueConfigField
-from sentry.integrations.utils.github_permissions import get_missing_github_app_permissions
+from sentry.integrations.utils.github_permission_tiers import get_permission_tiers
+from sentry.integrations.utils.github_permissions import (
+    GITHUB_APP_REQUIRED_PERMISSIONS,
+    get_missing_github_app_permissions,
+)
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
+
+
+class MissingFeature(TypedDict):
+    """A feature the installation can no longer support, named by the permission
+    tier it falls short of, so the update-permissions modal can list them."""
+
+    key: str
+    name: str
+    description: str
 
 
 class OrganizationIntegrationResponse(TypedDict):
@@ -77,6 +90,9 @@ class IntegrationSerializerResponse(TypedDict):
     accountType: str | None
     scopes: list[str] | None
     outOfDate: bool | None
+    # GitHub only: the feature tiers this installation is missing, oldest first.
+    # None for providers without a permissions model.
+    missingFeatures: list[MissingFeature] | None
     status: str
     provider: IntegrationProviderInfo
 
@@ -93,10 +109,19 @@ class IntegrationSerializer(Serializer):
         provider = obj.get_provider()
 
         out_of_date = None
+        missing_features: list[MissingFeature] | None = None
 
         match provider.key:
             case "github":
                 out_of_date = bool(get_missing_github_app_permissions(obj.metadata))
+                # Oldest feature first, matching the PR-iteration comment's order.
+                tiers = get_permission_tiers(
+                    obj.metadata.get("permissions", {}), GITHUB_APP_REQUIRED_PERMISSIONS
+                )
+                missing_features = [
+                    {"key": tier.key, "name": tier.name, "description": tier.description}
+                    for tier in reversed(tiers)
+                ]
             case "slack":
                 out_of_date = SlackScope.APP_MENTIONS_READ not in (obj.metadata.get("scopes") or [])
 
@@ -108,6 +133,7 @@ class IntegrationSerializer(Serializer):
             "accountType": obj.metadata.get("account_type"),
             "scopes": obj.metadata.get("scopes"),
             "outOfDate": out_of_date,
+            "missingFeatures": missing_features,
             "status": obj.get_status_display(),
             "provider": serialize_provider(provider),
         }
