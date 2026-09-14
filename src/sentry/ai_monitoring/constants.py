@@ -39,6 +39,10 @@ AI_CONVERSATIONS_FIELDS = {
     ),
 }
 
+AI_CONVERSATIONS_LEGACY_ALIASES = {
+    "conversation.messages": "conversation.llmCalls",
+}
+
 # Keep old spellings while frontend and backend deploy independently.
 for _field, (_expression, _alias) in tuple(AI_CONVERSATIONS_FIELDS.items()):
     for _legacy_name in (
@@ -47,3 +51,6 @@ for _field, (_expression, _alias) in tuple(AI_CONVERSATIONS_FIELDS.items()):
         get_function_alias(_expression),
     ):
         AI_CONVERSATIONS_FIELDS[_legacy_name] = (_expression, _alias)
+
+for _legacy_name, _canonical_name in AI_CONVERSATIONS_LEGACY_ALIASES.items():
+    AI_CONVERSATIONS_FIELDS[_legacy_name] = AI_CONVERSATIONS_FIELDS[_canonical_name]

@@ -8,7 +8,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.apidocs.examples.sentry_app_examples import SentryAppExamples
-from sentry.apidocs.parameters import GlobalParams, IssueParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
@@ -33,6 +33,7 @@ class GroupExternalIssuesEndpoint(GroupEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
             IssueParams.ISSUE_ID,
+            CursorQueryParam,
         ],
         responses={
             200: inline_sentry_response_serializer(

@@ -62,7 +62,9 @@ describe('release embed', () => {
     expect(screen.getByText('staging')).toBeInTheDocument();
     expect(screen.getByText('development')).toBeInTheDocument();
     expect(screen.queryByText('old')).not.toBeInTheDocument();
-    expect(screen.getByRole('link', {name: /Release:/})).toHaveAttribute(
+    // The block's name is the collapse toggle; the link out is a separate target.
+    expect(screen.getByRole('button', {name: /Release:/})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'View Release'})).toHaveAttribute(
       'href',
       `/organizations/org-slug/explore/releases/${encodeURIComponent(version)}/?project=${projectId}`
     );
