@@ -273,20 +273,32 @@ describe('ConversationDetailPage summary errors', () => {
         'gen_ai.usage.output_tokens': 10,
         'gen_ai.usage.total_tokens': 30,
       }),
+      spanFixture({
+        span_id: 'span-tokens-unknown-model',
+        'span.name': 'unknown model turn',
+        'precise.start_ts': 1002,
+        'precise.finish_ts': 1002.5,
+        'gen_ai.response.model': '',
+        'gen_ai.request.model': '',
+        'gen_ai.usage.input_tokens': 5,
+        'gen_ai.usage.output_tokens': 5,
+        'gen_ai.usage.total_tokens': 10,
+      }),
     ]);
     renderPage();
 
-    const tokenCount = await screen.findByText('230');
+    const tokenCount = await screen.findByText('240');
     expect(tokenCount).not.toHaveAttribute('title');
     await userEvent.hover(tokenCount.parentElement!);
 
     expect(await screen.findByText('model-alpha')).toBeInTheDocument();
     expect(screen.getByText('model-beta')).toBeInTheDocument();
-    expect(screen.getAllByText('Input')).toHaveLength(2);
+    expect(screen.getByText('Unknown model')).toBeInTheDocument();
+    expect(screen.getAllByText('Input')).toHaveLength(3);
     expect(screen.getByText('Non-cached')).toBeInTheDocument();
     expect(screen.getByText('Cache Read')).toBeInTheDocument();
     expect(screen.getByText('Cache Write')).toBeInTheDocument();
-    expect(screen.getAllByText('Output')).toHaveLength(2);
+    expect(screen.getAllByText('Output')).toHaveLength(3);
     expect(screen.getByText('Non-reasoning')).toBeInTheDocument();
     expect(screen.getByText('Reasoning')).toBeInTheDocument();
   });

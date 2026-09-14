@@ -449,8 +449,8 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
         breakdown.output;
 
       const model =
-        getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ??
-        getStringAttr(node, SpanFields.GEN_AI_REQUEST_MODEL) ??
+        getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
+        getStringAttr(node, SpanFields.GEN_AI_REQUEST_MODEL) ||
         t('Unknown model');
       const modelTokens = tokensByModel.get(model) ?? {
         cacheRead: 0,
