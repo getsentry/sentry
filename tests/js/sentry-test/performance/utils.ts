@@ -41,8 +41,7 @@ export class TransactionEventBuilder {
     id?: string,
     title?: string,
     problemType?: IssueType,
-    transactionSettings?: TransactionSettings,
-    occurenceBasedEvent?: boolean
+    transactionSettings?: TransactionSettings
   ) {
     const perfEvidenceData = {
       causeSpanIds: [],
@@ -89,7 +88,6 @@ export class TransactionEventBuilder {
           unit: 'millisecond',
         },
       },
-      perfProblem: undefined,
       metadata: {
         current_level: undefined,
         filename: undefined,
@@ -108,35 +106,29 @@ export class TransactionEventBuilder {
       tags: [],
       user: null,
     };
-    if (occurenceBasedEvent) {
-      const issueType = problemType ?? IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES;
+    const issueType = problemType ?? IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES;
 
-      const occurrenceType = ISSUE_TYPE_TO_OCCURRENCE_TYPE[issueType] ?? null;
-      if (occurrenceType === null) {
-        // Not every `IssueType` has a corresponding occurrence type id (errors and replays don't, for
-        // example) which means they can't work with this builder
-        throw new Error(
-          `TransactionEventBuilder can't build an occurrence for '${issueType}', because it has no corresponding entry in \`OCCURRENCE_TYPE_TO_ISSUE_TYPE\`.`
-        );
-      }
-
-      this.#event.occurrence = {
-        evidenceData: perfEvidenceData,
-        eventId: id ?? 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-        detectionTime: '100',
-        evidenceDisplay: [],
-        fingerprint: ['fingerprint123'],
-        id: 'id123',
-        issueTitle: getIssueTitleFromType(issueType) ?? '<untitled issue>',
-        resourceId: '',
-        subtitle: 'SELECT * FROM TABLE',
-        type: occurrenceType,
-      };
-    } else {
-      this.#event.perfProblem = perfEvidenceData;
-      this.#event.perfProblem.issueType =
-        problemType ?? IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES;
+    const occurrenceType = ISSUE_TYPE_TO_OCCURRENCE_TYPE[issueType] ?? null;
+    if (occurrenceType === null) {
+      // Not every `IssueType` has a corresponding occurrence type id (errors and replays don't, for
+      // example) which means they can't work with this builder
+      throw new Error(
+        `TransactionEventBuilder can't build an occurrence for '${issueType}', because it has no corresponding entry in \`OCCURRENCE_TYPE_TO_ISSUE_TYPE\`.`
+      );
     }
+
+    this.#event.occurrence = {
+      evidenceData: perfEvidenceData,
+      eventId: id ?? 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      detectionTime: '100',
+      evidenceDisplay: [],
+      fingerprint: ['fingerprint123'],
+      id: 'id123',
+      issueTitle: getIssueTitleFromType(issueType) ?? '<untitled issue>',
+      resourceId: '',
+      subtitle: 'SELECT * FROM TABLE',
+      type: occurrenceType,
+    };
   }
 
   generateSpanId() {
@@ -164,8 +156,7 @@ export class TransactionEventBuilder {
         ? mockSpan.problemSpan
         : [mockSpan.problemSpan];
 
-      const perfEvidenceData =
-        this.#event.perfProblem ?? this.#event.occurrence?.evidenceData;
+      const perfEvidenceData = this.#event.occurrence?.evidenceData;
 
       problemSpans.forEach(problemSpan => {
         switch (problemSpan) {
