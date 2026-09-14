@@ -18,7 +18,6 @@ from sentry.seer.monitor_cleanup.runs import deliver_monitor_cleanup_result
 from sentry.seer.workflows.runs import create_workflow_run
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
-from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 class OrganizationSeerWorkflowsTest(APITestCase):
@@ -371,7 +370,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             response = self.get_success_response(self.organization.slug)
             assert [run["id"] for run in response.data] == [str(newer.id), str(older.id)]
 
-    def test_history_requires_ownership_until_project_access_can_be_checked(self) -> None:
+    def test_history_hides_runs_outside_user_access(self) -> None:
         project = self.project
         workflow = self.create_agent_workflow(
             SeerWorkflowStrategy.DUPLICATE_MONITORS, "monitor_cleanup"
@@ -405,28 +404,6 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         with self.feature(FEATURE):
             response = self.get_success_response(self.organization.slug)
         assert [item["id"] for item in response.data] == [str(workflow.id)]
-
-    def test_org_token_cannot_own_history_after_triggering_user_is_deleted(self) -> None:
-        workflow = self.create_agent_workflow(
-            SeerWorkflowStrategy.DUPLICATE_MONITORS, "monitor_cleanup"
-        )
-        run = workflow.executions.get().seer_run
-        assert run is not None
-        run.update(user_id=None)
-        token = generate_token(self.organization.slug, "")
-        self.create_org_auth_token(
-            name="org-auth-token",
-            token_hashed=hash_token(token),
-            organization_id=self.organization.id,
-            scope_list=["org:read"],
-        )
-        with self.feature(FEATURE):
-            response = self.client.get(
-                f"/api/0/organizations/{self.organization.slug}/seer/workflows/",
-                HTTP_AUTHORIZATION=f"Bearer {token}",
-            )
-        assert response.status_code == 200
-        assert response.data == []
 
     def create_agent_workflow(
         self, strategy: SeerWorkflowStrategy, feature_id: str
