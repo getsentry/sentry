@@ -148,9 +148,9 @@ StacktraceOrderValue = Literal["-1", "1", "2"]
 Theme = Literal["light", "dark", "system"]
 DefaultIssueEvent = Literal["recommended", "latest", "oldest"]
 
-# Annotating the choices ties them to the Literal types above: a choice value that
-# is not part of the Literal, or vice versa, fails type checking. The stacktrace
-# order values come from the canonical StacktraceOrder enum so the two cannot drift.
+# Annotating the choices ties them to the Literal types above: a choice value that is
+# not part of the Literal fails type checking. The reverse does not hold, so a Literal
+# member with no matching choice, or a new StacktraceOrder enum member, passes silently.
 STACKTRACE_ORDER_CHOICES: "tuple[tuple[StacktraceOrderValue, _StrPromise], ...]" = (
     (StacktraceOrder.DEFAULT.value, _("Default (let Sentry decide)")),
     (StacktraceOrder.MOST_RECENT_LAST.value, _("Most recent call last")),
@@ -196,8 +196,10 @@ class UserOptionsData(TypedDict, total=False):
     prefersIssueDetailsStreamlinedUI: bool
 
 
-# Maps each API field to the key the value is stored under in UserOption. An entry
-# whose key is not a UserOptionsData field fails type checking where it is read.
+# Maps each API field to the key the value is stored under in UserOption. An entry whose
+# key is not a UserOptionsData field fails type checking. An entry that is *missing* does
+# not: DRF declares serializer fields at runtime, so type checking cannot see them. A
+# field added to the serializer but not to this map validates and is then never written.
 OPTION_KEY_MAP: Mapping[UserOptionField, str] = {
     "theme": "theme",
     "language": "language",
