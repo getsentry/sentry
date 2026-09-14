@@ -40,6 +40,7 @@ https://www.notion.so/sentry/RFC-Unified-ViewerContext-via-ContextVar-32f8b10e4b
 
 class ActorType(enum.StrEnum):
     USER = "user"
+    SERVICE_ACCOUNT = "service_account"
     SYSTEM = "system"
     INTEGRATION = "integration"
     AGENT = "agent"
@@ -60,6 +61,7 @@ class ViewerContext:
     organization_id: int | None = None
     project_id: int | None = None
     user_id: int | None = None
+    actor_id: int | None = None
     actor_type: ActorType = ActorType.UNKNOWN
 
     # Carries scopes/kind for in-process permission checks.
@@ -75,6 +77,8 @@ class ViewerContext:
             result["project_id"] = self.project_id
         if self.user_id is not None:
             result["user_id"] = self.user_id
+        if self.actor_id is not None:
+            result["actor_id"] = self.actor_id
         return result
 
     @classmethod
@@ -88,8 +92,15 @@ class ViewerContext:
             organization_id=data.get("organization_id"),
             project_id=data.get("project_id"),
             user_id=data.get("user_id"),
+            actor_id=data.get("actor_id"),
             actor_type=actor_type,
         )
+
+    @property
+    def actor_identifier(self) -> str | None:
+        if self.actor_id is None or self.actor_type is ActorType.UNKNOWN:
+            return None
+        return f"{self.actor_type.value}:{self.actor_id}"
 
 
 @contextlib.contextmanager
@@ -181,6 +192,28 @@ def set_viewer_context_organization(organization_id: int) -> None:
         return
 
     _viewer_context_var.set(dataclasses.replace(ctx, organization_id=organization_id))
+
+
+def set_viewer_context_service_account(
+    service_account_id: int,
+    organization_id: int,
+    token: AuthenticatedToken | None = None,
+) -> None:
+    """Update the active request context after DRF authenticates a service account."""
+    ctx = get_viewer_context()
+    if ctx is None:
+        return
+
+    _viewer_context_var.set(
+        dataclasses.replace(
+            ctx,
+            organization_id=organization_id,
+            user_id=None,
+            actor_id=service_account_id,
+            actor_type=ActorType.SERVICE_ACCOUNT,
+            token=token,
+        )
+    )
 
 
 def set_viewer_context_project(project_id: int) -> None:

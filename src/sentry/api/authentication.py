@@ -26,7 +26,13 @@ from rest_framework.request import Request
 from sentry_relay.exceptions import UnpackError
 
 from sentry import features, options
+from sentry.auth.principal import (
+    AuthenticatedServiceAccountPrincipal,
+    AuthenticatedUserPrincipal,
+    set_authenticated_principal,
+)
 from sentry.auth.services.auth import AuthenticatedToken
+from sentry.auth.services.service_account import RpcServiceAccount, service_account_service
 from sentry.auth.system import SystemToken, is_internal_ip
 from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, compare_signature
@@ -54,6 +60,7 @@ from sentry.utils import jwt, metrics
 from sentry.utils.auth import record_suspended_user_rejection
 from sentry.utils.linksign import process_signature
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
+from sentry.viewer_context import set_viewer_context_service_account
 
 logger = logging.getLogger("sentry.api.authentication")
 
@@ -493,15 +500,15 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         else:
             try:
                 # Try to find the token by its hashed value first
-                return ApiToken.objects.select_related("user", "application").get(
-                    hashed_token=hashed_token
-                )
+                return ApiToken.objects.select_related(
+                    "user", "service_account", "application"
+                ).get(hashed_token=hashed_token)
             except ApiToken.DoesNotExist:
                 try:
                     # If we can't find it by hash, use the plaintext string
-                    api_token = ApiToken.objects.select_related("user", "application").get(
-                        token=token_str
-                    )
+                    api_token = ApiToken.objects.select_related(
+                        "user", "service_account", "application"
+                    ).get(token=token_str)
                 except ApiToken.DoesNotExist:
                     # If the token does not exist by plaintext either, it is not a valid token
                     raise AuthenticationFailed("Invalid token")
@@ -529,6 +536,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
         user: AnonymousUser | User | RpcUser | None = AnonymousUser()
+        service_account: RpcServiceAccount | None = None
 
         token: SystemToken | ApiTokenReplica | ApiToken | None = SystemToken.from_request(
             request, token_str
@@ -539,10 +547,36 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         if not token:
             token = self._find_or_update_token_by_hash(token_str)
             if isinstance(token, ApiTokenReplica):  # we're running as a CELL silo
-                user = user_service.get_user(user_id=token.user_id)
+                if token.service_account_id is not None:
+                    set_viewer_context_service_account(
+                        service_account_id=token.service_account_id,
+                        organization_id=token.organization_id or -1,
+                    )
+                    service_account = service_account_service.get_for_token(
+                        organization_id=token.organization_id or -1,
+                        service_account_id=token.service_account_id,
+                        token_id=token.apitoken_id,
+                    )
+                    if service_account is None:
+                        raise AuthenticationFailed("Service account inactive or deleted")
+                elif token.user_id is not None:
+                    user = user_service.get_user(user_id=token.user_id)
                 application_is_inactive = not token.application_is_active
             else:  # the token returned is an ApiToken from the CONTROL silo
-                user = token.user
+                if token.service_account_id is not None:
+                    account = token.service_account
+                    if account is None or not account.is_active:
+                        raise AuthenticationFailed("Service account inactive or deleted")
+                    service_account = RpcServiceAccount(
+                        id=account.id,
+                        organization_id=account.organization_id,
+                        name=account.name,
+                        is_active=account.is_active,
+                        date_added=account.date_added,
+                        date_updated=account.date_updated,
+                    )
+                else:
+                    user = token.user
                 application_is_inactive = (
                     token.application is not None and not token.application.is_active
                 )
@@ -556,10 +590,20 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         if token.is_expired():
             raise AuthenticationFailed("Token expired")
 
-        if not isinstance(token, SystemToken) and user and not user.is_active:
+        if (
+            service_account is None
+            and not isinstance(token, SystemToken)
+            and user
+            and not user.is_active
+        ):
             raise AuthenticationFailed("User inactive or deleted")
 
-        if not isinstance(token, SystemToken) and user and getattr(user, "is_suspended", False):
+        if (
+            service_account is None
+            and not isinstance(token, SystemToken)
+            and user
+            and getattr(user, "is_suspended", False)
+        ):
             logger.info(
                 "api.token.suspended-user",
                 extra={
@@ -574,7 +618,14 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         if application_is_inactive:
             raise AuthenticationFailed("UserApplication inactive or deleted")
 
-        if token.scoping_organization_id:
+        if service_account is not None:
+            resolved_url = resolve(request.path_info)
+            if resolved_url.url_name != "sentry-api-0-organization-service-account-principal-poc":
+                raise AuthenticationFailed(
+                    "Service account tokens are only supported by the principal PoC endpoint."
+                )
+
+        if token.scoping_organization_id or service_account is not None:
             # We need to make sure the organization to which the token has access is the same as the one in the URL
             organization = None
             organization_context = organization_service.get_organization_by_id(
@@ -601,13 +652,33 @@ class UserAuthTokenAuthentication(StandardAuthentication):
             else:
                 raise AuthenticationFailed("Cannot resolve organization from token.")
 
-        return self.transform_auth(
+        authenticated_user, authenticated_token = self.transform_auth(
             user,
             token,
             "api_token",
             api_token_type=self.token_name,
             api_token_is_sentry_app=getattr(user, "is_sentry_app", False),
         )
+        if service_account is not None:
+            set_authenticated_principal(
+                request,
+                AuthenticatedServiceAccountPrincipal(
+                    id=service_account.id,
+                    organization_id=service_account.organization_id,
+                    display_name=service_account.name,
+                ),
+            )
+            set_viewer_context_service_account(
+                service_account_id=service_account.id,
+                organization_id=service_account.organization_id,
+                token=authenticated_token,
+            )
+        elif isinstance(authenticated_user, RpcUser):
+            set_authenticated_principal(
+                request,
+                AuthenticatedUserPrincipal.from_user(authenticated_user),
+            )
+        return authenticated_user, authenticated_token
 
 
 @AuthenticationSiloLimit(SiloMode.CELL, SiloMode.CONTROL)

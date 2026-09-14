@@ -7,6 +7,10 @@ from django.conf import settings
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 
+from sentry.auth.principal import (
+    AuthenticatedServiceAccountPrincipal,
+    get_authenticated_principal,
+)
 from sentry.seer.agent_token import is_agent_auth
 from sentry.viewer_context import (
     ActorType,
@@ -83,8 +87,10 @@ def _viewer_context_from_request(request: HttpRequest) -> ViewerContext:
     auth = getattr(request, "auth", None)
 
     user_id: int | None = None
+    actor_id: int | None = None
     if user.is_authenticated:
         user_id = user.id
+        actor_id = user.id
 
     organization_id: int | None = None
     if auth is not None and hasattr(auth, "organization_id"):
@@ -95,11 +101,19 @@ def _viewer_context_from_request(request: HttpRequest) -> ViewerContext:
     if auth is not None and is_agent_auth(auth):
         actor_type = ActorType.AGENT
         user_id = auth.user_id
+        actor_id = auth.user_id
     else:
         actor_type = ActorType.USER
 
+    principal = get_authenticated_principal(request)
+    if isinstance(principal, AuthenticatedServiceAccountPrincipal):
+        actor_type = ActorType.SERVICE_ACCOUNT
+        actor_id = principal.id
+        user_id = None
+
     return ViewerContext(
         user_id=user_id,
+        actor_id=actor_id,
         organization_id=organization_id,
         actor_type=actor_type,
         token=auth,

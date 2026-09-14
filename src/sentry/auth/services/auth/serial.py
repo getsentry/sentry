@@ -83,6 +83,7 @@ def serialize_api_token(at: ApiToken) -> RpcApiToken:
     return RpcApiToken(
         id=at.id,
         user_id=at.user_id,
+        service_account_id=at.service_account_id,
         application_id=at.application_id,
         organization_id=at.organization_id,
         scoping_organization_id=at.scoping_organization_id,

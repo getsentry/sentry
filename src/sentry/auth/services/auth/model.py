@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 from django.http.request import HttpRequest
 from pydantic.fields import Field
 
+from sentry.auth.principal import PrincipalKind
 from sentry.auth.scope_declaration import check_scope_declaration
 from sentry.hybridcloud.rpc import RpcModel
 from sentry.users.services.user import RpcUser
@@ -34,7 +35,8 @@ class RpcApiKey(RpcModel):
 
 class RpcApiToken(RpcModel):
     id: int = -1
-    user_id: int = -1
+    user_id: int | None = None
+    service_account_id: int | None = None
     organization_id: int | None = None
     application_id: int | None = None
     application_is_active: bool = False
@@ -63,6 +65,8 @@ class AuthenticatedToken(RpcModel):
     entity_id: int | None = None
     kind: str = "system"
     user_id: int | None = None  # only relevant for ApiToken
+    principal_kind: PrincipalKind | None = None
+    principal_id: int | None = None
     organization_id: int | None = None
     application_id: int | None = None  # only relevant for ApiToken
     project_id: int | None = None  # only relevant for ProjectKey
@@ -106,13 +110,26 @@ class AuthenticatedToken(RpcModel):
         if kind != "system":
             entity_id = getattr(token, "entity_id", getattr(token, "id", None))
 
+        user_id = getattr(token, "user_id", None)
+        service_account_id = getattr(token, "service_account_id", None)
+        principal_kind: PrincipalKind | None = None
+        principal_id: int | None = None
+        if service_account_id is not None:
+            principal_kind = PrincipalKind.SERVICE_ACCOUNT
+            principal_id = service_account_id
+        elif user_id is not None:
+            principal_kind = PrincipalKind.USER
+            principal_id = user_id
+
         return cls(
             allowed_origins=token.get_allowed_origins(),
             scopes=token.get_scopes(),
             audit_log_data=token.get_audit_log_data(),
             entity_id=entity_id,
             kind=kind,
-            user_id=getattr(token, "user_id", None),
+            user_id=user_id,
+            principal_kind=principal_kind,
+            principal_id=principal_id,
             organization_id=getattr(token, "organization_id", None),
             application_id=getattr(token, "application_id", None),
             project_id=getattr(token, "project_id", None),
