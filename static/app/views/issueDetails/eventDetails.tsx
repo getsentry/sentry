@@ -66,8 +66,7 @@ function StickyEventNav({event, group}: {event: Event; group: Group}) {
 const FloatingEventNavigation = styled(Sticky)`
   isolation: isolate;
   background: ${p => p.theme.tokens.background.primary};
-  /* Keep content underneath throughout the scroll-driven fade. */
-  z-index: ${p => p.theme.zIndex.stickyHeader};
+  z-index: ${p => p.theme.zIndex.initial};
   border-radius: var(--issue-event-header-radius, ${p => p.theme.radius.md})
     var(--issue-event-header-radius, ${p => p.theme.radius.md}) 0 0;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
@@ -91,6 +90,7 @@ const FloatingEventNavigation = styled(Sticky)`
   }
 
   &[data-stuck] {
+    z-index: ${p => p.theme.zIndex.stickyHeader};
     border-radius: var(--issue-event-header-radius, 0px)
       var(--issue-event-header-radius, 0px) 0 0;
     &::before {
