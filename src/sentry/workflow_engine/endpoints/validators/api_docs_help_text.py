@@ -143,6 +143,8 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
             - `13`: HTTP Client issues
             - `14`: Front end issues
             - `15`: Mobile issues
+            - `17`: Preprod issues
+            - `19`: Configuration issues
         ```json
             {
                 "type": "issue_category",

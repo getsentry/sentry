@@ -114,6 +114,7 @@ class ChunkCandidate(BaseModel):
     base_hash: str
     pixel_count: int
     diff_threshold: float
+    kind: Literal["base", "sibling"] = "base"
 
 
 class ChunkAssignment(BaseModel):
@@ -127,8 +128,11 @@ class ComparisonPlan(BaseModel):
     chunks: list[ChunkAssignment]
     # Results that need no odiff (added/removed/skipped/renamed/unchanged/exceeds-pixel-limit).
     non_diff_images: dict[str, ComparisonImageResult]
+    sibling_artifact_id: int | None = None
+    sibling_comparison_key: str | None = None
 
 
 class ChunkResult(BaseModel):
     chunk_index: int
     images: dict[str, ComparisonImageResult]
+    sibling_images: dict[str, ComparisonImageResult] = {}

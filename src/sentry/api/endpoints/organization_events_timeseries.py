@@ -220,7 +220,13 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 comparison_delta,
                 additional_queries,
             )
-            include_annotations = request.GET.get("includeAnnotations") is not None
+            include_annotations = request.GET.get(
+                "includeAnnotations"
+            ) is not None and features.has(
+                "organizations:explore-data-fidelity-annotations",
+                organization,
+                actor=request.user,
+            )
             return Response(
                 self.serialize_stats_data(
                     events_stats,
@@ -432,11 +438,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                         debug_info[key] = keyed_result.data["meta"]["debug_info"]
             # ignore typing here cause we don't want the openapi docs to include debug_info
             stats_meta["debug_info"] = debug_info  #  type: ignore[typeddict-unknown-key]
-        # Opt-in and flag-gated; enrichment must never break the primary response.
-        should_annotate = include_annotations and features.has(
-            "organizations:explore-data-fidelity-annotations", organization
-        )
-        if should_annotate:
+        if include_annotations:
             try:
                 stats_meta["annotations"] = get_dropped_data_annotations(
                     dataset, snuba_params, rollup
