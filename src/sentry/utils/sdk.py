@@ -91,10 +91,20 @@ SAMPLED_TASKS = {
     "sentry.profiles.task.process_profile_from_kafka_raw": 0.1
     * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.monitors.tasks.clock_pulse": 1.0,
-    "sentry.dynamic_sampling.per_org.run_calculations_per_org": 1.0,
-    "sentry.dynamic_sampling.per_org.schedule_per_org_calculations": 1.0,
+    # The scheduler's decision propagates to every per-org run, so both rates must match.
+    "sentry.dynamic_sampling.per_org.run_calculations_per_org": 0.02,
+    "sentry.dynamic_sampling.per_org.schedule_per_org_calculations": 0.02,
     "sentry.tasks.autofix.configure_seer_for_existing_org": 1.0,
     "sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks": 1.0,
+    "sentry.workflow_engine.tasks.process_workflows_event": 0.001
+    * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.workflow_engine.tasks.trigger_action": 0.03 * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.snuba.query_subscriptions.run.process_events_subscription_from_kafka": (
+        0.005 * settings.SENTRY_BACKEND_APM_SAMPLING
+    ),
+    "sentry.snuba.query_subscriptions.run.process_eap_subscription_from_kafka": (
+        0.1 * settings.SENTRY_BACKEND_APM_SAMPLING
+    ),
 }
 
 SAMPLED_ROUTES = {
