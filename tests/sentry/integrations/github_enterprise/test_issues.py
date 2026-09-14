@@ -55,7 +55,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
             name="getsentry/sentry", project=self.project, integration_id=self.model.id
         )
         assert self.install.get_issue_link_data(
-            f"https://{self._IP_ADDRESS}/getsentry/sentry/pull/321"
+            f"https://{self._IP_ADDRESS}/getsentry/sentry/pull/321/files"
         ) == {"repo": "getsentry/sentry", "externalIssue": "321"}
         with pytest.raises(IntegrationFormError):
             self.install.get_issue_link_data("https://github.com/getsentry/sentry/pull/321")

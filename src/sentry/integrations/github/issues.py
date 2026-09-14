@@ -348,8 +348,12 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
     def get_issue_link_data(self, url: str) -> dict[str, str]:
         domain, account = self.model.metadata["domain_name"].split("/", 1)
         path = get_issue_url_path(url, f"https://{domain}")
-        match = re.fullmatch(r"/([^/]+/[^/]+)/(?:issues|pull)/(\d+)", path)
-        if not match or match[1].split("/")[0].casefold() != account.casefold():
+        match = re.fullmatch(
+            r"/([^/]+/[^/]+)/(issues|pull)/(\d+)(?:/(files|commits|checks))?", path
+        )
+        if not match or (match[2] == "issues" and match[4]):
+            raise IntegrationFormError({"externalIssue": "Invalid GitHub issue URL"})
+        if match[1].split("/")[0].casefold() != account.casefold():
             raise IntegrationFormError(
                 {"externalIssue": "Issue URL does not belong to this installation"}
             )
@@ -362,7 +366,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         repo = repositories.first()
         if repo is None:
             raise IntegrationFormError({"repo": "Repository does not belong to this installation"})
-        return {"repo": repo.name, "externalIssue": match[2]}
+        return {"repo": repo.name, "externalIssue": match[3]}
 
     def get_issue(self, issue_id: str, **kwargs: Any) -> Mapping[str, Any]:
         data = kwargs["data"]
