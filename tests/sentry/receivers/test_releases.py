@@ -1,7 +1,9 @@
+from datetime import timedelta
 from hashlib import sha1
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+import pytest
 from django.db import router, transaction
 from django.utils import timezone
 
@@ -21,6 +23,7 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
@@ -29,6 +32,7 @@ from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.signals import buffer_incr_complete, receivers_raise_on_send
 from sentry.silo.base import SiloMode
+from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.features import with_feature
@@ -39,19 +43,19 @@ from sentry.users.models.useremail import UserEmail
 
 
 class InvalidateReleaseCacheTest(TestCase):
-    def test_cache_failure_does_not_fail_commit_or_skip_later_callbacks(self) -> None:
+    @with_feature("organizations:release-resolution-finalized-order")
+    def test_cache_failure_does_not_fail_commit_or_skip_reevaluation(self) -> None:
         release = self.create_release(version="cache-failure")
-        after_invalidation = MagicMock()
         finalized_at = timezone.now()
         with (
             patch("sentry.receivers.releases.cache") as release_cache,
             patch("sentry.receivers.releases.logger.exception") as log_exception,
+            patch("sentry.receivers.releases.clear_expired_resolutions.delay") as enqueue,
             self.capture_on_commit_callbacks(execute=True),
         ):
             release_cache.delete.side_effect = ConnectionError("cache down")
             with transaction.atomic(using=router.db_for_write(Release)):
                 release.update(date_released=finalized_at)
-                transaction.on_commit(after_invalidation, router.db_for_write(Release))
 
         release_cache.delete.assert_called_once_with(
             Release.get_cache_key(release.organization_id, release.version)
@@ -60,7 +64,7 @@ class InvalidateReleaseCacheTest(TestCase):
             "release.cache_invalidation_failed",
             extra={"release_id": release.id, "organization_id": release.organization_id},
         )
-        after_invalidation.assert_called_once_with()
+        enqueue.assert_called_once_with(release_id=release.id)
         release.refresh_from_db()
         assert release.date_released == finalized_at
 
@@ -83,6 +87,79 @@ class InvalidateReleaseCacheTest(TestCase):
 
 
 class ResolveGroupResolutionsTest(TestCase):
+    @with_feature("organizations:release-resolution-finalized-order")
+    def test_finalization_advances_pending_resolution(self) -> None:
+        now = timezone.now()
+        anchor = self.create_release(version="anchor", date_added=now - timedelta(days=2))
+        precreated = self.create_release(version="next", date_added=now - timedelta(days=3))
+        group = self.create_group(project=self.project, status=GroupStatus.RESOLVED)
+        resolution = self.create_group_resolution(
+            group=group,
+            release=anchor,
+            current_release_version=anchor.version,
+            type=GroupResolution.Type.in_next_release,
+            status=GroupResolution.Status.pending,
+        )
+
+        with (
+            patch(
+                "sentry.receivers.releases.clear_expired_resolutions.delay",
+                side_effect=clear_expired_resolutions,
+            ),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
+            with transaction.atomic(using=router.db_for_write(Release)):
+                precreated.update(date_released=now - timedelta(days=1))
+                resolution.refresh_from_db()
+                assert resolution.status == GroupResolution.Status.pending
+
+        resolution.refresh_from_db()
+        assert resolution.status == GroupResolution.Status.resolved
+        assert resolution.release_id == precreated.id
+        assert resolution.current_release_version == anchor.version
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+
+    @with_feature("organizations:release-resolution-finalized-order")
+    def test_save_finalization_schedules_reevaluation(self) -> None:
+        release = self.create_release(version="saved")
+        Release.get_or_create(self.project, release.version)
+        with (
+            patch("sentry.receivers.releases.clear_expired_resolutions.delay") as enqueue,
+            self.capture_on_commit_callbacks(execute=True),
+        ):
+            release.date_released = timezone.now()
+            release.save()
+        enqueue.assert_called_once_with(release_id=release.id)
+        assert (
+            Release.get_or_create(self.project, release.version).date_released
+            == release.date_released
+        )
+
+    @with_feature("organizations:release-resolution-finalized-order")
+    def test_unrelated_update_does_not_schedule_reevaluation(self) -> None:
+        release = self.create_release(version="unchanged-date")
+        with (
+            patch("sentry.receivers.releases.clear_expired_resolutions.delay") as enqueue,
+            self.capture_on_commit_callbacks(execute=True),
+        ):
+            release.update(ref="new-ref")
+        enqueue.assert_not_called()
+
+    @with_feature("organizations:release-resolution-finalized-order")
+    def test_rolled_back_finalization_does_not_schedule_reevaluation(self) -> None:
+        release = self.create_release(version="rolled-back")
+        with (
+            patch("sentry.receivers.releases.clear_expired_resolutions.delay") as enqueue,
+            self.capture_on_commit_callbacks(execute=True),
+        ):
+            with pytest.raises(ValueError), transaction.atomic(using=router.db_for_write(Release)):
+                release.update(date_released=timezone.now())
+                raise ValueError("roll back the date update")
+        enqueue.assert_not_called()
+        release.refresh_from_db()
+        assert release.date_released is None
+
     @patch("sentry.receivers.releases.clear_expired_resolutions.delay")
     def test_simple(self, mock_delay: MagicMock) -> None:
         with self.capture_on_commit_callbacks(execute=True):
