@@ -113,7 +113,7 @@ export function ConversationSpanDetail({
     projectId: eapValue ? eapValue.project_id.toString() : '',
     traceId,
     traceItemType: TraceItemDataset.SPANS,
-    referrer: 'api.explore.log-item-details',
+    referrer: 'api.explore.span-item-details',
     timestamp: eapValue?.start_timestamp,
     enabled: Boolean(eapValue),
   });
