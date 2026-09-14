@@ -3,7 +3,9 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.models.groupresolution import GroupResolution
+from sentry.models.release import Release
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 class GroupResolutionTest(TestCase):
@@ -16,6 +18,13 @@ class GroupResolutionTest(TestCase):
         self.group = self.create_group()
         self.old_semver_release = self.create_release(version="foo_package@1.0")
         self.new_semver_release = self.create_release(version="foo_package@2.0")
+        # Added after new_release, but finalized with an earlier ship date --
+        # the shape a straggler event from an old build produces.
+        self.late_registered_old_release = self.create_release(
+            version="c",
+            date_added=timezone.now(),
+            date_released=timezone.now() - timedelta(minutes=60),
+        )
 
     def test_in_next_release_with_new_release(self) -> None:
         GroupResolution.objects.create(
@@ -172,6 +181,80 @@ class GroupResolutionTest(TestCase):
         )
         assert GroupResolution.has_resolution(self.group, self.old_release)
 
+    @with_feature("organizations:release-resolution-finalized-order")
+    def test_in_release_with_late_registered_old_release(self) -> None:
+        """A release finalized as older must not clear a newer resolution."""
+        self.create_group_resolution(
+            release=self.new_release, group=self.group, type=GroupResolution.Type.in_release
+        )
+        assert GroupResolution.has_resolution(self.group, self.late_registered_old_release)
+
+    @with_feature("organizations:release-resolution-finalized-order")
+    def test_semver_order_takes_precedence_over_finalized_dates(self) -> None:
+        self.old_semver_release.update(date_released=timezone.now() + timedelta(days=1))
+        self.new_semver_release.update(date_released=timezone.now() - timedelta(days=1))
+        self.create_group_resolution(
+            group=self.group,
+            release=self.new_semver_release,
+            type=GroupResolution.Type.in_release,
+        )
+        assert GroupResolution.has_resolution(self.group, self.old_semver_release)
+        assert not GroupResolution.has_resolution(self.group, self.new_semver_release)
+
+    @with_feature("organizations:release-resolution-finalized-order")
+    def test_in_next_release_with_late_registered_old_release(self) -> None:
+        self.create_group_resolution(
+            release=self.new_release,
+            group=self.group,
+            type=GroupResolution.Type.in_next_release,
+        )
+        assert GroupResolution.has_resolution(self.group, self.late_registered_old_release)
+
+    @with_feature("organizations:release-resolution-finalized-order")
+    def test_in_release_resolved_in_a_late_registered_release(self) -> None:
+        """The resolution's own release is ordered by its ship date too."""
+        self.create_group_resolution(
+            release=self.late_registered_old_release,
+            group=self.group,
+            type=GroupResolution.Type.in_release,
+        )
+        assert not GroupResolution.has_resolution(self.group, self.new_release)
+
+    def test_finalized_order_is_gated(self) -> None:
+        self.create_group_resolution(
+            group=self.group, release=self.new_release, type=GroupResolution.Type.in_release
+        )
+        with self.feature({"organizations:release-resolution-finalized-order": False}):
+            assert not GroupResolution.has_resolution(self.group, self.late_registered_old_release)
+        with self.feature("organizations:release-resolution-finalized-order"):
+            assert GroupResolution.has_resolution(self.group, self.late_registered_old_release)
+
+    @with_feature("organizations:release-resolution-finalized-order")
+    def test_current_release_version_uses_finalized_date(self) -> None:
+        self.create_group_resolution(
+            group=self.group,
+            release=self.new_release,
+            current_release_version=self.late_registered_old_release.version,
+            type=GroupResolution.Type.in_release,
+        )
+        assert not GroupResolution.has_resolution(self.group, self.old_release)
+        assert GroupResolution.has_resolution(self.group, self.late_registered_old_release)
+
+    @with_feature("organizations:release-resolution-finalized-order")
+    def test_regression_after_finalizing_cached_release(self) -> None:
+        old_build = self.create_release(version="old-build")
+        self.create_group_resolution(
+            group=self.group, release=self.new_release, type=GroupResolution.Type.in_release
+        )
+        assert Release.get_or_create(self.project, old_build.version).date_released is None
+
+        with self.capture_on_commit_callbacks(execute=True):
+            old_build.update(date_released=self.old_release.date_added - timedelta(days=1))
+
+        incoming_release = Release.get_or_create(self.project, old_build.version)
+        assert incoming_release.date_released == old_build.date_released
+        assert GroupResolution.has_resolution(self.group, incoming_release)
+
     def test_for_semver_in_release_with_new_release(self) -> None:
         GroupResolution.objects.create(
             release=self.old_semver_release, group=self.group, type=GroupResolution.Type.in_release
@@ -215,6 +298,7 @@ class GroupResolutionTest(TestCase):
 
             resolution.delete()
 
+    @with_feature("organizations:release-resolution-finalized-order")
     def test_stale_current_release_version_with_semver_flip(self) -> None:
         now = timezone.now()
         current_at_resolution = self.create_release(
@@ -248,6 +332,7 @@ class GroupResolutionTest(TestCase):
         # Fix is in 1.5.0; event on 1.4.0 (< 1.5.0 in semver) should NOT regress
         assert GroupResolution.has_resolution(self.group, event_release)
 
+    @with_feature("organizations:release-resolution-finalized-order")
     def test_genuine_regression_detected_with_stale_current_release_version(self) -> None:
         now = timezone.now()
         current_at_resolution = self.create_release(

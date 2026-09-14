@@ -2,6 +2,9 @@ from hashlib import sha1
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+from django.db import router, transaction
+from django.utils import timezone
+
 from sentry.buffer.base import Buffer
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.action_log.types import (
@@ -36,6 +39,23 @@ from sentry.users.models.useremail import UserEmail
 
 
 class ResolveGroupResolutionsTest(TestCase):
+    def test_finalization_invalidates_cache_with_flag_disabled(self) -> None:
+        release = self.create_release(version="cached")
+        assert Release.get_or_create(self.project, release.version).date_released is None
+        with (
+            self.feature({"organizations:release-resolution-finalized-order": False}),
+            patch("sentry.receivers.releases.clear_expired_resolutions.delay") as enqueue,
+            self.capture_on_commit_callbacks(execute=True),
+        ):
+            with transaction.atomic(using=router.db_for_write(Release)):
+                release.update(date_released=timezone.now())
+                assert Release.get_or_create(self.project, release.version).date_released is None
+        assert (
+            Release.get_or_create(self.project, release.version).date_released
+            == release.date_released
+        )
+        enqueue.assert_not_called()
+
     @patch("sentry.tasks.clear_expired_resolutions.clear_expired_resolutions.delay")
     def test_simple(self, mock_delay: MagicMock) -> None:
         with self.capture_on_commit_callbacks(execute=True):
