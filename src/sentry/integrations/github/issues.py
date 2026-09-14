@@ -13,6 +13,7 @@ from sentry.integrations.mixins.issues import MAX_CHAR
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.integrations.types import IntegrationIssueConfigField
+from sentry.integrations.utils.issue_url import get_issue_url_path
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -343,6 +344,25 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
                 "help": "Leave blank if you don't want to add a comment to the GitHub issue.",
             },
         ]
+
+    def get_issue_link_data(self, url: str) -> dict[str, str]:
+        domain, account = self.model.metadata["domain_name"].split("/", 1)
+        path = get_issue_url_path(url, f"https://{domain}")
+        match = re.fullmatch(r"/([^/]+/[^/]+)/(?:issues|pull)/(\d+)", path)
+        if not match or match[1].split("/")[0].casefold() != account.casefold():
+            raise IntegrationFormError(
+                {"externalIssue": "Issue URL does not belong to this installation"}
+            )
+        repositories = Repository.objects.filter(
+            name__iexact=match[1],
+            integration_id=self.model.id,
+            organization_id=self.organization_id,
+            status=ObjectStatus.ACTIVE,
+        )
+        repo = repositories.first()
+        if repo is None:
+            raise IntegrationFormError({"repo": "Repository does not belong to this installation"})
+        return {"repo": repo.name, "externalIssue": match[2]}
 
     def get_issue(self, issue_id: str, **kwargs: Any) -> Mapping[str, Any]:
         data = kwargs["data"]
