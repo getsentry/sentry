@@ -430,10 +430,6 @@ export type BillingStat = {
   ts: string;
   // TODO(chart-cleanup): Used by v1 only
   isProjected?: boolean;
-  /**
-   * Not present when user does not have the correct role
-   */
-  onDemandCostRunningTotal?: number;
 };
 export type BillingStats = BillingStat[];
 
