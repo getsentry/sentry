@@ -849,7 +849,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_project_key(project):
+    def create_project_key(project, **kwargs):
+        if kwargs:
+            return project.key_set.create(**kwargs)
         return project.key_set.get_or_create()[0]
 
     @staticmethod
