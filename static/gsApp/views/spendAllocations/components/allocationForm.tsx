@@ -138,6 +138,7 @@ export function AllocationForm({
       !initializedData &&
       allocatedTargetIds[AllocationTargetTypes.PROJECT]?.includes(targetId)
     ) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setTargetId(undefined);
       setAllocationVolume(0);
     } else if (initializedData) {

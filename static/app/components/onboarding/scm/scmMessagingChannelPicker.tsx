@@ -1,13 +1,16 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Select, type SelectValue} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   providerDetails,
   type IntegrationChannel,
@@ -27,6 +30,8 @@ export interface ScmMessagingChannelPickerProps {
    * can receive Issue Alert actions.
    */
   eligibleIntegrations: OrganizationIntegration[];
+  /** True while the parent is creating the project after a destination is saved. */
+  isContinuing: boolean;
   onConfigured: (setup: ScmMessagingSetup & {mode: 'selected'}) => void;
   providerKey: ScmMessagingProviderKey;
   /** Pre-seeds the channel selector when editing an existing destination. */
@@ -41,7 +46,10 @@ export function ScmMessagingChannelPicker({
   onConfigured,
   existingSetup,
   providerKey,
+  isContinuing,
 }: ScmMessagingChannelPickerProps) {
+  const theme = useTheme();
+  const organization = useOrganization();
   const {channelSelectedBy} = providerDetails[providerKey];
 
   // The saved destination we're editing, if any.
@@ -112,11 +120,24 @@ export function ScmMessagingChannelPicker({
     options: {refetchOnWindowFocus: true},
   });
 
+  // A typed channel the provider rejected, or one the validate request could
+  // not check. Either keeps the user in the picker with the error shown.
+  useEffect(() => {
+    if (channelError) {
+      trackAnalytics('onboarding.scm_messaging_channel_validation_failed', {
+        organization,
+        provider: providerKey,
+      });
+    }
+  }, [channelError, organization, providerKey]);
+
   const handleIntegrationChange = (option: SelectValue<OrganizationIntegration>) => {
     setSelectedIntegrationId(option.value.id);
     setChannel(undefined);
     clearChannelValidation();
   };
+
+  const hasMultipleWorkspaces = eligibleIntegrations.length > 1;
 
   if (!selectedIntegration) {
     return null;
@@ -139,60 +160,74 @@ export function ScmMessagingChannelPicker({
     });
   };
 
+  const isConfirmDisabled =
+    !channel || !!channelError || isChannelLoading || isContinuing;
+
   return (
-    <Stack gap="xl">
-      <Grid columns="1fr 1fr" gap="md">
-        <Stack gap="xs">
-          <Text bold size="sm">
-            {t('Workspace')}
-          </Text>
-          <Select
-            aria-label={t('workspace')}
-            disabled={integrationOptions.length === 1}
-            value={selectedIntegration}
-            options={integrationOptions}
-            onChange={handleIntegrationChange}
-          />
-        </Stack>
-        <Stack gap="xs">
-          <Text bold size="sm">
-            {t('Channel')}
-          </Text>
-          <ChannelField
-            name="channel"
-            error={channelError}
-            inline={false}
-            flexibleControlStateSize
-          >
-            {() => (
-              <ChannelSelect
-                provider={providerKey}
-                options={channelOptions}
-                value={channel}
-                isLoading={isChannelLoading}
-                disabled={false}
-                onChange={onChannelChange}
-                onCreateOption={onCreateChannel}
+    <Container>
+      <Stack gap="lg" padding="xl">
+        <Grid columns={hasMultipleWorkspaces ? '1fr 1fr' : '1fr'} gap="md">
+          {hasMultipleWorkspaces && (
+            <Stack gap="xs">
+              <Text bold size="sm">
+                {t('Workspace')}
+              </Text>
+              <Select
+                aria-label={t('workspace')}
+                value={selectedIntegration}
+                options={integrationOptions}
+                onChange={handleIntegrationChange}
               />
-            )}
-          </ChannelField>
-        </Stack>
-      </Grid>
-      {isChannelsError && (
-        <Alert variant="warning">
-          {t('Failed to load channels. You can still type a channel name.')}
-        </Alert>
-      )}
-      <Flex gap="sm" justify="end">
+            </Stack>
+          )}
+          <Stack gap="xs">
+            <Text bold size="sm">
+              {t('Channel')}
+            </Text>
+            <ChannelField
+              name="channel"
+              error={channelError}
+              inline={false}
+              flexibleControlStateSize
+            >
+              {() => (
+                <ChannelSelect
+                  provider={providerKey}
+                  options={channelOptions}
+                  value={channel}
+                  isLoading={isChannelLoading}
+                  disabled={false}
+                  onChange={onChannelChange}
+                  onCreateOption={onCreateChannel}
+                />
+              )}
+            </ChannelField>
+          </Stack>
+        </Grid>
+        {isChannelsError && (
+          <Alert variant="warning">
+            {t('Failed to load channels. You can still type a channel name.')}
+          </Alert>
+        )}
+      </Stack>
+      <Flex
+        gap="lg"
+        justify="end"
+        padding="lg"
+        background="secondary"
+        borderTop="primary"
+        style={{borderRadius: `0 0 ${theme.radius.lg} ${theme.radius.lg}`}}
+      >
         {onCancel && (
-          <Button size="sm" variant="link" onClick={onCancel}>
+          <Button size="sm" variant="link" disabled={isContinuing} onClick={onCancel}>
             {t('Cancel')}
           </Button>
         )}
         <Button
           size="sm"
           variant="primary"
-          disabled={!channel || !!channelError || isChannelLoading}
+          busy={isContinuing}
+          disabled={isConfirmDisabled}
           analyticsEventKey="onboarding.scm_messaging_confirm_and_continue_clicked"
           analyticsEventName="Onboarding: SCM Messaging Confirm And Continue Clicked"
           analyticsParams={{provider: providerKey}}
@@ -201,6 +236,6 @@ export function ScmMessagingChannelPicker({
           {t('Confirm and continue')}
         </Button>
       </Flex>
-    </Stack>
+    </Container>
   );
 }

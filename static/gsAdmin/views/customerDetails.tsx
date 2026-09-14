@@ -494,7 +494,6 @@ export function CustomerDetails() {
                 ...params,
                 migrated: !subscription.hasMigratedToBillingPlatform,
               }),
-            ...actionRequiresBillingAdmin,
           },
           {
             key: 'recreateBillingPlatformModels',
@@ -506,7 +505,6 @@ export function CustomerDetails() {
             },
             onAction: params =>
               onUpdateMutation.mutate({...params, recreateBillingPlatformModels: true}),
-            ...actionRequiresBillingAdmin,
           },
           {
             key: 'convertToSelfServe',

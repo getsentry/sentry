@@ -25,12 +25,14 @@ from sentry.tasks.backfill_group_action_log import (
     reset_and_backfill_group_action_log,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
 
 TEST_BATCH_SIZE = 5
 
 
+@with_feature({"projects:issue-action-log-write-to-db": False})
 class BackfillGroupActionLogForGroupTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -155,6 +157,7 @@ class BackfillGroupActionLogForGroupTest(TestCase):
             backfill_group_action_log_for_group(self.group.id)
 
 
+@with_feature({"projects:issue-action-log-write-to-db": False})
 class ResetAndBackfillGroupActionLogTest(TestCase):
     def setUp(self) -> None:
         super().setUp()

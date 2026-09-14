@@ -272,6 +272,7 @@ export function SpendAllocationsRoot({subscription}: Props) {
   };
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     fetchSpendAllocations();
   }, [fetchSpendAllocations, viewNextPeriod]);
 

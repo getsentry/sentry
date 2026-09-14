@@ -13,14 +13,18 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {
   extractSpanURLString,
   formatChangingQueryParameters,
   getSpanDuration,
   getSpanFieldBytes,
 } from 'sentry/components/events/interfaces/performance/spanMetrics';
-import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
+import {
+  getSpanCategory,
+  getSpanHash,
+  getSpanInfoFromTransactionEvent,
+  getSpanSentryGroupValue,
+} from 'sentry/components/events/interfaces/performance/utils';
 import type {
   ProcessedSpanType,
   RawSpanType,
@@ -31,6 +35,7 @@ import {
   SpanSubTimingName,
 } from 'sentry/components/events/interfaces/spans/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import type {Entry, EntryRequest, Event, EventTransaction} from 'sentry/types/event';
@@ -185,14 +190,16 @@ function NPlusOneDBQueriesSpanEvidence({
   location,
 }: SpanEvidenceKeyValueListProps) {
   const dbSpans = offendingSpans.filter(span => (span.op || '').startsWith('db'));
-  const repeatingSpanRows = dbSpans
-    .filter(span => offendingSpans.find(s => s.hash === span.hash) === span)
-    .map((span, i) =>
-      makeRow(
-        i === 0 ? t('Repeating Spans (%s)', dbSpans.length) : '',
-        getSpanEvidenceValue(span)
-      )
-    );
+  // Our hashing calculation parameterizes query literals, so two spans running the same query with
+  // different values will share a hash value. Dedupe by hash so we only get one representative of
+  // each query.
+  const repeatingSpanRows = dedupeSpansByHash(dbSpans).map((span, i) =>
+    makeRow(
+      // Only the first row carries the label; the rest render bare beneath it.
+      i === 0 ? t('Repeating Spans (%s)', dbSpans.length) : '',
+      getSpanEvidenceValue(span)
+    )
+  );
   const evidenceData = event?.occurrence?.evidenceData ?? {};
   const patternSize = evidenceData.patternSize ?? 0;
 
@@ -504,8 +511,6 @@ function SlowDBQueryEvidence({
   location,
 }: SpanEvidenceKeyValueListProps) {
   const span = offendingSpans[0]!;
-  const sentryTags = 'sentry_tags' in span ? span.sentry_tags : undefined;
-  const groupHash = sentryTags?.group ?? span.hash ?? '';
   const hasExplore = organization.features.includes('visibility-explore-view');
 
   const codeFilepath = getAttributeValue(span.data ?? {}, 'code.file.path', 'string');
@@ -537,8 +542,8 @@ function SlowDBQueryEvidence({
       <Flex gap="md" padding="md lg" borderTop="muted">
         <SpanSummaryLink
           op={span.op}
-          category={sentryTags?.category}
-          group={groupHash}
+          category={getSpanCategory(span)}
+          group={getSpanSentryGroupValue(span)}
           organization={organization}
         />
         {hasExplore && span.description && (
@@ -563,7 +568,8 @@ function SlowDBQueryEvidence({
   );
 
   return (
-    <KeyValueList
+    <KeyValueTableDataList
+      margin
       shouldSort={false}
       data={[
         makeTransactionNameRow(event, organization, location, projectSlug),
@@ -655,7 +661,7 @@ function DefaultSpanEvidence({
 }
 
 function PresortedKeyValueList({data}: {data: KeyValueListData}) {
-  return <KeyValueList shouldSort={false} data={data} />;
+  return <KeyValueTableDataList margin shouldSort={false} data={data} />;
 }
 
 const makeTransactionNameRow = (
@@ -749,6 +755,24 @@ const StyledCodeSnippet = styled(CodeBlock)`
 
   z-index: 0;
 `;
+
+function dedupeSpansByHash(spans: Span[]): Span[] {
+  const hashesSeen = new Set<Span['hash']>();
+
+  // Only keep spans whose hashes we haven't yet seen, tracking the ones we have seen as we go
+  const shouldKeepSpan = (span: Span) => {
+    const hash = getSpanHash(span);
+
+    if (hashesSeen.has(hash)) {
+      return false;
+    }
+
+    hashesSeen.add(hash);
+    return true;
+  };
+
+  return spans.filter(shouldKeepSpan);
+}
 
 const getConsecutiveDbTimeSaved = (
   consecutiveSpans: Span[],

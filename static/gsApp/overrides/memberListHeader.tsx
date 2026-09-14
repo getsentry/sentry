@@ -65,7 +65,7 @@ function MemberListHeader({members, organization, subscription}: Props) {
     </PanelHeader>
   );
 }
-export default withSubscription(MemberListHeader);
+export default withSubscription(MemberListHeader, {noLoader: true});
 
 const Wrapper = styled('div')`
   text-transform: none;

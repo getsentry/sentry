@@ -1,5 +1,6 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useRef, type RefObject} from 'react';
 import partition from 'lodash/partition';
+import {createMultiParser, createParser, parseAsNativeArrayOf, parseAsString} from 'nuqs';
 
 import {defined} from 'sentry/utils/defined';
 import {
@@ -13,13 +14,7 @@ import {
   type Sort,
 } from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
-import {
-  decodeInteger,
-  decodeList,
-  decodeScalar,
-  decodeSorts,
-} from 'sentry/utils/queryString';
-import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
+import {decodeInteger, decodeSorts} from 'sentry/utils/queryString';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
@@ -36,6 +31,7 @@ import {
 } from 'sentry/views/dashboards/utils';
 import {getAxisRange, type AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
+import {useSeededQueryState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSeededQueryState';
 import {
   DISABLED_SORT,
   TAG_SORT_DENY_LIST,
@@ -169,7 +165,11 @@ type WidgetAction =
     }
   | {payload: string | undefined; type: typeof BuilderStateAction.SET_TEXT_CONTENT};
 type WidgetBuilderStateActionOptions = {
-  updateUrl?: boolean;
+  /**
+   * Hold the URL write back while a field is still being typed into. The next
+   * dispatch without it writes immediately and cancels anything pending.
+   */
+  debounceUrl?: boolean;
 };
 
 export interface WidgetBuilderState {
@@ -316,76 +316,50 @@ export function useWidgetBuilderState(): {
   dispatch: (action: WidgetAction, options?: WidgetBuilderStateActionOptions) => void;
   state: WidgetBuilderState;
 } {
-  const [title, setTitle] = useQueryParamState({fieldName: 'title'});
-  const [description, setDescription] = useQueryParamState({
-    fieldName: 'description',
-  });
-  const [displayType, setDisplayType] = useQueryParamState<DisplayType>({
-    fieldName: 'displayType',
-    deserializer: deserializeDisplayType,
-  });
-  const [dataset, setDataset] = useQueryParamState<WidgetType>({
-    fieldName: 'dataset',
-    deserializer: deserializeDataset,
-  });
-  const [fields, setFields] = useQueryParamState<Column[]>({
-    fieldName: 'field',
-    decoder: decodeList,
-    deserializer: deserializeFields,
-    serializer: serializeFields,
-  });
-  const [yAxis, setYAxis] = useQueryParamState<Column[]>({
-    fieldName: 'yAxis',
-    decoder: decodeList,
-    deserializer: deserializeFields,
-    serializer: serializeFields,
-  });
-  const [query, setQuery] = useQueryParamState<string[]>({
-    fieldName: 'query',
-    decoder: decodeList,
-    deserializer: deserializeQuery,
-  });
-  const [sort, setSort] = useQueryParamState<Sort[]>({
-    fieldName: 'sort',
-    decoder: decodeSorts,
-    deserializer: deserializeSorts(dataset),
-    serializer: serializeSorts(dataset),
-  });
-  const [limit, setLimit] = useQueryParamState<number>({
-    fieldName: 'limit',
-    decoder: decodeScalar,
-    deserializer: deserializeLimit,
-  });
-  const [legendAlias, setLegendAlias] = useQueryParamState<string[]>({
-    fieldName: 'legendAlias',
-    decoder: decodeList,
-  });
-  const [legendType, setLegendType] = useQueryParamState<LegendType | undefined>({
-    fieldName: 'legendType',
-    deserializer: deserializeLegendType,
-  });
-  const [selectedAggregate, setSelectedAggregate] = useQueryParamState<number>({
-    fieldName: 'selectedAggregate',
-    decoder: decodeScalar,
-    deserializer: deserializeSelectedAggregate,
-  });
-  const [thresholds, setThresholds] = useQueryParamState<ThresholdsConfig | null>({
-    fieldName: 'thresholds',
-    decoder: decodeScalar,
-    deserializer: deserializeThresholds,
-    serializer: serializeThresholds,
-  });
-  const [linkedDashboards, setLinkedDashboards] = useQueryParamState<LinkedDashboard[]>({
-    fieldName: 'linkedDashboards',
-    decoder: decodeList,
-    deserializer: deserializeLinkedDashboards,
-    serializer: serializeLinkedDashboards,
-  });
-  const [axisRange, setAxisRange] = useQueryParamState<AxisRange | undefined>({
-    fieldName: 'axisRange',
-    decoder: decodeScalar,
-    deserializer: getAxisRange,
-  });
+  const [title, setTitle] = useSeededQueryState('title', parseAsString);
+  const [description, setDescription] = useSeededQueryState('description', parseAsString);
+  const [displayType, setDisplayType] = useSeededQueryState(
+    'displayType',
+    parseAsDisplayType
+  );
+  const [dataset, setDataset] = useSeededQueryState('dataset', parseAsDataset);
+
+  // The sort encoding depends on the dataset, but nuqs captures a key's parser
+  // once, so a parser rebuilt from `dataset` on every render would be read back
+  // stale. The parser reads the dataset through a ref instead, which is only
+  // ever consulted from nuqs' event handlers, after this effect has run.
+  const datasetRef = useRef(dataset);
+  useEffect(() => {
+    datasetRef.current = dataset;
+  }, [dataset]);
+
+  const [fields, setFields] = useSeededQueryState('field', parseAsColumns);
+  const [yAxis, setYAxis] = useSeededQueryState('yAxis', parseAsColumns);
+  const [query, setQuery] = useSeededQueryState('query', parseAsQueries);
+  const [sort, setSort] = useSeededQueryState('sort', parseAsWidgetSorts(datasetRef));
+  const [limit, setLimit] = useSeededQueryState('limit', parseAsLimit);
+  const [legendAlias, setLegendAlias] = useSeededQueryState(
+    'legendAlias',
+    parseAsStringList
+  );
+  const [legendType, setLegendType] = useSeededQueryState(
+    'legendType',
+    parseAsLegendType
+  );
+  const [selectedAggregate, setSelectedAggregate] = useSeededQueryState(
+    'selectedAggregate',
+    parseAsSelectedAggregate
+  );
+  const [thresholds, setThresholds] = useSeededQueryState(
+    'thresholds',
+    parseAsThresholds
+  );
+  const [linkedDashboards, setLinkedDashboards] = useSeededQueryState(
+    'linkedDashboards',
+    parseAsLinkedDashboards
+  );
+  const [axisRange, setAxisRange] = useSeededQueryState('axisRange', parseAsAxisRange);
+
   const [textContent, setTextContent, _removeTextContent] = useSessionStorage<
     string | undefined
   >(WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP.textContent.key, undefined);
@@ -1447,6 +1421,83 @@ function deserializeThresholds(value: string): ThresholdsConfig | undefined {
 export function serializeThresholds(thresholds: ThresholdsConfig | null): string {
   return JSON.stringify(thresholds);
 }
+
+/**
+ * nuqs parsers for every builder field that lives in the URL. Each one wraps the
+ * (de)serializers above so the URL encoding stays in one place.
+ *
+ * The list parsers default to an empty list and treat one as equal to that
+ * default, so emptying a list drops the key: a bare `field=` would otherwise
+ * read back as a one-element list holding an empty string.
+ */
+function bothEmpty(a: unknown[], b: unknown[]) {
+  return a.length === 0 && b.length === 0;
+}
+
+const parseAsDisplayType = createParser({
+  parse: deserializeDisplayType,
+  serialize: (value: DisplayType) => value,
+});
+
+const parseAsDataset = createParser({
+  parse: deserializeDataset,
+  serialize: (value: WidgetType) => value,
+});
+
+const parseAsColumns = createMultiParser({
+  parse: (values: readonly string[]) => deserializeFields([...values]),
+  serialize: serializeFields,
+  eq: bothEmpty,
+}).withDefault([]);
+
+const parseAsQueries = createMultiParser({
+  parse: (values: readonly string[]) => deserializeQuery([...values]),
+  serialize: (queries: string[]) => queries,
+}).withDefault(['']);
+
+const parseAsStringList = parseAsNativeArrayOf(parseAsString).withDefault([]);
+
+const parseAsLinkedDashboards = createMultiParser({
+  parse: (values: readonly string[]) => deserializeLinkedDashboards([...values]),
+  serialize: serializeLinkedDashboards,
+  eq: bothEmpty,
+}).withDefault([]);
+
+function parseAsWidgetSorts(datasetRef: RefObject<WidgetType | undefined>) {
+  return createMultiParser({
+    parse: (values: readonly string[]) =>
+      deserializeSorts(datasetRef.current)(decodeSorts([...values])),
+    serialize: (sorts: Sort[]) => serializeSorts(datasetRef.current)(sorts),
+    eq: bothEmpty,
+  }).withDefault([]);
+}
+
+// No default here, unlike the other scalars: clearing the limit is meaningful
+// (a table has none), and a default would keep resurrecting it.
+const parseAsLimit = createParser({
+  parse: deserializeLimit,
+  serialize: String,
+});
+
+const parseAsSelectedAggregate = createParser({
+  parse: (value: string) => deserializeSelectedAggregate(value) ?? null,
+  serialize: String,
+});
+
+const parseAsLegendType = createParser({
+  parse: (value: string) => deserializeLegendType(value) ?? null,
+  serialize: (value: LegendType) => value,
+});
+
+const parseAsThresholds = createParser<ThresholdsConfig | null>({
+  parse: (value: string) => deserializeThresholds(value) ?? null,
+  serialize: serializeThresholds,
+});
+
+const parseAsAxisRange = createParser({
+  parse: (value: string) => getAxisRange(value) ?? null,
+  serialize: (value: AxisRange) => value,
+});
 
 function checkTraceMetricSortUsed(
   sort: Sort[],

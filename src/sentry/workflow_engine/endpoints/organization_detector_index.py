@@ -116,8 +116,8 @@ SORT_MAP = {
     "-type": "-type",
     "connectedWorkflows": "connected_workflows",
     "-connectedWorkflows": "-connected_workflows",
-    "latestGroup": F("latest_group_date_added").asc(nulls_first=True),
-    "-latestGroup": F("latest_group_date_added").desc(nulls_last=True),
+    "latestGroup": F("latest_group_last_seen").asc(nulls_first=True),
+    "-latestGroup": F("latest_group_last_seen").desc(nulls_last=True),
     "openIssues": F("open_issues_count").asc(nulls_first=True),
     "-openIssues": F("open_issues_count").desc(nulls_last=True),
 }
@@ -267,6 +267,8 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             DetectorParams.QUERY,
             DetectorParams.SORT,
             DetectorParams.ID,
+            DetectorParams.TYPE,
+            DetectorParams.ENABLED,
             VisibilityParams.PER_PAGE,
             CursorQueryParam,
         ],
@@ -291,6 +293,19 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             return self.respond(status=status.HTTP_401_UNAUTHORIZED)
 
         queryset = self.filter_detectors(request, organization)
+
+        if detector_types := request.GET.getlist("type"):
+            detector_types = [DETECTOR_TYPE_ALIASES.get(value, value) for value in detector_types]
+            queryset = queryset.filter(type__in=detector_types)
+
+        raw_enabled = request.GET.get("enabled")
+        if raw_enabled is not None:
+            try:
+                enabled = serializers.BooleanField().run_validation(raw_enabled)
+            except ValidationError as error:
+                raise ValidationError({"enabled": error.detail}) from error
+            queryset = queryset.filter(enabled=enabled)
+
         queryset = exclude_disallowed_metric_detectors(queryset, organization)
 
         sort_by = request.GET.get("sortBy", "id")
@@ -304,10 +319,10 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             latest_detector_group_subquery = (
                 DetectorGroup.objects.filter(detector=OuterRef("pk"))
                 .order_by("-date_added")
-                .values("date_added")[:1]
+                .values("group__last_seen")[:1]
             )
             queryset = queryset.annotate(
-                latest_group_date_added=Subquery(latest_detector_group_subquery)
+                latest_group_last_seen=Subquery(latest_detector_group_subquery)
             )
         elif sort_by_field == "openIssues":
             queryset = queryset.annotate(

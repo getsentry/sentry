@@ -13,7 +13,9 @@ class AIConversationsQuery(TypedDict):
 
 
 class OrganizationAIConversationsSerializer(serializers.Serializer[AIConversationsQuery]):
-    sort = serializers.ListField(child=serializers.CharField(), required=False, default=["-age"])
+    sort = serializers.ListField(
+        child=serializers.CharField(), required=False, default=["-conversation.age"]
+    )
     query = serializers.CharField(required=False, allow_blank=True)
     samplingMode = serializers.ChoiceField(
         choices=[

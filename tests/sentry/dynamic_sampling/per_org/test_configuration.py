@@ -101,8 +101,8 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
-        # get_sample_rate stays ungated so balancing + comparison align with the legacy cache,
-        # which is also ungated (usage-based).
+        # get_sample_rate stays ungated so balancing runs on the usage-based rate, as it did
+        # against the legacy cache.
         assert configuration.get_sample_rate() == 0.25
         # The blended-100% gate applies only at serve time, mirroring legacy serving.
         assert configuration.get_serving_sample_rate() == 1.0
@@ -187,8 +187,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
             configuration.recalibrate(org_volume)
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
-        # Recorded as computed, so the comparison log reports it. write_caches is what
-        # rejects it against the rebalance bounds.
+        # Recorded as computed. write_caches is what rejects it against the rebalance bounds.
         assert configuration.results.recalibration_factor == 50.0
 
     def test_subscription_backed_org_leaves_recalibration_factor_when_not_computed(

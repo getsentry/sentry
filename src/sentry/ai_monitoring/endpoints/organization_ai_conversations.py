@@ -11,13 +11,17 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.ai_monitoring.constants import AI_CONVERSATIONS_FIELDS
+from sentry.ai_monitoring.conversation_query import compile_conversation_query
 from sentry.ai_monitoring.conversation_titles import fetch_conversation_titles
 from sentry.ai_monitoring.serializers import OrganizationAIConversationsSerializer
 from sentry.ai_monitoring.utils import (
+    ConversationProject,
     get_aggregated_first_input,
     get_aggregated_last_output,
+    get_conversation_url,
     get_first_input_message,
     get_last_output,
+    serialize_conversation_project,
     timestamp_to_float,
 )
 from sentry.api.api_owners import ApiOwner
@@ -60,7 +64,7 @@ class UserResponse(TypedDict):
     ip_address: str | None
 
 
-class AIConversationResponse(TypedDict):
+class AIConversationData(TypedDict):
     conversationId: str
     title: str | None
     projectId: int | None
@@ -82,6 +86,11 @@ class AIConversationResponse(TypedDict):
     user: UserResponse | None
     toolNames: list[str]
     toolErrors: int
+
+
+class AIConversationResponse(AIConversationData):
+    projects: list[ConversationProject]
+    webUrl: str
 
 
 # Matches a query that is exactly a single gen_ai.conversation.id filter, e.g.
@@ -167,7 +176,7 @@ def _build_conversation_response(
     title: str | None = None,
     generation_duration: float = 0,
     project_id: int | None = None,
-) -> AIConversationResponse:
+) -> AIConversationData:
     return {
         "conversationId": conv_id,
         "title": title,
@@ -197,7 +206,7 @@ def _build_conversation_response(
 @cell_silo_endpoint
 class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
@@ -233,8 +242,6 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     ):
         """Return AI conversations ordered by latest span time.
 
-        **Experimental:** This API is under active development and may change.
-
         `query` uses Sentry search syntax against spans. A conversation matches when
         any span matches. Summary values then include all conversation spans inside
         selected project, environment, and time filters.
@@ -254,19 +261,29 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             return Response(as_validation_errors(serializer), status=400)
 
         validated_data = serializer.validated_data
+        user_query = validated_data.get("query", "")
+        query_string = _build_conversation_query(
+            "has:gen_ai.conversation.id has:gen_ai.operation.type", user_query
+        )
 
         def data_fn(offset: int, limit: int) -> list[AIConversationResponse]:
             return self._get_conversations(
                 snuba_params=snuba_params,
                 offset=offset,
                 limit=limit,
-                user_query=validated_data.get("query", ""),
-                sampling_mode=validated_data.get("samplingMode", "NORMAL"),
+                query_string=query_string,
+                sampling_mode=validated_data["samplingMode"],
                 sorts=validated_data["sort"] if querying_enhancements_enabled else None,
                 use_single_query=querying_enhancements_enabled,
             )
 
         with handle_query_errors():
+            if querying_enhancements_enabled:
+                resolver = Spans.get_resolver(
+                    snuba_params,
+                    SearchResolverConfig(auto_fields=True, disable_aggregate_extrapolation=True),
+                )
+                query_string = compile_conversation_query(user_query, resolver)
             response = self.paginate(
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
@@ -291,14 +308,11 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         snuba_params: SnubaParams,
         offset: int,
         limit: int,
-        user_query: str,
+        query_string: str,
         sampling_mode: SAMPLING_MODES = "NORMAL",
         sorts: Sequence[str] | None = None,
         use_single_query: bool = False,
     ) -> list[AIConversationResponse]:
-        base_filter = "has:gen_ai.conversation.id has:gen_ai.operation.type"
-        query_string = _build_conversation_query(base_filter, user_query)
-
         conversation_ids_results = self._fetch_conversation_ids(
             snuba_params, query_string, offset, limit, sampling_mode, sorts
         )
@@ -310,9 +324,31 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         if not conversation_ids:
             return []
 
-        if use_single_query:
-            return self._get_conversations_data_single_query(snuba_params, conversation_ids)
-        return self._get_conversations_data(snuba_params, conversation_ids)
+        conversations = (
+            self._get_conversations_data_single_query(snuba_params, conversation_ids)
+            if use_single_query
+            else self._get_conversations_data(snuba_params, conversation_ids)
+        )
+
+        organization = snuba_params.organization
+        assert organization is not None
+        projects_by_id = {project.id: project for project in snuba_params.projects}
+        # Treat conversations as single-project for now. Multi-project conversations are
+        # an edge case, so this response exposes only one of their projects.
+        response: list[AIConversationResponse] = []
+        for conversation in conversations:
+            project_id = conversation["projectId"]
+            project = projects_by_id.get(project_id)
+            response.append(
+                {
+                    **conversation,
+                    "projects": [serialize_conversation_project(project)] if project else [],
+                    "webUrl": get_conversation_url(
+                        organization, conversation["conversationId"], project_id
+                    ),
+                }
+            )
+        return response
 
     @trace
     def _fetch_conversation_ids(
@@ -343,7 +379,6 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             if not any(column.removeprefix("-") == "gen_ai.conversation.id" for column in orderby):
                 orderby.append("gen_ai.conversation.id")
 
-        # TODO (vgrozdanic): Sort on whole conversations instead of only matching spans.
         return Spans.run_table_query(
             params=snuba_params,
             query_string=query_string,
@@ -359,7 +394,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     @trace
     def _get_conversations_data(
         self, snuba_params: SnubaParams, conversation_ids: list[str]
-    ) -> list[AIConversationResponse]:
+    ) -> list[AIConversationData]:
         config = SearchResolverConfig(auto_fields=True, disable_aggregate_extrapolation=True)
         resolver = Spans.get_resolver(snuba_params, config)
 
@@ -468,12 +503,12 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
     def _build_conversations_from_aggregations(
         self, aggregations: EAPResponse
-    ) -> dict[str, AIConversationResponse]:
+    ) -> dict[str, AIConversationData]:
         with start_span(
             op="ai_conversations.build_from_aggregations",
             name="Build conversations from aggregations",
         ):
-            conversations_map: dict[str, AIConversationResponse] = {}
+            conversations_map: dict[str, AIConversationData] = {}
 
             for row in aggregations.get("data", []):
                 conv_id = row.get("gen_ai.conversation.id", "")
@@ -524,7 +559,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
     def _apply_enrichment(
         self,
-        conversations_map: dict[str, AIConversationResponse],
+        conversations_map: dict[str, AIConversationData],
         enrichment_data: EAPResponse,
     ) -> dict[str, set[int]]:
         """Apply enrichment data, returning the project ids each conversation spans."""
@@ -598,7 +633,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
     def _apply_first_last_io(
         self,
-        conversations_map: dict[str, AIConversationResponse],
+        conversations_map: dict[str, AIConversationData],
         first_last_io_data: EAPResponse,
     ) -> None:
         with start_span(
@@ -638,7 +673,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     @trace
     def _get_conversations_data_single_query(
         self, snuba_params: SnubaParams, conversation_ids: list[str]
-    ) -> list[AIConversationResponse]:
+    ) -> list[AIConversationData]:
         operation_filter = "has:gen_ai.operation.type"
         ai_client_filter = "gen_ai.operation.type:ai_client"
         results = Spans.run_table_query(
@@ -686,7 +721,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             sampling_mode="HIGHEST_ACCURACY",
         )
 
-        conversations_map: dict[str, AIConversationResponse] = {}
+        conversations_map: dict[str, AIConversationData] = {}
         project_ids_by_conversation: dict[str, set[int]] = {}
         for row in results.get("data", []):
             conversation_id = str(row.get("gen_ai.conversation.id") or "")
@@ -736,7 +771,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     @trace
     def _apply_titles(
         self,
-        conversations_map: dict[str, AIConversationResponse],
+        conversations_map: dict[str, AIConversationData],
         project_ids_by_conversation: Mapping[str, set[int]],
     ) -> None:
         """Set each conversation's `title` from storage when present.
