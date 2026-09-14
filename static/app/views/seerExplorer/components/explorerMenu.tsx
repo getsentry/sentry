@@ -120,6 +120,7 @@ export function useExplorerMenu({
   // Toggle between slash-commands-keyboard and hidden modes based on filteredSlashCommands.
   useEffect(() => {
     if (menuMode === 'slash-commands-keyboard' && filteredSlashCommands.length === 0) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setMenuMode('hidden');
     } else if (menuMode === 'hidden' && filteredSlashCommands.length > 0) {
       setMenuMode('slash-commands-keyboard');
@@ -133,6 +134,7 @@ export function useExplorerMenu({
 
   // Reset selected index when items change
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setSelectedIndex(0);
   }, [menuItems]);
 
@@ -203,6 +205,7 @@ export function useExplorerMenu({
   // Calculate menu position based on anchor element
   useEffect(() => {
     if (!isVisible) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setMenuPosition({});
       return;
     }

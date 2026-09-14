@@ -24,6 +24,8 @@ import {DragHandle} from '@sentry/scraps/dragHandle';
 import {type Responsive, useResponsivePropResolver} from '@sentry/scraps/layout';
 
 import {
+  COLUMN_ALIGN_JUSTIFY,
+  type ColumnAlign,
   getAriaSort,
   SortableHeaderCell,
   type SortDirection,
@@ -290,7 +292,8 @@ function Cell({columnKey, ...props}: CellProps) {
   return <TableCell hidden={useIsColumnHidden(columnKey)} role="cell" {...props} />;
 }
 
-interface HeadCellProps extends ThHTMLAttributes<HTMLTableCellElement> {
+interface HeadCellProps extends Omit<ThHTMLAttributes<HTMLTableCellElement>, 'align'> {
+  align?: ColumnAlign;
   /**
    * Identifies the column by position, for callers that render their head cells
    * from an ordered list rather than from a keyed column config.
@@ -312,6 +315,7 @@ interface HeadCellProps extends ThHTMLAttributes<HTMLTableCellElement> {
 }
 
 function HeadCell({
+  align,
   children,
   columnIndex,
   columnKey,
@@ -348,11 +352,13 @@ function HeadCell({
       hidden={useIsColumnHidden(columnKey)}
       {...props}
       id={cellId}
+      justify={align && COLUMN_ALIGN_JUSTIFY[align]}
       ref={getMergedRef(ref)}
       role="columnheader"
     >
       {sortable ? (
         <SortableHeaderCell
+          align={align}
           direction={sort}
           onSort={onSort}
           overlays={overlays}

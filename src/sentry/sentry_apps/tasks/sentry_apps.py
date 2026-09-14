@@ -407,6 +407,7 @@ def _load_service_hook(organization_id: int | None, installation_id: int) -> Ser
         service_hook = ServiceHook.objects.get(
             organization_id=organization_id,
             actor_id=installation_id,
+            project_id__isnull=True,
         )
         if service_hook.installation_id != service_hook.actor_id:
             logger.info(

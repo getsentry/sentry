@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -9,6 +9,8 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   providerDetails,
   type IntegrationChannel,
@@ -28,6 +30,8 @@ export interface ScmMessagingChannelPickerProps {
    * can receive Issue Alert actions.
    */
   eligibleIntegrations: OrganizationIntegration[];
+  /** True while the parent is creating the project after a destination is saved. */
+  isContinuing: boolean;
   onConfigured: (setup: ScmMessagingSetup & {mode: 'selected'}) => void;
   providerKey: ScmMessagingProviderKey;
   /** Pre-seeds the channel selector when editing an existing destination. */
@@ -42,8 +46,10 @@ export function ScmMessagingChannelPicker({
   onConfigured,
   existingSetup,
   providerKey,
+  isContinuing,
 }: ScmMessagingChannelPickerProps) {
   const theme = useTheme();
+  const organization = useOrganization();
   const {channelSelectedBy} = providerDetails[providerKey];
 
   // The saved destination we're editing, if any.
@@ -114,6 +120,17 @@ export function ScmMessagingChannelPicker({
     options: {refetchOnWindowFocus: true},
   });
 
+  // A typed channel the provider rejected, or one the validate request could
+  // not check. Either keeps the user in the picker with the error shown.
+  useEffect(() => {
+    if (channelError) {
+      trackAnalytics('onboarding.scm_messaging_channel_validation_failed', {
+        organization,
+        provider: providerKey,
+      });
+    }
+  }, [channelError, organization, providerKey]);
+
   const handleIntegrationChange = (option: SelectValue<OrganizationIntegration>) => {
     setSelectedIntegrationId(option.value.id);
     setChannel(undefined);
@@ -142,6 +159,9 @@ export function ScmMessagingChannelPicker({
       channelName: channel.channelName ?? channel.value,
     });
   };
+
+  const isConfirmDisabled =
+    !channel || !!channelError || isChannelLoading || isContinuing;
 
   return (
     <Container>
@@ -199,14 +219,15 @@ export function ScmMessagingChannelPicker({
         style={{borderRadius: `0 0 ${theme.radius.lg} ${theme.radius.lg}`}}
       >
         {onCancel && (
-          <Button size="sm" variant="link" onClick={onCancel}>
+          <Button size="sm" variant="link" disabled={isContinuing} onClick={onCancel}>
             {t('Cancel')}
           </Button>
         )}
         <Button
           size="sm"
           variant="primary"
-          disabled={!channel || !!channelError || isChannelLoading}
+          busy={isContinuing}
+          disabled={isConfirmDisabled}
           analyticsEventKey="onboarding.scm_messaging_confirm_and_continue_clicked"
           analyticsEventName="Onboarding: SCM Messaging Confirm And Continue Clicked"
           analyticsParams={{provider: providerKey}}

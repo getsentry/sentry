@@ -2,6 +2,7 @@ from typing import TypedDict
 from unittest.mock import MagicMock, patch
 
 from sentry.models.activity import Activity
+from sentry.models.repository import Repository
 from sentry.seer.agent.client_models import (
     AgentFilePatch,
     Artifact,
@@ -18,10 +19,10 @@ from sentry.seer.autofix.on_completion_hook import (
     STOPPING_POINT_TO_STEP,
     AutofixOnCompletionHook,
     _group_and_referrer_from_run,
-    _PrIterationPushOutcome,
     _stopping_point_from_run,
 )
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
+from sentry.seer.autofix.pr_iteration.emit import PrIterationOutcome
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
@@ -629,6 +630,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
 
 
 HOOK_PATH = "sentry.seer.autofix.on_completion_hook"
+PR_STATE_PATH = "sentry.seer.autofix.pr_iteration.pr_state"
 
 
 class TestPrIterationCompletionHook(TestCase):
@@ -787,7 +789,7 @@ class TestPrIterationCompletionHook(TestCase):
             state,
         )
 
-        assert outcome == _PrIterationPushOutcome.NO_CODE_CHANGES
+        assert outcome == PrIterationOutcome.NO_CODE_CHANGES
         mock_push.assert_not_called()
 
     @patch(f"{HOOK_PATH}.trigger_push_changes")
@@ -800,6 +802,92 @@ class TestPrIterationCompletionHook(TestCase):
 
         assert pushed is False
         mock_push.assert_not_called()
+
+    def _github_repo(self, name: str = "test-repo", external_id: str = "1") -> None:
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name=name,
+            provider="integrations:github",
+            external_id=external_id,
+        )
+
+    @patch(f"{PR_STATE_PATH}.metrics.incr")
+    @patch(f"{HOOK_PATH}.pause_pr_iteration")
+    @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request")
+    @patch(f"{PR_STATE_PATH}.make_scm")
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_a_closed_pr_stops_the_push(
+        self, mock_push, mock_make_scm, mock_get_pull_request, mock_pause, mock_incr
+    ):
+        """Closing the PR is the stop signal; pushing into it would talk past it."""
+        self._github_repo()
+        mock_get_pull_request.return_value = {"data": {"state": "closed"}}
+
+        pushed = self._push(self._unsynced())
+
+        assert pushed is False
+        mock_push.assert_not_called()
+        assert mock_pause.call_args.kwargs["reason"] == PauseReason.PR_CLOSED
+        mock_incr.assert_any_call("autofix.pr_iteration.pr_closed", tags={"gate": "push"})
+
+    @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request")
+    @patch(f"{PR_STATE_PATH}.make_scm")
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_an_open_pr_still_pushes(self, mock_push, mock_make_scm, mock_get_pull_request):
+        self._github_repo()
+        mock_get_pull_request.return_value = {"data": {"state": "open"}}
+
+        pushed = self._push(self._unsynced())
+
+        assert pushed is True
+        mock_push.assert_called_once()
+
+    @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request")
+    @patch(f"{PR_STATE_PATH}.make_scm")
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_one_closed_pr_stops_a_multi_repo_push(
+        self, mock_push, mock_make_scm, mock_get_pull_request
+    ):
+        """A push serves every repo at once, so it cannot skip just the closed one."""
+        self._github_repo()
+        self._github_repo("other-repo", external_id="2")
+        state = self._unsynced()
+        state.repo_pr_states["other-repo"] = RepoPRState(
+            repo_name="other-repo",
+            provider="github",
+            pr_id=88,
+            pr_number=8,
+            pr_url="https://example.com/pull/8",
+            pr_creation_status="completed",
+            commit_sha="stale-sha",
+        )
+        mock_get_pull_request.side_effect = [
+            {"data": {"state": "open"}},
+            {"data": {"state": "closed"}},
+        ]
+
+        pushed = self._push(state)
+
+        assert pushed is False
+        mock_push.assert_not_called()
+
+    @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request", side_effect=ValueError("boom"))
+    @patch(f"{PR_STATE_PATH}.make_scm")
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_a_pr_we_cannot_read_still_pushes(
+        self, mock_push, mock_make_scm, mock_get_pull_request
+    ):
+        """A transient read failure must not silently drop the iteration's changes."""
+        self._github_repo()
+
+        pushed = self._push(self._unsynced())
+
+        assert pushed is True
+        mock_push.assert_called_once()
 
     @patch(f"{HOOK_PATH}.trigger_push_changes", side_effect=ValueError("boom"))
     def test_a_failed_push_is_swallowed(self, mock_push):
@@ -864,26 +952,26 @@ class TestPrIterationCompletionHook(TestCase):
         assert task_kwargs["trigger_source"] == ConsumeTriggerSource.FEEDBACK
 
     @patch(f"{HOOK_PATH}.complete_pr_iteration_details")
-    def test_no_pull_request_reaches_completion_details_as_not_pushed(self, mock_complete):
+    def test_no_pull_request_reaches_completion_details_as_that_outcome(self, mock_complete):
         state = run_state(
             blocks=[pr_iteration_memory_block()], metadata={"group_id": self.group.id}
         )
 
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
 
-        assert mock_complete.call_args.kwargs["pushed_changes"] is False
+        assert mock_complete.call_args.kwargs["outcome"] == PrIterationOutcome.NO_PULL_REQUEST.value
 
     @patch(f"{HOOK_PATH}.complete_pr_iteration_details")
-    def test_already_synced_reaches_completion_details_as_pushed(self, mock_complete):
+    def test_already_synced_reaches_completion_details_as_that_outcome(self, mock_complete):
         AutofixOnCompletionHook._maybe_continue_pipeline(
             self.organization, 123, self._synced(), self.group
         )
 
-        assert mock_complete.call_args.kwargs["pushed_changes"] is True
+        assert mock_complete.call_args.kwargs["outcome"] == PrIterationOutcome.ALREADY_PUSHED.value
 
     @patch(f"{HOOK_PATH}.complete_pr_iteration_details")
     @patch(f"{HOOK_PATH}.trigger_push_changes")
-    def test_a_terminally_errored_repo_reaches_completion_details_as_not_pushed(
+    def test_a_terminally_errored_repo_reaches_completion_details_as_that_outcome(
         self, mock_push, mock_complete
     ):
         state = self._unsynced()
@@ -891,29 +979,35 @@ class TestPrIterationCompletionHook(TestCase):
 
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
 
-        assert mock_complete.call_args.kwargs["pushed_changes"] is False
+        assert (
+            mock_complete.call_args.kwargs["outcome"]
+            == PrIterationOutcome.PR_CREATION_ERRORED.value
+        )
 
     @patch(f"{HOOK_PATH}.complete_pr_iteration_details")
     @patch(f"{HOOK_PATH}.trigger_push_changes", side_effect=ValueError("boom"))
-    def test_a_failed_push_reaches_completion_details_as_not_pushed(self, mock_push, mock_complete):
+    def test_a_failed_push_reaches_completion_details_as_that_outcome(
+        self, mock_push, mock_complete
+    ):
         AutofixOnCompletionHook._maybe_continue_pipeline(
             self.organization, 123, self._unsynced(), self.group
         )
 
-        assert mock_complete.call_args.kwargs["pushed_changes"] is False
+        assert mock_complete.call_args.kwargs["outcome"] == PrIterationOutcome.PUSH_FAILED.value
 
     @patch(f"{HOOK_PATH}.complete_pr_iteration_details")
-    def test_an_errored_run_now_reaches_completion_details(self, mock_complete):
+    def test_an_errored_run_reaches_completion_details_with_its_failure_reason(self, mock_complete):
         self.create_seer_run(
             organization=self.organization, seer_run_state_id=123, user_id=self.user.id
         )
         state = self._unsynced()
         state.status = "error"
+        state.failure_reason = "timeout"
 
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
 
         mock_complete.assert_called_once()
-        assert mock_complete.call_args.kwargs["pushed_changes"] is False
+        assert mock_complete.call_args.kwargs["outcome"] == "timeout"
 
 
 class TestPipelineConstants(TestCase):
@@ -1005,11 +1099,17 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         assert call_kwargs["payload"]["code_changes"]["test-repo"][0]["removed"] == 2
 
     @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
+    @patch("sentry.seer.autofix.analytics.metrics.incr")
     @patch("sentry.seer.autofix.on_completion_hook.process_autofix_updates.apply_async")
     @patch("sentry.seer.autofix.on_completion_hook.SeerAutofixOperator.has_access")
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     def test_send_step_webhook_pr_iteration(
-        self, mock_broadcast, mock_has_access, mock_process_autofix_updates, mock_analytics
+        self,
+        mock_broadcast,
+        mock_has_access,
+        mock_process_autofix_updates,
+        mock_metrics_incr,
+        mock_analytics,
     ):
         mock_has_access.return_value = True
 
@@ -1059,6 +1159,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
             mock_analytics.call_args.args[0].referrer
             == AutofixReferrer.GROUP_AUTOFIX_ENDPOINT.value
         )
+        mock_metrics_incr.assert_any_call("ai.autofix.pr_iteration.completed", sample_rate=1.0)
 
     @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")

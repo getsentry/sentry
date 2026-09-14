@@ -131,6 +131,7 @@ function MetricsEquationVisualizeContent({
     let selectedQuery = metricQueries.find(q => q.label === selectedLabel);
     if (!selectedQuery && metricQueries.length > 0) {
       selectedQuery = metricQueries[0];
+      // oxlint-disable-next-line react/set-state-in-effect
       setSelectedLabel(selectedQuery?.label);
     }
 
@@ -165,6 +166,7 @@ function MetricsEquationVisualizeContent({
   const hasEquationRow = Boolean(equationQuery);
   useEffect(() => {
     if (!hasEquationRow) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setEquationReferencedLabels([]);
     }
   }, [hasEquationRow]);

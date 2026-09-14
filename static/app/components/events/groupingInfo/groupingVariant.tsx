@@ -2,9 +2,9 @@ import styled from '@emotion/styled';
 
 import {InfoTip} from '@sentry/scraps/info';
 
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {getSpanHash} from 'sentry/components/events/interfaces/performance/utils';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
@@ -181,7 +181,8 @@ export function GroupingVariant({
     <VariantWrapper>
       <Header>{renderTitle()}</Header>
 
-      <KeyValueList
+      <KeyValueTableDataList
+        margin
         data={data.map(d => ({
           key: d[0],
           subject: d[0],

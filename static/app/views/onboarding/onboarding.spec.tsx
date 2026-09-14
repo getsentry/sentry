@@ -672,9 +672,7 @@ describe('Onboarding', () => {
     it('navigates from welcome to scm-connect', async () => {
       const {router} = renderOnboarding('welcome');
 
-      await userEvent.click(
-        await screen.findByRole('button', {name: /Set up manually instead/})
-      );
+      await userEvent.click(await screen.findByRole('button', {name: /Set up manually/}));
 
       // Wait for scm-connect to render and its queries to resolve so the
       // mounted-effect fetches hit the mocked endpoints before afterEach
@@ -692,9 +690,10 @@ describe('Onboarding', () => {
       expect(
         await screen.findByText('npx @sentry/agent-plugin install')
       ).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {name: /Set up manually instead/})
-      ).toBeInTheDocument();
+      expect(screen.getByText('Recommended')).toBeInTheDocument();
+      expect(screen.getByText('Claude Code, Codex, Cursor, & Grok')).toBeInTheDocument();
+      expect(screen.getByText(/org slug: org-slug/)).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Set up manually/})).toBeInTheDocument();
       expect(screen.queryByTestId('onboarding-welcome-start')).not.toBeInTheDocument();
       expect(screen.queryByText('Error monitoring')).not.toBeInTheDocument();
       expect(
@@ -722,7 +721,7 @@ describe('Onboarding', () => {
 
       expect(await screen.findByText('Agent Connected')).toBeInTheDocument();
       expect(
-        screen.queryByRole('button', {name: /Set up manually instead/})
+        screen.queryByRole('button', {name: /Set up manually/})
       ).not.toBeInTheDocument();
       expect(screen.queryByText('or')).not.toBeInTheDocument();
       expect(
@@ -792,9 +791,7 @@ describe('Onboarding', () => {
     it('fires scm_welcome_continue_clicked on browser setup click and not the legacy event', async () => {
       renderOnboarding('welcome');
 
-      await userEvent.click(
-        await screen.findByRole('button', {name: /Set up manually instead/})
-      );
+      await userEvent.click(await screen.findByRole('button', {name: /Set up manually/}));
 
       expect(trackAnalytics).toHaveBeenCalledWith(
         'onboarding.scm_welcome_continue_clicked',
