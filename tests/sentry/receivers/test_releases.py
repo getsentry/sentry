@@ -39,6 +39,28 @@ from sentry.users.models.useremail import UserEmail
 
 
 class ResolveGroupResolutionsTest(TestCase):
+    def test_cache_failure_does_not_fail_commit_or_skip_later_callbacks(self) -> None:
+        release = self.create_release(version="cache-failure")
+        after_invalidation = MagicMock()
+        finalized_at = timezone.now()
+        with (
+            patch("sentry.receivers.releases.cache") as release_cache,
+            patch("sentry.receivers.releases.logger.exception") as log_exception,
+            self.capture_on_commit_callbacks(execute=True),
+        ):
+            release_cache.delete.side_effect = ConnectionError("cache down")
+            with transaction.atomic(using=router.db_for_write(Release)):
+                release.update(date_released=finalized_at)
+                transaction.on_commit(after_invalidation, router.db_for_write(Release))
+
+        release_cache.delete.assert_called_once_with(
+            Release.get_cache_key(release.organization_id, release.version)
+        )
+        log_exception.assert_called_once_with("release.cache_invalidation_failed")
+        after_invalidation.assert_called_once_with()
+        release.refresh_from_db()
+        assert release.date_released == finalized_at
+
     def test_finalization_invalidates_cache_with_flag_disabled(self) -> None:
         release = self.create_release(version="cached")
         assert Release.get_or_create(self.project, release.version).date_released is None
@@ -56,7 +78,7 @@ class ResolveGroupResolutionsTest(TestCase):
         )
         enqueue.assert_not_called()
 
-    @patch("sentry.tasks.clear_expired_resolutions.clear_expired_resolutions.delay")
+    @patch("sentry.receivers.releases.clear_expired_resolutions.delay")
     def test_simple(self, mock_delay: MagicMock) -> None:
         with self.capture_on_commit_callbacks(execute=True):
             release = Release.objects.create(

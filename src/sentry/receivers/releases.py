@@ -56,31 +56,37 @@ def validate_release_empty_version(instance: Release, **kwargs):
         )
 
 
-def resolve_group_resolutions(
+def invalidate_release_cache(
     instance: Release, created: bool, update_fields: Iterable[str] | None = None, **kwargs
 ) -> None:
+    if created:
+        return
     # save() without update_fields may also change either timestamp, so
     # conservatively invalidate the ingestion cache for those saves as well.
-    dates_updated = not created and (
-        update_fields is None or bool({"date_released", "date_added"}.intersection(update_fields))
-    )
-    if not created and not dates_updated:
+    if update_fields is not None and not {"date_released", "date_added"}.intersection(
+        update_fields
+    ):
         return
 
     cache_key = Release.get_cache_key(instance.organization_id, instance.version)
-    release_id = instance.id
 
+    # Ingestion caches whole release objects. Invalidate after commit so a
+    # concurrent lookup can read the updated dates. A cache failure must not
+    # fail an already-committed save or prevent other commit callbacks running.
     def on_commit() -> None:
-        if dates_updated:
-            # Ingestion caches entire release objects independently of the ORM
-            # manager cache. Invalidate after commit so subsequent lookups can
-            # read the committed dates.
+        try:
             cache.delete(cache_key)
-        if created:
-            clear_expired_resolutions.delay(release_id=release_id)
+        except Exception:
+            logger.exception("release.cache_invalidation_failed")
 
+    transaction.on_commit(on_commit, router.db_for_write(Release))
+
+
+def resolve_group_resolutions(instance: Release, created: bool, **kwargs) -> None:
+    if not created:
+        return
     transaction.on_commit(
-        on_commit,
+        lambda: clear_expired_resolutions.delay(release_id=instance.id),
         router.db_for_write(Release),
     )
 
@@ -478,6 +484,10 @@ pre_save.connect(
     sender=Release,
     dispatch_uid="validate_release_empty_version",
     weak=False,
+)
+
+post_save.connect(
+    invalidate_release_cache, sender=Release, dispatch_uid="invalidate_release_cache", weak=False
 )
 
 post_save.connect(

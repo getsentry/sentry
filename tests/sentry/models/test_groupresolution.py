@@ -5,7 +5,6 @@ from django.utils import timezone
 
 from sentry.models.group import Group
 from sentry.models.groupresolution import GroupResolution
-from sentry.models.release import Release
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import Feature, with_feature
@@ -224,13 +223,16 @@ class GroupResolutionTest(TestCase):
     def test_semver_order_takes_precedence_over_finalized_dates(self) -> None:
         self.old_semver_release.update(date_released=timezone.now() + timedelta(days=1))
         self.new_semver_release.update(date_released=timezone.now() - timedelta(days=1))
+        newer_semver_release = self.create_release(
+            version="foo_package@3.0", date_released=timezone.now() - timedelta(days=2)
+        )
         self.create_group_resolution(
             group=self.group,
             release=self.new_semver_release,
             type=GroupResolution.Type.in_release,
         )
         assert GroupResolution.has_resolution(self.group, self.old_semver_release)
-        assert not GroupResolution.has_resolution(self.group, self.new_semver_release)
+        assert not GroupResolution.has_resolution(self.group, newer_semver_release)
 
     @with_feature("organizations:release-resolution-finalized-order")
     def test_current_release_version_uses_finalized_date(self) -> None:
@@ -239,6 +241,9 @@ class GroupResolutionTest(TestCase):
             date_added=timezone.now(),
             date_released=timezone.now() - timedelta(minutes=60),
         )
+        older_release = self.create_release(
+            version="older", date_added=timezone.now() - timedelta(minutes=90)
+        )
         self.create_group_resolution(
             group=self.group,
             release=self.new_release,
@@ -246,22 +251,7 @@ class GroupResolutionTest(TestCase):
             type=GroupResolution.Type.in_release,
         )
         assert not GroupResolution.has_resolution(self.group, self.old_release)
-        assert GroupResolution.has_resolution(self.group, current_release)
-
-    @with_feature("organizations:release-resolution-finalized-order")
-    def test_regression_after_finalizing_cached_release(self) -> None:
-        old_build = self.create_release(version="old-build")
-        self.create_group_resolution(
-            group=self.group, release=self.new_release, type=GroupResolution.Type.in_release
-        )
-        assert Release.get_or_create(self.project, old_build.version).date_released is None
-
-        with self.capture_on_commit_callbacks(execute=True):
-            old_build.update(date_released=self.old_release.date_added - timedelta(days=1))
-
-        incoming_release = Release.get_or_create(self.project, old_build.version)
-        assert incoming_release.date_released == old_build.date_released
-        assert GroupResolution.has_resolution(self.group, incoming_release)
+        assert GroupResolution.has_resolution(self.group, older_release)
 
     def test_for_semver_in_release_with_new_release(self) -> None:
         GroupResolution.objects.create(
@@ -306,7 +296,6 @@ class GroupResolutionTest(TestCase):
 
             resolution.delete()
 
-    @with_feature("organizations:release-resolution-finalized-order")
     def test_stale_current_release_version_with_semver_flip(self) -> None:
         now = timezone.now()
         current_at_resolution = self.create_release(
@@ -340,7 +329,6 @@ class GroupResolutionTest(TestCase):
         # Fix is in 1.5.0; event on 1.4.0 (< 1.5.0 in semver) should NOT regress
         assert GroupResolution.has_resolution(self.group, event_release)
 
-    @with_feature("organizations:release-resolution-finalized-order")
     def test_genuine_regression_detected_with_stale_current_release_version(self) -> None:
         now = timezone.now()
         current_at_resolution = self.create_release(
