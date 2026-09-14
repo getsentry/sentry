@@ -13,12 +13,13 @@ const replacements = new Map([
     'sentry/utils/useNavigate',
     'Use the router provided by render and assert on router.location after interacting.',
   ],
-  [
-    'sentry/utils/usePageFilters',
-    'Use PageFiltersStore.onInitializeUrlState(PageFiltersFixture({...})).',
-  ],
 ]);
 
+/**
+ * Prevents tests from mocking selected Sentry hooks with `jest.mock`,
+ * `jest.doMock`, or `jest.spyOn`, and directs them to the supported render
+ * options, stores, or fixtures listed above instead.
+ */
 export const noRestrictedModuleMocks = ESLintUtils.RuleCreator.withoutDocs({
   meta: {
     type: 'problem',

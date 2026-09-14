@@ -15,13 +15,7 @@ ruleTester.run('no-restricted-module-mocks', noRestrictedModuleMocks, {
     "import * as location from 'sentry/utils/useLocation'; jest.spyOn(location, 'parseLocation');",
   ],
   invalid: [
-    ...[
-      'useLocation',
-      'useNavigate',
-      'usePageFilters',
-      'useOrganization',
-      'useProjects',
-    ].flatMap(hook =>
+    ...['useLocation', 'useNavigate', 'useOrganization', 'useProjects'].flatMap(hook =>
       ['mock', 'doMock'].map(method => ({
         code: `jest.${method}('sentry/utils/${hook}', () => ({}));`,
         errors: [{messageId: 'forbidden' as const}],
