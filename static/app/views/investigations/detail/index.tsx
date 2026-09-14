@@ -46,7 +46,7 @@ import {
 } from 'sentry/views/investigations/detail/cell';
 import {
   InvestigationHypotheses,
-  isInvestigationRunSettled,
+  shouldPollInvestigationRun,
 } from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
@@ -101,7 +101,7 @@ export function InvestigationBootstrapPage({investigationId}: {investigationId: 
       // row, so a stale copy would leave the row hidden or showing a run that
       // has since finished.
       const orchestrationActive =
-        data?.orchestration && !isInvestigationRunSettled(data.orchestration.status);
+        data?.orchestration && shouldPollInvestigationRun(data.orchestration.status);
       return orchestrationActive ||
         shouldPollInvestigationBlocks(data?.blocks ?? []) ||
         isTitleGenerationActive(data?.titleGeneration?.status)

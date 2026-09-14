@@ -5,7 +5,10 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {InvestigationOrchestrationFixture} from 'sentry/views/investigations/fixtures';
-import {InvestigationHypotheses} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
+import {
+  InvestigationHypotheses,
+  shouldPollInvestigationRun,
+} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 import type {InvestigationOrchestration} from 'sentry/views/investigations/types';
 
 const organization = OrganizationFixture({features: ['investigations']});
@@ -21,6 +24,22 @@ function renderHypotheses() {
     organization,
   });
 }
+
+describe('shouldPollInvestigationRun', () => {
+  it.each([
+    ['pending', true],
+    ['processing', true],
+    [undefined, true],
+    // Blocked on a person, not on the agent. Every investigation created
+    // without a prompt starts here, so polling would never stop.
+    ['awaiting_input', false],
+    ['completed', false],
+    ['failed', false],
+    ['cancelled', false],
+  ] as const)('%s polls: %s', (status, expected) => {
+    expect(shouldPollInvestigationRun(status)).toBe(expected);
+  });
+});
 
 describe('InvestigationHypotheses', () => {
   it('renders the hypotheses carried on the projection', async () => {
