@@ -84,7 +84,6 @@ function useReplayerInstance() {
 
 interface Props extends HTMLAttributes<HTMLDivElement> {
   css?: Interpolation<Theme>;
-  inspectable?: boolean;
   offsetMs?: undefined | number;
 }
 

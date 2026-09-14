@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 from unittest.mock import MagicMock, patch
 
+import pytest
 import sentry_sdk.scope
 from django.conf import settings
 from django.db import OperationalError
@@ -35,6 +36,27 @@ def patch_isolation_scope():
         mock_get_isolation_scope.return_value = scope
 
         yield scope
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/0/organizations/org-slug/ai-conversations/",
+        "/api/0/organizations/org-slug/ai-conversations/conversation-id/",
+        "/api/0/organizations/another-org/agents/conversations/",
+        "/api/0/organizations/another-org/agents/conversations/conversation-id/",
+    ],
+)
+def test_ai_conversation_routes_are_fully_sampled(path: str) -> None:
+    assert (
+        sdk.traces_sampler(
+            {
+                "wsgi_environ": {"PATH_INFO": path},
+                "parent_sampled": False,
+            }
+        )
+        == 1.0
+    )
 
 
 class SDKUtilsTest(TestCase):

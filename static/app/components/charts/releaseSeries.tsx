@@ -8,13 +8,14 @@ import partition from 'lodash/partition';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine as createMarkLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {ResponseMeta} from 'sentry/types/api';
 import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import {escape} from 'sentry/utils';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getFormat, getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -58,11 +59,16 @@ function getOrganizationReleases(
     }
   });
   api.clear();
-  return api.requestPromise(`/organizations/${organization.slug}/releases/stats/`, {
-    includeAllArgs: true,
-    method: 'GET',
-    query,
-  }) as Promise<[ReleaseMetaBasic[], any, ResponseMeta]>;
+  return api.requestPromise(
+    getApiUrl('/organizations/$organizationIdOrSlug/releases/stats/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
+    {
+      includeAllArgs: true,
+      method: 'GET',
+      query,
+    }
+  ) as Promise<[ReleaseMetaBasic[], any, ResponseMeta]>;
 }
 
 const getOrganizationReleasesMemoized = memoize(
@@ -92,7 +98,7 @@ export interface ReleaseSeriesProps {
   query?: string;
   queryExtra?: Query;
   releases?: ReleaseMetaBasic[] | null;
-  tooltip?: Exclude<Parameters<typeof MarkLine>[0], undefined>['tooltip'];
+  tooltip?: Exclude<Parameters<typeof createMarkLine>[0], undefined>['tooltip'];
   utc?: boolean | null;
 }
 
@@ -252,7 +258,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
       query.statsPeriod = period || undefined;
     }
 
-    const markLine = MarkLine({
+    const markLine = createMarkLine({
       animation: false,
       lineStyle: {
         color: theme.tokens.dataviz.semantic.release,

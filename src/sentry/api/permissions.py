@@ -5,11 +5,13 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import SAFE_METHODS, BasePermission, IsAuthenticated  # noqa: S012
 from rest_framework.request import Request
 
 from sentry.api.exceptions import (
     INSUFFICIENT_SCOPE_ATTR,
+    InsufficientScope,
     MemberDisabledOverLimit,
     SsoRequired,
     SuperuserRequired,
@@ -21,6 +23,7 @@ from sentry.auth.superuser import SUPERUSER_ORG_ID, is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.demo_mode.utils import get_readonly_scopes, is_demo_mode_enabled, is_demo_user
 from sentry.hybridcloud.rpc import extract_id_from
+from sentry.models.apiscopes import add_scope_hierarchy
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.organizations.services.organization import (
     RpcOrganization,
@@ -46,6 +49,21 @@ def _least_privileged_scope(allowed_scopes: set[str]) -> str | None:
         if not implied.intersection(grantable_scopes - {scope}):
             return scope
     return min(grantable_scopes) if grantable_scopes else None
+
+
+def enforce_scope(request: Request, required_scope: str) -> None:
+    """Require a scope and distinguish token failures from other denials."""
+    if request.access.has_scope(required_scope):
+        return
+    if required_scope in add_scope_hierarchy(list(request.access.scopes)):
+        return
+    if (
+        agent_token.is_agent_auth(request.auth)
+        and required_scope not in settings.SENTRY_TOKEN_ONLY_SCOPES
+        and request.access.would_have_scope_with_added_auth_scope(required_scope)
+    ):
+        raise InsufficientScope([required_scope])
+    raise PermissionDenied
 
 
 class RelayPermission(BasePermission):
@@ -185,21 +203,11 @@ class SentryPermission(ScopedPermission):
         from sentry.api.base import logger
 
         user_id = request.user.id if request.user else None
-
-        # An agent token is a non-user actor acting on behalf of a member. Resolve the org
-        # context for that member (not the anonymous request user) so access derives from
-        # their real membership -- scopes and project/team access.
         agent_auth = request.auth if agent_token.is_agent_auth(request.auth) else None
-        if agent_auth is not None:
-            user_id = agent_auth.user_id
 
         org_context: RpcUserOrganizationContext | None
         if isinstance(organization, RpcUserOrganizationContext):
             org_context = organization
-            if agent_auth is not None and org_context.user_id != user_id:
-                org_context = organization_service.get_organization_by_id(
-                    id=org_context.organization.id, user_id=user_id
-                )
         else:
             org_context = organization_service.get_organization_by_id(
                 id=extract_id_from(organization), user_id=user_id
@@ -212,7 +220,11 @@ class SentryPermission(ScopedPermission):
         extra = {"organization_id": organization.id, "user_id": user_id}
 
         if request.auth:
-            if request.user and request.user.is_authenticated:
+            if agent_auth is not None:
+                request.access = access.from_rpc_auth(
+                    auth=agent_auth, rpc_user_org_context=org_context
+                )
+            elif request.user and request.user.is_authenticated:
                 request.access = access.from_request_org_and_scopes(
                     request=request,
                     rpc_user_org_context=org_context,
@@ -272,6 +284,7 @@ class SentryPermission(ScopedPermission):
                     organization=organization,
                     request=request,
                     after_login_redirect=after_login_redirect,
+                    include_organization_slug=True,
                 )
 
             if self.is_not_2fa_compliant(request, organization):
@@ -414,6 +427,11 @@ class DisallowImpersonatedTokenCreation(BasePermission):
             )
             return False
         return True
+
+
+class DisallowAgentToken(BasePermission):
+    def has_permission(self, request: Request, view: object) -> bool:
+        return not agent_token.is_agent_auth(request.auth)
 
 
 class SentryIsAuthenticated(IsAuthenticated):

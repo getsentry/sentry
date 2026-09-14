@@ -27,7 +27,7 @@ from sentry.sentry_metrics.consumers.indexer.tags_validator import (
 )
 from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, Metadata
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
@@ -450,7 +450,7 @@ def test_extract_strings_with_multiple_use_case_ids_blocked() -> None:
         "project_id": 3,
     }
     perf_distribution_payload = {
-        "name": TransactionMRI.MEASUREMENTS_FCP.value,
+        "name": "d:transactions/measurements.fcp@millisecond",
         "tags": {
             "environment": "production",
             "session.status": "healthy",
@@ -495,7 +495,7 @@ def test_extract_strings_with_multiple_use_case_ids_blocked() -> None:
     assert batch.extract_strings() == {
         UseCaseID.TRANSACTIONS: {
             1: {
-                TransactionMRI.MEASUREMENTS_FCP.value,
+                "d:transactions/measurements.fcp@millisecond",
                 "environment",
                 "production",
                 "session.status",
@@ -632,7 +632,7 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids() -> None:
         "project_id": 3,
     }
     perf_distribution_payload = {
-        "name": TransactionMRI.MEASUREMENTS_FCP.value,
+        "name": "d:transactions/measurements.fcp@millisecond",
         "tags": {
             "environment": "production",
             "session.status": "healthy",
@@ -693,7 +693,7 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids() -> None:
         },
         UseCaseID.TRANSACTIONS: {
             1: {
-                TransactionMRI.MEASUREMENTS_FCP.value,
+                "d:transactions/measurements.fcp@millisecond",
                 "environment",
                 "production",
                 "session.status",

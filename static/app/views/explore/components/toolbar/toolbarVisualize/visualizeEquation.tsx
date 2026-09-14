@@ -25,6 +25,7 @@ import {Visualize} from 'sentry/views/explore/queryParams/visualize';
 interface VisualizeEquationProps {
   onReplace: (visualize: Visualize) => void;
   visualize: Visualize;
+  deleteLabel?: string;
   dragColumnId?: number;
   label?: ReactNode;
   onDelete?: () => void;
@@ -33,6 +34,7 @@ interface VisualizeEquationProps {
 export function VisualizeEquation({
   dragColumnId,
   onDelete,
+  deleteLabel,
   onReplace,
   visualize,
   label,
@@ -114,10 +116,10 @@ export function VisualizeEquation({
       {onDelete && (
         <Button
           variant="transparent"
-          icon={<IconDelete />}
+          icon={<IconDelete size="sm" />}
           size="zero"
           onClick={onDelete}
-          aria-label={t('Remove Overlay')}
+          aria-label={deleteLabel ?? t('Remove Overlay')}
         />
       )}
     </ToolbarRow>

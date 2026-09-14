@@ -72,6 +72,7 @@ import {useReplayForCriticalFlow} from 'getsentry/overrides/useReplayForCritical
 import {useScmFeatureMeta} from 'getsentry/overrides/useScmFeatureMeta';
 import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
 import {trackMetric} from 'getsentry/utils/trackMetric';
+import SeerAutomationTrial from 'getsentry/views/seerAutomation/trial';
 
 import {GsBillingCommandPaletteActions} from './components/gsBillingCommandPaletteActions';
 import {PrimaryNavigationQuotaExceeded} from './components/navBillingStatus';
@@ -213,6 +214,7 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
 
   'component:ai-configure-seer-quota-sidebar': () => AiConfigureSeerQuotaSidebar,
   'component:ai-setup-data-consent': () => AiSetupDataConsent,
+  'component:seer-trial-cta': () => SeerAutomationTrial,
   'component:continuous-profiling-billing-requirement-banner': () =>
     ContinuousProfilingBillingRequirementBanner,
   'component:header-date-page-filter-upsell-footer': () => DateRangeQueryLimitFooter,

@@ -1,6 +1,5 @@
 from sentry.deletions.base import (
     BaseRelation,
-    BulkModelDeletionTask,
     ModelDeletionTask,
     ModelRelation,
 )
@@ -16,10 +15,13 @@ class MonitorEnvironmentDeletionTask(ModelDeletionTask[MonitorEnvironment]):
                 models.MonitorIncident,
                 {"monitor_environment_id": instance.id},
             ),
-            # Use BulkModelDeletionTask here since MonitorIncidents are already handled above
             ModelRelation(
                 models.MonitorCheckIn,
                 {"monitor_environment_id": instance.id},
-                BulkModelDeletionTask,
+                ModelDeletionTask,
+                # Skip marking as in progress for deletion since this can be a high volume delete
+                mark_in_progress=False,
+                # Rate limit check-in deletions so a large delete doesn't spike DB load
+                rate_limit_option="deletions.monitor-check-in.rate-limit",
             ),
         ]

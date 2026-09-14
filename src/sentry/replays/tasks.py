@@ -208,7 +208,6 @@ def archive_replay(project_id: int, replay_id: str, timestamp: datetime) -> None
 )
 def run_bulk_replay_delete_job(
     replay_delete_job_id: int,
-    offset: int | None = None,
     limit: int = 100,
     has_seer_data: bool = False,
     total_deleted: int = 0,
@@ -220,11 +219,6 @@ def run_bulk_replay_delete_job(
     Pages through the job's range with a keyset cursor on `cityHash64(replay_id)` and chains a
     follow-up activation per page. Each page is idempotent: re-running one re-deletes blobs that
     are already gone (a swallowed 404) and re-publishes an archive event.
-
-    `offset` is the cursor from the previous deploy's `OFFSET` pagination. It is accepted and
-    ignored so activations enqueued before this deploy still resolve; such an activation restarts
-    its window from the beginning rather than failing. Remove the argument once the queue has
-    drained.
     """
     job = ReplayDeletionJobModel.objects.get(id=replay_delete_job_id)
 

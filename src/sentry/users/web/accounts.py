@@ -12,6 +12,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods
 
 from sentry import options
+from sentry.auth.twofactor import reset_2fa_rate_limits
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.organizations.services.organization import organization_service
@@ -31,7 +32,6 @@ from sentry.utils import auth
 from sentry.utils.signing import unsign
 from sentry.web.decorators import login_required, set_referrer_policy
 from sentry.web.frontend.base import control_silo_view
-from sentry.web.frontend.twofactor import reset_2fa_rate_limits
 from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger("sentry.accounts")

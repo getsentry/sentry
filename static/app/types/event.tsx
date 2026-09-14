@@ -3,6 +3,7 @@ import type {CloudResourceContext} from '@sentry/core';
 import type {AppContext} from 'sentry/components/events/contexts/knownContext/app';
 import type {CultureContext} from 'sentry/components/events/contexts/knownContext/culture';
 import type {MissingInstrumentationContext} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
+import type {WERContext} from 'sentry/components/events/contexts/knownContext/wer';
 import type {
   AggregateSpanType,
   RawSpanType,
@@ -218,6 +219,11 @@ export type EventMetadata = {
   message?: string;
   origin?: string;
   stripped_crash?: boolean;
+  /**
+   * Set when the SDK fabricated the exception to carry a stacktrace. Its `type` is then a
+   * platform label (`SIGSEGV`, `AppHang`) rather than the identity of what went wrong.
+   */
+  synthetic?: boolean;
   title?: string;
   type?: string;
   uri?: string;
@@ -666,6 +672,7 @@ export type EventContexts = {
   threadpool_info?: ThreadPoolInfoContext;
   trace?: TraceContextType;
   unity?: UnityContext;
+  wer?: WERContext;
 };
 
 export type Measurement = {value: number; type?: string; unit?: string};
@@ -765,6 +772,7 @@ interface EventBase {
   dateCreated?: string;
   device?: Record<string, any>;
   endTimestamp?: number;
+  formatted?: {content: string; format: string};
   groupID?: string;
   groupingConfig?: {
     enhancements: string;

@@ -111,7 +111,7 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
             )}
             {showEmptyState && (
               <StyledPanelItem span={6} overflow>
-                <EmptyStateWarning withIcon>
+                <EmptyStateWarning>
                   <EmptyStateText size="xl">{t('No trace results found')}</EmptyStateText>
                   <EmptyStateText size="md">
                     {tct('Try adjusting your filters or refer to [docSearchProps].', {

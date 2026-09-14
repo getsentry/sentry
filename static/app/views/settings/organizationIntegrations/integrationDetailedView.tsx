@@ -7,10 +7,12 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
@@ -19,7 +21,11 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
+import type {
+  Integration,
+  IntegrationProvider,
+  OrganizationIntegration,
+} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -109,6 +115,12 @@ function makeIntegrationQueryKey({
 }
 
 const tabs: IntegrationTab[] = ['overview', 'configurations', 'features'];
+const tabsWithoutFeatures = tabs.filter(tab => tab !== 'features');
+const tabTitles: Record<IntegrationTab, string> = {
+  overview: t('Overview'),
+  configurations: t('Configurations'),
+  features: t('Features'),
+};
 
 export default function IntegrationDetailedView() {
   const queryClient = useQueryClient();
@@ -147,7 +159,7 @@ export default function IntegrationDetailedView() {
     isPending: isConfigurationsPending,
     isFetching: isConfigurationsFetching,
     isError: isConfigurationsError,
-  } = useApiQuery<Integration[]>(
+  } = useApiQuery<OrganizationIntegration[]>(
     makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
     {
       staleTime: 0,
@@ -157,6 +169,10 @@ export default function IntegrationDetailedView() {
 
   const integrationType = 'first_party';
   const provider = information?.providers[0];
+  const displayTabs =
+    !provider || integrationFeatures.includes(provider.key) ? tabs : tabsWithoutFeatures;
+  const displayedTab = displayTabs.includes(activeTab) ? activeTab : 'overview';
+
   const description = provider?.metadata.description ?? '';
   const author = provider?.metadata.author ?? '';
   const resourceLinks = useMemo(() => {
@@ -208,6 +224,11 @@ export default function IntegrationDetailedView() {
     return 'Not Installed';
   }, [configurations]);
   const integrationName = provider?.name ?? '';
+  const navigationTabTitle = (
+    <Layout.Title>
+      <Text as="span">{tabTitles[displayedTab]}</Text>
+    </Layout.Title>
+  );
   const featureData = useMemo(() => {
     return provider?.metadata.features ?? [];
   }, [provider]);
@@ -228,18 +249,14 @@ export default function IntegrationDetailedView() {
   );
 
   const renderTabs = useCallback(() => {
-    const displayTabs = integrationFeatures.includes(provider?.key ?? '')
-      ? tabs
-      : tabs.filter(tab => tab !== 'features');
-
     return (
       <IntegrationLayout.Tabs
         tabs={displayTabs}
-        activeTab={activeTab}
+        activeTab={displayedTab}
         onTabChange={onTabChange}
       />
     );
-  }, [provider, activeTab, onTabChange]);
+  }, [displayTabs, displayedTab, onTabChange]);
 
   useAutoOpenPermissionsModal({
     provider,
@@ -273,10 +290,13 @@ export default function IntegrationDetailedView() {
   );
 
   const {mutate: onRemove} = useMutation({
-    mutationFn: (integration: Integration) =>
+    mutationFn: (integration: OrganizationIntegration) =>
       fetchMutation({
         method: 'DELETE',
-        url: `/organizations/${organization.slug}/integrations/${integration.id}/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
+          {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
+        ),
       }),
     onMutate: async integration => {
       const queryKey = makeIntegrationQueryKey({
@@ -286,12 +306,12 @@ export default function IntegrationDetailedView() {
       // Cancel in-flight refetches so they can't clobber the optimistic update.
       await queryClient.cancelQueries({queryKey});
 
-      const previousConfigurations = getApiQueryData<Integration[]>(
+      const previousConfigurations = getApiQueryData<OrganizationIntegration[]>(
         queryClient,
         queryKey
       );
 
-      setApiQueryData<Integration[]>(queryClient, queryKey, current =>
+      setApiQueryData<OrganizationIntegration[]>(queryClient, queryKey, current =>
         (current ?? []).map(config =>
           config.id === integration.id
             ? {
@@ -306,7 +326,7 @@ export default function IntegrationDetailedView() {
     },
     onError: (_error, _integration, context) => {
       if (context?.previousConfigurations) {
-        setApiQueryData<Integration[]>(
+        setApiQueryData<OrganizationIntegration[]>(
           queryClient,
           makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
           context.previousConfigurations
@@ -322,7 +342,7 @@ export default function IntegrationDetailedView() {
     },
   });
 
-  const onDisable = useCallback((integration: Integration) => {
+  const onDisable = useCallback((integration: OrganizationIntegration) => {
     let url: string;
 
     if (!integration.domainName) {
@@ -527,7 +547,12 @@ export default function IntegrationDetailedView() {
   }, [organization, provider, configurations, orgMutationOptions]);
 
   if (isInformationPending || isConfigurationsPending) {
-    return <LoadingIndicator />;
+    return (
+      <Fragment>
+        {navigationTabTitle}
+        <LoadingIndicator />
+      </Fragment>
+    );
   }
 
   if (isInformationError || isConfigurationsError) {
@@ -589,6 +614,7 @@ export default function IntegrationDetailedView() {
 
   return (
     <SentryDocumentTitle title={integrationName}>
+      {navigationTabTitle}
       <IntegrationLayout.Body
         integrationName={integrationName}
         alert={<FirstPartyIntegrationAlert integrations={configurations} hideCTA />}
@@ -613,7 +639,7 @@ export default function IntegrationDetailedView() {
         }
         tabs={renderTabs()}
         content={
-          activeTab === 'overview' ? (
+          displayedTab === 'overview' ? (
             <IntegrationLayout.InformationCard
               integrationSlug={integrationSlug}
               description={description}
@@ -632,7 +658,7 @@ export default function IntegrationDetailedView() {
               resourceLinks={resourceLinks}
               permissions={null}
             />
-          ) : activeTab === 'configurations' ? (
+          ) : displayedTab === 'configurations' ? (
             renderConfigurations()
           ) : (
             renderFeatures()

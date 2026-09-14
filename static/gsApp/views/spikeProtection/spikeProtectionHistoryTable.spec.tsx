@@ -106,7 +106,7 @@ describe('SpikeProtectionHistoryTable', () => {
     screen.getByText('1.3M');
     screen.getByText('500K');
 
-    const headers = screen.getAllByTestId('table-header');
+    const headers = screen.getAllByRole('columnheader');
     expect(headers).toHaveLength(5);
 
     const discoverLink = screen.getByTestId('spike-protection-discover-button');

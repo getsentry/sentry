@@ -8,7 +8,7 @@ from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -56,7 +56,10 @@ class IntegrationIssueSerializer(IntegrationSerializer):
         issues_by_integration = defaultdict(list)
         for ei in external_issues:
             # TODO(jess): move into an external issue serializer?
-            integration = integration_service.get_integration(integration_id=ei.integration_id)
+            integration = integration_service.get_integration(
+                integration_id=ei.integration_id,
+                using_replica=options.get("integration_service.get_integration.using_replica"),
+            )
             if integration is None:
                 continue
             installation = integration.get_installation(organization_id=self.group.organization.id)

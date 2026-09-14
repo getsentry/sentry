@@ -9,7 +9,7 @@ import {Container} from '@sentry/scraps/layout';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import {Legend} from 'sentry/components/charts/components/legend';
+import {legend as makeLegend} from 'sentry/components/charts/components/legend';
 import {MarkArea} from 'sentry/components/charts/components/markArea';
 import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
 import {getInterval, type DateTimeObject} from 'sentry/components/charts/utils';
@@ -740,7 +740,7 @@ export const CustomerStats = memo(function CustomerStatsComponent({
                       .map(serie => serie.color)
                       .filter(defined)}
                     tooltip={{subLabels}}
-                    legend={Legend({
+                    legend={makeLegend({
                       right: 10,
                       top: 0,
                       data: legend,

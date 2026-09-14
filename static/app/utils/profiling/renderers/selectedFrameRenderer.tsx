@@ -12,25 +12,22 @@ class SelectedFrameRenderer {
     this.context = getContext(canvas, '2d');
   }
 
-  // We allow for passing of different contexts, this allows us to use a
-  // single instance of the renderer to draw overlays on multiple canvases
   draw(
     frames: Rect[],
     style: {BORDER_COLOR: string; BORDER_WIDTH: number},
-    configViewToPhysicalSpace: mat3,
-    context: CanvasRenderingContext2D = this.context
+    configViewToPhysicalSpace: mat3
   ): void {
-    context.strokeStyle = style.BORDER_COLOR;
-    context.lineWidth = style.BORDER_WIDTH;
+    this.context.strokeStyle = style.BORDER_COLOR;
+    this.context.lineWidth = style.BORDER_WIDTH;
 
     for (const frame of frames) {
       const frameInPhysicalSpace = frame.transformRect(configViewToPhysicalSpace);
 
-      context.beginPath();
+      this.context.beginPath();
 
       // We draw the border in the center of the flamegraph, so we need to decrease
       // the width by border width and negatively offset it by half the border width
-      context.strokeRect(
+      this.context.strokeRect(
         frameInPhysicalSpace.x + style.BORDER_WIDTH,
         frameInPhysicalSpace.y + style.BORDER_WIDTH,
         frameInPhysicalSpace.width - style.BORDER_WIDTH * 2,

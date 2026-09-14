@@ -8,7 +8,9 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 
+import {getBootstrapProjectsQueryOptions} from 'sentry/bootstrap/bootstrapRequests';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -37,6 +39,16 @@ export function replayRecordApiOptions({
       staleTime: Infinity,
     }
   );
+}
+
+/**
+ * Hoisted so the identity stays stable across renders. TanStack Query only
+ * reuses a cached `select` result while the function reference is unchanged,
+ * and re-running this one yields a fresh object every time: `ReplayRecord`
+ * holds `Date` and `Duration` values, which structural sharing cannot dedupe.
+ */
+function selectReplayRecord(data: ApiResponse<{data: unknown}>) {
+  return data.json.data ? mapResponseToReplayRecord(data.json.data) : undefined;
 }
 
 export function replayAttachmentsApiOptions({
@@ -152,19 +164,20 @@ export function useReplayData({
   // partial types or nullable fields.
   // We're overfetching for sure.
   const {
-    data: replayData,
+    data: replayRecord,
     status: fetchReplayStatus,
     error: fetchReplayError,
   } = useQuery({
     ...replayRecordApiOptions({organizationIdOrSlug: orgSlug, replayId}),
     retry: false,
+    select: selectReplayRecord,
   });
-  const replayRecord = useMemo(
-    () => (replayData?.data ? mapResponseToReplayRecord(replayData.data) : undefined),
-    [replayData?.data]
-  );
 
   const projectSlug = useReplayProjectSlug({replayRecord});
+  const {isPending: isFetchingProjects} = useQuery(
+    getBootstrapProjectsQueryOptions(orgSlug)
+  );
+  const isResolvingProjectSlug = !!replayRecord && !projectSlug && isFetchingProjects;
 
   const getAttachmentsQueryOptions = useCallback(
     ({cursor, per_page}: {cursor: string; per_page: number}) =>
@@ -397,6 +410,7 @@ export function useReplayData({
 
   const allStatuses = [
     replayId ? fetchReplayStatus : undefined,
+    isResolvingProjectSlug ? 'pending' : undefined,
     enableAttachments ? fetchAttachmentsStatus : undefined,
     enableErrors ? fetchErrorsStatus : undefined,
     enableExtraErrors ? fetchExtraErrorsStatus : undefined,

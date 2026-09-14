@@ -13,14 +13,18 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {
   extractSpanURLString,
   formatChangingQueryParameters,
   getSpanDuration,
   getSpanFieldBytes,
 } from 'sentry/components/events/interfaces/performance/spanMetrics';
-import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
+import {
+  getSpanCategory,
+  getSpanHash,
+  getSpanInfoFromTransactionEvent,
+  getSpanSentryGroupValue,
+} from 'sentry/components/events/interfaces/performance/utils';
 import type {
   ProcessedSpanType,
   RawSpanType,
@@ -31,6 +35,7 @@ import {
   SpanSubTimingName,
 } from 'sentry/components/events/interfaces/spans/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import type {Entry, EntryRequest, Event, EventTransaction} from 'sentry/types/event';
@@ -44,6 +49,7 @@ import {
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
+import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {toRoundedPercent} from 'sentry/utils/number/toRoundedPercent';
 import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -184,14 +190,16 @@ function NPlusOneDBQueriesSpanEvidence({
   location,
 }: SpanEvidenceKeyValueListProps) {
   const dbSpans = offendingSpans.filter(span => (span.op || '').startsWith('db'));
-  const repeatingSpanRows = dbSpans
-    .filter(span => offendingSpans.find(s => s.hash === span.hash) === span)
-    .map((span, i) =>
-      makeRow(
-        i === 0 ? t('Repeating Spans (%s)', dbSpans.length) : '',
-        getSpanEvidenceValue(span)
-      )
-    );
+  // Our hashing calculation parameterizes query literals, so two spans running the same query with
+  // different values will share a hash value. Dedupe by hash so we only get one representative of
+  // each query.
+  const repeatingSpanRows = dedupeSpansByHash(dbSpans).map((span, i) =>
+    makeRow(
+      // Only the first row carries the label; the rest render bare beneath it.
+      i === 0 ? t('Repeating Spans (%s)', dbSpans.length) : '',
+      getSpanEvidenceValue(span)
+    )
+  );
   const evidenceData = event?.occurrence?.evidenceData ?? {};
   const patternSize = evidenceData.patternSize ?? 0;
 
@@ -309,11 +317,9 @@ function MainThreadFunctionEvidence({
 }
 
 function RegressionEvidence({event, issueType}: SpanEvidenceKeyValueListProps) {
-  const organization = useOrganization();
   const data = useMemo(
-    () =>
-      issueType ? getRegressionIssueKeyValueList(organization, issueType, event) : null,
-    [organization, event, issueType]
+    () => (issueType ? getRegressionIssueKeyValueList(issueType, event) : null),
+    [event, issueType]
   );
   return data ? <PresortedKeyValueList data={data} /> : null;
 }
@@ -423,7 +429,6 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.PERFORMANCE_CONSECUTIVE_HTTP]: ConsecutiveHTTPSpanEvidence,
   [IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD]: LargeHTTPPayloadSpanEvidence,
   [IssueType.PERFORMANCE_HTTP_OVERHEAD]: HTTPOverheadSpanEvidence,
-  [IssueType.PERFORMANCE_ENDPOINT_REGRESSION]: RegressionEvidence,
   [IssueType.PROFILE_FILE_IO_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_JSON_DECODE_MAIN_THREAD]: MainThreadFunctionEvidence,
@@ -506,9 +511,11 @@ function SlowDBQueryEvidence({
   location,
 }: SpanEvidenceKeyValueListProps) {
   const span = offendingSpans[0]!;
-  const sentryTags = 'sentry_tags' in span ? span.sentry_tags : undefined;
-  const groupHash = sentryTags?.group ?? span.hash ?? '';
   const hasExplore = organization.features.includes('visibility-explore-view');
+
+  const codeFilepath = getAttributeValue(span.data ?? {}, 'code.file.path', 'string');
+  const codeLineNumber = getAttributeValue(span.data ?? {}, 'code.line.number', 'number');
+  const codeFunction = getAttributeValue(span.data ?? {}, 'code.function', 'string');
 
   const queryValue = (
     <QueryCard>
@@ -518,14 +525,14 @@ function SlowDBQueryEvidence({
             {formatter.toString(span.description ?? '')}
           </StyledCodeSnippet>
         </NoPaddingClippedBox>
-        {span.data?.['code.filepath'] ? (
+        {codeFilepath ? (
           <StackTraceMiniFrame
             projectId={event.projectID}
             event={event}
             frame={{
-              filename: span.data['code.filepath'],
-              lineNo: span.data['code.lineno'],
-              function: span.data['code.function'],
+              filename: codeFilepath,
+              lineNo: codeLineNumber === undefined ? undefined : Number(codeLineNumber),
+              function: codeFunction,
             }}
           />
         ) : (
@@ -535,8 +542,8 @@ function SlowDBQueryEvidence({
       <Flex gap="md" padding="md lg" borderTop="muted">
         <SpanSummaryLink
           op={span.op}
-          category={sentryTags?.category}
-          group={groupHash}
+          category={getSpanCategory(span)}
+          group={getSpanSentryGroupValue(span)}
           organization={organization}
         />
         {hasExplore && span.description && (
@@ -561,7 +568,8 @@ function SlowDBQueryEvidence({
   );
 
   return (
-    <KeyValueList
+    <KeyValueTableDataList
+      margin
       shouldSort={false}
       data={[
         makeTransactionNameRow(event, organization, location, projectSlug),
@@ -653,7 +661,7 @@ function DefaultSpanEvidence({
 }
 
 function PresortedKeyValueList({data}: {data: KeyValueListData}) {
-  return <KeyValueList shouldSort={false} data={data} />;
+  return <KeyValueTableDataList margin shouldSort={false} data={data} />;
 }
 
 const makeTransactionNameRow = (
@@ -747,6 +755,24 @@ const StyledCodeSnippet = styled(CodeBlock)`
 
   z-index: 0;
 `;
+
+function dedupeSpansByHash(spans: Span[]): Span[] {
+  const hashesSeen = new Set<Span['hash']>();
+
+  // Only keep spans whose hashes we haven't yet seen, tracking the ones we have seen as we go
+  const shouldKeepSpan = (span: Span) => {
+    const hash = getSpanHash(span);
+
+    if (hashesSeen.has(hash)) {
+      return false;
+    }
+
+    hashesSeen.add(hash);
+    return true;
+  };
+
+  return spans.filter(shouldKeepSpan);
+}
 
 const getConsecutiveDbTimeSaved = (
   consecutiveSpans: Span[],

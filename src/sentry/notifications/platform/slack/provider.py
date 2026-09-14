@@ -38,6 +38,7 @@ from sentry.notifications.platform.types import (
     NotificationRenderedTemplate,
     NotificationSection,
     NotificationSectionType,
+    NotificationSource,
     NotificationTarget,
     NotificationTargetResourceType,
     NotificationTextBlock,
@@ -154,8 +155,13 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
             SlackMetricAlertRenderer,
         )
         from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
+        from sentry.notifications.platform.slack.renderers.seer_agent_write_approval import (
+            SeerAgentWriteApprovalSlackRenderer,
+        )
 
         if category == NotificationCategory.SEER:
+            if data.source == NotificationSource.SEER_AGENT_WRITE_APPROVAL:
+                return SeerAgentWriteApprovalSlackRenderer
             return SeerSlackRenderer
         if category == NotificationCategory.ISSUE:
             return IssueSlackRenderer

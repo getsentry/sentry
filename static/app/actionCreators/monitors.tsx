@@ -8,17 +8,30 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import type {Monitor, ProcessingErrorType} from 'sentry/views/insights/crons/types';
+
+function getMonitorUrl(orgId: string, projectId: string, monitorId: string) {
+  return getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/monitors/$monitorIdOrSlug/',
+    {
+      path: {
+        organizationIdOrSlug: orgId,
+        projectIdOrSlug: projectId,
+        monitorIdOrSlug: monitorId,
+      },
+    }
+  );
+}
 
 export async function deleteMonitor(api: Client, orgId: string, monitor: Monitor) {
   addLoadingMessage(t('Deleting Monitor...'));
 
   try {
-    await api.requestPromise(
-      `/projects/${orgId}/${monitor.project.slug}/monitors/${monitor.slug}/`,
-      {method: 'DELETE'}
-    );
+    await api.requestPromise(getMonitorUrl(orgId, monitor.project.slug, monitor.slug), {
+      method: 'DELETE',
+    });
     clearIndicators();
   } catch {
     addErrorMessage(t('Unable to remove monitor.'));
@@ -34,13 +47,10 @@ export async function deleteMonitorEnvironment(
   addLoadingMessage(t('Deleting Environment...'));
 
   try {
-    await api.requestPromise(
-      `/projects/${orgId}/${monitor.project.slug}/monitors/${monitor.slug}/`,
-      {
-        method: 'DELETE',
-        query: {environment},
-      }
-    );
+    await api.requestPromise(getMonitorUrl(orgId, monitor.project.slug, monitor.slug), {
+      method: 'DELETE',
+      query: {environment},
+    });
     clearIndicators();
     return true;
   } catch {
@@ -59,7 +69,7 @@ export async function updateMonitor(
 
   try {
     const resp = await api.requestPromise(
-      `/projects/${orgId}/${monitor.project.slug}/monitors/${monitor.slug}/`,
+      getMonitorUrl(orgId, monitor.project.slug, monitor.slug),
       {method: 'PUT', data}
     );
     clearIndicators();
@@ -101,7 +111,17 @@ export async function setEnvironmentIsMuted(
 
   try {
     const resp = await api.requestPromise(
-      `/projects/${orgId}/${monitor.project.slug}/monitors/${monitor.slug}/environments/${environment}/`,
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/monitors/$monitorIdOrSlug/environments/$environment/',
+        {
+          path: {
+            organizationIdOrSlug: orgId,
+            projectIdOrSlug: monitor.project.slug,
+            monitorIdOrSlug: monitor.slug,
+            environment,
+          },
+        }
+      ),
       {method: 'PUT', data: {isMuted}}
     );
     clearIndicators();
@@ -127,7 +147,16 @@ export async function deleteMonitorProcessingErrorByType(
 
   try {
     await api.requestPromise(
-      `/projects/${orgId}/${projectId}/monitors/${monitorSlug}/processing-errors/`,
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/monitors/$monitorIdOrSlug/processing-errors/',
+        {
+          path: {
+            organizationIdOrSlug: orgId,
+            projectIdOrSlug: projectId,
+            monitorIdOrSlug: monitorSlug,
+          },
+        }
+      ),
       {
         method: 'DELETE',
         query: {errortype},
@@ -153,10 +182,15 @@ export async function deleteProjectProcessingErrorByType(
   addLoadingMessage();
 
   try {
-    await api.requestPromise(`/projects/${orgId}/${projectId}/processing-errors/`, {
-      method: 'DELETE',
-      query: {errortype},
-    });
+    await api.requestPromise(
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/processing-errors/', {
+        path: {organizationIdOrSlug: orgId, projectIdOrSlug: projectId},
+      }),
+      {
+        method: 'DELETE',
+        query: {errortype},
+      }
+    );
     clearIndicators();
   } catch (err: any) {
     Sentry.captureException(err);

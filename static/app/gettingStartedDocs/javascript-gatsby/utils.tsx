@@ -39,12 +39,6 @@ const getIntegrations = (params: DocsParams): string[] => {
 const getDynamicParts = (params: DocsParams): string[] => {
   const dynamicParts: string[] = [];
 
-  if (params.isLogsSelected) {
-    dynamicParts.push(`
-      // Enable sending logs to Sentry
-      enableLogs: true`);
-  }
-
   if (params.isReplaySelected) {
     dynamicParts.push(`
       // Session Replay

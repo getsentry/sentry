@@ -96,6 +96,9 @@ class MsTeamsIntegration(IntegrationInstallation, IntegrationNotificationClient)
     def get_client(self) -> MsTeamsClient:
         return MsTeamsClient(self.model)
 
+    def get_config_data(self) -> Mapping[str, str]:
+        return {"installationType": self.model.metadata.get("installation_type", "")}
+
     def send_notification(
         self, target: IntegrationNotificationTarget, payload: AdaptiveCard
     ) -> None:

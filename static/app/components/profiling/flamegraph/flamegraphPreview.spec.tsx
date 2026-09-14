@@ -84,6 +84,45 @@ describe('computePreviewConfigView', () => {
     expect(mode).toBe('anchorBottom');
   });
 
+  it('anchors at the root when asked to', () => {
+    const rawProfile: Profiling.SampledProfile = {
+      name: 'profile',
+      startValue: 0,
+      endValue: 1000,
+      unit: 'milliseconds',
+      threadID: 0,
+      type: 'sampled',
+      weights: [1, 1],
+      samples: [
+        [0, 1, 0],
+        [1, 0, 1],
+      ],
+    };
+
+    const profile = SampledProfile.FromProfile(
+      rawProfile,
+      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
+      {type: 'flamechart'}
+    );
+
+    const flamegraph = new Flamegraph(profile, {});
+
+    // the same too-short view as 'uses max depth', which lands on y = 1
+    const configView = new Rect(0, 0, 2, 2);
+
+    const {configView: previewConfigView, mode} = computePreviewConfigView(
+      flamegraph,
+      configView,
+      0,
+      2,
+      {anchorAtRoot: true}
+    );
+
+    // ...but a whole-profile preview wants the wide root frames, not the leaves
+    expect(previewConfigView).toEqual(new Rect(0, 0, 2, 2));
+    expect(mode).toBe('anchorTop');
+  });
+
   it('uses max depth in window', () => {
     const rawProfile: Profiling.SampledProfile = {
       name: 'profile',

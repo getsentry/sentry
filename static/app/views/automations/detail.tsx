@@ -8,7 +8,6 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {DateTime} from 'sentry/components/dateTime';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -16,6 +15,7 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {KeyValueTable, KeyValueTableRow} from 'sentry/components/tables/keyValueTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
@@ -186,7 +186,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
             </DetailSection>
             <DetailSection title={t('Details')}>
               <ErrorBoundary mini>
-                <KeyValueTable>
+                <KeyValueTable margin>
                   <KeyValueTableRow
                     keyName={t('Date created')}
                     value={<DateTime date={automation.dateCreated} dateOnly year />}
@@ -280,14 +280,14 @@ function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
         onClick={toggleDisabled}
         busy={isUpdating}
         disabled={!canEdit}
-        tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+        tooltipProps={{title: permissionTooltipText}}
       >
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
       <LinkButton
         to={makeAutomationEditPathname(organization.slug, automation.id)}
         disabled={!canEdit}
-        tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+        tooltipProps={{title: permissionTooltipText}}
         variant="primary"
         icon={<IconEdit />}
         size={size}

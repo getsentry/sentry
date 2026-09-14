@@ -46,11 +46,11 @@ export function getWidgetMetricsUrl(
             groupBy: col,
           }));
           const queryString =
-            applyDashboardFilters(
-              query.conditions,
+            applyDashboardFilters({
+              baseQuery: query.conditions,
               dashboardFilters,
-              widget.widgetType
-            ) ?? '';
+              widgetType: widget.widgetType,
+            }) ?? '';
 
           const parsed = parseAggregateExpression(aggregate, queryString);
           const results: BaseMetricQuery[] = [...parsed.metricQueries];
@@ -71,8 +71,11 @@ export function getWidgetMetricsUrl(
 
       return widget.queries.map(query => {
         const queryString =
-          applyDashboardFilters(query.conditions, dashboardFilters, widget.widgetType) ??
-          '';
+          applyDashboardFilters({
+            baseQuery: query.conditions,
+            dashboardFilters,
+            widgetType: widget.widgetType,
+          }) ?? '';
 
         const groupByFields: GroupBy[] = query.columns.map((col): GroupBy => ({
           groupBy: col,

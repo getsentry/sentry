@@ -22,6 +22,14 @@ from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.types import DatasetQuery
 from sentry.utils.snuba import SnubaTSResult
 
+# Generic metrics performance data is deprecated for ordinary MEP queries.
+# Only keep the metrics path when on-demand metrics extraction is requested.
+DATASET_REASON = "generic metrics performance queries are disabled"
+
+
+def _should_use_metrics(on_demand_metrics_enabled: bool) -> bool:
+    return on_demand_metrics_enabled
+
 
 def query(
     selected_columns: list[str],
@@ -50,7 +58,7 @@ def query(
     *,
     referrer: str,
 ) -> EventsResponse:
-    metrics_compatible = not equations
+    metrics_compatible = _should_use_metrics(on_demand_metrics_enabled) and not equations
     dataset_reason = discover.DEFAULT_DATASET_REASON
 
     if metrics_compatible:
@@ -88,8 +96,10 @@ def query(
             sentry_sdk.set_attribute("performance.mep_incompatible", str(error))
             dataset_reason = str(error)
             metrics_compatible = False
+    else:
+        dataset_reason = DATASET_REASON
 
-    # Either metrics failed, or this isn't a query we can enhance with metrics
+    # Either metrics failed, metrics are disabled, or this isn't a query we can enhance with metrics
     if not metrics_compatible:
         dataset_query: DatasetQuery = discover.query
         if fallback_to_transactions:
@@ -151,7 +161,7 @@ def timeseries_query(
     this API should match that of sentry.snuba.discover.timeseries_query
     """
     equations, columns = categorize_columns(selected_columns)
-    metrics_compatible = not equations
+    metrics_compatible = _should_use_metrics(on_demand_metrics_enabled) and not equations
 
     if metrics_compatible:
         try:
@@ -241,10 +251,8 @@ def top_events_timeseries(
     *,
     referrer: str,
 ) -> SnubaTSResult | dict[str, Any]:
-    metrics_compatible = False
     equations, _ = categorize_columns(selected_columns)
-    if not equations:
-        metrics_compatible = True
+    metrics_compatible = _should_use_metrics(on_demand_metrics_enabled) and not equations
 
     if metrics_compatible:
         try:
@@ -349,7 +357,7 @@ def histogram_query(
     this API should match that of sentry.snuba.discover.histogram_query
     """
     # Must need to normalize results to be MEP
-    metrics_compatible = normalize_results
+    metrics_compatible = _should_use_metrics(on_demand_metrics_enabled) and normalize_results
     if metrics_compatible:
         try:
             return metrics_histogram_query(

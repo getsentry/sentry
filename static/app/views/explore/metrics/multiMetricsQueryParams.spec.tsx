@@ -84,6 +84,14 @@ describe('MultiMetricsQueryParamsProvider', () => {
       }),
     ]);
 
+    act(() =>
+      result.current[0]!.setQueryParams(
+        result.current[0]!.queryParams.replace({
+          aggregateFields: [new VisualizeFunction('p50(value,foo,counter,none)')],
+        })
+      )
+    );
+
     act(() => result.current[0]!.setTraceMetric({name: 'bar', type: 'gauge'}));
     expect(result.current).toEqual([
       expect.objectContaining({
@@ -110,19 +118,19 @@ describe('MultiMetricsQueryParamsProvider', () => {
       additionalWrapper: Wrapper,
     });
 
-    act(() => result.current[0]!.setTraceMetric({name: 'foo', type: 'counter'}));
+    act(() => result.current[0]!.setTraceMetric({name: 'foo', type: 'distribution'}));
     act(() =>
       result.current[0]!.setQueryParams(
         result.current[0]!.queryParams.replace({
-          aggregateFields: [new VisualizeFunction('sum(value,foo,counter,none)')],
+          aggregateFields: [new VisualizeFunction('p50(value,foo,distribution,none)')],
         })
       )
     );
     expect(result.current).toEqual([
       expect.objectContaining({
-        metric: {name: 'foo', type: 'counter'},
+        metric: {name: 'foo', type: 'distribution'},
         queryParams: expect.objectContaining({
-          aggregateFields: [new VisualizeFunction('sum(value,foo,counter,none)')],
+          aggregateFields: [new VisualizeFunction('p50(value,foo,distribution,none)')],
         }),
       }),
     ]);
@@ -185,6 +193,56 @@ describe('MultiMetricsQueryParamsProvider', () => {
         metric: {name: 'foo', type: 'counter'},
         queryParams: expect.objectContaining({
           aggregateFields: [new VisualizeFunction('sum(value,foo,counter,none)')],
+        }),
+      }),
+    ]);
+  });
+
+  it('keeps sum when changing to a gauge metric', () => {
+    const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
+      additionalWrapper: Wrapper,
+    });
+
+    act(() => result.current[0]!.setTraceMetric({name: 'foo', type: 'counter'}));
+    act(() =>
+      result.current[0]!.setQueryParams(
+        result.current[0]!.queryParams.replace({
+          aggregateFields: [new VisualizeFunction('sum(value,foo,counter,none)')],
+        })
+      )
+    );
+
+    act(() => result.current[0]!.setTraceMetric({name: 'bar', type: 'gauge'}));
+    expect(result.current).toEqual([
+      expect.objectContaining({
+        metric: {name: 'bar', type: 'gauge'},
+        queryParams: expect.objectContaining({
+          aggregateFields: [new VisualizeFunction('sum(value,bar,gauge,none)')],
+        }),
+      }),
+    ]);
+  });
+
+  it('keeps count when changing to a gauge metric', () => {
+    const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
+      additionalWrapper: Wrapper,
+    });
+
+    act(() => result.current[0]!.setTraceMetric({name: 'foo', type: 'distribution'}));
+    act(() =>
+      result.current[0]!.setQueryParams(
+        result.current[0]!.queryParams.replace({
+          aggregateFields: [new VisualizeFunction('count(value,foo,distribution,none)')],
+        })
+      )
+    );
+
+    act(() => result.current[0]!.setTraceMetric({name: 'bar', type: 'gauge'}));
+    expect(result.current).toEqual([
+      expect.objectContaining({
+        metric: {name: 'bar', type: 'gauge'},
+        queryParams: expect.objectContaining({
+          aggregateFields: [new VisualizeFunction('count(value,bar,gauge,none)')],
         }),
       }),
     ]);
@@ -335,7 +393,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
                 query: '',
                 aggregateFields: [
                   new VisualizeFunction(
-                    'sum(value,metricA,distribution,none)'
+                    'p50(value,metricA,distribution,none)'
                   ).serialize(),
                 ],
                 aggregateSortBys: [],
@@ -368,7 +426,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
                 query: '',
                 aggregateFields: [
                   new VisualizeEquation(
-                    'equation|sum(value,metricA,distribution,none) + sum(value,metricB,distribution,none)'
+                    'equation|p50(value,metricA,distribution,none) + sum(value,metricB,distribution,none)'
                   ).serialize(),
                 ],
                 aggregateSortBys: [],
@@ -379,7 +437,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
                 query: '',
                 aggregateFields: [
                   new VisualizeEquation(
-                    'equation|sum(value,metricA,distribution,none) - sum(value,metricC,distribution,none)'
+                    'equation|p50(value,metricA,distribution,none) - sum(value,metricC,distribution,none)'
                   ).serialize(),
                 ],
                 aggregateSortBys: [],

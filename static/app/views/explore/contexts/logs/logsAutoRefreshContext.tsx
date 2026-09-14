@@ -53,14 +53,12 @@ export function useLogsAutoRefresh(): LogsAutoRefreshContextValue {
 
 interface LogsAutoRefreshProviderProps {
   children: React.ReactNode;
-  _testContext?: Partial<LogsAutoRefreshContextValue>;
   isTableFrozen?: boolean;
 }
 
 export function LogsAutoRefreshProvider({
   children,
   isTableFrozen,
-  _testContext,
 }: LogsAutoRefreshProviderProps) {
   const location = useLocation();
   const [pausedAt, setPausedAt] = useState<number | undefined>(undefined);
@@ -96,7 +94,6 @@ export function LogsAutoRefreshProvider({
         pausedAt,
         setPausedAt,
         hasInitialized: hasInitialized.current,
-        ..._testContext,
       }}
     >
       {children}

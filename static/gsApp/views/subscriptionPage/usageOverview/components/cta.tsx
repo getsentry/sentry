@@ -4,6 +4,7 @@ import seerConfigMainImg from 'sentry-images/spot/seer-config-main.svg';
 import seerConfigSeerImg from 'sentry-images/spot/seer-config-seer.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -42,7 +43,7 @@ function Cta({
   subtitle: React.ReactNode;
   title: React.ReactNode;
   buttons?: React.ReactNode;
-  heightOverride?: string;
+  heightOverride?: CSS['height'];
   icon?: React.ReactNode;
 } & ({image: string; imageAlt: string} | {image?: never; imageAlt?: never})) {
   return (
@@ -50,7 +51,7 @@ function Cta({
       background="secondary"
       padding="xl"
       direction={isBanner ? 'row' : 'column'}
-      gap={isBanner ? {'screen:2xs': 'xl', 'screen:xl': '3xl'} : 'xl'}
+      gap={isBanner ? {zero: 'xl', '5xl': '3xl'} : 'xl'}
       borderBottom={isBanner ? 'primary' : undefined}
       radius={isBanner ? '0 0 md md' : 'md'}
       align="center"
@@ -69,9 +70,7 @@ function Cta({
         <Text bold align={isBanner ? 'left' : 'center'} size="lg" textWrap="balance">
           {title}
         </Text>
-        <Container
-          maxWidth={{'screen:2xs': '300px', 'screen:xl': isBanner ? 'unset' : '300px'}}
-        >
+        <Container maxWidth={{zero: '300px', '5xl': isBanner ? 'unset' : '300px'}}>
           <Text
             variant="muted"
             size="sm"
@@ -97,18 +96,17 @@ function Cta({
 
 function FindOutMoreButton({
   href,
-  to,
   selectedProduct,
 }: {
+  href: string;
   selectedProduct: DataCategory | AddOnCategory;
-} & ({href: string; to?: never} | {to: string; href?: never})) {
+}) {
   return (
     <LinkButton
       icon={<IconOpen />}
       variant="link"
       size="sm"
       href={href}
-      to={to ?? ''}
       analyticsEventName="Subscription Settings: Find Out More Button Clicked"
       analyticsEventKey="subscription_settings.find_out_more_button_clicked"
       analyticsParams={{product: selectedProduct}}

@@ -37,13 +37,6 @@ register(
 )
 
 register(
-    "outbox_replication.sentry_organizationmember_teams.replication_version",
-    type=Int,
-    default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "outbox_replication.sentry_apikey.replication_version",
     type=Int,
     default=0,
@@ -136,13 +129,6 @@ register(
 )
 
 register(
-    "outbox_replication.sentry_externalactor.replication_version",
-    type=Int,
-    default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "outbox_replication.sentry_projectkey.replication_version",
     type=Int,
     default=0,
@@ -160,6 +146,20 @@ register(
     "outbox_replication.sentry_apitoken.backfill.target_cells",
     type=Sequence,
     default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "hybrid_cloud.write_outbox_backfill_watermark_to_postgres",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "hybrid_cloud.read_outbox_backfill_watermark_from_postgres",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -204,6 +204,12 @@ register(
 )
 register(
     "apigateway.proxy.circuit-breaker.enforce",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "integration_service.get_integration.using_replica",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

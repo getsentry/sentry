@@ -81,3 +81,18 @@ def get_missing_github_app_permissions(
             )
 
     return missing_permissions or None
+
+
+def get_github_permissions_update_url(
+    installation_id: str, account_type: str | None, account_login: str
+) -> str | None:
+    if not installation_id:
+        return None
+    if account_type == "Organization":
+        if not account_login:
+            return None
+        return (
+            f"https://github.com/organizations/{account_login}"
+            f"/settings/installations/{installation_id}/permissions/update"
+        )
+    return f"https://github.com/settings/installations/{installation_id}/permissions/update"

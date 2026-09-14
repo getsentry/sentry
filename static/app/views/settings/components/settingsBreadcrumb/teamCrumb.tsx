@@ -12,7 +12,7 @@ import type {SettingsBreadcrumbProps} from 'sentry/views/settings/components/set
 import {BreadcrumbDropdown} from './breadcrumbDropdown';
 import {CrumbLink} from '.';
 
-export function TeamCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
+export function TeamCrumb({routes, route, isLast}: SettingsBreadcrumbProps) {
   const navigate = useNavigate();
   const {teams, onSearch, fetching} = useTeams();
   const params = useParams();
@@ -55,7 +55,7 @@ export function TeamCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
         label: `#${teamItem.slug}`,
       }))}
       loading={fetching}
-      {...props}
+      showDivider={!isLast}
     />
   );
 }

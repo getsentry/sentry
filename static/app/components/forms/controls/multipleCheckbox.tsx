@@ -4,14 +4,13 @@ import styled from '@emotion/styled';
 import noop from 'lodash/noop';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 type Props<T> = {
   children: ReactNode;
   name: string;
   value: T[];
   className?: string;
-  disabled?: boolean;
   onChange?: (value: T[], event: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
@@ -20,11 +19,9 @@ type CheckboxItemProps<T> = {
   value: T;
   className?: string;
   disabled?: boolean;
-  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
 type MultipleCheckboxContextValue<T> = {
-  disabled: Props<T>['disabled'];
   handleChange: (itemValue: T, event: React.ChangeEvent<HTMLInputElement>) => void;
   name: string;
   value: Props<T>['value'];
@@ -34,13 +31,11 @@ const MultipleCheckboxContext = createContext<MultipleCheckboxContextValue<any>>
   handleChange: noop,
   value: [],
   name: '',
-  disabled: false,
 });
 
 export function MultipleCheckbox<T extends string | number>({
   children,
   value,
-  disabled,
   onChange,
   name,
   className,
@@ -65,9 +60,8 @@ export function MultipleCheckbox<T extends string | number>({
       value,
       handleChange,
       name,
-      disabled,
     }),
-    [disabled, handleChange, name, value]
+    [handleChange, name, value]
   );
 
   return (
@@ -83,29 +77,30 @@ function Item<T extends string | number>({
   value: itemValue,
   children,
   disabled: itemDisabled,
-  onChange,
   className,
 }: CheckboxItemProps<T>) {
-  const {disabled, value, handleChange, name} = useContext<
-    MultipleCheckboxContextValue<T>
-  >(MultipleCheckboxContext);
+  const {value, handleChange, name} = useContext<MultipleCheckboxContextValue<T>>(
+    MultipleCheckboxContext
+  );
 
   return (
-    <LabelContainer className={className}>
+    <Container
+      className={className}
+      width={{zero: '100%', xl: '50%', '3xl': '33.333%', '4xl': '25%'}}
+    >
       <Label>
         <Checkbox
           name={name}
           checked={value.includes(itemValue)}
-          disabled={disabled || itemDisabled}
+          disabled={itemDisabled}
           onChange={e => {
             handleChange(itemValue, e);
-            onChange?.(e);
           }}
           value={value.toString()}
         />
         <CheckboxLabel>{children}</CheckboxLabel>
       </Label>
-    </LabelContainer>
+    </Container>
   );
 }
 
@@ -123,18 +118,4 @@ const Label = styled('label')`
 
 const CheckboxLabel = styled('span')`
   margin-left: ${p => p.theme.space.md};
-`;
-
-const LabelContainer = styled('div')`
-  width: 100%;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    width: 50%;
-  }
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    width: 33.333%;
-  }
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    width: 25%;
-  }
 `;

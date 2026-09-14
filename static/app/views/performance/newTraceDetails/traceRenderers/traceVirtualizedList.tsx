@@ -136,6 +136,7 @@ export const useVirtualizedList = (
       scrollContainerRef.current = props.container.children[0] as HTMLElement | null;
     }
 
+    // oxlint-disable-next-line react/immutability
     props.container.style.height = '100%';
     props.container.style.overflow = 'auto';
     props.container.style.position = 'relative';

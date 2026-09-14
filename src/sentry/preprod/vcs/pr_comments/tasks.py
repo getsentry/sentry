@@ -127,7 +127,6 @@ def create_preprod_pr_comment_task(
         log_prefix="preprod.pr_comments",
         enabled_option_key="sentry:preprod_distribution_pr_comments_enabled_by_customer",
         caller=caller,
-        feature_flag="organizations:preprod-build-distribution-pr-comments",
         with_build_configuration=True,
     )
     if ctx is None:

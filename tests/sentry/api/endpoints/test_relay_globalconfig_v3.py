@@ -43,17 +43,16 @@ def call_endpoint(client, relay, private_key):
         "relay.objectstore-attachments.sample-rate": 1.0,
         "relay.kafka.span-v2.sample-rate": 1.0,
         "relay.metric-bucket-distribution-encodings": {
-            "custom": "array",
             "profiles": "array",
             "spans": "array",
             "transactions": "array",
         },
         "relay.metric-bucket-set-encodings": {
-            "custom": "base64",
             "profiles": "base64",
             "spans": "base64",
             "transactions": "base64",
         },
+        "relay.attachment-inline.limit": 123,
     }
 )
 def test_global_config() -> None:

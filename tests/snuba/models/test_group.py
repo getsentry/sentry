@@ -366,7 +366,7 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
         # Filter by query
         conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
         assert _get_recommended(self.group, conditions=conditions).event_id == self.event_c.event_id
-        conditions = [Condition(Column("trace_id"), Op.IS_NULL)]
+        conditions = [Condition(Column("trace_id"), Op.EQ, Column("event_id"))]
         assert _get_recommended(self.group, conditions=conditions).event_id == self.event_a.event_id
 
         # Filter by date range
@@ -429,6 +429,28 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
             == self.event_b.event_id
         )
 
+    @patch("sentry.models.group.eventstore.backend.get_events_snql")
+    def test_recommended_event_inner_limit_with_and_without_replay_verification_feature_flag(
+        self, mock_get_events_snql: MagicMock
+    ) -> None:
+        mock_get_events_snql.return_value = []
+
+        def _helpful_inner_limit() -> int:
+            (helpful_call,) = [
+                call
+                for call in mock_get_events_snql.call_args_list
+                if call.kwargs["referrer"] == "Group.get_helpful"
+            ]
+            return helpful_call.kwargs["inner_limit"]
+
+        self.group.get_recommended_event(verify_replay_exists=True)
+        assert _helpful_inner_limit() == 10000
+
+        mock_get_events_snql.reset_mock()
+
+        self.group.get_recommended_event(verify_replay_exists=False)
+        assert _helpful_inner_limit() == 1000
+
     def test_normalize_replay_id_handles_dashed_and_dashless(self) -> None:
         assert (
             _normalize_replay_id("550e8400-e29b-41d4-a716-446655440000")
@@ -456,7 +478,7 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
         # Filter by query
         conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
         assert _get_latest(self.group, conditions=conditions).event_id == self.event_c.event_id
-        conditions = [Condition(Column("trace_id"), Op.IS_NULL)]
+        conditions = [Condition(Column("trace_id"), Op.EQ, Column("event_id"))]
         assert _get_latest(self.group, conditions=conditions).event_id == self.event_a.event_id
 
         # Filter by date range
@@ -486,7 +508,7 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
         # Filter by query
         conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
         assert _get_oldest(self.group, conditions=conditions).event_id == self.event_c.event_id
-        conditions = [Condition(Column("trace_id"), Op.IS_NULL)]
+        conditions = [Condition(Column("trace_id"), Op.EQ, Column("event_id"))]
         assert _get_oldest(self.group, conditions=conditions).event_id == self.event_a.event_id
 
         # Filter by date range

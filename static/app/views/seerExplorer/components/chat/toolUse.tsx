@@ -2,7 +2,12 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {MessageRow, ToolCallIndicator, type ToolCallStatus} from '@sentry/scraps/chat';
+import {
+  MessageRow,
+  ToolCall,
+  ToolCallIndicator,
+  type ToolCallStatus,
+} from '@sentry/scraps/chat';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {CodeBlock} from '@sentry/scraps/code';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -11,8 +16,13 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {AgentWriteApprovalProvider} from 'sentry/components/seer/markdown/embeds/components/agentWriteApproval';
+import {
+  RESOURCE_KIND_ICON,
+  type ResourceKind,
+} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -21,11 +31,17 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {
   callRecordDetail,
   callRecordFailure,
+  callRecordInputQuery,
   callRecordLabel,
-  callRecordLink,
+  fallbackCallLabel,
   callRecordStatus,
   visibleCallRecords,
 } from 'sentry/views/seerExplorer/callRecords';
+import {
+  resolveLink,
+  subjectFromCallRecord,
+  subjectFromToolLink,
+} from 'sentry/views/seerExplorer/links';
 import type {
   Block,
   CallRecord,
@@ -34,7 +50,6 @@ import type {
   ToolResult,
 } from 'sentry/views/seerExplorer/types';
 import {
-  buildToolLinkUrl,
   getToolsStringFromBlock,
   getValidToolLinks,
 } from 'sentry/views/seerExplorer/utils';
@@ -50,7 +65,22 @@ const LINK_STATUS_PARAMS = new Set(['is_error', 'empty_results']);
 // Code Mode's tool names cover every action it can take, so "Used sentry_api_execute tool" names
 // nothing. These rows are built from the calls the execute reported instead; the tool's own label
 // is never rendered, and a call that produced nothing to show renders no row at all.
-const CODE_MODE_TOOLS = new Set(['sentry_api_execute', 'sentry_api_search']);
+export const CODE_MODE_TOOLS = new Set(['sentry_api_execute', 'sentry_api_search']);
+
+// Which `ResourceKind` glyph a call row's reference chip shows, keyed by the `links.tsx` rule id
+// that resolved it (`linkKind`) — not every rule has a Telemetry Icons entry (`get_project_details`
+// falls back to the generic link icon below).
+const LINK_KIND_RESOURCE_KIND: Partial<Record<string, ResourceKind>> = {
+  get_issue_details: 'issue',
+  get_event_details: 'issue',
+  get_trace_waterfall: 'trace',
+  get_span_details: 'span',
+  get_replay_details: 'replay',
+  get_profile_flamegraph: 'profiling',
+  get_log_attributes: 'log',
+  get_metric_attributes: 'metrics',
+  telemetry_live_search: 'query',
+};
 
 // Identity for deduping a bus link against the positional row link. Params are sorted so the key
 // does not depend on object key order — today both channels derive params from the same object, but
@@ -63,6 +93,74 @@ function linkKey(link: ToolLink) {
     .map(k => `${k}=${JSON.stringify(params[k])}`)
     .join(',');
   return `${link.kind}:${sorted}`;
+}
+
+/**
+ * Whether `ToolCallList` will render anything for this block.
+ *
+ * `ToolCallList` suppresses a tool call that reported nothing, so a caller deciding whether to open
+ * a container around it cannot go by `tool_calls.length` — that opens an empty box.
+ *
+ * The same terms as the per-call `hasContent` guard below, plus the block's own running placeholder,
+ * and attributing progress and live rows the way the list does: only to a call that has not settled.
+ */
+export function blockRendersToolContent(block: Block, blocks?: Block[]): boolean {
+  const toolCalls = block.message.tool_calls ?? [];
+  if (!toolCalls.length) {
+    return false;
+  }
+  const results = block.tool_results ?? [];
+  const settledCallIds = new Set(results.flatMap(result => result?.tool_call_id ?? []));
+  const pendingCallIds = toolCalls.flatMap(toolCall =>
+    toolCall.id && !settledCallIds.has(toolCall.id) ? [toolCall.id] : []
+  );
+
+  if (findLatestTodos(blocks)?.block === block) {
+    return true;
+  }
+  // The placeholder the list renders after its rows, whether or not any row survived.
+  if (
+    block.loading &&
+    toolCalls.some(
+      toolCall =>
+        CODE_MODE_TOOLS.has(toolCall.function) &&
+        toolCall.id &&
+        !settledCallIds.has(toolCall.id)
+    )
+  ) {
+    return true;
+  }
+  // Live rows hang off the block, so the list can only attribute them to a lone pending call.
+  if (block.live_calls?.length && pendingCallIds.length === 1) {
+    return true;
+  }
+  // Progress narration stands in for rows until its call reports.
+  if (
+    (block.progress ?? []).some(
+      event =>
+        event?.token && event.message?.trim() && pendingCallIds.includes(event.token)
+    )
+  ) {
+    return true;
+  }
+  if (
+    results.some(result => {
+      const structured = result?.structuredContent;
+      return Boolean(
+        structured?.calls?.length ||
+        // Errored links render no row, and todos render only from the block holding the newest
+        // snapshot — already checked above. Counting either unfiltered reopens the empty box.
+        structured?.links?.some(link => link?.params?.is_error !== true) ||
+        (structured && result.content.trimStart().startsWith('{%'))
+      );
+    })
+  ) {
+    return true;
+  }
+  const toolsUsed = getToolsStringFromBlock(block);
+  return toolCalls.some(
+    (toolCall, idx) => !CODE_MODE_TOOLS.has(toolCall.function) && Boolean(toolsUsed[idx])
+  );
 }
 
 export function ToolUseBlock({
@@ -211,6 +309,20 @@ function useToolLinks(block: Block) {
   // The mirror lives on the block, not per tool call, so it can only be attributed to a call that
   // has not reported yet. With several still in flight there is no way to tell whose calls these
   // are, so it is shown on none of them rather than duplicated across all.
+  // Grouped by the call that emitted them: an event names its own, so unlike the mirror below
+  // several calls can be in flight and each still reports.
+  const progressForCallId = useMemo(() => {
+    const grouped = new Map<string, string[]>();
+    for (const event of block.progress ?? []) {
+      const message = event?.message?.trim();
+      if (!event?.token || !message) {
+        continue;
+      }
+      grouped.set(event.token, [...(grouped.get(event.token) ?? []), message]);
+    }
+    return grouped;
+  }, [block.progress]);
+
   const liveCallsForCallId = useMemo(() => {
     const calls = block.live_calls ?? [];
     if (!calls.length) {
@@ -234,6 +346,7 @@ function useToolLinks(block: Block) {
     structuredContentMarkdownByCallId,
     callRecordsByCallId,
     liveCallsForCallId,
+    progressForCallId,
     settledCallIds,
     organization,
     projects,
@@ -246,7 +359,7 @@ interface ToolCallListProps {
   getPageReferrer?: () => string;
 }
 
-function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
+export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
   const {
     sortedToolLinks,
     toolCallToLinkIndexMap,
@@ -256,6 +369,7 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
     structuredContentMarkdownByCallId,
     callRecordsByCallId,
     liveCallsForCallId,
+    progressForCallId,
     settledCallIds,
     organization,
     projects,
@@ -267,6 +381,29 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
   // Counts rows actually rendered, so the status tick lands on the first visible one rather than
   // on a Code Mode call that was suppressed.
   let rendered = 0;
+
+  // Whether any Code Mode call in this block is still running. Asked of the block rather than of
+  // each call: the placeholder says the block is working, so several in-flight calls warrant one
+  // spinner, not one each, and it belongs after every row rather than wherever the running call
+  // happens to sit in the list.
+  //
+  // Read off each call's own tool result rather than off `block.loading` alone, which stays true
+  // until every call responds. Loading is still required: a call that never reported at all (an
+  // interrupted run replayed from history) has no result either, and must not spin forever.
+  //
+  // An id is required to count as in flight, matching how `liveCallsForCallId` decides what is
+  // pending. Results are matched to calls by id, so a call without one can never be observed
+  // settling — treating it as running would spin for as long as the block claims to be loading.
+  // Seer synthesizes an id for every tool call, so this is a guard on the optional wire type
+  // rather than a case that is expected to arrive.
+  const isCodeModeRunning =
+    Boolean(block.loading) &&
+    (block.message.tool_calls ?? []).some(
+      toolCall =>
+        CODE_MODE_TOOLS.has(toolCall.function) &&
+        toolCall.id &&
+        !settledCallIds.has(toolCall.id)
+    );
 
   // `flatMap` into one row per call, each in its own MessageRow. How the run partitioned work into
   // blocks and tool calls is invisible to the reader, so it must not show up as spacing: one
@@ -283,7 +420,8 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           ? sortedToolLinks[correspondingLinkIndex]
           : undefined;
         const toolUrl = positionalLink
-          ? buildToolLinkUrl(positionalLink, organization, projects)
+          ? (resolveLink(subjectFromToolLink(positionalLink), {organization, projects})
+              ?.url ?? null)
           : null;
 
         // Both channels' links stop propagation (so the click doesn't reach the blocks
@@ -330,25 +468,18 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         const navItems = (toolCall.id ? (busLinksByCallId.get(toolCall.id) ?? []) : [])
           .filter(link => link.params?.is_error !== true)
           .filter(link => linkKey(link) !== positionalKey)
-          .map(link => ({
-            kind: link.kind,
-            label: navLinkLabel(link.kind),
-            url: buildToolLinkUrl(link, organization, projects),
-          }))
-          // Fail closed on both axes: drop a link we cannot build a URL for, and drop one we have
-          // no label for rather than falling back to the raw kind. An unsupported kind already has
-          // no URL builder, so the label check only bites if a builder is ever added without a
-          // label — the coverage test keeps those two sets in step, and this is the backstop that
-          // keeps an internal identifier off screen if it drifts anyway.
-          .filter(
-            (
-              item
-            ): item is {
-              kind: string;
-              label: string;
-              url: NonNullable<typeof item.url>;
-            } => !!item.url && !!item.label
-          );
+          .flatMap(link => {
+            // Fail closed: a kind no rule resolves, or one whose rule declines, renders nothing.
+            // Label and destination arrive together from the rule, so a link can no longer show up
+            // with an internal function name like `get_log_attributes` as its visible text.
+            const resolved = resolveLink(subjectFromToolLink(link), {
+              organization,
+              projects,
+            });
+            return resolved
+              ? [{kind: resolved.id, label: resolved.label, url: resolved.url}]
+              : [];
+          });
         const structuredContentMarkdown = toolCall.id
           ? structuredContentMarkdownByCallId.get(toolCall.id)
           : undefined;
@@ -359,38 +490,115 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         const finishedCalls = toolCall.id
           ? (callRecordsByCallId.get(toolCall.id) ?? [])
           : [];
+        // Progress first: attributed by token, so it survives several calls in flight — exactly
+        // when the mirror shows nothing. The mirror stays the fallback for an older seer.
+        const progressLines = toolCall.id
+          ? (progressForCallId.get(toolCall.id) ?? [])
+          : [];
         const live = toolCall.id ? (liveCallsForCallId.get(toolCall.id) ?? []) : [];
         // A result exists, so the execute returned and nothing it reported is still running. Read
         // off the result itself rather than off the records it carried: a call that reports none
         // has still finished, and reading "settled" as "reported something" would leave any row
         // built from the live mirror spinning.
         const callsAreSettled = toolCall.id ? settledCallIds.has(toolCall.id) : false;
-        const callRows = visibleCallRecords(finishedCalls.length ? finishedCalls : live)
+        // Bus destinations already claimed by a call row (same rule id). A Code Mode execute often
+        // emits both a call record and a coarser bus link for the same entity; without this, the
+        // residual nav path would repeat "View issue" under a row that already navigates there.
+        //
+        // `telemetry_live_search` is the exception: many searches in one execute share that kind, so
+        // claiming it wholesale would starve later rows of their bus twins. Those are paired one
+        // bus link at a time below instead.
+        const claimedLinkKinds = new Set<string>();
+        // Progress carries a string, so each line becomes a note-shaped record and rides the same
+        // renderer. Negative ids keep them clear of the per-execute counter.
+        const inFlightRows: CallRecord[] = progressLines.map((message, index) => ({
+          id: -(index + 1),
+          kind: 'note' as const,
+          llm_description: message,
+        }));
+        // Progress describes work in flight, so it is stale the moment the call reports back —
+        // seer clears it then, but an older seer or a failed clear must not leave narration
+        // rendering as settled rows, least of all when a finished session is replayed.
+        const inFlight = callsAreSettled ? [] : inFlightRows;
+        const rowSource = finishedCalls.length
+          ? finishedCalls
+          : inFlight.length
+            ? inFlight
+            : live;
+        const callRows = visibleCallRecords(rowSource)
           .map(record => {
-            const link = callRecordLink(record, organization, projects);
+            const subject = subjectFromCallRecord(record);
+            const link = resolveLink(subject, {organization, projects});
+            if (link && link.id !== 'telemetry_live_search') {
+              claimedLinkKinds.add(link.id);
+            }
+            // The reference chip names the kind of place the link goes to (e.g. "View issue"),
+            // not the row's own title — that already stands for the row. Re-resolving without the
+            // title gets the rule's generic destination name even when seer shipped a custom one.
+            const genericLink = link
+              ? resolveLink({...subject, title: undefined}, {organization, projects})
+              : null;
             return {
               record,
-              label: callRecordLabel(record),
+              // A rule that matched names the row; seer's own title stands for every other call.
+              label: link?.label ?? callRecordLabel(record),
               url: link?.url ?? null,
-              // The navigable kind, not `record.kind` — analytics keys `tool_kind` on which
+              // The rule that fired, not `record.kind` — analytics keys `tool_kind` on which
               // destination was opened, and the record's own kind is only ever api/lib.
-              linkKind: link?.kind ?? record.kind,
+              linkKind: link?.id ?? record.kind,
+              linkLabel: genericLink?.label ?? null,
             };
           })
-          // A record we have no label for is dropped rather than rendered as a route or an
-          // internal identifier — one fewer row beats a raw string on screen. The predicate
-          // narrows `label` for the render below, which is why it is not a plain Boolean check.
-          .filter((row): row is typeof row & {label: string} => Boolean(row.label));
+          // Reported rather than deleted — a row should never disappear for want of wording — but
+          // given a generic label, since a raw route reads worse than no row at all.
+          .map(row => ({
+            ...row,
+            label: row.label ?? fallbackCallLabel(row.record),
+          }));
+
+        const residualNavItems = navItems.filter(
+          item => !claimedLinkKinds.has(item.kind)
+        );
+        // Telemetry rows need the bus one-for-one. The bus carries the authoritative translated
+        // destination (query, project_slugs, stats_period); the call row carries the useful title.
+        // Always take the bus url when pairing — a stamped row may already resolve from query alone
+        // and miss project filters the bus still has. Consume the twin either way so "View …" is
+        // not repeated under a row that already navigates there. Order is preserved so N searches
+        // pair with N bus links without starving siblings.
+        const linkedCallRows = callRows.map(row => {
+          if (row.record.name !== 'telemetry_live_search') {
+            return row;
+          }
+          const navItemIndex = residualNavItems.findIndex(
+            item => item.kind === 'telemetry_live_search'
+          );
+          if (navItemIndex === -1) {
+            return row;
+          }
+          const [navItem] = residualNavItems.splice(navItemIndex, 1);
+          if (!navItem) {
+            return row;
+          }
+          return {
+            ...row,
+            url: navItem.url,
+            linkKind: navItem.kind,
+            linkLabel: navItem.label,
+          };
+        });
 
         const isCodeMode = CODE_MODE_TOOLS.has(toolCall.function);
         const toolString = isCodeMode ? '' : (toolsUsed[idx] ?? '');
 
         // Nothing to say: a Code Mode call whose label is suppressed and which reported no calls,
-        // todos, links or markdown would render an empty row with a lone status tick.
+        // todos, links or markdown would render an empty row with a lone status tick. A call that
+        // is still running contributes no row of its own either — the block's placeholder below
+        // covers it, wherever in the list the running call happens to be.
+        // Use residual nav items, not the pre-pairing list: consumed destinations no longer render.
         const hasContent =
           Boolean(toolString) ||
-          callRows.length > 0 ||
-          navItems.length > 0 ||
+          linkedCallRows.length > 0 ||
+          residualNavItems.length > 0 ||
           Boolean(todos) ||
           Boolean(structuredContentMarkdown);
         if (!hasContent) {
@@ -399,18 +607,18 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         const key = toolCall.id ?? `${toolCall.function}-${idx}`;
 
         // Both sources normalize to the same row shape. A classic tool contributes one row for
-        // itself; a Code Mode call contributes one per api call it made.
-        const rows: React.ReactNode[] = callRows.length
-          ? callRows.map(({record, label, url, linkKind}) => (
-              <CallRow
+        // itself; a Code Mode call contributes one per api call it made, each rendered as the
+        // shared `ToolCall` so the Explorer and the agent's markdown surface look identical.
+        const rows: React.ReactNode[] = linkedCallRows.length
+          ? linkedCallRows.map(({record, label, url, linkKind, linkLabel}) => (
+              <CodeModeCallRow
                 key={`${key}-${record.id}`}
-                row={{
-                  label,
-                  url,
-                  failure: callRecordFailure(record),
-                  status: callRecordStatus(record, callsAreSettled),
-                  detail: callRecordDetail(record),
-                }}
+                record={record}
+                label={label}
+                url={url}
+                linkLabel={linkLabel}
+                resourceKind={LINK_KIND_RESOURCE_KIND[linkKind]}
+                settled={callsAreSettled}
                 onLinkClick={trackLinkClick(linkKind)}
               />
             ))
@@ -424,7 +632,6 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
                     failure: failureTooltip,
                     // Only the first classic row shows the block status; call rows carry their own.
                     status: ++rendered === 1 ? blockStatus : undefined,
-                    detail: null,
                   }}
                   onLinkClick={handleLinkClick}
                 />,
@@ -438,14 +645,13 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         // Trailing per-tool-call surfaces. These belong to the call as a whole rather than to any
         // one row, so they follow its rows rather than sitting inside one.
         //
-        // The links bus is skipped when call rows are present: those already name and link what
-        // the execute did, so it would repeat them at coarser granularity — the tool rather than
-        // the call.
-        if (navItems.length > 0 && callRows.length === 0) {
+        // Residual bus links only — destinations already claimed by or paired with a call row were
+        // filtered out above. Any links that do not describe a visible call still render here.
+        if (residualNavItems.length > 0) {
           rows.push(
             <NavLinks
               key={`${key}-links`}
-              navItems={navItems}
+              navItems={residualNavItems}
               onNavLinkClick={trackLinkClick}
             />
           );
@@ -468,21 +674,32 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           </MessageRow>
         ));
       })}
+      {/*
+        The same placeholder the block renders before its tool calls attach, kept on screen for as
+        long as a Code Mode call is still running. Continuity is the point: the spinner does not
+        move, resize or change glyph at the moment a call attaches, so there is no frame where the
+        answer looks like it stopped. It brings its own MessageRow, so it sits beside the rows
+        rather than inside one.
+
+        It reads as the block still working, which is not what a call row's tick says — that is
+        per-row status, and it settles to a checkmark while the execute keeps going. Both can be on
+        screen at once for the same reason a spinning row can sit under an active heading.
+      */}
+      {isCodeModeRunning && <MessagePlaceholder />}
     </Fragment>
   );
 }
 
 interface NavItem {
+  /** The rule that resolved the link, for analytics. */
   kind: string;
   /** Resolved at construction, so an unlabeled kind never reaches the renderer. */
   label: string;
-  url: NonNullable<ReturnType<typeof buildToolLinkUrl>>;
+  url: LocationDescriptor;
 }
 
-/** A row to render, normalized from either a classic tool call or one api call. */
+/** A classic tool-call row, normalized to a label with an optional link. */
 interface RenderRow {
-  /** The request behind the row, when it has one to expand. */
-  detail: ReturnType<typeof callRecordDetail>;
   failure: string | null;
   /** Resolved at construction, so an unlabeled row never reaches the renderer. */
   label: string;
@@ -491,11 +708,11 @@ interface RenderRow {
 }
 
 /**
- * One row in the list — a classic tool call or a single Sentry API call, rendered identically.
+ * One classic tool-call row: a status tick, a monospace label, and an optional inline link.
  *
- * An api call *is* a tool call as far as the reader is concerned: something happened, it succeeded
- * or it did not, and it may point somewhere. Giving the two shapes separate components let their
- * spacing and alignment drift apart, so they share one.
+ * Code Mode api calls render through {@link CodeModeCallRow} (the shared `ToolCall`) instead — a
+ * classic tool has no request to expand, so this stays the simpler label-plus-link shape whose link
+ * lives on the label itself.
  */
 function CallRow({
   row,
@@ -531,58 +748,79 @@ function CallRow({
       <Flex align="center" justify="center" width="12px" height="12px" flexShrink={0}>
         {row.status && <ToolCallIndicator status={row.status} />}
       </Flex>
-      {row.detail ? (
-        // The title is the disclosure's own, so the chevron sits inline with it rather than adding
-        // a second line beneath. The link cannot go inside it: the title renders as a button, and
-        // an anchor nested in a button is invalid HTML that leaves both controls sharing one click
-        // target and one tab stop. `trailingItems` puts it beside the button instead — the title
-        // expands the request, the icon navigates.
-        <Disclosure size="xs">
-          <Disclosure.Title
-            trailingItems={
-              row.url && <RowLink url={row.url} label={row.label} onClick={onLinkClick} />
-            }
-          >
-            {text}
-          </Disclosure.Title>
-          <Disclosure.Content>
-            <CallDetail detail={row.detail} />
-          </Disclosure.Content>
-        </Disclosure>
-      ) : (
-        <Flex align="center" minWidth={0}>
-          {label}
-        </Flex>
-      )}
+      <Flex align="center" minWidth={0}>
+        {label}
+      </Flex>
     </Flex>
   );
 }
 
 /**
- * The row's destination as a control of its own, for a row that also expands.
+ * One Code Mode api call, rendered through the shared `ToolCall` so the Explorer and the agent's
+ * markdown surface stay identical.
  *
- * Visible at rest, unlike the inline variant whose icon the label's hover reveals: there is no
- * label to hover here, and an affordance that only appears under the pointer is one a keyboard
- * user never finds.
+ * The record's label becomes the title, its outcome the leading glyph, its navigable resource a
+ * trailing link chip (a real anchor, so middle/cmd-click still work), and any transport failure a
+ * notification line. The request it ran — and its bounded response body — hangs off the detail slot
+ * below the title.
  */
-function RowLink({
-  url,
+function CodeModeCallRow({
+  record,
   label,
-  onClick,
+  url,
+  linkLabel,
+  resourceKind,
+  settled,
+  onLinkClick,
 }: {
   label: string;
-  url: LocationDescriptor;
-  onClick?: (e: React.MouseEvent) => void;
+  linkLabel: string | null;
+  record: CallRecord;
+  resourceKind: ResourceKind | undefined;
+  settled: boolean;
+  url: LocationDescriptor | null;
+  onLinkClick?: (e: React.MouseEvent) => void;
 }) {
+  const detail = callRecordDetail(record);
+  const failure = callRecordFailure(record);
+  const inputQuery = callRecordInputQuery(record);
+  // Falls back to the generic link glyph for a destination the Telemetry Icons board does not
+  // cover yet (e.g. `get_project_details`) rather than rendering no icon at all.
+  const Icon = resourceKind ? RESOURCE_KIND_ICON[resourceKind] : IconLink;
+  const isFailure = callRecordStatus(record, settled) === 'failure';
+
   return (
-    <ToolCallLink to={url} onClick={onClick} aria-label={t('Open %s', label)}>
-      <ToolCallLinkIcon size="xs" />
-    </ToolCallLink>
+    <ToolCall
+      title={label}
+      status={callRecordStatus(record, settled)}
+      reference={
+        url
+          ? {
+              value: linkLabel ?? t('Open'),
+              to: url,
+              icon: <Icon />,
+              onClick: onLinkClick,
+            }
+          : undefined
+      }
+      failureLabel={isFailure && record.status ? String(record.status) : undefined}
+      input={inputQuery ? <ProvidedFormattedQuery query={inputQuery} /> : undefined}
+      output={isFailure && failure ? <Text size="sm">{failure}</Text> : undefined}
+      notifications={!isFailure && failure ? [failure] : undefined}
+    >
+      {detail ? <RequestDetail detail={detail} /> : null}
+    </ToolCall>
   );
 }
 
-/** What the row actually ran, and what came back. */
-function CallDetail({
+/**
+ * What the call actually ran, and what came back.
+ *
+ * Lives inside the `ToolCall`'s own collapsible panel, so it does not wrap itself in another
+ * disclosure: the request line summarizes the call and the bounded response body (when there is
+ * one) sits beneath it.
+ */
+function RequestDetail({
   detail,
 }: {
   detail: NonNullable<ReturnType<typeof callRecordDetail>>;
@@ -592,30 +830,9 @@ function CallDetail({
       <Text size="xs" variant="muted" monospace>
         {detail.request}
       </Text>
-      {detail.body && <CodeBlock language="json">{detail.body}</CodeBlock>}
+      {detail.body ? <CodeBlock language="json">{detail.body}</CodeBlock> : null}
     </Stack>
   );
-}
-
-// One entry per link kind buildToolLinkUrl can resolve. A kind absent here is not rendered at all
-// (see navLinkLabel): showing the raw kind would leak an internal function name like
-// `get_log_attributes` as the visible link text. Keeping this in step with buildToolLinkUrl's cases
-// is enforced by a test, so a kind seer starts emitting cannot reach users unlabeled.
-export const NAV_LINK_LABELS: Record<string, string> = {
-  get_issue_details: t('View issue'),
-  get_trace_waterfall: t('View trace'),
-  get_replay_details: t('View replay'),
-  get_profile_flamegraph: t('View profile'),
-  get_event_details: t('View event'),
-  get_log_attributes: t('View logs'),
-  get_metric_attributes: t('View metrics'),
-  // Dataset-dependent (issues / errors / spans / logs), so the label stays neutral.
-  telemetry_live_search: t('View results'),
-};
-
-/** The visible label for a bus link, or undefined when the kind is not renderable. */
-function navLinkLabel(kind: string): string | undefined {
-  return NAV_LINK_LABELS[kind];
 }
 
 /**

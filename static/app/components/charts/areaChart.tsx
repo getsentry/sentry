@@ -2,7 +2,7 @@ import type {LineSeriesOption} from 'echarts';
 
 import type {Series} from 'sentry/types/echarts';
 
-import {AreaSeries} from './series/areaSeries';
+import {createAreaSeries} from './series/areaSeries';
 import type {BaseChartProps} from './baseChart';
 import {BaseChart} from './baseChart';
 
@@ -21,7 +21,7 @@ function transformToAreaSeries({
   colors,
 }: Pick<AreaChartProps, 'series' | 'stacked' | 'colors'>) {
   return series.map(({seriesName, data, ...otherSeriesProps}, i) =>
-    AreaSeries({
+    createAreaSeries({
       stack: stacked ? 'area' : undefined,
       name: seriesName,
       data: data.map(({name, value}) => [name, value]),

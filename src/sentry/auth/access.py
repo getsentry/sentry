@@ -13,6 +13,7 @@ from rest_framework.request import Request
 
 from sentry import features, roles
 from sentry.api.exceptions import DataSecrecyError
+from sentry.auth.scope_declaration import check_scope_declaration, check_scope_declarations
 from sentry.auth.services.access.service import access_service
 from sentry.auth.services.auth import AuthenticatedToken, RpcAuthState, RpcMemberSsoState
 from sentry.auth.staff import is_active_staff
@@ -20,6 +21,7 @@ from sentry.auth.superuser import get_superuser_scopes, is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.constants import ObjectStatus
 from sentry.data_secrecy.logic import should_allow_superuser_access
+from sentry.models.apiscopes import add_scope_hierarchy
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -128,7 +130,13 @@ class Access(abc.ABC):
         Return bool representing if the user has the given scope.
         >>> access.has_project('org:read')
         """
+        check_scope_declaration(scope)
         return scope in self.scopes
+
+    def would_have_scope_with_added_auth_scope(self, scope: str) -> bool:
+        """Whether adding ``scope`` to the current auth scope cap would grant it."""
+        check_scope_declaration(scope)
+        return False
 
     def get_organization_role(self) -> OrganizationRole | None:
         if self.role is not None:
@@ -234,6 +242,15 @@ class DbAccess(Access):
     def role(self) -> str | None:
         return self._member.role if self._member else None
 
+    def would_have_scope_with_added_auth_scope(self, scope: str) -> bool:
+        check_scope_declaration(scope)
+        if self._member is None or self.scopes_upper_bound is None:
+            return False
+        candidate_scopes = _intersect_member_and_token_scopes(
+            self._member.get_scopes(), self.scopes_upper_bound | {scope}
+        )
+        return scope in add_scope_hierarchy(list(candidate_scopes))
+
     @cached_property
     def _team_memberships(self) -> Mapping[Team, OrganizationMemberTeam]:
         if self._member is None:
@@ -322,6 +339,7 @@ class DbAccess(Access):
 
         >>> access.has_team_scope(team, 'team:read')
         """
+        check_scope_declaration(scope)
         if not self.has_team_access(team):
             return False
         if self.has_scope(scope):
@@ -357,6 +375,7 @@ class DbAccess(Access):
 
         For performance's sake, prefer this over multiple calls to `has_project_scope`.
         """
+        check_scope_declarations(scopes)
         if not self.has_project_access(project):
             return False
         if any(self.has_scope(scope) for scope in scopes):
@@ -463,6 +482,16 @@ class RpcBackedAccess(Access):
             self.scopes_upper_bound,
         )
 
+    def would_have_scope_with_added_auth_scope(self, scope: str) -> bool:
+        check_scope_declaration(scope)
+        member = self.rpc_user_organization_context.member
+        if member is None or self.scopes_upper_bound is None:
+            return False
+        candidate_scopes = _intersect_member_and_token_scopes(
+            member.scopes, self.scopes_upper_bound | {scope}
+        )
+        return scope in add_scope_hierarchy(list(candidate_scopes))
+
     # TODO(cathy): remove this
     @property
     def role(self) -> str | None:
@@ -522,6 +551,7 @@ class RpcBackedAccess(Access):
         return None
 
     def has_team_scope(self, team: Team, scope: str) -> bool:
+        check_scope_declaration(scope)
         if not self.has_team_access(team):
             return False
         if self.has_scope(scope):
@@ -570,6 +600,7 @@ class RpcBackedAccess(Access):
 
         For performance's sake, prefer this over multiple calls to `has_project_scope`.
         """
+        check_scope_declarations(scopes)
         if not self.has_project_access(project):
             return False
         if any(self.has_scope(scope) for scope in scopes):
@@ -859,12 +890,14 @@ class OrganizationlessAccess(Access):
         return frozenset()
 
     def has_team_scope(self, team: Team, scope: str) -> bool:
+        check_scope_declaration(scope)
         return False
 
     def get_team_role(self, team: Team) -> TeamRole | None:
         return None
 
     def has_any_project_scope(self, project: Project, scopes: Collection[str]) -> bool:
+        check_scope_declarations(scopes)
         if not self.has_project_access(project):
             return False
 
@@ -888,6 +921,7 @@ class SystemAccess(OrganizationlessAccess):
         return True
 
     def has_scope(self, scope: str) -> bool:
+        check_scope_declaration(scope)
         return True
 
     def has_team_access(self, team: Team) -> bool:
@@ -928,6 +962,11 @@ def from_request_org_and_scopes(
     Note that `scopes` is usually None because request.auth is not set at `get_authorization_header`
     when the request is made from the frontend using cookies
     """
+    if is_agent_auth(request.auth):
+        if rpc_user_org_context is None:
+            return DEFAULT
+        return from_agent_auth(request.auth, rpc_user_org_context)
+
     is_staff = is_active_staff(request)
 
     if not rpc_user_org_context:
@@ -1027,6 +1066,11 @@ def from_user_and_rpc_user_org_context(
 def from_request(
     request: Request, organization: Organization | None = None, scopes: Iterable[str] | None = None
 ) -> Access:
+    if is_agent_auth(request.auth):
+        if organization is None:
+            return DEFAULT
+        return from_auth(request.auth, organization)
+
     is_staff = is_active_staff(request)
 
     if not organization:
@@ -1253,6 +1297,8 @@ def from_agent_auth(
     # Bound to the org it was minted for; never honored elsewhere, even if the
     # delegating user is also a member of the requested org.
     if auth.organization_id != rpc_user_org_context.organization.id:
+        return DEFAULT
+    if auth.user_id != rpc_user_org_context.user_id:
         return DEFAULT
     # No membership (never a member, or revoked since mint) -> no access. Required
     # explicitly because RpcBackedAccess would otherwise hand back the full token

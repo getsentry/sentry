@@ -11,7 +11,6 @@ import {EmailField, type EmailFieldProps} from './fields/emailField';
 import {FileField, type FileFieldProps} from './fields/fileField';
 import {HiddenField, type HiddenFieldProps} from './fields/hiddenField';
 import {NumberField, type NumberFieldProps} from './fields/numberField';
-import {ProjectMapperField, type ProjectMapperProps} from './fields/projectMapperField';
 import {RadioField, type RadioFieldProps} from './fields/radioField';
 import {RangeField, type RangeFieldProps} from './fields/rangeField';
 import {SecretField, type SecretFieldProps} from './fields/secretField';
@@ -26,11 +25,8 @@ interface FieldFromConfigProps {
 
   disabled?: boolean | ((props: any) => boolean);
   flexibleControlStateSize?: boolean;
-  getData?: (data: any) => any;
   highlighted?: boolean;
   inline?: boolean;
-  noOptionsMessage?: () => string;
-  onBlur?: (value: any, event: any) => void;
   stacked?: boolean;
 }
 
@@ -82,13 +78,12 @@ export function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement
       throw new Error('Invalid `choices` type. Use an array of options');
     case 'table':
       return <TableField {...(componentProps as TableFieldProps)} />;
-    case 'project_mapper':
-      return <ProjectMapperField {...(componentProps as ProjectMapperProps)} />;
     case 'file':
       return <FileField {...(componentProps as FileFieldProps)} />;
     case 'datetime':
       return <DateTimeField {...(componentProps as DateTimeFieldProps)} />;
     case 'custom':
+      // oxlint-disable-next-line react/capitalized-calls -- Render callback supplied by the field config, not a component.
       return field.Component(field);
     default:
       return null;

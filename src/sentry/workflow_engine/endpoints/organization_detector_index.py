@@ -31,7 +31,13 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
-from sentry.apidocs.parameters import DetectorParams, GlobalParams, OrganizationParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    DetectorParams,
+    GlobalParams,
+    OrganizationParams,
+    VisibilityParams,
+)
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
@@ -208,7 +214,9 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                             queryset = queryset.exclude(type__in=values)
                         else:
                             queryset = queryset.filter(type__in=values)
-                    case SearchFilter(key=SearchKey("assignee"), operator=("=" | "IN" | "!=")):
+                    case SearchFilter(
+                        key=SearchKey("assignee"), operator=("=" | "IN" | "!=" | "NOT IN")
+                    ):
                         # Filter values can be emails, team slugs, "me", "my_teams", "none"
                         values = (
                             filter.value.value
@@ -217,7 +225,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                         )
                         assignee_q = convert_assignee_values(values, projects, request.user)
 
-                        if filter.operator == "!=":
+                        if filter.operator == "!=" or filter.operator == "NOT IN":
                             queryset = queryset.exclude(assignee_q)
                         else:
                             queryset = queryset.filter(assignee_q)
@@ -259,6 +267,10 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             DetectorParams.QUERY,
             DetectorParams.SORT,
             DetectorParams.ID,
+            DetectorParams.TYPE,
+            DetectorParams.ENABLED,
+            VisibilityParams.PER_PAGE,
+            CursorQueryParam,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -281,6 +293,19 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             return self.respond(status=status.HTTP_401_UNAUTHORIZED)
 
         queryset = self.filter_detectors(request, organization)
+
+        if detector_types := request.GET.getlist("type"):
+            detector_types = [DETECTOR_TYPE_ALIASES.get(value, value) for value in detector_types]
+            queryset = queryset.filter(type__in=detector_types)
+
+        raw_enabled = request.GET.get("enabled")
+        if raw_enabled is not None:
+            try:
+                enabled = serializers.BooleanField().run_validation(raw_enabled)
+            except ValidationError as error:
+                raise ValidationError({"enabled": error.detail}) from error
+            queryset = queryset.filter(enabled=enabled)
+
         queryset = exclude_disallowed_metric_detectors(queryset, organization)
 
         sort_by = request.GET.get("sortBy", "id")

@@ -471,6 +471,8 @@ class EventDetailsResponse(_DictProxyMixin):
     event_trace_id: str | None
     project_id: int
     project_slug: str
+    # shared-formatter text; populated when the RPC is called with a `format`, else None
+    formatted: str | None = None
 
 
 class IssueDetailsResponse(_DictProxyMixin):
@@ -544,6 +546,21 @@ class TeamMembersResponse(_DictProxyMixin):
     team_slug: str
     team_name: str
     members: list[IssueOwner]
+
+
+class UserIdentity(BaseModel):
+    id: int
+    username: str
+
+
+class GroupAssigneesResponse(_DictProxyMixin):
+    # Dict keys are int issue IDs, but JSON serializes them as strings, so make that explicit.
+    # Consumer will convert back to int.
+    assignees: dict[str, UserIdentity]
+
+
+class ProjectMembersResponse(_DictProxyMixin):
+    members: list[UserIdentity]
 
 
 class TransactionsForProjectResponse(BaseModel):
@@ -945,3 +962,21 @@ class RefreshMonitoringProviderTokenErrorResponse(BaseModel):
 
     def __hash__(self) -> int:
         return id(self)
+
+
+class InvestigationEventDeliveryResponse(BaseModel):
+    accepted: Literal[True] = True
+    duplicate: bool = False
+    application_status: Literal["pending", "applied", "ignored", "failed"] = Field(
+        alias="applicationStatus"
+    )
+    last_applied_sequence: int = Field(alias="lastAppliedSequence", ge=0)
+    next_expected_sequence: int = Field(alias="nextExpectedSequence", ge=1)
+    notebook_revision: int = Field(alias="notebookRevision", ge=0)
+
+    class Config:
+        allow_population_by_field_name = True
+
+    def dict(self, **kwargs: Any) -> dict[str, Any]:
+        kwargs.setdefault("by_alias", True)
+        return super().dict(**kwargs)

@@ -210,10 +210,10 @@ export function getTraceItemTagCollection(
         attributeSource: attribute.attributeSource?.source_type,
       };
     } else if (attributeType === 'array') {
-      // (eg. `tags[foo,array][*]:value`).
-      const arrayKey = `${attribute.key}[*]`;
-      arrayAttributes[arrayKey] = {
-        key: arrayKey,
+      // Store under the backend key form (tag-annotated for tags, unwrapped for
+      // non-tags) since the query must use it; `[*]` is appended at construction.
+      arrayAttributes[attribute.key] = {
+        key: attribute.key,
         name: attribute.name,
         kind: FieldKind.ARRAY,
         secondaryAliases: attribute?.secondaryAliases ?? [],

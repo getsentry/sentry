@@ -1,16 +1,11 @@
-import {QueryClientProvider} from '@tanstack/react-query';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
+import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {OrganizationContext} from 'sentry/utils/organizationContext';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import * as discoverUtils from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {MockMetricQueryParamsContext} from 'sentry/views/explore/metrics/hooks/testUtils';
@@ -22,13 +17,9 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useNavigate');
 jest.mock('sentry/actionCreators/modal');
 jest.mock('sentry/views/discover/utils');
 
-const mockedUseLocation = jest.mocked(useLocation);
-const mockUseNavigate = jest.mocked(useNavigate);
 const mockOpenSaveQueryModal = jest.mocked(modal.openSaveQueryModal);
 const mockHandleAddQueryToDashboard = jest.mocked(
   discoverUtils.handleAddQueryToDashboard
@@ -36,40 +27,27 @@ const mockHandleAddQueryToDashboard = jest.mocked(
 const mockHandleAddMultipleQueriesToDashboard = jest.mocked(
   discoverUtils.handleAddMultipleQueriesToDashboard
 );
+const initialRouterConfig = {
+  location: {
+    pathname: '/organizations/org-slug/explore/metrics/',
+    query: {interval: '5m'},
+  },
+};
 
 describe('useSaveAsMetricItems', () => {
   const organization = OrganizationFixture({
-    features: ['tracemetrics-enabled', 'incidents'],
+    features: ['tracemetrics-enabled'],
   });
   const project = ProjectFixture({id: '1'});
-  const queryClient = makeTestQueryClient();
-  ProjectsStore.loadInitialData([project]);
 
-  function createWrapper(org = organization) {
-    return function ({children}: {children?: React.ReactNode}) {
-      return (
-        <OrganizationContext.Provider value={org}>
-          <QueryClientProvider client={queryClient}>
-            <MockMetricQueryParamsContext>{children}</MockMetricQueryParamsContext>
-          </QueryClientProvider>
-        </OrganizationContext.Provider>
-      );
-    };
+  function Wrapper({children}: {children: ReactNode}) {
+    return <MockMetricQueryParamsContext>{children}</MockMetricQueryParamsContext>;
   }
 
   beforeEach(() => {
     jest.resetAllMocks();
     MockApiClient.clearMockResponses();
-    queryClient.clear();
-
-    mockedUseLocation.mockReturnValue(
-      LocationFixture({
-        query: {
-          interval: '5m',
-        },
-      })
-    );
-    mockUseNavigate.mockReturnValue(jest.fn());
+    ProjectsStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/explore/saved/`,
@@ -78,10 +56,16 @@ describe('useSaveAsMetricItems', () => {
     });
   });
 
+  afterEach(() => {
+    ProjectsStore.reset();
+  });
+
   it('should open save query modal when save as new query is clicked', () => {
-    const {result} = renderHook(useSaveAsMetricItems, {
-      wrapper: createWrapper(),
+    const {result} = renderHookWithProviders(useSaveAsMetricItems, {
+      organization,
+      additionalWrapper: Wrapper,
       initialProps: {interval: '5m'},
+      initialRouterConfig,
     });
 
     const saveAsItems = result.current;
@@ -118,18 +102,20 @@ describe('useSaveAsMetricItems', () => {
       },
     });
 
-    mockedUseLocation.mockReturnValue(
-      LocationFixture({
-        query: {
-          id: 'test-query-id',
-          interval: '5m',
-        },
-      })
-    );
-
-    const {result} = renderHook(useSaveAsMetricItems, {
-      wrapper: createWrapper(),
+    const {result} = renderHookWithProviders(useSaveAsMetricItems, {
+      organization,
+      additionalWrapper: Wrapper,
       initialProps: {interval: '5m'},
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {
+            ...initialRouterConfig.location.query,
+            id: 'test-query-id',
+          },
+        },
+      },
     });
 
     await waitFor(() => {
@@ -141,17 +127,11 @@ describe('useSaveAsMetricItems', () => {
   });
 
   it('should show only new query option when no saved query exists', () => {
-    mockedUseLocation.mockReturnValue(
-      LocationFixture({
-        query: {
-          interval: '5m',
-        },
-      })
-    );
-
-    const {result} = renderHook(useSaveAsMetricItems, {
-      wrapper: createWrapper(),
+    const {result} = renderHookWithProviders(useSaveAsMetricItems, {
+      organization,
+      additionalWrapper: Wrapper,
       initialProps: {interval: '5m'},
+      initialRouterConfig,
     });
 
     const saveAsItems = result.current;
@@ -178,18 +158,20 @@ describe('useSaveAsMetricItems', () => {
       }),
     });
 
-    mockedUseLocation.mockReturnValue(
-      LocationFixture({
-        query: {
-          interval: '5m',
-          metric: [encodedMetricQuery],
-        },
-      })
-    );
-
-    const {result} = renderHook(useSaveAsMetricItems, {
-      wrapper: createWrapper(),
+    const {result} = renderHookWithProviders(useSaveAsMetricItems, {
+      organization,
+      additionalWrapper: Wrapper,
       initialProps: {interval: '5m'},
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {
+            ...initialRouterConfig.location.query,
+            metric: [encodedMetricQuery],
+          },
+        },
+      },
     });
 
     const addToDashboardItem = result.current.find(
@@ -231,19 +213,19 @@ describe('useSaveAsMetricItems', () => {
       })
     );
 
-    mockedUseLocation.mockReturnValue(
-      LocationFixture({
-        query: {
-          interval: '5m',
-          metric: encodedMetricQueries,
+    const {result} = renderHookWithProviders(useSaveAsMetricItems, {
+      organization,
+      additionalWrapper: Wrapper,
+      initialProps: {interval: '5m'},
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {
+            ...initialRouterConfig.location.query,
+            metric: encodedMetricQueries,
+          },
         },
-      })
-    );
-
-    const {result} = renderHook(useSaveAsMetricItems, {
-      wrapper: createWrapper(),
-      initialProps: {
-        interval: '5m',
       },
     });
 
@@ -296,9 +278,7 @@ describe('useSaveAsMetricItems', () => {
     );
   });
 
-  it('disables the alert option with an upsell tooltip when metric alerts are unavailable', () => {
-    const orgWithoutAlerts = OrganizationFixture({features: ['tracemetrics-enabled']});
-
+  it('enables the alert option when there are aggregates', () => {
     const encodedMetricQuery = encodeMetricQueryParams({
       metric: {name: 'metric.a', type: 'counter'},
       queryParams: new ReadableQueryParams({
@@ -314,27 +294,28 @@ describe('useSaveAsMetricItems', () => {
       }),
     });
 
-    mockedUseLocation.mockReturnValue(
-      LocationFixture({
-        query: {
-          interval: '5m',
-          metric: [encodedMetricQuery],
-        },
-      })
-    );
-
-    const {result} = renderHook(useSaveAsMetricItems, {
-      wrapper: createWrapper(orgWithoutAlerts),
+    const {result} = renderHookWithProviders(useSaveAsMetricItems, {
+      organization,
+      additionalWrapper: Wrapper,
       initialProps: {interval: '5m'},
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {
+            ...initialRouterConfig.location.query,
+            metric: [encodedMetricQuery],
+          },
+        },
+      },
     });
 
     const alertItem = result.current.find(item => item.key === 'create-alert') as
-      | {children: unknown[]; disabled: boolean; tooltip: string | undefined}
+      | {children: unknown[]; disabled: boolean}
       | undefined;
 
-    expect(alertItem?.disabled).toBe(true);
-    expect(alertItem?.tooltip).toBe('Monitors are not available on your current plan.');
-    expect(alertItem?.children).toEqual([]);
+    expect(alertItem?.disabled).toBe(false);
+    expect(alertItem?.children).toHaveLength(1);
   });
 
   it('formats alerts submenu labels for equations', () => {
@@ -356,18 +337,20 @@ describe('useSaveAsMetricItems', () => {
       label: 'ƒ1',
     });
 
-    mockedUseLocation.mockReturnValue(
-      LocationFixture({
-        query: {
-          interval: '5m',
-          metric: [encodedMetricQuery],
-        },
-      })
-    );
-
-    const {result} = renderHook(useSaveAsMetricItems, {
-      wrapper: createWrapper(),
+    const {result} = renderHookWithProviders(useSaveAsMetricItems, {
+      organization,
+      additionalWrapper: Wrapper,
       initialProps: {interval: '5m'},
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {
+            ...initialRouterConfig.location.query,
+            metric: [encodedMetricQuery],
+          },
+        },
+      },
     });
 
     const createAlertItems = result.current.find(item => item.key === 'create-alert') as

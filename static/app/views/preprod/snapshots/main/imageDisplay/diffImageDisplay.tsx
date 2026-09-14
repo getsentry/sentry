@@ -292,8 +292,6 @@ function OnionView({
         </Text>
         <Flex width="200px">
           <Slider
-            min={0}
-            max={100}
             value={opacity}
             onChange={onOpacityChange}
             formatOptions={{style: 'unit', unit: 'percent'}}

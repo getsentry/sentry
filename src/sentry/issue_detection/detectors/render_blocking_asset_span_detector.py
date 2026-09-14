@@ -11,6 +11,7 @@ from ..base import DetectorType, PerformanceDetector
 from ..detectors.utils import (
     fingerprint_resource_span,
     get_notification_attachment_body,
+    get_numeric_value_from_span,
     get_span_duration,
     get_span_evidence_value,
 )
@@ -133,12 +134,19 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         if span_end_timestamp >= fcp_timestamp:
             return False
 
-        minimum_size_bytes = self.settings.get("minimum_size_bytes")
-        encoded_body_size = data.get("http.response_content_length", 0)
+        encoded_body_size = get_numeric_value_from_span(
+            span,
+            keys=["http.response_content_length"],
+            detector="render_blocking_asset",
+            number_type=int,
+        )
 
-        if encoded_body_size < minimum_size_bytes or encoded_body_size > self.settings.get(
-            "maximum_size_bytes"
-        ):
+        if not encoded_body_size:
+            return False
+
+        minimum_size_bytes = self.settings["minimum_size_bytes"]
+        maximum_size_bytes = self.settings["maximum_size_bytes"]
+        if encoded_body_size < minimum_size_bytes or encoded_body_size > maximum_size_bytes:
             return False
 
         span_duration = get_span_duration(span)

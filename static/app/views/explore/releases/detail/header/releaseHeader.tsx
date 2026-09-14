@@ -5,7 +5,7 @@ import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {Badge, FeatureBadge} from '@sentry/scraps/badge';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {TabList} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -83,9 +83,9 @@ export function ReleaseHeader({
     {
       title: tct('Commits [count]', {
         count: (
-          <NavTabsBadge variant="muted">
+          <ResponsiveNavTabsBadge>
             {formatAbbreviatedNumber(commitCount)}
-          </NavTabsBadge>
+          </ResponsiveNavTabsBadge>
         ),
       }),
       textValue: t('Commits %s', formatAbbreviatedNumber(commitCount)),
@@ -94,9 +94,9 @@ export function ReleaseHeader({
     {
       title: tct('Files Changed [count]', {
         count: (
-          <NavTabsBadge variant="muted">
+          <ResponsiveNavTabsBadge>
             {formatAbbreviatedNumber(commitFilesChanged)}
-          </NavTabsBadge>
+          </ResponsiveNavTabsBadge>
         ),
       }),
       textValue: t('Files Changed %s', formatAbbreviatedNumber(commitFilesChanged)),
@@ -115,9 +115,9 @@ export function ReleaseHeader({
           </BadgeWrapper>
         ) : (
           <Fragment>
-            <NavTabsBadge variant="muted">
+            <ResponsiveNavTabsBadge>
               {formatAbbreviatedNumber(numberOfMobileBuilds)}
-            </NavTabsBadge>
+            </ResponsiveNavTabsBadge>
             <BadgeWrapper>
               <FeatureBadge type="new" />
             </BadgeWrapper>
@@ -226,11 +226,13 @@ const IconWrapper = styled('span')`
   }
 `;
 
-const NavTabsBadge = styled(Badge)`
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
-`;
+function ResponsiveNavTabsBadge({children}: {children: React.ReactNode}) {
+  return (
+    <Container as="span" display={{zero: 'none', xl: 'inline-flex'}}>
+      <Badge variant="muted">{children}</Badge>
+    </Container>
+  );
+}
 
 const BadgeWrapper = styled('div')`
   margin-left: 0;

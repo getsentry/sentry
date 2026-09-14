@@ -4,11 +4,12 @@ import {useIsMutating, useMutation, useMutationState} from '@tanstack/react-quer
 
 import {removeProject} from 'sentry/actionCreators/projects';
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
-import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProjectRules';
-import type {IssueAlertRule} from 'sentry/types/alerts';
+import {
+  type CreatedProjectRule,
+  useCreateProjectRules,
+} from 'sentry/components/onboarding/useCreateProjectRules';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils/defined';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -18,9 +19,9 @@ const MUTATION_KEY = 'create-project-and-rules';
 
 type Variables = {
   alertRuleConfig: Partial<RequestDataFragment>;
-  createNotificationAction: ReturnType<
+  getIntegrationAction: ReturnType<
     typeof useCreateNotificationAction
-  >['createNotificationAction'];
+  >['getIntegrationAction'];
   platform: OnboardingSelectedSDK;
   projectName: string;
   team?: string;
@@ -28,8 +29,8 @@ type Variables = {
 
 type Response = {
   project: Project;
-  ruleIds: string[];
-  notificationRule?: IssueAlertRule;
+  workflowIds: string[];
+  notificationRule?: CreatedProjectRule;
 };
 
 function useRollbackProject() {
@@ -74,46 +75,43 @@ export function useCreateProjectAndRules() {
       platform,
       alertRuleConfig,
       team,
-      createNotificationAction,
+      getIntegrationAction,
     }) => {
+      const integrationAction = getIntegrationAction({
+        shouldCreateRule: alertRuleConfig?.shouldCreateRule,
+      });
+      const shouldCreateWorkflow = Boolean(
+        alertRuleConfig?.shouldCreateCustomRule || integrationAction
+      );
       const project = await createProject.mutateAsync({
         name: projectName,
         platform,
-        default_rules: alertRuleConfig?.defaultRules ?? true,
+        // The server-created default workflow only contains email. When an
+        // integration is selected, create the combined workflow below instead.
+        default_rules: (alertRuleConfig?.defaultRules ?? true) && !integrationAction,
         firstTeamSlug: team,
       });
 
       try {
-        const customRulePromise = alertRuleConfig?.shouldCreateCustomRule
-          ? createProjectRules.mutateAsync({
-              projectSlug: project.slug,
+        const workflow = shouldCreateWorkflow
+          ? await createProjectRules.mutateAsync({
+              projectId: project.id,
               name: project.name,
               conditions: alertRuleConfig?.conditions,
-              actions: alertRuleConfig?.actions,
-              actionMatch: alertRuleConfig?.actionMatch,
+              isHighPriority:
+                (alertRuleConfig?.defaultRules ?? true) &&
+                !alertRuleConfig?.shouldCreateCustomRule,
+              actions: [
+                ...(alertRuleConfig?.actions ?? []),
+                ...(integrationAction ? [integrationAction] : []),
+              ],
               frequency: alertRuleConfig?.frequency,
             })
           : undefined;
+        const notificationRule = integrationAction ? workflow : undefined;
+        const workflowIds = workflow ? [workflow.id] : [];
 
-        const notificationRulePromise = createNotificationAction({
-          shouldCreateRule: alertRuleConfig?.shouldCreateRule,
-          name: project.name,
-          projectSlug: project.slug,
-          conditions: alertRuleConfig?.conditions,
-          actionMatch: alertRuleConfig?.actionMatch,
-          frequency: alertRuleConfig?.frequency,
-        });
-
-        const [customRule, notificationRule] = await Promise.all([
-          customRulePromise,
-          notificationRulePromise,
-        ]);
-
-        const ruleIds = [customRule, notificationRule]
-          .filter(defined)
-          .map(rule => rule.id);
-
-        return {project, notificationRule, ruleIds};
+        return {project, notificationRule, workflowIds};
       } catch (error) {
         await rollbackProject(project);
         throw error;

@@ -203,6 +203,42 @@ class MilestonesFromStateTest(TestCase):
             "root_cause_artifact": {"one_line_description": "boom"}
         }
 
+    def test_root_cause_extras_hold_headline_when_present(self) -> None:
+        block = MemoryBlock(
+            id="b",
+            message=Message(role="assistant", content="c"),
+            timestamp="2026-02-10T00:00:00Z",
+            artifacts=[
+                Artifact(
+                    key="root_cause",
+                    data={"one_line_description": "boom", "headline": "Checkout crashes"},
+                    reason="r",
+                )
+            ],
+        )
+        result = milestones_from_state(_state(blocks=[block]))
+        assert result[SeerRunMilestoneType.ROOT_CAUSE] == {
+            "root_cause_artifact": {"one_line_description": "boom", "headline": "Checkout crashes"}
+        }
+
+    def test_root_cause_extras_omit_blank_headline(self) -> None:
+        block = MemoryBlock(
+            id="b",
+            message=Message(role="assistant", content="c"),
+            timestamp="2026-02-10T00:00:00Z",
+            artifacts=[
+                Artifact(
+                    key="root_cause",
+                    data={"one_line_description": "boom", "headline": ""},
+                    reason="r",
+                )
+            ],
+        )
+        result = milestones_from_state(_state(blocks=[block]))
+        assert result[SeerRunMilestoneType.ROOT_CAUSE] == {
+            "root_cause_artifact": {"one_line_description": "boom"}
+        }
+
     def test_solution_extras_hold_one_line_summary(self) -> None:
         block = MemoryBlock(
             id="b",
@@ -422,6 +458,27 @@ class ReconcilePullRequestsMergedMilestoneTest(TestCase):
 
         assert reconcile_pull_requests_merged_milestone(self.seer_run) is True
         assert self._recorded() == {SeerRunMilestoneType.PULL_REQUESTS_MERGED}
+
+    def test_records_when_a_closed_pull_request_is_ignored_and_others_merged(self) -> None:
+        self._linked_pull_request("1", PullRequestLifecycleState.CLOSED)
+        self._linked_pull_request("2", PullRequestLifecycleState.MERGED)
+
+        assert reconcile_pull_requests_merged_milestone(self.seer_run) is True
+        assert self._recorded() == {SeerRunMilestoneType.PULL_REQUESTS_MERGED}
+
+    def test_records_when_a_superseded_pull_request_is_ignored_and_others_merged(self) -> None:
+        self._linked_pull_request("1", PullRequestLifecycleState.SUPERSEDED)
+        self._linked_pull_request("2", PullRequestLifecycleState.MERGED)
+
+        assert reconcile_pull_requests_merged_milestone(self.seer_run) is True
+        assert self._recorded() == {SeerRunMilestoneType.PULL_REQUESTS_MERGED}
+
+    def test_not_recorded_when_a_closed_and_an_open_pull_request(self) -> None:
+        self._linked_pull_request("1", PullRequestLifecycleState.CLOSED)
+        self._linked_pull_request("2", PullRequestLifecycleState.OPEN)
+
+        assert reconcile_pull_requests_merged_milestone(self.seer_run) is False
+        assert self._recorded() == set()
 
     def test_not_recorded_when_a_linked_pull_request_is_open(self) -> None:
         self._linked_pull_request("1", PullRequestLifecycleState.MERGED)

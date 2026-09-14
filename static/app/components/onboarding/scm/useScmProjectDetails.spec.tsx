@@ -1,3 +1,5 @@
+import {AutomationFixture} from 'sentry-fixture/automations';
+import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -210,16 +212,20 @@ describe('useScmProjectDetails', () => {
     it('includes notificationSelection in the submittedForm passed to onComplete', async () => {
       const createdProject = ProjectFixture({slug: 'my-project', platform: 'python'});
 
-      MockApiClient.addMockResponse({
+      const projectRequest = MockApiClient.addMockResponse({
         url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
         method: 'POST',
         body: createdProject,
       });
 
       MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${createdProject.slug}/rules/`,
+        url: `/organizations/${organization.slug}/detectors/`,
+        body: [IssueStreamDetectorFixture({projectId: createdProject.id})],
+      });
+      const workflowRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/workflows/`,
         method: 'POST',
-        body: {},
+        body: AutomationFixture(),
       });
 
       const onComplete = jest.fn();
@@ -252,6 +258,45 @@ describe('useScmProjectDetails', () => {
       });
 
       await waitFor(() => expect(onComplete).toHaveBeenCalled());
+
+      expect(projectRequest).toHaveBeenCalledWith(
+        `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+        expect.objectContaining({
+          data: expect.objectContaining({default_rules: false}),
+        })
+      );
+      expect(workflowRequest).toHaveBeenCalledTimes(1);
+      expect(workflowRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/workflows/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'Send a notification for high priority issues',
+            triggers: {
+              logicType: 'any-short',
+              conditions: [
+                {
+                  type: 'new_high_priority_issue',
+                  comparison: true,
+                  conditionResult: true,
+                },
+                {
+                  type: 'existing_high_priority_issue',
+                  comparison: true,
+                  conditionResult: true,
+                },
+              ],
+            },
+            actionFilters: [
+              expect.objectContaining({
+                actions: [
+                  expect.objectContaining({type: 'email'}),
+                  expect.objectContaining({type: 'slack'}),
+                ],
+              }),
+            ],
+          }),
+        })
+      );
 
       const {projectDetailsForm: submittedForm} = onComplete.mock.calls[0][0];
       expect(submittedForm.notificationSelection).toEqual({
@@ -550,9 +595,13 @@ describe('useScmProjectDetails', () => {
         body: createdProject,
       });
       MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${createdProject.slug}/rules/`,
+        url: `/organizations/${organization.slug}/detectors/`,
+        body: [IssueStreamDetectorFixture({projectId: createdProject.id})],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/workflows/`,
         method: 'POST',
-        body: {},
+        body: AutomationFixture(),
       });
 
       const onComplete = jest.fn();

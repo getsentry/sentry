@@ -2,7 +2,7 @@ import {Fragment, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
@@ -20,6 +20,7 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {InstallDetailsApiResponse} from 'sentry/views/preprod/types/installDetailsTypes';
+import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 
 export function getDistributionErrorTooltip(
   errorCode?: string | null,
@@ -39,6 +40,13 @@ export function getDistributionErrorTooltip(
   }
 
   return errorMessage || t('Not installable');
+}
+
+export function getDeviceInstallUrl(platform: Platform, installUrl: string): string {
+  if (platform === 'apple') {
+    return `itms-services://?action=download-manifest&url=${encodeURIComponent(installUrl)}`;
+  }
+  return installUrl;
 }
 
 interface InstallDetailsContentProps {
@@ -165,6 +173,10 @@ export function InstallDetailsContent({
       </Stack>
     );
   } else if (installDetails.install_url) {
+    const deviceInstallUrl = getDeviceInstallUrl(
+      installDetails.platform,
+      installDetails.install_url
+    );
     const details = installDetails.is_code_signature_valid !== undefined && (
       <CodeSignatureInfo>
         {installDetails.profile_name && (
@@ -191,19 +203,15 @@ export function InstallDetailsContent({
                   {tn('%s download', '%s downloads', installDetails.download_count)}
                 </Text>
               )}
-            <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}}>
+            <Container display={{sm: 'none', xl: 'block'}}>
               <QuietZoneQRCode
                 aria-label={t('Install QR Code')}
-                value={
-                  installDetails.platform === 'apple'
-                    ? `itms-services://?action=download-manifest&url=${encodeURIComponent(installDetails.install_url)}`
-                    : installDetails.install_url
-                }
+                value={deviceInstallUrl}
                 size={qrSize}
               />
             </Container>
             {details}
-            <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}}>
+            <Container display={{sm: 'none', xl: 'block'}}>
               <Stack maxWidth="300px" gap="xl" paddingTop="xl">
                 <Text align="center" size="lg">
                   {t(
@@ -213,7 +221,7 @@ export function InstallDetailsContent({
               </Stack>
             </Container>
           </Stack>
-          <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}} width="100%">
+          <Container display={{sm: 'none', xl: 'block'}} width="100%">
             <Flex align="center" gap="md" width="100%">
               <Separator
                 orientation="horizontal"
@@ -234,32 +242,40 @@ export function InstallDetailsContent({
             <Flex
               gap="md"
               width="100%"
-              direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
+              direction={{zero: 'column', sm: 'row'}}
               justify="center"
-              align={{'screen:xs': 'stretch', 'screen:sm': 'center'}}
+              align={{zero: 'stretch', sm: 'center'}}
             >
-              <Flex width={{'screen:xs': '100%', 'screen:sm': 'auto'}}>
-                <Button
-                  onClick={() => window.open(installDetails.install_url, '_blank')}
-                  variant="primary"
-                  size="md"
-                  style={{width: '100%'}}
-                >
-                  {t('Download')}
-                </Button>
+              <Flex width={{sm: '100%', xl: 'auto'}}>
+                {installDetails.platform === 'apple' ? (
+                  <LinkButton
+                    href={deviceInstallUrl}
+                    variant="primary"
+                    size="md"
+                    style={{width: '100%'}}
+                  >
+                    {t('Download')}
+                  </LinkButton>
+                ) : (
+                  <Button
+                    onClick={() => window.open(deviceInstallUrl, '_blank')}
+                    variant="primary"
+                    size="md"
+                    style={{width: '100%'}}
+                  >
+                    {t('Download')}
+                  </Button>
+                )}
               </Flex>
               {installDetails.install_url && (
                 <Flex
-                  alignSelf={{'screen:xs': 'stretch', 'screen:sm': 'center'}}
-                  width={{'screen:xs': '100%', 'screen:sm': 'auto'}}
+                  alignSelf={{sm: 'stretch', xl: 'center'}}
+                  width={{sm: '100%', xl: 'auto'}}
                 >
-                  <Container
-                    display={{'screen:xs': 'block', 'screen:sm': 'none'}}
-                    width="100%"
-                  >
+                  <Container display={{zero: 'block', sm: 'none'}} width="100%">
                     <Button
                       onClick={() =>
-                        copy(installDetails.install_url!, {
+                        copy(deviceInstallUrl, {
                           successMessage: t('Copied Download Link'),
                         })
                       }
@@ -270,14 +286,14 @@ export function InstallDetailsContent({
                       {t('Copy Download Link')}
                     </Button>
                   </Container>
-                  <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}}>
+                  <Container display={{zero: 'none', sm: 'block'}}>
                     <Tooltip title={t('Copy Download Link')}>
                       <Button
                         aria-label={t('Copy Download Link')}
                         icon={<IconLink />}
                         size="md"
                         onClick={() =>
-                          copy(installDetails.install_url!, {
+                          copy(deviceInstallUrl, {
                             successMessage: t('Copied Download Link'),
                           })
                         }

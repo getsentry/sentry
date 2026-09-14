@@ -4,21 +4,12 @@ import {t} from 'sentry/locale';
 
 type Props = {
   message: React.ReactNode;
-  docLink?: string;
   highlightMessage?: React.ReactNode;
 };
 
-export function SearchInvalidTag({message, highlightMessage, docLink}: Props) {
+export function SearchInvalidTag({message, highlightMessage}: Props) {
   return (
-    <Invalid
-      onClick={event => {
-        if (!docLink) {
-          return;
-        }
-        event.stopPropagation();
-        window.open(docLink);
-      }}
-    >
+    <Invalid>
       <span>{message}</span>
       <Highlight>
         {highlightMessage ?? t('See all searchable properties in the docs.')}

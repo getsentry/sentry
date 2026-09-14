@@ -1,8 +1,8 @@
-import type {CSSProperties} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -100,8 +100,6 @@ interface FlamegraphZoomViewProps {
   disableCallOrderSort?: boolean;
   disableColorCoding?: boolean;
   disableGrid?: boolean;
-  disablePanX?: boolean;
-  disableZoom?: boolean;
 }
 
 function FlamegraphZoomView({
@@ -118,8 +116,6 @@ function FlamegraphZoomView({
   setFlamegraphOverlayCanvasRef,
   contextMenu,
   scheduler,
-  disablePanX = false,
-  disableZoom = false,
   disableGrid = false,
   disableCallOrderSort = false,
   disableColorCoding = false,
@@ -164,25 +160,30 @@ function FlamegraphZoomView({
     );
   }, [flamegraphOverlayCanvasRef, flamegraph, flamegraphTheme, disableGrid]);
 
+  // CanvasView reassigns configSpace on the same instance, so the view identity is
+  // not a usable dependency. Reading the rect out here keeps the memo keyed on the
+  // value that actually changes.
+  const flamegraphConfigSpace = flamegraphView?.configSpace;
+
   const sampleTickRenderer = useMemo(() => {
     if (!isInternalFlamegraphDebugModeEnabled) {
       return null;
     }
 
-    if (!flamegraphOverlayCanvasRef || !flamegraphView?.configSpace) {
+    if (!flamegraphOverlayCanvasRef || !flamegraphConfigSpace) {
       return null;
     }
     return new SampleTickRenderer(
       flamegraphOverlayCanvasRef,
       flamegraph,
-      flamegraphView.configSpace,
+      flamegraphConfigSpace,
       flamegraphTheme
     );
   }, [
     isInternalFlamegraphDebugModeEnabled,
     flamegraphOverlayCanvasRef,
     flamegraph,
-    flamegraphView?.configSpace,
+    flamegraphConfigSpace,
     flamegraphTheme,
   ]);
 
@@ -633,14 +634,12 @@ function FlamegraphZoomView({
   const onWheelCenterZoom = useWheelCenterZoom(
     flamegraphCanvas,
     flamegraphView,
-    canvasPoolManager,
-    disableZoom
+    canvasPoolManager
   );
   const onCanvasScroll = useCanvasScroll(
     flamegraphCanvas,
     flamegraphView,
-    canvasPoolManager,
-    disablePanX
+    canvasPoolManager
   );
 
   useCanvasZoomOrScroll({
@@ -836,8 +835,8 @@ function FlamegraphZoomView({
 }
 
 const Canvas = styled('canvas')<{
-  cursor?: CSSProperties['cursor'];
-  pointerEvents?: CSSProperties['pointerEvents'];
+  cursor?: CSS['cursor'];
+  pointerEvents?: CSS['pointerEvents'];
 }>`
   left: 0;
   top: 0;

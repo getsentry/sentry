@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {getNextDirection} from 'sentry/components/tables/getNextSort';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
@@ -79,8 +80,7 @@ function FieldHeaderCellWrapper({
     !isEmbeddedMetricsSamplesTableSource(source) && SORTABLE_SAMPLE_COLUMNS.has(field);
 
   function handleSortClick() {
-    const kind = sort === 'desc' ? 'asc' : 'desc';
-    setSorts([{field, kind}]);
+    setSorts([{field, kind: getNextDirection(sort)}]);
   }
 
   if (columnType === 'metric_value') {

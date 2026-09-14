@@ -501,8 +501,8 @@ const checkoutSuccessFeedbackOptions = {
   formTitle: t('Give feedback'),
   messagePlaceholder: t('How can we make the checkout experience better for you?'),
   tags: {
-    ['feedback.source']: 'checkout_success',
-    ['feedback.owner']: 'billing',
+    'feedback.source': 'checkout_success',
+    'feedback.owner': 'billing',
   },
 };
 

@@ -74,7 +74,7 @@ interface BoundTooltipProps {
   children?: React.ReactNode;
 }
 
-const DEFAULT_BOUNDS = Rect.Empty();
+const DEFAULT_BOUNDS = Rect.empty();
 
 function BoundTooltip({
   canvas,

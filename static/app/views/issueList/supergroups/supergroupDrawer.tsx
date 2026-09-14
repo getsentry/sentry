@@ -96,7 +96,7 @@ export function SupergroupDetailDrawer({
               formTitle: t('Give feedback on Issue Groups'),
               messagePlaceholder: t('How can we make Issue Groups better for you?'),
               tags: {
-                ['feedback.source']: 'supergroup_drawer',
+                'feedback.source': 'supergroup_drawer',
               },
             }}
             tooltipProps={{title: t('Give feedback on Issue Groups')}}
@@ -268,7 +268,7 @@ function SupergroupIssueList({
           </LoadingHeader>
           <PanelBody>
             {visibleIds.map(id => (
-              <LoadingStreamGroup key={id} withChart withColumns={DRAWER_COLUMNS} />
+              <LoadingStreamGroup key={id} withColumns={DRAWER_COLUMNS} />
             ))}
           </PanelBody>
         </PanelContainer>
@@ -310,8 +310,6 @@ function SupergroupIssueList({
                   )}
                   <StreamGroup
                     group={group}
-                    canSelect
-                    withChart
                     withColumns={DRAWER_COLUMNS}
                     memberList={members}
                     statsPeriod={DEFAULT_STREAM_GROUP_STATS_PERIOD}

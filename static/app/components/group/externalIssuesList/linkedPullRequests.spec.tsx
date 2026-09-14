@@ -72,7 +72,7 @@ describe('LinkedPullRequests', () => {
       `Pull request #123 in ${REPOSITORY_NAME}, Merged, Fix widget crash on startup`
     );
     await userEvent.hover(linkedPullRequest);
-    expect(await screen.findAllByText('Fix widget crash on startup')).toHaveLength(2);
+    expect(await screen.findAllByText('Fix widget crash on startup')).toHaveLength(1);
     expect(within(list).getAllByRole('listitem')).toHaveLength(2);
     expect(within(list).getByText(`${REPOSITORY_NAME}#123`)).toBeInTheDocument();
     expect(within(list).getByText(`${REPOSITORY_NAME}#124`)).toBeInTheDocument();
@@ -168,6 +168,88 @@ describe('LinkedPullRequests', () => {
     expect(within(withoutDetails).queryByText('Checks failed')).not.toBeInTheDocument();
     expect(
       within(withoutDetails).queryByText('Changes requested')
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps active pull requests visible and collapses completed pull requests linked before the latest regression', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {
+        latestRegressionAt: '2026-06-08T23:11:32.000000Z',
+        pullRequests: [
+          {
+            ...PullRequestFixture({id: '123', repository}),
+            attribution: null,
+            dateLinked: '2026-06-08T23:10:32.000000Z',
+            status: 'draft',
+          },
+          {
+            ...PullRequestFixture({id: '122', repository}),
+            attribution: null,
+            dateLinked: '2026-06-08T23:10:32.000000Z',
+            status: 'merged',
+          },
+        ],
+      },
+    });
+
+    render(<LinkedPullRequests collapseBeforeLatestRegression group={group} />, {
+      organization,
+    });
+
+    const currentPullRequests = await screen.findByRole('list', {
+      name: 'Linked pull requests',
+    });
+    expect(
+      within(currentPullRequests).getByRole('link', {name: /Pull request #123/})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {name: /Pull request #122/})
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'PRs before last regression'})
+    );
+
+    const historicalPullRequests = screen.getByRole('list', {
+      name: 'Other linked pull requests',
+    });
+    expect(
+      within(historicalPullRequests).getByRole('link', {name: /Pull request #122/})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'PRs before last regression'})
+    ).toBeInTheDocument();
+  });
+
+  it('keeps completed pull requests visible when there are no active pull requests', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {
+        latestRegressionAt: '2026-06-08T23:11:32.000000Z',
+        pullRequests: [
+          {
+            ...PullRequestFixture({id: '122', repository}),
+            attribution: null,
+            dateLinked: '2026-06-08T23:10:32.000000Z',
+            status: 'merged',
+          },
+        ],
+      },
+    });
+
+    render(<LinkedPullRequests collapseBeforeLatestRegression group={group} />, {
+      organization,
+    });
+
+    const pullRequests = await screen.findByRole('list', {
+      name: 'Linked pull requests',
+    });
+    expect(
+      within(pullRequests).getByRole('link', {name: /Pull request #122/})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'PRs before last regression'})
     ).not.toBeInTheDocument();
   });
 

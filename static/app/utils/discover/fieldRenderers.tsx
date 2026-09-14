@@ -252,7 +252,12 @@ export const FIELD_FORMATTERS: FieldFormatters = {
   boolean: {
     isSortable: true,
     renderFunc: (field, data) => {
-      const value = data[field] ? t('true') : t('false');
+      const fieldValue = data[field];
+      // Render empty values as "(no value)" instead of coercing them to false.
+      if (fieldValue === null || fieldValue === undefined || fieldValue === '') {
+        return <Container>{emptyValue}</Container>;
+      }
+      const value = fieldValue ? t('true') : t('false');
       return <Container>{value}</Container>;
     },
   },
@@ -825,7 +830,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     renderFunc: data => {
       const label = ADOPTION_STAGE_LABELS[data.adoption_stage];
       return data.adoption_stage && label ? (
-        <Tooltip title={label.tooltipTitle} isHoverable>
+        <Tooltip title={label.tooltipTitle}>
           <Tag variant={label.variant}>{label.name}</Tag>
         </Tooltip>
       ) : (
@@ -1150,7 +1155,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
 
       if (!(userMiseryField in data)) {
         return (
-          <Tooltip title={missingUserMisery} showUnderline isHoverable>
+          <Tooltip title={missingUserMisery} showUnderline>
             <NumberContainer>{emptyValue}</NumberContainer>
           </Tooltip>
         );
@@ -1159,7 +1164,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
       const userMisery = data[userMiseryField];
       if (userMisery === null || isNaN(userMisery)) {
         return (
-          <Tooltip title={missingUserMisery} showUnderline isHoverable>
+          <Tooltip title={missingUserMisery} showUnderline>
             <NumberContainer>{emptyValue}</NumberContainer>
           </Tooltip>
         );

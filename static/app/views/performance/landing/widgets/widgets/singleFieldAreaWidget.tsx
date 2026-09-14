@@ -68,14 +68,11 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
           currentSeriesNames={[field!]}
           previousSeriesNames={[getPreviousSeriesName(field!)]}
           query={provided.eventView.getQueryWithAdditionalConditions()}
-          interval={getInterval(
-            {
-              start: provided.start,
-              end: provided.end,
-              period: provided.period,
-            },
-            'medium'
-          )}
+          interval={getInterval({
+            start: provided.start,
+            end: provided.end,
+            period: provided.period,
+          })}
           hideError
           onError={setPageDanger}
           queryExtras={queryExtras}
@@ -176,7 +173,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 }
 
 const EventsRequest = withApi(_EventsRequest);
-export const Subtitle = styled('span')`
+const Subtitle = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};
 `;

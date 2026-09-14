@@ -16,12 +16,32 @@ type MarketingEventSchema = {
   event_label?: unknown;
 };
 
+function identifyAmplitudeUser(user: User) {
+  // Most of our in-app amplitude logging happens on the backend, whereas anonymous user tracking
+  // happens in the JS SDK. This means when a user signs up, we need to somehow link their
+  // anonymous activity with their in-app activity. Logging a dummy event from the JS SDK in-app
+  // accomplishes that.
+  const identify = new Amplitude.Identify();
+  const identifyObj = identify
+    .set('user_id', user.id)
+    .set('lastAppPageLoad', new Date().toISOString())
+    .set(
+      'isInternalUser',
+      user.identities.some(ident => ident.organization?.slug === 'sentry') ||
+        user.emails.some(email => email.email?.endsWith('sentry.io')) ||
+        user.isSuperuser
+    );
+
+  // pass in timestamp from this moment instead of letting Amplitude determine it
+  // which is roughly 100 ms later
+  Amplitude.identify(identifyObj, {time: Date.now()});
+}
+
 /**
- * This function initializes the user for analytics (Amplitude)
- * It also handles other initialization logic for analytics like sending
- * events to Google Analytics and storing the previous_referrer into local storage
+ * Initializes browser analytics and identifies the authenticated user when available.
+ * It also sends marketing events and stores the previous referrer.
  */
-export function analyticsInitUser(user: User) {
+export function analyticsInitUser(user: User | null) {
   const {frontend_events, referrer} = qs.parse(window.location.search) || {};
   // store the referrer in sessionStorage so we know what it was when the user
   // navigates to another page
@@ -51,24 +71,9 @@ export function analyticsInitUser(user: User) {
     },
   });
 
-  // Most of our in-app amplitude logging happens on the backend, whereas anonymous user tracking
-  // happens in the JS SDK. This means when a user signs up, we need to somehow link their
-  // anonymous activity with their in-app activity. Logging a dummy event from the JS SDK in-app
-  // accomplishes that.
-  const identify = new Amplitude.Identify();
-  const identifyObj = identify
-    .set('user_id', user.id)
-    .set('lastAppPageLoad', new Date().toISOString())
-    .set(
-      'isInternalUser',
-      user.identities.some(ident => ident.organization?.slug === 'sentry') ||
-        user.emails.some(email => email.email?.endsWith('sentry.io')) || // Has a sentry.io email
-        user.isSuperuser // Has an identity for the Sentry organization.
-    );
-
-  // pass in timestamp from this moment instead of letting Amplitude determine it
-  // which is roughly 100 ms later
-  Amplitude.identify(identifyObj, {time: Date.now()});
+  if (user) {
+    identifyAmplitudeUser(user);
+  }
 
   // the backend can send any arbitrary marketing events
   if (frontend_events && typeof frontend_events === 'string') {

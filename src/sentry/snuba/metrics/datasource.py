@@ -32,16 +32,15 @@ from sentry.sentry_metrics.utils import (
     bulk_reverse_resolve_tag_value,
     resolve_tag_key,
 )
-from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import (
     CompositeEntityDerivedMetric,
-    SnubaDataType,
     get_derived_metrics,
     org_id_from_projects,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
-from sentry.snuba.metrics.naming_layer.mri import is_custom_measurement, is_mri, parse_mri
+from sentry.snuba.metrics.naming_layer.mri import is_mri
 from sentry.snuba.metrics.query import DeprecatingMetricsQuery, Groupable, MetricField
 from sentry.snuba.metrics.query_builder import (
     SnubaQueryBuilder,
@@ -49,14 +48,9 @@ from sentry.snuba.metrics.query_builder import (
     translate_meta_results,
 )
 from sentry.snuba.metrics.utils import (
-    AVAILABLE_GENERIC_OPERATIONS,
-    CUSTOM_MEASUREMENT_DATASETS,
-    METRIC_TYPE_TO_ENTITY,
-    METRIC_TYPE_TO_METRIC_ENTITY,
     UNALLOWED_TAGS,
     DerivedMetricParseException,
     MetricDoesNotExistInIndexer,
-    MetricMeta,
     MetricType,
     NotSupportedOverCompositeEntityException,
     Tag,
@@ -76,28 +70,6 @@ __all__ = (
 
 
 logger = logging.getLogger(__name__)
-
-
-def _get_metrics_for_entity(
-    entity_key: EntityKey,
-    project_ids: Sequence[int],
-    org_id: int,
-    use_case_id: UseCaseID,
-    start: datetime | None = None,
-    end: datetime | None = None,
-) -> list[SnubaDataType]:
-    return run_metrics_query(
-        entity_key=entity_key,
-        select=[Column("metric_id")],
-        groupby=[Column("metric_id")],
-        where=[Condition(Column("use_case_id"), Op.EQ, use_case_id.value)],
-        referrer="snuba.metrics.get_metrics_names_for_entity",
-        project_ids=project_ids,
-        org_id=org_id,
-        use_case_id=use_case_id,
-        start=start,
-        end=end,
-    )
 
 
 def get_available_derived_metrics(
@@ -151,49 +123,6 @@ def get_available_derived_metrics(
             found_derived_metrics.add(composite_derived_metric_obj.metric_mri)
 
     return found_derived_metrics.intersection(get_derived_metrics())
-
-
-def get_custom_measurements(
-    project_ids: Sequence[int],
-    organization_id: int,
-    start: datetime | None = None,
-    end: datetime | None = None,
-    use_case_id: UseCaseID = UseCaseID.TRANSACTIONS,
-) -> Sequence[MetricMeta]:
-    assert project_ids
-
-    metrics_meta = []
-    for metric_type in CUSTOM_MEASUREMENT_DATASETS:
-        rows = _get_metrics_for_entity(
-            entity_key=METRIC_TYPE_TO_ENTITY[metric_type],
-            project_ids=project_ids,
-            org_id=organization_id,
-            use_case_id=use_case_id,
-            start=start,
-            end=end,
-        )
-
-        mri_indexes = {row["metric_id"] for row in rows}
-        mris = bulk_reverse_resolve(use_case_id, organization_id, mri_indexes)
-
-        for row in rows:
-            mri_index = row["metric_id"]
-            parsed_mri = parse_mri(mris.get(mri_index))
-            if parsed_mri is not None and is_custom_measurement(parsed_mri):
-                metrics_meta.append(
-                    MetricMeta(
-                        name=parsed_mri.name,
-                        type=metric_type,
-                        operations=AVAILABLE_GENERIC_OPERATIONS[
-                            METRIC_TYPE_TO_METRIC_ENTITY[metric_type]
-                        ],
-                        unit=parsed_mri.unit,
-                        metric_id=row["metric_id"],
-                        mri=parsed_mri.mri_string,
-                    )
-                )
-
-    return metrics_meta
 
 
 def _get_metrics_filter_ids(

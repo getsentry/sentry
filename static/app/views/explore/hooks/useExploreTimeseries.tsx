@@ -5,6 +5,7 @@ import {defined} from 'sentry/utils/defined';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {defaultAggregateSortBys} from 'sentry/views/explore/contexts/pageParamsContext/aggregateSortBys';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
@@ -21,6 +22,7 @@ import {
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {computeVisualizeSampleTotals} from 'sentry/views/explore/utils';
+import {areAllVisualizesInvalidConditionalFilters} from 'sentry/views/explore/utils/conditionalAggregate';
 import {
   useSortedTimeSeries,
   type SortedTimeSeries,
@@ -72,6 +74,7 @@ function useExploreTimeseriesImpl({
   const groupBys = useQueryParamsGroupBys();
   const sortBys = useQueryParamsAggregateSortBys();
   const visualizes = useQueryParamsVisualizes({validate: true});
+  const unvalidatedVisualizes = useQueryParamsVisualizes();
   const [interval] = useChartInterval();
   const topEvents = useTopEvents();
 
@@ -83,13 +86,20 @@ function useExploreTimeseriesImpl({
     return [...groupBys, ...validYAxes].filter(Boolean);
   }, [groupBys, validYAxes]);
 
+  // Drop orderbys for series removed by validation so the remaining query still works.
   const orderby: string | string[] | undefined = useMemo(() => {
     if (!sortBys.length) {
       return;
     }
 
-    return sortBys.map(formatSort);
-  }, [sortBys]);
+    const allowedFields = new Set(fields);
+    const validSortBys = sortBys.filter(sort => allowedFields.has(sort.field));
+    if (validSortBys.length) {
+      return validSortBys.map(formatSort);
+    }
+
+    return defaultAggregateSortBys(validYAxes).map(formatSort);
+  }, [fields, sortBys, validYAxes]);
 
   const yAxes = useMemo(() => {
     const allYAxes = [...validYAxes];
@@ -101,6 +111,11 @@ function useExploreTimeseriesImpl({
     return dedupeArray(allYAxes).sort();
   }, [validYAxes]);
 
+  const skippedForInvalidConditionalFilter = useMemo(
+    () => areAllVisualizesInvalidConditionalFilters(unvalidatedVisualizes),
+    [unvalidatedVisualizes]
+  );
+
   const options = useMemo(() => {
     const search = new MutableSearch(query);
 
@@ -111,10 +126,22 @@ function useExploreTimeseriesImpl({
       fields,
       orderby,
       topEvents,
-      enabled,
+      // Skip only when every series failed an `_if` filter. Invalid equations still
+      // query with DEFAULT_VISUALIZATION as a fallback (prior behavior).
+      enabled: enabled && !skippedForInvalidConditionalFilter,
       ...queryExtras,
     };
-  }, [enabled, fields, interval, orderby, query, queryExtras, topEvents, yAxes]);
+  }, [
+    enabled,
+    fields,
+    interval,
+    orderby,
+    query,
+    queryExtras,
+    skippedForInvalidConditionalFilter,
+    topEvents,
+    yAxes,
+  ]);
 
   const timeseriesResult = useSortedTimeSeries(
     options,

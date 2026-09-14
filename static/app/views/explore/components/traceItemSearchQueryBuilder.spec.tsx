@@ -96,6 +96,29 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     expect(result.current.filterKeyAliases?.['transaction.duration_alias']).toBeDefined();
   });
 
+  it('resolves a tag array and its [*] membership form to the array definition', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        arrayAttributes: {
+          'tags[csv_headers,array]': {
+            key: 'tags[csv_headers,array]',
+            name: 'csv_headers',
+            kind: FieldKind.ARRAY,
+          },
+        },
+      },
+      organization,
+    });
+
+    const getFieldDefinition = result.current.fieldDefinitionGetter;
+
+    // The stored backend key and its `[*]` membership form both resolve to the
+    // array definition (the `[*]` is stripped before lookup).
+    expect(getFieldDefinition('tags[csv_headers,array]')?.kind).toBe(FieldKind.ARRAY);
+    expect(getFieldDefinition('tags[csv_headers,array][*]')?.kind).toBe(FieldKind.ARRAY);
+  });
+
   it('wires string attributes into filter keys and aliases', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
       initialProps: {

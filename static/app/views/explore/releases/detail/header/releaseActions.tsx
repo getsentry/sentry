@@ -34,7 +34,7 @@ type Props = {
 export const releaseFeedbackOptions = {
   messagePlaceholder: t('How can we improve the Releases experience?'),
   tags: {
-    ['feedback.source']: 'release-detail',
+    'feedback.source': 'release-detail',
   },
 };
 

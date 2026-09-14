@@ -27,24 +27,22 @@ export interface TraceEvents {
 
 export class TraceScheduler {
   events: EventStore = {
-    ['initialize virtualized list']: new Array<
+    'initialize virtualized list': new Array<
       [TraceEventPriority, TraceEvents['initialize virtualized list']]
     >(),
-    ['set container physical space']: new Array<
+    'set container physical space': new Array<
       [TraceEventPriority, TraceEvents['set container physical space']]
     >(),
-    ['initialize trace space']: new Array<
+    'initialize trace space': new Array<
       [TraceEventPriority, TraceEvents['initialize trace space']]
     >(),
-    ['set trace space']: new Array<
-      [TraceEventPriority, TraceEvents['set trace space']]
-    >(),
-    ['divider resize end']: new Array<
+    'set trace space': new Array<[TraceEventPriority, TraceEvents['set trace space']]>(),
+    'divider resize end': new Array<
       [TraceEventPriority, TraceEvents['divider resize end']]
     >(),
-    ['divider resize']: new Array<[TraceEventPriority, TraceEvents['divider resize']]>(),
-    ['set trace view']: new Array<[TraceEventPriority, TraceEvents['set trace view']]>(),
-    ['draw']: new Array<[TraceEventPriority, TraceEvents['draw']]>(),
+    'divider resize': new Array<[TraceEventPriority, TraceEvents['divider resize']]>(),
+    'set trace view': new Array<[TraceEventPriority, TraceEvents['set trace view']]>(),
+    draw: new Array<[TraceEventPriority, TraceEvents['draw']]>(),
   };
 
   once<K extends keyof TraceEvents>(eventName: K, cb: TraceEvents[K]) {

@@ -72,7 +72,7 @@ class JiraSearchEndpoint(IntegrationEndpoint):
             ).capture() as lifecycle:
                 lifecycle.add_extra("field", field)
                 try:
-                    response = jira_client.get_project_statuses(project_id)
+                    response = jira_client.get_project_statuses(project_id, paginate=True)
                 except (ApiUnauthorized, ApiError) as e:
                     lifecycle.record_halt(e)
                     return Response({"detail": "Unable to fetch statuses from Jira"}, status=400)

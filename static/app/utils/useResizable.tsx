@@ -33,11 +33,6 @@ interface UseResizableOptions {
    * Triggered when the user finishes dragging the resize handle.
    */
   onResizeEnd?: (newWidth: number) => void;
-
-  /**
-   * Triggered when the user starts dragging the resize handle.
-   */
-  onResizeStart?: () => void;
 }
 
 /**
@@ -51,7 +46,6 @@ export const useResizable = ({
   maxWidth = RESIZABLE_MAX_WIDTH,
   minWidth = RESIZABLE_MIN_WIDTH,
   onResizeEnd,
-  onResizeStart,
 }: UseResizableOptions): {
   /**
    * Whether the drag handle is held.
@@ -99,9 +93,8 @@ export const useResizable = ({
 
       document.body.style.cursor = 'ew-resize';
       document.body.style.userSelect = 'none';
-      onResizeStart?.();
     },
-    [ref, onResizeStart]
+    [ref]
   );
 
   const handleMouseMove = useCallback(

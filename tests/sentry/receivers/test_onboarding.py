@@ -167,7 +167,6 @@ class OrganizationOnboardingTaskTest(TestCase):
     def test_project_created__default_workflow(self) -> None:
         project = self.create_project(fire_project_created=True)
 
-        assert Rule.objects.filter(project=project).exists()
         workflow = Workflow.objects.get(
             organization=project.organization,
             name=DEFAULT_WORKFLOW_LABEL,
@@ -867,34 +866,6 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-    def test_issue_alert_received_through_project_creation(self) -> None:
-        now = timezone.now()
-
-        first_organization = self.create_organization(owner=self.user, slug="first-org")
-        first_project = self.create_project(first_event=now, organization=first_organization)
-        # By default, the project creation will create a default rule
-        project_created.send(project=first_project, user=self.user, sender=None)
-        assert OrganizationOnboardingTask.objects.filter(
-            organization=first_project.organization,
-            task=OnboardingTask.ALERT_RULE,
-            status=OnboardingTaskStatus.COMPLETE,
-        ).exists()
-
-        second_organization = self.create_organization(owner=self.user, slug="second-org")
-        second_project = self.create_project(first_event=now, organization=second_organization)
-        # When creating a project, a user can opt out of creating a default rule
-        project_created.send(
-            project=second_project,
-            user=self.user,
-            sender=None,
-            default_rules=False,
-        )
-        assert not OrganizationOnboardingTask.objects.filter(
-            organization=second_project.organization,
-            task=OnboardingTask.ALERT_RULE,
-            status=OnboardingTaskStatus.COMPLETE,
-        ).exists()
-
     @patch("sentry.analytics.record", wraps=record)
     def test_new_onboarding_complete(self, record_analytics: MagicMock) -> None:
         """
@@ -1201,6 +1172,16 @@ class OrganizationOnboardingTaskTest(TestCase):
         project = self.create_project(platform="javascript")
         project_created.send(project=project, user=self.user, sender=None)
 
+        # project creation no longer creates a default alert, so create one explicitly
+        alert_rule_created.send(
+            rule_id=Rule(id=1).id,
+            project=project,
+            user=self.user,
+            rule_type="issue",
+            sender=None,
+            is_api_token=False,
+        )
+
         # Capture first transaction + release
         transaction_event = load_data("transaction")
         transaction_event.update({"release": "my-first-release", "tags": []})
@@ -1361,6 +1342,16 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         project = self.create_project(platform="python")
         project_created.send(project=project, user=self.user, default_rules=True, sender=None)
+
+        # project creation no longer creates a default alert, so create one explicitly
+        alert_rule_created.send(
+            rule_id=Rule(id=1).id,
+            project=project,
+            user=self.user,
+            rule_type="issue",
+            sender=None,
+            is_api_token=False,
+        )
 
         transaction_event = load_data("transaction")
         transaction_event.update({"user": None, "release": "my-first-release", "tags": []})

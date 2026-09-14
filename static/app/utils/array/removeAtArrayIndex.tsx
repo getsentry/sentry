@@ -1,6 +1,0 @@
-/**
- * Remove item at `index` in `array` without mutating `array`
- */
-export function removeAtArrayIndex<T>(array: readonly T[], index: number): T[] {
-  return array.toSpliced(index, 1);
-}

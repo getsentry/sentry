@@ -429,7 +429,7 @@ function builtInIssuesFields({
     ...semverFields,
   };
 
-  if (!organization.features.includes('issue-stream-progress-ui')) {
+  if (!organization.features.includes('issue-inbox')) {
     delete allFields[FieldKey.ISSUE_PROGRESS];
   }
 

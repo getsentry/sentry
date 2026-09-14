@@ -5,10 +5,24 @@ INGESTION_DELAY = 90
 INGESTION_DELAY_MESSAGE = "INCOMPLETE_BUCKET"
 
 
+class Annotation(TypedDict):
+    """A system annotation explaining that data over a time range was affected by
+    an external factor."""
+
+    type: Literal["system"]
+    category: str
+    reason: str
+    start: float
+    end: float
+    droppedCount: float
+    label: str
+
+
 class StatsMeta(TypedDict):
     dataset: str
     start: float
     end: float
+    annotations: NotRequired[list[Annotation]]
 
 
 class Row(TypedDict):

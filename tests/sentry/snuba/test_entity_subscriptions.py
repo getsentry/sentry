@@ -258,6 +258,7 @@ class EntitySubscriptionTestCase(TestCase):
 
     # This test has been kept in order to validate whether the old queries through metrics are supported, in the future
     # this should be removed.
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_get_entity_subscription_for_performance_metrics_dataset(self) -> None:
         aggregate = "percentile(transaction.duration,.95)"
         entity_subscription = get_entity_subscription(
@@ -575,76 +576,10 @@ class GetEntityKeyFromSnubaQueryTest(TestCase):
                 True,
             ),
             (
-                EntityKey.GenericMetricsDistributions,
-                SnubaQuery.Type.PERFORMANCE,
-                Dataset.Metrics,
-                "count()",
-                "",
-                True,
-                True,
-            ),
-            (
-                EntityKey.GenericMetricsSets,
-                SnubaQuery.Type.PERFORMANCE,
-                Dataset.Metrics,
-                "count_unique(user)",
-                "",
-                True,
-                True,
-            ),
-            (
-                EntityKey.GenericMetricsDistributions,
-                SnubaQuery.Type.PERFORMANCE,
-                Dataset.PerformanceMetrics,
-                "count()",
-                "",
-                True,
-                True,
-            ),
-            (
-                EntityKey.GenericMetricsSets,
-                SnubaQuery.Type.PERFORMANCE,
-                Dataset.PerformanceMetrics,
-                "count_unique(user)",
-                "",
-                True,
-                True,
-            ),
-            (
                 EntityKey.GenericMetricsCounters,
                 SnubaQuery.Type.PERFORMANCE,
                 Dataset.PerformanceMetrics,
                 "sum(c:transactions/sentry.process_profile.track_outcome@second)",
-                "",
-                # Custom metrics are not supported when the metrics layer integration with mqb is disabled.
-                False,
-                True,
-            ),
-            (
-                EntityKey.GenericMetricsDistributions,
-                SnubaQuery.Type.PERFORMANCE,
-                Dataset.PerformanceMetrics,
-                "max(d:transactions/sentry.process_profile.track_outcome@second)",
-                "",
-                # Custom metrics are not supported when the metrics layer integration with mqb is disabled.
-                False,
-                True,
-            ),
-            (
-                EntityKey.GenericMetricsSets,
-                SnubaQuery.Type.PERFORMANCE,
-                Dataset.PerformanceMetrics,
-                "count_unique(s:transactions/sentry.process_profile.track_outcome@second)",
-                "",
-                # Custom metrics are not supported when the metrics layer integration with mqb is disabled.
-                False,
-                True,
-            ),
-            (
-                EntityKey.GenericMetricsGauges,
-                SnubaQuery.Type.PERFORMANCE,
-                Dataset.PerformanceMetrics,
-                "last(g:transactions/sentry.process_profile.track_outcome@second)",
                 "",
                 # Custom metrics are not supported when the metrics layer integration with mqb is disabled.
                 False,

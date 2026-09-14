@@ -74,7 +74,9 @@ export interface FlamegraphTheme {
     SPAN_FRAME_BORDER: string;
     SPAN_FRAME_LINE_PATTERN: string;
     SPAN_FRAME_LINE_PATTERN_BACKGROUND: string;
-    STACK_TO_COLOR: (
+    UI_FRAME_COLOR_FROZEN: ColorChannels;
+    UI_FRAME_COLOR_SLOW: ColorChannels;
+    stackToColor: (
       frames: readonly FlamegraphFrame[],
       colorMapFn: ColorMapFn,
       colorBucketFn: FlamegraphTheme['COLORS']['COLOR_BUCKET'],
@@ -83,8 +85,6 @@ export interface FlamegraphTheme {
       colorBuffer: number[];
       colorMap: Map<Frame['key'], ColorChannels>;
     };
-    UI_FRAME_COLOR_FROZEN: ColorChannels;
-    UI_FRAME_COLOR_SLOW: ColorChannels;
   };
   FONTS: {
     FONT: string;
@@ -260,7 +260,7 @@ export const makeLightFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
       MINIMAP_POSITION_OVERLAY_COLOR: theme.tokens.background.transparent.neutral.muted,
 
       SPAN_FRAME_BORDER: theme.tokens.background.transparent.neutral.muted,
-      STACK_TO_COLOR: makeStackToColor([0, 0, 0, 0.035]),
+      stackToColor: makeStackToColor([0, 0, 0, 0.035]),
     },
   };
 };
@@ -364,7 +364,7 @@ export const makeDarkFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
       MINIMAP_POSITION_OVERLAY_COLOR: theme.colors.gray200,
 
       SPAN_FRAME_BORDER: theme.colors.gray300,
-      STACK_TO_COLOR: makeStackToColor([1, 1, 1, 0.18]),
+      stackToColor: makeStackToColor([1, 1, 1, 0.18]),
     },
   };
 };

@@ -10,6 +10,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -59,6 +60,7 @@ describe('ProjectFilters', () => {
     dateUpdated: string;
     id: string;
     name: string | null;
+    dataType?: string;
   };
 
   function CustomInboundFilterFixture(
@@ -68,6 +70,7 @@ describe('ProjectFilters', () => {
       id: '1',
       name: 'A filter',
       active: true,
+      dataType: 'error',
       conditions: [{type: 'error_message', value: ['*Error*']}],
       dateCreated: '2024-01-01T00:00:00Z',
       dateUpdated: '2024-01-01T00:00:00Z',
@@ -98,6 +101,7 @@ describe('ProjectFilters', () => {
   }
 
   beforeEach(() => {
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1600);
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
@@ -500,6 +504,66 @@ describe('ProjectFilters', () => {
     expect(screen.queryByText('Drop debug log spam')).not.toBeInTheDocument();
   });
 
+  it('shows the volume each filter dropped, and zero for a filter with no outcomes', async () => {
+    const statsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/stats_v2/`,
+      body: {
+        intervals: ['2024-01-01T00:00:00Z', '2024-01-02T00:00:00Z'],
+        groups: [
+          // One filter reports under one reason, and drops data in every category it
+          // applies to. The row stacks the categories and totals them.
+          {
+            by: {reason: 'custom-inbound-filter:1', category: 'error'},
+            series: {'sum(quantity)': [4, 6]},
+          },
+          {
+            by: {reason: 'custom-inbound-filter:1', category: 'log_item'},
+            series: {'sum(quantity)': [1, 1]},
+          },
+          {
+            by: {reason: 'custom-inbound-filter:1', category: 'trace_metric'},
+            series: {'sum(quantity)': [2, 3]},
+          },
+          // A reason belonging to a built-in filter must not land on a row.
+          {
+            by: {reason: 'react-hydration-errors', category: 'error'},
+            series: {'sum(quantity)': [99, 99]},
+          },
+        ],
+      },
+    });
+
+    renderInboundFilters([
+      CustomInboundFilterFixture({id: '1', name: 'Has outcomes'}),
+      CustomInboundFilterFixture({id: '2', name: 'Never matched'}),
+    ]);
+
+    expect(await screen.findByText('17')).toBeInTheDocument();
+    expect(screen.getByText('0')).toBeInTheDocument();
+    expect(screen.queryByText('99')).not.toBeInTheDocument();
+
+    // Byte categories report the same data a second time, in bytes, so the request
+    // has to ask for the counting categories alone.
+    expect(statsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/stats_v2/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          outcome: 'filtered',
+          category: [
+            'error',
+            'transaction',
+            'replay',
+            'profile_chunk',
+            'span',
+            'log_item',
+            'trace_metric',
+          ],
+          groupBy: ['reason', 'category'],
+        }),
+      })
+    );
+  });
+
   it('keeps a condition type it does not know', async () => {
     // A newer deploy can store a condition type this bundle has no description
     // for. It has to stay visible and editable, not break the page or the modal.
@@ -589,6 +653,7 @@ describe('ProjectFilters', () => {
           method: 'POST',
           data: {
             name: 'Block spam messages',
+            dataType: 'error',
             conditions: [{type: 'error_message', value: ['spam']}],
           },
         })
@@ -636,6 +701,7 @@ describe('ProjectFilters', () => {
           method: 'POST',
           data: {
             name: 'Undefined type errors',
+            dataType: 'error',
             conditions: [
               {type: 'error_message', value: ['*undefined*']},
               {type: 'error_type', value: ['TypeError']},
@@ -703,6 +769,7 @@ describe('ProjectFilters', () => {
           method: 'PUT',
           data: {
             name: 'Updated name',
+            dataType: 'error',
             conditions: [{type: 'error_message', value: ['*Error*']}],
           },
         })
@@ -716,6 +783,7 @@ describe('ProjectFilters', () => {
       CustomInboundFilterFixture({
         id: '1',
         name: 'Drop debug log spam',
+        dataType: 'log',
         conditions: [{type: 'log_message', value: ['*DEBUG*']}],
       }),
     ]);
@@ -723,9 +791,9 @@ describe('ProjectFilters', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Edit filter'}));
     expect(await screen.findByText('Edit Custom Filter')).toBeInTheDocument();
 
-    // The data type is derived from the stored log_message condition and stays
-    // selectable even though the org lacks the logs ingestion feature.
-    expect(screen.getByText('Logs')).toBeInTheDocument();
+    // The stored data type stays selectable even though the org lacks the logs
+    // ingestion feature.
+    expect(within(screen.getByRole('dialog')).getByText('Logs')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('textbox', {name: 'Data Type'}));
     expect(screen.getByRole('menuitemradio', {name: 'Logs'})).toBeInTheDocument();
 
@@ -767,6 +835,11 @@ describe('ProjectFilters', () => {
     await userEvent.click(screen.getByRole('textbox', {name: 'Data Type'}));
 
     expect(screen.getByRole('menuitemradio', {name: 'Errors'})).toBeInTheDocument();
+    // The catch-all needs no ingestion feature: it filters whichever data types
+    // the organization does ingest.
+    expect(
+      screen.getByRole('menuitemradio', {name: 'All Data Types'})
+    ).toBeInTheDocument();
     expect(screen.queryByRole('menuitemradio', {name: 'Logs'})).not.toBeInTheDocument();
     expect(
       screen.queryByRole('menuitemradio', {name: 'Metrics'})
@@ -873,6 +946,112 @@ describe('ProjectFilters', () => {
     await userEvent.hover(screen.getByText('matches'));
     expect(
       await screen.findByText('Matches the release attribute of the log.')
+    ).toBeInTheDocument();
+  });
+
+  it('creates a catch-all filter that applies to every data type', async () => {
+    renderInboundFilters([]);
+    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+
+    const createMock = MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      method: 'POST',
+      body: CustomInboundFilterFixture({id: '10', name: 'Bad release'}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
+    await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Bad release');
+
+    await userEvent.click(screen.getByRole('textbox', {name: 'Data Type'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'All Data Types'}));
+
+    // The catch-all can only match a field every data type carries, so the
+    // property dropdown narrows to those and the note says why.
+    expect(
+      screen.getByText(/applies to every data type Sentry ingests/)
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
+    expect(screen.getByRole('menuitemradio', {name: 'Release'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Error Message'})
+    ).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Release'}));
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Condition value'}), '1.2.*');
+    await userEvent.click(screen.getByRole('button', {name: 'Create Filter'}));
+
+    await waitFor(() =>
+      expect(createMock).toHaveBeenCalledWith(
+        CUSTOM_INBOUND_FILTERS_URL,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            name: 'Bad release',
+            dataType: 'all',
+            conditions: [{type: 'release', value: ['1.2.*']}],
+          },
+        })
+      )
+    );
+  });
+
+  it('shows the data type of every filter in the table', async () => {
+    renderInboundFilters([
+      CustomInboundFilterFixture({
+        id: '1',
+        name: 'Errors only',
+        dataType: 'error',
+        conditions: [{type: 'release', value: ['1.*']}],
+      }),
+      CustomInboundFilterFixture({
+        id: '2',
+        name: 'Every data type',
+        dataType: 'all',
+        conditions: [{type: 'release', value: ['1.*']}],
+      }),
+    ]);
+
+    expect(await screen.findByText('Errors')).toBeInTheDocument();
+    expect(screen.getByText('All Data Types')).toBeInTheDocument();
+  });
+
+  it('derives the data type from the conditions when the API omits it', async () => {
+    renderInboundFilters([
+      CustomInboundFilterFixture({
+        id: '1',
+        name: 'Log filter',
+        dataType: undefined,
+        conditions: [{type: 'log_message', value: ['*DEBUG*']}],
+      }),
+      CustomInboundFilterFixture({
+        id: '2',
+        name: 'Release filter',
+        dataType: undefined,
+        conditions: [{type: 'release', value: ['1.*']}],
+      }),
+    ]);
+
+    expect(await screen.findByText('Logs')).toBeInTheDocument();
+    expect(screen.getByText('Errors')).toBeInTheDocument();
+  });
+
+  it('explains the release condition of a catch-all filter', async () => {
+    renderInboundFilters([
+      CustomInboundFilterFixture({
+        id: '1',
+        name: 'Every data type',
+        dataType: 'all',
+        conditions: [{type: 'release', value: ['1.*']}],
+      }),
+    ]);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Edit filter'}));
+    expect(await screen.findByText('Edit Custom Filter')).toBeInTheDocument();
+
+    await userEvent.hover(screen.getByText('matches'));
+    expect(
+      await screen.findByText('Matches the release of any data type.')
     ).toBeInTheDocument();
   });
 

@@ -49,7 +49,7 @@ WORKFLOW_TRIGGERS_HELP_TEXT = """The conditions on which the alert will trigger.
                             "rca_completed",
                             "solution_completed",
                             "coding_completed",
-                            "pr_created"
+                            "pr_ready_for_review"
                         ],
                         "conditionResult": true
                     }
@@ -143,6 +143,8 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
             - `13`: HTTP Client issues
             - `14`: Front end issues
             - `15`: Mobile issues
+            - `17`: Preprod issues
+            - `19`: Configuration issues
         ```json
             {
                 "type": "issue_category",
@@ -367,7 +369,7 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
             {
                 "type": "latest_adopted_release",
                 "comparison": {
-                    "environment": "12345",
+                    "environment": "production",
                     "ageComparison": "older",
                     "releaseAgeType": "oldest"
                 },

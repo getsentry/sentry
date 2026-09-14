@@ -234,6 +234,7 @@ function useTrackAnalytics({
     if (
       queryType !== 'samples' ||
       spansTableResult.result.isPending ||
+      spansTableResult.result.isPlaceholderData ||
       timeseriesResult.isPending ||
       isLoadingSubscriptionDetails ||
       isLoadingSeerSetup
@@ -332,6 +333,7 @@ function useTrackAnalytics({
     query_status,
     spansTableResult.result.data?.length,
     spansTableResult.result.isPending,
+    spansTableResult.result.isPlaceholderData,
     spansTableResult.result.meta?.dataScanned,
     tableErrorBox,
     chartErrorBox,

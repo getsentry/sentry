@@ -2,8 +2,8 @@ import {useCallback, useEffect, useMemo, useRef} from 'react';
 import type {DataZoomComponentOption, ECharts, ToolboxComponentOption} from 'echarts';
 
 import {CHART_ZOOM_MERGE_OPTIONS} from 'sentry/components/charts/chartZoomConfig';
-import {DataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
-import {ToolBox} from 'sentry/components/charts/components/toolBox';
+import {dataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
+import {getToolBox} from 'sentry/components/charts/components/toolBox';
 import {activateZoomAreaSelect} from 'sentry/components/charts/utils';
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import type {DateString} from 'sentry/types/core';
@@ -151,6 +151,7 @@ function useChartZoomCancel(disabled?: boolean) {
   );
 
   const handleMouseUp = useCallback(() => {
+    // oxlint-disable-next-line react/immutability
     document.body.removeEventListener('mouseup', handleMouseUp);
     document.body.removeEventListener('keydown', handleKeyDown, true);
   }, [handleKeyDown]);
@@ -304,7 +305,7 @@ export function useChartZoom({
   const dataZoomProp = useMemo<DataZoomComponentOption[]>(() => {
     // Keep the inside dataZoom model even when disabled so synced charts can
     // still receive x-range changes without this hook writing URL state.
-    const zoomInside = DataZoomInside({
+    const zoomInside = dataZoomInside({
       id: 'useChartZoom-inside',
       xAxisIndex,
     });
@@ -318,7 +319,7 @@ export function useChartZoom({
       return {};
     }
 
-    return ToolBox(
+    return getToolBox(
       {id: 'useChartZoom-toolbox'},
       {
         dataZoom: {

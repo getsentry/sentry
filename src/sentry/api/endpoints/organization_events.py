@@ -169,6 +169,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
             GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.REFERRER,
             OrganizationParams.PROJECT,
             GlobalParams.START,
             GlobalParams.STATS_PERIOD,

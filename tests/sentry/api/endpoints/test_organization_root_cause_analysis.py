@@ -3,12 +3,16 @@ from datetime import timedelta
 import pytest
 from django.urls import reverse
 
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.samples import load_data
 
-pytestmark = [pytest.mark.sentry_metrics]
+pytestmark = [
+    pytest.mark.sentry_metrics,
+    pytest.mark.skip(
+        reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+    ),
+]
 
 
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
@@ -22,7 +26,7 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
             "sentry-api-0-organization-events-root-cause-analysis", args=[self.org.slug]
         )
         self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
+            name="d:transactions/duration@millisecond",
             tags={"transaction": "foo"},
             org_id=self.org.id,
             project_id=self.project.id,

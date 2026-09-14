@@ -24,8 +24,8 @@ import {
 import {SampleEventAlert} from 'sentry/views/issueDetails/sampleEventAlert';
 import {IssueDetailsSidebar} from 'sentry/views/issueDetails/sidebar/sidebar';
 import {ToggleSidebar} from 'sentry/views/issueDetails/sidebar/toggleSidebar';
-import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 import {
+  useIsSampleEvent,
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
@@ -45,6 +45,24 @@ function GroupLayoutBody({children}: {children: React.ReactNode}) {
     >
       {children}
     </Container>
+  );
+}
+
+function IssueDetailsColumn({children}: {children: React.ReactNode}) {
+  const {isSidebarOpen} = useIssueDetails();
+
+  return (
+    <Container borderRight={isSidebarOpen ? {zero: 'none', '4xl': 'primary'} : 'none'}>
+      {children}
+    </Container>
+  );
+}
+
+function EventDetailsSection({children}: {children: React.ReactNode}) {
+  return (
+    <Stack as="section" background="secondary">
+      {children}
+    </Stack>
   );
 }
 
@@ -79,7 +97,7 @@ export function GroupDetailsLayout({
       >
         <GroupHeader group={group} event={event ?? null} project={project} />
         <GroupLayoutBody>
-          <div>
+          <IssueDetailsColumn>
             <SharedTourElement<IssueDetailsTour>
               id={IssueDetailsTour.AGGREGATES}
               demoTourId={DemoTourStep.ISSUES_AGGREGATES}
@@ -108,12 +126,7 @@ export function GroupDetailsLayout({
             >
               {tourProps => (
                 <div {...tourProps}>
-                  <Stack
-                    as="section"
-                    background="secondary"
-                    borderRight={{zero: 'none', '4xl': 'primary'}}
-                    borderBottom={{zero: 'primary', '4xl': 'none'}}
-                  >
+                  <EventDetailsSection>
                     {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING &&
                       issueTypeConfig.header.eventNavigation.enabled && (
                         <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
@@ -123,11 +136,11 @@ export function GroupDetailsLayout({
                         </NavigationSidebarWrapper>
                       )}
                     <ContentPadding>{children}</ContentPadding>
-                  </Stack>
+                  </EventDetailsSection>
                 </div>
               )}
             </SharedTourElement>
-          </div>
+          </IssueDetailsColumn>
           <IssueDetailsSidebar group={group} event={event} project={project} />
         </GroupLayoutBody>
       </Container>
@@ -148,7 +161,14 @@ const NavigationSidebarWrapper = styled('div')<{
 `;
 
 const ContentPadding = styled('div')`
-  min-height: 100vh;
   padding: 0 var(--issue-details-inset, ${p => p.theme.space['2xl']})
     ${p => p.theme.space['2xl']} var(--issue-details-inset, ${p => p.theme.space['2xl']});
+
+  /* Fill the column beside the sidebar so a short tab keeps the secondary
+     background and the scroll position stable. Below this width the sidebar
+     stacks under the content, and the floor would only push it a full viewport
+     down. That is the common case once the Seer panel narrows the app content. */
+  @container (min-width: ${p => p.theme.container['4xl']}) {
+    min-height: 100vh;
+  }
 `;

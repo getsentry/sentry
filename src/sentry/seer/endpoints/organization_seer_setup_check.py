@@ -13,6 +13,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.constants import DataCategory
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.seer.autofix.utils import is_free_cohort_org
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,7 @@ class OrganizationSeerSetupCheckEndpoint(OrganizationEndpoint):
                     "orgHasAcknowledged": True,
                     "userHasAcknowledged": True,
                 },
+                "hasFreeAutofixAccess": is_free_cohort_org(organization),
                 "billing": {
                     "hasAutofixQuota": has_autofix_quota,
                     "hasScannerQuota": has_seer_scanner_quota,

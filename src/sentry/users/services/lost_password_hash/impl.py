@@ -1,4 +1,4 @@
-import datetime
+from django.utils import timezone
 
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.services.lost_password_hash import LostPasswordHashService, RpcLostPasswordHash
@@ -18,7 +18,7 @@ class DatabaseLostPasswordHashService(LostPasswordHashService):
         # See: https://github.com/getsentry/sentry/pull/17299
         password_hash, created = LostPasswordHash.objects.get_or_create(user_id=user_id)
         if not password_hash.is_valid():
-            password_hash.date_added = datetime.datetime.now()
+            password_hash.date_added = timezone.now()
             password_hash.set_hash()
             password_hash.save()
         return serialize_lostpasswordhash(password_hash)

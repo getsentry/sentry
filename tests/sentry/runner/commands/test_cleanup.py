@@ -8,6 +8,7 @@ from unittest.mock import patch
 import click
 import pytest
 
+from sentry.ai_monitoring.models import AIConversationMetadata
 from sentry.constants import ObjectStatus
 from sentry.models.files.file import File
 from sentry.models.group import Group
@@ -24,6 +25,7 @@ from sentry.runner.commands.cleanup import (
     remove_old_notification_messages,
     run_bulk_deletes_by_project,
     run_bulk_deletes_in_deletes,
+    run_bulk_query_deletes,
     task_execution,
 )
 from sentry.seer.models.night_shift import (
@@ -271,6 +273,27 @@ class RemoveCrossProjectBulkQueryModelsTest(TestCase):
         models_after = {m for m, _, _ in bulk_query_deletes}
         assert GroupOpenPeriodActivity not in models_after
         assert WorkflowFireHistory not in models_after
+
+
+class AIConversationMetadataCleanupTest(TestCase):
+    @assume_test_silo_mode(SiloMode.CELL)
+    def test_deletes_metadata_older_than_retention(self) -> None:
+        old = self.create_ai_conversation_metadata(self.project, "old-conversation")
+        recent = self.create_ai_conversation_metadata(self.project, "recent-conversation")
+        AIConversationMetadata.objects.filter(id=old.id).update(date_updated=before_now(days=32))
+        AIConversationMetadata.objects.filter(id=recent.id).update(date_updated=before_now(days=30))
+
+        run_bulk_query_deletes(
+            generate_bulk_query_deletes(),
+            lambda model: model is not AIConversationMetadata,
+            31,
+            None,
+            None,
+            set(),
+        )
+
+        assert not AIConversationMetadata.objects.filter(id=old.id).exists()
+        assert AIConversationMetadata.objects.filter(id=recent.id).exists()
 
 
 class UptimeResponseCaptureCleanupTest(TestCase):

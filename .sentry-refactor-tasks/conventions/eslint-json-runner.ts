@@ -52,11 +52,16 @@ const startedAt = Date.now();
 // Use only the supplied config (--no-config-lookup) so detection is independent
 // of the target repo's own eslint setup. Inline eslint-disable directives are
 // still honored (no --no-inline-config), so findings match the repo's own lint.
+// `pnpm exec` rather than `npx`: this script itself runs nested inside a
+// `pnpm exec`/`pnpm dlx` call, which forwards its own config as env vars that
+// `npx` (npm's CLI) doesn't recognize and crashes on. `pnpm exec` handles its
+// own env fine.
 let rawOutput = '';
 try {
   rawOutput = execFileSync(
-    'npx',
+    'pnpm',
     [
+      'exec',
       'eslint',
       '--config',
       configPath,
@@ -76,8 +81,9 @@ try {
 } catch (err: any) {
   // eslint exits 0 when clean and 1 when it reports problems; both are real
   // runs whose JSON is on stdout. Anything else — 2 for a fatal config/CLI
-  // error, ENOENT when npx is missing, ENOBUFS when output overflows maxBuffer,
-  // a signal from an OOM kill — means we never got a trustworthy result.
+  // error, ENOENT when pnpm is missing, ENOBUFS when output overflows
+  // maxBuffer, a signal from an OOM kill — means we never got a trustworthy
+  // result.
   if (err.status !== 1) {
     const stderr = String(err.stderr ?? '').trim();
     die(
@@ -85,7 +91,7 @@ try {
         `(exit=${err.status ?? 'n/a'} signal=${err.signal ?? 'n/a'} code=${
           err.code ?? 'n/a'
         }).\n` +
-        `command: npx eslint --config ${configPath} ... (${files.length} files)\n` +
+        `command: pnpm exec eslint --config ${configPath} ... (${files.length} files)\n` +
         `stderr:\n${stderr || '(empty)'}`
     );
   }

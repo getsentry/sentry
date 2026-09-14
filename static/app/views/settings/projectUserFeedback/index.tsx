@@ -12,9 +12,8 @@ import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {Project} from 'sentry/types/project';
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
@@ -30,9 +29,14 @@ type UserFeedbackSchema = z.infer<typeof userFeedbackSchema>;
 
 export default function ProjectUserFeedback() {
   const organization = useOrganization();
-  const {project} = useProjectSettingsOutlet();
+  const {project: outletProject} = useProjectSettingsOutlet();
+  const {data: project = outletProject} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: outletProject.slug,
+  });
   const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
   const hasAiEnabled = areAiFeaturesAllowed;
+  const updateProject = useUpdateProject(project);
 
   const handleClick = () => {
     Sentry.showReportDialog({
@@ -65,12 +69,7 @@ export default function ProjectUserFeedback() {
 
   const projectMutationOptions = mutationOptions({
     mutationFn: (data: Partial<UserFeedbackSchema>) =>
-      fetchMutation<Project>({
-        url: `/projects/${organization.slug}/${project.slug}/`,
-        method: 'PUT',
-        data: {options: data},
-      }),
-    onSuccess: (response: Project) => ProjectsStore.onUpdateSuccess(response),
+      updateProject.mutateAsync({options: data}),
   });
 
   const options = project.options ?? {};

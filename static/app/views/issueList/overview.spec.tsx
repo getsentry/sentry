@@ -238,10 +238,10 @@ describe('IssueList', () => {
       expect(screen.getByRole('row', {name: 'level:error'})).toBeInTheDocument();
     });
 
-    it('requests derived data when the progress UI flag is enabled', async () => {
+    it('requests derived data when the issue inbox flag is enabled', async () => {
       render(<IssueListOverview />, {
         organization: OrganizationFixture({
-          features: ['issue-stream-progress-ui'],
+          features: ['issue-inbox'],
         }),
         initialRouterConfig,
       });
@@ -850,7 +850,9 @@ describe('IssueList', () => {
         organization: OrganizationFixture(),
       });
 
-      expect(await screen.findByTestId('awaiting-events')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('heading', {name: /waiting for events/i})
+      ).toBeInTheDocument();
     });
 
     it('does not display when no projects selected and any projects have a first event', async () => {
@@ -889,7 +891,9 @@ describe('IssueList', () => {
         organization: OrganizationFixture(),
       });
 
-      expect(screen.queryByTestId('awaiting-events')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', {name: /waiting for events/i})
+      ).not.toBeInTheDocument();
     });
 
     it('displays when all selected projects do not have first event', async () => {
@@ -938,7 +942,9 @@ describe('IssueList', () => {
         organization: OrganizationFixture(),
       });
 
-      expect(await screen.findByTestId('awaiting-events')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('heading', {name: /waiting for events/i})
+      ).toBeInTheDocument();
     });
 
     it('does not display when any selected projects have first event', async () => {
@@ -983,7 +989,9 @@ describe('IssueList', () => {
         organization: OrganizationFixture(),
       });
 
-      expect(screen.queryByTestId('awaiting-events')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', {name: /waiting for events/i})
+      ).not.toBeInTheDocument();
     });
   });
 

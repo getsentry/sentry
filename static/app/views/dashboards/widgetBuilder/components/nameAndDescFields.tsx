@@ -87,7 +87,7 @@ export function WidgetBuilderNameAndDescription({
           {t('+ Add Description')}
         </Button>
       )}
-      {!isTextWidget && isDescSelected && <WidgetBuilderDescriptionField rows={4} />}
+      {!isTextWidget && isDescSelected && <WidgetBuilderDescriptionField />}
     </Fragment>
   );
 }

@@ -164,6 +164,22 @@ class ShouldIncrementContributorSeatTest(TestCase):
         "sentry.seer.code_review.contributor_seats.quotas.backend.check_seer_quota",
         return_value=True,
     )
+    def test_returns_false_for_free_cohort_organization(self, mock_quota: MagicMock) -> None:
+        self.create_seer_project_repository(project=self.project, repository=self.repo)
+        self.organization.update_option("agentic-triage-free-cohort", True)
+
+        with self.feature("organizations:seat-based-seer-enabled"):
+            result = should_increment_contributor_seat(
+                self.organization, self.repo, self.contributor
+            )
+
+        assert result is False
+        mock_quota.assert_not_called()
+
+    @patch(
+        "sentry.seer.code_review.contributor_seats.quotas.backend.check_seer_quota",
+        return_value=True,
+    )
     def test_returns_true_when_code_review_enabled_and_quota_available(
         self, mock_quota: MagicMock
     ) -> None:

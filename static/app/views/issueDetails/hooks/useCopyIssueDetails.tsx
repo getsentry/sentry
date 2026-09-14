@@ -258,6 +258,7 @@ interface IssueAndEventToMarkdownOptions {
   organization: Organization;
   activeThreadId?: number;
   autofixData?: ExplorerAutofixState | null;
+  autofixFormatted?: string | null;
   event?: Event | null;
 }
 
@@ -266,8 +267,23 @@ export const issueAndEventToMarkdown = ({
   event,
   autofixData,
   activeThreadId,
-  organization,
+  autofixFormatted,
 }: IssueAndEventToMarkdownOptions): string => {
+  const formatted = event?.formatted?.content;
+  if (formatted) {
+    let llmMarkdown = `**Issue ID:** ${group.id}\n`;
+    if (group.project?.slug) {
+      llmMarkdown += `**Project:** ${group.project.slug}\n`;
+    }
+    // no date here: the server-rendered body already opens with a `Date` field in UTC, and a
+    // second one formatted in the viewer's timezone would just disagree with it
+    llmMarkdown += `\n${formatted}`;
+    if (autofixFormatted) {
+      llmMarkdown += `\n\n${autofixFormatted}`;
+    }
+    return llmMarkdown;
+  }
+
   // Format the basic issue information
   let markdownText = `# ${group.title}\n\n`;
   markdownText += `**Issue ID:** ${group.id}\n`;
@@ -330,7 +346,7 @@ export const issueAndEventToMarkdown = ({
   }
 
   if (event) {
-    markdownText += formatSpanEvidenceToMarkdown(event, organization, group);
+    markdownText += formatSpanEvidenceToMarkdown(event, group);
     markdownText += formatEventToMarkdown(event, activeThreadId);
   }
 
@@ -340,7 +356,9 @@ export const issueAndEventToMarkdown = ({
 export const useCopyIssueDetails = (group: Group, event?: Event) => {
   const organization = useOrganization();
 
-  const {runState: autofixData} = useExplorerAutofix(group, {enabled: false});
+  const {runState: autofixData, autofixFormatted} = useExplorerAutofix(group, {
+    enabled: false,
+  });
   const activeThreadId = useActiveThreadId();
 
   const text = useMemo(() => {
@@ -350,8 +368,9 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
       autofixData,
       activeThreadId,
       organization,
+      autofixFormatted,
     });
-  }, [group, event, autofixData, activeThreadId, organization]);
+  }, [group, event, autofixData, activeThreadId, organization, autofixFormatted]);
 
   const {copy} = useCopyToClipboard();
 

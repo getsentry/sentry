@@ -7,28 +7,27 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {Access} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
-import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
 import {IconDelete, IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ObjectStatus} from 'sentry/types/core';
-import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
+import type {
+  IntegrationProvider,
+  OrganizationIntegration,
+} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import {
-  getGithubPermissionsUpdateUrl,
-  getIntegrationStatus,
-} from 'sentry/utils/integrationUtil';
+import {openGithubPermissionsUpdateModal} from 'sentry/utils/integrations/useAutoOpenPermissionsModal';
+import {getIntegrationStatus} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 
 import {AddIntegrationButton} from './addIntegrationButton';
 import {IntegrationItem} from './integrationItem';
 
 type Props = {
-  integration: Integration;
-  onDisable: (integration: Integration) => void;
-  onRemove: (integration: Integration) => void;
+  integration: OrganizationIntegration;
+  onDisable: (integration: OrganizationIntegration) => void;
+  onRemove: (integration: OrganizationIntegration) => void;
   organization: Organization;
   provider: IntegrationProvider;
   trackIntegrationAnalytics: (
@@ -42,7 +41,7 @@ export class InstalledIntegration extends Component<Props> {
     this.props.trackIntegrationAnalytics('integrations.uninstall_clicked');
   };
 
-  getRemovalBodyAndText(aspects: Integration['provider']['aspects']) {
+  getRemovalBodyAndText(aspects: OrganizationIntegration['provider']['aspects']) {
     if (aspects?.removal_dialog) {
       return {
         body: aspects.removal_dialog.body,
@@ -57,26 +56,13 @@ export class InstalledIntegration extends Component<Props> {
     };
   }
 
-  handleRemove(integration: Integration) {
+  handleRemove(integration: OrganizationIntegration) {
     this.props.onRemove(integration);
     this.props.trackIntegrationAnalytics('integrations.uninstall_completed');
   }
 
   handleUpdatePermissionsClick = () => {
-    const {integration} = this.props;
-    const installationId = integration.externalId;
-    const installationUrl = installationId
-      ? getGithubPermissionsUpdateUrl(installationId)
-      : undefined;
-    openModal(deps => (
-      <AutofixGithubAppPermissionsModal
-        {...deps}
-        installationUrl={installationUrl}
-        description={t(
-          'This GitHub App installation is missing permissions required for the latest features. Update the installation to grant the required permissions.'
-        )}
-      />
-    ));
+    openGithubPermissionsUpdateModal(this.props.integration);
   };
 
   get integrationStatus() {

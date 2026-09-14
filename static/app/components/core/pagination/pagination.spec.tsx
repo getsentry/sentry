@@ -1,6 +1,39 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Pagination, getPaginationCaption} from '@sentry/scraps/pagination';
+import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
+import {
+  TranslationContextProvider,
+  type TranslationContextValue,
+} from '@sentry/scraps/translationContext';
+
+const testTranslation: TranslationContextValue = {
+  t: string => string,
+  tct: (template, components) =>
+    template
+      .replace('[start]', components.start as string)
+      .replace('[end]', components.end as string)
+      .replace('[total]', components.total as string),
+};
+
+function PaginationCaption(props: {
+  cursor: string | string[] | undefined | null;
+  limit: number;
+  pageLength: number;
+  total: number;
+}) {
+  const getPaginationCaption = useGetPaginationCaption();
+  return getPaginationCaption(props);
+}
+
+function renderPaginationCaption(props: React.ComponentProps<typeof PaginationCaption>) {
+  return render(
+    <TranslationContextProvider value={testTranslation}>
+      <div>
+        <PaginationCaption {...props} />
+      </div>
+    </TranslationContextProvider>
+  );
+}
 
 const pageLinks =
   '<http://localhost/api/0/items/?cursor=0:0:1>; rel="previous"; results="true"; cursor="0:0:1", ' +
@@ -62,17 +95,6 @@ describe('Pagination', () => {
     expect(router.location.query).toEqual({foo: 'bar', cursor: '0:25:0'});
   });
 
-  it('uses the to prop to override the default pathname', async () => {
-    const {router} = render(<Pagination pageLinks={pageLinks} to="/other/" />, {
-      initialRouterConfig: {location: {pathname: '/items/'}},
-    });
-
-    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
-
-    expect(router.location.pathname).toBe('/other/');
-    expect(router.location.query.cursor).toBe('0:25:0');
-  });
-
   it('calls custom onCursor with (cursor, path, query, delta)', async () => {
     const onCursor = jest.fn();
     render(<Pagination pageLinks={pageLinks} onCursor={onCursor} />, {
@@ -110,38 +132,34 @@ describe('Pagination', () => {
   });
 });
 
-describe('getPaginationCaption', () => {
+describe('useGetPaginationCaption', () => {
   it('returns an empty string when pageLength is 0', () => {
-    expect(
-      getPaginationCaption({cursor: undefined, limit: 25, pageLength: 0, total: 0})
-    ).toBe('');
+    const {container} = renderPaginationCaption({
+      cursor: undefined,
+      limit: 25,
+      pageLength: 0,
+      total: 0,
+    });
+    expect(container).toHaveTextContent('');
   });
 
   it('formats the first page with no cursor', () => {
-    const {container} = render(
-      <div>
-        {getPaginationCaption({
-          cursor: undefined,
-          limit: 25,
-          pageLength: 25,
-          total: 100,
-        })}
-      </div>
-    );
+    const {container} = renderPaginationCaption({
+      cursor: undefined,
+      limit: 25,
+      pageLength: 25,
+      total: 100,
+    });
     expect(container).toHaveTextContent('1-25 of 100');
   });
 
   it('uses the cursor offset to compute start/end', () => {
-    const {container} = render(
-      <div>
-        {getPaginationCaption({
-          cursor: '0:2:0',
-          limit: 25,
-          pageLength: 25,
-          total: 100,
-        })}
-      </div>
-    );
+    const {container} = renderPaginationCaption({
+      cursor: '0:2:0',
+      limit: 25,
+      pageLength: 25,
+      total: 100,
+    });
     expect(container).toHaveTextContent('51-75 of 100');
   });
 });

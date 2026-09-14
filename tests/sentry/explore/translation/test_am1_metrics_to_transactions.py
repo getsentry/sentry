@@ -177,9 +177,9 @@ class TranslateAM1MetricsDetectorTest(AM1MetricsToTransactionsTestCase):
 class RollbackAM1MetricsDetectorTest(AM1MetricsToTransactionsTestCase):
     @with_feature("organizations:migrate-am1-metrics-alerts-to-transactions")
     @patch("sentry.snuba.tasks._delete_from_snuba")
-    @patch("sentry.snuba.tasks._create_snql_in_snuba")
-    def test_rollback_restores_original_dataset(self, mock_create_snql, mock_delete) -> None:
-        mock_create_snql.return_value = "test-subscription-id"
+    @patch("sentry.snuba.tasks._create_in_snuba")
+    def test_rollback_restores_original_dataset(self, mock_create_in_snuba, mock_delete) -> None:
+        mock_create_in_snuba.return_value = "test-subscription-id"
         mock_delete.return_value = None
 
         snuba_query = self._create_snuba_query()

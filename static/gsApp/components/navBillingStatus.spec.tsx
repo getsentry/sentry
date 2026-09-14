@@ -82,11 +82,11 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     // set localStorage to prevent auto-popup
     localStorage.setItem(
       `billing-status-last-shown-categories-${organization.id}`,
-      'errors-replays-spans-profileDuration' // exceeded categories
+      JSON.stringify('errors-replays-spans-profileDuration') // exceeded categories
     );
     localStorage.setItem(
       `billing-status-last-shown-date-${organization.id}`,
-      '2022-06-06T05:09:33.000Z' // MOCK_TODAY
+      JSON.stringify('2022-06-06T05:09:33.000Z') // MOCK_TODAY
     );
   });
 
@@ -97,10 +97,10 @@ describe('PrimaryNavigationQuotaExceeded', () => {
   function assertLocalStorageStateAfterAutoOpen() {
     expect(
       localStorage.getItem(`billing-status-last-shown-categories-${organization.id}`)
-    ).toBe('errors-replays-spans-profileDuration');
+    ).toBe(JSON.stringify('errors-replays-spans-profileDuration'));
     expect(
       localStorage.getItem(`billing-status-last-shown-date-${organization.id}`)
-    ).toBe('2022-06-06T05:09:33.000Z');
+    ).toBe(JSON.stringify('2022-06-06T05:09:33.000Z'));
   }
 
   it('should render for multiple categories', async () => {
@@ -133,7 +133,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     SubscriptionStore.set(organization.slug, newSub);
     localStorage.setItem(
       `billing-status-last-shown-categories-${organization.id}`,
-      'errors' // exceeded categories
+      JSON.stringify('errors') // exceeded categories
     );
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
 
@@ -173,7 +173,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
   it('should render PAYG categories when there is shared PAYG', async () => {
     localStorage.setItem(
       `billing-status-last-shown-categories-${organization.id}`,
-      'errors-replays-spans-monitorSeats-profileDuration' // exceeded categories
+      JSON.stringify('errors-replays-spans-monitorSeats-profileDuration') // exceeded categories
     );
     subscription.onDemandMaxSpend = 100;
     SubscriptionStore.set(organization.slug, subscription);
@@ -203,7 +203,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
   it('should render PAYG categories with per category PAYG', async () => {
     localStorage.setItem(
       `billing-status-last-shown-categories-${organization.id}`,
-      'errors-replays-spans-monitorSeats-profileDuration' // exceeded categories
+      JSON.stringify('errors-replays-spans-monitorSeats-profileDuration') // exceeded categories
     );
     subscription.onDemandBudgets = {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
@@ -292,7 +292,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     SubscriptionStore.set(organization.slug, freeSub);
     localStorage.setItem(
       `billing-status-last-shown-categories-${organization.id}`,
-      'errors-replays'
+      JSON.stringify('errors-replays')
     );
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -395,7 +395,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
 
     localStorage.setItem(
       `billing-status-last-shown-categories-${organization.id}`,
-      'errors-replays'
+      JSON.stringify('errors-replays')
     ); // spans not included, so alert should show even though last opened "today"
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
@@ -405,7 +405,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
   it('should auto open the alert when more than a day has passed (deprecated date format)', async () => {
     localStorage.setItem(
       `billing-status-last-shown-date-${organization.id}`,
-      'Sun Jun 05 2022'
+      JSON.stringify('Sun Jun 05 2022')
     ); // more than a day, so alert should show even though categories haven't changed
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
@@ -415,7 +415,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
   it('should auto open the alert when the last shown date is before the current usage cycle started (deprecated date format)', async () => {
     localStorage.setItem(
       `billing-status-last-shown-date-${organization.id}`,
-      'Sun May 29 2022'
+      JSON.stringify('Sun May 29 2022')
     ); // last seen before current usage cycle started, so alert should show even though categories haven't changed
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
@@ -425,7 +425,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
   it('should auto open the alert when more than a day has passed (ISO date format)', async () => {
     localStorage.setItem(
       `billing-status-last-shown-date-${organization.id}`,
-      '2022-06-05T15:00:32.000Z'
+      JSON.stringify('2022-06-05T15:00:32.000Z')
     ); // more than a day, so alert should show even though categories haven't changed
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
@@ -435,7 +435,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
   it('should auto open the alert when the last shown date is before the current usage cycle started (ISO date format))', async () => {
     localStorage.setItem(
       `billing-status-last-shown-date-${organization.id}`,
-      '2022-05-29T05:09:33.000Z'
+      JSON.stringify('2022-05-29T05:09:33.000Z')
     ); // last seen before current usage cycle started, so alert should show even though categories haven't changed
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
@@ -467,7 +467,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       SubscriptionStore.set(organization.slug, newSub);
       localStorage.setItem(
         `billing-status-last-shown-categories-${organization.id}`,
-        'sizeAnalyses'
+        JSON.stringify('sizeAnalyses')
       );
 
       render(<PrimaryNavigationQuotaExceeded organization={organization} />);
@@ -522,7 +522,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       SubscriptionStore.set(organization.slug, newSub);
       localStorage.setItem(
         `billing-status-last-shown-categories-${organization.id}`,
-        'installableBuilds'
+        JSON.stringify('installableBuilds')
       );
 
       render(<PrimaryNavigationQuotaExceeded organization={organization} />);
@@ -578,7 +578,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       SubscriptionStore.set(organization.slug, newSub);
       localStorage.setItem(
         `billing-status-last-shown-categories-${organization.id}`,
-        'sizeAnalyses-installableBuilds'
+        JSON.stringify('sizeAnalyses-installableBuilds')
       );
 
       render(<PrimaryNavigationQuotaExceeded organization={organization} />);
@@ -627,7 +627,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       SubscriptionStore.set(organization.slug, newSub);
       localStorage.setItem(
         `billing-status-last-shown-categories-${organization.id}`,
-        'errors-sizeAnalyses'
+        JSON.stringify('errors-sizeAnalyses')
       );
 
       render(<PrimaryNavigationQuotaExceeded organization={organization} />);

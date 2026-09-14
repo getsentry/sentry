@@ -102,7 +102,14 @@ def test_build_snapshot_zip_raises_on_fetch_failure() -> None:
     session = _session({})  # every get raises
 
     with pytest.raises(SnapshotZipBuildError):
-        build_snapshot_zip(manifest, session, "1/2", BytesIO(), artifact_id=99)
+        build_snapshot_zip(
+            manifest,
+            session,
+            "1/2",
+            BytesIO(),
+            artifact_id=99,
+            manifest_bytes=b'{"images":{}}',
+        )
 
 
 def test_build_snapshot_zip_rejects_manifest_filename_collision() -> None:

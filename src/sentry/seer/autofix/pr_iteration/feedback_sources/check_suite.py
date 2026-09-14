@@ -11,12 +11,20 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     CheckSuiteAutofixRun,
     CheckSuiteHeadMatch,
     GithubCheckSuiteEvent,
+    LivePullRequestHead,
     check_suite_head_match,
+    compare_live_pull_request_head,
     get_check_suite_url,
     resolve_check_suite_autofix_run,
     sweep_check_runs,
 )
-from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask, FeedbackSourceBase
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
+    ConsumeTask,
+    Decision,
+    FeedbackSourceBase,
+    TriggerDecision,
+)
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +73,7 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
         values["app_name"] = event.check_suite.app.name
         values["check_suite_url"] = get_check_suite_url(event)
         values["updated_at"] = event.check_suite.updated_at
+        values["source_id"] = str(event.check_suite.id)
         return values
 
     @property
@@ -80,6 +89,7 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
         autofix_run = resolve_check_suite_autofix_run(self.event)
         if autofix_run is None:
             raise MissingCheckSuiteAutofixRun
+
         self._autofix_run = autofix_run
         return autofix_run
 
@@ -128,30 +138,55 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
     def _matches_current_head(self, run_state: SeerRunState) -> CheckSuiteHeadMatch:
         return check_suite_head_match(self.event, run_state)
 
-    def should_queue(self, run_state: SeerRunState) -> bool:
+    def log_fields(self, run_state: SeerRunState) -> dict[str, Any]:
+        """Which suite this is, and both sides of the head comparison."""
+        repo_name = self.event.repository.full_name
+        pr_state = run_state.repo_pr_states.get(repo_name) if repo_name else None
+        return {
+            "scm_repo_full_name": repo_name,
+            "check_suite_id": self.event.check_suite.id,
+            "check_suite_updated_at": self.updated_at,
+            "check_suite_head_sha": self.event.check_suite.head_sha,
+            "check_suite_conclusion": self.event.check_suite.conclusion,
+            "check_suite_app_name": self.app_name,
+            "run_pr_commit_sha": pr_state.commit_sha if pr_state else None,
+        }
+
+    def should_queue(self, run_state: SeerRunState) -> Decision:
         from sentry.seer.autofix.pr_iteration.feedback import automated_iteration_cap_reached
 
-        head_sha, repo_name, matched = self._matches_current_head(run_state)
-        cap_reached = matched and automated_iteration_cap_reached(run_state)
-        logger.info(
-            "autofix.pr_iteration.check_suite.should_queue.evaluated",
-            extra={
-                "run_id": run_state.run_id,
-                "head_sha": head_sha,
-                "repo_name": repo_name,
-                "matched": matched,
-                "hard_cap_reached": cap_reached,
-                "repo_pr_state_count": len(run_state.repo_pr_states),
-            },
-        )
+        if not self._matches_current_head(run_state).matched:
+            return Decision(ok=False, reason="stale_head")
         # Hard cap also blocks enqueue so failed suites don't pile up in Redis
         # with no check-suite consume path to drain them.
-        return matched and not cap_reached
+        if automated_iteration_cap_reached(run_state):
+            return Decision(ok=False, reason="hard_cap_reached")
+        return Decision(ok=True, reason="head_matches")
 
-    def should_consume(self, run_state: SeerRunState) -> bool:
+    def _live_head(self, run_state: SeerRunState) -> LivePullRequestHead:
+        try:
+            return compare_live_pull_request_head(
+                self.event, run_state, self.autofix_run.repository
+            )
+        except MissingCheckSuiteAutofixRun:
+            return LivePullRequestHead("no_autofix_run")
+        except Exception:
+            logger.exception(
+                "autofix.pr_iteration.check_suite.live_head.unexpected_error",
+                extra={"run_id": run_state.run_id, "check_suite_id": self.event.check_suite.id},
+            )
+            return LivePullRequestHead("unexpected_error")
+
+    def should_consume(self, run_state: SeerRunState) -> Decision:
         head_sha, repo_name, matched = self._matches_current_head(run_state)
         attempt_key = self.check_suite_attempt_key()
         already_processed = attempt_key in _processed_check_suite_attempts(run_state)
+        live_head = self._live_head(run_state) if matched and not already_processed else None
+        if live_head is not None:
+            metrics.incr(
+                "autofix.pr_iteration.check_suite.live_head",
+                tags={"result": live_head.result},
+            )
         logger.info(
             "autofix.pr_iteration.check_suite.should_consume.evaluated",
             extra={
@@ -162,33 +197,33 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
                 "check_suite_id": self.event.check_suite.id,
                 "updated_at": self.updated_at,
                 "already_processed": already_processed,
+                "live_head_result": live_head.result if live_head else None,
+                "live_head_sha": live_head.head_sha if live_head else None,
                 "repo_pr_state_count": len(run_state.repo_pr_states),
             },
         )
+        if not matched:
+            return Decision(ok=False, reason="stale_head")
         # Dedupe against prior check-suite feedback so webhook retries of the same
         # suite attempt can't burn iterations when the PR head is unchanged.
-        return matched and not already_processed
+        if already_processed:
+            return Decision(ok=False, reason="already_processed")
+        if live_head is not None and live_head.result == "mismatch":
+            return Decision(ok=False, reason="live_head_mismatch")
+        return Decision(ok=True, reason="head_matches")
 
-    def should_trigger(self, run_state: SeerRunState) -> ConsumeTask | None:
+    def should_trigger(self, run_state: SeerRunState) -> TriggerDecision:
         from sentry.seer.autofix.pr_iteration.feedback import automated_iteration_cap_reached
 
         if automated_iteration_cap_reached(run_state):
-            logger.info(
-                "autofix.pr_iteration.check_suite.should_trigger.hard_cap_reached",
-                extra={"run_id": run_state.run_id},
-            )
-            return None
+            return TriggerDecision(task=None, reason="hard_cap_reached")
 
         # Otherwise queue a consume task for this run: immediately once every check
         # run has completed, or after a delay while some are still pending (they
         # can get stuck, so we trigger anyway rather than wait forever).
         head_sha = self.event.check_suite.head_sha
         if not head_sha:
-            logger.info(
-                "autofix.pr_iteration.check_suite.should_trigger.missing_head_sha",
-                extra={"run_id": run_state.run_id},
-            )
-            return ConsumeTask.Now
+            return TriggerDecision(task=ConsumeTask.Now, reason="missing_head_sha")
 
         organization_id = self.autofix_run.repository.organization_id
         repo_id = self.autofix_run.repository.id
@@ -205,7 +240,7 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
                 extra={"organization_id": organization_id, "repo_id": repo_id},
                 exc_info=True,
             )
-            return ConsumeTask.Now
+            return TriggerDecision(task=ConsumeTask.Now, reason="scm_init_failed")
 
         sweep = sweep_check_runs(
             scm,
@@ -217,9 +252,11 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
             },
         )
         if sweep is not None and sweep.incomplete:
-            return ConsumeTask.Later(timedelta(hours=1))
+            return TriggerDecision(
+                task=ConsumeTask.Later(timedelta(hours=1)), reason="sweep_incomplete"
+            )
 
-        return ConsumeTask.Now
+        return TriggerDecision(task=ConsumeTask.Now, reason="sweep_complete")
 
 
 __all__ = ("CheckSuiteFeedbackSource", "MissingCheckSuiteAutofixRun")

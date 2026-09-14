@@ -32,7 +32,7 @@ describe('Assertion Failure Tree model', () => {
       }),
     };
 
-    const tree = Tree.FromAssertion(assertion);
+    const tree = Tree.fromAssertion(assertion);
 
     expect(tree.serialize()).toMatchSnapshot();
   });
@@ -53,7 +53,7 @@ describe('Assertion Failure Tree model', () => {
       }),
     };
 
-    const tree = Tree.FromAssertion(assertion);
+    const tree = Tree.fromAssertion(assertion);
     expect(tree.serialize()).toMatchSnapshot();
   });
 
@@ -76,7 +76,7 @@ describe('Assertion Failure Tree model', () => {
       }),
     };
 
-    const tree = Tree.FromAssertion(assertion);
+    const tree = Tree.fromAssertion(assertion);
     expect(tree.serialize()).toMatchSnapshot();
   });
 });

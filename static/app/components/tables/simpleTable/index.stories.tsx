@@ -4,6 +4,7 @@ import moment from 'moment-timezone';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Link} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
@@ -92,13 +93,16 @@ export default Storybook.story('SimpleTable', story => {
         <p>
           An example <Storybook.JSXNode name="SimpleTable" /> looks like this:
         </p>
-        <SimpleTableWithColumns>
-          <SimpleTable.Header>
-            <SimpleTable.HeaderCell>Name</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>Monitors</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>Action</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>Last Triggered</SimpleTable.HeaderCell>
-          </SimpleTable.Header>
+        <SimpleTableWithColumns
+          header={
+            <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderCell>Name</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>Monitors</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>Action</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>Last Triggered</SimpleTable.HeaderCell>
+            </SimpleTable.HeaderRow>
+          }
+        >
           {data.map(row => (
             <SimpleTable.Row key={row.name}>
               <SimpleTable.RowCell>{row.name}</SimpleTable.RowCell>
@@ -117,22 +121,39 @@ export default Storybook.story('SimpleTable', story => {
   });
 
   story('Empty states', () => {
+    const emptyStateHeader = (
+      <SimpleTable.HeaderRow>
+        {headers.map(header => (
+          <SimpleTable.HeaderCell key={header.key}>{header.label}</SimpleTable.HeaderCell>
+        ))}
+      </SimpleTable.HeaderRow>
+    );
+
     return (
       <Fragment>
         <p>
-          Use the <Storybook.JSXNode name="SimpleTable.Empty" /> component for empty
-          states
+          Use <Storybook.JSXNode name="SimpleTable.Empty" /> for empty states,{' '}
+          <Storybook.JSXNode name="SimpleTable.Loading" /> while a request is in flight,
+          and <Storybook.JSXNode name="SimpleTable.Error" /> when one fails.{' '}
+          <Storybook.JSXNode name="SimpleTable.Error" /> takes the same props as{' '}
+          <Storybook.JSXNode name="LoadingError" />, so pass{' '}
+          <Storybook.JSXProperty name="onRetry" value={Function} /> to offer a retry.
         </p>
 
-        <SimpleTableWithColumns>
-          <SimpleTable.Header>
-            {headers.map(header => (
-              <SimpleTable.HeaderCell key={header.key}>
-                {header.label}
-              </SimpleTable.HeaderCell>
-            ))}
-          </SimpleTable.Header>
+        <SimpleTableWithColumns header={emptyStateHeader}>
           <SimpleTable.Empty>No data</SimpleTable.Empty>
+        </SimpleTableWithColumns>
+
+        <br />
+
+        <SimpleTableWithColumns header={emptyStateHeader}>
+          <SimpleTable.Loading />
+        </SimpleTableWithColumns>
+
+        <br />
+
+        <SimpleTableWithColumns header={emptyStateHeader}>
+          <SimpleTable.Error message="Failed to load automations." onRetry={() => {}} />
         </SimpleTableWithColumns>
       </Fragment>
     );
@@ -150,16 +171,19 @@ export default Storybook.story('SimpleTable', story => {
           <Storybook.JSXNode name="Link" />, but be sure to set{' '}
           <code>SimpleTable.rowLinkStyle</code> into the css.
         </p>
-        <SimpleTableWithColumns>
-          <SimpleTable.Header>
-            {headers.map(header => (
-              <SimpleTable.HeaderCell key={header.key}>
-                {header.label}
-              </SimpleTable.HeaderCell>
-            ))}
-          </SimpleTable.Header>
+        <SimpleTableWithColumns
+          header={
+            <SimpleTable.HeaderRow>
+              {headers.map(header => (
+                <SimpleTable.HeaderCell key={header.key}>
+                  {header.label}
+                </SimpleTable.HeaderCell>
+              ))}
+            </SimpleTable.HeaderRow>
+          }
+        >
           <SimpleTable.Row>
-            <InteractionStateLayer />
+            <InteractionStateLayer as="td" />
             <SimpleTable.RowCell>
               <RowLink
                 to="#"
@@ -185,38 +209,87 @@ export default Storybook.story('SimpleTable', story => {
     return (
       <Fragment>
         <p>
-          Set custom widths for columns by styling SimpleTable with{' '}
-          <code>grid-template-columns</code>.
-        </p>
-        <p>
-          You can also hide columns by targeting the column in css, usually with a{' '}
-          <Storybook.JSXProperty name="data-*" value="string" />
-          attribute. This is useful for creating responsive tables.
+          Set custom widths for columns with the{' '}
+          <Storybook.JSXProperty name="columns" value="TableColumnConfig[]" /> prop. Both{' '}
+          <code>width</code> and <code>visible</code> accept responsive values keyed by
+          container breakpoint, which is how a table sheds columns as it narrows. A hidden
+          column loses its track, and cells name their column with{' '}
+          <Storybook.JSXProperty name="column" value="string" />.
         </p>
         <p>This table has 4 columns, but will hide some as it gets narrower.</p>
-        <SizingWindowContainer>
-          <SimpleTableWithHiddenColumns>
-            <SimpleTable.Header>
-              {headers.map(header => (
-                <SimpleTable.HeaderCell key={header.key} data-column-name={header.key}>
-                  {header.label}
-                </SimpleTable.HeaderCell>
-              ))}
-            </SimpleTable.Header>
+        <Storybook.Demo resizable>
+          <SimpleTable
+            columns={responsiveColumns}
+            header={
+              <SimpleTable.HeaderRow>
+                {headers.map(header => (
+                  <SimpleTable.HeaderCell key={header.key} columnKey={header.key}>
+                    {header.label}
+                  </SimpleTable.HeaderCell>
+                ))}
+              </SimpleTable.HeaderRow>
+            }
+          >
             {data.map(row => (
               <SimpleTable.Row key={row.name}>
                 <SimpleTable.RowCell>{row.name}</SimpleTable.RowCell>
                 <SimpleTable.RowCell>{row.monitors.length} monitors</SimpleTable.RowCell>
-                <SimpleTable.RowCell data-column-name="action">
-                  {row.action}
-                </SimpleTable.RowCell>
-                <SimpleTable.RowCell data-column-name="lastTriggered">
+                <SimpleTable.RowCell columnKey="action">{row.action}</SimpleTable.RowCell>
+                <SimpleTable.RowCell columnKey="lastTriggered">
                   <TimeAgoCell date={row.lastTriggered} />
                 </SimpleTable.RowCell>
               </SimpleTable.Row>
             ))}
-          </SimpleTableWithHiddenColumns>
-        </SizingWindowContainer>
+          </SimpleTable>
+        </Storybook.Demo>
+      </Fragment>
+    );
+  });
+
+  story('Cell alignment', () => {
+    return (
+      <Fragment>
+        <p>
+          <Storybook.JSXNode name="SimpleTable.RowCell" /> is a{' '}
+          <Link to="/scraps/layout/flex/">
+            <Storybook.JSXNode name="Flex" />
+          </Link>{' '}
+          and accepts its layout props. For horizontal alignment, use{' '}
+          <Storybook.JSXProperty name="justify" value="'start' | 'center' | 'end'" /> on
+          row cells and{' '}
+          <Storybook.JSXProperty name="align" value="'left' | 'center' | 'right'" /> on
+          header cells. For example, pair <code>justify="end"</code> with{' '}
+          <code>align="right"</code>. Use these props instead of wrapping cells in{' '}
+          <code>styled</code>.
+        </p>
+
+        <SimpleTableWithColumns
+          header={
+            <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell align="center">
+                {t('Monitors')}
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell align="right">{t('Action')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell align="right">
+                {t('Last Triggered')}
+              </SimpleTable.HeaderCell>
+            </SimpleTable.HeaderRow>
+          }
+        >
+          {data.map(row => (
+            <SimpleTable.Row key={row.name}>
+              <SimpleTable.RowCell>{row.name}</SimpleTable.RowCell>
+              <SimpleTable.RowCell justify="center">
+                {t('%s monitors', row.monitors.length)}
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell justify="end">{row.action}</SimpleTable.RowCell>
+              <SimpleTable.RowCell justify="end">
+                <TimeAgoCell date={row.lastTriggered} />
+              </SimpleTable.RowCell>
+            </SimpleTable.Row>
+          ))}
+        </SimpleTableWithColumns>
       </Fragment>
     );
   });
@@ -255,18 +328,21 @@ export default Storybook.story('SimpleTable', story => {
           {sortField && <strong>({sortDirection})</strong>}
         </p>
 
-        <SimpleTableWithColumns>
-          <SimpleTable.Header>
-            {headers.map(header => (
-              <SimpleTable.HeaderCell
-                key={header.key}
-                sort={sortField === header.key ? sortDirection : undefined}
-                handleSortClick={() => handleSort(header.key)}
-              >
-                {header.label}
-              </SimpleTable.HeaderCell>
-            ))}
-          </SimpleTable.Header>
+        <SimpleTableWithColumns
+          header={
+            <SimpleTable.HeaderRow>
+              {headers.map(header => (
+                <SimpleTable.HeaderCell
+                  key={header.key}
+                  sort={sortField === header.key ? sortDirection : undefined}
+                  handleSortClick={() => handleSort(header.key)}
+                >
+                  {header.label}
+                </SimpleTable.HeaderCell>
+              ))}
+            </SimpleTable.HeaderRow>
+          }
+        >
           {data.map(row => (
             <SimpleTable.Row key={row.name}>
               <SimpleTable.RowCell>{row.name}</SimpleTable.RowCell>
@@ -289,26 +365,9 @@ const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: 1fr 1fr 1fr 1fr;
 `;
 
-const SizingWindowContainer = styled(Storybook.SizingWindow)`
-  container-type: inline-size;
-`;
-
-const SimpleTableWithHiddenColumns = styled(SimpleTable)`
-  grid-template-columns: 2fr min-content auto 256px;
-
-  @container (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 2fr min-content auto;
-
-    [data-column-name='action'] {
-      display: none;
-    }
-  }
-
-  @container (max-width: ${p => p.theme.breakpoints.xs}) {
-    grid-template-columns: 2fr min-content;
-
-    [data-column-name='lastTriggered'] {
-      display: none;
-    }
-  }
-`;
+const responsiveColumns: TableColumnConfig[] = [
+  {key: 'name', width: '2fr'},
+  {key: 'monitors', width: 'min-content'},
+  {key: 'action', visible: {lg: true}, width: 'auto'},
+  {key: 'lastTriggered', visible: {'2xs': true}, width: {zero: 'auto', lg: '256px'}},
+];

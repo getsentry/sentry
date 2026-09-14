@@ -106,7 +106,7 @@ class SeerActivityHandlerTest(TestCase):
     def setUp(self) -> None:
         self.group = self.create_group()
         self.activity = self.create_group_activity(
-            group=self.group, type=ActivityType.SEER_PR_CREATED.value
+            group=self.group, type=ActivityType.SEER_PR_READY_FOR_REVIEW.value
         )
         self.detector = Detector.objects.get(project=self.project, type=ErrorGroupType.slug)
 

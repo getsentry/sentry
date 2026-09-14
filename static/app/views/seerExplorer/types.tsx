@@ -97,18 +97,31 @@ export type AgentWriteApproval = EmbedOutput<'agentWriteApproval'>;
  */
 export interface CallRecord {
   id: number;
-  kind: 'api' | 'lib';
+  /**
+   * `api` and `lib` are observed calls; `note` is a line the agent wrote itself. Read additively:
+   * an unknown kind from a newer seer must be ignored, not break the render.
+   */
+  kind: 'api' | 'lib' | 'note';
   /** Bounded slice of the request body, if the call had one. */
   body?: string;
   /** Whether `body` was cut short. */
   body_truncated?: boolean;
   /** Transport-level failure (no HTTP response), e.g. `ConnectError`. */
   error?: string;
+  /**
+   * What the agent said it was trying to accomplish. Carried beside `title`, never instead of it.
+   * Named for its author: `title` is generated, this is not.
+   */
+  llm_description?: string;
   method?: string;
   /** Lib records only. */
   name?: string;
-  /** Lib records only: the call's scalar arguments, which name what it acted on. */
-  params?: Record<string, string>;
+  /**
+   * Lib records only: arguments the call was made with, plus values filled in after it returned
+   * (e.g. a translated search query). Scalars name the subject at call time; richer values arrive
+   * later when the call itself produced them. Untyped wire JSON — narrow at the use site.
+   */
+  params?: Record<string, unknown>;
   parent?: number | null;
   path?: string;
   path_params?: Record<string, string>;
@@ -121,6 +134,19 @@ export interface CallRecord {
   status?: number;
   /** Human name for the operation, from the OpenAPI spec. Absent when it has none. */
   title?: string;
+}
+
+/**
+ * One in-flight update for a tool call, shaped as an MCP progress notification.
+ *
+ * `token` is the `tool_call_id`, which is the point: `live_calls` lives on the block and cannot be
+ * attributed when several calls are outstanding. Carries a string; full records arrive on the result.
+ */
+interface ProgressEvent {
+  progress: number;
+  token: string;
+  message?: string;
+  total?: number;
 }
 
 export interface ToolResult {
@@ -169,6 +195,7 @@ export interface Block {
   loading?: boolean;
   merged_file_patches?: ExplorerFilePatch[] | null;
   pr_commit_shas?: Record<string, string> | null;
+  progress?: ProgressEvent[] | null;
   todos?: TodoItem[] | null;
   tool_links?: Array<ToolLink | null> | null;
   tool_results?: Array<ToolResult | null> | null;
@@ -230,6 +257,7 @@ export type SeerExplorerResponse = {
     blocks: Block[];
     status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
     updated_at: string;
+    failure_reason?: 'timeout' | 'stalled' | null;
     owner_user_id?: number | null;
     pending_user_input?: PendingUserInput | null;
     repo_pr_states?: Record<string, RepoPRState>;

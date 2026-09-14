@@ -10,9 +10,13 @@ from sentry.api.exceptions import PrimaryEmailVerificationRequired, SudoRequired
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.orgauthtoken import is_org_auth_token_auth
+from sentry.seer.agent_token import is_agent_auth
 
 
 def is_considered_sudo(request: Request) -> bool:
+    if is_agent_auth(request.auth):
+        return False
+
     # Right now, only password reauthentication (django-sudo) is supported,
     # so if a user doesn't have a password (for example, only has github auth)
     # then we shouldn't prompt them for the password they don't have.

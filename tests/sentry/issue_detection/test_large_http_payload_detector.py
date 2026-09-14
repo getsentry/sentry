@@ -287,13 +287,18 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         ]
 
     @patch("sentry.issue_detection.detectors.utils.logger.warning")
-    def test_handles_invalid_string_payload_size(self, mock_logger_warning: MagicMock) -> None:
+    def test_handles_invalid_payload_size_values(self, mock_logger_warning: MagicMock) -> None:
         span = create_span("http.client", 1000, "GET /api/0/organizations/endpoint1", "hash2")
         span["project_id"] = self.project.id
         span["organization_id"] = self.project.organization.id
         event = create_event([span])
 
-        for invalid_value in ["NaN", "[Filtered]", "dogs are great"]:
+        for invalid_value, expected_description in [
+            (12.31, "non_integer_float"),
+            ("NaN", "non_number_float"),
+            ("[Filtered]", "non_number_string"),
+            ("dogs are great", "non_number_string"),
+        ]:
             event["spans"][0]["data"] = {"http.response_content_length": invalid_value}
 
             assert self.find_problems(event) == []  # No problem found, but also no crash
@@ -307,7 +312,10 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                     "org_id": span["organization_id"],
                     "key": "http.response_content_length",
                     "value": invalid_value,
-                    "error": f"ValueError(\"invalid literal for int() with base 10: '{invalid_value}'\")",
+                    "error": (
+                        f"ValueError(\"Couldn't convert <{expected_description}> to <int>. "
+                        + f'Invalid value: {invalid_value}")'
+                    ),
                 },
             )
 

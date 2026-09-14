@@ -29,10 +29,6 @@ describe('SubscriptionHeader', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/promotions/trigger-check/',
-      method: 'POST',
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });

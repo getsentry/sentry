@@ -58,7 +58,6 @@ export function useMailboxCounts({
     () =>
       coaleseIssueStatsPeriodQuery({
         listHeadTime,
-        prefetch: false,
         queryView,
       }),
     [listHeadTime, queryView]

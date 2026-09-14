@@ -1,4 +1,8 @@
-import type {DataExportFormat} from 'sentry/components/exports/useDataExport';
+import {
+  flattenStatsPeriod,
+  type DataExportFormat,
+} from 'sentry/components/exports/useDataExport';
+import type {StatsPeriodRange} from 'sentry/components/pageFilters/types';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
@@ -11,7 +15,7 @@ interface ExportedQueryInfo {
   query?: string;
   sort?: string | string[];
   start?: string;
-  statsPeriod?: string;
+  statsPeriod?: string | StatsPeriodRange;
 }
 
 interface TrackExploreTableExportedOptions {
@@ -46,7 +50,7 @@ export function trackExploreTableExported({
     environment: queryInfo.environment,
     start: queryInfo.start,
     end: queryInfo.end,
-    statsPeriod: queryInfo.statsPeriod,
+    ...flattenStatsPeriod(queryInfo.statsPeriod),
     field: isAllColumns ? undefined : queryInfo.field,
     export_row_limit: limit,
     export_file_format: format,

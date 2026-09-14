@@ -2,15 +2,16 @@ import {useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {InputField} from '@sentry/scraps/form/field/inputField';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {IconHide} from 'sentry/icons/iconHide';
 import {IconShow} from 'sentry/icons/iconShow';
-import {t} from 'sentry/locale';
 
 import type {InputFieldProps} from './inputField';
 
 export function PasswordField(props: Omit<InputFieldProps, 'type' | 'trailingItems'>) {
   const [isFieldVisible, setisFieldVisible] = useState(false);
+  const {t} = useTranslation();
 
   return (
     <InputField

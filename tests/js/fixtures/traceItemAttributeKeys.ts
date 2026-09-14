@@ -1,5 +1,5 @@
 import type {Tag} from 'sentry/types/group';
-import {FieldKind} from 'sentry/utils/fields';
+import {attributeTypeFromKind} from 'sentry/utils/fields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 type MockTraceItemAttributeResponse = {
@@ -8,20 +8,6 @@ type MockTraceItemAttributeResponse = {
   name: string;
   secondaryAliases?: string[];
 };
-
-function getAttributeTypeFromTag(
-  tag: Tag
-): MockTraceItemAttributeResponse['attributeType'] {
-  if (tag.kind === FieldKind.MEASUREMENT) {
-    return 'number';
-  }
-
-  if (tag.kind === FieldKind.BOOLEAN) {
-    return 'boolean';
-  }
-
-  return 'string';
-}
 
 export function createMockTraceItemAttributesResponse(
   empty = false
@@ -49,7 +35,7 @@ export function mockTraceItemAttributeKeysApi(
     'attributeType' in attribute
       ? attribute
       : {
-          attributeType: getAttributeTypeFromTag(attribute),
+          attributeType: attributeTypeFromKind(attribute.kind),
           key: attribute.key,
           name: attribute.name,
           secondaryAliases: attribute.secondaryAliases,

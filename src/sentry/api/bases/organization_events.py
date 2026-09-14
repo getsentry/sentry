@@ -54,7 +54,7 @@ from sentry.search.eap.types import AdditionalQueries, SupportedTraceItemType
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
-from sentry.snuba import discover
+from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.utils import (
@@ -156,13 +156,13 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             and not EAPOccurrencesComparator.should_use_experimental_data("api.events.endpoints")
         ):
             raise ParseError(detail=f"{dataset_label} is not supported currently")
-        elif dataset_label == SupportedTraceItemType.REPLAYS.value and not features.has(
-            "organizations:events-use-replays-dataset", organization, actor=request.user
-        ):
+        elif dataset_label == SupportedTraceItemType.REPLAYS.value:
             raise ParseError(detail=f"dataset must be one of: {', '.join(PUBLIC_DATASET_LABELS)}")
         result = get_dataset(dataset_label)
         if result is None:
             raise ParseError(detail=f"dataset must be one of: {', '.join(PUBLIC_DATASET_LABELS)}")
+        if result is metrics_performance and request.GET.get("useOnDemandMetrics") != "true":
+            result = metrics_enhanced_performance
         sentry_sdk.set_tag("query.dataset", dataset_label)
         sentry_sdk.set_attribute("query.dataset", dataset_label)
         return result

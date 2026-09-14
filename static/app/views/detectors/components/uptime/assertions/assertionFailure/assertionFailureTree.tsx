@@ -77,7 +77,7 @@ function AssertionFailureTreeContent({assertion}: {assertion: UptimeAssertion | 
         ? (JSON.parse(assertion) as UptimeAssertion)
         : assertion;
 
-    return Tree.FromAssertion(parsedAssertion);
+    return Tree.fromAssertion(parsedAssertion);
   }, [assertion]);
 
   return (

@@ -1,19 +1,18 @@
-import {Fragment, useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {InputField} from 'sentry/components/forms/fields/inputField';
-import {NumberField} from 'sentry/components/forms/fields/numberField';
-import {SelectField} from 'sentry/components/forms/fields/selectField';
-import {TextField} from 'sentry/components/forms/fields/textField';
-import {Form, type FormProps} from 'sentry/components/forms/form';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 import type {Subscription} from 'getsentry/types';
 import {formatBalance} from 'getsentry/utils/billing';
@@ -33,21 +32,18 @@ const STARTUP_PROGRAM_OPTIONS = [
   {value: 'other', label: 'Enter custom notes'},
 ];
 
-function coerceValue(value: number) {
-  if (isNaN(value)) {
-    return;
-  }
-  return value * 100;
-}
-
-type OnSubmitArgs = Parameters<NonNullable<FormProps['onSubmit']>>;
-interface MutationVariables {
-  creditAmount: number;
-  notes: string;
-  onSubmitError: OnSubmitArgs[2];
-  onSubmitSuccess: OnSubmitArgs[1];
-  ticketUrl: string;
-}
+const schema = z.object({
+  creditAmount: z
+    .number()
+    .nullable()
+    .refine(
+      (value): value is number => value !== null && value !== 0,
+      'Enter a non-zero credit amount'
+    ),
+  ticketUrl: z.string(),
+  notes: z.string(),
+  customNotes: z.string().max(500),
+});
 
 interface AddToStartupProgramModalProps extends ModalRenderProps {
   onSuccess: () => void;
@@ -62,134 +58,132 @@ function AddToStartupProgramModal({
   closeModal,
   Header,
   Body,
+  Footer,
 }: AddToStartupProgramModalProps) {
-  const [showCustomNotes, setShowCustomNotes] = useState(false);
-
-  const {mutate, isPending} = useMutation<
-    Record<string, any>,
-    RequestError,
-    MutationVariables
-  >({
-    mutationFn: ({creditAmount, ticketUrl, notes}) =>
+  const mutation = useMutation({
+    mutationFn: (data: {creditAmount: number; notes: string; ticketUrl: string}) =>
       fetchMutation({
         method: 'POST',
-        url: `/_admin/customers/${orgId}/balance-changes/`,
-        data: {
-          ticketUrl,
-          notes,
-          creditAmount,
-        },
+        url: getApiUrl('/_admin/customers/$organizationIdOrSlug/balance-changes/', {
+          path: {organizationIdOrSlug: orgId},
+        }),
+        data: {...data, creditAmount: data.creditAmount * 100},
       }),
-    onSuccess: (response, {onSubmitSuccess}) => {
-      onSubmitSuccess?.(response);
+    onSuccess: () => {
       addSuccessMessage('Customer added to startup program');
       onSuccess();
       closeModal();
     },
-    onError: (error, {onSubmitError}) => {
-      onSubmitError?.({
-        responseJSON: error?.responseJSON,
-      });
+    onError: error => {
+      if (
+        error instanceof RequestError &&
+        setFieldErrors(form, requestErrorToFieldErrors(error, form.state.values))
+      ) {
+        return;
+      }
+      addErrorMessage('Unable to add customer to startup program.');
     },
   });
 
-  const onSubmit: NonNullable<FormProps['onSubmit']> = (
-    data,
-    onSubmitSuccess,
-    onSubmitError
-  ) => {
-    const creditAmountInput = Number(data.creditAmount);
-    const creditAmount = coerceValue(creditAmountInput);
-    const ticketUrl = typeof data.ticketUrl === 'string' ? data.ticketUrl : '';
-    const rawNotes = typeof data.notes === 'string' ? data.notes : '';
-    const notes =
-      rawNotes === 'other'
-        ? typeof data.customNotes === 'string'
-          ? data.customNotes
-          : ''
-        : rawNotes;
-
-    if (!creditAmount || isPending) {
-      return;
-    }
-
-    mutate({
-      creditAmount,
-      ticketUrl,
-      notes,
-      onSubmitSuccess,
-      onSubmitError,
-    });
+  const defaultValues: z.input<typeof schema> = {
+    creditAmount: 5000,
+    ticketUrl: '',
+    notes: 'sentryforstartups',
+    customNotes: '',
   };
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues,
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => {
+      const parsed = schema.parse(value);
+      return mutation
+        .mutateAsync({
+          creditAmount: parsed.creditAmount,
+          ticketUrl: parsed.ticketUrl,
+          notes: parsed.notes === 'other' ? parsed.customNotes : parsed.notes,
+        })
+        .catch(() => {});
+    },
+  });
 
   return (
-    <Fragment>
+    <form.AppForm form={form}>
       <Header>
         <Heading as="h2">Add to Startup Program</Heading>
       </Header>
       <Body>
-        <p data-test-id="balance">
-          <span>
+        <Stack gap="lg">
+          <Text>
             <Text bold>Current Balance: </Text>
             {formatBalance(subscription.accountBalance)}
-          </span>
-        </p>
-        <Form
-          onSubmit={onSubmit}
-          onCancel={closeModal}
-          submitLabel={isPending ? 'Submitting...' : 'Submit'}
-          submitDisabled={isPending}
-          cancelLabel="Cancel"
-          footerClass="modal-footer"
-          initialData={{
-            creditAmount: 5000,
-            notes: 'sentryforstartups',
-          }}
-        >
-          <Stack gap="md">
-            <NumberField
-              label="Credit Amount"
-              name="creditAmount"
-              help="Add or remove credit, in dollars"
-              disabled={isPending}
-              inline={false}
-              stacked
-            />
-            <div>
-              <InputField
-                name="ticketUrl"
-                type="url"
-                label="Ticket URL"
-                inline={false}
-                stacked
-                disabled={isPending}
-              />
-              <SelectField
-                name="notes"
-                label="Notes"
-                options={STARTUP_PROGRAM_OPTIONS}
-                inline={false}
-                stacked
-                disabled={isPending}
-                onChange={value => {
-                  setShowCustomNotes(value === 'other');
-                }}
-              />
-              {showCustomNotes && (
-                <TextField
-                  name="customNotes"
-                  label="Custom Notes"
-                  inline={false}
-                  stacked
-                  maxLength={500}
-                  disabled={isPending}
+          </Text>
+          <form.AppField name="creditAmount">
+            {field => (
+              <field.Layout.Stack
+                label="Credit Amount"
+                hintText="Add or remove credit, in dollars"
+                required
+              >
+                <field.Number
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  disabled={mutation.isPending}
                 />
-              )}
-            </div>
-          </Stack>
-        </Form>
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="ticketUrl">
+            {field => (
+              <field.Layout.Stack label="Ticket URL">
+                <field.Input
+                  type="url"
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  disabled={mutation.isPending}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="notes">
+            {field => (
+              <field.Layout.Stack label="Notes">
+                <field.Select
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  options={STARTUP_PROGRAM_OPTIONS}
+                  disabled={mutation.isPending}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.Subscribe selector={state => state.values.notes}>
+            {notes =>
+              notes === 'other' ? (
+                <form.AppField name="customNotes">
+                  {field => (
+                    <field.Layout.Stack label="Custom Notes">
+                      <field.Input
+                        value={field.state.value}
+                        onChange={field.handleChange}
+                        maxLength={500}
+                        disabled={mutation.isPending}
+                      />
+                    </field.Layout.Stack>
+                  )}
+                </form.AppField>
+              ) : null
+            }
+          </form.Subscribe>
+        </Stack>
       </Body>
-    </Fragment>
+      <Footer>
+        <Flex gap="md" justify="end">
+          <Button onClick={closeModal}>Cancel</Button>
+          <form.SubmitButton>Submit</form.SubmitButton>
+        </Flex>
+      </Footer>
+    </form.AppForm>
   );
 }
 

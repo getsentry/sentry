@@ -11,14 +11,40 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 
 import {useBreadcrumbsPathmap} from './context';
 import {Divider} from './divider';
+import {IntegrationCrumb} from './integrationCrumb';
 import {ProjectCrumb} from './projectCrumb';
 import {TeamCrumb} from './teamCrumb';
-import type {RouteWithName, SettingsBreadcrumbProps} from './types';
+import type {RouteWithName} from './types';
 
-const MENUS: Record<string, React.FC<SettingsBreadcrumbProps>> = {
-  Project: ProjectCrumb,
-  Team: TeamCrumb,
+const MENU_ROUTE_PATHS = {
+  configureIntegration: ':providerKey/:integrationId/',
+  integrations: 'integrations/',
+  integrationDetails: ':integrationSlug',
+  project: 'projects/:projectId/',
+  sentryApps: 'sentry-apps/',
+  team: ':teamId/',
 } as const;
+
+function getMenuForRoute(path: string | undefined, routes: RouteWithName[]) {
+  switch (path) {
+    case MENU_ROUTE_PATHS.configureIntegration:
+      return IntegrationCrumb;
+    case MENU_ROUTE_PATHS.integrationDetails:
+      return routes.some(
+        route =>
+          route.path === MENU_ROUTE_PATHS.integrations ||
+          route.path === MENU_ROUTE_PATHS.sentryApps
+      )
+        ? IntegrationCrumb
+        : undefined;
+    case MENU_ROUTE_PATHS.project:
+      return ProjectCrumb;
+    case MENU_ROUTE_PATHS.team:
+      return TeamCrumb;
+    default:
+      return;
+  }
+}
 
 type Props = {
   params: Record<string, string | undefined>;
@@ -35,7 +61,7 @@ export function SettingsBreadcrumb({params}: Props) {
   }
 
   return (
-    <Flex as="span" flex="1" align="center" gap="sm">
+    <Flex as="span" flex="0 1 auto" align="center" gap="sm" minWidth="0">
       {routes.map((route, i) => {
         if (!route.name) {
           return null;
@@ -43,10 +69,9 @@ export function SettingsBreadcrumb({params}: Props) {
         const pathTitle =
           pathMap[getRouteStringFromRoutes({routes: routes.slice(0, i + 1)})];
         const isLast = i === lastRouteIndex;
-        const Menu = MENUS[route.name];
-        const hasMenu = !!Menu;
+        const Menu = getMenuForRoute(route.path, routes);
 
-        if (hasMenu) {
+        if (Menu) {
           return (
             <Menu
               key={`${route.name}:${route.path}`}

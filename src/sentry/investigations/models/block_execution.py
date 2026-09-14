@@ -31,6 +31,13 @@ class InvestigationBlockExecutionStatus(models.TextChoices):
     CANCELLED = "cancelled", "Cancelled"
 
 
+TERMINAL_BLOCK_EXECUTION_STATUSES = (
+    InvestigationBlockExecutionStatus.COMPLETED,
+    InvestigationBlockExecutionStatus.FAILED,
+    InvestigationBlockExecutionStatus.CANCELLED,
+)
+
+
 @cell_silo_model
 class InvestigationBlockExecution(DefaultFieldsModel):
     """An immutable attempt to produce a block's content or query result."""

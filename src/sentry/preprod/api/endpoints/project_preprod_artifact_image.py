@@ -14,7 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.project import Project
-from sentry.objectstore import get_preprod_session
+from sentry.objectstore import UsecaseId, get_session
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -43,15 +43,17 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    # Higher limits than default (40 rps, 25 concurrent) since this proxies images from Objectstore (2.5k rps, 1k concurrent capacity).
-    # Snapshot pages load many images in parallel, so per-user is 200 rps/100 concurrent and per-org is 2k rps/100 concurrent.
+    # Higher limits than default (40 rps, 25 concurrent) since this proxies images from Objectstore.
+    # Snapshot pages load many images in parallel, so per-user is 400 rps/200 concurrent and per-org is 4k rps/200 concurrent.
+    # Objectstore's own ceilings are a percentage of a per-pod global_rps and sit well above these:
+    # https://github.com/getsentry/ops/blob/master/k8s/services/objectstore/_values.yaml
     rate_limits = RateLimitConfig(
         limit_overrides={
             "GET": {
-                RateLimitCategory.IP: RateLimit(limit=200, window=1, concurrent_limit=100),
-                RateLimitCategory.USER: RateLimit(limit=200, window=1, concurrent_limit=100),
+                RateLimitCategory.IP: RateLimit(limit=400, window=1, concurrent_limit=200),
+                RateLimitCategory.USER: RateLimit(limit=400, window=1, concurrent_limit=200),
                 RateLimitCategory.ORGANIZATION: RateLimit(
-                    limit=2000, window=1, concurrent_limit=100
+                    limit=4000, window=1, concurrent_limit=200
                 ),
             }
         }
@@ -67,7 +69,7 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
         project_id = project.id
 
         object_key = f"{organization_id}/{project_id}/{image_id}"
-        session = get_preprod_session(organization_id, project_id)
+        session = get_session(UsecaseId.PREPROD, project)
 
         try:
             result = session.get(object_key)

@@ -144,7 +144,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
   [
     DataConditionType.EVERY_EVENT,
     {
-      label: t('An event is captured'),
+      label: t('An event or issue activity is captured'),
       validate: undefined,
     },
   ],
@@ -182,7 +182,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Seer runs on an issue and reaches the stage...'),
       dataCondition: SeerActivityTriggerNode,
       details: SeerActivityTriggerDetails,
-      defaultComparison: ['pr_created'],
+      defaultComparison: ['pr_ready_for_review'],
       validate: validateSeerActivityTriggerCondition,
     },
   ],

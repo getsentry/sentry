@@ -98,20 +98,9 @@ describe('OrganizationMembershipSettings', () => {
     expect(screen.getByRole('textbox', {name: 'Default Role'})).toBeEnabled();
   });
 
-  it('disables member project creation if org does not have team-roles', () => {
+  it('enables member project creation without team-roles when user has org:write', () => {
     const organization = OrganizationFixture({
       features: ['invite-members'],
-      access: ['org:write'],
-    });
-    renderComponent(organization);
-    expect(
-      screen.getByRole('checkbox', {name: 'Let Members Create Projects'})
-    ).toBeDisabled();
-  });
-
-  it('enables member project creation if org has team-roles', () => {
-    const organization = OrganizationFixture({
-      features: ['invite-members', 'team-roles'],
       access: ['org:write'],
     });
     renderComponent(organization);
@@ -122,7 +111,7 @@ describe('OrganizationMembershipSettings', () => {
 
   it('disables member project creation if user does not have org:write access', () => {
     const organization = OrganizationFixture({
-      features: ['invite-members', 'team-roles'],
+      features: ['invite-members'],
       access: [],
     });
     renderComponent(organization);

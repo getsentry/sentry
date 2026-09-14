@@ -71,11 +71,6 @@ Sentry.init({
   profileSessionSampleRate: 1.0,
   profileLifecycle: 'trace',`
       : ''
-  }${
-    params.isLogsSelected
-      ? `
-  enableLogs: true,`
-      : ''
   }
   dataCollection: {
     // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
@@ -117,11 +112,6 @@ app.use(
         ? `
     tracesSampleRate: 1.0,`
         : ''
-    }${
-      params.isLogsSelected
-        ? `
-    enableLogs: true,`
-        : ''
     }
     dataCollection: {
       // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
@@ -152,11 +142,6 @@ app.use(
       params.isPerformanceSelected
         ? `
     tracesSampleRate: 1.0,`
-        : ''
-    }${
-      params.isLogsSelected
-        ? `
-    enableLogs: true,`
         : ''
     }
     dataCollection: {

@@ -35,7 +35,7 @@ export class RequestError extends Error {
   statusText?: string;
 
   constructor(
-    method: 'POST' | 'GET' | 'DELETE' | 'PUT' | undefined,
+    method: 'POST' | 'GET' | 'DELETE' | 'PATCH' | 'PUT' | undefined,
     path: string,
     cause: Error,
     responseMetadata?: ResponseMeta

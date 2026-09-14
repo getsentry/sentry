@@ -51,6 +51,33 @@ _ALWAYS_RETURN_EVENT_FIELDS = frozenset(
         "project",  # Project slug
         "issue",  # Issue short ID
         "has",
+        # Fields stored in contexts map, not exposed via tags
+        "unreal.crash_type",
+        "http.status_code",
+        "os.build",
+        "os.kernel_version",
+        "os.distribution_name",
+        "os.distribution_version",
+        "device.arch",
+        "device.battery_level",
+        "device.brand",
+        "device.charging",
+        "device.locale",
+        "device.model_id",
+        "device.name",
+        "device.online",
+        "device.orientation",
+        "device.screen_density",
+        "device.screen_dpi",
+        "device.screen_height_pixels",
+        "device.screen_width_pixels",
+        "device.simulator",
+        "device.uuid",
+        "app.in_foreground",
+        "geo.country_code",
+        "geo.region",
+        "geo.city",
+        "geo.subdivision",
     }
 )
 

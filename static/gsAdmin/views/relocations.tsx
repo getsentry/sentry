@@ -3,9 +3,10 @@ import moment from 'moment-timezone';
 import {LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
+import {ResultGrid} from 'sentry/components/resultGrid';
+
 import {PageHeader} from 'admin/components/pageHeader';
 import {RelocationBadge} from 'admin/components/relocationBadge';
-import {ResultGrid} from 'admin/components/resultGrid';
 import type {Relocation} from 'admin/types';
 import {titleCase} from 'getsentry/utils/titleCase';
 
@@ -66,7 +67,6 @@ export function Relocations() {
         isRegional
         path="/_admin/relocations/"
         endpoint="/relocations/"
-        method="GET"
         columns={[
           <th key="uuid">UUID</th>,
           <th key="status" style={{width: 100, textAlign: 'center'}}>

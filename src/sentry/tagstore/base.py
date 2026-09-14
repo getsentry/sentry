@@ -116,7 +116,6 @@ class TagStorage(Service):
         environment_id,
         status=TagKeyStatus.ACTIVE,
         include_values_seen=False,
-        denylist=None,
         tenant_ids=None,
     ):
         """

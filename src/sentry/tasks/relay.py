@@ -10,7 +10,7 @@ from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import relay_tasks
+from sentry.taskworker.namespaces import relay_invalidation_tasks, relay_tasks
 from sentry.utils import metrics
 from sentry.utils.exceptions import quiet_redis_noise
 from sentry.utils.sdk import set_current_event_project
@@ -212,7 +212,8 @@ def compute_projectkey_config(key):
 
 @instrumented_task(
     name="sentry.tasks.relay.invalidate_project_config",
-    namespace=relay_tasks,
+    namespace=relay_invalidation_tasks,
+    alias_namespace=relay_tasks,
     processing_deadline_duration=25 * 60 + 5,
     silo_mode=SiloMode.CELL,
 )

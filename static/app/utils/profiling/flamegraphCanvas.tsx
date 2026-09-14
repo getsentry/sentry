@@ -8,8 +8,8 @@ export class FlamegraphCanvas {
   canvas: HTMLCanvasElement;
   origin: vec2;
 
-  physicalSpace: Rect = Rect.Empty();
-  logicalSpace: Rect = Rect.Empty();
+  physicalSpace: Rect = Rect.empty();
+  logicalSpace: Rect = Rect.empty();
 
   physicalToLogicalSpace: mat3 = mat3.create();
   logicalToPhysicalSpace: mat3 = mat3.create();

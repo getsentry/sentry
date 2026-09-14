@@ -1,8 +1,9 @@
 import logging
+import random
 import time
 import uuid
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Any, TypedDict, cast
+from typing import Any, Literal, TypedDict, cast
 
 from django.core.exceptions import BadRequest
 from django.db import models
@@ -24,13 +25,23 @@ from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
+from sentry.issues.formatting.formatter import Format
+from sentry.issues.formatting.limits import LIMITS_DEFAULT, LIMITS_LOW
+from sentry.issues.formatting.mixin import FORMATTER_FEATURE, VALID_FORMATS
+from sentry.issues.formatting.sections import (
+    EVENT_SECTIONS,
+    breadcrumbs_section,
+    format_issue,
+)
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.group import EventOrdering, Group
+from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
 from sentry.models.projectownership import ProjectOwnership
@@ -79,6 +90,7 @@ from sentry.seer.sentry_data_models import (
     ExecuteTimeseriesQueryErrorResponse,
     ExecuteTimeseriesQuerySuccessResponse,
     GetDsnResponse,
+    GroupAssigneesResponse,
     IssueCommittersResponse,
     IssueDetailsResponse,
     IssueOwner,
@@ -86,10 +98,12 @@ from sentry.seer.sentry_data_models import (
     ProfileFlamegraphErrorResponse,
     ProfileFlamegraphMetadata,
     ProfileFlamegraphSuccessResponse,
+    ProjectMembersResponse,
     ReplayMetadataResponse,
     RepositoryDefinitionResponse,
     TeamMembersResponse,
     TraceItemEventsResponse,
+    UserIdentity,
 )
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
@@ -113,6 +127,9 @@ from sentry.utils.snuba import raw_snql_query
 from sentry.utils.snuba_rpc import get_trace_rpc
 
 logger = logging.getLogger(__name__)
+
+PROJECT_MEMBER_LIMIT_MAX = 20
+PROJECT_ASSIGNMENT_HISTORY_LIMIT = 500
 
 
 def _get_full_trace_id(
@@ -1352,8 +1369,7 @@ def _get_recommended_event(
     return fallback_event or get_latest_event()
 
 
-# Activity types to include in issue details for Seer Agent (manual actions only)
-_SEER_EXPLORER_ACTIVITY_TYPES = [
+_SEER_EXPLORER_ACTOR_OPTIONAL_ACTIVITY_TYPES = [
     ActivityType.NOTE.value,
     ActivityType.SET_RESOLVED.value,
     ActivityType.SET_RESOLVED_IN_RELEASE.value,
@@ -1361,6 +1377,11 @@ _SEER_EXPLORER_ACTIVITY_TYPES = [
     ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
     ActivityType.SET_UNRESOLVED.value,
     ActivityType.ASSIGNED.value,
+]
+
+_SEER_EXPLORER_ACTOR_REQUIRED_ACTIVITY_TYPES = [
+    ActivityType.TRIGGER_AUTOFIX.value,
+    ActivityType.SEER_ITERATION_STARTED.value,
 ]
 
 
@@ -1532,10 +1553,15 @@ def get_issue_details(
         timeseries, timeseries_stats_period, timeseries_interval = None, None, None
 
     try:
-        activities = Activity.objects.filter(
-            group=group,
-            type__in=_SEER_EXPLORER_ACTIVITY_TYPES,
-        ).order_by("-datetime")[:50]
+        activity_filter = models.Q(
+            type__in=_SEER_EXPLORER_ACTOR_OPTIONAL_ACTIVITY_TYPES
+        ) | models.Q(
+            type__in=_SEER_EXPLORER_ACTOR_REQUIRED_ACTIVITY_TYPES,
+            user_id__isnull=False,
+        )
+        activities = (
+            Activity.objects.filter(group=group).filter(activity_filter).order_by("-datetime")[:50]
+        )
         serialized_activities = serialize(
             list(activities), user=None, serializer=ActivitySerializer(resolve_mentions=True)
         )
@@ -1976,6 +2002,144 @@ def get_team_members(
     )
 
 
+def get_project_members(
+    *,
+    organization_id: int,
+    project_id: int,
+    exclude_group_id: int | None = None,
+    limit: int = 3,
+) -> ProjectMembersResponse | None:
+    if (
+        not isinstance(limit, int)
+        or isinstance(limit, bool)
+        or not 1 <= limit <= PROJECT_MEMBER_LIMIT_MAX
+    ):
+        raise BadRequest(f"limit must be between 1 and {PROJECT_MEMBER_LIMIT_MAX}")
+
+    try:
+        project = Project.objects.get(
+            id=project_id,
+            organization_id=organization_id,
+            status=ObjectStatus.ACTIVE,
+        )
+    except Project.DoesNotExist:
+        return None
+
+    member_ids = {
+        user_id
+        for user_id in (
+            OrganizationMemberTeam.objects.filter(
+                team__projectteam__project_id=project.id,
+                team__status=TeamStatus.ACTIVE,
+                is_active=True,
+                organizationmember__user_id__isnull=False,
+                organizationmember__user_is_active=True,
+            )
+            .values_list("organizationmember__user_id", flat=True)
+            .distinct()
+        )
+        if user_id is not None
+    }
+    if not member_ids:
+        return ProjectMembersResponse(members=[])
+
+    activities = Activity.objects.filter(
+        project_id=project.id,
+        type=ActivityType.ASSIGNED.value,
+    )
+    if exclude_group_id is not None:
+        activities = activities.exclude(group_id=exclude_group_id)
+    activity_data = activities.order_by("-datetime", "-id").values_list("data", flat=True)[
+        :PROJECT_ASSIGNMENT_HISTORY_LIMIT
+    ]
+
+    selected_member_ids: list[int] = []
+    for data in activity_data.iterator(chunk_size=50):
+        data = data or {}
+        if data.get("assigneeType") != "user":
+            continue
+        try:
+            user_id = int(data["assignee"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if user_id not in member_ids or user_id in selected_member_ids:
+            continue
+        selected_member_ids.append(user_id)
+        if len(selected_member_ids) == limit:
+            break
+
+    if len(selected_member_ids) < limit:
+        member_ids.difference_update(selected_member_ids)
+        fallback_count = min(limit - len(selected_member_ids), len(member_ids))
+        metrics.incr(
+            "seer.get_project_members.fallback",
+            tags={"fallback_count": str(fallback_count)},
+            sample_rate=1.0,
+        )
+        selected_member_ids.extend(random.sample(list(member_ids), fallback_count))
+
+    users_by_id = {
+        user.id: user
+        for user in user_service.get_many(
+            filter={
+                "user_ids": selected_member_ids,
+                "is_active": True,
+                "organization_id": organization_id,
+            }
+        )
+    }
+    return ProjectMembersResponse(
+        members=[
+            UserIdentity(id=user.id, username=user.username)
+            for user_id in selected_member_ids
+            if (user := users_by_id.get(user_id)) is not None
+        ]
+    )
+
+
+def get_group_assignees(
+    *,
+    organization_id: int,
+    group_ids: list[int],
+) -> GroupAssigneesResponse:
+    if len(group_ids) > 100:
+        raise BadRequest("At most 100 group IDs may be requested")
+
+    user_ids_by_group = cast(
+        dict[int, int],
+        dict(
+            GroupAssignee.objects.filter(
+                group_id__in=group_ids,
+                project__organization_id=organization_id,
+                user_id__isnull=False,
+            ).values_list("group_id", "user_id")
+        ),
+    )
+    if not user_ids_by_group:
+        return GroupAssigneesResponse(assignees={})
+
+    users_by_id = {
+        user.id: user
+        for user in user_service.get_many(
+            filter={
+                "user_ids": list(user_ids_by_group.values()),
+                "is_active": True,
+                "organization_id": organization_id,
+            }
+        )
+    }
+    return GroupAssigneesResponse(
+        assignees={
+            str(group_id): UserIdentity(
+                id=user.id,
+                username=user.username,
+            )
+            for group_id, user_id in user_ids_by_group.items()
+            if (user := users_by_id.get(user_id)) is not None
+        }
+    )
+
+
 def get_event_details(
     *,
     organization_id: int,
@@ -1984,6 +2148,9 @@ def get_event_details(
     start: str | None = None,
     end: str | None = None,
     project_slug: str | None = None,
+    format: Format | None = None,
+    format_limits: Literal["default", "low"] = "default",
+    include_breadcrumbs: bool = True,
 ) -> EventDetailsResponse | None:
     """
     Get event details by event ID, or get the recommended event for an issue, optionally scoped by time range.
@@ -1996,12 +2163,22 @@ def get_event_details(
         start: ISO timestamp for the start of the time range to get recommended event for (optional).
         end: ISO timestamp for the end of the time range to get recommended event for (optional).
         project_slug: The slug of the project (optional).
+        format: When set (markdown | xml), also render the event through the shared formatter into
+            the ``formatted`` field. Requires the ``organizations:issue-standardized-markdown-for-llm`` feature.
+        format_limits: Truncation profile for the rendered output ("default" or "low").
+        include_breadcrumbs: Drop the breadcrumbs section from the rendered output when False.
 
     Returns:
-        Dict with serialized event, event_id, event_trace_id, project_id, project_slug, or None if not found.
+        Dict with serialized event, event_id, event_trace_id, project_id, project_slug, and
+        formatted (rendered text when a ``format`` is requested, else None), or None if not found.
     """
     if bool(event_id) == bool(issue_id):
         raise BadRequest("Either event_id or issue_id must be provided, but not both.")
+
+    # `format` arrives as an unvalidated RPC argument. Reject unknown values alongside the other
+    # argument checks, so a bad request is a 400 whatever the lookup finds or the rollout says.
+    if format is not None and format not in VALID_FORMATS:
+        raise ParseError(f"Unsupported format: {format!r}")
 
     organization = Organization.objects.get(id=organization_id)
 
@@ -2085,12 +2262,26 @@ def get_event_details(
     serialized_event = dict(serialize(event, user=None, serializer=EventSerializer()))
     serialized_event.update(_get_event_troubleshooting_context(event))
 
+    # Opt-in shared-formatter output for Seer, gated behind the rollout feature so it can be
+    # ramped gradually; when the feature is off, callers fall back to their own formatter.
+    formatted: str | None = None
+    if format is not None and features.has(FORMATTER_FEATURE, organization):
+        limits = LIMITS_LOW if format_limits == "low" else LIMITS_DEFAULT
+        # EVENT_SECTIONS holds back user identifiers, which Seer's prompts never carried
+        sections = (
+            EVENT_SECTIONS
+            if include_breadcrumbs
+            else [section for section in EVENT_SECTIONS if section is not breadcrumbs_section]
+        )
+        formatted = format_issue(serialized_event, format=format, sections=sections, limits=limits)
+
     return EventDetailsResponse(
         event=serialized_event,
         event_id=event.event_id,
         event_trace_id=event.trace_id,
         project_id=event.project_id,
         project_slug=event.project.slug,
+        formatted=formatted,
     )
 
 

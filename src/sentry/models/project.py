@@ -581,9 +581,16 @@ class Project(Model):
             if monitor.slug in new_monitors:
                 CellScheduledDeletion.schedule(monitor, days=0)
             else:
-                for monitor_env_id, env_id in MonitorEnvironment.objects.filter(
-                    monitor_id=monitor.id, status=MonitorStatus.ACTIVE
-                ).values_list("id", "environment_id"):
+                for monitor_env_id, env_id in (
+                    MonitorEnvironment.objects.filter(monitor_id=monitor.id)
+                    .exclude(
+                        status__in=[
+                            MonitorStatus.PENDING_DELETION,
+                            MonitorStatus.DELETION_IN_PROGRESS,
+                        ]
+                    )
+                    .values_list("id", "environment_id")
+                ):
                     MonitorEnvironment.objects.filter(id=monitor_env_id).update(
                         environment_id=Environment.get_or_create(
                             self, name=environment_names.get(env_id, None)

@@ -1,9 +1,13 @@
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
+from django.utils import timezone
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.defaults.detectors import (
     UnableToAcquireLockApiError,
@@ -56,6 +60,7 @@ class TestEnsureDefaultDetectors(TestCase):
                 project = self.create_project()
                 ensure_default_detectors(project)
 
+    @override_options({"workflow_engine.auto_creation.all_projects_detector": True})
     def test_ensure_default_organization_detectors_creates_all_projects(self) -> None:
         ensure_default_organization_detectors(self.organization)
 
@@ -115,3 +120,19 @@ class TestEnsureDefaultAllProjectsDetector(TestCase):
             mock_lock.return_value.blocking_acquire.side_effect = UnableToAcquireLock
             with pytest.raises(UnableToAcquireLockApiError):
                 ensure_default_all_projects_detector(self.organization.id)
+
+    def test_duplicate_detectors_are_handled(self) -> None:
+        org = self.create_organization()
+        with freeze_time(timezone.now() - timedelta(hours=2)):
+            first = self.create_all_projects_detector(org)
+        with freeze_time(timezone.now() - timedelta(hours=1)):
+            _second = self.create_all_projects_detector(org)
+        with freeze_time(timezone.now()):
+            _third = self.create_all_projects_detector(org)
+
+        result = ensure_default_all_projects_detector(org.id)
+        assert result.id == first.id
+
+    def test_returns_none_when_option_disabled(self) -> None:
+        result = ensure_default_organization_detectors(self.organization)
+        assert result == {}

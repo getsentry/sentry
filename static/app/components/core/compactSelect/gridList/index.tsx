@@ -16,8 +16,7 @@ import {
 } from '@sentry/scraps/compactSelect';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {Container} from '@sentry/scraps/layout';
-
-import {t} from 'sentry/locale';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {GridListOption, type GridListOptionProps} from './option';
 import {GridListSection} from './section';
@@ -80,6 +79,7 @@ function GridList<T extends ListItemBase>({
   virtualized,
   ...props
 }: GridListProps<T>) {
+  const {t} = useTranslation();
   const ref = useRef<HTMLUListElement>(null);
   const labelId = useId();
   const {gridProps} = useGridList(

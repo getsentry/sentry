@@ -3,10 +3,10 @@ import {z} from 'zod';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 
 import {t} from 'sentry/locale';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import {useUpdateProjectMutationOptions} from 'sentry/utils/project/useUpdateProject';
 
 const schema = z.object({
   tempestFetchScreenshots: z.boolean(),
@@ -18,21 +18,19 @@ interface ConfigFormProps {
 }
 
 export function ConfigForm({organization, project}: ConfigFormProps) {
+  const {data: currentProject = project} = useDetailedProject(
+    {orgSlug: organization.slug, projectSlug: project.slug},
+    {initialData: {headers: {}, json: project}}
+  );
+  const projectMutationOptions = useUpdateProjectMutationOptions(currentProject);
+
   return (
     <FieldGroup title={t('General Settings')}>
       <AutoSaveForm
         name="tempestFetchScreenshots"
         schema={schema}
-        initialValue={project.tempestFetchScreenshots ?? false}
-        mutationOptions={{
-          mutationFn: data =>
-            fetchMutation<DetailedProject>({
-              url: `/projects/${organization.slug}/${project.slug}/`,
-              method: 'PUT',
-              data,
-            }),
-          onSuccess: response => ProjectsStore.onUpdateSuccess(response),
-        }}
+        initialValue={currentProject.tempestFetchScreenshots ?? false}
+        mutationOptions={projectMutationOptions}
       >
         {field => (
           <field.Layout.Row

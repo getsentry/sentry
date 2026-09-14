@@ -1,6 +1,6 @@
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {useHotkeys} from '@sentry/scraps/hotkey';
+import {matchesHotkey, useHotkeys} from '@sentry/scraps/hotkey';
 
 jest.mock('@react-aria/utils', () => ({
   ...jest.requireActual('@react-aria/utils'),
@@ -61,6 +61,12 @@ describe('useHotkeys', () => {
 
     expect(evt.preventDefault).toHaveBeenCalled();
     expect(callback).toHaveBeenCalled();
+  });
+
+  it('does not match while an IME is composing text', () => {
+    expect(
+      matchesHotkey('mod+k', makeKeyEventFixture('k', {ctrlKey: true, isComposing: true}))
+    ).toBe(false);
   });
 
   it('handles multiple matches', () => {

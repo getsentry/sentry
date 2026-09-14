@@ -1,163 +1,35 @@
-import type {LocationDescriptor} from 'history';
-
+import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {CallRecord} from 'sentry/views/seerExplorer/types';
-import {buildToolLinkUrl} from 'sentry/views/seerExplorer/utils';
 
 /**
  * Presentation for the calls a Code Mode execute made.
  *
  * Seer reports what it did — route, params, title, outcome — and nothing about how it should look.
- * Everything here is the client's choice: which calls are worth a link, what they're labeled, and
- * whether a route gets bespoke treatment. Adding a handler is a frontend-only deploy.
+ * How a row reads and where it points is the client's choice, and it lives in one table in
+ * `links.tsx`. What is left here is the rest of the row: its outcome tick, its expanded detail, and
+ * which records are worth rendering at all.
  */
 
 /**
- * Path params that identify something a user can navigate to, mapped to the link kind whose URL
- * builder knows how to reach it.
+ * What a row reads as: the agent's own line when it wrote one, seer's title otherwise.
  *
- * Deliberately small. Path params concentrate hard across the ~790 routes seer exposes —
- * `organization_id_or_slug` and `project_id_or_slug` appear in most of them but are scope, not
- * destinations. These are the ones that name a resource with a page. Order matters: the first
- * match wins, so more specific pairings (an event inside an issue) come before their parts.
- */
-const NAVIGABLE_PARAMS: Array<{kind: string; params: readonly string[]}> = [
-  {kind: 'get_event_details', params: ['issue_id', 'event_id']},
-  {kind: 'get_issue_details', params: ['issue_id']},
-  {kind: 'get_trace_waterfall', params: ['trace_id']},
-  {kind: 'get_replay_details', params: ['replay_id']},
-];
-
-/**
- * Param values that name a resource to the API but not to the UI.
- *
- * The Sentry API resolves these server-side — `GET /issues/54/events/latest/` returns the newest
- * event — but the corresponding UI route expects a concrete id, so linking one produces a dead
- * page. Any param carrying one of these is treated as non-identifying, which falls the record back
- * to a coarser link (the issue rather than the event) instead of a broken one.
- */
-const API_ONLY_ALIASES = new Set(['latest', 'oldest', 'recommended', 'me']);
-
-function identifies(value: string | undefined): value is string {
-  return Boolean(value) && !API_ONLY_ALIASES.has(value!);
-}
-
-/**
- * A record's destination, or null when it identifies nothing navigable.
- *
- * Built here rather than in seer: `buildToolLinkUrl` already encodes every Sentry URL shape for the
- * classic tool path, and duplicating that knowledge server-side would mean maintaining Sentry's
- * routing against an OpenAPI spec that says nothing about it.
- */
-export function callRecordLink(
-  record: CallRecord,
-  organization: Organization,
-  projects?: Array<{id: string; slug: string}>
-): {kind: string; url: LocationDescriptor} | null {
-  if (!record.path_params || !addressesItsOwnResource(record)) {
-    return null;
-  }
-
-  // Drop alias-valued params up front rather than per-match. The URL builders read params beyond
-  // the ones a match keys on — `get_issue_details` also consults `event_id` — so an alias left in
-  // the bag would still reach a builder and produce the dead link we are avoiding.
-  const pathParams = Object.fromEntries(
-    Object.entries(record.path_params).filter(([, value]) => identifies(value))
-  );
-
-  for (const {kind, params} of NAVIGABLE_PARAMS) {
-    if (params.every(name => pathParams[name])) {
-      const url = buildToolLinkUrl({kind, params: pathParams}, organization, projects);
-      if (url) {
-        return {kind, url: scopeToOrganization(url, organization)};
-      }
-    }
-  }
-  return null;
-}
-
-/**
- * Whether the route's own subject is the resource we would link to.
- *
- * Without this, every route containing `{issue_id}` links to the issue page — so fetching an
- * issue, its latest event, and its tags produces three rows pointing at the same place, which
- * tells the reader nothing and makes the links look arbitrary. A route only earns a link when it
- * *ends* at the thing being linked; `/issues/{issue_id}/tags/` is about tags, and there is no tags
- * page to send anyone to, so it gets none.
- */
-function addressesItsOwnResource(record: CallRecord): boolean {
-  const path = record.path?.replace(/\/$/, '');
-  return Boolean(path?.endsWith('}'));
-}
-
-/**
- * Qualify an org-less path with the organization, then normalize.
- *
- * `buildToolLinkUrl` is inconsistent about this: some cases return
- * `/organizations/{slug}/traces/`, others a bare `/issues/54/`. The bare form only resolves under
- * a customer domain, so it 404s on a plain dev host. Emitting the qualified path and running it
- * through `normalizeUrl` is correct in both worlds — normalizeUrl strips the prefix back off when
- * a customer domain is in play.
- */
-function scopeToOrganization(
-  url: LocationDescriptor,
-  organization: Organization
-): LocationDescriptor {
-  const prefix = `/organizations/${organization.slug}`;
-
-  if (typeof url === 'string') {
-    return normalizeUrl(url.startsWith('/organizations/') ? url : `${prefix}${url}`);
-  }
-  if (!url.pathname || url.pathname.startsWith('/organizations/')) {
-    return normalizeUrl(url);
-  }
-  return normalizeUrl({...url, pathname: `${prefix}${url.pathname}`});
-}
-
-/**
- * Bespoke rendering for a specific route or lib method.
- *
- * Keyed `"<METHOD> <templated path>"` for API records and by method name for lib records — the
- * same keys seer reports, so a handler is registered without seer knowing it exists. A route with
- * no handler falls back to the title seer shipped, which is why the map can stay small: it holds
- * only the calls worth saying something better about than their spec name.
- */
-const CALL_HANDLERS: Record<string, (record: CallRecord) => string | null> = {
-  'PUT /api/0/organizations/{organization_id_or_slug}/issues/': record =>
-    record.status && record.status < 300 ? t('Updated issues') : t('Update issues'),
-  code_search: () => t('Searched code'),
-  git_search: () => t('Searched commit history'),
-  bash: () => t('Ran a command'),
-  ask_user_question: () => t('Asked a question'),
-  review_code_changes: () => t('Reviewed code changes'),
-  telemetry_live_search: () => t('Queried telemetry'),
-};
-
-function handlerKey(record: CallRecord): string | null {
-  if (record.kind === 'lib') {
-    return record.name ?? null;
-  }
-  return record.method && record.path ? `${record.method} ${record.path}` : null;
-}
-
-/**
- * What to show for a call, or null when we have nothing worth showing.
- *
- * Returning null rather than falling back to the route or an operation id is deliberate: a raw
- * identifier on screen is worse than one fewer row.
+ * The title is not discarded — `callRecordDetail` keeps what ran, so the line stays checkable.
+ * A row matching a rule in `links.tsx` is labeled by that rule instead.
  */
 export function callRecordLabel(record: CallRecord): string | null {
-  const key = handlerKey(record);
-  const handler = key ? CALL_HANDLERS[key] : undefined;
-  if (handler) {
-    const label = handler(record);
-    if (label) {
-      return label;
-    }
-  }
-  return record.title?.trim() || null;
+  return record.llm_description?.trim() || record.title?.trim() || null;
+}
+
+/**
+ * A readable stand-in for a record nothing could name — generic, because a route or an operation
+ * id reads worse. Reported rather than dropped: a vanishing record is how an endpoint disappears.
+ */
+export function fallbackCallLabel(record: CallRecord): string {
+  // A noun, not a progressive verb: the row may well have settled, and a lib method that reached
+  // here has no title at all — `Working…` would leave it reading as still running forever.
+  return record.kind === 'api' ? t('Sentry API request') : t('Sentry operation');
 }
 
 /**
@@ -208,23 +80,144 @@ export function callRecordDetail(record: CallRecord): {
   body: string | null;
   request: string;
 } | null {
-  // A lib call is a heading for the api calls nested under it, and those carry the detail. Giving
-  // it its own expander would add a control that reveals less than the rows already below it.
-  if (record.kind !== 'api' || !record.method) {
+  // Built before any fallback: the literal URL beats a generated sentence as the account of
+  // what ran, which is what a described row needs to stay checkable.
+  if (record.kind === 'api' && record.method) {
+    const path = record.resolved_path ?? record.path;
+    if (path) {
+      // Seer composes the query string into `resolved_path`, so the request line is the whole URL —
+      // a list of params underneath would restate what the URL already says.
+      return {
+        request: `${record.method} ${path}`,
+        body: withEllipsis(record.body, record.body_truncated),
+      };
+    }
     return null;
   }
 
+  // Nothing else ran a request of its own, so a described row falls back to the generated title
+  // — without it the description would be an unfalsifiable claim.
+  const described = record.llm_description?.trim();
+  const title = record.title?.trim();
+  if (described && title && described !== title) {
+    return {request: title, body: null};
+  }
+  return null;
+}
+
+// Query params that scope or format a request rather than describe what it looked for. Decomposing
+// these into chips would bury the meaningful filters (dataset, project, the search itself) under
+// pagination and field-selection noise, so they are dropped.
+const NON_FILTER_PARAMS = new Set([
+  'referrer',
+  'per_page',
+  'cursor',
+  'sort',
+  'field',
+  'useRpc',
+  'sampling',
+  'noPagination',
+  'partial',
+  'utc',
+]);
+
+/**
+ * A filter key's specificity, for ordering the `Input:` chips from broadest scope to narrowest
+ * identifier. An id (`trace_id`, `ai_conversation.id`) pins one record; a namespaced attribute
+ * (`span.description`) narrows within a dataset; a plain key (`dataset`, `project`) scopes broadly.
+ * Higher sorts later.
+ */
+function keySpecificity(key: string): number {
+  if (key === 'id' || key.endsWith('.id') || key.endsWith('_id')) {
+    return 3;
+  }
+  return key.includes('.') ? 2 : 1;
+}
+
+// Wrap a value that would otherwise re-tokenize wrong (spaces, quotes, parens) so the assembled
+// query parses back to the same filter.
+function quoteValue(value: string): string {
+  return /[\s"()]/.test(value)
+    ? `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+    : value;
+}
+
+/**
+ * Reorder a flat query into canonical least→most specific order.
+ *
+ * Only safe for a flat conjunction: boolean/parenthesized grouping makes order meaningful, so a
+ * grouped query is returned untouched. Otherwise each term is sorted by its key's specificity
+ * (ties broken by text) so the same request always reads the same way regardless of the order the
+ * params happened to arrive in.
+ */
+function canonicalizeQuery(query: string): string {
+  const parsed = parseSearch(query);
+  if (!parsed) {
+    return query;
+  }
+
+  // Anything beyond flat filters and whitespace — a logic group `(a OR b)`, a bare boolean, a
+  // stray paren — makes token order meaningful, so the query is left exactly as written.
+  const hasGrouping = parsed.some(
+    token =>
+      token.type !== Token.FILTER &&
+      token.type !== Token.FREE_TEXT &&
+      token.type !== Token.SPACES
+  );
+  if (hasGrouping) {
+    return query;
+  }
+
+  const terms = parsed.flatMap(token => {
+    if (token.type === Token.FILTER) {
+      return [
+        {text: token.text.trim(), specificity: keySpecificity(getKeyName(token.key))},
+      ];
+    }
+    // Free text has no key to rank, so it sorts first (least specific).
+    if (token.type === Token.FREE_TEXT && token.text.trim()) {
+      return [{text: token.text.trim(), specificity: 0}];
+    }
+    return [];
+  });
+
+  terms.sort((a, b) => a.specificity - b.specificity || a.text.localeCompare(b.text));
+  return terms.map(term => term.text).join(' ');
+}
+
+/**
+ * The call's request as a single canonical query string for the `Input:` row, or null when there
+ * is nothing to show.
+ *
+ * Reads the query string off `resolved_path` (the literal URL requested): each meaningful param
+ * becomes a `key:value` term and a Sentry `query` param is folded in as its own filters, then the
+ * whole thing is canonicalized (see `canonicalizeQuery`). The Explorer hands the result to
+ * `FormattedQuery`, which parses grouping and renders the chips — so this only has to assemble and
+ * order the terms. Scope/format params are dropped (`NON_FILTER_PARAMS`).
+ */
+export function callRecordInputQuery(record: CallRecord): string | null {
   const path = record.resolved_path ?? record.path;
-  if (!path) {
+  const queryIndex = path?.indexOf('?') ?? -1;
+  if (!path || queryIndex === -1) {
     return null;
   }
 
-  // Seer composes the query string into `resolved_path`, so the request line is the whole URL —
-  // a list of params underneath would restate what the URL already says.
-  return {
-    request: `${record.method} ${path}`,
-    body: withEllipsis(record.body, record.body_truncated),
-  };
+  const params = new URLSearchParams(path.slice(queryIndex + 1));
+  const terms: string[] = [];
+  let search = '';
+  for (const [key, value] of params) {
+    if (!value || NON_FILTER_PARAMS.has(key)) {
+      continue;
+    }
+    if (key === 'query') {
+      search = value;
+      continue;
+    }
+    terms.push(`${key}:${quoteValue(value)}`);
+  }
+
+  const raw = [...terms, search].filter(Boolean).join(' ').trim();
+  return raw ? canonicalizeQuery(raw) : null;
 }
 
 /** Mark a cut-short preview so the box does not read as the whole payload. */
@@ -239,13 +232,25 @@ function withEllipsis(
 }
 
 /**
+ * Lib helpers whose own row is a better destination than the HTTP children underneath.
+ *
+ * Most composite libs are dropped when they fan out: the child API rows say more.
+ * `get_span_details` is the exception — its only HTTP call is the trace endpoint, which can only
+ * link to the trace, while the lib's own args name the span the user asked about.
+ */
+const PREFER_LIB_OVER_CHILDREN = new Set(['get_span_details']);
+
+/**
  * The records worth rendering, in the order they ran.
  *
  * A lib call that fanned out into api calls is dropped: it is a heading for rows that each say
  * more than it does, and keeping it means a parent with no expander sitting above indented
  * children. A lib call with no api children is kept — the Explorer-backed helpers (`code_search`,
  * `bash`, `ask_user_question`) never touch the transport, so their own row is the only trace they
- * leave.
+ * leave. Helpers in `PREFER_LIB_OVER_CHILDREN` keep their own row and suppress children instead.
+ *
+ * A described parent inverts that premise — the heading now says what none of the requests
+ * underneath can — so it is kept and its children hidden. The description is what earns the row.
  */
 export function visibleCallRecords(records: CallRecord[]): CallRecord[] {
   const hasChildren = new Set(
@@ -253,5 +258,31 @@ export function visibleCallRecords(records: CallRecord[]): CallRecord[] {
       record.parent === null || record.parent === undefined ? [] : [record.parent]
     )
   );
-  return records.filter(record => record.kind !== 'lib' || !hasChildren.has(record.id));
+
+  const prefersOwnRow = (record: CallRecord): boolean =>
+    Boolean(record.llm_description?.trim()) ||
+    Boolean(record.name && PREFER_LIB_OVER_CHILDREN.has(record.name));
+
+  const hideChildrenOf = new Set(
+    records
+      .filter(
+        record =>
+          record.kind === 'lib' && prefersOwnRow(record) && hasChildren.has(record.id)
+      )
+      .map(record => record.id)
+  );
+
+  return records.filter(record => {
+    if (
+      record.parent !== null &&
+      record.parent !== undefined &&
+      hideChildrenOf.has(record.parent)
+    ) {
+      return false;
+    }
+    if (record.kind !== 'lib' || !hasChildren.has(record.id)) {
+      return true;
+    }
+    return prefersOwnRow(record);
+  });
 }
