@@ -491,7 +491,7 @@ class GcpIntegrationTest(TestCase):
         result = self.provider.build_integration(self._state())
 
         assert result["external_id"] == str(self.organization.id)
-        assert result["name"] == "Google Cloud Platform"
+        assert result["name"] == "Google Cloud Platform for Seer"
         assert result["metadata"] == {}
         assert result["post_install_data"]["sentry_sa_email"] == _SA_EMAIL
         assert result["post_install_data"]["customer_sa_email"] == _CUSTOMER_SA
