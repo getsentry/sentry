@@ -1330,14 +1330,6 @@ class Fixtures:
 
         return head_artifact, head_size_metrics, base_artifact, base_size_metrics
 
-    def create_seer_workflow_run(self, organization=None, **kwargs):
-        return Factories.create_seer_workflow_run(
-            organization=organization if organization is not None else self.organization, **kwargs
-        )
-
-    def create_seer_workflow_run_execution(self, run, **kwargs):
-        return Factories.create_seer_workflow_run_execution(run=run, **kwargs)
-
     def create_seer_run(self, organization=None, **kwargs):
         if organization is None:
             organization = self.organization

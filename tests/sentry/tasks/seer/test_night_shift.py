@@ -22,7 +22,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.tasks.seer.night_shift.cron import (
-    _complete_dispatch,
+    _complete_run,
     _current_schedule_id,
     _get_eligible_projects,
     _night_shift_cron_expr,
@@ -607,7 +607,7 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         assert run_id is not None
         run = SeerWorkflowRun.objects.get(id=run_id)
         _record_run_error(run, SeerNightShiftRunErrorType.UNKNOWN, "transient failure")
-        _complete_dispatch(run)
+        _complete_run(run)
         _update_run_extras(run, {"num_candidates": 1})
 
         run.refresh_from_db()
@@ -676,12 +676,12 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         run = SeerWorkflowRun.objects.get(organization=org)
         assert run.extras["error_message"] == "Failed to get eligible projects"
         assert run.extras["error_type"] == SeerNightShiftRunErrorType.ELIGIBLE_PROJECTS_FAILED.value
-        assert run.date_dispatched is None
+        assert run.date_completed is None
 
         run_night_shift_for_org(org.id, schedule_id=schedule_id)
 
         resumed_run = SeerWorkflowRun.objects.get(id=run.id)
-        assert resumed_run.date_dispatched is not None
+        assert resumed_run.date_completed is not None
         assert resumed_run.extras.get("error_message") is None
         assert not SeerNightShiftRunResult.objects.filter(run=resumed_run).exists()
 
@@ -1133,7 +1133,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
             run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
 
             run = SeerWorkflowRun.objects.get(organization=org)
-            assert run.date_dispatched is None
+            assert run.date_completed is None
             assert run.executions.filter(seer_run__isnull=True).count() == 1
             assert (
                 SeerRun.objects.filter(organization=org, type=SeerRunType.FEATURE_RUN).count() == 1
@@ -1141,7 +1141,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
 
             run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
             resumed_run = SeerWorkflowRun.objects.get(id=run.id)
-            assert resumed_run.date_dispatched is not None
+            assert resumed_run.date_completed is not None
             assert resumed_run.extras.get("error_message") is None
             assert resumed_run.executions.filter(seer_run__isnull=True).count() == 0
             assert (
@@ -1179,7 +1179,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
 
         run = SeerWorkflowRun.objects.get(organization=org)
         assert run.executions.filter(seer_run__isnull=True).count() == 1
-        assert run.date_dispatched is None
+        assert run.date_completed is None
         assert run.extras["error_message"] == "Organization does not have Seer access"
         assert run.extras["error_type"] == SeerNightShiftRunErrorType.NO_SEER_ACCESS.value
         assert not SeerRun.objects.filter(organization=org).exists()
@@ -1209,7 +1209,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
 
         run = SeerWorkflowRun.objects.get(organization=org)
         assert run.executions.filter(seer_run__isnull=True).count() == 1
-        assert run.date_dispatched is None
+        assert run.date_completed is None
         assert run.extras["error_message"] == "Failed to dispatch 1 of 1 triage shards"
         assert run.extras["error_type"] == SeerNightShiftRunErrorType.SHARD_DISPATCH_FAILED.value
 

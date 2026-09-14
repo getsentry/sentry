@@ -33,7 +33,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0036_workflow_history_index
+seer: 0034_generalize_workflow_run_models
 
 sentry: 1172_rule_add_new_environment_id
 

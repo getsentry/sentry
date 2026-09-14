@@ -30,11 +30,9 @@ from sentry.seer.models.run import SeerRun
 from sentry.seer.models.workflow import (
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
-    SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
 from sentry.seer.night_shift.models import TriageResponse, TriageVerdict
-from sentry.seer.workflows.runs import finish_workflow_execution
 from sentry.tasks.seer.night_shift.models import TriageAction
 from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
 from sentry.types.activity import ActivityType
@@ -56,9 +54,7 @@ def deliver_night_shift_result(
     """Process a night_shift result from Seer."""
     shard = (
         SeerWorkflowRunExecution.objects.filter(
-            seer_run__uuid=run_uuid,
-            run__organization_id=organization_id,
-            run__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
+            seer_run__uuid=run_uuid, run__organization_id=organization_id
         )
         .select_related("run", "run__organization", "seer_run")
         .first()
@@ -69,20 +65,26 @@ def deliver_night_shift_result(
             extra={"organization_id": organization_id, "run_uuid": run_uuid},
         )
         return
-    if shard.status in (SeerWorkflowRunStatus.COMPLETE, SeerWorkflowRunStatus.PARTIAL):
-        return
     run = shard.run
     # Guaranteed by the seer_run__uuid filter above: a null FK can't match a uuid.
     assert shard.seer_run is not None
 
-    metadata: dict[str, Any] = {}
-    if prompt_version:
-        metadata["prompt_version"] = prompt_version
+    # Per-delivery metadata lives on the shard so a sibling shard's success
+    # can't clear it. prompt_version is written even on error deliveries,
+    # which have no result rows to carry it.
+    if prompt_version or error:
+        extras = {**(shard.extras or {})}
+        if prompt_version:
+            extras["prompt_version"] = prompt_version
+        if error:
+            extras["error_type"] = SeerNightShiftRunErrorType.SHARD_DELIVERY_FAILED.value
+            extras["error_message"] = error
+        shard.update(extras=extras)
 
     log_extra: dict[str, object] = {
         "organization_id": run.organization_id,
         "run_id": shard.seer_run.seer_run_state_id,
-        "sentry_run_id": shard.seer_run.uuid,
+        "sentry_run_id": run_uuid,
         "night_shift_run_id": run.id,
     }
 
@@ -93,16 +95,6 @@ def deliver_night_shift_result(
             attributes={"error_type": "delivery_error" if status == "error" else "no_artifact"},
         )
         logger.warning("night_shift.delivery.no_result", extra={**log_extra, "status": status})
-        finish_workflow_execution(
-            shard.id,
-            organization_id=run.organization_id,
-            status=SeerWorkflowRunStatus.FAILED,
-            error=error or "Seer returned no triage result.",
-            metadata={
-                **metadata,
-                "error_type": SeerNightShiftRunErrorType.SHARD_DELIVERY_FAILED.value,
-            },
-        )
         return
 
     try:
@@ -112,20 +104,17 @@ def deliver_night_shift_result(
             "night_shift.triage_error", 1, attributes={"error_type": "invalid_artifact"}
         )
         logger.exception("night_shift.delivery.invalid_result", extra=log_extra)
-        finish_workflow_execution(
-            shard.id,
-            organization_id=run.organization_id,
-            status=SeerWorkflowRunStatus.FAILED,
-            error="Seer returned an invalid triage result.",
-            metadata={
-                **metadata,
-                "error_type": SeerNightShiftRunErrorType.SHARD_DELIVERY_FAILED.value,
-            },
-        )
         return
 
     options = (run.extras or {}).get("options") or {}
     dry_run = bool(options.get("dry_run", False))
+
+    # Clear any stale delivery error now that this delivery has succeeded.
+    if (shard.extras or {}).get("error_message"):
+        extras = {**shard.extras}
+        del extras["error_message"]
+        extras.pop("error_type", None)
+        shard.update(extras=extras)
 
     _process_verdicts(
         run=run,
@@ -134,12 +123,6 @@ def deliver_night_shift_result(
         dry_run=dry_run,
         prompt_version=prompt_version,
         log_extra=log_extra,
-    )
-    finish_workflow_execution(
-        shard.id,
-        organization_id=run.organization_id,
-        status=SeerWorkflowRunStatus.COMPLETE,
-        metadata=metadata,
     )
 
 

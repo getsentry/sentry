@@ -47,7 +47,6 @@ from sentry.seer.agent.client_utils import (
 from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
-from sentry.seer.workflows.runs import fail_workflow_execution_for_run
 from sentry.sentry_apps.services.app.service import app_service
 from sentry.types.cell import get_local_cell
 from sentry.utils.env import in_test_environment
@@ -350,8 +349,6 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
 def _mark_seer_run_failed(run: SeerRun, event: str, **extra: Any) -> None:
     run.mirror_status = SeerRunMirrorStatus.FAILED
     run.save(update_fields=["mirror_status"])
-    if run.type == SeerRunType.FEATURE_RUN:
-        fail_workflow_execution_for_run(run, "Seer could not start this execution.")
     logger.warning(event, extra={"run_id": run.id, **extra})
 
 

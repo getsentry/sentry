@@ -7,7 +7,7 @@ from typing import Any, TypedDict
 
 from django.db.models import Prefetch, prefetch_related_objects
 
-from sentry.api.serializers import Serializer, serialize
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.pullrequest import (
     PullRequestSerializer,
     PullRequestSerializerResponse,
@@ -60,7 +60,10 @@ class SeerNightShiftShardSerializer(Serializer[SeerNightShiftSeerRunResponse]):
         return {"seerRunId": str(state_id) if state_id is not None else None}
 
 
-class SeerNightShiftRunDetails(TypedDict):
+class SeerNightShiftRunResponse(TypedDict):
+    id: str
+    dateAdded: str
+    extras: dict[str, Any]
     errorMessage: str | None
     errorType: SeerNightShiftRunErrorType | None
     results: list[SeerNightShiftRunResultResponse]
@@ -69,7 +72,8 @@ class SeerNightShiftRunDetails(TypedDict):
     triageStrategy: str
 
 
-class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunDetails]):
+@register(SeerWorkflowRun)
+class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
     def get_attrs(
         self, item_list: Sequence[SeerWorkflowRun], user: Any, **kwargs: Any
     ) -> dict[SeerWorkflowRun, dict[str, Any]]:
@@ -147,7 +151,7 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunDetails]):
         attrs: Mapping[str, Any],
         user: Any,
         **kwargs: Any,
-    ) -> SeerNightShiftRunDetails:
+    ) -> SeerNightShiftRunResponse:
         all_results = list(obj.results.all())
         triage_results = [r for r in all_results if r.kind == SeerWorkflowStrategy.AGENTIC_TRIAGE]
         extras = obj.extras or {}
@@ -170,6 +174,9 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunDetails]):
         group_short_ids_by_id = attrs.get("group_short_ids_by_id", {})
         pull_requests_by_result_id = attrs.get("pull_requests_by_result_id", {})
         return {
+            "id": str(obj.id),
+            "dateAdded": obj.date_added.isoformat(),
+            "extras": extras,
             "errorMessage": error_message,
             "errorType": error_type,
             "results": [_serialize_result(r) for r in all_results],
