@@ -9,9 +9,14 @@
 
 ## Summary
 
-This proof of concept models a service account as an organization-scoped, non-human identity
-that can authenticate, hold an organization membership, join teams, and receive permissions
-without also being a Sentry `User`.
+The existing compatibility prototype is sufficient to implement service accounts. It proves that
+an organization-scoped, non-human identity can authenticate, hold an organization membership,
+join teams, and receive ordinary Sentry permissions without being stored as a `User`.
+
+This proof of concept tests a narrower architectural question: is it safer and less costly to
+expand the semantic contract of `request.user` to include non-users, then defend that change
+throughout the application, or to add one explicit boundary for the identity established by
+authentication?
 
 The central design choice is to introduce a typed **authenticated principal** abstraction.
 Authentication validates a credential, such as an API token, and produces one of these explicit
@@ -25,15 +30,19 @@ authentication deliberately leaves `request.user` anonymous and stores the servi
 the typed principal instead. Code that supports service accounts must therefore ask for the
 authenticated principal rather than assuming every authenticated identity is a user.
 
-This separates four concepts that have historically been easy to conflate:
+“Principal” is the name used by this experiment, not a required production term. A smaller
+production design could call the same concept `AuthenticatedActor`. The important property is
+the type boundary, not the vocabulary.
 
-| Concept       | Meaning in this proof of concept                                              |
-| ------------- | ----------------------------------------------------------------------------- |
-| Credential    | Secret presented by the caller, currently an API token.                       |
-| Principal     | The typed identity proven by successful authentication.                       |
-| Membership    | The principal's relationship to an organization, including role and teams.    |
-| Actor         | A typed reference to an entity responsible for or participating in an action. |
-| ViewerContext | Ambient actor and tenancy information for the current unit of work.           |
+This separates five concepts that have historically been easy to conflate:
+
+| Concept       | Meaning in this proof of concept                                                |
+| ------------- | ------------------------------------------------------------------------------- |
+| Credential    | Secret presented by the caller, currently an API token.                         |
+| Principal     | Authentication invariant: the typed identity proven by authentication.          |
+| Membership    | The principal's relationship to an organization, including role and teams.      |
+| Actor         | Identity value: a typed reference to the entity responsible for an action.      |
+| ViewerContext | Context transport: ambient actor and tenancy data for the current unit of work. |
 
 ## What “Principal” Means
 
@@ -141,6 +150,66 @@ Sentry's existing `sentry.types.actor.Actor` is not used for this purpose in the
 concept. It currently represents assignable users and teams and has broad owner, assignee, and
 recipient usage. Expanding it into a general authentication actor would be a separate migration
 with a substantially larger compatibility surface.
+
+## What This Experiment Is Actually Testing
+
+The two proofs of concept agree on most of the product and data model:
+
+- `ServiceAccount` is a separate model rather than a special `User` row.
+- `OrganizationMember` can belong to a user or a service account.
+- Roles, teams, token scopes, lifecycle APIs, and audit work should be shared.
+
+The disagreement is primarily where the authenticated identity enters application code.
+
+```text
+Compatibility prototype: credential -> RpcServiceAccount -> request.user
+Typed-boundary prototype: credential -> AuthenticatedActor -> request.authenticated_actor
+```
+
+The compatibility prototype deliberately redefines `request.user` from “the authenticated
+Sentry user” to “any authenticated entity.” That can be a valid design, but it changes the
+meaning of a mature interface used by many call sites. For example:
+
+```python
+if request.user.is_authenticated:
+    obj.created_by_id = request.user.id
+```
+
+Historically, this implies that `request.user.id` is a real `User` ID. If a service-account
+object can occupy `request.user`, the same code can store a service-account ID in a user field,
+collide with an unrelated user that has the same numeric ID, violate a user foreign key, or
+silently attribute the action to the wrong user.
+
+User-compatible defaults such as `email = ""`, `has_2fa() == False`, or empty user roles have a
+similar tradeoff: they increase compatibility, but can convert an obvious type error into valid
+code with incorrect semantics. An `is_interactive` guard does not completely express the
+distinction either. A human authenticating with an API token is still a human identity, while an
+interactive or non-interactive execution mode is a separate property from identity kind.
+
+The typed boundary keeps three concerns separate:
+
+```text
+identity value != authentication proof != context transport
+ActorRef          AuthenticatedActor        ViewerContext
+```
+
+- `ActorRef` identifies an entity with a namespaced kind and ID.
+- `AuthenticatedActor` records that authentication established that identity for this request.
+- `ViewerContext` transports actor and tenancy information to downstream code.
+
+This is not intended to create a second identity hierarchy. It is a small adapter at the
+authentication boundary that makes non-user support explicit. The comparison is therefore:
+
+| Approach                     | Default posture  | Main benefit                                             | Main risk or cost                                      |
+| ---------------------------- | ---------------- | -------------------------------------------------------- | ------------------------------------------------------ |
+| `request.user` compatibility | Allow by default | Existing endpoints work with fewer initial changes.      | User assumptions can silently accept the wrong entity. |
+| Typed authenticated boundary | Deny by default  | Unsupported paths fail visibly and migrate deliberately. | Actor-aware authorization requires explicit adoption.  |
+
+If the team chooses to redefine the request identity field to mean any authenticated entity,
+that can still be sufficient. The safer version would be a typed `request.actor` or
+`request.authenticated_actor`, rather than a duck-typed non-user stored in a user-named field.
+At that point, the design is structurally close to this proof of concept; the remaining
+difference is mostly naming and compatibility strategy.
 
 ## Architecture
 
@@ -353,9 +422,11 @@ effective actor          = user:42
 For that reason, endpoint authentication should read the authenticated principal from the
 request. It should not infer authentication from the presence of a `ViewerContext` actor.
 
-## Why Not Model the Service Account as a User?
+## Why Not Expose the Service Account Through `request.user`?
 
-The typed-principal approach is more explicit than a user-shaped or proxy-user approach.
+Both proofs of concept use a separate `ServiceAccount` model. The difference is whether its
+authenticated representation should implement enough of the user interface to occupy
+`request.user`.
 
 | Typed principal and separate model                                                                | User-shaped or proxy model                                                           |
 | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
@@ -456,16 +527,32 @@ criteria.
 
 ### Recommended Production Direction
 
-Use a hybrid of the two prototypes:
+Use the existing compatibility prototype's product and authorization work with the smallest
+useful typed authentication boundary. “Principal” does not need to be the production name:
+
+```python
+@dataclass(frozen=True)
+class ActorRef:
+    kind: ActorKind
+    id: int
+
+
+@dataclass(frozen=True)
+class AuthenticatedActor:
+    actor: ActorRef
+    organization_id: int | None
+```
+
+Then:
 
 1. Keep the shared separate-model schema: organization-owned `ServiceAccount`, ordinary
    `OrganizationMember`, and exactly-one-principal `ApiToken` ownership.
-2. Keep `request.user` reserved for humans. Authentication should return a discriminated
-   authenticated principal rather than a user-compatible service-account object.
-3. Adapt the existing prototype's central `auth.access` work to accept the typed principal and
+2. Keep `request.user` reserved for humans and place the authenticated identity in
+   `request.authenticated_actor`.
+3. Adapt the existing prototype's central `auth.access` work to accept `AuthenticatedActor` and
    resolve role, team access, and token-scope narrowing in one place.
-4. Carry a small typed actor reference in ViewerContext. The existing prototype's `ViewerActor`
-   demonstrates this composition more cleanly than flattened actor fields.
+4. Carry the same `ActorRef` in `ViewerContext`; it transports identity and tenancy context but
+   does not itself prove authentication.
 5. Add centralized endpoint capabilities such as `requires_user` or
    `allows_service_account`, backed by shared principal helpers, instead of scattering
    `getattr(request.user, "is_interactive", ...)` guards.
@@ -477,11 +564,11 @@ Use a hybrid of the two prototypes:
 
 ```mermaid
 flowchart TD
-    T[API token] --> P[Typed AuthenticatedPrincipal]
-    P --> U{Principal kind}
+    T[API token] --> P[AuthenticatedActor]
+    P --> U{Actor kind}
     U -->|user| RU[Populate request.user compatibility]
     U -->|service account| RA[Keep request.user anonymous]
-    P --> AC[Central principal-aware access]
+    P --> AC[Central actor-aware access]
     AC --> M[OrganizationMember role and teams]
     AC --> S[Token scope upper bound]
     P --> V[ViewerContext actor reference]
@@ -490,8 +577,9 @@ flowchart TD
 ```
 
 This direction preserves the existing prototype's strongest result—ordinary Sentry permissions
-can work for service accounts—without making machine identities impersonate people throughout
-the application.
+can work for service accounts—while limiting the new abstraction to an authenticated identity
+wrapper and a shared namespaced actor value. It does not require a parallel identity system or a
+broad “principal” vocabulary migration.
 
 ### Remaining Experiments
 
