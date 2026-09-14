@@ -61,15 +61,8 @@ interface FrameHeaderProps {
 
 export function FrameHeader({actions}: FrameHeaderProps) {
   const [isHovering, setIsHovering] = useState(false);
-  const {
-    frame,
-    frameContextId,
-    isExpandable,
-    isExpanded,
-    nextFrame,
-    platform,
-    toggleExpansion,
-  } = useStackTraceFrameContext();
+  const {frame, isExpandable, isExpanded, nextFrame, platform, toggleExpansion} =
+    useStackTraceFrameContext();
 
   const resolvedActions = typeof actions === 'function' ? actions({isHovering}) : actions;
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
@@ -80,8 +73,6 @@ export function FrameHeader({actions}: FrameHeaderProps) {
       data-test-id="core-stacktrace-frame-title"
       isExpandable={isExpandable}
       hasLeadHint={hasLeadHint}
-      aria-expanded={isExpandable ? isExpanded : undefined}
-      aria-controls={isExpandable ? frameContextId : undefined}
       onClick={() => {
         const selectedText = window.getSelection()?.toString();
         if (isExpandable && !selectedText) {
