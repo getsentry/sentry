@@ -462,7 +462,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             try:
                 link_data = request.data.copy()
                 if isinstance(external_issue, str):
-                    scheme, netloc, _, _ = urlsplit_best_effort(external_issue)
+                    scheme, netloc, _, _ = urlsplit_best_effort(external_issue.strip())
                     if scheme and netloc:
                         url_data = installation.get_issue_link_data(external_issue)
                         if (

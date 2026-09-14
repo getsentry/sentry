@@ -279,7 +279,8 @@ class GroupIntegrationDetailsTest(APITestCase):
         path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{integration.id}/"
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.put(
-                path, data={"externalIssue": "https://example.atlassian.net/browse/abc-123"}
+                path,
+                data={"externalIssue": "\u00a0https://example.atlassian.net/browse/abc-123\u00a0"},
             )
         assert response.status_code == 201
         assert response.data["key"] == "ABC-123"
