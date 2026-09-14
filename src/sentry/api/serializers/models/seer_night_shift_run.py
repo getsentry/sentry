@@ -48,14 +48,14 @@ class SeerNightShiftRunIssueResponse(TypedDict):
     dateAdded: str
 
 
-class SeerNightShiftSeerRunResponse(TypedDict):
+class SeerWorkflowRunExecutionResponse(TypedDict):
     seerRunId: str | None
 
 
-class SeerNightShiftShardSerializer(Serializer[SeerNightShiftSeerRunResponse]):
+class SeerWorkflowRunExecutionSerializer(Serializer[SeerWorkflowRunExecutionResponse]):
     def serialize(
         self, obj: SeerWorkflowRunExecution, attrs: Mapping[str, Any], user: Any, **kwargs: Any
-    ) -> SeerNightShiftSeerRunResponse:
+    ) -> SeerWorkflowRunExecutionResponse:
         state_id = obj.seer_run.seer_run_state_id if obj.seer_run is not None else None
         return {"seerRunId": str(state_id) if state_id is not None else None}
 
@@ -68,7 +68,7 @@ class SeerNightShiftRunResponse(TypedDict):
     errorType: SeerNightShiftRunErrorType | None
     results: list[SeerNightShiftRunResultResponse]
     issues: list[SeerNightShiftRunIssueResponse]
-    seerRuns: list[SeerNightShiftSeerRunResponse]
+    seerRuns: list[SeerWorkflowRunExecutionResponse]
     triageStrategy: str
 
 
@@ -187,7 +187,7 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
                 for r in triage_results
             ],
             "seerRuns": serialize(
-                list(obj.executions.all()), user, SeerNightShiftShardSerializer()
+                list(obj.executions.all()), user, SeerWorkflowRunExecutionSerializer()
             ),
             # Match the pre-migration column behavior: always "agentic_triage"
             # in this PR. The multi-kind feature PR will refine this once
