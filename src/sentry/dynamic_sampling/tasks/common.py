@@ -267,33 +267,6 @@ def are_equal_with_epsilon(a: float | None, b: float | None) -> bool:
     return math.isclose(a, b)
 
 
-def compute_guarded_sliding_window_sample_rate(
-    org_id: int,
-    project_id: int | None,
-    total_root_count: int,
-    window_size: int,
-) -> float | None:
-    """
-    Computes the actual sliding window sample rate by guarding any exceptions and returning None in case
-    any problem would arise.
-    """
-    try:
-        # We want to compute the sliding window sample rate by considering a window of time.
-        # This piece of code is very delicate, thus we want to guard it properly and capture any errors.
-        return compute_sliding_window_sample_rate(org_id, project_id, total_root_count, window_size)
-    except Exception as e:
-        sentry_sdk.capture_exception(
-            e,
-            extras={
-                "org_id": org_id,
-                "project_id": project_id,
-                "total_root_count": total_root_count,
-                "window_size": window_size,
-            },
-        )
-        return None
-
-
 def compute_sliding_window_sample_rate(
     org_id: int,
     project_id: int | None,
