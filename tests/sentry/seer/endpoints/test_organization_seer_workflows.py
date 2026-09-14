@@ -30,6 +30,7 @@ from sentry.seer.workflows.schemas import WorkflowResult
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 class OrganizationSeerWorkflowsTest(APITestCase):
@@ -607,6 +608,21 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert [run["id"] for run in response.data] == [
             str(agent_run.run.workflow_execution.run_id)
         ]
+
+    def test_org_token_cannot_own_history_after_triggering_user_is_deleted(self) -> None:
+        agent_run = self.trigger()
+        agent_run.run.update(user_id=None)
+        token = generate_token(self.organization.slug, "")
+        self.create_org_auth_token(
+            name="org-auth-token",
+            token_hashed=hash_token(token),
+            organization_id=self.organization.id,
+            scope_list=["org:read"],
+        )
+        with self.feature(FEATURE):
+            response = self.client.get(self.url, HTTP_AUTHORIZATION=f"Bearer {token}")
+        assert response.status_code == 200
+        assert response.data == []
 
     def test_workflow_helpers_support_other_result_shapes(self) -> None:
         workflow_run = create_workflow_run(

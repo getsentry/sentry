@@ -80,15 +80,18 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
             )
         if cleanup_enabled:
             projects = self.get_projects(request, organization, include_all_accessible=True)
-            visible_runs |= Q(
-                workflow_config__strategy=SeerWorkflowStrategy.DUPLICATE_MONITORS,
-                executions__seer_run__agent__extras__project_ids__contained_by=[
-                    str(project.id) for project in projects
-                ],
-            ) & (
-                # Until scanned projects are recorded, only the triggering user can see the run.
-                ~Q(executions__seer_run__agent__extras__project_ids=[])
-                | Q(executions__seer_run__user_id=request.user.id)
+            # Until scanned projects are recorded, only the triggering user can see the run.
+            cleanup_visibility = ~Q(executions__seer_run__agent__extras__project_ids=[])
+            if request.user.is_authenticated:
+                cleanup_visibility |= Q(executions__seer_run__user_id=request.user.id)
+            visible_runs |= (
+                Q(
+                    workflow_config__strategy=SeerWorkflowStrategy.DUPLICATE_MONITORS,
+                    executions__seer_run__agent__extras__project_ids__contained_by=[
+                        str(project.id) for project in projects
+                    ],
+                )
+                & cleanup_visibility
             )
 
         runs = (
