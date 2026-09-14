@@ -14,6 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationDetectorPermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.permissions import enforce_scope
 from sentry.api.serializers import serialize
 from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import (
@@ -44,6 +45,7 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     can_delete_detector,
     can_edit_detector,
     get_unknown_detector_type_error,
+    is_system_created_detector,
     should_include_all_projects_detector,
 )
 from sentry.workflow_engine.models import DataSource, Detector
@@ -224,6 +226,8 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         _check_metric_detector_allowed(detector, organization)
 
         if not can_edit_detector(detector, request):
+            if not is_system_created_detector(detector):
+                enforce_scope(request, "alerts:write")
             raise PermissionDenied
 
         group_type = request.data.get("type") or detector.group_type.slug

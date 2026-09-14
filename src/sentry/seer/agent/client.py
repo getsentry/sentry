@@ -544,6 +544,7 @@ class SeerAgentClient:
         on_run_created: Callable[[SeerRun], None] | None = None,
         agent_run_options: AgentRunOptions | None = None,
         user_org_context: UserOrgContext | None = None,
+        proxy_headers: dict[str, str] | None = None,
     ) -> SeerRun:
         """Dispatch a run to a registered Seer feature by feature_id via the
         SEER_RUN_CREATE outbox. The feature builds its own agent run from
@@ -594,6 +595,8 @@ class SeerAgentClient:
         )
         if user_org_context is not None:
             body["user_org_context"] = user_org_context
+        if proxy_headers is not None:
+            body["proxy_headers"] = proxy_headers
 
         return enqueue_seer_run(
             organization=self.organization,

@@ -165,7 +165,7 @@ export function CreateProject() {
     return autoFill && createdProject?.notificationRule?.actions
       ? {actions: createdProject.notificationRule.actions}
       : undefined;
-  }, [autoFill, createdProject?.notificationRule?.actions]);
+  }, [autoFill, createdProject]);
 
   const {getIntegrationAction, notificationProps} = useCreateNotificationAction(
     notificationActionParam
@@ -218,6 +218,7 @@ export function CreateProject() {
   useEffect(() => {
     if (autoFill && createdProject?.name) {
       hasUserModifiedProjectName.current = createdProject.wasNameManuallyModified ?? true;
+      // oxlint-disable-next-line react/set-state-in-effect
       setFormData(prev => ({
         ...prev,
         projectName: createdProject.name ?? prev.projectName,
@@ -444,6 +445,7 @@ export function CreateProject() {
   );
 
   const debounceHandleProjectCreation = useMemo(
+    // oxlint-disable-next-line react/refs
     () => debounce(handleProjectCreation, 2000, {leading: true, trailing: false}),
     [handleProjectCreation]
   );
@@ -492,7 +494,9 @@ export function CreateProject() {
 
   // Workaround to force PlatformPicker to re-render when users go back in the flow and fields should be pre-filled.
   // Without this, the selected platform might not be visible depending on the active tab.
+  // oxlint-disable-next-line react/refs
   if (autoFill && platform && pickerKeyRef.current === 'create-project') {
+    // oxlint-disable-next-line react/refs
     pickerKeyRef.current = 'auto-fill';
   }
 
@@ -513,6 +517,7 @@ export function CreateProject() {
           </HelpText>
           <StyledListItem>{t('Choose your platform')}</StyledListItem>
           <PlatformPicker
+            // oxlint-disable-next-line react/refs
             key={pickerKeyRef.current}
             platform={platform}
             defaultCategory={defaultCategory}

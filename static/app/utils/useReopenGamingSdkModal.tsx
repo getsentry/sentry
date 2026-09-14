@@ -15,6 +15,7 @@ export function useReopenGamingSdkModal(
   );
   const modalPropsRef = useRef(modalProps);
   const queryClient = useQueryClient();
+  // oxlint-disable-next-line react/refs
   modalPropsRef.current = modalProps;
 
   useEffect(() => {

@@ -45,6 +45,8 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationIssueConfigField, IntegrationProviderSlug
 from sentry.integrations.utils.external_issue_key import PROVIDER_ISSUE_ID_KEY
+from sentry.integrations.utils.issue_url import parse_issue_url
+from sentry.integrations.utils.jira import parse_jira_issue_key
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -856,6 +858,14 @@ class JiraIntegration(IssueSyncIntegration):
 
     def _get_debug_metadata_keys(self) -> list[str]:
         return ["base_url", "domain_name"]
+
+    def get_issue_link_data(self, url: str) -> dict[str, str]:
+        base_url = self.model.metadata["base_url"]
+        parse_issue_url(url)
+        key = parse_jira_issue_key(url, base_url)
+        if key is None:
+            raise IntegrationFormError({"externalIssue": "Invalid Jira issue URL"})
+        return {"externalIssue": key.upper()}
 
     def get_issue(self, issue_id, **kwargs):
         """

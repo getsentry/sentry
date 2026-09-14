@@ -581,6 +581,14 @@ Prefix with `-` to sort in descending order.
         description="Filter by monitor type(s). Can be specified multiple times.",
     )
 
+    ENABLED = OpenApiParameter(
+        name="enabled",
+        location="query",
+        required=False,
+        type=bool,
+        description="Filter by whether monitors are enabled.",
+    )
+
 
 class WorkflowParams:
     WORKFLOW_ID = OpenApiParameter(
@@ -1272,6 +1280,7 @@ class DashboardParams:
             "owned",
             "shared",
             "showHidden",
+            "showUserHidden",
         ],
         description="Filter the dashboards returned. Repeat this parameter to apply multiple filters.",
     )

@@ -19,6 +19,7 @@ describe('rerender', () => {
     return (
       <div>
         <span data-test-id="number-display">{number}</span>
+        {/* oxlint-disable-next-line react/refs */}
         <span data-test-id="instance-id">{id.current}</span>
       </div>
     );

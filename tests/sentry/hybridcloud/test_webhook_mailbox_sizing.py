@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from django.conf import settings
 from redis.exceptions import RedisError
+from rediscluster.exceptions import RedisClusterException
 
 from sentry.hybridcloud.mailbox import MailboxName
 from sentry.hybridcloud.webhook_mailbox_sizing import (
@@ -229,5 +230,32 @@ class MailboxBucketCountTest(TestCase):
         with patch(
             "sentry.hybridcloud.webhook_mailbox_sizing.redis.redis_clusters.get",
             return_value=MagicMock(pipeline=MagicMock(return_value=pipeline)),
+        ):
+            assert mailbox_bucket_count(MAILBOX) == _max_buckets()
+
+    def test_a_cluster_error_that_is_not_a_redis_error_sizes_to_the_cap(self) -> None:
+        with patch(
+            "sentry.hybridcloud.webhook_mailbox_sizing.redis.redis_clusters.get",
+            side_effect=RedisClusterException("blocked in cluster mode"),
+        ):
+            assert mailbox_bucket_count(MAILBOX) == _max_buckets()
+
+    def test_nothing_the_sizing_raises_reaches_the_caller(self) -> None:
+        for raised in (
+            RedisClusterException("blocked in cluster mode"),
+            RedisError("unreachable"),
+            ValueError("nonsense reply"),
+            RuntimeError("something entirely unforeseen"),
+        ):
+            with patch(
+                "sentry.hybridcloud.webhook_mailbox_sizing.redis.redis_clusters.get",
+                side_effect=raised,
+            ):
+                assert mailbox_bucket_count(MAILBOX) == _max_buckets(), raised
+
+    def test_a_failure_outside_the_redis_guard_still_sizes(self) -> None:
+        with patch(
+            "sentry.hybridcloud.webhook_mailbox_sizing._count_for_payloads",
+            side_effect=RuntimeError("something unforeseen"),
         ):
             assert mailbox_bucket_count(MAILBOX) == _max_buckets()

@@ -47,3 +47,67 @@ class SeerWorkflowConfig(DefaultFieldsModel):
             strategy=strategy.value,
         )
         return config
+
+
+@cell_silo_model
+class SeerWorkflowRun(DefaultFieldsModel):
+    """Records each workflow invocation for an organization.
+
+    A run can split its work into multiple SeerWorkflowRunExecution records,
+    each dispatched independently to Seer.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
+    workflow_config = FlexibleForeignKey(
+        "seer.SeerWorkflowConfig", on_delete=models.SET_NULL, null=True
+    )
+    # Cron-derived schedule window (currently YYYY-MM-DDTHH:MM), nullable for
+    # manual and historical runs.
+    schedule_id = models.CharField(max_length=256, null=True)
+    date_completed = models.DateTimeField(null=True)
+    extras = models.JSONField(db_default={}, default=dict)
+
+    class Meta:
+        app_label = "seer"
+        db_table = "seer_nightshiftrun"
+        indexes = [
+            models.Index(fields=["organization", "date_added"]),
+            models.Index(fields=["date_added"]),
+            models.Index(fields=["workflow_config", "date_added"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "workflow_config", "schedule_id"],
+                condition=models.Q(schedule_id__isnull=False),
+                name="seer_nightshiftrun_unique_org_config_schedule",
+            )
+        ]
+
+    __repr__ = sane_repr("organization_id", "workflow_config_id", "date_added")
+
+
+@cell_silo_model
+class SeerWorkflowRunExecution(DefaultFieldsModel):
+    """One chunk of a workflow run's work, dispatched as a single Seer feature run.
+
+    A workflow run can use one execution for all its work or multiple executions
+    to process smaller chunks. Each execution links to its own SeerRun when dispatched.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    run = FlexibleForeignKey(
+        "seer.SeerWorkflowRun", on_delete=models.CASCADE, related_name="executions"
+    )
+    seer_run = models.OneToOneField(
+        "seer.SeerRun", on_delete=models.SET_NULL, null=True, related_name="workflow_execution"
+    )
+    extras = models.JSONField(db_default={}, default=dict)
+
+    class Meta:
+        app_label = "seer"
+        db_table = "seer_nightshiftrunshard"
+
+    __repr__ = sane_repr("run_id", "seer_run_id")

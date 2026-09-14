@@ -7,7 +7,6 @@ import {ReleaseProjectFixture} from 'sentry-fixture/releaseProject';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {ReleasesDrawerDetails} from 'sentry/views/explore/releases/drawer/releasesDrawerDetails';
 import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 
@@ -15,19 +14,6 @@ import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 jest.mock('sentry/components/issues/groupList', () => ({
   __esModule: true,
   GroupList: () => <div>GroupList</div>,
-}));
-
-// Mock the hooks
-jest.mock('sentry/utils/useLocation', () => ({
-  useLocation: jest.fn().mockReturnValue({
-    pathname: '/releases/',
-    query: {},
-  }),
-}));
-
-jest.mock('sentry/utils/useNavigate', () => ({
-  __esModule: true,
-  useNavigate: jest.fn().mockReturnValue(jest.fn()),
 }));
 
 describe('ReleasesDrawerDetails', () => {
@@ -39,6 +25,12 @@ describe('ReleasesDrawerDetails', () => {
   };
 
   const organization = OrganizationFixture();
+  const renderOptions = {
+    organization,
+    initialRouterConfig: {
+      location: {pathname: '/releases/', query: {}},
+    },
+  };
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -107,7 +99,7 @@ describe('ReleasesDrawerDetails', () => {
   });
 
   it('renders content when projectId exists', async () => {
-    render(<ReleasesDrawerDetails {...defaultProps} projectId="1" />, {organization});
+    render(<ReleasesDrawerDetails {...defaultProps} projectId="1" />, renderOptions);
 
     // no start/end from url params, so can't link back to releases
     const notLink = await screen.findByText('Releases');
@@ -127,20 +119,20 @@ describe('ReleasesDrawerDetails', () => {
         start={new Date()}
         end={new Date()}
       />,
-      {organization}
+      renderOptions
     );
 
     const link = await screen.findByText('Releases');
     expect(link).toHaveAttribute(
       'href',
       expect.stringContaining(
-        '/mock-pathname/?rdEnd=2017-10-17T02%3A41%3A20.000Z&rdStart=2017-10-17T02%3A41%3A20.000Z'
+        '/releases/?rdEnd=2017-10-17T02%3A41%3A20.000Z&rdStart=2017-10-17T02%3A41%3A20.000Z'
       )
     );
   });
 
   it('renders content when single project exists in release meta', async () => {
-    render(<ReleasesDrawerDetails {...defaultProps} />, {organization});
+    render(<ReleasesDrawerDetails {...defaultProps} />, renderOptions);
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(await screen.findByText('Details')).toBeInTheDocument();
@@ -170,7 +162,7 @@ describe('ReleasesDrawerDetails', () => {
         ],
       }),
     });
-    render(<ReleasesDrawerDetails {...defaultProps} projectId="2" />, {organization});
+    render(<ReleasesDrawerDetails {...defaultProps} projectId="2" />, renderOptions);
 
     expect(await screen.findByText('Details')).toBeInTheDocument();
     expect(screen.getByText('General')).toBeInTheDocument();
@@ -193,7 +185,7 @@ describe('ReleasesDrawerDetails', () => {
       body: {},
     });
 
-    render(<ReleasesDrawerDetails {...defaultProps} />, {organization});
+    render(<ReleasesDrawerDetails {...defaultProps} />, renderOptions);
     expect(await screen.findByText('Release not found')).toBeInTheDocument();
   });
 
@@ -210,27 +202,21 @@ describe('ReleasesDrawerDetails', () => {
       body: releaseMeta,
     });
 
-    render(<ReleasesDrawerDetails {...defaultProps} />, {organization});
+    const {router} = render(<ReleasesDrawerDetails {...defaultProps} />, renderOptions);
     expect(
       await screen.findByText(
         'This release exists in multiple projects. Please select a project to view details.'
       )
     ).toBeInTheDocument();
 
-    const navigate = useNavigate();
     // Simulate selecting "project-2" from the Select component
     await userEvent.click(screen.getByText('Select a project'));
     await userEvent.click(screen.getByText('project-slug2'));
 
-    // Check that navigate was called with the correct query params
-    expect(navigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          [ReleasesDrawerFields.RELEASE_PROJECT_ID]: '2',
-        }),
-      }),
-      {replace: true}
-    );
+    expect(router.location.pathname).toBe('/releases/');
+    expect(router.location.query).toEqual({
+      [ReleasesDrawerFields.RELEASE_PROJECT_ID]: '2',
+    });
   });
 
   it('renders project not found error when project is invalid', async () => {
@@ -258,9 +244,10 @@ describe('ReleasesDrawerDetails', () => {
         ],
       }),
     });
-    render(<ReleasesDrawerDetails {...defaultProps} projectId="invalid" />, {
-      organization,
-    });
+    render(
+      <ReleasesDrawerDetails {...defaultProps} projectId="invalid" />,
+      renderOptions
+    );
     expect(await screen.findByText('Project not found')).toBeInTheDocument();
   });
 });

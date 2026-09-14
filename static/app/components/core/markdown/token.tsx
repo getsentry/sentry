@@ -295,6 +295,7 @@ export function Token({
           attrs={token.attrs}
           data={token.data}
           raw={token.raw}
+          index={token.index}
         />
       );
     }

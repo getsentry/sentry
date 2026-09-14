@@ -41,6 +41,7 @@ from sentry.seer.agent.tools import (
     get_issue_ownership,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
+    get_project_members,
     get_replay_metadata,
     get_repository_definition,
     get_team_members,
@@ -2039,6 +2040,143 @@ class TestGetTeamMembers(APITestCase):
             team_slug=team.slug,
         )
         assert result is None
+
+
+class TestGetProjectMembers(APITestCase):
+    def _create_assignment_activity(
+        self,
+        *,
+        group: Group,
+        user_id: int,
+        when: datetime,
+        integration: str | None = None,
+    ) -> None:
+        data = {
+            "assignee": str(user_id),
+            "assigneeType": "user",
+        }
+        if integration is not None:
+            data["integration"] = integration
+        Activity.objects.create_without_group_action(
+            project=group.project,
+            group=group,
+            type=ActivityType.ASSIGNED.value,
+            data=data,
+            datetime=when,
+        )
+
+    def test_returns_active_project_members_with_recent_assignees_first(self):
+        alice = self.create_user(email="alice@example.com", name="Alice")
+        bob = self.create_user(email="bob@example.com", name="Bob")
+        carol = self.create_user(email="carol@example.com", name="Carol")
+        dana = self.create_user(email="dana@example.com", name="Dana")
+        erin = self.create_user(email="erin@example.com", name="Erin")
+        team = self.create_team(
+            organization=self.organization,
+            members=[alice, bob, carol, dana, erin],
+        )
+        project = self.create_project(organization=self.organization, teams=[team])
+        current_group = self.create_group(project=project)
+        now = datetime.now(UTC)
+
+        for days_ago in (5, 10):
+            self._create_assignment_activity(
+                group=self.create_group(project=project),
+                user_id=alice.id,
+                when=now - timedelta(days=days_ago),
+            )
+        self._create_assignment_activity(
+            group=self.create_group(project=project),
+            user_id=bob.id,
+            when=now - timedelta(days=30),
+        )
+        self._create_assignment_activity(
+            group=self.create_group(project=project),
+            user_id=carol.id,
+            when=now - timedelta(days=1),
+            integration="seerSuggested",
+        )
+        self._create_assignment_activity(
+            group=current_group,
+            user_id=dana.id,
+            when=now,
+        )
+        self._create_assignment_activity(
+            group=self.create_group(project=project),
+            user_id=erin.id,
+            when=now - timedelta(days=100),
+        )
+
+        result = get_project_members(
+            organization_id=self.organization.id,
+            project_id=project.id,
+            exclude_group_id=current_group.id,
+            limit=5,
+        )
+
+        assert result is not None
+        assert result["members"] == [
+            {"id": carol.id, "username": carol.username},
+            {"id": alice.id, "username": alice.username},
+            {"id": bob.id, "username": bob.username},
+            {"id": erin.id, "username": erin.username},
+            {"id": dana.id, "username": dana.username},
+        ]
+
+    def test_defaults_to_three_and_randomizes_members_without_assignment_history(self):
+        users = [
+            self.create_user(email=f"user-{index}@example.com", name=f"User {index}")
+            for index in range(4)
+        ]
+        team = self.create_team(organization=self.organization, members=users)
+        project = self.create_project(organization=self.organization, teams=[team])
+
+        with (
+            patch(
+                "sentry.seer.agent.tools.random.sample",
+                return_value=[users[2].id, users[0].id, users[3].id],
+            ) as sample,
+            patch("sentry.seer.agent.tools.metrics.incr") as incr,
+        ):
+            result = get_project_members(
+                organization_id=self.organization.id,
+                project_id=project.id,
+            )
+
+        assert result is not None
+        assert [member["id"] for member in result["members"]] == [
+            users[2].id,
+            users[0].id,
+            users[3].id,
+        ]
+        population, sample_size = sample.call_args.args
+        assert set(population) == {user.id for user in users}
+        assert sample_size == 3
+        incr.assert_any_call(
+            "seer.get_project_members.fallback",
+            tags={"fallback_count": "3"},
+            sample_rate=1.0,
+        )
+
+    def test_returns_none_for_project_outside_organization(self):
+        other_organization = self.create_organization()
+        other_project = self.create_project(organization=other_organization)
+
+        result = get_project_members(
+            organization_id=self.organization.id,
+            project_id=other_project.id,
+        )
+
+        assert result is None
+
+    def test_rejects_invalid_limit(self):
+        for limit in (0, 21, True):
+            with self.subTest(limit=limit), pytest.raises(BadRequest):
+                get_project_members(
+                    organization_id=self.organization.id,
+                    project_id=self.project.id,
+                    limit=limit,
+                )
 
 
 class TestGetGroupAssignees(APITestCase):

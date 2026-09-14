@@ -38,6 +38,7 @@ from sentry.db.models.base import Model
 from sentry.exceptions import RestrictedIPAddress
 from sentry.hybridcloud.rpc.caching import cell_caching_service
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
+from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -148,6 +149,15 @@ def _webhook_event_data(
         event_context["occurrence"] = convert_dict_key_case(
             event.occurrence.to_dict(), snake_to_camel_case
         )
+        # Include the feedback message in metadata.value for alert integrations.
+        # Copy the dict: as_dict() shares it with event.data.
+        metadata = event_context.get("metadata") or {}
+        if (
+            event.occurrence.type == FeedbackGroup
+            and not metadata.get("value")
+            and event.occurrence.subtitle
+        ):
+            event_context["metadata"] = {**metadata, "value": event.occurrence.subtitle}
 
     # The URL has a regex OR in it ("|") which means `reverse` cannot generate
     # a valid URL (it can't know which option to pick). We have to manually
@@ -407,6 +417,7 @@ def _load_service_hook(organization_id: int | None, installation_id: int) -> Ser
         service_hook = ServiceHook.objects.get(
             organization_id=organization_id,
             actor_id=installation_id,
+            project_id__isnull=True,
         )
         if service_hook.installation_id != service_hook.actor_id:
             logger.info(
@@ -415,7 +426,48 @@ def _load_service_hook(organization_id: int | None, installation_id: int) -> Ser
             )
         return service_hook
     except ServiceHook.DoesNotExist:
+        # Attempt to repair the hook if the organization_id is missing
+        return _repair_hook_missing_organization_id(organization_id, installation_id)
+
+
+def _repair_hook_missing_organization_id(
+    organization_id: int | None, installation_id: int
+) -> ServiceHook | None:
+    """
+    Attempt to repair the hook if the organization_id is missing (there was a gap from
+    between 2025-08-26 and 2026-02-18)
+    TODO: Remove this once the gap is closed
+    """
+    if organization_id is None:
         return None
+
+    try:
+        service_hook = ServiceHook.objects.get(
+            installation_id=installation_id,
+            organization_id__isnull=True,
+        )
+    except ServiceHook.DoesNotExist:
+        return None
+    except ServiceHook.MultipleObjectsReturned:
+        # We can't tell which hook is live, and guessing would send an org's payloads
+        # to the wrong url. Fall through to the missing_servicehook halt instead.
+        logger.warning(
+            "service_hook.duplicate_hooks_missing_organization_id",
+            extra={"installation_id": installation_id},
+        )
+        return None
+
+    service_hook.organization_id = organization_id
+    service_hook.save(update_fields=["organization_id"])
+    logger.info(
+        "service_hook.repaired_missing_organization_id",
+        extra={
+            "service_hook_id": service_hook.id,
+            "installation_id": installation_id,
+            "organization_id": organization_id,
+        },
+    )
+    return service_hook
 
 
 @cache_func_for_models(
