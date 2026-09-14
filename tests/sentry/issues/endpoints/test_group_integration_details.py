@@ -581,6 +581,24 @@ class GroupIntegrationDetailsTest(APITestCase):
         assert not GroupLink.objects.get_group_issues(group, external_issue.id).exists()
         assert Group.objects.get(id=group.id).status == group.status
 
+    def test_delete_with_non_integer_external_issue_id(self) -> None:
+        self.login_as(user=self.user)
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/1/?externalIssue=invalid"
+
+        with self.feature("organizations:integrations-issue-basic"):
+            response = self.client.delete(path)
+
+        assert response.status_code == 400
+
+    def test_delete_with_out_of_range_external_issue_id(self) -> None:
+        self.login_as(user=self.user)
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/1/?externalIssue=999999999999999999999"
+
+        with self.feature("organizations:integrations-issue-basic"):
+            response = self.client.delete(path)
+
+        assert response.status_code == 400
+
     def test_delete_feature_disabled(self) -> None:
         self.login_as(user=self.user)
         org = self.organization
