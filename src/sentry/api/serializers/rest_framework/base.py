@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from django.db.models import Model
 from django.utils.text import re_camel_case
@@ -11,6 +11,8 @@ from rest_framework.serializers import ModelSerializer, Serializer
 from sentry.utils import metrics
 
 T = TypeVar("T")
+# The shape of validated_data, forwarded to the DRF serializer.
+TVal = TypeVar("TVal", default=Any)
 
 
 def _classify_key_case(data: dict) -> str:
@@ -100,7 +102,7 @@ def convert_dict_key_case(obj, converter):
     return obj
 
 
-class CamelSnakeSerializer(Serializer[T]):
+class CamelSnakeSerializer(Serializer[T, TVal]):
     """
     Allows parameters to be defined in snake case, but passed as camel case.
 
@@ -123,7 +125,7 @@ class CamelSnakeSerializer(Serializer[T]):
 M = TypeVar("M", bound=Model)
 
 
-class CamelSnakeModelSerializer(ModelSerializer[M]):
+class CamelSnakeModelSerializer(ModelSerializer[M, TVal]):
     """
     Allows parameters to be defined in snake case, but passed as camel case.
 
