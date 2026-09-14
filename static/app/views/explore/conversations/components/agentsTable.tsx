@@ -33,6 +33,10 @@ export function AgentsTable({
   onConversationOnboardingDismiss,
   onTabChange,
 }: AgentsTableProps) {
+  if (!hasAgenticSpans && !hasConversations) {
+    return <AgentMonitoringOnboarding />;
+  }
+
   return (
     <Stack gap="md">
       <Tabs value={activeTab} onChange={onTabChange} size="sm">

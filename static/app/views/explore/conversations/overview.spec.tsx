@@ -121,6 +121,23 @@ describe('ConversationsOverviewPage', () => {
     expect(
       screen.queryByRole('combobox', {name: 'Add a search term'})
     ).not.toBeInTheDocument();
+    expect(screen.getByText('Agent runs')).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Copy prompt'})).toBeInTheDocument();
+  });
+
+  it('hides data tabs when there is no agent data', async () => {
+    localStorage.clear();
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '1', hasInsightsAgentMonitoring: false}),
+    ]);
+
+    render(<ConversationsOverviewPage />, {organization});
+
+    expect(await screen.findByText('Monitor AI Agents')).toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: 'Conversations'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: 'Traces'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: 'Spans'})).not.toBeInTheDocument();
+    expect(screen.queryByText('Agent runs')).not.toBeInTheDocument();
   });
 
   it('shows agentic spans in the Spans tab', async () => {
