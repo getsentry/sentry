@@ -215,9 +215,7 @@ describe('Dashboards > Detail', () => {
   });
 
   it('toggles showing hidden dashboards', async () => {
-    const org = OrganizationFixture({
-      features: [...FEATURES, 'dashboards-hide-dashboards'],
-    });
+    const org = OrganizationFixture({features: FEATURES});
     const request = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [DashboardListItemFixture({title: 'Test Dashboard'})],
@@ -236,15 +234,6 @@ describe('Dashboards > Detail', () => {
         query: expect.objectContaining({filter: ['showUserHidden']}),
       })
     );
-  });
-
-  it('does not render the show hidden toggle without the feature', async () => {
-    render(<ManageDashboards />, {
-      organization: mockAuthorizedOrg,
-    });
-
-    expect(await screen.findByText('All Dashboards')).toBeInTheDocument();
-    expect(screen.queryByRole('checkbox', {name: 'Show hidden'})).not.toBeInTheDocument();
   });
 
   it('renders the table view', async () => {

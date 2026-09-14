@@ -112,9 +112,7 @@ function ManageDashboards() {
   );
   const sortOptions = getSortOptions({isOnlyPrebuilt, hasUserLastVisited});
 
-  const hasHideDashboards = organization.features.includes('dashboards-hide-dashboards');
-  const showHidden =
-    hasHideDashboards && decodeScalar(location.query.showHidden) === 'true';
+  const showHidden = decodeScalar(location.query.showHidden) === 'true';
   const filters = [
     ...(isOnlyPrebuilt ? [DashboardFilter.ONLY_PREBUILT] : []),
     ...(showHidden ? [DashboardFilter.SHOW_USER_HIDDEN] : []),
@@ -258,12 +256,7 @@ function ManageDashboards() {
     const activeSort = getActiveSort();
     return (
       <Grid
-        columns={{
-          zero: 'auto',
-          xl: hasHideDashboards
-            ? 'auto max-content max-content max-content'
-            : 'auto max-content max-content',
-        }}
+        columns={{zero: 'auto', xl: 'auto max-content max-content max-content'}}
         gap="md"
         marginBottom="xl"
       >
@@ -282,16 +275,14 @@ function ManageDashboards() {
           position="bottom-end"
           data-test-id="sort-by-select"
         />
-        {hasHideDashboards && (
-          <Flex as="label" align="center" gap="md" htmlFor="show-hidden-dashboards">
-            {t('Show hidden')}
-            <Switch
-              id="show-hidden-dashboards"
-              checked={showHidden}
-              onChange={handleShowHiddenChange}
-            />
-          </Flex>
-        )}
+        <Flex as="label" align="center" gap="md" htmlFor="show-hidden-dashboards">
+          {t('Show hidden')}
+          <Switch
+            id="show-hidden-dashboards"
+            checked={showHidden}
+            onChange={handleShowHiddenChange}
+          />
+        </Flex>
         {areAiFeaturesAllowed ? (
           <DashboardCreateLimitWrapper>
             {({

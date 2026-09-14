@@ -421,15 +421,6 @@ describe('Dashboards - DashboardTable', () => {
   });
 
   describe('hiding dashboards', () => {
-    const organizationWithHide = OrganizationFixture({
-      features: [
-        'dashboards-basic',
-        'dashboards-edit',
-        'discover-query',
-        'dashboards-hide-dashboards',
-      ],
-    });
-
     it('hides a visible dashboard', async () => {
       const hideMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/hidden/',
@@ -439,12 +430,12 @@ describe('Dashboards - DashboardTable', () => {
       render(
         <DashboardTable
           onDashboardsChange={jest.fn()}
-          organization={organizationWithHide}
+          organization={organization}
           dashboards={[DashboardListItemFixture({id: '1', title: 'Dashboard 1'})]}
           location={location}
           isOnlyPrebuilt={false}
         />,
-        {organization: organizationWithHide}
+        {organization}
       );
 
       await userEvent.click(await screen.findByRole('button', {name: 'Hide Dashboard'}));
@@ -466,14 +457,14 @@ describe('Dashboards - DashboardTable', () => {
       render(
         <DashboardTable
           onDashboardsChange={jest.fn()}
-          organization={organizationWithHide}
+          organization={organization}
           dashboards={[
             DashboardListItemFixture({id: '1', title: 'Dashboard 1', isHidden: true}),
           ]}
           location={location}
           isOnlyPrebuilt={false}
         />,
-        {organization: organizationWithHide}
+        {organization}
       );
 
       expect(await screen.findByText('Hidden')).toBeInTheDocument();
@@ -485,23 +476,6 @@ describe('Dashboards - DashboardTable', () => {
           expect.objectContaining({data: {shouldHide: false}})
         );
       });
-    });
-
-    it('does not render the hide button without the feature', async () => {
-      render(
-        <DashboardTable
-          onDashboardsChange={jest.fn()}
-          organization={organization}
-          dashboards={dashboards}
-          location={location}
-          isOnlyPrebuilt={false}
-        />
-      );
-
-      expect(await screen.findByText('Dashboard 1')).toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', {name: 'Hide Dashboard'})
-      ).not.toBeInTheDocument();
     });
   });
 });

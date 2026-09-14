@@ -114,7 +114,6 @@ function DashboardTable({
   const hasUserLastVisited = organization.features.includes(
     'dashboards-user-last-visited'
   );
-  const hasHideDashboards = organization.features.includes('dashboards-hide-dashboards');
 
   // TODO: When `dashboards-user-last-visited` is fully rolled out, delete the
   // flag-off `columnOrder` branch below, the `createdBy` SortKeys entry and its
@@ -187,22 +186,20 @@ function DashboardTable({
             />
           )}
         </DashboardCreateLimitWrapper>
-        {hasHideDashboards && (
-          <StyledButton
-            onClick={e => {
-              e.stopPropagation();
-              toggleHidden({dashboard: dataRow, shouldHide: !dataRow.isHidden});
-            }}
-            variant="transparent"
-            aria-label={dataRow.isHidden ? t('Unhide Dashboard') : t('Hide Dashboard')}
-            data-test-id="dashboard-toggle-hidden"
-            icon={dataRow.isHidden ? <IconShow /> : <IconHide />}
-            size="sm"
-            tooltipProps={{
-              title: dataRow.isHidden ? t('Unhide dashboard') : t('Hide dashboard'),
-            }}
-          />
-        )}
+        <StyledButton
+          onClick={e => {
+            e.stopPropagation();
+            toggleHidden({dashboard: dataRow, shouldHide: !dataRow.isHidden});
+          }}
+          variant="transparent"
+          aria-label={dataRow.isHidden ? t('Unhide Dashboard') : t('Hide Dashboard')}
+          data-test-id="dashboard-toggle-hidden"
+          icon={dataRow.isHidden ? <IconShow /> : <IconHide />}
+          size="sm"
+          tooltipProps={{
+            title: dataRow.isHidden ? t('Unhide dashboard') : t('Hide dashboard'),
+          }}
+        />
         <StyledButton
           onClick={e => {
             e.stopPropagation();
