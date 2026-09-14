@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
+from rest_framework.test import APIClient
 
 from sentry.models.apitoken import ApiToken
 from sentry.models.project import Project
@@ -53,6 +54,154 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {"slug": self.organization.slug}
+
+    @with_feature("organizations:seer-public-rpc")
+    @with_feature("organizations:service-account-principals-poc")
+    def test_service_account_token_authenticates(self) -> None:
+        account = self.create_service_account(
+            organization_id=self.organization.id,
+            name="Seer RPC",
+        )
+        token = self.create_service_account_auth_token(
+            service_account=account,
+            scope_list=["org:read"],
+        )
+        self.create_member(
+            organization=self.organization,
+            service_account_id=account.id,
+        )
+
+        response = APIClient().post(
+            self._get_path("get_organization_slug"),
+            data={"args": {}},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+
+        assert response.status_code == 200
+        assert response.data == {"slug": self.organization.slug}
+
+    @with_feature("organizations:seer-public-rpc")
+    @with_feature("organizations:service-account-principals-poc")
+    def test_service_account_token_requires_membership(self) -> None:
+        account = self.create_service_account(
+            organization_id=self.organization.id,
+            name="Seer RPC",
+        )
+        token = self.create_service_account_auth_token(
+            service_account=account,
+            scope_list=["org:read"],
+        )
+
+        response = APIClient().post(
+            self._get_path("get_organization_slug"),
+            data={"args": {}},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+
+        assert response.status_code == 403
+
+    @with_feature("organizations:seer-public-rpc")
+    @with_feature("organizations:service-account-principals-poc")
+    def test_service_account_token_scopes_limit_access(self) -> None:
+        account = self.create_service_account(
+            organization_id=self.organization.id,
+            name="Seer RPC",
+        )
+        token = self.create_service_account_auth_token(
+            service_account=account,
+            scope_list=["project:read"],
+        )
+        self.create_member(
+            organization=self.organization,
+            service_account_id=account.id,
+        )
+
+        response = APIClient().post(
+            self._get_path("get_organization_slug"),
+            data={"args": {}},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+
+        assert response.status_code == 403
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_service_account_token_requires_principal_poc_feature(self) -> None:
+        account = self.create_service_account(
+            organization_id=self.organization.id,
+            name="Seer RPC",
+        )
+        token = self.create_service_account_auth_token(
+            service_account=account,
+            scope_list=["org:read"],
+        )
+        self.create_member(
+            organization=self.organization,
+            service_account_id=account.id,
+        )
+
+        response = APIClient().post(
+            self._get_path("get_organization_slug"),
+            data={"args": {}},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+
+        assert response.status_code == 403
+
+    @with_feature("organizations:seer-public-rpc")
+    @with_feature("organizations:service-account-principals-poc")
+    def test_service_account_token_cannot_cross_organizations(self) -> None:
+        other_organization = self.create_organization()
+        account = self.create_service_account(
+            organization_id=other_organization.id,
+            name="Seer RPC",
+        )
+        token = self.create_service_account_auth_token(
+            service_account=account,
+            scope_list=["org:read"],
+        )
+        self.create_member(
+            organization=other_organization,
+            service_account_id=account.id,
+        )
+
+        response = APIClient().post(
+            self._get_path("get_organization_slug"),
+            data={"args": {}},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+
+        assert response.status_code == 401
+
+    @with_feature("organizations:seer-public-rpc")
+    @with_feature("organizations:service-account-principals-poc")
+    def test_service_account_auth_has_no_session_fallback(self) -> None:
+        response = self.client.post(
+            self._get_path("get_organization_slug"),
+            data={"args": {}},
+            format="json",
+        )
+
+        assert response.status_code == 403
+
+    @with_feature("organizations:seer-public-rpc")
+    @with_feature("organizations:service-account-principals-poc")
+    def test_service_account_auth_has_no_user_token_fallback(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
+
+        response = APIClient().post(
+            self._get_path("get_organization_slug"),
+            data={"args": {}},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+
+        assert response.status_code == 403
 
     @with_feature("organizations:seer-public-rpc")
     def test_get_organization_projects(self) -> None:

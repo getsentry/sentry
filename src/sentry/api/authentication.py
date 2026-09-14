@@ -64,6 +64,13 @@ from sentry.viewer_context import set_viewer_context_service_account
 
 logger = logging.getLogger("sentry.api.authentication")
 
+_SERVICE_ACCOUNT_SUPPORTED_ENDPOINTS = frozenset(
+    {
+        "sentry-api-0-organization-seer-rpc",
+        "sentry-api-0-organization-service-account-principal-poc",
+    }
+)
+
 
 class AuthenticationSiloLimit(SiloLimit):
     def handle_when_unavailable(
@@ -620,9 +627,9 @@ class UserAuthTokenAuthentication(StandardAuthentication):
 
         if service_account is not None:
             resolved_url = resolve(request.path_info)
-            if resolved_url.url_name != "sentry-api-0-organization-service-account-principal-poc":
+            if resolved_url.url_name not in _SERVICE_ACCOUNT_SUPPORTED_ENDPOINTS:
                 raise AuthenticationFailed(
-                    "Service account tokens are only supported by the principal PoC endpoint."
+                    "Service account tokens are not supported by this endpoint."
                 )
 
         if token.scoping_organization_id or service_account is not None:

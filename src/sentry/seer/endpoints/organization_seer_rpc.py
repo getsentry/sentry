@@ -5,14 +5,17 @@ import sentry_sdk
 from django.core.exceptions import ObjectDoesNotExist
 from pydantic import BaseModel
 from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.auth.principal import AuthenticatedServiceAccountPrincipal, get_authenticated_principal
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
@@ -78,6 +81,8 @@ from sentry.utils.tracing import trace
 from sentry.viewer_context import get_viewer_context, observe_viewer_context_propagation
 
 logger = logging.getLogger(__name__)
+
+SERVICE_ACCOUNT_PRINCIPAL_POC_FEATURE = "organizations:service-account-principals-poc"
 
 
 # Every value in the registries below MUST be a function returning a
@@ -206,6 +211,21 @@ class SeerRpcPermission(OrganizationPermission):
     }
 
 
+class SeerRpcServiceAccountPermission(BasePermission):
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        organization: Organization,
+    ) -> bool:
+        is_service_account = isinstance(
+            get_authenticated_principal(request), AuthenticatedServiceAccountPrincipal
+        )
+        if features.has(SERVICE_ACCOUNT_PRINCIPAL_POC_FEATURE, organization):
+            return is_service_account
+        return not is_service_account
+
+
 def _serialize_result(result: Any) -> Any:
     """Convert Pydantic returns to dict so DRF's JSONRenderer can serialize."""
     if isinstance(result, BaseModel):
@@ -232,7 +252,7 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = False
-    permission_classes = (SeerRpcPermission,)
+    permission_classes = (SeerRpcServiceAccountPermission, SeerRpcPermission)
 
     def _is_allowed(self, organization: Organization) -> bool:
         """Check if the organization is allowed to use this endpoint."""

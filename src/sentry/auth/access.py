@@ -13,6 +13,7 @@ from rest_framework.request import Request
 
 from sentry import features, roles
 from sentry.api.exceptions import DataSecrecyError
+from sentry.auth.principal import PrincipalKind
 from sentry.auth.scope_declaration import check_scope_declaration, check_scope_declarations
 from sentry.auth.services.access.service import access_service
 from sentry.auth.services.auth import AuthenticatedToken, RpcAuthState, RpcMemberSsoState
@@ -1236,6 +1237,19 @@ def from_rpc_member(
     )
 
 
+def _from_service_account_auth(auth: AuthenticatedToken, organization_id: int) -> Access:
+    if auth.principal_id is None or auth.organization_id != organization_id:
+        return DEFAULT
+    try:
+        member = OrganizationMember.objects.select_related("organization").get(
+            service_account_id=auth.principal_id,
+            organization_id=organization_id,
+        )
+    except OrganizationMember.DoesNotExist:
+        return DEFAULT
+    return from_member(member, scopes=auth.get_scopes())
+
+
 def from_auth(auth: AuthenticatedToken, organization: Organization) -> Access:
     if is_system_auth(auth):
         return SystemAccess()
@@ -1252,6 +1266,8 @@ def from_auth(auth: AuthenticatedToken, organization: Organization) -> Access:
                 member.organization = organization
                 access = from_member(member, scopes=auth.get_scopes())
         return access
+    if auth.principal_kind == PrincipalKind.SERVICE_ACCOUNT:
+        return _from_service_account_auth(auth, organization.id)
     auth_organization_id = auth.organization_id
     if auth_organization_id is not None and auth_organization_id == organization.id:
         return OrganizationGlobalAccess(
@@ -1271,6 +1287,8 @@ def from_rpc_auth(
         # org-global access an org token gets. Dispatched here so the cap holds at the
         # shared userless-auth choke, not only in determine_access.
         return from_agent_auth(auth, rpc_user_org_context)
+    if auth.principal_kind == PrincipalKind.SERVICE_ACCOUNT:
+        return _from_service_account_auth(auth, rpc_user_org_context.organization.id)
     if auth.organization_id == rpc_user_org_context.organization.id:
         return ApiBackedOrganizationGlobalAccess(
             rpc_user_organization_context=rpc_user_org_context,
