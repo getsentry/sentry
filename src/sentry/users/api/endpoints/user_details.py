@@ -1,7 +1,8 @@
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict
 
 from django.conf import settings
 from django.contrib.auth import logout
@@ -26,6 +27,7 @@ from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import LANGUAGES
 from sentry.core.endpoints.organization_details import post_org_pending_deletion
+from sentry.interfaces.stacktrace import StacktraceOrder
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
@@ -40,6 +42,9 @@ from sentry.users.models.user_option import UserOption
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.dates import get_timezone_choices
+
+if TYPE_CHECKING:
+    from django.utils.functional import _StrPromise  # fake type added by django-stubs
 
 audit_logger = logging.getLogger("sentry.audit.user")
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -139,34 +144,78 @@ def record_hard_user_deletion(
     )
 
 
-class UserOptionsSerializer(serializers.Serializer[UserOption]):
+StacktraceOrderValue = Literal["-1", "1", "2"]
+Theme = Literal["light", "dark", "system"]
+DefaultIssueEvent = Literal["recommended", "latest", "oldest"]
+
+# Annotating the choices ties them to the Literal types above: a choice value that
+# is not part of the Literal, or vice versa, fails type checking. The stacktrace
+# order values come from the canonical StacktraceOrder enum so the two cannot drift.
+STACKTRACE_ORDER_CHOICES: "tuple[tuple[StacktraceOrderValue, _StrPromise], ...]" = (
+    (StacktraceOrder.DEFAULT.value, _("Default (let Sentry decide)")),
+    (StacktraceOrder.MOST_RECENT_LAST.value, _("Most recent call last")),
+    (StacktraceOrder.MOST_RECENT_FIRST.value, _("Most recent call first")),
+)
+THEME_CHOICES: "tuple[tuple[Theme, _StrPromise], ...]" = (
+    ("light", _("Light")),
+    ("dark", _("Dark")),
+    ("system", _("Default to system")),
+)
+DEFAULT_ISSUE_EVENT_CHOICES: "tuple[tuple[DefaultIssueEvent, _StrPromise], ...]" = (
+    ("recommended", _("Recommended")),
+    ("latest", _("Latest")),
+    ("oldest", _("Oldest")),
+)
+
+# Every field name on UserOptionsSerializer. Keeping this as a Literal lets both
+# UserOptionsData and OPTION_KEY_MAP below be checked against one another.
+UserOptionField = Literal[
+    "language",
+    "stacktraceOrder",
+    "timezone",
+    "clock24Hours",
+    "theme",
+    "defaultIssueEvent",
+    "prefersIssueDetailsStreamlinedUI",
+]
+
+
+class UserOptionsData(TypedDict, total=False):
+    """The validated `options` object from a PUT body.
+
+    Mirrors the fields on UserOptionsSerializer. Every field is optional because
+    the serializer is used with partial=True.
+    """
+
+    language: str
+    stacktraceOrder: StacktraceOrderValue
+    timezone: str
+    clock24Hours: bool
+    theme: Theme
+    defaultIssueEvent: DefaultIssueEvent
+    prefersIssueDetailsStreamlinedUI: bool
+
+
+# Maps each API field to the key the value is stored under in UserOption. An entry
+# whose key is not a UserOptionsData field fails type checking where it is read.
+OPTION_KEY_MAP: Mapping[UserOptionField, str] = {
+    "theme": "theme",
+    "language": "language",
+    "timezone": "timezone",
+    "stacktraceOrder": "stacktrace_order",
+    "defaultIssueEvent": "default_issue_event",
+    "clock24Hours": "clock_24_hours",
+    "prefersIssueDetailsStreamlinedUI": "prefers_issue_details_streamlined_ui",
+}
+
+
+class UserOptionsSerializer(serializers.Serializer[None]):
     language = serializers.ChoiceField(choices=LANGUAGES, required=False)
-    stacktraceOrder = serializers.ChoiceField(
-        choices=(
-            ("-1", _("Default (let Sentry decide)")),
-            ("1", _("Most recent call last")),
-            ("2", _("Most recent call first")),
-        ),
-        required=False,
-    )
+    stacktraceOrder = serializers.ChoiceField(choices=STACKTRACE_ORDER_CHOICES, required=False)
     timezone = serializers.ChoiceField(choices=TIMEZONE_CHOICES, required=False)
     clock24Hours = serializers.BooleanField(required=False)
-    theme = serializers.ChoiceField(
-        choices=(
-            ("light", _("Light")),
-            ("dark", _("Dark")),
-            ("system", _("Default to system")),
-        ),
-        required=False,
-    )
-    defaultIssueEvent = serializers.ChoiceField(
-        choices=(
-            ("recommended", _("Recommended")),
-            ("latest", _("Latest")),
-            ("oldest", _("Oldest")),
-        ),
-        required=False,
-    )
+    theme = serializers.ChoiceField(choices=THEME_CHOICES, required=False)
+    defaultIssueEvent = serializers.ChoiceField(choices=DEFAULT_ISSUE_EVENT_CHOICES, required=False)
     prefersIssueDetailsStreamlinedUI = serializers.BooleanField(required=False)
 
 
@@ -271,7 +320,14 @@ class PrivilegedUserSerializer(SuperuserUserSerializer):
         fields = ("name", "username", "is_active", "is_suspended", "is_staff", "is_superuser")
 
 
-class DeleteUserSerializer(serializers.Serializer[User]):
+class DeleteUserData(TypedDict):
+    """The validated body of a DELETE to this endpoint."""
+
+    organizations: list[str]
+    hardDelete: NotRequired[bool]
+
+
+class DeleteUserSerializer(serializers.Serializer[None]):
     organizations = serializers.ListField(
         child=serializers.CharField(required=False), required=True
     )
@@ -364,9 +420,9 @@ class UserDetailsEndpoint(UserEndpoint):
         # The users have to also be a member of the default organization to be able to elevate
         # to superuser/staff.
         if settings.SENTRY_MODE == SentryMode.SAAS:
-            validated_data = serializer.validated_data
-            requested_superuser = validated_data.get("is_superuser")
-            requested_staff = validated_data.get("is_staff")
+            validated_data: dict[str, Any] = serializer.validated_data
+            requested_superuser: bool | None = validated_data.get("is_superuser")
+            requested_staff: bool | None = validated_data.get("is_staff")
 
             is_updating_superuser = requested_superuser is not None
             is_updating_staff = requested_staff is not None
@@ -385,23 +441,12 @@ class UserDetailsEndpoint(UserEndpoint):
                         status=status.HTTP_403_FORBIDDEN,
                     )
 
-        # map API keys to keys in model
-        key_map = {
-            "theme": "theme",
-            "language": "language",
-            "timezone": "timezone",
-            "stacktraceOrder": "stacktrace_order",
-            "defaultIssueEvent": "default_issue_event",
-            "clock24Hours": "clock_24_hours",
-            "prefersIssueDetailsStreamlinedUI": "prefers_issue_details_streamlined_ui",
-        }
+        options_result: UserOptionsData = serializer_options.validated_data
 
-        options_result = serializer_options.validated_data
-
-        for key in key_map:
-            if key in options_result:
+        for api_field, option_key in OPTION_KEY_MAP.items():
+            if api_field in options_result:
                 UserOption.objects.set_value(
-                    user=user, key=key_map.get(key, key), value=options_result.get(key)
+                    user=user, key=option_key, value=options_result[api_field]
                 )
 
         with transaction.atomic(using=router.db_for_write(User)):
@@ -425,6 +470,8 @@ class UserDetailsEndpoint(UserEndpoint):
         if not serializer.is_valid():
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
+        delete_data: DeleteUserData = serializer.validated_data
+
         # from `frontend/remove_account.py`
         org_mappings = OrganizationMapping.objects.filter(
             organization_id__in=OrganizationMemberMapping.objects.filter(
@@ -447,7 +494,7 @@ class UserDetailsEndpoint(UserEndpoint):
             )
 
         avail_org_ids = {o["organization_id"] for o in org_results}
-        requested_org_slugs_to_remove = set(serializer.validated_data.get("organizations"))
+        requested_org_slugs_to_remove = set(delete_data["organizations"])
         requested_org_ids_to_remove = OrganizationMapping.objects.filter(
             slug__in=requested_org_slugs_to_remove
         ).values_list("organization_id", flat=True)
@@ -502,7 +549,7 @@ class UserDetailsEndpoint(UserEndpoint):
             "user_id": user.id,
         }
 
-        hard_delete = serializer.validated_data.get("hardDelete", False)
+        hard_delete = delete_data.get("hardDelete", False)
         can_delete = has_elevated_mode(request) and request.access.has_permission("users.admin")
 
         # Only active superusers can hard delete accounts
