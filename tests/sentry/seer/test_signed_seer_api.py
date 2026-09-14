@@ -139,7 +139,8 @@ def test_resolves_viewer_context_with_endpoint(mock_resolve: MagicMock) -> None:
     run_test_case(path=f"{DYNAMIC_PATH}?plan_tier=business")
 
     mock_resolve.assert_called_once_with(None, endpoint=DYNAMIC_PATH)
-    
+
+
 @patch("sentry.seer.signed_seer_api.metrics.timer")
 def test_times_request_with_metrics_endpoint(mock_metrics_timer: MagicMock) -> None:
     run_test_case(
@@ -151,6 +152,7 @@ def test_times_request_with_metrics_endpoint(mock_metrics_timer: MagicMock) -> N
         sample_rate=1.0,
         tags={"endpoint": PATH},
     )
+
 
 @patch("sentry.seer.signed_seer_api.make_signed_seer_api_request")
 def test_delete_grouping_records_uses_generic_metrics_endpoint(
