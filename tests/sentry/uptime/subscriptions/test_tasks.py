@@ -27,6 +27,7 @@ from sentry.uptime.subscriptions.regions import get_region_config
 from sentry.uptime.subscriptions.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
     broken_monitor_checker,
+    config_drift_repair,
     create_remote_uptime_subscription,
     delete_remote_uptime_subscription,
     repair_missing_configs,
@@ -575,6 +576,11 @@ REPAIR_REGIONS = [
     UptimeRegionConfig(slug="a2", name="A2", config_redis_key_prefix="a"),
     UptimeRegionConfig(slug="x1", name="X1", config_redis_cluster="other"),
 ]
+DRIFT_REGIONS = [
+    UptimeRegionConfig(slug="a1", name="A1", config_redis_key_prefix="a"),
+    UptimeRegionConfig(slug="a2", name="A2", config_redis_key_prefix="a"),
+    UptimeRegionConfig(slug="b1", name="B1", config_redis_key_prefix="b"),
+]
 
 
 @override_settings(UPTIME_REGIONS=REPAIR_REGIONS)
@@ -668,6 +674,92 @@ class RepairMissingConfigsTest(ConfigPusherTestMixin):
         sub.refresh_from_db()
         assert sub.status == UptimeSubscription.Status.DISABLED.value
         self.assert_redis_config("a1", sub, None, None)
+
+
+@override_settings(UPTIME_REGIONS=DRIFT_REGIONS)
+class ConfigDriftRepairTest(ConfigPusherTestMixin):
+    @pytest.fixture(autouse=True)
+    def _setup_metrics(self):
+        with patch("sentry.uptime.subscriptions.tasks.metrics") as self.metrics:
+            yield
+
+    def _seed(self) -> tuple[UptimeSubscription, UptimeSubscription, UptimeSubscription]:
+        published = self.create_uptime_subscription(
+            subscription_id=uuid4().hex, region_slugs=["a1", "b1"]
+        )
+        update_remote_uptime_subscription(published.id)
+        lost_on_b = self.create_uptime_subscription(
+            subscription_id=uuid4().hex, region_slugs=["a1", "b1"]
+        )
+        update_remote_uptime_subscription(lost_on_b.id, region_slugs=["a1"])
+        null_id = self.create_uptime_subscription(region_slugs=["a1"])
+        self.metrics.reset_mock()
+        return published, lost_on_b, null_id
+
+    def test_repairs_missing_and_null_subscription_id_rows(self) -> None:
+        published, lost_on_b, null_id = self._seed()
+
+        with self.tasks():
+            config_drift_repair()
+
+        for sub in (published, lost_on_b, null_id):
+            sub.refresh_from_db()
+            assert sub.status == UptimeSubscription.Status.ACTIVE.value
+        self.assert_redis_config(
+            "b1", lost_on_b, "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE
+        )
+        assert null_id.subscription_id is not None
+        self.assert_redis_config(
+            "a1", null_id, "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE
+        )
+        self.metrics.incr.assert_any_call(
+            "uptime.config_repair.queued", tags={"cluster": "default"}, sample_rate=1.0
+        )
+        self.metrics.incr.assert_any_call(
+            "uptime.config_repair.null_subscription_id_queued", amount=1, sample_rate=1.0
+        )
+
+    def test_already_present_gets_no_task(self) -> None:
+        published, lost_on_b, _ = self._seed()
+
+        with patch.object(update_remote_uptime_subscription, "delay") as delay:
+            config_drift_repair()
+
+        queued_ids = {call.kwargs["uptime_subscription_id"] for call in delay.call_args_list}
+        assert lost_on_b.id in queued_ids
+        assert published.id not in queued_ids
+
+    def test_limit_shared_with_null_subscription_id_rows(self) -> None:
+        _, lost_on_b, _ = self._seed()
+
+        with patch.object(update_remote_uptime_subscription, "delay") as delay:
+            config_drift_repair(limit=1)
+
+        delay.assert_called_once_with(
+            uptime_subscription_id=lost_on_b.id, region_slugs=["a1", "b1"]
+        )
+
+    def test_second_run_queues_nothing(self) -> None:
+        self._seed()
+        with self.tasks():
+            config_drift_repair()
+
+        with patch.object(update_remote_uptime_subscription, "delay") as delay:
+            config_drift_repair()
+
+        assert not delay.called
+
+    def test_dry_run_writes_nothing(self) -> None:
+        _, lost_on_b, null_id = self._seed()
+
+        with patch.object(update_remote_uptime_subscription, "delay") as delay:
+            config_drift_repair(dry_run=True)
+
+        assert not delay.called
+        assert not self.metrics.incr.called
+        self.assert_redis_config("b1", lost_on_b, None, None)
+        null_id.refresh_from_db()
+        assert null_id.subscription_id is None
 
 
 class BrokenMonitorCheckerTest(UptimeTestCase):

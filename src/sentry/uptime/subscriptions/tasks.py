@@ -13,7 +13,11 @@ from taskbroker_client.retry import Retry
 from sentry import audit_log
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import uptime_tasks
-from sentry.uptime.config_drift import check_config_drift
+from sentry.uptime.config_drift import (
+    check_config_drift,
+    iter_null_subscription_rows,
+    missing_config_pairs,
+)
 from sentry.uptime.config_producer import produce_config, produce_config_removal
 from sentry.uptime.models import (
     UptimeRegionScheduleMode,
@@ -357,3 +361,44 @@ def repair_missing_configs(
             },
         )
     return queued
+
+
+@instrumented_task(
+    name="sentry.uptime.tasks.config_drift_repair",
+    namespace=uptime_tasks,
+    processing_deadline_duration=60 * 10,
+)
+def config_drift_repair(
+    dry_run: bool = False, limit: int = CONFIG_REPAIR_MAX_TASKS, **kwargs
+) -> None:
+    """
+    Republishes checker configs that Postgres expects but a config redis cluster is missing.
+    Manual only; not scheduled. Dry run first from a shell, inline with
+    ``config_drift_repair(dry_run=True)`` or on a worker with
+    ``config_drift_repair.delay(dry_run=True)``, then repeat without ``dry_run``.
+    """
+    missing = missing_config_pairs(check_config_drift())
+    queued = repair_missing_configs(missing, limit=limit, dry_run=dry_run)
+
+    # Rows with no subscription_id have no redis key, so the diff can never report them
+    # missing. Queue them unfiltered; the task mints an id and its trailing update saves it.
+    null_pks = sorted({pk for pk, _ in iter_null_subscription_rows()})[: limit - queued]
+    if not dry_run:
+        for pk in null_pks:
+            update_remote_uptime_subscription.delay(uptime_subscription_id=pk)
+        metrics.incr(
+            "uptime.config_repair.null_subscription_id_queued",
+            amount=len(null_pks),
+            sample_rate=1.0,
+        )
+
+    logger.info(
+        "uptime.config_drift_repair.done",
+        extra={
+            "missing": len(missing),
+            "queued": queued,
+            "null_subscription_id_queued": len(null_pks),
+            "limit": limit,
+            "dry_run": dry_run,
+        },
+    )
