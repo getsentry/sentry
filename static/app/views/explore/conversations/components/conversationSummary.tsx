@@ -434,17 +434,17 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
         getNumberAttrByConvention(node, 'gen_ai.usage.cache_read.input_tokens') ?? 0;
       const cacheWrite =
         getNumberAttrByConvention(node, 'gen_ai.usage.cache_creation.input_tokens') ?? 0;
-      const input = getNumberAttr(node, SpanFields.GEN_AI_USAGE_INPUT_TOKENS) ?? 0;
-      const output = getNumberAttr(node, SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS) ?? 0;
+      const input = getNumberAttr(node, SpanFields.GEN_AI_USAGE_INPUT_TOKENS);
+      const output = getNumberAttr(node, SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS);
       const reasoning =
         getNumberAttr(node, SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS) ?? 0;
       const reportedTotal =
         getNumberAttr(node, SpanFields.GEN_AI_USAGE_TOTAL_TOKENS) ?? 0;
       const breakdown = getTokenBreakdown({
-        inputTokens: input,
+        inputTokens: input ?? 0,
         cachedTokens: cached,
         cacheWriteTokens: cacheWrite,
-        outputTokens: output,
+        outputTokens: output ?? 0,
         reasoningTokens: reasoning,
         totalTokens: reportedTotal,
       });
@@ -459,7 +459,8 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
       tokens.cached += breakdown.cached;
       tokens.cacheWrite += breakdown.cacheWrite;
       tokens.reasoning += reasoning;
-      tokens.total += componentTotal > 0 ? componentTotal : reportedTotal;
+      tokens.total +=
+        input !== undefined && output !== undefined ? componentTotal : reportedTotal;
       totalCost += getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS) ?? 0;
     } else if (getIsExecuteToolSpan(opType)) {
       toolCalls++;

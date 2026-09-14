@@ -157,8 +157,12 @@ function createNodeFromApiSpan(
       'gen_ai.tool.call.result': apiSpan['gen_ai.tool.call.result'] ?? '',
       'gen_ai.tool.input': apiSpan['gen_ai.tool.input'] ?? '',
       'gen_ai.tool.output': apiSpan['gen_ai.tool.output'] ?? '',
-      [SpanFields.GEN_AI_USAGE_INPUT_TOKENS]: apiSpan['gen_ai.usage.input_tokens'] ?? 0,
-      [SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS]: apiSpan['gen_ai.usage.output_tokens'] ?? 0,
+      ...(apiSpan['gen_ai.usage.input_tokens'] !== undefined && {
+        [SpanFields.GEN_AI_USAGE_INPUT_TOKENS]: apiSpan['gen_ai.usage.input_tokens'],
+      }),
+      ...(apiSpan['gen_ai.usage.output_tokens'] !== undefined && {
+        [SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS]: apiSpan['gen_ai.usage.output_tokens'],
+      }),
       [SpanFields.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]:
         apiSpan['gen_ai.usage.cache_read.input_tokens'] ??
         apiSpan['gen_ai.usage.input_tokens.cached'] ??
