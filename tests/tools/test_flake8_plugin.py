@@ -777,7 +777,34 @@ class F:
     )
 
 
-# --- S022: PUBLIC methods must declare a response shape ---
+# --- S022: published methods must declare a response shape ---
+
+
+def test_S022_public_experimental_bare_response_fires() -> None:
+    assert _resp("""\
+class E:
+    publish_status = {"GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
+    def get(self) -> Response: ...
+""") == ["3:S022"]
+
+
+def test_S022_public_experimental_missing_annotation_fires() -> None:
+    assert _resp("""\
+class E:
+    publish_status = {"GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
+    def get(self): ...
+""") == ["3:S022"]
+
+
+def test_S022_experimental_is_not_published_and_does_not_fire() -> None:
+    assert (
+        _resp("""\
+class E:
+    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
+    def get(self) -> Response: ...
+""")
+        == []
+    )
 
 
 def test_S022_public_bare_response_fires() -> None:

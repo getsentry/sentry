@@ -29,7 +29,7 @@ export function combineAgentQuery(query: string, agents?: string[]): string {
   return `(${agentQuery}) and (${query})`;
 }
 
-function getConversationsQueryHref(
+export function getConversationsQueryHref(
   data: ConversationsQueryData,
   organization: Organization
 ): string {
@@ -54,6 +54,14 @@ function getConversationsQueryHref(
   });
 }
 
+/**
+ * The name the model gave the query, or a description of what it searches. The
+ * block renders this as its heading, so both levels name the query the same way.
+ */
+export function getConversationsQueryTitle(data: ConversationsQueryData): string {
+  return data.title ?? t('Conversation search');
+}
+
 export function ConversationsQueryLink({data}: {data: ConversationsQueryData}) {
   const organization = useOrganization();
 
@@ -61,7 +69,7 @@ export function ConversationsQueryLink({data}: {data: ConversationsQueryData}) {
     <ResourceLink
       icon={IconChat}
       href={getConversationsQueryHref(data, organization)}
-      title={data.title ?? t('Conversation search')}
+      title={getConversationsQueryTitle(data)}
     />
   );
 }

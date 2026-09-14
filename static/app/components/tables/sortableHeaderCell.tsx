@@ -1,8 +1,10 @@
 import type {HTMLAttributes, MouseEvent, ReactNode} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {FLEX_JUSTIFY_CONTENT, type FlexJustify} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -23,7 +25,13 @@ export function getAriaSort(
   }
 }
 
-export type ColumnAlign = 'left' | 'right';
+export type ColumnAlign = 'left' | 'center' | 'right';
+
+export const COLUMN_ALIGN_JUSTIFY = {
+  center: 'center',
+  left: 'start',
+  right: 'end',
+} as const satisfies Record<ColumnAlign, FlexJustify>;
 
 interface SortableHeaderCellProps extends HTMLAttributes<HTMLDivElement> {
   align?: ColumnAlign;
@@ -106,7 +114,11 @@ export const HeaderCellContent = styled('div', {
   text-align: inherit;
   text-transform: inherit;
 
-  ${p => p.align === 'right' && 'justify-content: flex-end;'}
+  ${p =>
+    p.align &&
+    css`
+      justify-content: ${FLEX_JUSTIFY_CONTENT[COLUMN_ALIGN_JUSTIFY[p.align]]};
+    `}
 
   &:hover,
   &:active,

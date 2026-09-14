@@ -1,5 +1,4 @@
 import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -7,8 +6,6 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import ManageDashboards from 'sentry/views/dashboards/manage';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
@@ -18,15 +15,6 @@ const FEATURES = [
   'discover-query',
   'dashboards-prebuilt-insights-dashboards',
 ];
-
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
-}));
-
-jest.mock('sentry/utils/useLocation');
-
-const mockUseNavigate = jest.mocked(useNavigate);
-const mockUseLocation = jest.mocked(useLocation);
 
 describe('Dashboards > Detail', () => {
   const mockUnauthorizedOrg = OrganizationFixture({
@@ -55,8 +43,6 @@ describe('Dashboards > Detail', () => {
       url: '/organizations/org-slug/dashboards/starred/',
       body: [],
     });
-
-    mockUseLocation.mockReturnValue(LocationFixture());
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();
@@ -134,24 +120,20 @@ describe('Dashboards > Detail', () => {
 
   it('creates new dashboard', async () => {
     const org = OrganizationFixture({features: FEATURES});
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
 
-    render(<ManageDashboards />, {
+    const {router} = render(<ManageDashboards />, {
       organization: org,
     });
 
     await userEvent.click(await screen.findByTestId('dashboard-create'));
 
-    expect(mockNavigate).toHaveBeenCalledWith('/organizations/org-slug/dashboards/new/');
+    expect(router.location.pathname).toBe('/organizations/org-slug/dashboards/new/');
   });
 
   it('can sort', async () => {
     const org = OrganizationFixture({features: FEATURES});
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
 
-    render(<ManageDashboards />, {
+    const {router} = render(<ManageDashboards />, {
       organization: org,
     });
 
@@ -160,16 +142,13 @@ describe('Dashboards > Detail', () => {
       'Dashboard Name (A-Z)'
     );
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: {sort: 'title'}})
-    );
+    expect(router.location.query).toEqual({sort: 'title'});
   });
 
   it('defaults to recently viewed sort with dashboards-user-last-visited', async () => {
     const org = OrganizationFixture({
       features: [...FEATURES, 'dashboards-user-last-visited'],
     });
-    mockUseNavigate.mockReturnValue(jest.fn());
 
     const request = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
@@ -191,10 +170,8 @@ describe('Dashboards > Detail', () => {
 
   it('can search', async () => {
     const org = OrganizationFixture({features: FEATURES});
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
 
-    render(<ManageDashboards />, {
+    const {router} = render(<ManageDashboards />, {
       organization: org,
     });
 
@@ -202,41 +179,27 @@ describe('Dashboards > Detail', () => {
     await userEvent.keyboard('dash');
     await userEvent.keyboard('[Enter]');
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: {query: 'dash'}})
-    );
+    expect(router.location.query).toEqual({query: 'dash'});
   });
 
   it('uses pagination correctly', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [DashboardListItemFixture({title: 'Test Dashboard 1'})],
       headers: {Link: getPaginationPageLink({numRows: 15, pageSize: 9, offset: 0})},
     });
 
-    render(<ManageDashboards />, {
+    const {router} = render(<ManageDashboards />, {
       organization: mockAuthorizedOrg,
     });
 
     expect(await screen.findByText('Test Dashboard 1')).toBeInTheDocument();
     await userEvent.click(await screen.findByLabelText('Next'));
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {
-          cursor: '0:9:0',
-        },
-      })
-    );
+    expect(router.location.query).toEqual({cursor: '0:9:0'});
   });
 
   it('disables pagination correctly', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [DashboardListItemFixture({title: 'Test Dashboard 1'})],
@@ -248,9 +211,7 @@ describe('Dashboards > Detail', () => {
     });
 
     expect(await screen.findByText('Test Dashboard 1')).toBeInTheDocument();
-    await userEvent.click(await screen.findByLabelText('Previous'));
-
-    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Previous')).toBeDisabled();
   });
 
   it('renders the table view', async () => {

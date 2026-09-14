@@ -122,7 +122,6 @@ export function WidgetQueries({
   const isSeriesMetricsExtractedDataResults: Array<boolean | undefined> = [];
   const afterFetchSeriesData = (rawResults: SeriesResult) => {
     if (rawResults.data) {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       rawResults = rawResults as EventsStats;
       if (rawResults.isMetricsData !== undefined) {
         // oxlint-disable-next-line react/immutability

@@ -13,7 +13,6 @@ from sentry.dynamic_sampling.per_org.calculations import (
     run_project_balancing,
     run_transaction_balancing,
 )
-from sentry.dynamic_sampling.per_org.comparisons import emit_comparisons
 from sentry.dynamic_sampling.per_org.configuration import get_configuration
 from sentry.dynamic_sampling.per_org.feature_cache import (
     candidate_organizations,
@@ -108,7 +107,6 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
 
         return None
     finally:
-        emit_comparisons(config)
         write_caches(config)
 
 

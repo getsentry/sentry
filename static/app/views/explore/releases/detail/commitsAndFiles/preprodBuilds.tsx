@@ -60,6 +60,7 @@ export default function PreprodBuilds() {
   const prevDebouncedRef = useRef(debouncedLocalSearchQuery);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setLocalSearchQuery(urlSearchQuery || '');
   }, [urlSearchQuery]);
 

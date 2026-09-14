@@ -160,6 +160,7 @@ export function useLiveRefresh({replay}: {replay: ReplayRecord | undefined}) {
     const remainingMs = expiresAtMs - Date.now();
     if (expiresAtMs <= 0 || remainingMs <= 0) {
       cancelExpiryTimeout();
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsReplayExpired(true);
       return;
     }

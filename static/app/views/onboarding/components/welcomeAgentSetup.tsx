@@ -155,7 +155,7 @@ export function WelcomeAgentSetup({
 
       <ScmCollapsibleReveal open={!showsProgress || hasRunFailed}>
         <Stack gap="2xl" align="center" width="100%">
-          <Text variant="muted" size="md" bold uppercase>
+          <Text variant="muted" size="md" bold>
             {t('or')}
           </Text>
 
