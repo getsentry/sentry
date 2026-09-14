@@ -209,6 +209,11 @@ def test_hydration_disables_aggregate_extrapolation(run_bulk_table_queries: Magi
     run_bulk_table_queries.assert_called_once()
     queries = run_bulk_table_queries.call_args.args[0]
     assert all(query.resolver.config.disable_aggregate_extrapolation for query in queries)
+    aggregations_query = next(query for query in queries if query.name == "aggregations")
+    assert (
+        f"{AI_CONVERSATIONS_FIELDS['conversation.duration'][0]} as duration"
+        in aggregations_query.selected_columns
+    )
 
 
 @patch(

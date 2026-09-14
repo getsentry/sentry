@@ -442,7 +442,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "sum_if(gen_ai.usage.input_tokens,gen_ai.operation.type,equals,ai_client)",
                 "sum_if(gen_ai.usage.output_tokens,gen_ai.operation.type,equals,ai_client)",
                 "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client)",
-                AI_CONVERSATIONS_FIELDS["conversation.duration"][0],
+                f"{AI_CONVERSATIONS_FIELDS['conversation.duration'][0]} as duration",
                 "sum_if(span.duration,gen_ai.operation.type,equals,ai_client)",
                 "min(precise.start_ts)",
                 "max(precise.finish_ts)",
