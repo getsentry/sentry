@@ -1,11 +1,57 @@
 from datetime import timedelta
 
+import pytest
 from django.utils import timezone
 
+from sentry.models.group import Group
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.release import Release
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.features import Feature, with_feature
+from sentry.testutils.pytest.fixtures import django_db_all
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "resolution_type",
+    [GroupResolution.Type.in_release, GroupResolution.Type.in_next_release],
+    ids=["specific-release", "next-release"],
+)
+def test_finalized_release_order(
+    factories: Factories, default_group: Group, resolution_type: int
+) -> None:
+    now = timezone.now()
+    project = default_group.project
+    resolved_in = factories.create_release(
+        project=project,
+        version="resolved-in",
+        date_added=now - timedelta(days=4),
+        date_released=now - timedelta(days=2),
+    )
+    older = factories.create_release(
+        project=project,
+        version="older",
+        date_added=now - timedelta(days=1),
+        date_released=now - timedelta(days=3),
+    )
+    newer = factories.create_release(
+        project=project,
+        version="newer",
+        date_added=now - timedelta(days=5),
+        date_released=now - timedelta(days=1),
+    )
+    factories.create_group_resolution(
+        group=default_group, release=resolved_in, type=resolution_type
+    )
+
+    # Registration order is the reverse of finalized order for both events.
+    with Feature({"organizations:release-resolution-finalized-order": False}):
+        assert not GroupResolution.has_resolution(default_group, older)
+        assert GroupResolution.has_resolution(default_group, newer)
+    with Feature("organizations:release-resolution-finalized-order"):
+        assert GroupResolution.has_resolution(default_group, older)
+        assert not GroupResolution.has_resolution(default_group, newer)
 
 
 class GroupResolutionTest(TestCase):
@@ -18,13 +64,6 @@ class GroupResolutionTest(TestCase):
         self.group = self.create_group()
         self.old_semver_release = self.create_release(version="foo_package@1.0")
         self.new_semver_release = self.create_release(version="foo_package@2.0")
-        # Added after new_release, but finalized with an earlier ship date --
-        # the shape a straggler event from an old build produces.
-        self.late_registered_old_release = self.create_release(
-            version="c",
-            date_added=timezone.now(),
-            date_released=timezone.now() - timedelta(minutes=60),
-        )
 
     def test_in_next_release_with_new_release(self) -> None:
         GroupResolution.objects.create(
@@ -182,14 +221,6 @@ class GroupResolutionTest(TestCase):
         assert GroupResolution.has_resolution(self.group, self.old_release)
 
     @with_feature("organizations:release-resolution-finalized-order")
-    def test_in_release_with_late_registered_old_release(self) -> None:
-        """A release finalized as older must not clear a newer resolution."""
-        self.create_group_resolution(
-            release=self.new_release, group=self.group, type=GroupResolution.Type.in_release
-        )
-        assert GroupResolution.has_resolution(self.group, self.late_registered_old_release)
-
-    @with_feature("organizations:release-resolution-finalized-order")
     def test_semver_order_takes_precedence_over_finalized_dates(self) -> None:
         self.old_semver_release.update(date_released=timezone.now() + timedelta(days=1))
         self.new_semver_release.update(date_released=timezone.now() - timedelta(days=1))
@@ -202,43 +233,20 @@ class GroupResolutionTest(TestCase):
         assert not GroupResolution.has_resolution(self.group, self.new_semver_release)
 
     @with_feature("organizations:release-resolution-finalized-order")
-    def test_in_next_release_with_late_registered_old_release(self) -> None:
-        self.create_group_resolution(
-            release=self.new_release,
-            group=self.group,
-            type=GroupResolution.Type.in_next_release,
-        )
-        assert GroupResolution.has_resolution(self.group, self.late_registered_old_release)
-
-    @with_feature("organizations:release-resolution-finalized-order")
-    def test_in_release_resolved_in_a_late_registered_release(self) -> None:
-        """The resolution's own release is ordered by its ship date too."""
-        self.create_group_resolution(
-            release=self.late_registered_old_release,
-            group=self.group,
-            type=GroupResolution.Type.in_release,
-        )
-        assert not GroupResolution.has_resolution(self.group, self.new_release)
-
-    def test_finalized_order_is_gated(self) -> None:
-        self.create_group_resolution(
-            group=self.group, release=self.new_release, type=GroupResolution.Type.in_release
-        )
-        with self.feature({"organizations:release-resolution-finalized-order": False}):
-            assert not GroupResolution.has_resolution(self.group, self.late_registered_old_release)
-        with self.feature("organizations:release-resolution-finalized-order"):
-            assert GroupResolution.has_resolution(self.group, self.late_registered_old_release)
-
-    @with_feature("organizations:release-resolution-finalized-order")
     def test_current_release_version_uses_finalized_date(self) -> None:
+        current_release = self.create_release(
+            version="current",
+            date_added=timezone.now(),
+            date_released=timezone.now() - timedelta(minutes=60),
+        )
         self.create_group_resolution(
             group=self.group,
             release=self.new_release,
-            current_release_version=self.late_registered_old_release.version,
+            current_release_version=current_release.version,
             type=GroupResolution.Type.in_release,
         )
         assert not GroupResolution.has_resolution(self.group, self.old_release)
-        assert GroupResolution.has_resolution(self.group, self.late_registered_old_release)
+        assert GroupResolution.has_resolution(self.group, current_release)
 
     @with_feature("organizations:release-resolution-finalized-order")
     def test_regression_after_finalizing_cached_release(self) -> None:
