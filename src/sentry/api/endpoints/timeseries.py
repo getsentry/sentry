@@ -16,6 +16,9 @@ class Annotation(TypedDict):
     end: float
     droppedCount: float
     label: str
+    acceptedCount: NotRequired[float]
+    droppedBytes: NotRequired[float]
+    acceptedBytes: NotRequired[float]
 
 
 class StatsMeta(TypedDict):

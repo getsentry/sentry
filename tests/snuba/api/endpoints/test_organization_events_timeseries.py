@@ -606,6 +606,79 @@ class OrganizationEventsTimeseriesAnnotationsTest(APITestCase, OutcomesSnubaTest
         assert response.status_code == 200, response.content
         assert response.data["meta"]["annotations"] == []
 
+    def _store_outcome(
+        self,
+        outcome: Outcome,
+        category: DataCategory,
+        quantity: int,
+        reason: str = "none",
+        minutes: int = 30,
+    ) -> None:
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": outcome,
+                "reason": reason,
+                "category": category,
+                "timestamp": self.start + timedelta(minutes=minutes),
+                "quantity": quantity,
+            }
+        )
+
+    def test_annotations_enriched_shape_for_tooltip(self) -> None:
+        """Target response shape for the dropped-data tooltip"""
+        # One hourly bucket: 1000 accepted logs, 400 dropped to a per-key rate
+        # limit and 100 to org quota. Bytes tracked on the paired byte category.
+        self._store_outcome(Outcome.ACCEPTED, DataCategory.LOG_ITEM, 1000)
+        self._store_outcome(Outcome.ACCEPTED, DataCategory.LOG_BYTE, 500_000)
+        self._store_outcome(Outcome.RATE_LIMITED, DataCategory.LOG_ITEM, 400, reason="key_quota")
+        self._store_outcome(
+            Outcome.RATE_LIMITED, DataCategory.LOG_BYTE, 200_000, reason="key_quota"
+        )
+        self._store_outcome(Outcome.RATE_LIMITED, DataCategory.LOG_ITEM, 100, reason="over_quota")
+        self._store_outcome(
+            Outcome.RATE_LIMITED, DataCategory.LOG_BYTE, 50_000, reason="over_quota"
+        )
+
+        data: dict[str, Any] = {
+            "start": self.start,
+            "end": self.end,
+            "interval": "1h",
+            "project": [self.project.id],
+            "dataset": "logs",
+            "includeAnnotations": "",
+        }
+        with self.feature(
+            {
+                "organizations:visibility-explore-view": True,
+                "organizations:explore-data-fidelity-annotations": True,
+            }
+        ):
+            response = self.client.get(self.url, data=data, format="json")
+
+        assert response.status_code == 200, response.content
+        annotations = response.data["meta"]["annotations"]
+
+        # One annotation per dropped (outcome, reason), each in the same bucket.
+        by_reason = {a["reason"]: a for a in annotations}
+        assert set(by_reason) == {"key_quota", "over_quota"}
+
+        key_limit = by_reason["key_quota"]
+        assert key_limit["type"] == "system"
+        assert key_limit["category"] == DataCategory.LOG_ITEM.api_name()
+        assert key_limit["droppedCount"] == 400
+        # New: bytes dropped, sourced from the paired LOG_BYTE category.
+        assert key_limit["droppedBytes"] == 200_000
+
+        org_quota = by_reason["over_quota"]
+        assert org_quota["droppedCount"] == 100
+        assert org_quota["droppedBytes"] == 50_000
+        assert key_limit["acceptedCount"] == 1000
+        assert key_limit["acceptedBytes"] == 500_000
+        assert org_quota["acceptedCount"] == 1000
+        assert org_quota["acceptedBytes"] == 500_000
+
 
 class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
     endpoint = "sentry-api-0-organization-events-timeseries"

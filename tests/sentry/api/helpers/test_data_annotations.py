@@ -119,3 +119,60 @@ class GetDroppedDataAnnotationsTest(OutcomesSnubaTest):
         # raising. v0 is EAP-only, so non-EAP datasets (e.g. errors) map to nothing.
         assert get_dropped_data_annotations(object(), self._snuba_params(), ONE_HOUR) == []
         assert get_dropped_data_annotations(errors, self._snuba_params(), ONE_HOUR) == []
+
+    def test_accepted_count_is_bucket_total(self) -> None:
+        # Accepted is the share denominator: dropped / (accepted + dropped).
+        drop_at = self.start + timedelta(minutes=30)
+        self._store_drop(Outcome.ACCEPTED, DataCategory.SPAN, drop_at, quantity=8000)
+        self._store_drop(Outcome.RATE_LIMITED, DataCategory.SPAN, drop_at, quantity=2000)
+
+        annotations = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
+
+        assert len(annotations) == 1
+        assert annotations[0]["droppedCount"] == 2000
+        assert annotations[0]["acceptedCount"] == 8000
+
+    def test_accepted_repeated_across_drops_in_bucket(self) -> None:
+        # Two drop reasons in one bucket both carry that bucket's accepted total.
+        drop_at = self.start + timedelta(minutes=30)
+        self._store_drop(Outcome.ACCEPTED, DataCategory.SPAN, drop_at, quantity=5000)
+        self._store_drop(
+            Outcome.RATE_LIMITED, DataCategory.SPAN, drop_at, reason="key_quota", quantity=400
+        )
+        self._store_drop(
+            Outcome.INVALID, DataCategory.SPAN, drop_at, reason="invalid_data", quantity=100
+        )
+
+        annotations = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
+
+        by_reason = {a["reason"]: a for a in annotations}
+        assert set(by_reason) == {"key_quota", "invalid_data"}
+        assert by_reason["key_quota"]["acceptedCount"] == 5000
+        assert by_reason["invalid_data"]["acceptedCount"] == 5000
+
+    def test_log_bytes_populated(self) -> None:
+        # Logs are the only v0 dataset with a paired byte category. Relay emits a
+        # LOG_BYTE outcome alongside each LOG_ITEM outcome.
+        drop_at = self.start + timedelta(minutes=30)
+        self._store_drop(Outcome.ACCEPTED, DataCategory.LOG_ITEM, drop_at, quantity=1000)
+        self._store_drop(Outcome.ACCEPTED, DataCategory.LOG_BYTE, drop_at, quantity=500_000)
+        self._store_drop(
+            Outcome.RATE_LIMITED, DataCategory.LOG_ITEM, drop_at, reason="key_quota", quantity=400
+        )
+        self._store_drop(
+            Outcome.RATE_LIMITED,
+            DataCategory.LOG_BYTE,
+            drop_at,
+            reason="key_quota",
+            quantity=200_000,
+        )
+
+        annotations = get_dropped_data_annotations(OurLogs, self._snuba_params(), ONE_HOUR)
+
+        assert len(annotations) == 1
+        annotation = annotations[0]
+        assert annotation["category"] == DataCategory.LOG_ITEM.api_name()
+        assert annotation["droppedCount"] == 400
+        assert annotation["droppedBytes"] == 200_000
+        assert annotation["acceptedCount"] == 1000
+        assert annotation["acceptedBytes"] == 500_000
