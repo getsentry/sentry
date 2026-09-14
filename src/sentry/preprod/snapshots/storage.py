@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import IO, Literal
 
 from objectstore_client import Compression, GetResponse, Metadata, RequestError, Session
@@ -9,6 +10,8 @@ from urllib3.exceptions import HTTPError
 from sentry.models.project import Project
 from sentry.objectstore import UsecaseId, get_session
 from sentry.utils import metrics
+
+logger = logging.getLogger(__name__)
 
 
 # TODO: On January 1, 2027, remove the preprod fallback and use preprod_snapshots exclusively.
@@ -35,6 +38,14 @@ class SnapshotStorage:
         metrics.incr(
             "preprod.snapshot_storage.legacy_fallback",
             tags={"op": op, "found": str(found).lower()},
+        )
+        logger.info(
+            "preprod.objectstore.fallback",
+            extra={
+                "image_type": UsecaseId.PREPROD_SNAPSHOTS.value,
+                "operation": op,
+                "found": found,
+            },
         )
 
     def put(self, contents: bytes | IO[bytes], *, key: str, content_type: str | None = None) -> str:
