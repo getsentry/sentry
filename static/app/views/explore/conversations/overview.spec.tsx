@@ -41,10 +41,6 @@ describe('ConversationsOverviewPage', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/recent-searches/`,
-      body: [],
-    });
   });
 
   afterEach(() => {
@@ -52,8 +48,8 @@ describe('ConversationsOverviewPage', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('prefers recent filters when available', async () => {
-    MockApiClient.addMockResponse({
+  it('does not load recent searches', async () => {
+    const recentSearchRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
       body: [{query: 'span.op:http'}],
     });
@@ -63,7 +59,8 @@ describe('ConversationsOverviewPage', () => {
       await screen.findByRole('combobox', {name: 'Add a search term'})
     );
 
-    expect(await screen.findByTestId('recent-filter-key')).toHaveTextContent('span.op');
+    expect(recentSearchRequest).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('recent-filter-key')).not.toBeInTheDocument();
   });
 
   it('offers conversation aggregate aliases as filters', async () => {

@@ -134,6 +134,7 @@ function ConversationsOverviewPage() {
         unsetCursor();
       },
       searchSource: 'conversations',
+      disableRecentSearches: true,
       // The conversations API cannot express negation given how it fetches
       // conversations, so hide negation operators from the search suggestions.
       disallowNegation: true,

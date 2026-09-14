@@ -21,6 +21,7 @@ describe('FoldSection', () => {
     sectionData: {},
     detectorDetails: {},
     eventCount: 0,
+    eventNavigationHeight: 0,
     isSidebarOpen: true,
     navScrollMargin: 64,
     dispatch: jest.fn(),

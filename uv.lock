@@ -2578,13 +2578,13 @@ wheels = [
 
 [[package]]
 name = "sentry-redis-tools"
-version = "0.5.0"
+version = "0.5.2"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "redis" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_redis_tools-0.5.0-py2.py3-none-any.whl", hash = "sha256:3a1c1e1082df07bc502689baad0becbe69c0b70f2672cf6a14ea69bcd2871a18" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_redis_tools-0.5.2-py2.py3-none-any.whl", hash = "sha256:39bff04b6307356dfa974a50a102a910805f3295d703a0ef5362b538648ac0a6" },
 ]
 
 [[package]]
