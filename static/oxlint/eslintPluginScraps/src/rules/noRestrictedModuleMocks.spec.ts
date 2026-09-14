@@ -34,6 +34,19 @@ ruleTester.run('no-restricted-module-mocks', noRestrictedModuleMocks, {
       ],
     },
     {
+      code: "jest.mock('sentry/components/pageFilters/usePageFilters');",
+      errors: [
+        {
+          messageId: 'forbidden',
+          data: {
+            hook: 'usePageFilters',
+            replacement:
+              'Use PageFiltersStore.onInitializeUrlState(PageFiltersFixture({...})).',
+          },
+        },
+      ],
+    },
+    {
       code: "import * as router from 'sentry/utils/useNavigate'; jest.spyOn(router, 'useNavigate');",
       errors: [
         {
@@ -48,6 +61,10 @@ ruleTester.run('no-restricted-module-mocks', noRestrictedModuleMocks, {
     },
     {
       code: "jest.spyOn(require('sentry/utils/useOrganization'), 'useOrganization');",
+      errors: [{messageId: 'forbidden'}],
+    },
+    {
+      code: "import * as pageFilters from 'sentry/components/pageFilters/usePageFilters'; jest.spyOn(pageFilters, 'usePageFilters');",
       errors: [{messageId: 'forbidden'}],
     },
   ],
