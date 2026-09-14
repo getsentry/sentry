@@ -6,6 +6,7 @@ from sentry.integrations.utils.github_permission_tiers import (
     BASELINE_TIER,
     TIERS,
     _baseline_tier_reqs,
+    get_missing_permission_tiers,
     get_permission_tiers,
 )
 
@@ -172,3 +173,10 @@ def test_tiers_are_exposed_highest_order_first() -> None:
 def test_the_baseline_is_the_lowest_tier_and_claims_no_scopes() -> None:
     assert BASELINE_TIER.order == min(tier.order for tier in TIERS)
     assert BASELINE_TIER.introduced == {}
+
+
+def test_get_missing_permission_tiers_compares_against_the_required_permissions() -> None:
+    # An install holding everything the app requires is missing no tiers...
+    assert get_missing_permission_tiers(REQUIRED_PERMISSIONS) == []
+    # ...and one holding nothing is missing every tier.
+    assert [tier.key for tier in get_missing_permission_tiers({})] == ALL_KEYS
