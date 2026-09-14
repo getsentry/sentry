@@ -59,11 +59,26 @@ type ReleaseContextType = {
 };
 const ReleaseContext = createContext({} as ReleaseContextType);
 
+function normalizeProjectQueryParam(project: Location['query'][string]) {
+  if (typeof project !== 'string') {
+    return project;
+  }
+
+  return project.replace(/\/+$/, '');
+}
+
 function pickLocationQuery(location: Location) {
-  return pick(location.query, [
+  const query = pick(location.query, [
     ...Object.values(URL_PARAM),
     ...Object.values(PAGE_URL_PARAM),
   ]);
+  const project = normalizeProjectQueryParam(query.project);
+
+  if (project === query.project) {
+    return query;
+  }
+
+  return {...query, project};
 }
 
 function ReleasesDetail({
@@ -105,7 +120,7 @@ function ReleasesDetail({
     ...deploysApiOptions({
       orgSlug: organization.slug,
       releaseVersion: params.release,
-      query: {project: location.query.project},
+      query: {project: normalizeProjectQueryParam(location.query.project)},
     }),
     enabled: isDeploysEnabled,
   });
@@ -122,7 +137,7 @@ function ReleasesDetail({
       }),
       {
         query: {
-          project: location.query.project,
+          project: normalizeProjectQueryParam(location.query.project),
           environment: location.query.environment ?? [],
           query: searchReleaseVersion(params.release),
           field: 'sum(session)',
@@ -241,19 +256,27 @@ function ReleasesDetailContainer() {
 
   useRouteAnalyticsParams({release});
 
-  // Remove global date time from URL
+  // Strip datetime leftovers and a trailing slash on ?project=
   useEffect(() => {
     const {start, end, statsPeriod, utc, ...restQuery} = location.query;
+    const nextProject = normalizeProjectQueryParam(restQuery.project);
+    const shouldStripDates = Boolean(start || end || statsPeriod || utc);
+    const shouldStripProjectSlash = nextProject !== restQuery.project;
 
-    if (start || end || statsPeriod || utc) {
-      navigate(
-        {
-          ...location,
-          query: restQuery,
-        },
-        {replace: true}
-      );
+    if (!shouldStripDates && !shouldStripProjectSlash) {
+      return;
     }
+
+    navigate(
+      {
+        ...location,
+        query: {
+          ...restQuery,
+          ...(shouldStripProjectSlash ? {project: nextProject} : {}),
+        },
+      },
+      {replace: true}
+    );
   }, [location, navigate]);
 
   const {data: releaseMeta, isPending, isError, error} = useReleaseMeta({release});
@@ -282,7 +305,7 @@ function ReleasesDetailContainer() {
   }
 
   const {projects} = releaseMeta;
-  const projectId = location.query.project;
+  const projectId = normalizeProjectQueryParam(location.query.project);
   const isProjectMissingInUrl = !projectId || typeof projectId !== 'string';
 
   if (isProjectMissingInUrl) {
