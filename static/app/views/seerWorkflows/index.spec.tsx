@@ -29,9 +29,7 @@ describe('SeerWorkflows', () => {
     });
     render(<SeerWorkflows />, {organization});
     expect(await screen.findByText('No workflow runs yet.')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', {name: 'Run monitor scan'})
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Run…'})).not.toBeInTheDocument();
   });
 
   it('clears filters when starting a scan, expands it, and polls for completion', async () => {
@@ -73,7 +71,9 @@ describe('SeerWorkflows', () => {
       extras: {status: 'running'},
     };
     MockApiClient.addMockResponse({url, body: [runningRun, previousRun]});
-    await userEvent.click(screen.getByRole('button', {name: 'Run monitor scan'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Run…'}));
+    expect(startScan).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Monitor scan'}));
 
     expect(await screen.findByRole('img', {name: 'Running'})).toBeInTheDocument();
     expect(screen.getAllByText('Scanning monitors…')).not.toHaveLength(0);

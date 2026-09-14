@@ -14,6 +14,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {getPullRequestStatusLabel} from 'sentry/components/group/externalIssuesList/pullRequestStatusBadge';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -290,13 +291,19 @@ function SeerWorkflows() {
               {t('Historical runs of Sentry workflows for this organization.')}
             </Text>
             {organization.features.includes('seer-workflows-monitor-cleanup') && (
-              <Button
+              <DropdownMenu
                 size="sm"
-                busy={isStartingMonitorScan}
-                onClick={() => startMonitorScan()}
-              >
-                {t('Run monitor scan')}
-              </Button>
+                triggerLabel={t('Run…')}
+                triggerProps={{busy: isStartingMonitorScan}}
+                isDisabled={isStartingMonitorScan}
+                items={[
+                  {
+                    key: 'duplicate_monitors',
+                    label: t('Monitor scan'),
+                    onAction: () => startMonitorScan(),
+                  },
+                ]}
+              />
             )}
           </Flex>
         </Stack>
