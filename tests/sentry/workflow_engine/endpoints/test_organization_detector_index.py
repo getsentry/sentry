@@ -1376,6 +1376,37 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         assert self.user_detector.enabled is True
         assert self.error_detector.enabled is True
 
+    def test_cannot_update_detectors_issue_stream(self) -> None:
+        self.login_as(user=self.org_manager_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": str(self.issue_stream_detector.id)},
+            enabled=False,
+            status_code=403,
+        )
+
+        self.issue_stream_detector.refresh_from_db()
+        assert self.issue_stream_detector.enabled is True
+
+    def test_cannot_update_detectors_issue_stream_mixed(self) -> None:
+        self.login_as(user=self.org_manager_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params=[
+                ("id", str(self.issue_stream_detector.id)),
+                ("id", str(self.detector.id)),
+            ],
+            enabled=False,
+            status_code=403,
+        )
+
+        self.issue_stream_detector.refresh_from_db()
+        self.detector.refresh_from_db()
+        assert self.issue_stream_detector.enabled is True
+        assert self.detector.enabled is True
+
 
 @cell_silo_test
 class ConvertAssigneeValuesTest(APITestCase):

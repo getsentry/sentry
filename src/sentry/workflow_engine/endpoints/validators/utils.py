@@ -61,8 +61,11 @@ def can_edit_detectors(detectors: QuerySet[Detector], request: Request) -> bool:
     """
     Determine if the requesting user has access to edit the given detectors.
     System created detectors lock edit access to org:write, while user created detectors
-    are more permissive.
+    are more permissive. Issue Stream detectors are never editable.
     """
+    if any(detector.type == IssueStreamGroupType.slug for detector in detectors):
+        return False
+
     required_scopes = (
         SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES
         if any(is_system_created_detector(detector) for detector in detectors)
