@@ -240,6 +240,7 @@ class TestProjectTransfer(TestCase):
         assert (
             updated_rule.environment_id == Environment.get_or_create(self.project, "production").id
         )
+        assert updated_rule.new_environment_id == updated_rule.environment_id
 
         # check to make sure old monitor is scheduled for deletion
         assert CellScheduledDeletion.objects.filter(

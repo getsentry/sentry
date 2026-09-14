@@ -47,8 +47,8 @@ class Rule(Model):
 
     project = FlexibleForeignKey("sentry.Project")
     environment_id = BoundedPositiveIntegerField(null=True)
-    # Shadow column for the in-progress widening of `environment_id` to int8; swapped
-    # into `environment_id` once backfilled. Nothing reads or writes it yet.
+    # Shadow column for the in-progress widening of `environment_id` to int8: every write
+    # must mirror `environment_id` into it. Swapped into `environment_id` once backfilled.
     new_environment_id = BoundedBigIntegerField(null=True)
     label = models.CharField(max_length=256)
     # `data` contain all the specifics of the rule - conditions, actions, frequency, etc.
@@ -134,6 +134,7 @@ class Rule(Model):
         return rv
 
     def save(self, *args, **kwargs):
+        self.new_environment_id = self.environment_id
         rv = super().save(*args, **kwargs)
         self._clear_project_rule_cache()
         return rv

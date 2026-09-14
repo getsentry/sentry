@@ -568,8 +568,11 @@ class Project(Model):
         )
 
         for environment_id, rule_ids in rules_by_environment_id.items():
+            environment = Environment.get_or_create(self, environment_names[environment_id])
             Rule.objects.filter(id__in=rule_ids).update(
-                environment_id=Environment.get_or_create(self, environment_names[environment_id]).id
+                environment_id=environment.id,
+                # Dual-write while `new_environment_id` is a shadow column; drop once swapped in.
+                new_environment_id=environment.id,
             )
 
         # Manually move over organization id's for Monitors
