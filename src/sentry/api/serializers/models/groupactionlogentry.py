@@ -15,9 +15,12 @@ from sentry.issues.action_log.read_metrics import (
 )
 from sentry.issues.action_log.types import (
     ACTION_TYPES_WITH_COMMIT_DATA,
+    COMMENT_MUTATION_ACTION_TYPES,
     COMMIT_ACTION_TYPES,
     PULL_REQUEST_ACTION_TYPES,
     CommentAction,
+    CommentDeleteAction,
+    CommentEditAction,
     GroupActionType,
     GroupActorType,
 )
@@ -92,6 +95,37 @@ def _serialized_id(obj: GroupActionLogEntry) -> str:
     return str(obj.id)
 
 
+def _fold_comment_mutations(
+    entries: Sequence[GroupActionLogEntry],
+) -> tuple[list[GroupActionLogEntry], dict[int, str | None]]:
+    """
+    Resolve COMMENT_EDIT and COMMENT_DELETE against the comments they supersede.
+
+    The log is append-only, so editing or deleting a comment appends an entry rather than
+    rewriting the COMMENT. Returns the entries to serialize — mutations dropped, deleted
+    comments removed — and the current text of each edited comment, keyed by the id of the
+    COMMENT itself, which is what a mutation's ``comment_id`` points at.
+    """
+    latest_text_by_comment: dict[int, str | None] = {}
+    deleted_comment_ids: set[int] = set()
+    for entry in entries:
+        if entry.type not in COMMENT_MUTATION_ACTION_TYPES:
+            continue
+        match entry.action:
+            case CommentEditAction(comment_id=comment_id, text=text):
+                # Entries arrive newest-first, so the first edit seen wins.
+                latest_text_by_comment.setdefault(comment_id, text)
+            case CommentDeleteAction(comment_id=comment_id):
+                deleted_comment_ids.add(comment_id)
+
+    kept = [
+        entry
+        for entry in entries
+        if entry.type not in COMMENT_MUTATION_ACTION_TYPES and entry.id not in deleted_comment_ids
+    ]
+    return kept, latest_text_by_comment
+
+
 def get_serialized_activity_items(
     group: "Group",
     user: User | RpcUser | AnonymousUser | None,
@@ -101,6 +135,9 @@ def get_serialized_activity_items(
 ) -> list[dict[str, Any]] | None:
     """
     Activity-shaped items for a group, read from the action log.
+
+    Comment edits and deletes are folded into the comments they supersede, so the window
+    reads the way Activity's mutable rows would.
 
     Returns None when the log can't back the response — either the gate is closed or it's
     open and the log is empty — and the caller should fall back to Activity. Reports the
@@ -120,8 +157,14 @@ def get_serialized_activity_items(
         )
         return None
 
+    entries, latest_text_by_comment = _fold_comment_mutations(action_log)
+    items = serialize(entries, user)
+    for entry, item in zip(entries, items):
+        if entry.id in latest_text_by_comment:
+            item["data"] = {**item["data"], "text": latest_text_by_comment[entry.id]}
+
     record_activity_read(endpoint, ActivityReadResult.GAL)
-    return [*serialize(action_log, user), serialize_first_seen_entry(group)]
+    return [*items, serialize_first_seen_entry(group)]
 
 
 @register(GroupActionLogEntry)

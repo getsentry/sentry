@@ -52,8 +52,12 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
 )
-from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.pause import PauseReason, pause_pr_iteration
+from sentry.seer.autofix.pr_iteration.pr_state import (
+    iteration_prs_any_closed,
+    record_pr_closed,
+)
 from sentry.seer.autofix.pr_ready_for_review import (
     emit_pr_ready_for_review,
     format_pull_requests_payload,
@@ -284,7 +288,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         state: SeerRunState,
     ) -> PrIterationLogContext:
         """The shared PR-iteration identity, from what the caller already holds."""
-        return PrIterationLogContext.for_run(logger, state, organization.id, group.id)
+        return PrIterationLogContext.for_run(
+            logger, state, organization.id, group.id, iteration=LogCtxIteration.TRIGGERED
+        )
 
     @classmethod
     def _record_failed_tool_calls(
@@ -1165,6 +1171,16 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 errored_repos=errored_repos,
             )
             return PrIterationOutcome.PR_CREATION_ERRORED
+
+        if iteration_prs_any_closed(group.organization, state):
+            record_pr_closed("push")
+            pause_pr_iteration(
+                run_id=run_id,
+                organization_id=group.organization.id,
+                reason=PauseReason.PR_CLOSED,
+            )
+            log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="pr_closed")
+            return PrIterationOutcome.PR_CLOSED
 
         pushed = cls._push_iteration_changes(
             log_ctx,
