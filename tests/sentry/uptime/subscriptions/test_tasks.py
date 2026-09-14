@@ -498,6 +498,50 @@ class UpdateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
         )
         self.assert_redis_config("default", sub, None, None)
 
+    def test_region_filter(self) -> None:
+        regions = [
+            UptimeRegionConfig(
+                slug="region1",
+                name="Region 1",
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="r1",
+            ),
+            UptimeRegionConfig(
+                slug="region2",
+                name="Region 2",
+                config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+                config_redis_key_prefix="r2",
+            ),
+        ]
+        with override_settings(UPTIME_REGIONS=regions):
+            sub = self.create_uptime_subscription(
+                status=UptimeSubscription.Status.ACTIVE,
+                subscription_id=uuid.uuid4().hex,
+                region_slugs=["region1", "region2"],
+            )
+            update_remote_uptime_subscription(sub.id, region_slugs=["region1"])
+
+            sub.refresh_from_db()
+            assert sub.status == UptimeSubscription.Status.ACTIVE.value
+            self.assert_redis_config(
+                "region1", sub, "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE
+            )
+            self.assert_redis_config("region2", sub, None, None)
+
+    def test_region_filter_keeps_updating_status(self) -> None:
+        sub = self.create_uptime_subscription(
+            status=UptimeSubscription.Status.UPDATING,
+            subscription_id=uuid.uuid4().hex,
+            region_slugs=["default"],
+        )
+        update_remote_uptime_subscription(sub.id, region_slugs=["default"])
+
+        sub.refresh_from_db()
+        assert sub.status == UptimeSubscription.Status.UPDATING.value
+        self.assert_redis_config(
+            "default", sub, "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE
+        )
+
 
 class BrokenMonitorCheckerTest(UptimeTestCase):
     def test(self) -> None:
