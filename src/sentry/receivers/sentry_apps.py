@@ -1,21 +1,37 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping
 from typing import Any
 
+from django.core.exceptions import ObjectDoesNotExist
+
+from sentry.api.serializers import serialize
 from sentry.hybridcloud.rpc import coerce_id_from
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
+from sentry.sentry_apps.event_types import SentryAppEventType
+from sentry.sentry_apps.external_issues.kinds import ExternalIssueKind
+from sentry.sentry_apps.external_issues.types import ExternalIssueTrigger
+from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
-from sentry.sentry_apps.tasks.sentry_apps import build_comment_webhook, workflow_notification
+from sentry.sentry_apps.tasks.sentry_apps import (
+    build_comment_webhook,
+    build_external_issue_webhook,
+    is_project_allowed,
+    workflow_notification,
+)
 from sentry.sentry_apps.utils.webhooks import is_subscribed
 from sentry.signals import (
     comment_created,
     comment_deleted,
     comment_updated,
+    external_issue_created,
+    external_issue_linked,
     issue_assigned,
     issue_escalating,
     issue_ignored,
@@ -24,6 +40,8 @@ from sentry.signals import (
 )
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+
+logger = logging.getLogger(__name__)
 
 
 @issue_assigned.connect(weak=False)
@@ -111,6 +129,66 @@ def send_comment_updated_webhook(project, user, group, data, **kwargs):
 @comment_deleted.connect(weak=False)
 def send_comment_deleted_webhook(project, user, group, data, **kwargs):
     send_comment_webhooks(project.organization, group, user, "comment.deleted", data=data)
+
+
+@external_issue_created.connect(weak=False)
+def send_external_issue_created_webhook(
+    project, group, user, external_issue, triggered_by=None, **kwargs
+):
+    event = SentryAppEventType.ISSUE_EXTERNAL_ISSUE_CREATED
+    send_external_issue_webhooks(project, group, user, external_issue, event, triggered_by)
+
+
+@external_issue_linked.connect(weak=False)
+def send_external_issue_linked_webhook(
+    project, group, user, external_issue, triggered_by=None, **kwargs
+):
+    event = SentryAppEventType.ISSUE_EXTERNAL_ISSUE_LINKED
+    send_external_issue_webhooks(project, group, user, external_issue, event, triggered_by)
+
+
+def send_external_issue_webhooks(
+    project: Project,
+    issue: Group,
+    user: User | RpcUser | None,
+    external_issue: ExternalIssue | PlatformExternalIssue,
+    event: SentryAppEventType,
+    triggered_by: ExternalIssueTrigger | None,
+) -> None:
+    installations = [
+        install
+        for install in installations_to_notify(project.organization, event)
+        if is_project_allowed(install, project.id)
+    ]
+    if not installations:
+        return
+
+    external_issue_kind = ExternalIssueKind.of(external_issue)
+    try:
+        external_issue = external_issue_kind.fetch(external_issue_id=external_issue.id, group=issue)
+    except ObjectDoesNotExist:
+        logger.info(
+            "sentry_app.external_issue_webhook.missing_external_issue",
+            extra={
+                "external_issue_id": external_issue.id,
+                "external_issue_kind": external_issue_kind,
+                "group_id": issue.id,
+                "project_id": project.id,
+            },
+        )
+        return
+
+    external_issue_data: dict[str, Any] = serialize(external_issue)
+    for install in installations:
+        build_external_issue_webhook.delay(
+            installation_id=install.id,
+            issue_id=issue.id,
+            type=event,
+            user_id=coerce_id_from(user),
+            external_issue=external_issue_data,
+            external_issue_kind=external_issue_kind,
+            triggered_by=triggered_by,
+        )
 
 
 def send_comment_webhooks(organization, issue, user, event, data=None):

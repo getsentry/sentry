@@ -39,6 +39,9 @@ class SentryAppEventType(StrEnum):
     ISSUE_UNRESOLVED = "issue.unresolved"
     ISSUE_RESOLVED = "issue.resolved"
     ISSUE_ASSIGNED = "issue.assigned"
+    # Distinct from `external_issue.*` above, which are outbound requests to an app.
+    ISSUE_EXTERNAL_ISSUE_CREATED = "issue.external_issue_created"
+    ISSUE_EXTERNAL_ISSUE_LINKED = "issue.external_issue_linked"
 
     # authorizations
     GRANT_EXCHANGER = "grant_exchanger"
