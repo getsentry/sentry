@@ -26,6 +26,7 @@ import {DetailsContainer} from 'admin/components/detailsContainer';
 import {DetailsPage} from 'admin/components/detailsPage';
 import {EventUsers} from 'admin/components/eventUsers';
 import {getLogQuery} from 'admin/utils';
+import {useDetectorHealthCheck} from 'admin/views/useDetectorHealthCheck';
 
 import {DynamicSamplingPanel} from './dynamicSamplingPanel';
 
@@ -50,6 +51,11 @@ export function ProjectDetails() {
   const api = useApi();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const detectorHealthCheck = useDetectorHealthCheck({
+    orgSlug: orgId,
+    projectIds: projectId ? [projectId] : undefined,
+  });
 
   const handleRemoveEmail = (userHash: string) => {
     const endpoint = `/projects/${orgId}/${projectId}/users/${userHash}/`;
@@ -160,6 +166,17 @@ export function ProjectDetails() {
       <DetailsPage
         rootName="Projects"
         name={`${data.slug} (${organization.name})`}
+        actions={[
+          {
+            key: 'performDetectorHealthCheck',
+            name: 'Perform Detector Health Check',
+            help: 'Verify that all sentry-managed detectors exist for this organization and project, creating them if not.',
+            confirmModalOpts: {
+              showAuditFields: true,
+            },
+            onAction: _params => detectorHealthCheck.mutate(),
+          },
+        ]}
         sections={[
           {
             content: overview,
