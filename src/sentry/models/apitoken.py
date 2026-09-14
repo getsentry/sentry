@@ -187,7 +187,14 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
-    user = FlexibleForeignKey("sentry.User")
+    user = FlexibleForeignKey("sentry.User", null=True, blank=True)
+    service_account = FlexibleForeignKey(
+        "sentry.ServiceAccount",
+        null=True,
+        blank=True,
+        related_name="api_tokens",
+        on_delete=models.CASCADE,
+    )
     # Tokens can be scoped to only access a single organization.
     #
     # Failure to restrict access by the scoping organization id could enable
@@ -211,8 +218,17 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_apitoken"
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(user__isnull=False, service_account__isnull=True)
+                    | models.Q(user__isnull=True, service_account__isnull=False)
+                ),
+                name="sentry_apitoken_exactly_one_principal",
+            )
+        ]
 
-    __repr__ = sane_repr("user_id", "token", "application_id")
+    __repr__ = sane_repr("user_id", "service_account_id", "token", "application_id")
 
     def __str__(self) -> str:
         return f"token_id={force_str(self.id)}"
@@ -587,6 +603,10 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
             SentryAppInstallationToken,
         )
 
+        if self.service_account_id is not None:
+            service_account = self.service_account
+            if service_account is not None:
+                return service_account.organization_id
         if self.scoping_organization_id:
             return self.scoping_organization_id
         try:

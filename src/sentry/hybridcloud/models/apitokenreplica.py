@@ -17,7 +17,10 @@ class ApiTokenReplica(Model, HasApiScopes):
     application_id = HybridCloudForeignKey("sentry.ApiApplication", null=True, on_delete="CASCADE")
     organization = FlexibleForeignKey("sentry.Organization", null=True, on_delete=models.SET_NULL)
     application_is_active = models.BooleanField(default=False)
-    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    user_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="CASCADE")
+    service_account_id = HybridCloudForeignKey(
+        "sentry.ServiceAccount", null=True, on_delete="CASCADE"
+    )
     apitoken_id = HybridCloudForeignKey("sentry.ApiToken", null=False, on_delete="CASCADE")
     hashed_token = models.CharField(max_length=128, null=True)
     token = models.CharField(max_length=71)
@@ -36,7 +39,7 @@ class ApiTokenReplica(Model, HasApiScopes):
             models.Index(fields=["hashed_token"]),
         )
 
-    __repr__ = sane_repr("user_id", "token", "application_id")
+    __repr__ = sane_repr("user_id", "service_account_id", "token", "application_id")
 
     def __str__(self) -> str:
         return f"replica_token_id={self.id}, token_id={force_str(self.apitoken_id)}"

@@ -32,6 +32,7 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
             adding_user = orm_mapping.user_id is None and mapping.user_id is not None
             orm_mapping.role = mapping.role
             orm_mapping.user_id = mapping.user_id
+            orm_mapping.service_account_id = mapping.service_account_id
             orm_mapping.email = mapping.email
             orm_mapping.inviter_id = mapping.inviter_id
             orm_mapping.invite_status = mapping.invite_status
