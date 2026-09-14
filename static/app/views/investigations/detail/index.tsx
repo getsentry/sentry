@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useDebouncer} from '@tanstack/react-pacer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
@@ -21,11 +21,13 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd, IconSeer, IconStack} from 'sentry/icons';
+import {IconAdd, IconIssues, IconSeer, IconStack} from 'sentry/icons';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useMembers} from 'sentry/utils/members/useMembers';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -44,8 +46,9 @@ import {
   shouldDisplayInvestigationBlock,
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/cell';
+import {InvestigationCurrentStateCard} from 'sentry/views/investigations/detail/currentStateCard';
+import {buildInvestigationCurrentState} from 'sentry/views/investigations/detail/presentationModel';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
-import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
 import type {
   InvestigationBlockKind,
   InvestigationDetail,
@@ -141,6 +144,14 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       ? titleGenerationQuery.data?.preview
       : null;
   const displayedTitle = draftTitle ?? generatedTitlePreview ?? investigation.title;
+  const manualCreatorId =
+    investigation.sourceType === 'manual' ? investigation.createdBy : null;
+  const {data: manualCreators = []} = useMembers({
+    ids: manualCreatorId ? [manualCreatorId] : [],
+    enabled: Boolean(manualCreatorId),
+  });
+  const manualCreator = manualCreators.find(user => user.id === manualCreatorId);
+  const sourceIssue = getSourceIssue(investigation.source);
 
   useEffect(() => {
     const status = titleGenerationQuery.data?.status;
@@ -271,6 +282,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const visibleNotebookCells = notebookCells.filter(block =>
     shouldDisplayInvestigationBlock(block, blocks)
   );
+  const currentState = buildInvestigationCurrentState(investigation);
 
   async function handleAddBlock({
     kind,
@@ -367,11 +379,29 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               />
               <Flex align="center" gap="sm" wrap="wrap">
                 <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
-                <MetaDivider />
-                <Text variant="muted">{t('%s blocks', investigation.blockCount)}</Text>
+                {sourceIssue ? (
+                  <Fragment>
+                    <MetaDivider />
+                    <ResourceLink
+                      icon={IconIssues}
+                      href={normalizeUrl(
+                        `/organizations/${organization.slug}/issues/${sourceIssue.id}/`
+                      )}
+                      title={sourceIssue.title}
+                    />
+                  </Fragment>
+                ) : null}
+                {manualCreator ? (
+                  <Fragment>
+                    <MetaDivider />
+                    <Text variant="muted">
+                      {t('Started by %s', manualCreator.name || manualCreator.email)}
+                    </Text>
+                  </Fragment>
+                ) : null}
                 <MetaDivider />
                 <Text variant="muted">
-                  {t('Last update: %s', formatNotebookDate(investigation.dateUpdated))}
+                  {t('Created: %s', formatInvestigationDate(investigation.dateCreated))}
                 </Text>
               </Flex>
             </Stack>
@@ -403,10 +433,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
         <Layout.Body>
           <Layout.Main width="full">
             <InvestigationCanvas>
-              <NotebookSummaryCard
-                summary={investigation.summary}
-                summaryDescription={investigation.summaryDescription}
-              />
+              <NotebookCurrentStateCard state={currentState} />
 
               <Stack width="min(100%, 884px)" margin="0 auto">
                 {visibleSummaryBlock ? (
@@ -561,8 +588,36 @@ function formatStatus(status: string) {
   return status.replaceAll('_', ' ').replace(/^./, character => character.toUpperCase());
 }
 
-function formatNotebookDate(date: string) {
+function formatInvestigationDate(date: string) {
   return new Date(date).toISOString().slice(0, 10).replaceAll('-', '.');
+}
+
+function getSourceIssue(source: InvestigationDetail['source']) {
+  if (!source) {
+    return null;
+  }
+
+  const snapshot = getRecord(source.snapshot);
+  const ref = getRecord(source.ref);
+  const id = getString(snapshot?.groupId) ?? getString(ref?.groupId);
+  if (!id) {
+    return null;
+  }
+
+  return {
+    id,
+    title: getString(snapshot?.groupTitle) ?? t('Issue'),
+  };
+}
+
+function getRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === 'object' && value !== null
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function getString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value : null;
 }
 
 function getStatusVariant(status: string): 'success' | 'warning' | 'muted' {
@@ -578,6 +633,7 @@ function getStatusVariant(status: string): 'success' | 'warning' | 'muted' {
 const InvestigationCanvas = styled(Stack)`
   width: min(100%, calc(884px + ${p => p.theme.space['2xl']}));
   margin: 0 auto;
+  gap: calc(${p => p.theme.space['3xl']} + ${p => p.theme.space.md});
 `;
 
 const InvestigationHeader = styled(Container)`
@@ -593,9 +649,8 @@ const InvestigationHeader = styled(Container)`
   }
 `;
 
-const NotebookSummaryCard = styled(InvestigationSummaryCard)`
+const NotebookCurrentStateCard = styled(InvestigationCurrentStateCard)`
   width: 100%;
-  margin-bottom: ${p => p.theme.space.xl};
   padding-inline: ${p => p.theme.space.xl};
 `;
 
