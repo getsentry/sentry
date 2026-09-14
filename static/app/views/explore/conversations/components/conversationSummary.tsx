@@ -455,7 +455,7 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
         breakdown.output;
 
       tokens.input += breakdown.netNewInput;
-      tokens.output += breakdown.output;
+      tokens.output += Math.max(0, breakdown.output - reasoning);
       tokens.cached += breakdown.cached;
       tokens.cacheWrite += breakdown.cacheWrite;
       tokens.reasoning += reasoning;

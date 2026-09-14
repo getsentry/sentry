@@ -248,10 +248,11 @@ describe('ConversationDetailPage summary errors', () => {
 
     expect(await screen.findByText('Input')).toBeInTheDocument();
     expect(screen.getByText('100')).toBeInTheDocument();
-    expect(screen.getByText('50')).toBeInTheDocument();
+    expect(screen.getByText('40')).toBeInTheDocument();
     expect(screen.getByText('Cached')).toBeInTheDocument();
     expect(screen.getByText('Cache Write')).toBeInTheDocument();
     expect(screen.getByText('Reasoning')).toBeInTheDocument();
+    expect(screen.getByText('10')).toBeInTheDocument();
   });
 
   it('renders the fire icon in the summary when a span errored', async () => {
