@@ -256,9 +256,9 @@ describe('getHighlightedSpanAttributes', () => {
     const summary = screen.getByText('100 in + 50 out = 150 total');
     await userEvent.hover(summary.parentElement!);
 
-    expect(await screen.findByText('Cache Read (included in input)')).toBeInTheDocument();
-    expect(screen.getByText('Cache Write (included in input)')).toBeInTheDocument();
-    expect(screen.getByText('Reasoning (included in output)')).toBeInTheDocument();
+    expect(await screen.findByText('Cache Read')).toBeInTheDocument();
+    expect(screen.getByText('Cache Write')).toBeInTheDocument();
+    expect(screen.getByText('Reasoning')).toBeInTheDocument();
   });
 
   it('should fall back to deprecated token attributes when replacements are unavailable', () => {

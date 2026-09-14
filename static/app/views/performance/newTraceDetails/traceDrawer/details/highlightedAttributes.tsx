@@ -412,13 +412,13 @@ function HighlightedTokenAttributes({
       <span>{input.toLocaleString()}</span>
       {hasCached && (
         <Fragment>
-          <span>{t('Cache Read (included in input)')}</span>
+          <TokenBreakdownSubrow>{t('Cache Read')}</TokenBreakdownSubrow>
           <span>{breakdown.cached.toLocaleString()}</span>
         </Fragment>
       )}
       {hasCacheWrite && (
         <Fragment>
-          <span>{t('Cache Write (included in input)')}</span>
+          <TokenBreakdownSubrow>{t('Cache Write')}</TokenBreakdownSubrow>
           <span>{breakdown.cacheWrite.toLocaleString()}</span>
         </Fragment>
       )}
@@ -426,7 +426,7 @@ function HighlightedTokenAttributes({
       <span>{breakdown.output.toLocaleString()}</span>
       {hasReasoning && (
         <Fragment>
-          <span>{t('Reasoning (included in output)')}</span>
+          <TokenBreakdownSubrow>{t('Reasoning')}</TokenBreakdownSubrow>
           <span>{reasoningTokens.toLocaleString()}</span>
         </Fragment>
       )}
@@ -498,6 +498,11 @@ function HighlightedContextUtilization({
 
 const TokenSummary = styled('span')`
   white-space: nowrap;
+`;
+
+const TokenBreakdownSubrow = styled('span')`
+  padding-left: ${p => p.theme.space.md};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TokensTooltipTitle = styled('div')`
