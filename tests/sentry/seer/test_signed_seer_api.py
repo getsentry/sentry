@@ -141,6 +141,19 @@ def test_resolves_viewer_context_with_endpoint(mock_resolve: MagicMock) -> None:
     mock_resolve.assert_called_once_with(None, endpoint=DYNAMIC_PATH)
 
 
+@pytest.mark.django_db
+@patch("sentry.seer.signed_seer_api._resolve_viewer_context")
+def test_resolves_viewer_context_with_metrics_endpoint(mock_resolve: MagicMock) -> None:
+    mock_resolve.return_value = None
+
+    run_test_case(
+        path=f"{DYNAMIC_PATH}?plan_tier=business",
+        metrics_endpoint=PATH,
+    )
+
+    mock_resolve.assert_called_once_with(None, endpoint=PATH)
+
+
 @patch("sentry.seer.signed_seer_api.metrics.timer")
 def test_times_request_with_metrics_endpoint(mock_metrics_timer: MagicMock) -> None:
     run_test_case(

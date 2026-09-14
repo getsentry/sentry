@@ -167,7 +167,7 @@ def make_signed_seer_api_request(
         **auth_headers,
     }
 
-    resolved = _resolve_viewer_context(viewer_context, endpoint=parsed.path)
+    resolved = _resolve_viewer_context(viewer_context, endpoint=metrics_endpoint or parsed.path)
     observe_viewer_context_propagation("seer_rpc_out", ctx=resolved)
     if resolved:
         try:
