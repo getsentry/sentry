@@ -551,7 +551,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                         or 0
                     ),
                     duration=float(
-                        row.get(AI_CONVERSATIONS_FIELDS["conversation.duration"][0]) or 0
+                        row.get(AI_CONVERSATIONS_FIELDS["conversation.duration"][1]) or 0
                     ),
                     generation_duration=float(
                         row.get("sum_if(span.duration,gen_ai.operation.type,equals,ai_client)") or 0

@@ -862,7 +862,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["firstInput"] == "Hello, I need help"
         assert conversation["lastOutput"] == last_response_text
 
-    def test_duration_sums_non_agent_gen_ai_spans(self) -> None:
+    @pytest.mark.parametrize("enhancements_enabled", [False, True])
+    def test_duration_sums_non_agent_gen_ai_spans(self, enhancements_enabled: bool) -> None:
         now = before_now(days=15).replace(microsecond=0)
         conversation_id = uuid4().hex
 
@@ -891,7 +892,9 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             duration=4000,
         )
 
-        with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
+        with self.feature(
+            {"organizations:gen-ai-conversations-querying-enhancements": enhancements_enabled}
+        ):
             response = self.do_request(
                 {
                     "project": [self.project.id],
