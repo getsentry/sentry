@@ -7,7 +7,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {InvestigationOrchestrationFixture} from 'sentry/views/investigations/fixtures';
 import {
   InvestigationHypotheses,
-  isInvestigationRunSettled,
+  shouldPollInvestigationRun,
 } from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 import type {InvestigationOrchestration} from 'sentry/views/investigations/types';
 
@@ -24,6 +24,22 @@ function renderHypotheses() {
     organization,
   });
 }
+
+describe('shouldPollInvestigationRun', () => {
+  it.each([
+    ['pending', true],
+    ['processing', true],
+    [undefined, true],
+    // Blocked on a person, not on the agent. Every investigation created
+    // without a prompt starts here, so polling would never stop.
+    ['awaiting_input', false],
+    ['completed', false],
+    ['failed', false],
+    ['cancelled', false],
+  ] as const)('%s polls: %s', (status, expected) => {
+    expect(shouldPollInvestigationRun(status)).toBe(expected);
+  });
+});
 
 describe('InvestigationHypotheses', () => {
   it('renders the hypotheses carried on the projection', async () => {
@@ -259,20 +275,5 @@ describe('InvestigationHypotheses', () => {
     // at all is the assertion: either one throws on a missing list.
     expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
     expect(screen.getAllByText('Formed')).toHaveLength(3);
-  });
-});
-
-describe('isInvestigationRunSettled', () => {
-  it.each([
-    ['completed', true],
-    ['failed', true],
-    ['cancelled', true],
-    // Not terminal: the run resumes as soon as input arrives, possibly from
-    // another surface, so the projection has to keep being read.
-    ['awaiting_input', false],
-    ['processing', false],
-    ['pending', false],
-  ] as const)('reads %s as %s', (status, expected) => {
-    expect(isInvestigationRunSettled(status)).toBe(expected);
   });
 });
