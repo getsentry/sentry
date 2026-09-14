@@ -8,7 +8,10 @@ from django.db.models import (
     CharField,
     F,
     IntegerField,
+    OrderBy,
+    OuterRef,
     QuerySet,
+    Subquery,
     Value,
     When,
 )
@@ -43,6 +46,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.endpoints.bases import filter_to_accessible_discover_queries
 from sentry.discover.models import (
     DiscoverSavedQuery,
+    DiscoverSavedQueryStarred,
     DiscoverSavedQueryTypes,
 )
 from sentry.explore.endpoints.bases import (
@@ -56,6 +60,7 @@ from sentry.explore.endpoints.explore_saved_queries import (
 from sentry.explore.models import (
     ExploreSavedQuery,
     ExploreSavedQueryDataset,
+    ExploreSavedQueryStarred,
 )
 from sentry.explore.types import SavedQueryType
 from sentry.locks import locks
@@ -130,14 +135,39 @@ def get_explore_queryset(
 def build_combined_queryset(
     discover_queryset: QuerySet[DiscoverSavedQuery],
     explore_queryset: QuerySet[ExploreSavedQuery],
+    *,
+    starred_only: bool,
+    user_id: int,
 ) -> QuerySet[DiscoverSavedQuery, dict[str, Any]]:
     """Build an ordered union of the two querysets."""
+    order_by: list[str | OrderBy] = []
 
-    # TODO: add the actual order by logic Explore implements.
+    # Explore doesn't make this clear, but `starred=1` essentially hardcodes an order by
+    # So to skip looping over the order by list, make it an if check
+    if starred_only:
+        discover_queryset = discover_queryset.annotate(
+            position=Subquery(
+                DiscoverSavedQueryStarred.objects.filter(
+                    discover_saved_query_id=OuterRef("id"), user_id=user_id, starred=True
+                ).values("position")[:1],
+                output_field=IntegerField(),
+            )
+        )
+        explore_queryset = explore_queryset.annotate(
+            position=Subquery(
+                ExploreSavedQueryStarred.objects.filter(
+                    explore_saved_query_id=OuterRef("id"), user_id=user_id, starred=True
+                ).values("position")[:1],
+                output_field=IntegerField(),
+            )
+        )
+        order_by = ["position", "-date_added", "-id", "query_type"]
+    else:
+        # TODO: add the actual order by logic Explore implements.
 
-    # Rows with equal sort keys need a deterministic tiebreaker. id is not enough
-    # with two different types of queries, so we also use query type.
-    order_by = ["lower_name", "-id", "query_type"]
+        # Rows with equal sort keys need a deterministic tiebreaker. id is not enough
+        # with two different types of queries, so we also use query type.
+        order_by = ["lower_name", "-id", "query_type"]
 
     # Both sides of a UNION must project the same columns, including every column
     # the ORDER BY names.
@@ -291,9 +321,32 @@ class SavedQueriesEndpoint(OrganizationEndpoint):
                     discover_queryset = discover_queryset.none()
                     explore_queryset = explore_queryset.none()
 
+        exclude = request.query_params.get("exclude")
+        if exclude == "shared":
+            discover_queryset = discover_queryset.filter(created_by_id=request.user.id)
+            explore_queryset = explore_queryset.filter(created_by_id=request.user.id)
+        elif exclude == "owned":
+            discover_queryset = discover_queryset.exclude(created_by_id=request.user.id)
+            explore_queryset = explore_queryset.exclude(created_by_id=request.user.id)
+
+        starred_only = request.query_params.get("starred") == "1"
+        if starred_only:
+            discover_queryset = discover_queryset.filter(
+                id__in=DiscoverSavedQueryStarred.objects.filter(
+                    organization=organization, user_id=request.user.id, starred=True
+                ).values_list("discover_saved_query_id", flat=True)
+            )
+            explore_queryset = explore_queryset.filter(
+                id__in=ExploreSavedQueryStarred.objects.filter(
+                    organization=organization, user_id=request.user.id, starred=True
+                ).values_list("explore_saved_query_id", flat=True)
+            )
+
         combined = build_combined_queryset(
             discover_queryset,
             explore_queryset,
+            starred_only=starred_only,
+            user_id=request.user.id,
         )
 
         def data_fn(offset, limit):
