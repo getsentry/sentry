@@ -2,7 +2,7 @@ from datetime import timedelta
 from typing import cast
 from unittest.mock import patch
 
-from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
@@ -47,14 +47,13 @@ class ReconcileGroupStatusTest(TestCase):
         )
         return group, derived
 
-    def _seed_outbox(self, group_id: int, *, dedicated: bool = False) -> None:
-        model = GroupActionLogOutbox if dedicated else CellOutbox
+    def _seed_outbox(self, group_id: int) -> None:
         with outbox_context(flush=False):
-            model(
+            GroupActionLogOutbox(
                 shard_scope=OutboxScope.GROUP_SCOPE,
                 shard_identifier=group_id,
                 category=OutboxCategory.GROUP_ACTION_LOG_EVENT,
-                object_identifier=model.next_object_identifier(),
+                object_identifier=GroupActionLogOutbox.next_object_identifier(),
                 payload={"group_id": group_id},
             ).save()
 
@@ -115,26 +114,9 @@ class ReconcileGroupStatusTest(TestCase):
 
         log.assert_logged(ReconcileStatusAction, group_id=group.id, status="open")
 
-    def test_pending_cell_outbox_bails(self) -> None:
+    def test_pending_outbox_bails(self) -> None:
         group, _ = self._create_divergent_group()
-        self._seed_outbox(group.id, dedicated=False)
-
-        with (
-            capture_action_log() as log,
-            patch("sentry.issues.derived.reconcile.metrics.incr") as mock_incr,
-        ):
-            reconcile_group_status(group.id)
-
-        log.assert_not_logged(ReconcileStatusAction)
-        mock_incr.assert_any_call(
-            "issues.derived.reconcile_group_status.result",
-            sample_rate=1.0,
-            tags={"result": "pending_outbox"},
-        )
-
-    def test_pending_dedicated_outbox_bails(self) -> None:
-        group, _ = self._create_divergent_group()
-        self._seed_outbox(group.id, dedicated=True)
+        self._seed_outbox(group.id)
 
         with (
             capture_action_log() as log,
@@ -311,6 +293,33 @@ class ReconcileGroupStatusTest(TestCase):
             "issues.derived.reconcile_group_status.result",
             sample_rate=1.0,
             tags={"result": "pending_outbox"},
+        )
+
+    def test_group_status_changes_after_last_outbox_check_bails(self) -> None:
+        group, _ = self._create_divergent_group()
+        calls = {"n": 0}
+
+        def outbox_side_effect(group_id: int) -> bool:
+            calls["n"] += 1
+            if calls["n"] == 2:
+                Group.objects.filter(id=group_id).update(status=GroupStatus.UNRESOLVED)
+            return False
+
+        with (
+            patch(
+                "sentry.issues.derived.reconcile._has_pending_group_action_log_outbox",
+                side_effect=outbox_side_effect,
+            ),
+            capture_action_log() as log,
+            patch("sentry.issues.derived.reconcile.metrics.incr") as mock_incr,
+        ):
+            reconcile_group_status(group.id)
+
+        log.assert_not_logged(ReconcileStatusAction)
+        mock_incr.assert_any_call(
+            "issues.derived.reconcile_group_status.result",
+            sample_rate=1.0,
+            tags={"result": "changed_during_check"},
         )
 
     @with_feature(

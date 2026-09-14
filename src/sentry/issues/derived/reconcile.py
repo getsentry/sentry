@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 
 from sentry import features, options
-from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, publish_action
 from sentry.issues.action_log.types import ReconcileStatusAction
@@ -29,10 +28,7 @@ def _has_pending_group_action_log_outbox(group_id: int) -> bool:
         shard_identifier=group_id,
         category=OutboxCategory.GROUP_ACTION_LOG_EVENT,
     )
-    return (
-        CellOutbox.objects.filter(**filter_kwargs).exists()
-        or GroupActionLogOutbox.objects.filter(**filter_kwargs).exists()
-    )
+    return GroupActionLogOutbox.objects.filter(**filter_kwargs).exists()
 
 
 def _record_result(result: str, **extra_tags: str) -> None:
@@ -119,6 +115,15 @@ def reconcile_group_status(group_id: int) -> None:
                 _record_result("pending_outbox")
                 return
 
+            current_group_status = (
+                Group.objects.filter(id=group_id).values_list("status", flat=True).first()
+            )
+            if current_group_status != observed_group_status:
+                _record_result("changed_during_check")
+                return
+
+            # This check and publish are intentionally non-atomic; a rare unnecessary
+            # reconcile is preferable to locking the Group row.
             target_status = observed_inconsistency.actual.value
             publish_action(
                 ReconcileStatusAction(
