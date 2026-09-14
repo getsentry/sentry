@@ -314,29 +314,23 @@ export function areAllVisualizesInvalidConditionalFilters(
 }
 
 /**
- * Dashboard equivalent of {@link areAllVisualizesInvalidConditionalFilters} for a
- * widget query's `aggregates` list. Equations are ignored (same as Explore).
- */
-export function areAllAggregatesInvalidConditionalFilters(
-  aggregates: readonly string[]
-): boolean {
-  if (!aggregates.length) {
-    return false;
-  }
-  return aggregates.every(
-    yAxis => !isEquation(yAxis) && !isConditionalAggregateYAxisValid(yAxis)
-  );
-}
-
-/**
- * Error message for the first invalid non-equation `_if` aggregate in a dashboard
- * widget query. Falls back to the generic series-filter message.
+ * Error message for the first invalid `_if` aggregate in a dashboard widget
+ * query, including nested `_if` filters inside equations. Falls back to the
+ * generic series-filter message.
  */
 export function getConditionalFilterInvalidSeriesMessageForAggregates(
   aggregates: readonly string[]
 ): string {
   for (const yAxis of aggregates) {
     if (isEquation(yAxis)) {
+      const tokens = tokenizeExpression(stripEquationPrefix(yAxis));
+      for (const token of tokens) {
+        if (isTokenFunction(token) && token.function.endsWith(IF_SUFFIX)) {
+          if (!isConditionalAggregateYAxisValid(token.text)) {
+            return getConditionalFilterInvalidSeriesMessageForYAxis(token.text);
+          }
+        }
+      }
       continue;
     }
     if (!isConditionalAggregateYAxisValid(yAxis)) {
@@ -347,17 +341,24 @@ export function getConditionalFilterInvalidSeriesMessageForAggregates(
 }
 
 /**
- * Keep aggregates that are safe to send in a series request. Invalid `_if` filters
- * are dropped; equations keep prior Explore behavior (include only when every
- * nested `_if` is valid).
+ * Keep aggregates that are safe to send in a series/table request. Invalid `_if`
+ * filters are dropped; equations keep prior Explore behavior (include only when
+ * every nested `_if` is valid).
  */
-export function getValidAggregatesForSeriesRequest(
-  aggregates: readonly string[]
-): string[] {
+export function getValidAggregatesForRequest(aggregates: readonly string[]): string[] {
   return aggregates.filter(yAxis => {
     if (isEquation(yAxis)) {
       return areConditionalAggregateFiltersInExpressionValid(yAxis);
     }
     return isConditionalAggregateYAxisValid(yAxis);
   });
+}
+
+/**
+ * True when the query has aggregates but none survive `_if` validation. Dashboards
+ * use this to skip requests and surface a config error (Explore injects a default
+ * visualization instead).
+ */
+export function hasNoValidAggregatesForRequest(aggregates: readonly string[]): boolean {
+  return aggregates.length > 0 && getValidAggregatesForRequest(aggregates).length === 0;
 }

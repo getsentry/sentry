@@ -119,25 +119,36 @@ function GridList({showPlaceholder, ...props}: GridListProps) {
       // Padding clicks would otherwise focus the grid itself, which has no caret.
       evt.preventDefault();
 
-      const rect = evt.currentTarget.getBoundingClientRect();
-      const closerToStart = evt.clientY < rect.top + rect.height / 2;
-      const key = closerToStart
-        ? state.collection.getFirstKey()
-        : state.collection.getLastKey();
-      if (!key) {
-        return;
-      }
-
-      focusTarget(state, key);
-
-      const item = state.collection.getItem(key);
       const rows = Array.from(
         evt.currentTarget.querySelectorAll<HTMLElement>('[role="row"]')
       ).filter(row => row.closest('[role="grid"]') === evt.currentTarget);
-      const row = closerToStart ? rows.at(0) : rows.at(-1);
-      if (row && item) {
-        shiftFocusToChild(row, item, state);
+
+      // Prefer free-text rows (caret targets). The leading spacer is zero-width so
+      // start clicks usually land on grid padding — resolve those to the first /
+      // last free-text field by edge, otherwise the nearest free-text caret.
+      const freeTextRows = rows.filter(row =>
+        row.querySelector('[aria-label="Add a term"]')
+      );
+      const candidates = freeTextRows.length > 0 ? freeTextRows : rows;
+      const nearestRow = resolvePaddingClickRow(
+        candidates,
+        evt.currentTarget.getBoundingClientRect(),
+        evt.clientX,
+        evt.clientY
+      );
+      if (!nearestRow) {
+        return;
       }
+
+      const collectionItems = Array.from(state.collection);
+      const rowIndex = rows.indexOf(nearestRow);
+      const item = collectionItems[rowIndex];
+      if (!item) {
+        return;
+      }
+
+      focusTarget(state, item.key);
+      shiftFocusToChild(nearestRow, item, state);
     },
     [gridProps, state]
   );
@@ -254,3 +265,74 @@ const TokenGridWrapper = styled('div')`
     outline: none;
   }
 `;
+
+/**
+ * Leading free-text is zero-width (avoids wrapping a full-width `_if` token onto
+ * the next line), so start-of-equation clicks land on grid padding. Prefer the
+ * first/last free-text field when the pointer is near those edges; otherwise use
+ * the nearest free-text caret (mid-expression gaps, trailing field, etc.).
+ */
+export function resolvePaddingClickRow(
+  rows: HTMLElement[],
+  gridRect: Pick<DOMRect, 'left' | 'width'>,
+  clientX: number,
+  clientY: number
+): HTMLElement | undefined {
+  if (!rows.length) {
+    return undefined;
+  }
+
+  const relativeX = gridRect.width > 0 ? (clientX - gridRect.left) / gridRect.width : 0.5;
+
+  // Edge zones restore click-to-edit at the start/end without bringing back the
+  // old vertical first/last split that opened two menus on wrapped equations.
+  const START_EDGE_RATIO = 0.2;
+  const END_EDGE_RATIO = 0.8;
+  if (relativeX <= START_EDGE_RATIO) {
+    return rows[0];
+  }
+  if (relativeX >= END_EDGE_RATIO) {
+    return rows.at(-1);
+  }
+
+  return findNearestRow(rows, clientX, clientY);
+}
+
+/**
+ * Pick the token row whose box is closest to the pointer.
+ */
+export function findNearestRow(
+  rows: HTMLElement[],
+  clientX: number,
+  clientY: number
+): HTMLElement | undefined {
+  let nearest: HTMLElement | undefined;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+
+  for (const row of rows) {
+    const rect = row.getBoundingClientRect();
+    const dx =
+      clientX < rect.left
+        ? rect.left - clientX
+        : clientX > rect.right
+          ? clientX - rect.right
+          : 0;
+    const dy =
+      clientY < rect.top
+        ? rect.top - clientY
+        : clientY > rect.bottom
+          ? clientY - rect.bottom
+          : 0;
+    const distance = dx * dx + dy * dy;
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearest = row;
+    } else if (distance === nearestDistance) {
+      // Prefer later free-text when distances tie (jsdom zero rects, overlapping
+      // spacers). Empty-field clicks should land on the trailing caret.
+      nearest = row;
+    }
+  }
+
+  return nearest;
+}

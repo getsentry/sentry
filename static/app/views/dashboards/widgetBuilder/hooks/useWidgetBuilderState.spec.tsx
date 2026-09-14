@@ -1710,6 +1710,32 @@ describe('useWidgetBuilderState', () => {
       ]);
     });
 
+    it('retargets sort when SET_Y_AXIS applies a spans series filter', () => {
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.SPANS,
+        displayType: DisplayType.LINE,
+        field: ['transaction'],
+        yAxis: ['avg(span.duration)'],
+        sort: ['-avg(span.duration)'],
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_Y_AXIS,
+          payload: [
+            {
+              kind: 'function',
+              function: ['avg_if', '`span.op:db`', 'span.duration'],
+            },
+          ] as Column[],
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([
+        {kind: 'desc', field: 'avg_if(`span.op:db`,span.duration)'},
+      ]);
+    });
+
     it('preserves trace metric args when switching from line to categorical bar', () => {
       const {result, router} = renderWidgetBuilderState({
         dataset: WidgetType.TRACEMETRICS,

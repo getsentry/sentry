@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
@@ -6,8 +7,8 @@ import {getSelectedAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/
 import {hasUnresolvedTraceMetric} from 'sentry/views/dashboards/widgetBuilder/utils/hasUnresolvedTraceMetric';
 import {doesMetricSupportHeatMapVisualization} from 'sentry/views/explore/metrics/constants';
 import {
-  areAllAggregatesInvalidConditionalFilters,
   getConditionalFilterInvalidSeriesMessageForAggregates,
+  hasNoValidAggregatesForRequest,
 } from 'sentry/views/explore/utils/conditionalAggregate';
 
 /**
@@ -15,7 +16,10 @@ import {
  * problem that would prevent it from displaying data. Returns undefined
  * if the widget config is valid.
  */
-export function getWidgetConfigError(widget: Widget): string | undefined {
+export function getWidgetConfigError(
+  widget: Widget,
+  organization?: Pick<Organization, 'features'>
+): string | undefined {
   if (
     usesTimeSeriesData(widget.displayType) &&
     widget.queries.every(q => q.aggregates.length === 0)
@@ -52,12 +56,13 @@ export function getWidgetConfigError(widget: Widget): string | undefined {
     }
   }
 
+  // Match the widget-builder UI: only surface Explore-style `_if` filter errors when
+  // the feature is enabled. Flag-off keeps prior Spans widget config behavior.
   if (
+    organization?.features.includes('explore-conditional-aggregates') &&
     widget.widgetType === WidgetType.SPANS &&
     widget.queries.length > 0 &&
-    widget.queries.every(query =>
-      areAllAggregatesInvalidConditionalFilters(query.aggregates ?? [])
-    )
+    widget.queries.every(query => hasNoValidAggregatesForRequest(query.aggregates ?? []))
   ) {
     return getConditionalFilterInvalidSeriesMessageForAggregates(
       widget.queries[0]!.aggregates ?? []

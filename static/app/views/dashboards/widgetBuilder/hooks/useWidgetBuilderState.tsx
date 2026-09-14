@@ -932,9 +932,9 @@ export function useWidgetBuilderState(): {
             setSort([], options);
           } else if (
             action.payload.length > 0 &&
-            dataset === WidgetType.TRACEMETRICS &&
+            (dataset === WidgetType.TRACEMETRICS || dataset === WidgetType.SPANS) &&
             sort?.length &&
-            !checkTraceMetricSortUsed(sort, action.payload, fields)
+            !isSortFieldStillAvailable(sort, action.payload, fields)
           ) {
             setSort(
               [
@@ -1169,9 +1169,9 @@ export function useWidgetBuilderState(): {
               setSort([], options);
             } else if (
               newYAxis.length > 0 &&
-              dataset === WidgetType.TRACEMETRICS &&
+              (dataset === WidgetType.TRACEMETRICS || dataset === WidgetType.SPANS) &&
               sort?.length &&
-              !checkTraceMetricSortUsed(sort, newYAxis, fields)
+              !isSortFieldStillAvailable(sort, newYAxis, fields)
             ) {
               setSort(
                 [
@@ -1499,7 +1499,7 @@ const parseAsAxisRange = createParser({
   serialize: (value: AxisRange) => value,
 });
 
-function checkTraceMetricSortUsed(
+function isSortFieldStillAvailable(
   sort: Sort[],
   yAxis: Column[] = [],
   fields: Column[] = []

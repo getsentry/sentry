@@ -49,6 +49,7 @@ import {
   buildConditionalAggregate,
   parseConditionalAggregate,
   supportsConditionalAggregateFilter,
+  withBaseConditionalAggregateField,
 } from 'sentry/views/explore/utils/conditionalAggregate';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
@@ -384,11 +385,16 @@ export function SelectRow({
       if (!isSpansDataset || nextField.kind !== FieldValueKind.FUNCTION) {
         return nextField;
       }
-      const filter =
-        hasConditionalAggregates && supportsConditionalAggregateFilter(nextAggregateName)
-          ? (conditionalAggregate?.filter ?? '')
-          : '';
-      if (!filter && !conditionalAggregate?.filter) {
+      const existingFilter = conditionalAggregate?.filter;
+      // Flag-off: do not invent `_if` combinators on plain aggregates, but still
+      // preserve an Explore-style filter already on the field when editing.
+      if (!hasConditionalAggregates && existingFilter === undefined) {
+        return nextField;
+      }
+      const filter = supportsConditionalAggregateFilter(nextAggregateName)
+        ? (existingFilter ?? '')
+        : '';
+      if (!filter && existingFilter === undefined) {
         return nextField;
       }
       // Rebuild from the base aggregate so we do not keep a leftover `_if` name
@@ -507,21 +513,15 @@ export function SelectRow({
               let newFields = cloneDeep(fields);
               // Normalize Explore-style `_if` fields to the base aggregate before
               // updating, so column/parameter logic does not treat the search filter
-              // as the column argument.
+              // as the column argument. Do this even when the feature is off so
+              // saved `_if` widgets are not corrupted on edit.
               const existingField = newFields[index];
               if (
                 isSpansDataset &&
                 conditionalAggregate?.filter !== undefined &&
                 existingField?.kind === FieldValueKind.FUNCTION
               ) {
-                newFields[index] = explodeFieldString(
-                  buildConditionalAggregate({
-                    name: conditionalAggregate.name,
-                    arguments: conditionalAggregate.arguments,
-                    filter: '',
-                  }),
-                  existingField.alias
-                );
+                newFields[index] = withBaseConditionalAggregateField(existingField);
               }
               const currentField = newFields[index]!;
               const selectedAggregate = aggregates.find(
@@ -832,19 +832,17 @@ export function SelectRow({
                 const newFields = cloneDeep(fields);
                 const currentField = newFields[index]!;
                 if (currentField.kind === FieldValueKind.FUNCTION) {
-                  if (isSpansDataset && parsedFunction) {
-                    const nextArguments = [...parsedFunction.arguments];
-                    nextArguments[0] = newField.value as string;
-                    newFields[index] = explodeFieldString(
-                      buildConditionalAggregate({
-                        name: parsedFunction.name,
-                        arguments: nextArguments,
-                        filter: hasConditionalAggregates
-                          ? (conditionalAggregate?.filter ?? '')
-                          : '',
-                      }),
-                      currentField.alias
-                    );
+                  if (isSpansDataset) {
+                    // Always strip Explore-style `_if` to the base column slot first.
+                    // Flag only controls inventing new filters; existing ones are kept.
+                    const baseField = withBaseConditionalAggregateField(currentField);
+                    if (baseField.kind === FieldValueKind.FUNCTION) {
+                      baseField.function[1] = newField.value as string;
+                      newFields[index] = applySpansConditionalFilter(
+                        baseField,
+                        baseField.function[0]
+                      );
+                    }
                   } else {
                     currentField.function[1] = newField.value as string;
                   }

@@ -8,14 +8,14 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import {
   applyConditionalFilter,
-  areAllAggregatesInvalidConditionalFilters,
   areAllVisualizesInvalidConditionalFilters,
   areConditionalAggregateFiltersInExpressionValid,
   buildConditionalAggregate,
   getConditionalFilterInvalidSeriesMessage,
   getConditionalFilterInvalidSeriesMessageForAggregates,
   getConditionalFilterInvalidSeriesMessageForYAxis,
-  getValidAggregatesForSeriesRequest,
+  getValidAggregatesForRequest,
+  hasNoValidAggregatesForRequest,
   isConditionalAggregateFilterValid,
   isConditionalAggregateYAxisValid,
   parseConditionalAggregate,
@@ -359,6 +359,14 @@ describe('getConditionalFilterInvalidSeriesMessageForAggregates', () => {
     ).toBe('Invalid series filter');
   });
 
+  it('returns the series filter message for an empty _if filter nested in an equation', () => {
+    expect(
+      getConditionalFilterInvalidSeriesMessageForAggregates([
+        'equation|avg_if(``,span.duration) / 2',
+      ])
+    ).toBe('Invalid series filter');
+  });
+
   it('returns the aggregate-key message when a visualize aggregate is used as a key', () => {
     expect(
       getConditionalFilterInvalidSeriesMessageForAggregates([
@@ -368,30 +376,33 @@ describe('getConditionalFilterInvalidSeriesMessageForAggregates', () => {
   });
 });
 
-describe('areAllAggregatesInvalidConditionalFilters', () => {
-  it('is true when every non-equation aggregate has an invalid _if filter', () => {
+describe('hasNoValidAggregatesForRequest', () => {
+  it('is true when every aggregate is stripped by _if validation', () => {
     expect(
-      areAllAggregatesInvalidConditionalFilters([
+      hasNoValidAggregatesForRequest([
         'avg_if(``,span.duration)',
         'count_if(`p95(span.duration):>100`,span.duration)',
       ])
     ).toBe(true);
   });
 
+  it('is true for equation-only aggregates whose nested _if filters are invalid', () => {
+    expect(
+      hasNoValidAggregatesForRequest(['equation|avg_if(``,span.duration) / 2'])
+    ).toBe(true);
+  });
+
   it('is false when any aggregate is still valid', () => {
     expect(
-      areAllAggregatesInvalidConditionalFilters([
-        'avg(span.duration)',
-        'avg_if(``,span.duration)',
-      ])
+      hasNoValidAggregatesForRequest(['avg(span.duration)', 'avg_if(``,span.duration)'])
     ).toBe(false);
   });
 });
 
-describe('getValidAggregatesForSeriesRequest', () => {
+describe('getValidAggregatesForRequest', () => {
   it('drops invalid _if aggregates and keeps valid ones', () => {
     expect(
-      getValidAggregatesForSeriesRequest([
+      getValidAggregatesForRequest([
         'avg(span.duration)',
         'avg_if(``,span.duration)',
         'avg_if(`span.op:db`,span.duration)',

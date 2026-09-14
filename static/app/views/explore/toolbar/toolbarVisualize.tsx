@@ -7,6 +7,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 
 import {IconHide} from 'sentry/icons/iconHide';
+import {t} from 'sentry/locale';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
