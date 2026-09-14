@@ -18,7 +18,6 @@ import type {
   SeerWorkflowRun,
   WorkflowRow,
   WorkflowRowStatus,
-  WorkflowRunStatus,
 } from 'sentry/views/seerWorkflows/types';
 
 type SeerNightShiftRunPullRequest = PullRequest & {
@@ -52,19 +51,6 @@ type SeerNightShiftRunOptions = {
   source?: string;
 };
 
-type SeerNightShiftRunExtras = {
-  coverage?: {
-    complete: number;
-    failed: number;
-    partial: number;
-    total: number;
-  };
-  options?: SeerNightShiftRunOptions;
-  status?: WorkflowRunStatus;
-  target_project_ids?: number[];
-  triggering_user_id?: number;
-};
-
 type SeerNightShiftRunErrorType =
   | 'no_quota'
   | 'eligible_projects_failed'
@@ -76,7 +62,7 @@ type SeerNightShiftRunErrorType =
 
 type SeerNightShiftRun = SeerWorkflowRun & {
   errorType: SeerNightShiftRunErrorType | null;
-  extras: SeerNightShiftRunExtras;
+  extras: {options?: SeerNightShiftRunOptions};
   issues: SeerNightShiftRunIssue[];
   seerRuns: SeerNightShiftSeerRun[];
   strategy: 'agentic_triage';
@@ -129,11 +115,6 @@ export function NightShiftResults({
 }) {
   return (
     <Stack gap="lg">
-      {row.summary ? (
-        <Text as="p" size="md">
-          {row.summary}
-        </Text>
-      ) : null}
       <TriageDispatchesPanel row={row} />
       <IssueList issues={row.triage?.issues ?? []} organizationSlug={organizationSlug} />
     </Stack>
@@ -160,7 +141,7 @@ export function NightShiftDebug({row}: {row: WorkflowRow}) {
           {t('Run ID')}
         </Text>
         <Text size="sm" monospace>
-          {row.runId}
+          {row.id}
         </Text>
         {hasSettings ? (
           <Fragment>

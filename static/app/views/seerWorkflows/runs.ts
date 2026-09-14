@@ -4,8 +4,7 @@ import type {SeerWorkflowRun, WorkflowRow} from 'sentry/views/seerWorkflows/type
 export function toWorkflowRow(run: SeerWorkflowRun): WorkflowRow {
   const status = run.extras.status;
   return {
-    id: `${run.id}:${run.strategy}`,
-    runId: run.id,
+    id: run.id,
     dateAdded: run.dateAdded,
     strategy: run.strategy,
     status: status && status !== 'complete' ? status : 'succeeded',

@@ -43,8 +43,6 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {getRelativeExplorerUrl} from 'sentry/views/seerExplorer/utils';
 import {toWorkflowRow} from 'sentry/views/seerWorkflows/runs';
 import {
-  CATEGORY_LABELS,
-  CATEGORY_ORDER,
   getWorkflowRunActions,
   STRATEGY_META,
 } from 'sentry/views/seerWorkflows/strategies';
@@ -68,7 +66,6 @@ function SeerWorkflows() {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const isSentryEmployee = useIsSentryEmployee();
   const runActions = getWorkflowRunActions(organization.features);
   const [expanded, setExpanded] = useState(new Set<string>());
   const {mutate: startWorkflowRun, isPending: isStartingWorkflowRun} = useMutation({
@@ -80,9 +77,9 @@ function SeerWorkflows() {
         method: 'POST',
         data,
       }),
-    onSuccess: async (result, {strategy}) => {
+    onSuccess: async result => {
       clearAllFilters();
-      setExpanded(previous => new Set(previous).add(`${result.runId}:${strategy}`));
+      setExpanded(previous => new Set(previous).add(result.runId));
       await refetch();
     },
     onError: error => {
@@ -106,12 +103,7 @@ function SeerWorkflows() {
       query.state.data?.json.some(run => run.extras.status === 'running') ? 5000 : false,
   });
 
-  const rows = useMemo<WorkflowRow[]>(() => {
-    const apiRows = (data ?? []).map(toWorkflowRow);
-    return isSentryEmployee
-      ? apiRows
-      : apiRows.filter(row => STRATEGY_META[row.strategy]?.visibility !== 'internal');
-  }, [data, isSentryEmployee]);
+  const rows = useMemo(() => (data ?? []).map(toWorkflowRow), [data]);
 
   const strategyFilter = decodeList(location.query.strategy) as WorkflowStrategy[];
   const statusFilter = decodeList(location.query.status) as WorkflowRowStatus[];
@@ -143,22 +135,14 @@ function SeerWorkflows() {
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [rows]);
 
-  const strategySections = useMemo(() => {
-    const present = new Set<WorkflowStrategy>();
-    for (const row of rows) {
-      present.add(row.strategy);
-    }
-    return CATEGORY_ORDER.map(category => ({
-      key: category,
-      label: CATEGORY_LABELS[category],
-      options: Array.from(present)
-        .filter(strategy => STRATEGY_META[strategy]?.category === category)
-        .map(strategy => ({
-          value: strategy,
-          label: STRATEGY_META[strategy].label,
-        })),
-    })).filter(section => section.options.length > 0);
-  }, [rows]);
+  const strategyOptions = useMemo(
+    () =>
+      Array.from(new Set(rows.map(row => row.strategy))).map(strategy => ({
+        value: strategy,
+        label: STRATEGY_META[strategy].label,
+      })),
+    [rows]
+  );
 
   const filteredRows = useMemo(() => {
     return rows.filter(row => {
@@ -311,8 +295,8 @@ function SeerWorkflows() {
                   <CompactSelect
                     multiple
                     value={strategyFilter}
-                    options={strategySections}
-                    disabled={strategySections.length === 0}
+                    options={strategyOptions}
+                    disabled={strategyOptions.length === 0}
                     onChange={selected =>
                       updateQuery({
                         strategy: selected.map(o => String(o.value)),
@@ -436,18 +420,6 @@ function SeerWorkflows() {
                           <Flex gap="sm" align="center" wrap="wrap">
                             <SourceIcon source={row.source} />
                             <Text size="sm">{STRATEGY_META[row.strategy].label}</Text>
-                            {STRATEGY_META[row.strategy]?.visibility === 'internal' ? (
-                              <Container
-                                display="inline-block"
-                                border="muted"
-                                radius="sm"
-                                padding="2xs xs"
-                              >
-                                <Text size="xs" variant="muted" uppercase>
-                                  {t('Internal')}
-                                </Text>
-                              </Container>
-                            ) : null}
                           </Flex>
                         </SimpleTable.RowCell>
                         <SimpleTable.RowCell>
@@ -629,7 +601,7 @@ function RunDetail({
               {row.seerRunId && (
                 <Fragment>
                   <Text size="xs" variant="muted">
-                    {t('Run %s', row.runId)}
+                    {t('Run %s', row.id)}
                   </Text>
                   <Link to={getRelativeExplorerUrl(row.seerRunId)}>
                     {t('View prompt and agent run %s', row.seerRunId)}

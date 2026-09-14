@@ -26,8 +26,6 @@ export type SeerWorkflowResult = {
   seerRunId: string | null;
 };
 
-export type StrategyVisibility = 'configurable' | 'internal';
-export type StrategyCategory = 'issues' | 'reliability' | 'user_experience';
 export type WorkflowRowStatus =
   | 'succeeded'
   | 'failed'
@@ -39,7 +37,6 @@ export type WorkflowRow = {
   dateAdded: string;
   id: string;
   results: SeerWorkflowResult[];
-  runId: string;
   status: WorkflowRowStatus;
   strategy: WorkflowStrategy;
   errorMessage?: string | null;
@@ -47,6 +44,5 @@ export type WorkflowRow = {
   runStatus?: WorkflowRunStatus;
   seerRunId?: string;
   source?: string;
-  summary?: string;
   triage?: NightShiftRow;
 };
