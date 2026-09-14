@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Any, Literal, NotRequired, TypedDict
 
 from django.db.models import Count, F, OuterRef, Q, Subquery
 from django.db.models.expressions import Combinable
@@ -69,7 +69,15 @@ SORT_MAP: dict[str, str | Combinable] = {
 }
 
 
-class OrganizationGroupSearchViewGetSerializer(serializers.Serializer[None]):
+class OrganizationGroupSearchViewGetData(TypedDict):
+    createdBy: NotRequired[Literal["me", "others"]]
+    sort: NotRequired[list[str]]
+    query: NotRequired[str | None]
+
+
+class OrganizationGroupSearchViewGetSerializer(
+    serializers.Serializer[Any, OrganizationGroupSearchViewGetData]
+):
     createdBy = serializers.ChoiceField(
         choices=("me", "others"),
         required=False,
