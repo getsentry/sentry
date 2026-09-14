@@ -330,3 +330,79 @@ def test_deprecating_a_nested_serializer_field_passes_the_guard() -> None:
     shape = result["components"]["schemas"]["DeprecatedNestedBody"]["properties"]["shape"]
     assert shape["deprecated"] is True
     assert shape["allOf"] == [{"$ref": "#/components/schemas/NestedShape"}]
+
+
+@sentry_schema_serializer(omit_from_public_schema={"secret": "Internal."})
+class UnionItem(TypedDict):
+    name: str
+    secret: str
+
+
+class UnionResponse(TypedDict):
+    value: UnionItem | int
+
+
+class UnionResponseSerializer(ResponseSerializer):
+    def serialize(self, obj: Any, attrs: Any, user: Any, **kwargs: Any) -> UnionResponse:
+        raise NotImplementedError
+
+
+class UnionEndpoint(Endpoint):
+    permission_classes = ()
+
+    @extend_schema(operation_id="union", responses={200: UnionResponseSerializer})
+    def get(self, request):
+        pass
+
+
+def _build_union(hooks: Sequence[Hook] = ()) -> dict[str, Any]:
+    patterns = [url_path("union/", UnionEndpoint.as_view())]
+    with mock.patch.object(spectacular_settings, "POSTPROCESSING_HOOKS", list(hooks)):
+        return CustomGenerator(patterns=patterns).get_schema(request=None, public=True)
+
+
+def _union_item(result: dict[str, Any]) -> dict[str, Any]:
+    value = result["components"]["schemas"]["UnionResponse"]["properties"]["value"]
+    return next(arm for arm in value["anyOf"] if "properties" in arm)
+
+
+def test_a_typed_dict_omission_inside_a_union_passes_the_guard() -> None:
+    assert "secret" not in _union_item(_build_union())["properties"]
+
+
+def test_a_typed_dict_omission_restored_inside_a_union_fails_the_build() -> None:
+    def restore(result: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        _union_item(result)["properties"].setdefault("secret", {"type": "string"})
+        return result
+
+    with pytest.raises(SentryApiBuildError) as exc:
+        _build_union([restore])
+    assert "secret is still present" in str(exc.value)
+
+
+@sentry_schema_serializer(omit_from_public_schema={"mode.legacy": "Send mode explicitly."})
+class ReplacedDefaultParams(serializers.Serializer):
+    mode = serializers.ChoiceField(choices=("legacy", "current"), default="legacy")
+
+
+class ReplacedDefaultEndpoint(Endpoint):
+    permission_classes = ()
+
+    @extend_schema(
+        operation_id="replacedDefault",
+        parameters=[ReplacedDefaultParams, OpenApiParameter("mode", str, description="Mode.")],
+    )
+    def get(self, request):
+        pass
+
+
+def test_a_field_replaced_by_an_explicit_parameter_is_not_checked_as_the_serializers() -> None:
+    """The explicit parameter is what the operation documents, so the rule is not its."""
+    patterns = [url_path("replaced/", ReplacedDefaultEndpoint.as_view())]
+    with mock.patch.object(spectacular_settings, "POSTPROCESSING_HOOKS", []):
+        result = CustomGenerator(patterns=patterns).get_schema(request=None, public=True)
+    mode = next(
+        p for p in result["paths"]["/replaced/"]["get"]["parameters"] if p["name"] == "mode"
+    )
+    assert mode["description"] == "Mode."
+    assert "required" not in mode

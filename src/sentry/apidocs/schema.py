@@ -15,7 +15,7 @@ from sentry.apidocs.omission_apply import (
     choice_rules,
     withhold_values,
 )
-from sentry.apidocs.omission_guard import omissions_enabled, placed_at, record
+from sentry.apidocs.omission_guard import in_operation, omissions_enabled, placed_at, record
 from sentry.apidocs.omission_paths import Resolved
 from sentry.apidocs.omissions import DEPRECATION_REASONS_OVERRIDE, OMISSION_REASONS_OVERRIDE
 from sentry.apidocs.utils import SentryApiBuildError
@@ -68,12 +68,9 @@ class SentrySchema(AutoSchema):
         schema = super()._map_serializer(instance, direction, bypass_extensions)
         rules = _choice_rules(instance)
         try:
-            record(
-                type(instance).__name__,
-                _declared_fields(instance, OMISSION_REASONS_OVERRIDE),
-                _declared_fields(instance, DEPRECATION_REASONS_OVERRIDE),
-                rules,
-            )
+            if not in_operation():
+                # Query parameters are recorded once explicit ones have replaced fields.
+                _record(instance, rules)
             if not rules:
                 return schema
             withheld = withhold_values(schema, rules)
@@ -101,6 +98,13 @@ class SentrySchema(AutoSchema):
                 for name in force_instance(parameter).fields:
                     source[name, OpenApiParameter.QUERY] = parameter
         serializers = {id(p): p for p in source.values() if not isinstance(p, OpenApiParameter)}
+        try:
+            with placed_at(("operations", self.get_operation_id())):
+                for serializer in serializers.values():
+                    owned = {name for (name, _), src in source.items() if src is serializer}
+                    _record(force_instance(serializer), _choice_rules(serializer), owned)
+        except OmissionError as exc:
+            raise SentryApiBuildError(str(exc)) from exc
         required: set[tuple[str, str]] = set()
         for serializer in serializers.values():
             for rule in _choice_rules(serializer).values():
@@ -135,6 +139,20 @@ def _lift_deprecated(parameters: dict[tuple[str, str], Any]) -> None:
         schema = (parameter or {}).get("schema")
         if isinstance(schema, dict) and schema.pop("deprecated", False):
             parameter["deprecated"] = True
+
+
+def _record(instance: Any, rules: dict[str, Resolved], owned: set[str] | None = None) -> None:
+    """Note `instance`'s declarations for the build's check, limited to `owned` fields."""
+
+    def kept(names: set[str]) -> set[str]:
+        return names if owned is None else names & owned
+
+    record(
+        type(instance).__name__,
+        kept(_declared_fields(instance, OMISSION_REASONS_OVERRIDE)),
+        kept(_declared_fields(instance, DEPRECATION_REASONS_OVERRIDE)),
+        {path: rule for path, rule in rules.items() if owned is None or rule.segments[0] in owned},
+    )
 
 
 def _declared_fields(serializer: Any, key: str) -> set[str]:

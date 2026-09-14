@@ -62,6 +62,12 @@ def omissions_enabled() -> bool:
     return not isinstance(_mode.get(), _Disabled)
 
 
+def in_operation() -> bool:
+    """Whether serializers mapped now become an operation's query parameters."""
+    placement = _placement.get()
+    return placement is not None and placement[0] == "operations"
+
+
 @contextlib.contextmanager
 def omissions_disabled() -> Iterator[None]:
     token = _mode.set(_DISABLED)
@@ -404,9 +410,12 @@ def _missing(after: Mapping[str, Any], recorded: Mapping[Location, Declared]) ->
 
 def _at(node: Any, pointer: Pointer) -> Mapping[str, Any] | None:
     for key in pointer:
-        if not isinstance(node, Mapping):
+        if isinstance(node, Mapping):
+            node = node.get(key)
+        elif isinstance(node, list) and key.isdigit() and int(key) < len(node):
+            node = node[int(key)]
+        else:
             return None
-        node = node.get(key)
     return node if isinstance(node, Mapping) else None
 
 

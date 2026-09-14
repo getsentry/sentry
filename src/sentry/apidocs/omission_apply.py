@@ -144,6 +144,15 @@ def _differences(
             yield from _differences(
                 old.get(name, _ABSENT), new.get(name, _ABSENT), (*key, str(name))
             )
+    elif (
+        isinstance(old, list)
+        and isinstance(new, list)
+        and key[-1:] in (("anyOf",), ("oneOf",), ("allOf",))
+        and len(old) == len(new)
+    ):
+        # Union arms are compared one by one, so a change inside one can be placed.
+        for index, (old_arm, new_arm) in enumerate(zip(old, new)):
+            yield from _differences(old_arm, new_arm, (*key, str(index)))
     elif old != new:
         yield key, old, new
 
