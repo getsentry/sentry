@@ -400,28 +400,36 @@ function HighlightedTokenAttributes({
 
   const hasCached = breakdown.cached > 0;
   const hasCacheWrite = breakdown.cacheWrite > 0;
+  const hasReasoning = reasoningTokens > 0;
+  const input = breakdown.netNewInput + breakdown.cached + breakdown.cacheWrite;
 
   const abbr = formatAbbreviatedNumber;
-  const tokenSummary = `${abbr(breakdown.netNewInput)} ${t('in')}${hasCached ? ` + ${abbr(breakdown.cached)} ${t('cached')}` : ''}${hasCacheWrite ? ` + ${abbr(breakdown.cacheWrite)} ${t('cache write')}` : ''} + ${abbr(breakdown.output)} ${t('out')} = ${abbr(breakdown.total)} ${t('total')}`;
+  const tokenSummary = `${abbr(input)} ${t('in')} + ${abbr(breakdown.output)} ${t('out')} = ${abbr(breakdown.total)} ${t('total')}`;
 
   const breakdownTooltip = (
     <TokensTooltipTitle>
       <span>{t('Input')}</span>
-      <span>{breakdown.netNewInput.toLocaleString()}</span>
+      <span>{input.toLocaleString()}</span>
       {hasCached && (
         <Fragment>
-          <span>{t('Cached')}</span>
+          <span>{t('Cache Read (included in input)')}</span>
           <span>{breakdown.cached.toLocaleString()}</span>
         </Fragment>
       )}
       {hasCacheWrite && (
         <Fragment>
-          <span>{t('Cache Write')}</span>
+          <span>{t('Cache Write (included in input)')}</span>
           <span>{breakdown.cacheWrite.toLocaleString()}</span>
         </Fragment>
       )}
       <span>{t('Output')}</span>
       <span>{breakdown.output.toLocaleString()}</span>
+      {hasReasoning && (
+        <Fragment>
+          <span>{t('Reasoning (included in output)')}</span>
+          <span>{reasoningTokens.toLocaleString()}</span>
+        </Fragment>
+      )}
       <span>{t('Total')}</span>
       <span>{breakdown.total.toLocaleString()}</span>
     </TokensTooltipTitle>
