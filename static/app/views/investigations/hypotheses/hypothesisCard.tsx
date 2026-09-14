@@ -215,9 +215,10 @@ const Card = styled(Stack)`
     border-color: ${p => p.theme.tokens.border.accent.vibrant};
   }
 
-  /* Not the answer: still running, ruled out, inconclusive, or failed. Dashed
-   * rather than dotted because a dotted hairline all but disappears at this
-   * border color. */
+  /* Checked, and not the answer: ruled out, inconclusive, failed or cancelled.
+   * Dashed rather than dotted because a dotted hairline all but disappears at
+   * this border color. A hypothesis still being investigated keeps the solid
+   * default above — dashing it would announce a verdict nobody has reached. */
   &[data-border='dashed'] {
     border-style: dashed;
   }

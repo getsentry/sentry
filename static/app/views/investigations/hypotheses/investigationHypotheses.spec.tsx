@@ -37,7 +37,7 @@ describe('InvestigationHypotheses', () => {
         name: 'Database or cache degradation delayed the response',
       })
     ).toBeInTheDocument();
-    expect(screen.getByText('Supported · 86% confidence')).toBeInTheDocument();
+    expect(screen.getByText('Supported · 86% Confidence')).toBeInTheDocument();
   });
 
   it('highlights the report primary hypothesis', async () => {
@@ -177,7 +177,7 @@ describe('InvestigationHypotheses', () => {
 
     // No refetch is needed: the command response carries the new projection.
     expect(
-      await screen.findByText('Accepted by you · 86% confidence')
+      await screen.findByText('Accepted by you · 86% Confidence')
     ).toBeInTheDocument();
   });
 });

@@ -38,7 +38,7 @@ describe('HypothesisCard', () => {
       />
     );
 
-    expect(screen.getByText('Supported · 86% confidence')).toBeInTheDocument();
+    expect(screen.getByText('Supported · 86% Confidence')).toBeInTheDocument();
   });
 
   it('falls back to the verdict confidence when the hypothesis omits it', () => {
@@ -59,7 +59,7 @@ describe('HypothesisCard', () => {
       />
     );
 
-    expect(screen.getByText('Inconclusive · 34% confidence')).toBeInTheDocument();
+    expect(screen.getByText('Inconclusive · 34% Confidence')).toBeInTheDocument();
   });
 
   it('omits confidence while the hypothesis is still in flight', () => {
@@ -76,7 +76,7 @@ describe('HypothesisCard', () => {
       />
     );
 
-    expect(screen.getByText('Checking')).toBeInTheDocument();
+    expect(screen.getByText('Verifying…')).toBeInTheDocument();
     expect(screen.queryByText(/confidence/i)).not.toBeInTheDocument();
   });
 
@@ -93,7 +93,7 @@ describe('HypothesisCard', () => {
     ],
     [
       'steps running',
-      'Checking',
+      'Verifying…',
       [InvestigationVerificationStepFixture({status: 'running', result: null})],
       'running',
     ],
@@ -210,15 +210,17 @@ describe('HypothesisCard', () => {
     // Only an explanation that stands gets the solid accent edge.
     ['supported', 'accent'],
     ['accepted', 'accent'],
-    // Everything else reads the same to someone scanning the row: not the
-    // answer, whether that is because it is unfinished or because it lost.
+    // Checked, and not the answer. These read the same to someone scanning the
+    // row, so one broken edge covers all of them.
     ['inconclusive', 'dashed'],
     ['refuted', 'dashed'],
     ['rejected', 'dashed'],
-    ['investigating', 'dashed'],
-    ['pending', 'dashed'],
     ['failed', 'dashed'],
     ['cancelled', 'dashed'],
+    // Still being investigated. An ordinary edge, because dashing it would
+    // announce a verdict the agent has not reached.
+    ['investigating', 'solid'],
+    ['pending', 'solid'],
   ] as const)('draws a %s hypothesis with a %s border', (effectiveStatus, border) => {
     render(
       <HypothesisCard hypothesis={InvestigationHypothesisFixture({effectiveStatus})} />

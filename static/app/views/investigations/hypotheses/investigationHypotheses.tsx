@@ -1,6 +1,8 @@
 import {uuid4} from '@sentry/core';
 import {useQuery} from '@tanstack/react-query';
 
+import {Container, Stack} from '@sentry/scraps/layout';
+
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -9,6 +11,8 @@ import {
   useInvestigationOrchestrationCommandMutation,
 } from 'sentry/views/investigations/api';
 import {HypothesisList} from 'sentry/views/investigations/hypotheses/hypothesisList';
+import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
+import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
 import type {
   InvestigationHypothesis,
   InvestigationOrchestrationStatus,
@@ -72,10 +76,14 @@ export function InvestigationHypotheses({
     investigationId
   );
 
-  if (!projection?.hypotheses?.length) {
+  // The status block is the run talking, so it appears as soon as there is a
+  // run — before the first hypothesis exists, which is exactly when a viewer
+  // most needs to be told that something is happening.
+  if (!projection) {
     return null;
   }
 
+  const statusBlock = getSeerStatusBlock(projection);
   const {workflowVersion} = projection;
   const commandPending = commandMutation.isPending;
 
@@ -136,11 +144,26 @@ export function InvestigationHypotheses({
     ];
   }
 
+  // The status block and the hypotheses are one object on the page: the block
+  // says what the run is doing and the cards are what it is doing it to. The
+  // panel is what makes that legible — without it the block reads as a
+  // page-level banner that happens to sit above an unrelated row.
   return (
-    <HypothesisList
-      hypotheses={projection.hypotheses}
-      primaryHypothesisId={projection.report.primaryHypothesisId}
-      getActions={getActions}
-    />
+    <Container
+      border="primary"
+      radius="md"
+      background="secondary"
+      padding="xl"
+      data-test-id="investigation-run-panel"
+    >
+      <Stack gap="xl">
+        {statusBlock ? <SeerStatusBlock {...statusBlock} /> : null}
+        <HypothesisList
+          hypotheses={projection.hypotheses}
+          primaryHypothesisId={projection.report.primaryHypothesisId}
+          getActions={getActions}
+        />
+      </Stack>
+    </Container>
   );
 }

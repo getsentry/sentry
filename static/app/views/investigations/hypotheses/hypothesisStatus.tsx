@@ -2,6 +2,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {
   InvestigationHypothesis,
@@ -76,10 +77,11 @@ function getHypothesisStatusDisplay(
       return {label: t('Supported'), variant: 'success', inFlight: false};
     case 'accepted':
       return {label: t('Accepted'), variant: 'success', inFlight: false};
-    // Ruled out cleanly. A useful outcome rather than an error, so it reads
-    // neutral instead of dangerous.
+    // Ruled out by the evidence. Not an error — a hypothesis the agent tested
+    // and closed — but still a result worth registering as you scan the row,
+    // which is why it is warning rather than muted.
     case 'refuted':
-      return {label: t('Refuted'), variant: 'muted', inFlight: false};
+      return {label: t('Refuted'), variant: 'warning', inFlight: false};
     case 'rejected':
       return {label: t('Rejected'), variant: 'muted', inFlight: false};
     // Checked, but the evidence did not settle it either way.
@@ -106,7 +108,7 @@ function getHypothesisStatusDisplay(
     return {label: t('Evidence checked'), variant: 'muted', inFlight: false};
   }
   if (hypothesis.status === 'running') {
-    return {label: t('Checking'), variant: 'accent', inFlight: true};
+    return {label: t('Verifying…'), variant: 'accent', inFlight: true};
   }
   return {label: t('Preparing checks'), variant: 'muted', inFlight: false};
 }
@@ -116,15 +118,20 @@ function getHypothesisStatusDisplay(
  *
  * - `accent` — the explanation that stands: supported by the evidence, or
  *   endorsed by a person. A solid purple edge means "this is the answer".
- * - `dashed` — everything else. A hypothesis still being investigated, ruled
- *   out, inconclusive, or failed is all the same thing to a reader scanning the
- *   row: not the answer. One broken edge says that without needing a colour per
- *   status, which the status line already carries.
+ * - `solid` — still being investigated. Nothing has been ruled out yet, so the
+ *   card gets an ordinary edge; dashing it would announce a verdict the agent
+ *   has not reached.
+ * - `dashed` — checked, and not the answer. Ruled out, inconclusive, failed and
+ *   cancelled all read the same way to someone scanning the row, so one broken
+ *   edge covers them and the status line carries the distinction.
  */
 export function getHypothesisCardBorder(
   status: InvestigationHypothesisStatus
-): 'accent' | 'dashed' {
-  return status === 'supported' || status === 'accepted' ? 'accent' : 'dashed';
+): 'accent' | 'solid' | 'dashed' {
+  if (status === 'supported' || status === 'accepted') {
+    return 'accent';
+  }
+  return status === 'pending' || status === 'investigating' ? 'solid' : 'dashed';
 }
 
 /** The heading above the steps, which depends on whether any have run yet. */
@@ -204,16 +211,21 @@ export function HypothesisStatus({hypothesis}: HypothesisStatusProps) {
     // "Evidence checked" is both a status and the heading over the steps, so
     // this needs to be addressable on its own.
     <Flex align="center" gap="xs" data-test-id="hypothesis-status">
-      <StatusIndicator
-        variant={variant}
-        // Only live work keeps moving; a staging post pulses once and rests.
-        animationIterationCount={inFlight ? 'infinite' : 1}
-      />
+      {inFlight ? (
+        // Live work gets a ring rather than a dot: the agent is doing
+        // something, not resting in a state. Every other status is a place the
+        // hypothesis has come to a stop, however briefly.
+        <Flex width="12px" height="12px" align="center" justify="center">
+          <LoadingIndicator size={12} />
+        </Flex>
+      ) : (
+        <StatusIndicator variant={variant} animationIterationCount={1} />
+      )}
       <Text size="sm" variant={variant} bold>
         {confidence === null
           ? label
-          : // Translators: e.g. "Supported · 86% confidence"
-            t('%s · %s%% confidence', label, confidence)}
+          : // Translators: e.g. "Supported · 86% Confidence"
+            t('%s · %s%% Confidence', label, confidence)}
       </Text>
     </Flex>
   );

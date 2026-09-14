@@ -47,11 +47,13 @@ export default Storybook.story('Investigations — Hypotheses', story => {
         agent has settled on a verdict.
       </p>
       <p>
-        The border carries the verdict, and only two ways: a solid accent edge on the
-        explanation that stands — supported by the evidence, or accepted by a person — and
-        a dashed edge on every other card. Still running, ruled out, inconclusive and
-        failed all read the same way to someone scanning the row, so the status line
-        carries the distinction rather than the border.
+        The border carries the verdict three ways. A solid accent edge marks the
+        explanation that stands — supported by the evidence, or accepted by a person. A
+        dashed edge marks a card that was checked and is not the answer: ruled out,
+        inconclusive, failed and cancelled all read the same way to someone scanning the
+        row, so the status line carries that distinction rather than the border. A
+        hypothesis still being investigated keeps an ordinary solid edge, because dashing
+        it would announce a verdict the agent has not reached.
       </p>
       <Storybook.Demo direction="column" align="stretch" maxHeight="none">
         <HypothesisList hypotheses={InvestigationHypothesesFixture()} />
@@ -61,9 +63,10 @@ export default Storybook.story('Investigations — Hypotheses', story => {
         through several states worth naming: formed, having its checks planned, running
         them, and done checking but not yet judged. Those are read off the verification
         steps, since that is the only place the distinction exists. Only the running state
-        is coloured and keeps its dot moving — the rest are staging posts, not outcomes.
-        The heading over the steps moves with them, from "Evidence to check" to "Evidence
-        checked".
+        is coloured, and it is the only one drawn as a spinning ring rather than a dot —
+        the rest are staging posts, not outcomes. All four keep a solid border: dashing
+        one would announce a verdict the agent has not reached. The heading over the steps
+        moves with them, from "Evidence to check" to "Evidence checked".
       </p>
       <Storybook.Demo direction="column" align="stretch" maxHeight="none">
         <HypothesisList hypotheses={inFlightHypotheses()} />
