@@ -390,6 +390,16 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                     "URLs are supported for GitHub (including pull requests), GitHub Enterprise, "
                     "Jira, Jira Server, GitLab, Bitbucket, and Azure DevOps."
                 ),
+                "repo": serializers.CharField(
+                    required=False,
+                    help_text="The repository containing the external issue, in owner/name format. "
+                    "Required by GitHub, GitHub Enterprise, and Bitbucket integrations.",
+                ),
+                "comment": serializers.CharField(
+                    required=False,
+                    help_text="An optional comment to post to the external issue when linking, "
+                    "if supported by the integration.",
+                ),
             },
         ),
         responses={

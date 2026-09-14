@@ -211,6 +211,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
         self.repo = self.create_repo(
             project=self.project,
             provider="integrations:github",

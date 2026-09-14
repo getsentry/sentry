@@ -2,10 +2,12 @@ import styled from '@emotion/styled';
 import type {ZoomTransform} from 'd3-zoom';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Hotkey, Kbd} from '@sentry/scraps/hotkey';
 import {Image} from '@sentry/scraps/image';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {IconAdd, IconRefresh, IconSubtract} from 'sentry/icons';
+import {t} from 'sentry/locale';
 
 interface ZoomControlsProps {
   onReset: () => void;
@@ -13,15 +15,38 @@ interface ZoomControlsProps {
   onZoomOut: () => void;
 }
 
+function ScrollHint({label}: {label: string}) {
+  return (
+    <Flex align="center" gap="xs">
+      {label}
+      <Hotkey value="command" />
+      <Kbd>{t('Scroll')}</Kbd>
+    </Flex>
+  );
+}
+
 export function ZoomControls({onZoomIn, onZoomOut, onReset}: ZoomControlsProps) {
   return (
-    <Container position="absolute" bottom="8px" right="8px" style={{zIndex: 1}}>
+    <Container
+      position="absolute"
+      bottom="8px"
+      right="8px"
+      style={{zIndex: 1}}
+      onClick={e => e.stopPropagation()}
+    >
       <ButtonBar>
-        <Button size="xs" icon={<IconAdd />} aria-label="Zoom in" onClick={onZoomIn} />
+        <Button
+          size="xs"
+          icon={<IconAdd />}
+          aria-label={t('Zoom in')}
+          tooltipProps={{title: <ScrollHint label={t('Zoom in')} />}}
+          onClick={onZoomIn}
+        />
         <Button
           size="xs"
           icon={<IconSubtract />}
-          aria-label="Zoom out"
+          aria-label={t('Zoom out')}
+          tooltipProps={{title: <ScrollHint label={t('Zoom out')} />}}
           onClick={onZoomOut}
         />
         <Button
@@ -35,10 +60,10 @@ export function ZoomControls({onZoomIn, onZoomOut, onReset}: ZoomControlsProps) 
   );
 }
 
-export function zoomTransformStyle(t: ZoomTransform): React.CSSProperties {
+export function zoomTransformStyle(transform: ZoomTransform): React.CSSProperties {
   return {
     transformOrigin: '0 0',
-    transform: `translate(${t.x}px, ${t.y}px) scale(${t.k})`,
+    transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.k})`,
   };
 }
 

@@ -829,14 +829,28 @@ describe('SpansTabContent', () => {
       ).toBeDisabled();
     });
 
-    it('adds a cross event search bar when cross event added', async () => {
+    it('adds and removes an empty cross event search bar without refetching results', async () => {
       const logsProject = makeProject({id: '3', slug: 'logs-project', hasLogs: true});
       setProjects([logsProject]);
+
+      const tableRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        body: {},
+      });
+      const timeseriesRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
+        body: {timeSeries: []},
+      });
 
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
         organization,
         additionalWrapper: Wrapper,
       });
+
+      await screen.findByText(/No spans found/);
+      await waitFor(() => expect(timeseriesRequest).toHaveBeenCalled());
+      const tableRequestCount = tableRequest.mock.calls.length;
+      const timeseriesRequestCount = timeseriesRequest.mock.calls.length;
 
       await userEvent.click(
         screen.getByRole('button', {name: 'Add a cross event query'})
@@ -848,6 +862,17 @@ describe('SpansTabContent', () => {
       expect(
         screen.getByPlaceholderText('Search for logs, users, tags, and more')
       ).toBeInTheDocument();
+
+      expect(tableRequest).toHaveBeenCalledTimes(tableRequestCount);
+      expect(timeseriesRequest).toHaveBeenCalledTimes(timeseriesRequestCount);
+
+      await userEvent.click(screen.getByLabelText('Remove cross event search for logs'));
+
+      expect(
+        screen.queryByPlaceholderText('Search for logs, users, tags, and more')
+      ).not.toBeInTheDocument();
+      expect(tableRequest).toHaveBeenCalledTimes(tableRequestCount);
+      expect(timeseriesRequest).toHaveBeenCalledTimes(timeseriesRequestCount);
     });
 
     it('can remove a cross event query', async () => {

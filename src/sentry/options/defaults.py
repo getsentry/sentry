@@ -668,6 +668,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "relay.generic-metrics.disabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -1039,28 +1046,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Transaction events
-# True => kill switch to disable ingestion of transaction events for internal project.
-register(
-    "transaction-events.force-disable-internal-project",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
-# Killswitch for sending internal errors to the internal project or
-# `SENTRY_SDK_CONFIG.relay_dsn`. Set to `0` to only send to
-# `SENTRY_SDK_CONFIG.dsn` (the "upstream transport") and nothing else.
-#
-# Note: A value that is neither 0 nor 1 is regarded as 0
-register("store.use-relay-dsn-sample-rate", default=1, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# A rate that enables statsd item sending (DDM data) to s4s
-register("store.allow-s4s-ddm-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Sample rate for transaction/span data sent to S4S upstream (1.0 = keep all, 0.05 = keep 5%)
-register("store.s4s-transaction-sample-rate", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 
 # Killswitch to stop storing any reprocessing payloads.
@@ -2410,7 +2395,8 @@ register(
     30,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Toggles emitting the smallest-transaction sampling-factor bucket metric during transaction rebalancing.
+# Nothing reads this option any more. It stays registered until the options automator
+# has unset it, since the automator can only unset a registered option.
 register(
     "dynamic-sampling.boost_low_volume_transactions.emit_smallest_transaction_factor_metric",
     default=False,
@@ -2459,9 +2445,8 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Killswitch for the legacy dynamic sampling pipeline. When set to True, the four
-# scheduled jobs (sliding_window_org, boost_low_volume_projects,
-# boost_low_volume_transactions, recalibrate_orgs) exit before they do any work.
+# Nothing reads this option any more. It stays registered until the options automator
+# has unset it, since the automator can only unset a registered option.
 register(
     "dynamic-sampling.legacy.killswitch",
     default=False,
@@ -2532,11 +2517,8 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Controls the intensity of dynamic sampling transaction rebalancing. 0.0 = explict rebalancing
-# not performed, 1.0= full rebalancing (tries to bring everything to mean). Note that even at 0.0
-# there will still be some rebalancing between the explicit and implicit transactions ( so setting rebalancing
-# to 0.0 is not the same as no rebalancing. To effectively disable rebalancing set the number of explicit
-# transactions to be rebalance (both small and large) to 0.
+# Nothing reads this option any more. It stays registered until the options automator
+# has unset it, since the automator can only unset a registered option.
 register(
     "dynamic-sampling.prioritise_transactions.rebalance_intensity",
     default=0.8,
@@ -3644,6 +3626,12 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "workflow_engine.tasks.health_check_organization.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "workflow_engine.group.type_id.open_periods_type_denylist",
@@ -4430,4 +4418,11 @@ register(
     default=[],
     type=Sequence,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "preprod.snapshots.auto-approve-sibling-diffs.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

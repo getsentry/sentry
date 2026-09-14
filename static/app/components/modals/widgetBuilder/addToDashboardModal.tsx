@@ -186,6 +186,7 @@ function AddToDashboardModal({
     let unmounted = false;
 
     if (selectedDashboardId === NEW_DASHBOARD_ID || selectedDashboardId === null) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setSelectedDashboard(null);
     } else {
       fetchDashboard(api, organization.slug, selectedDashboardId).then(response => {

@@ -62,6 +62,7 @@ export function Layout() {
 
   // Close mobile drawer on route change.
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     closeSidebar();
   }, [location.pathname]);
 

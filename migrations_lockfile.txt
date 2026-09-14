@@ -15,7 +15,7 @@ feedback: 0007_cleanup_failed_safe_deletes
 
 flags: 0005_increase_flag_max_length
 
-hybridcloud: 0037_create_outbox_backfill_watermark
+hybridcloud: 0038_cellcacheversion_backfill_keyname
 
 insights: 0001_squashed_0002_backfill_team_starred
 
@@ -33,9 +33,9 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0033_seer_run_pr_iteration
+seer: 0034_add_seer_autofix_issue_data
 
-sentry: 1170_custominboundfilter_add_data_type
+sentry: 1172_rule_add_new_environment_id
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
