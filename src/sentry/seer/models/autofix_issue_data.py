@@ -3,7 +3,7 @@ from __future__ import annotations
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, cell_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 
 
@@ -11,11 +11,11 @@ from sentry.db.models.base import DefaultFieldsModel
 class SeerAutofixIssueData(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
-    group_id = BoundedBigIntegerField(unique=True)
-    organization_id = BoundedBigIntegerField(db_index=True)
-    project_id = BoundedBigIntegerField()
-    source = models.CharField(max_length=32)
-    pr_id = BoundedBigIntegerField(null=True)
+    group = FlexibleForeignKey("sentry.Group", on_delete=models.CASCADE, unique=True)
+    organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
+    project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
+    source = models.CharField(max_length=256)
+    pull_request = FlexibleForeignKey("sentry.PullRequest", on_delete=models.SET_NULL, null=True)
     raw_issue_data = models.JSONField()
     judge_review = models.JSONField(null=True)
 
