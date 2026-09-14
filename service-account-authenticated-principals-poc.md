@@ -369,6 +369,144 @@ The typed-principal approach is more explicit than a user-shaped or proxy-user a
 This proof of concept is designed to measure whether the additional explicitness is worth the
 compatibility work, not to claim that all endpoint migration has already been solved.
 
+## Comparison With the Existing Prototype
+
+The comparison baseline is the existing service-account prototype at
+[`6a9928ddc54`](https://github.com/getsentry/sentry/commit/6a9928ddc54bddee1b1bb9097bceaf20ad3dc93d),
+created on August 28, 2026. That prototype uses the same separate `ServiceAccount` model but
+makes `RpcServiceAccount` implement enough of the user interface to become `request.user`.
+
+This typed-principal proof of concept was based on `acca281e47c` from September 11, 2026. The
+branches therefore have different baselines, and the existing prototype deliberately implements
+far more product behavior. Raw size is useful for understanding migration surface but is not a
+feature-for-feature productivity comparison.
+
+```mermaid
+flowchart LR
+    subgraph Compatibility[Existing request.user compatibility prototype]
+        CT[Service-account token] --> CR[RpcServiceAccount]
+        CR --> CU[request.user]
+        CU --> CE[Existing endpoints]
+        CE --> CG[Human-only is_interactive guards]
+    end
+
+    subgraph Typed[Typed-principal prototype]
+        TT[Service-account token] --> TP[AuthenticatedServiceAccountPrincipal]
+        TP --> TR[Request principal]
+        TP --> TA[Anonymous request.user]
+        TR --> TE[Explicit principal-aware endpoint]
+    end
+```
+
+### Quantitative Scope
+
+| Measurement                                    | Existing compatibility prototype |   Typed-principal prototype |
+| ---------------------------------------------- | -------------------------------: | --------------------------: |
+| Total changed files                            |                              162 | 33, including this document |
+| Insertions and deletions                       |                    +5,653 / -329 |                +1,559 / -25 |
+| Implementation changes excluding this document |                    +5,653 / -329 |                +1,132 / -25 |
+| Files under `src/`                             |                              116 |                          29 |
+| Test files                                     |                               38 |                           2 |
+| Frontend files                                 |                                7 |                           0 |
+| Files common to both approaches                |                               26 |                          26 |
+| Approach-specific files                        |                              136 |                           7 |
+
+The 26 common files are primarily the schema, migrations, service-account RPC, token replication,
+organization-member mapping, authentication plumbing, fixtures, backups, and ViewerContext.
+This indicates that most persistence and hybrid-cloud work is required regardless of how the
+authenticated identity is exposed to application code.
+
+The existing prototype adds `is_interactive` references in 56 source files and direct
+service-account branching in approximately 50 source files. This buys substantial endpoint
+coverage, but it also demonstrates the compatibility surface created by placing a non-user object
+in `request.user`.
+
+### Comparison by Ticket Criterion
+
+| Criterion                                       | Existing compatibility prototype                                                                                                                                                                                                                                                      | Typed-principal prototype                                                                                                                                                                                                                                                   | Assessment                                                                                                                                                                                                            |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Schema and migration complexity                 | Adds `ServiceAccount`, nullable service-account ownership to `OrganizationMember`, `OrganizationMemberMapping`, `ApiToken`, and `ApiTokenReplica`, plus exclusivity constraints and a mapping index.                                                                                  | Uses essentially the same schema. It additionally prevents service-account memberships from carrying invitation email state.                                                                                                                                                | The core schema cost is nearly identical and does not decide between the approaches. The typed branch has a slightly stronger membership invariant; the existing prototype has an additional composite mapping index. |
+| Number of files and call sites                  | 162 files because it implements management APIs, UI, lifecycle operations, broad endpoint compatibility, durable attribution, and extensive tests.                                                                                                                                    | 33 files because it intentionally enables only one private endpoint and no UI.                                                                                                                                                                                              | The large difference primarily measures feature breadth. However, the 56 files requiring new `is_interactive` handling are direct evidence of user-emulation migration cost.                                          |
+| Authentication and permission-layer complexity  | Authentication returns `RpcServiceAccount` as `request.user`. `AuthenticatedToken` carries actor type and ID. Central `auth.access` resolves the service-account membership and caps access with token scopes.                                                                        | Authentication returns an explicit service-account principal while leaving `request.user` anonymous. The PoC endpoint uses shared `require_user_principal` and `require_service_account_principal` helpers. It has not integrated the principal into central `auth.access`. | The typed boundary is clearer and safer by default. The existing prototype is substantially more complete in centralized authorization. A production design should combine these properties.                          |
+| Compatibility with existing user-only endpoints | High compatibility. Service accounts can use representative organization, project, team, issue, dashboard, discover, and explore paths after targeted changes.                                                                                                                        | Deliberately rejects service-account tokens on every unrelated endpoint.                                                                                                                                                                                                    | The compatibility prototype proves utility sooner. The typed prototype makes unsupported behavior explicit and avoids accidentally entering user-only paths.                                                          |
+| Organization role, teams, and token scopes      | Uses the ordinary access layer. Tests demonstrate team-limited projects, open membership, scope-based write denial, team creation, and project creation.                                                                                                                              | Creates ordinary membership and team rows and reports token scopes, member scopes, and their intersection. Central endpoint authorization is not yet derived from that intersection.                                                                                        | Existing prototype meets this requirement more completely. The typed prototype still needs principal-aware integration with `auth.access`.                                                                            |
+| Audit and activity attribution                  | Adds a typed `ViewerActor`, writes service-account type and ID into audit data, leaves the user foreign key empty, and adds service-account action-log attribution for issue changes.                                                                                                 | Propagates a namespaced actor through ViewerContext and exposes it from the inspection endpoint, but does not write a durable audit or activity record.                                                                                                                     | Existing prototype is stronger. Durable attribution remains an acceptance gap in the typed branch.                                                                                                                    |
+| Hybrid-cloud ownership and replication          | Control-silo account and tokens, cell membership, token replica, organization-member mapping, actor-aware organization RPC context, and stale-replica lifecycle tests.                                                                                                                | Same fundamental control/cell ownership and token replication. It revalidates the account and token through the service-account RPC but does not propagate the principal through the organization access RPC.                                                               | Persistence topology is aligned. Existing prototype has more complete cross-silo authorization and lifecycle coverage.                                                                                                |
+| Creation, deletion, and failure recovery        | Creation uses compensating deletion if cell membership creation fails. It implements update, disable, token rotation, revocation, and deletion. Updates and deletion span control and cell writes without a distributed transaction, so later failures can still leave partial state. | Creation uses the same compensating deletion pattern. The RPC has deletion support, but the private endpoint does not expose lifecycle operations.                                                                                                                          | Both need an outbox or explicit reconciliation strategy for production. Existing prototype exercises more failure modes; neither makes multi-silo lifecycle atomic.                                                   |
+| Risk of entering human workflows                | Higher inherent risk because `RpcServiceAccount` implements user-like properties such as `is_authenticated`, `email`, `has_2fa`, and `get_username`, and is placed in `request.user`. The prototype adds `is_interactive` guards and tests representative personal workflows.         | Lower default risk because `request.user` stays anonymous and endpoints must explicitly accept a service-account principal.                                                                                                                                                 | Typed principal is safer for SSO, SCIM, email, 2FA, notification, merge, and account-settings boundaries. Its cost is explicit endpoint migration.                                                                    |
+| Incremental rollout and maintenance             | Can deliver broad compatibility quickly behind one feature flag, but long-term correctness depends on finding and maintaining every user-only assumption and compatibility guard.                                                                                                     | Can roll out endpoint families explicitly and centralize human-only rejection, but initially supports little existing functionality.                                                                                                                                        | Prefer explicit capability rollout over global user emulation. Add central principal-aware authorization to avoid duplicating membership logic per endpoint.                                                          |
+
+### Acceptance Criteria Status
+
+| Acceptance criterion                                                   | Status                          | Evidence or remaining work                                                                                                      |
+| ---------------------------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Experimental branch is based on current `origin/master`                | Met for the experiment baseline | Based on `acca281e47c` from September 11, 2026.                                                                                 |
+| User and service-account principals are statically distinguishable     | Met                             | The `AuthenticatedPrincipal` union has distinct user and service-account dataclasses.                                           |
+| Actor identifiers are namespaced and round-trip through serialization  | Partial                         | Namespaced identifiers and ViewerContext serialization exist. Add a dedicated service-account serialization round-trip test.    |
+| A service-account token authenticates without a synthetic `User`       | Met                             | Authentication leaves `request.user` anonymous and sets the typed principal.                                                    |
+| Effective access is bounded by membership and credential scopes        | Partial                         | The endpoint reports the intersection and rejects every other endpoint, but central access enforcement has not been integrated. |
+| A human-only action rejects through a shared principal helper          | Met, with a test gap            | `POST` requires `require_user_principal`; add a test using a service-account token with sufficient token scope.                 |
+| A durable action preserves typed service-account attribution           | Not met                         | ViewerContext propagation is demonstrated, but no audit, activity, or action-log record is written.                             |
+| Existing user authentication works through the same principal boundary | Met for the PoC endpoint        | Authenticated users are wrapped as `AuthenticatedUserPrincipal`; broad endpoint migration is outside this PoC.                  |
+| Findings compare both prototypes and recommend a production direction  | Met by this document            | Recommendation follows below.                                                                                                   |
+
+The ticket should remain in progress until the partial and unmet items that materially affect the
+architecture have either been implemented or explicitly removed from the experiment's acceptance
+criteria.
+
+### Recommended Production Direction
+
+Use a hybrid of the two prototypes:
+
+1. Keep the shared separate-model schema: organization-owned `ServiceAccount`, ordinary
+   `OrganizationMember`, and exactly-one-principal `ApiToken` ownership.
+2. Keep `request.user` reserved for humans. Authentication should return a discriminated
+   authenticated principal rather than a user-compatible service-account object.
+3. Adapt the existing prototype's central `auth.access` work to accept the typed principal and
+   resolve role, team access, and token-scope narrowing in one place.
+4. Carry a small typed actor reference in ViewerContext. The existing prototype's `ViewerActor`
+   demonstrates this composition more cleanly than flattened actor fields.
+5. Add centralized endpoint capabilities such as `requires_user` or
+   `allows_service_account`, backed by shared principal helpers, instead of scattering
+   `getattr(request.user, "is_interactive", ...)` guards.
+6. Reuse the existing prototype's management API, lifecycle service methods, UI, stale-replica
+   validation, and broader behavioral test matrix after the authentication boundary is changed.
+7. Store durable attribution as actor type and actor ID while retaining nullable legacy user
+   foreign keys during migration.
+8. Use outbox-driven or reconciled cross-silo lifecycle operations before production rollout.
+
+```mermaid
+flowchart TD
+    T[API token] --> P[Typed AuthenticatedPrincipal]
+    P --> U{Principal kind}
+    U -->|user| RU[Populate request.user compatibility]
+    U -->|service account| RA[Keep request.user anonymous]
+    P --> AC[Central principal-aware access]
+    AC --> M[OrganizationMember role and teams]
+    AC --> S[Token scope upper bound]
+    P --> V[ViewerContext actor reference]
+    V --> D[Durable audit and action attribution]
+    AC --> E[Explicitly enabled endpoint families]
+```
+
+This direction preserves the existing prototype's strongest result—ordinary Sentry permissions
+can work for service accounts—without making machine identities impersonate people throughout
+the application.
+
+### Remaining Experiments
+
+To complete the architectural comparison rather than only the minimal authentication demo:
+
+1. Integrate `AuthenticatedPrincipal` with `auth.access` and enable one representative project
+   listing endpoint.
+2. Demonstrate that team membership and token scopes jointly limit that endpoint.
+3. Add one human-only endpoint test where a sufficiently scoped service-account token reaches the
+   shared `require_user_principal` rejection.
+4. Write one durable audit or action-log record using the namespaced service-account actor.
+5. Add ViewerContext serialization round-trip and stale-token-replica tests.
+6. Recalculate the diff after those shared capabilities are present; that will be a more useful
+   estimate of architectural overhead than the current raw branch-size comparison.
+
 ## Current Proof-of-Concept Scope
 
 Implemented:
