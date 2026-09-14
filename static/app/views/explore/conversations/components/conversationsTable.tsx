@@ -95,7 +95,7 @@ const COLUMN_DEFAULTS: Record<ColumnKey, {name: string; width: number}> = {
 const RIGHT_ALIGNED_COLUMNS = new Set<ColumnKey>(['age']);
 
 const SORT_FIELD_BY_COLUMN: Partial<Record<ColumnKey, ConversationSortField>> = {
-  duration: CONVERSATION_FIELDS.generationDuration.key,
+  duration: CONVERSATION_FIELDS.duration.key,
   messages: CONVERSATION_FIELDS.messages.key,
   errors: CONVERSATION_FIELDS.errors.key,
   cost: CONVERSATION_FIELDS.totalCost.key,
@@ -374,10 +374,7 @@ function BodyCell({
     case 'duration':
       return (
         <Text tabular>
-          <PerformanceDuration
-            milliseconds={conversation.generationDuration}
-            abbreviation
-          />
+          <PerformanceDuration milliseconds={conversation.duration} abbreviation />
         </Text>
       );
     case 'messages':

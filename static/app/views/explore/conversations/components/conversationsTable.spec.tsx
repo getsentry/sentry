@@ -21,6 +21,7 @@ const COLUMN_WIDTHS_STORAGE_KEY = 'conversation-table-column-widths';
 
 const BASE_CONVERSATION = {
   conversationId: 'conv-1',
+  duration: 3000,
   endTimestamp: 2000,
   errors: 0,
   firstInput: null,
@@ -286,6 +287,16 @@ describe('ConversationsTable', () => {
     );
     expect(screen.queryByRole('button', {name: 'Conversation'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Tools'})).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Duration'}));
+    await waitFor(() =>
+      expect(request).toHaveBeenCalledWith(
+        `/organizations/${sortingOrganization.slug}/agents/conversations/`,
+        expect.objectContaining({
+          query: expect.objectContaining({sort: ['-conversation.duration']}),
+        })
+      )
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Cost'}));
 

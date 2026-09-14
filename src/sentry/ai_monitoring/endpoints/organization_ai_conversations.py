@@ -10,7 +10,10 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.ai_monitoring.constants import AI_CONVERSATIONS_FIELDS
+from sentry.ai_monitoring.constants import (
+    AI_CONVERSATION_DURATION_EXPRESSION,
+    AI_CONVERSATIONS_FIELDS,
+)
 from sentry.ai_monitoring.conversation_query import compile_conversation_query
 from sentry.ai_monitoring.conversation_titles import fetch_conversation_titles
 from sentry.ai_monitoring.serializers import OrganizationAIConversationsSerializer
@@ -76,6 +79,7 @@ class AIConversationData(TypedDict):
     inputTokens: int
     outputTokens: int
     totalCost: float
+    duration: float
     generationDuration: float
     startTimestamp: int
     endTimestamp: int
@@ -174,6 +178,7 @@ def _build_conversation_response(
     tool_names: list[str] | None = None,
     tool_errors: int = 0,
     title: str | None = None,
+    duration: float = 0,
     generation_duration: float = 0,
     project_id: int | None = None,
 ) -> AIConversationData:
@@ -189,6 +194,7 @@ def _build_conversation_response(
         "inputTokens": input_tokens,
         "outputTokens": output_tokens,
         "totalCost": total_cost,
+        "duration": duration,
         "generationDuration": generation_duration,
         "startTimestamp": start_timestamp,
         "endTimestamp": end_timestamp,
@@ -439,6 +445,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "sum_if(gen_ai.usage.input_tokens,gen_ai.operation.type,equals,ai_client)",
                 "sum_if(gen_ai.usage.output_tokens,gen_ai.operation.type,equals,ai_client)",
                 "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client)",
+                AI_CONVERSATION_DURATION_EXPRESSION,
                 "sum_if(span.duration,gen_ai.operation.type,equals,ai_client)",
                 "min(precise.start_ts)",
                 "max(precise.finish_ts)",
@@ -546,6 +553,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                         )
                         or 0
                     ),
+                    duration=float(row.get(AI_CONVERSATION_DURATION_EXPRESSION) or 0),
                     generation_duration=float(
                         row.get("sum_if(span.duration,gen_ai.operation.type,equals,ai_client)") or 0
                     ),
@@ -688,6 +696,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "sum_if(gen_ai.usage.input_tokens,gen_ai.operation.type,equals,ai_client) as input_tokens",
                 "sum_if(gen_ai.usage.output_tokens,gen_ai.operation.type,equals,ai_client) as output_tokens",
                 "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client) as total_cost",
+                f"{AI_CONVERSATION_DURATION_EXPRESSION} as duration",
                 "sum_if(span.duration,gen_ai.operation.type,equals,ai_client) as generation_duration",
                 "min(timestamp) as start_timestamp",
                 "max(timestamp) as end_timestamp",
@@ -744,6 +753,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 input_tokens=int(row.get("input_tokens") or 0),
                 output_tokens=int(row.get("output_tokens") or 0),
                 total_cost=float(row.get("total_cost") or 0),
+                duration=float(row.get("duration") or 0),
                 generation_duration=float(row.get("generation_duration") or 0),
                 trace_ids=trace_ids,
                 flow=row.get("flow") or [],

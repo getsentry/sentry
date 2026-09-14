@@ -25,6 +25,8 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         description=None,
         status="ok",
         operation_type=None,
+        operation_name=None,
+        duration=1000,
         tokens=None,
         input_tokens=None,
         output_tokens=None,
@@ -57,6 +59,8 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             description: Span description
             status: Span status (default: "ok")
             operation_type: The gen_ai.operation.type attribute
+            operation_name: The gen_ai.operation.name attribute
+            duration: Span duration in milliseconds
             tokens: Token count (gen_ai.usage.total_tokens)
             input_tokens: Input token count (gen_ai.usage.input_tokens)
             output_tokens: Output token count (gen_ai.usage.output_tokens)
@@ -88,6 +92,8 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         }
         if operation_type:
             span_data["gen_ai.operation.type"] = operation_type
+        if operation_name:
+            span_data["gen_ai.operation.name"] = operation_name
         if tokens is not None:
             span_data["gen_ai.usage.total_tokens"] = tokens
         if input_tokens is not None:
@@ -143,6 +149,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             extra_data,
             project=project,
             start_ts=timestamp,
+            duration=duration,
         )
         if store:
             self.store_spans([span])
