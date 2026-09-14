@@ -32,8 +32,6 @@ INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS | {
     PROXY_BASE_URL_HEADER,
     PROXY_PATH,
     PROXY_TIMEOUT_HEADER,
-    # Stripped from third-party responses so an upstream cannot forge the proxy's own
-    # internal/upstream classification; the proxy sets its value after scrubbing.
     PROXY_INTERNAL_FAILURE_HEADER,
 }
 
