@@ -5,16 +5,26 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.utils.iterators import chunked
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+
+BATCH_SIZE = 1000
 
 
 def replace_boolean_deescalation_comparisons(
     apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
 ) -> None:
     DataCondition = apps.get_model("workflow_engine", "DataCondition")
-    DataCondition.objects.filter(
+    conditions = DataCondition.objects.filter(
         type="issue_priority_deescalating",
         comparison=True,
-    ).update(comparison=75)
+    ).values_list("id", flat=True)
+
+    for condition_ids in chunked(
+        RangeQuerySetWrapperWithProgressBar(conditions, step=BATCH_SIZE),
+        BATCH_SIZE,
+    ):
+        DataCondition.objects.filter(id__in=condition_ids).update(comparison=75)
 
 
 class Migration(CheckedMigration):
