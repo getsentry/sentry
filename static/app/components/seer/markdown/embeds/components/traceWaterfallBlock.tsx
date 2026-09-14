@@ -1,9 +1,13 @@
 import {useMemo} from 'react';
 
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container} from '@sentry/scraps/layout';
 
+import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
+import {IconSpan} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
+import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
@@ -19,7 +23,7 @@ import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTra
 import type {TraceViewQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 import type {UseTraceScrollToPath} from 'sentry/views/performance/newTraceDetails/useTraceScrollToPath';
 
-import {TraceLink} from './traceLink';
+import {getTraceHref} from './traceLink';
 
 const TRACE_EMBED_PREFERENCES = {
   ...DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -40,7 +44,11 @@ const TRACE_ADDITIONAL_ATTRIBUTES = [
   'span.status',
 ];
 
-function TraceWaterfallEmbed({traceId, timestamp, spanId}: EmbedOutput<'trace'>) {
+function TraceWaterfallEmbed({
+  traceId,
+  timestamp,
+  spanId,
+}: EmbedOutput<'traceWaterfall'>) {
   const organization = useOrganization();
   const timestampSeconds = getTimeStampFromTableDateField(timestamp);
 
@@ -115,23 +123,22 @@ function TraceWaterfallEmbed({traceId, timestamp, spanId}: EmbedOutput<'trace'>)
   );
 }
 
-export default function TraceBlock(props: EmbedOutput<'trace'>) {
+export default function TraceWaterfallBlock(props: EmbedOutput<'traceWaterfall'>) {
+  const organization = useOrganization();
+
   return (
-    <Container
-      background="primary"
-      border="primary"
-      overflow="hidden"
-      padding="md"
-      radius="md"
+    <SeerEmbedBlock
+      href={getTraceHref(props, organization)}
+      icon={IconSpan}
+      linkLabel={t('View Trace')}
+      testId="seer-trace-waterfall-embed"
+      title={t('Trace %s', getShortEventId(props.traceId))}
     >
-      <Stack gap="md">
-        <TraceLink {...props} />
-        <Container display="flex" height="400px" minWidth="0">
-          <TraceStateProvider disableUrlSync initialPreferences={TRACE_EMBED_PREFERENCES}>
-            <TraceWaterfallEmbed {...props} />
-          </TraceStateProvider>
-        </Container>
-      </Stack>
-    </Container>
+      <Container display="flex" height="400px" minWidth="0">
+        <TraceStateProvider disableUrlSync initialPreferences={TRACE_EMBED_PREFERENCES}>
+          <TraceWaterfallEmbed {...props} />
+        </TraceStateProvider>
+      </Container>
+    </SeerEmbedBlock>
   );
 }

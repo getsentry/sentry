@@ -13,10 +13,16 @@ from time import time
 
 from django.conf import settings
 from redis.exceptions import RedisError
+from rediscluster.exceptions import (
+    ClusterDownException,
+    RedisClusterConfigError,
+    RedisClusterError,
+    RedisClusterException,
+)
 
 from sentry import options
 from sentry.hybridcloud.mailbox import MailboxName
-from sentry.utils import redis
+from sentry.utils import metrics, redis
 
 logger = logging.getLogger(__name__)
 
@@ -44,16 +50,43 @@ STRICT_BUCKET_COUNT = 10
 which would leave one issue's backlog draining concurrently with its next
 payloads."""
 
+REDIS_ERRORS = (
+    RedisError,
+    RedisClusterException,
+    RedisClusterError,
+    RedisClusterConfigError,
+    ClusterDownException,
+)
+"""Previously we only handled RedisError but that left these "redis cluster" exceptions
+uncaught in the mailbox sizing function
+"""
+
 
 def mailbox_bucket_count(mailbox: MailboxName) -> int:
     """How many sub-mailboxes to spread `mailbox`'s bucket keys over.
 
     Counts this payload against the window, so call it once per payload queued. A
     strictly ordered provider is not counted: nothing would read the result.
+
+    if we don't catch any exception in the _count_for_payloads line we'll fail to enqueue
+    a webhook payload when we could've just fallen back to the default max buckets value
     """
     if not _tolerates_reordering(mailbox.provider):
         return STRICT_BUCKET_COUNT
-    return _count_for_payloads(_record_and_read_window(_rate_counter_key(mailbox)))
+
+    try:
+        return _count_for_payloads(_record_and_read_window(_rate_counter_key(mailbox)))
+    except Exception:
+        return _fallback_bucket_count(mailbox)
+
+
+def _fallback_bucket_count(mailbox: MailboxName) -> int:
+    metrics.incr(
+        "hybridcloud.webhook_mailbox_sizing.failed",
+        tags={"provider": mailbox.provider},
+    )
+    # _count_for_payloads falls back to this anyways so we can do the same here
+    return _max_buckets()
 
 
 def _payloads_per_mailbox() -> int:
@@ -143,7 +176,7 @@ def _record_and_read_window(counter_key: str) -> int | None:
         pipe.mget(older_keys)
         current, _, older = pipe.execute()
         return int(current) + sum(int(count) for count in older if count is not None)
-    except (RedisError, TypeError, ValueError, IndexError):
+    except (*REDIS_ERRORS, TypeError, ValueError, IndexError):
         logger.exception(
             "hybridcloud.webhook_mailbox_sizing.unavailable",
             extra={"counter_key": counter_key},

@@ -42,6 +42,7 @@ export function TimelineTooltip({container}: Props) {
         window.clearTimeout(timeoutRef.current);
         timeoutRef.current = undefined;
       }
+      // oxlint-disable-next-line react/set-state-in-effect
       setLastHoverTime(currentHoverTime);
     }
 

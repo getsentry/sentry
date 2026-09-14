@@ -60,23 +60,35 @@ def next_starred_position(organization: Organization, user_id: int) -> int:
     return max(positions, default=0) + 1
 
 
-def shift_starred_positions_by_one(
+def shift_starred_positions(
     organization: Organization,
     user_id: int,
     *,
     from_position: int,
+    delta: int,
+    inclusive: bool = False,
 ) -> None:
     """
-    Move every position above ``from_position`` by negative one, closing a gap in the shared list of starred queries.
+    Move every position above ``from_position`` by ``delta``, closing a gap in the shared list of starred queries.
+    If ``inclusive`` is True, ``from_position`` itself is included in the shift. By default it is not.
     """
 
-    ExploreSavedQueryStarred.objects.filter(
-        organization=organization, user_id=user_id, position__gt=from_position
-    ).update(position=models.F("position") - 1)
+    if inclusive:
+        ExploreSavedQueryStarred.objects.filter(
+            organization=organization, user_id=user_id, position__gte=from_position
+        ).update(position=models.F("position") + delta)
 
-    DiscoverSavedQueryStarred.objects.filter(
-        organization=organization, user_id=user_id, position__gt=from_position
-    ).update(position=models.F("position") - 1)
+        DiscoverSavedQueryStarred.objects.filter(
+            organization=organization, user_id=user_id, position__gte=from_position
+        ).update(position=models.F("position") + delta)
+    else:
+        ExploreSavedQueryStarred.objects.filter(
+            organization=organization, user_id=user_id, position__gt=from_position
+        ).update(position=models.F("position") + delta)
+
+        DiscoverSavedQueryStarred.objects.filter(
+            organization=organization, user_id=user_id, position__gt=from_position
+        ).update(position=models.F("position") + delta)
 
 
 def reorder_starred_queries(

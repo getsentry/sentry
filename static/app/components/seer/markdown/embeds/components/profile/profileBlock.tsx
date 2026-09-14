@@ -1,7 +1,7 @@
 import {useMemo, useState, type ReactNode} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import queryString from 'query-string';
 
-import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
@@ -10,11 +10,13 @@ import {DateTime} from 'sentry/components/dateTime';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
-import {ProfileLink} from 'sentry/components/seer/markdown/embeds/components/profile/profileLink';
+import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {Version} from 'sentry/components/version';
+import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getShortEventId} from 'sentry/utils/events';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
@@ -24,7 +26,7 @@ import {
   isSentrySampledProfile,
 } from 'sentry/utils/profiling/guards/profile';
 import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {formatTo} from 'sentry/utils/profiling/units/units';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -151,7 +153,11 @@ export default function ProfileBlock({projectSlug, profileId}: EmbedOutput<'prof
   const [canvasView, setCanvasView] = useState<CanvasView<FlamegraphModel> | null>(null);
 
   const {data, isError, isPending} = useQuery({
-    ...profileApiOptions({organizationSlug: organization.slug, projectSlug, profileId}),
+    ...profileApiOptions({
+      organizationSlug: organization.slug,
+      projectSlug,
+      profileId,
+    }),
     retry: false,
   });
 
@@ -194,6 +200,9 @@ export default function ProfileBlock({projectSlug, profileId}: EmbedOutput<'prof
 
   const flamegraph = chart?.flamegraph ?? null;
 
+  // A string, not the `LocationDescriptor` the route builder returns: the
+  // header link renders through `ResourceLink`, which parses the href to decide
+  // whether it is internal.
   const target = useMemo(() => {
     // Deep link to the same viewport the preview is showing.
     const query = canvasView?.configView
@@ -204,131 +213,122 @@ export default function ProfileBlock({projectSlug, profileId}: EmbedOutput<'prof
         }
       : undefined;
 
-    return normalizeUrl(
-      generateProfileFlamechartRouteWithQuery({
-        organization,
-        projectSlug,
-        profileId,
-        query,
-      })
-    );
+    return queryString.stringifyUrl({
+      url: normalizeUrl(
+        generateProfileFlamechartRoute({organization, projectSlug, profileId})
+      ),
+      query,
+    });
   }, [canvasView, organization, profileId, projectSlug, viewMode]);
 
   return (
-    <Container
-      background="primary"
-      border="primary"
-      containerType="inline-size"
-      data-test-id="seer-profile-embed"
-      padding="lg"
-      radius="md"
-      width="100%"
+    <SeerEmbedBlock
+      badge={
+        flamegraph ? (
+          <SegmentedControl
+            aria-label={t('Profile view')}
+            size="xs"
+            value={viewMode}
+            onChange={setViewMode}
+          >
+            <SegmentedControl.Item key="aggregated">
+              {t('Left-heavy')}
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key="timeline">
+              {t('Time-ordered')}
+            </SegmentedControl.Item>
+          </SegmentedControl>
+        ) : null
+      }
+      gap="lg"
+      // `target` rather than the inline link's plain flamechart route: it
+      // carries the view mode the reader picked above, so the full page opens
+      // on what the preview is showing.
+      href={target}
+      icon={IconProfiling}
+      linkLabel={t('View Profile')}
+      testId="seer-profile-embed"
+      title={t('Profile %s', getShortEventId(profileId))}
     >
-      <Stack gap="lg">
-        <Flex align="center" gap="md" justify="between" wrap="wrap">
-          <ProfileLink projectSlug={projectSlug} profileId={profileId} />
-          <Flex align="center" gap="sm">
-            {flamegraph ? (
-              <SegmentedControl
-                aria-label={t('Profile view')}
-                size="xs"
-                value={viewMode}
-                onChange={setViewMode}
-              >
-                <SegmentedControl.Item key="aggregated">
-                  {t('Left-heavy')}
-                </SegmentedControl.Item>
-                <SegmentedControl.Item key="timeline">
-                  {t('Time-ordered')}
-                </SegmentedControl.Item>
-              </SegmentedControl>
-            ) : null}
-            <LinkButton size="xs" to={target}>
-              {t('Open in Profiling')}
-            </LinkButton>
-          </Flex>
+      {isPending ? (
+        <Flex align="center" height={PREVIEW_HEIGHT} justify="center">
+          <LoadingIndicator />
         </Flex>
+      ) : isError || !data ? (
+        <Text variant="muted">{t('Unable to load profile details')}</Text>
+      ) : (
+        <Stack gap="lg">
+          {metadata ? (
+            <Grid
+              columns={{
+                zero: 'repeat(2, minmax(0, 1fr))',
+                sm: 'repeat(3, minmax(0, 1fr))',
+                lg: 'repeat(4, minmax(0, 1fr))',
+              }}
+              gap="xl"
+            >
+              {metadata.transactionName ? (
+                <MetadataItem label={t('Transaction')}>
+                  {metadata.transactionName}
+                </MetadataItem>
+              ) : null}
+              {chart ? (
+                <MetadataItem label={t('Duration')}>
+                  {chart.flamegraph.formatter(chart.duration)}
+                </MetadataItem>
+              ) : null}
+              {chart ? (
+                <MetadataItem label={t('Threads')}>{chart.threadCount}</MetadataItem>
+              ) : null}
+              {metadata.environment ? (
+                <MetadataItem label={t('Environment')}>
+                  {metadata.environment}
+                </MetadataItem>
+              ) : null}
+              {metadata.release ? (
+                <MetadataItem label={t('Release')}>
+                  <Version version={metadata.release} anchor={false} />
+                </MetadataItem>
+              ) : null}
+              {metadata.os ? (
+                <MetadataItem label={t('OS')}>{metadata.os}</MetadataItem>
+              ) : null}
+              {metadata.device ? (
+                <MetadataItem label={t('Device')}>{metadata.device}</MetadataItem>
+              ) : null}
+              {metadata.receivedAt ? (
+                <MetadataItem label={t('Received')}>
+                  <DateTime date={metadata.receivedAt} />
+                </MetadataItem>
+              ) : null}
+            </Grid>
+          ) : null}
 
-        {isPending ? (
-          <Flex align="center" height={PREVIEW_HEIGHT} justify="center">
-            <LoadingIndicator />
-          </Flex>
-        ) : isError || !data ? (
-          <Text variant="muted">{t('Unable to load profile details')}</Text>
-        ) : (
-          <Stack gap="lg">
-            {metadata ? (
-              <Grid
-                columns={{
-                  zero: 'repeat(2, minmax(0, 1fr))',
-                  sm: 'repeat(3, minmax(0, 1fr))',
-                  lg: 'repeat(4, minmax(0, 1fr))',
-                }}
-                gap="xl"
-              >
-                {metadata.transactionName ? (
-                  <MetadataItem label={t('Transaction')}>
-                    {metadata.transactionName}
-                  </MetadataItem>
-                ) : null}
-                {chart ? (
-                  <MetadataItem label={t('Duration')}>
-                    {chart.flamegraph.formatter(chart.duration)}
-                  </MetadataItem>
-                ) : null}
-                {chart ? (
-                  <MetadataItem label={t('Threads')}>{chart.threadCount}</MetadataItem>
-                ) : null}
-                {metadata.environment ? (
-                  <MetadataItem label={t('Environment')}>
-                    {metadata.environment}
-                  </MetadataItem>
-                ) : null}
-                {metadata.release ? (
-                  <MetadataItem label={t('Release')}>
-                    <Version version={metadata.release} anchor={false} />
-                  </MetadataItem>
-                ) : null}
-                {metadata.os ? (
-                  <MetadataItem label={t('OS')}>{metadata.os}</MetadataItem>
-                ) : null}
-                {metadata.device ? (
-                  <MetadataItem label={t('Device')}>{metadata.device}</MetadataItem>
-                ) : null}
-                {metadata.receivedAt ? (
-                  <MetadataItem label={t('Received')}>
-                    <DateTime date={metadata.receivedAt} />
-                  </MetadataItem>
-                ) : null}
-              </Grid>
-            ) : null}
-
-            {flamegraph ? (
-              <ErrorBoundary mini>
-                <FlamegraphThemeProvider>
-                  <Container
-                    data-test-id="seer-profile-flamechart"
-                    height={PREVIEW_HEIGHT}
-                    position="relative"
-                  >
-                    <FlamegraphPreview
-                      anchorAtRoot
-                      flamegraph={flamegraph}
-                      relativeStartTimestamp={0}
-                      relativeStopTimestamp={formatTo(
-                        flamegraph.configSpace.width,
-                        flamegraph.unit,
-                        'second'
-                      )}
-                      updateFlamegraphView={setCanvasView}
-                    />
-                  </Container>
-                </FlamegraphThemeProvider>
-              </ErrorBoundary>
-            ) : null}
-          </Stack>
-        )}
-      </Stack>
-    </Container>
+          {flamegraph ? (
+            <ErrorBoundary mini>
+              <FlamegraphThemeProvider>
+                <Container
+                  data-test-id="seer-profile-flamechart"
+                  height={PREVIEW_HEIGHT}
+                  position="relative"
+                >
+                  <FlamegraphPreview
+                    anchorAtRoot
+                    flamegraph={flamegraph}
+                    relativeStartTimestamp={0}
+                    relativeStopTimestamp={formatTo(
+                      flamegraph.configSpace.width,
+                      flamegraph.unit,
+                      'second'
+                    )}
+                    updateFlamegraphView={setCanvasView}
+                  />
+                </Container>
+              </FlamegraphThemeProvider>
+            </ErrorBoundary>
+          ) : null}
+        </Stack>
+      )}
+    </SeerEmbedBlock>
   );
 }

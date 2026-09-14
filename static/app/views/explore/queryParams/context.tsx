@@ -77,6 +77,7 @@ export function QueryParamsContextProvider({
   // 2. some code intentionally wipes the fields
   useEffect(() => {
     if (isUsingDefaultFields) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setManagedFields(new Set());
     }
   }, [isUsingDefaultFields]);

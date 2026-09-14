@@ -288,8 +288,13 @@ function makeCellActions({
     addMenuItem(Actions.COPY_LINK, t('Copy link'));
   }
 
+  // Array attributes only support an `includes` filter (`attr:[value]`), but the
+  // cell action builds an `attr:value` (`is`) filter, which isn't a valid
+  // comparison for arrays. Treat `array` like the numeric types here so the
+  // add/exclude filter actions are skipped for array values, while a null array
+  // field still offers the `!has`/`has` existence filter below.
   if (
-    !['duration', 'number', 'percentage'].includes(column.type) ||
+    !['duration', 'number', 'percentage', 'array'].includes(column.type) ||
     (value === null && column.column.kind === 'field')
   ) {
     addMenuItem(Actions.ADD, t('Add to filter'));
