@@ -11,8 +11,6 @@ def adjusted_factor_ttl_ms() -> int:
     return int(options.get(ADJUSTED_FACTOR_TTL_MINUTES_OPTION)) * 60 * 1000
 
 
-# Parameters to bound the queries run in Snuba.
-
 # MIN and MAX rebalance factor in order to make sure we don't go crazy when rebalancing orgs.
 MIN_REBALANCE_FACTOR = 0.1
 MAX_REBALANCE_FACTOR = 10
@@ -33,7 +31,3 @@ def bounded_rebalance_factor(factor: float) -> float | None:
         metrics.incr("dynamic_sampling.recalibration.factor_clamped")
         return min(max(factor, MIN_REBALANCE_FACTOR), MAX_REBALANCE_FACTOR)
     return None
-
-
-# Snuba's limit is 10000, and we fetch CHUNK_SIZE + 1.
-CHUNK_SIZE = 9998

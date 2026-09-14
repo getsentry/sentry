@@ -3,42 +3,13 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import TypedDict
 
 import sentry_sdk
 
 from sentry import quotas
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import extrapolate_monthly_volume
-from sentry.dynamic_sampling.types import SamplingMeasure
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 
 ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL = timedelta(minutes=5)
-
-
-class MeasureConfig(TypedDict):
-    """Configuration for a sampling measure query."""
-
-    mri: str
-    use_case_id: UseCaseID
-    tags: dict[str, str]
-
-
-# Configuration for each sampling measure type
-MEASURE_CONFIGS: dict[SamplingMeasure, MeasureConfig] = {
-    # SEGMENTS: SpanMRI with is_segment=true filter (replacement for transactions)
-    SamplingMeasure.SEGMENTS: {
-        "mri": SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-        "use_case_id": UseCaseID.SPANS,
-        "tags": {"is_segment": "true"},
-    },
-    # SPANS: SpanMRI without is_segment filter (AM3/project mode - counts all spans)
-    SamplingMeasure.SPANS: {
-        "mri": SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-        "use_case_id": UseCaseID.SPANS,
-        "tags": {},
-    },
-}
 
 
 @dataclass(frozen=True)
