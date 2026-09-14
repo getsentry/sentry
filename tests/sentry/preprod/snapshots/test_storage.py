@@ -10,83 +10,83 @@ from sentry.preprod.snapshots.storage import SnapshotStorage, get_snapshot_stora
 
 @pytest.fixture
 def sessions() -> tuple[MagicMock, MagicMock]:
-    return MagicMock(name="primary"), MagicMock(name="legacy")
+    return MagicMock(name="primary"), MagicMock(name="fallback")
 
 
 def test_get_prefers_primary(sessions) -> None:
-    primary, legacy = sessions
-    storage = SnapshotStorage(primary, [legacy])
+    primary, fallback = sessions
+    storage = SnapshotStorage(primary, fallback)
     assert storage.get("k") is primary.get.return_value
-    legacy.get.assert_not_called()
+    fallback.get.assert_not_called()
 
 
-def test_get_falls_back_to_legacy(sessions) -> None:
-    primary, legacy = sessions
+def test_get_uses_fallback_when_primary_missing(sessions) -> None:
+    primary, fallback = sessions
     primary.get.return_value = None
-    storage = SnapshotStorage(primary, [legacy])
-    assert storage.get("k") is legacy.get.return_value
-    legacy.get.assert_called_once_with("k")
+    storage = SnapshotStorage(primary, fallback)
+    assert storage.get("k") is fallback.get.return_value
+    fallback.get.assert_called_once_with("k")
 
 
 def test_get_error_propagates_without_fallback(sessions) -> None:
-    primary, legacy = sessions
+    primary, fallback = sessions
     primary.get.side_effect = RequestError("boom", 500, "")
-    storage = SnapshotStorage(primary, [legacy])
+    storage = SnapshotStorage(primary, fallback)
     with pytest.raises(RequestError):
         storage.get("k")
-    legacy.get.assert_not_called()
+    fallback.get.assert_not_called()
 
 
-def test_head_falls_back_to_legacy(sessions) -> None:
-    primary, legacy = sessions
+def test_head_uses_fallback_when_primary_missing(sessions) -> None:
+    primary, fallback = sessions
     primary.head.return_value = None
-    storage = SnapshotStorage(primary, [legacy])
-    assert storage.head("k") is legacy.head.return_value
+    storage = SnapshotStorage(primary, fallback)
+    assert storage.head("k") is fallback.head.return_value
 
 
 def test_put_only_writes_primary(sessions) -> None:
-    primary, legacy = sessions
-    storage = SnapshotStorage(primary, [legacy])
+    primary, fallback = sessions
+    storage = SnapshotStorage(primary, fallback)
     storage.put(b"data", key="k", content_type="image/png")
     primary.put.assert_called_once_with(b"data", key="k", content_type="image/png")
-    legacy.put.assert_not_called()
+    fallback.put.assert_not_called()
 
 
 def test_delete_removes_from_both(sessions) -> None:
-    primary, legacy = sessions
-    storage = SnapshotStorage(primary, [legacy])
+    primary, fallback = sessions
+    storage = SnapshotStorage(primary, fallback)
     storage.delete("k")
     primary.delete.assert_called_once_with("k")
-    legacy.delete.assert_called_once_with("k")
+    fallback.delete.assert_called_once_with("k")
 
 
 def test_delete_ignores_missing(sessions) -> None:
-    primary, legacy = sessions
+    primary, fallback = sessions
     primary.delete.side_effect = RequestError("missing", 404, "")
-    storage = SnapshotStorage(primary, [legacy])
+    storage = SnapshotStorage(primary, fallback)
     storage.delete("k")
-    legacy.delete.assert_called_once_with("k")
+    fallback.delete.assert_called_once_with("k")
 
 
 @pytest.mark.parametrize("primary_error", [RequestError("primary", 500, ""), HTTPError("primary")])
 def test_delete_raises_first_non_404_after_trying_both(
     sessions, primary_error: RequestError | HTTPError
 ) -> None:
-    primary, legacy = sessions
+    primary, fallback = sessions
     primary.delete.side_effect = primary_error
-    legacy.delete.side_effect = RequestError("legacy", 503, "")
-    storage = SnapshotStorage(primary, [legacy])
+    fallback.delete.side_effect = RequestError("fallback", 503, "")
+    storage = SnapshotStorage(primary, fallback)
     with pytest.raises(type(primary_error), match="primary"):
         storage.delete("k")
-    legacy.delete.assert_called_once_with("k")
+    fallback.delete.assert_called_once_with("k")
 
 
 @patch("sentry.preprod.snapshots.storage.metrics")
 def test_fallback_records_metric(mock_metrics, sessions) -> None:
-    primary, legacy = sessions
+    primary, fallback = sessions
     primary.get.return_value = None
-    legacy.get.return_value = None
-    SnapshotStorage(primary, [legacy]).get("k")
+    fallback.get.return_value = None
+    SnapshotStorage(primary, fallback).get("k")
     mock_metrics.incr.assert_called_once_with(
         "preprod.snapshot_storage.legacy_fallback", tags={"op": "get", "found": "false"}
     )
