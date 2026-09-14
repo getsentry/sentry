@@ -91,18 +91,18 @@ export function HypothesisCard({
       </Flex>
 
       <Stack gap="sm">
-        <Heading as="h3" size="md">
+        <Heading as="h3" size="md" wordBreak="break-word">
           {hypothesis.statement}
         </Heading>
         {hypothesis.rationale ? (
-          <Text size="sm" density="comfortable">
+          <Text size="sm" density="comfortable" wordBreak="break-word">
             {hypothesis.rationale}
           </Text>
         ) : null}
       </Stack>
 
       {hypothesis.error ? (
-        <Text size="sm" variant="danger">
+        <Text size="sm" variant="danger" wordBreak="break-word">
           {hypothesis.error.message}
         </Text>
       ) : null}
@@ -137,8 +137,22 @@ function VerificationStepRow({step}: {step: InvestigationVerificationStep}) {
     // A full flex-basis, because the chevron's button grows too — without this
     // the two split the row and the text wraps in half the width it has.
     <Stack gap="2xs" flex="1 1 100%" minWidth="0">
-      <Text size="sm">{step.title}</Text>
-      <Text size="xs" variant={failed ? 'danger' : 'muted'} density="comfortable">
+      <Text size="sm" wordBreak="break-word">
+        {step.title}
+      </Text>
+      {/*
+       * The agent writes these in terms of what it read, so a finding is mostly
+       * symbols: `module/file.py::function_name`, dotted paths, issue short IDs.
+       * None of them carry a break opportunity, and one long enough to outrun
+       * the column would otherwise push its own text out through the card edge
+       * rather than wrap inside it.
+       */}
+      <Text
+        size="xs"
+        variant={failed ? 'danger' : 'muted'}
+        density="comfortable"
+        wordBreak="break-word"
+      >
         {detail}
       </Text>
     </Stack>
@@ -174,7 +188,7 @@ function VerificationStepRow({step}: {step: InvestigationVerificationStep}) {
                 <Text size="xs" variant="muted" bold>
                   {t('Objective')}
                 </Text>
-                <Text size="xs" density="comfortable">
+                <Text size="xs" density="comfortable" wordBreak="break-word">
                   {step.objective}
                 </Text>
               </Stack>
@@ -182,7 +196,7 @@ function VerificationStepRow({step}: {step: InvestigationVerificationStep}) {
                 <Text size="xs" variant="muted" bold>
                   {t('Method')}
                 </Text>
-                <Text size="xs" density="comfortable">
+                <Text size="xs" density="comfortable" wordBreak="break-word">
                   {step.method}
                 </Text>
               </Stack>
