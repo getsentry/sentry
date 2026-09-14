@@ -75,7 +75,7 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
                 description=(
                     "Use preprod_size_app_icon for size-analysis app icons, or "
                     "preprod_snapshots for snapshot images and diff masks. "
-                    "When omitted, legacy app icons are recognized by their icn_ prefix."
+                    "When omitted, images are read from legacy preprod storage."
                 ),
             ),
         ],
@@ -94,9 +94,7 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
         project_id = project.id
 
         object_key = f"{organization_id}/{project_id}/{image_id}"
-        is_app_icon = image_type == PREPROD_SIZE_APP_ICON or (
-            image_type is None and image_id.startswith("icn_")
-        )
+        is_app_icon = image_type == PREPROD_SIZE_APP_ICON
         usecase = UsecaseId.PREPROD_SIZE if is_app_icon else UsecaseId.PREPROD
         session = get_session(usecase, project)
 

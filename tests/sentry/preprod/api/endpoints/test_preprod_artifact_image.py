@@ -52,8 +52,8 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         primary.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{image_id}")
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
-    def test_explicit_snapshot_type_overrides_icon_prefix(self, mock_get_session) -> None:
-        image_id = "icn_123456789abc"
+    def test_explicit_snapshot_type_uses_snapshot_storage(self, mock_get_session) -> None:
+        image_id = "opaque-snapshot-id"
         image_data = b"snapshot image"
         session = self._create_mock_session(image_data, "image/png")
         mock_get_session.return_value = session
@@ -67,30 +67,30 @@ class ProjectPreprodArtifactImageTest(APITestCase):
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
     def test_rejects_unknown_image_type(self, mock_get_session) -> None:
-        response = self.client.get(self._get_url("icn_123456789abc"), {"image_type": "attachments"})
+        response = self.client.get(self._get_url("opaque-image-id"), {"image_type": "attachments"})
 
         assert response.status_code == 400
         assert response.data == {"detail": "Invalid image_type"}
         mock_get_session.assert_not_called()
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
-    def test_app_icon_reads_preprod_size(self, mock_get_session) -> None:
+    def test_omitted_image_type_ignores_icon_prefix(self, mock_get_session) -> None:
         image_id = "icn_123456789abc"
         icon_data = b"app icon"
-        primary = self._create_mock_session(icon_data, "image/png")
-        mock_get_session.return_value = primary
+        session = self._create_mock_session(icon_data, "image/png")
+        mock_get_session.return_value = session
 
         response = self.client.get(self._get_url(image_id))
 
         assert response.status_code == 200
         assert response.content == icon_data
         assert response["Content-Type"] == "image/png"
-        mock_get_session.assert_called_once_with(UsecaseId.PREPROD_SIZE, self.project)
-        primary.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{image_id}")
+        mock_get_session.assert_called_once_with(UsecaseId.PREPROD, self.project)
+        session.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{image_id}")
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
     def test_app_icon_falls_back_to_preprod(self, mock_get_session) -> None:
-        image_id = "icn_123456789abc"
+        image_id = "opaque-icon-id"
         object_key = f"{self.org.id}/{self.project.id}/{image_id}"
         icon_data = b"legacy app icon"
         primary = MagicMock()
@@ -98,7 +98,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         fallback = self._create_mock_session(icon_data, "image/png")
         mock_get_session.side_effect = [primary, fallback]
 
-        response = self.client.get(self._get_url(image_id))
+        response = self.client.get(self._get_url(image_id), {"image_type": "preprod_size_app_icon"})
 
         assert response.status_code == 200
         assert response.content == icon_data
@@ -115,7 +115,9 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         session.get.return_value = None
         mock_get_session.return_value = session
 
-        response = self.client.get(self._get_url("icn_123456789abc"))
+        response = self.client.get(
+            self._get_url("opaque-icon-id"), {"image_type": "preprod_size_app_icon"}
+        )
 
         assert response.status_code == 404
         assert response.data == {"detail": "Image not found"}
@@ -128,7 +130,9 @@ class ProjectPreprodArtifactImageTest(APITestCase):
     def test_app_icon_storage_error_does_not_fall_back(self, mock_get_session) -> None:
         mock_get_session.return_value.get.side_effect = RequestError("unavailable", 503, "")
 
-        response = self.client.get(self._get_url("icn_123456789abc"))
+        response = self.client.get(
+            self._get_url("opaque-icon-id"), {"image_type": "preprod_size_app_icon"}
+        )
 
         assert response.status_code == 500
         mock_get_session.assert_called_once_with(UsecaseId.PREPROD_SIZE, self.project)
