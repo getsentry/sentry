@@ -1,10 +1,11 @@
 from collections.abc import Callable
+from contextlib import ExitStack
 from typing import Any
 from unittest.mock import ANY, patch
 
 import pytest
-from django.db import router, transaction
-from django.test.utils import override_settings
+from django.db import connections, router, transaction
+from django.test.utils import CaptureQueriesContext, override_settings
 
 from sentry.db.models import BaseModel
 from sentry.hybridcloud.models.apitokenreplica import ApiTokenReplica
@@ -406,15 +407,25 @@ def test_watermark_report_does_not_rewrite_a_stored_row() -> None:
     table_name = AuthProvider._meta.db_table
     set_processing_state(table_name, 12345, 3)
 
-    with (
-        patch.object(ControlOutboxBackfillWatermark.objects, "update_or_create") as control_write,
-        patch.object(CellOutboxBackfillWatermark.objects, "update_or_create") as cell_write,
-    ):
+    watermark_models = (ControlOutboxBackfillWatermark, CellOutboxBackfillWatermark)
+    watermark_tables = {model._meta.db_table for model in watermark_models}
+    aliases = {router.db_for_write(model) for model in watermark_models}
+
+    with ExitStack() as stack:
+        captures = [
+            stack.enter_context(CaptureQueriesContext(connections[alias])) for alias in aliases
+        ]
         # No budget at all, so only the report pass runs.
         assert not backfill_outboxes_for(SiloMode.CONTROL, scheduled_count=10_000)
 
-    control_write.assert_not_called()
-    cell_write.assert_not_called()
+    writes = [
+        query["sql"]
+        for capture in captures
+        for query in capture.captured_queries
+        if any(table in query["sql"] for table in watermark_tables)
+        and not query["sql"].lstrip().upper().startswith("SELECT")
+    ]
+    assert writes == []
     assert read_processing_state(table_name) == (12345, 3)
 
 
