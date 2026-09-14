@@ -17,6 +17,7 @@ from sentry.uptime.models import (
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
+from sentry.uptime.subscriptions.regions import get_region_config
 from sentry.uptime.types import CheckConfig
 from sentry.utils import metrics
 from sentry.utils.audit import create_system_audit_entry
@@ -59,10 +60,28 @@ def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     namespace=uptime_tasks,
     retry=Retry(times=5, delay=5),
 )
-def update_remote_uptime_subscription(uptime_subscription_id, **kwargs):
+def update_remote_uptime_subscription(
+    uptime_subscription_id, region_slugs: list[str] | None = None, **kwargs
+):
     """
-    Pushes details of an uptime subscription to uptime subscription regions.
+    Pushes details of an uptime subscription to uptime subscription regions. When
+    ``region_slugs`` is given, only those regions are pushed to.
     """
+    if region_slugs is not None:
+        unknown = [slug for slug in region_slugs if get_region_config(slug) is None]
+        if unknown or not region_slugs:
+            # An empty filter would silently publish nothing, and _send_to_redis only logs and
+            # skips an unknown slug, so reject both up front.
+            logger.error(
+                "uptime.subscriptions.update_remote_uptime_subscription.invalid_region_filter",
+                extra={
+                    "uptime_subscription_id": uptime_subscription_id,
+                    "region_slugs": region_slugs,
+                    "unknown": unknown,
+                },
+            )
+            metrics.incr("uptime.subscriptions.update.invalid_region_filter", sample_rate=1.0)
+            return
     try:
         subscription = UptimeSubscription.objects.get(id=uptime_subscription_id)
     except UptimeSubscription.DoesNotExist:
@@ -82,12 +101,17 @@ def update_remote_uptime_subscription(uptime_subscription_id, **kwargs):
         metrics.incr("uptime.subscriptions.update.incorrect_status", sample_rate=1.0)
         return
 
-    for region in subscription.regions.all():
+    regions = subscription.regions.all()
+    if region_slugs is not None:
+        regions = regions.filter(region_slug__in=region_slugs)
+    for region in regions:
         send_uptime_subscription_config(region, subscription)
-    subscription.update(
-        status=UptimeSubscription.Status.ACTIVE.value,
-        subscription_id=subscription.subscription_id,
+    # A filtered publish is a repair, not a state transition: leave a concurrent edit's
+    # UPDATING for its own task (or subscription_checker) to finish.
+    status = (
+        subscription.status if region_slugs is not None else UptimeSubscription.Status.ACTIVE.value
     )
+    subscription.update(status=status, subscription_id=subscription.subscription_id)
 
 
 @instrumented_task(
