@@ -179,7 +179,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                     ]
                 }
             )
-        assert excinfo.value.detail["actions"] == "Must configure issue link settings."
+        assert excinfo.value.detail == {"actions": "Must configure issue link settings."}
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(MockJira, "create_issue")

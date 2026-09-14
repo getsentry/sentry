@@ -211,4 +211,4 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                     ]
                 }
             )
-        assert excinfo.value.detail["actions"] == "Must configure issue link settings."
+        assert excinfo.value.detail == {"actions": "Must configure issue link settings."}
