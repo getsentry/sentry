@@ -45,6 +45,9 @@ from sentry.api.endpoints.organization_sampling_effective_sample_rate import (
 from sentry.api.endpoints.organization_sampling_project_span_counts import (
     OrganizationSamplingProjectSpanCountsEndpoint,
 )
+from sentry.api.endpoints.organization_service_account_principal_poc import (
+    OrganizationServiceAccountPrincipalPocEndpoint,
+)
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.organization_trace_item_attribute_context import (
     OrganizationTraceItemAttributeContextEndpoint,
@@ -2141,6 +2144,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/members/$",
         OrganizationMemberIndexEndpoint.as_view(),
         name="sentry-api-0-organization-member-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/service-account-principal-poc/$",
+        OrganizationServiceAccountPrincipalPocEndpoint.as_view(),
+        name="sentry-api-0-organization-service-account-principal-poc",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/external-users/$",
