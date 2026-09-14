@@ -16,7 +16,7 @@ describe('javascript-astro onboarding docs', () => {
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
     // Includes minimum required Astro version
-    expect(screen.getByText(textWithMarkupMatcher(/Astro 3.0.0/))).toBeInTheDocument();
+    expect(screen.getByText(textWithMarkupMatcher(/Astro 4\.0\.0/))).toBeInTheDocument();
 
     // Includes import statement in astro.config.mjs
     expect(
@@ -173,19 +173,26 @@ describe('javascript-astro onboarding docs', () => {
       ],
     });
 
-    // astro.config.mjs should only contain build-time options
-    expect(
-      screen.getByText(textWithMarkupMatcher(/process.env.SENTRY_AUTH_TOKEN/))
-    ).toBeInTheDocument();
-
-    // Runtime config should NOT be in astro.config.mjs anymore
-    const astroConfigSections = screen.getAllByText(
-      textWithMarkupMatcher(/astro\.config\.mjs/)
+    const astroConfig = screen.getByText(
+      textWithMarkupMatcher(/import sentry from "@sentry\/astro"/)
     );
 
-    // Check that DSN is not in astro.config.mjs section (it should be in client/server config)
-    // This is a bit complex to test precisely, but we can ensure the config is split correctly
-    expect(astroConfigSections.length).toBeGreaterThan(0);
+    expect(astroConfig).toHaveTextContent('project:');
+    expect(astroConfig).toHaveTextContent('org:');
+    expect(astroConfig).toHaveTextContent('authToken: process.env.SENTRY_AUTH_TOKEN');
+    expect(astroConfig).not.toHaveTextContent('sourceMapsUploadOptions');
+    expect(astroConfig).not.toHaveTextContent(
+      /dsn:|dataCollection:|tracesSampleRate:|replaysSessionSampleRate:|replaysOnErrorSampleRate:/
+    );
+
+    // Runtime options belong in the client and server initialization files.
+    const runtimeConfigs = screen.getAllByText(textWithMarkupMatcher(/Sentry\.init\(/));
+    expect(runtimeConfigs).toHaveLength(2);
+    for (const config of runtimeConfigs) {
+      expect(config).toHaveTextContent('dsn:');
+      expect(config).toHaveTextContent('dataCollection:');
+      expect(config).toHaveTextContent('tracesSampleRate: 1.0');
+    }
   });
 
   it('has metrics onboarding configuration', () => {
