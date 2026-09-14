@@ -244,6 +244,7 @@ export function MonitorCleanupResults({
   runStatus?: WorkflowRunStatus;
 }) {
   const parsed = results.map(result => outputSchema.safeParse(result.extras));
+  const hasUnsupportedResults = parsed.some(output => !output.success);
   const projects = new Map(
     parsed.flatMap(output =>
       output.success ? [[output.data.projectId, output.data] as const] : []
@@ -255,28 +256,29 @@ export function MonitorCleanupResults({
   );
   const incomplete =
     runStatus === 'partial' ||
-    parsed.some(output => !output.success || output.data.scan.status === 'partial');
+    parsed.some(output => output.success && output.data.scan.status === 'partial');
   return (
     <Stack gap="xl" containerType="inline-size">
-      {(projects.size > 0 || runStatus === 'complete' || runStatus === 'partial') && (
-        <Stack gap="sm" padding="lg" background="secondary" radius="md">
-          <Text size="sm">
-            {t(
-              '%s across %s',
-              tn('%s monitor inspected', '%s monitors inspected', inspected),
-              tn('%s project', '%s projects', projects.size)
-            )}
-          </Text>
-          {incomplete && (
-            <Text size="sm" variant="warning">
+      {!hasUnsupportedResults &&
+        (projects.size > 0 || runStatus === 'complete' || runStatus === 'partial') && (
+          <Stack gap="sm" padding="lg" background="secondary" radius="md">
+            <Text size="sm">
               {t(
-                'These counts cover the results received so far. Some inspection is incomplete.'
+                '%s across %s',
+                tn('%s monitor inspected', '%s monitors inspected', inspected),
+                tn('%s project', '%s projects', projects.size)
               )}
             </Text>
-          )}
-        </Stack>
-      )}
-      {parsed.some(output => !output.success) && (
+            {incomplete && (
+              <Text size="sm" variant="warning">
+                {t(
+                  'These counts cover the results received so far. Some inspection is incomplete.'
+                )}
+              </Text>
+            )}
+          </Stack>
+        )}
+      {hasUnsupportedResults && (
         <Text variant="warning">{t('This monitor scan output is not supported.')}</Text>
       )}
       {Array.from(projects.values(), output => (

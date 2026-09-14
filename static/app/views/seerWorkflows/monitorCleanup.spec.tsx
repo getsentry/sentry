@@ -125,23 +125,41 @@ describe('MonitorCleanupResults', () => {
   });
 
   it('handles unknown output versions', () => {
-    render(
+    const unsupportedResult = {
+      id: '1',
+      kind: 'duplicate_monitors',
+      seerRunId: null,
+      extras: {...output, schemaVersion: 99},
+    };
+    const {rerender} = render(
       <MonitorCleanupResults
         organizationSlug="org-slug"
-        results={[
-          {
-            id: '1',
-            kind: 'duplicate_monitors',
-            seerRunId: null,
-            extras: {...output, schemaVersion: 99},
-          },
-        ]}
+        runStatus="complete"
+        results={[unsupportedResult]}
       />
     );
     expect(
       screen.getByText('This monitor scan output is not supported.')
     ).toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.queryByText(/monitors inspected/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Some inspection is incomplete/)).not.toBeInTheDocument();
+
+    rerender(
+      <MonitorCleanupResults
+        organizationSlug="org-slug"
+        runStatus="partial"
+        results={[
+          unsupportedResult,
+          {id: '2', kind: 'duplicate_monitors', seerRunId: null, extras: output},
+        ]}
+      />
+    );
+    expect(screen.getByRole('link', {name: 'Checkout errors'})).toBeInTheDocument();
+    expect(
+      screen.getByText('This monitor scan output is not supported.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/monitors inspected/)).not.toBeInTheDocument();
   });
 
   it('does not claim a partial empty scan found no duplicates', () => {
