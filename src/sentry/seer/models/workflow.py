@@ -55,9 +55,6 @@ class SeerWorkflowRun(DefaultFieldsModel):
 
     A run can split its work into multiple SeerWorkflowRunExecution records,
     each dispatched independently to Seer.
-
-    Cron invocations create one row per organization, workflow config, and
-    schedule window. Each manual invocation creates a new row.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
