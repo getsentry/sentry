@@ -885,9 +885,14 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 )
                 return
 
-            outcome = cls._pr_iteration_push_outcome(log_ctx, group, run_id, state)
+            outcome = cls._pr_iteration_push_outcome(log_ctx, group, run_id, state, referrer)
 
             if outcome is None:
+                metrics.incr(
+                    "autofix.pr_iteration.step",
+                    tags={"checkpoint": "code_change_completed", "referrer": referrer.value},
+                    sample_rate=1.0,
+                )
                 # A push was attempted and succeeded. Not terminal yet -- we wait
                 # for the next completion hook, where the repos show as synced,
                 # to consume queued feedback and complete the iteration details.
@@ -898,6 +903,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             # push's changes as synced, or there was never anything to push.
             # A push that failed leaves the feedback queued rather than risk
             # consuming it as if changes had landed.
+            if outcome == PrIterationOutcome.ALREADY_PUSHED:
+                metrics.incr(
+                    "autofix.pr_iteration.step",
+                    tags={"checkpoint": "iteration_completed", "referrer": referrer.value},
+                    sample_rate=1.0,
+                )
+
             if outcome in (
                 PrIterationOutcome.ALREADY_PUSHED,
                 PrIterationOutcome.NO_CODE_CHANGES,
@@ -1134,6 +1146,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         group: Group,
         run_id: int,
         state: SeerRunState,
+        referrer: AutofixReferrer,
     ) -> PrIterationOutcome | None:
         """Decide whether this pass needs to push, and how it ended.
 
@@ -1181,6 +1194,12 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             )
             log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="pr_closed")
             return PrIterationOutcome.PR_CLOSED
+
+        metrics.incr(
+            "autofix.pr_iteration.step",
+            tags={"checkpoint": "code_change_started", "referrer": referrer.value},
+            sample_rate=1.0,
+        )
 
         pushed = cls._push_iteration_changes(
             log_ctx,

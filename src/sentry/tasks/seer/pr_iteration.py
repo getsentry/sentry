@@ -638,6 +638,12 @@ def _drain_queued_autofix_feedback(
 
     referrer = _get_feedback_referrer(consumable_items)
     actor_user_id = _get_feedback_actor_user_id(consumable_items)
+    metrics.incr(
+        "autofix.pr_iteration.step",
+        amount=len(feedback_items),
+        tags={"checkpoint": "consumed", "referrer": referrer.value},
+        sample_rate=1.0,
+    )
     log_ctx.info(
         "autofix.pr_iteration.consume_feedback.drain",
         outcome="drained",
@@ -668,6 +674,11 @@ def _drain_queued_autofix_feedback(
 
     # a drain (from the log above) with no trigger autofix agent below it means this call never came back.
     try:
+        metrics.incr(
+            "autofix.pr_iteration.step",
+            tags={"checkpoint": "sent_to_seer", "referrer": referrer.value},
+            sample_rate=1.0,
+        )
         trigger_autofix_agent(
             group=group,
             step=AutofixStep.PR_ITERATION,
