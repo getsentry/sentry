@@ -156,10 +156,20 @@ def build_combined_queryset(
 
 def serialize_results(rows: list[dict[str, Any]], user: Any) -> list[dict[str, Any]]:
     """Turn union rows (plain dicts) back into serialized model payloads."""
-    discover_ids = [row["id"] for row in rows if row["query_type"] == SavedQueryType.DISCOVER]
-    explore_ids = [row["id"] for row in rows if row["query_type"] == SavedQueryType.EXPLORE]
+    discover_ids: list[int] = []
+    explore_ids: list[int] = []
+    ordered_keys: list[tuple[str, int]] = []
+    for row in rows:
+        query_type, query_id = row["query_type"], row["id"]
+        if query_type == SavedQueryType.DISCOVER:
+            discover_ids.append(query_id)
+        elif query_type == SavedQueryType.EXPLORE:
+            explore_ids.append(query_id)
+        else:
+            continue
+        ordered_keys.append((query_type, query_id))
 
-    serialized: dict[tuple[str, int], dict[str, Any]] = {}
+    serialized_queries: dict[tuple[str, int], dict[str, Any]] = {}
 
     if discover_ids:
         discover_queries = list(
@@ -169,7 +179,7 @@ def serialize_results(rows: list[dict[str, Any]], user: Any) -> list[dict[str, A
             discover_queries,
             serialize(discover_queries, user, serializer=DiscoverSavedQueryModelSerializer()),
         ):
-            serialized[(SavedQueryType.DISCOVER, obj.id)] = {
+            serialized_queries[(SavedQueryType.DISCOVER, obj.id)] = {
                 **data,
                 "queryType": SavedQueryType.DISCOVER.value,
             }
@@ -182,18 +192,14 @@ def serialize_results(rows: list[dict[str, Any]], user: Any) -> list[dict[str, A
             explore_queries,
             serialize(explore_queries, user, serializer=ExploreSavedQueryModelSerializer()),
         ):
-            serialized[(SavedQueryType.EXPLORE, explore_obj.id)] = {
+            serialized_queries[(SavedQueryType.EXPLORE, explore_obj.id)] = {
                 **explore_data,
                 "queryType": SavedQueryType.EXPLORE.value,
             }
 
     # Rebuild the order the union established. A row can be missing only if it was
     # deleted, so skip rather than raise.
-    return [
-        serialized[(row["query_type"], row["id"])]
-        for row in rows
-        if (row["query_type"], row["id"]) in serialized
-    ]
+    return [serialized_queries[key] for key in ordered_keys if key in serialized_queries]
 
 
 @extend_schema(tags=["Discover"])
@@ -277,6 +283,7 @@ class SavedQueriesEndpoint(OrganizationEndpoint):
                 if key in ("name", "query"):
                     discover_queryset = discover_queryset.filter(name__icontains=joined)
                     explore_queryset = explore_queryset.filter(name__icontains=joined)
+                # Discover queries have version field that can be filtered on, explore does not have this
                 elif key == "version":
                     discover_queryset = discover_queryset.filter(version=joined)
                     explore_queryset = explore_queryset.none()
