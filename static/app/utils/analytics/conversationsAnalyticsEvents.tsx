@@ -14,7 +14,6 @@ export type ConversationsEventParameters = {
   };
   'conversations.message.click': Record<string, unknown>;
   'conversations.message.click-tool-call': Record<string, unknown>;
-  'conversations.onboarding.page-view': Record<string, unknown>;
   'conversations.onboarding.interaction': {
     action:
       | 'collapse_prompt'
@@ -29,6 +28,7 @@ export type ConversationsEventParameters = {
     tab?: 'agent' | 'human';
     value?: string;
   };
+  'conversations.onboarding.page-view': Record<string, unknown>;
   'conversations.page-view': Record<string, unknown>;
   'conversations.save_as': {
     save_type: 'alert' | 'dashboard';
