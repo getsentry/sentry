@@ -1,3 +1,4 @@
+from dataclasses import field
 from typing import Literal
 
 from sentry import analytics
@@ -77,6 +78,9 @@ class AiAutofixPrIterationFeedbackBatchBlockedEvent(analytics.Event):
     # How long the batch had been waiting when the gate stopped it.
     duration_ms: int
     outcome: str
+
+    # Review bots behind the feedback the drain consumed, sorted and deduped.
+    feedback_bot_logins: list[str] = field(default_factory=list)
 
 
 analytics.register(AiAutofixPrIterationMissingPermissionsEvent)
