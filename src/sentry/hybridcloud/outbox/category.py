@@ -27,16 +27,12 @@ def _run_replication_handler(
         "action": action,
     }
     try:
-        with metrics.timer("hybridcloud.replication.handler.duration", tags=tags, sample_rate=1.0):
+        with metrics.timer("hybridcloud.replication.handler.duration", tags=tags):
             handler()
     except Exception:
-        metrics.incr(
-            "hybridcloud.replication.processed", tags={**tags, "outcome": "error"}, sample_rate=1.0
-        )
+        metrics.incr("hybridcloud.replication.processed", tags={**tags, "outcome": "error"})
         raise
-    metrics.incr(
-        "hybridcloud.replication.processed", tags={**tags, "outcome": "success"}, sample_rate=1.0
-    )
+    metrics.incr("hybridcloud.replication.processed", tags={**tags, "outcome": "success"})
 
 
 class OutboxCategory(IntEnum):

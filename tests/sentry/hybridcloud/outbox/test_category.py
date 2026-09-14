@@ -34,7 +34,6 @@ def test_control_model_replication_records_success(mock_metrics: Mock) -> None:
                 "action": "replicate",
                 "outcome": "success",
             },
-            sample_rate=1.0,
         )
     ]
 
@@ -59,7 +58,6 @@ def test_run_replication_handler_records_error_and_reraises(mock_metrics: Mock) 
                 "action": "delete",
                 "outcome": "error",
             },
-            sample_rate=1.0,
         )
     ]
 
@@ -78,7 +76,6 @@ def test_run_replication_handler_times_the_handler(mock_metrics: Mock) -> None:
             "direction": "control_to_cell",
             "action": "replicate",
         },
-        sample_rate=1.0,
     )
 
 
@@ -108,6 +105,5 @@ def test_control_model_deletion_records_delete_action(mock_metrics: Mock) -> Non
                 "action": "delete",
                 "outcome": "success",
             },
-            sample_rate=1.0,
         )
     ]
