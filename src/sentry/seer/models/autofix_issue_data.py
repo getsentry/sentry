@@ -11,11 +11,17 @@ from sentry.db.models.base import DefaultFieldsModel
 class SeerAutofixIssueData(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
-    group = FlexibleForeignKey("sentry.Group", on_delete=models.CASCADE, unique=True)
-    organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
-    project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
+    group = FlexibleForeignKey(
+        "sentry.Group", on_delete=models.CASCADE, unique=True, db_constraint=False
+    )
+    organization = FlexibleForeignKey(
+        "sentry.Organization", on_delete=models.CASCADE, db_constraint=False
+    )
+    project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE, db_constraint=False)
     source = models.CharField(max_length=256)
-    pull_request = FlexibleForeignKey("sentry.PullRequest", on_delete=models.SET_NULL, null=True)
+    pull_request = FlexibleForeignKey(
+        "sentry.PullRequest", on_delete=models.SET_NULL, null=True, db_constraint=False
+    )
     raw_issue_data = models.JSONField()
     judge_review = models.JSONField(null=True)
 

@@ -113,7 +113,7 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.custominboundfilter import CustomInboundFilter, CustomInboundFilterDataType
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardHiddenUser
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
@@ -2564,6 +2564,13 @@ class Factories:
             position=position,
             **kwargs,
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_dashboard_hidden_user(
+        dashboard: Dashboard, user: User, **kwargs
+    ) -> DashboardHiddenUser:
+        return DashboardHiddenUser.objects.create(dashboard=dashboard, user_id=user.id, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

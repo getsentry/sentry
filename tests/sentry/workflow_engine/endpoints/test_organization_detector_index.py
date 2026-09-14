@@ -1376,6 +1376,59 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         assert self.user_detector.enabled is True
         assert self.error_detector.enabled is True
 
+    def test_cannot_update_detectors_issue_stream(self) -> None:
+        self.login_as(user=self.org_manager_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": str(self.issue_stream_detector.id)},
+            enabled=False,
+            status_code=400,
+        )
+
+        self.issue_stream_detector.refresh_from_db()
+        assert self.issue_stream_detector.enabled is True
+
+    def test_update_detectors_issue_stream_skipped_in_mixed_batch(self) -> None:
+        self.login_as(user=self.org_manager_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params=[
+                ("id", str(self.issue_stream_detector.id)),
+                ("id", str(self.detector.id)),
+            ],
+            enabled=False,
+            status_code=400,
+        )
+
+        self.issue_stream_detector.refresh_from_db()
+        self.detector.refresh_from_db()
+        assert self.issue_stream_detector.enabled is True
+        assert self.detector.enabled is True
+
+    def test_update_detectors_project_filter_skips_issue_stream(self) -> None:
+        self.login_as(user=self.org_manager_user)
+
+        self.issue_stream_detector.update(enabled=False)
+        self.detector.update(enabled=False)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id},
+            enabled=True,
+            status_code=200,
+        )
+
+        response_ids = {d["id"] for d in response.data}
+        assert str(self.detector.id) in response_ids
+        assert str(self.issue_stream_detector.id) not in response_ids
+
+        self.issue_stream_detector.refresh_from_db()
+        self.detector.refresh_from_db()
+        assert self.issue_stream_detector.enabled is False
+        assert self.detector.enabled is True
+
 
 @cell_silo_test
 class ConvertAssigneeValuesTest(APITestCase):

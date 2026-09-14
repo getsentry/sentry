@@ -212,6 +212,7 @@ export function GlobalModal() {
 
   const onCloseButtonClick = useCallback(() => closeModal('close-button'), [closeModal]);
 
+  // oxlint-disable-next-line react/refs
   const renderedChild = renderer?.({
     CloseButton: makeCloseButton(onCloseButtonClick),
     Header: makeClosableHeader(onCloseButtonClick),
