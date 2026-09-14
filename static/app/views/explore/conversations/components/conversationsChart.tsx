@@ -12,6 +12,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import Feature from 'sentry/components/acl/feature';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {IconClock, IconContract, IconEllipsis, IconExpand, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
@@ -42,6 +44,7 @@ import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
+import {CONVERSATION_FIELDS} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
@@ -50,6 +53,23 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 const CONVERSATION_SPANS_FILTER = `has:${SpanFields.GEN_AI_CONVERSATION_ID}`;
 const AI_CLIENT_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:ai_client`;
+const CONVERSATION_ALIAS_KEYS = new Set<string>(
+  Object.values(CONVERSATION_FIELDS).map(field => field.key)
+);
+
+function getConversationAliasFilters(query: string): string[] {
+  const aliases = new Set<string>();
+  for (const token of parseSearch(query, {flattenParenGroups: true}) ?? []) {
+    if (token.type !== Token.FILTER) {
+      continue;
+    }
+    const key = getKeyName(token.key);
+    if (CONVERSATION_ALIAS_KEYS.has(key)) {
+      aliases.add(key);
+    }
+  }
+  return [...aliases];
+}
 
 const CHART_VISUALIZATIONS = {
   chats: {
@@ -114,12 +134,15 @@ export function ConversationsChart() {
 
   const {label, yAxis, filter} = CHART_VISUALIZATIONS[visualization];
   const query = useCombinedQuery(filter);
+  const conversationAliasFilters = getConversationAliasFilters(query);
+  const chartDisabled = conversationAliasFilters.length > 0;
 
   const {data, isPending, error} = useFetchSpanTimeSeries(
     {
       yAxis: [yAxis],
       query,
       interval,
+      enabled: chartDisabled ? false : undefined,
     },
     Referrer.CHART
   );
@@ -143,6 +166,26 @@ export function ConversationsChart() {
     CHART_TYPE_OPTIONS.find(option => option.value === chartType)?.label ?? '';
   const intervalLabel =
     intervalOptions.find(option => option.value === interval)?.label ?? interval;
+
+  if (chartDisabled) {
+    return (
+      <Widget
+        Title={<Widget.WidgetTitle title={label} />}
+        Visualization={
+          <Container position="absolute" inset={0}>
+            <Widget.WidgetError
+              error={t(
+                'Remove these conversation-level filters to view chart data: %s',
+                conversationAliasFilters.join(', ')
+              )}
+            />
+          </Container>
+        }
+        height={195}
+        revealActions="always"
+      />
+    );
+  }
 
   const visualizationSelect = (
     <CompactSelect
