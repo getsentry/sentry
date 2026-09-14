@@ -30,12 +30,14 @@ from sentry.shared_integrations.exceptions import (
     ApiForbiddenError,
     ApiHostError,
     ApiRateLimitedError,
+    ApiRestrictedIPError,
     ApiTimeoutError,
     ApiUnauthorized,
 )
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_PATH,
+    PROXY_INTERNAL_FAILURE_HEADER,
     PROXY_OI_HEADER,
     PROXY_SIGNATURE_HEADER,
     encode_subnet_signature,
@@ -157,14 +159,18 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         failure_type: IntegrationProxyFailureMetricType,
         count: int,
         mock_metrics: MagicMock,
+        internal_failure: bool,
         tags: Tags | None = None,
     ):
         metric_name = "hybrid_cloud.integration_proxy.proxy_failure"
         # Most failure types are raised before the integration resolves, so the sentinel is the
         # common case; tests for failures raised after resolution pass the real provider.
+        # `internal_failure` is required rather than derived, so each caller states the
+        # classification independently of the mapping under test.
         expected_tags = {
             "failure_type": failure_type,
             "provider": UNKNOWN_PROVIDER,
+            "internal_failure": "true" if internal_failure else "false",
             **(tags or {}),
         }
 
@@ -184,6 +190,46 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
 
         for call in matching_mock_calls:
             assert call.kwargs["sample_rate"] == 1.0
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(ExampleIntegration, "get_client")
+    @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
+    @patch.object(metrics, "incr")
+    def test_proxy_strips_forged_internal_failure_header(
+        self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
+    ) -> None:
+        """
+        A third party cannot claim the proxy failed. The header is scrubbed off the upstream
+        response before the proxy sets its own value.
+        """
+        signature_path = f"/{self.proxy_path}"
+        headers = create_request_headers(
+            self.secret,
+            signature_path=signature_path,
+            integration_id=self.org_integration.id,
+        )
+
+        content = str({"some": "data"}).encode("utf-8")
+        mock_response = MagicMock(spec=Response)
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
+        mock_response.content = content
+        mock_response.status_code = 200
+        mock_response.reason = "OK"
+        mock_response.headers = {
+            "Content-Type": "application/json",
+            PROXY_INTERNAL_FAILURE_HEADER: "true",
+        }
+        mock_response.iter_content = MagicMock(return_value=iter([content]))
+
+        mock_client.base_url = "https://example.com/api"
+        mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
+        mock_client.request = MagicMock(return_value=mock_response)
+        mock_get_client.return_value = mock_client
+
+        proxy_response = self.client.get(self.path, **headers)
+
+        assert b"".join(proxy_response.streaming_content) == content
+        assert proxy_response[PROXY_INTERNAL_FAILURE_HEADER] == "false"
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(ExampleIntegration, "get_client")
@@ -228,6 +274,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert proxy_response["Content-Type"] == mock_response.headers["Content-Type"]
         assert proxy_response["X-Arbitrary"] == mock_response.headers["X-Arbitrary"]
         assert proxy_response.get(PROXY_SIGNATURE_HEADER) is None
+        # A 400 from the provider is the provider's answer, not a proxy failure.
+        assert proxy_response[PROXY_INTERNAL_FAILURE_HEADER] == "false"
 
         self.assert_metric_count(
             metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
@@ -239,7 +287,14 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0, "tags": {"status": 400, "provider": "example"}},
+            kwargs_to_match={
+                "sample_rate": 1.0,
+                "tags": {
+                    "status": 400,
+                    "provider": "example",
+                    "internal_failure": "false",
+                },
+            },
         )
         # A fully proxied response is never counted as a failure, regardless of the
         # upstream status code.
@@ -360,6 +415,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert proxy_response["Content-Type"] == mock_response.headers["Content-Type"]
         assert proxy_response["X-Arbitrary"] == mock_response.headers["X-Arbitrary"]
         assert proxy_response.get(PROXY_SIGNATURE_HEADER) is None
+        # A 400 from the provider is the provider's answer, not a proxy failure.
+        assert proxy_response[PROXY_INTERNAL_FAILURE_HEADER] == "false"
 
         self.assert_metric_count(
             metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
@@ -371,7 +428,14 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0, "tags": {"status": 400, "provider": "example"}},
+            kwargs_to_match={
+                "sample_rate": 1.0,
+                "tags": {
+                    "status": 400,
+                    "provider": "example",
+                    "internal_failure": "false",
+                },
+            },
         )
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
@@ -412,9 +476,13 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert proxy_response.status_code == 400
         assert mock_client.request.call_count == 0
         assert proxy_response.get(PROXY_SIGNATURE_HEADER) is None
+        # The request never left the Control Silo, so the 400 is ours rather than a
+        # provider's — the caller must not count it against the integration.
+        assert proxy_response[PROXY_INTERNAL_FAILURE_HEADER] == "true"
 
         self.assert_failure_metric_count(
             failure_type=IntegrationProxyFailureMetricType.INVALID_ORG_INTEGRATION_HEADERS,
+            internal_failure=True,
             count=1,
             mock_metrics=mock_metrics,
         )
@@ -458,9 +526,11 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert proxy_response.status_code == 400
         assert mock_client.request.call_count == 0
         assert proxy_response.get(PROXY_SIGNATURE_HEADER) is None
+        assert proxy_response[PROXY_INTERNAL_FAILURE_HEADER] == "true"
 
         self.assert_failure_metric_count(
             failure_type=IntegrationProxyFailureMetricType.INVALID_INTEGRATION,
+            internal_failure=True,
             count=1,
             mock_metrics=mock_metrics,
         )
@@ -505,6 +575,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
 
         assert proxy_response.status_code == 400
         assert proxy_response.data is None
+        # Our credential store could not produce a usable identity, so the 400 is ours.
+        assert proxy_response[PROXY_INTERNAL_FAILURE_HEADER] == "true"
 
         self.assert_metric_count(
             metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
@@ -514,6 +586,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
         self.assert_failure_metric_count(
             failure_type=IntegrationProxyFailureMetricType.INVALID_IDENTITY,
+            internal_failure=True,
             count=1,
             mock_metrics=mock_metrics,
             tags={"provider": "example"},
@@ -548,6 +621,9 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
 
         assert proxy_response.status_code == 503
         assert proxy_response.data is None
+        # The provider being unreachable is not the proxy's fault; a third-party outage
+        # must not burn the proxy's error budget.
+        assert proxy_response[PROXY_INTERNAL_FAILURE_HEADER] == "false"
 
         self.assert_metric_count(
             metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
@@ -557,6 +633,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
         self.assert_failure_metric_count(
             failure_type=IntegrationProxyFailureMetricType.HOST_UNREACHABLE_ERROR,
+            internal_failure=False,
             count=1,
             mock_metrics=mock_metrics,
             tags={"provider": "example"},
@@ -566,6 +643,53 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             count=0,
             mock_metrics=mock_metrics,
             kwargs_to_match={"tags": None},
+        )
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(ExampleIntegration, "get_client")
+    @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
+    @patch.object(metrics, "incr")
+    def test_handles_restricted_ip_error(
+        self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
+    ) -> None:
+        """
+        Our own egress allowlist refusing the destination shares the 503 status code with a
+        provider genuinely being unreachable, but it is a proxy failure, not an upstream one.
+        """
+        signature_path = f"/{self.proxy_path}"
+        headers = create_request_headers(
+            self.secret, signature_path=signature_path, integration_id=self.org_integration.id
+        )
+        mock_client.base_url = "https://example.com/api"
+        mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
+        mock_client.request = MagicMock(
+            side_effect=lambda *args, **kwargs: self.raise_exception(
+                ApiRestrictedIPError, "Unable to reach host"
+            )
+        )
+        mock_get_client.return_value = mock_client
+
+        proxy_response = self.client.get(self.path, **headers)
+
+        assert proxy_response.status_code == 503
+        assert proxy_response.data is None
+        assert proxy_response[PROXY_INTERNAL_FAILURE_HEADER] == "true"
+
+        self.assert_failure_metric_count(
+            failure_type=IntegrationProxyFailureMetricType.RESTRICTED_IP_ERROR,
+            internal_failure=True,
+            count=1,
+            mock_metrics=mock_metrics,
+            tags={"provider": "example"},
+        )
+        # ApiRestrictedIPError subclasses ApiHostError, so it must not also be counted as
+        # the provider being unreachable.
+        self.assert_failure_metric_count(
+            failure_type=IntegrationProxyFailureMetricType.HOST_UNREACHABLE_ERROR,
+            internal_failure=False,
+            count=0,
+            mock_metrics=mock_metrics,
+            tags={"provider": "example"},
         )
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
@@ -592,6 +716,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
 
         assert proxy_response.status_code == 504
         assert proxy_response.data is None
+        assert proxy_response[PROXY_INTERNAL_FAILURE_HEADER] == "false"
 
         self.assert_metric_count(
             metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
@@ -601,6 +726,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
         self.assert_failure_metric_count(
             failure_type=IntegrationProxyFailureMetricType.HOST_TIMEOUT_ERROR,
+            internal_failure=False,
             count=1,
             mock_metrics=mock_metrics,
             tags={"provider": "example"},
@@ -635,6 +761,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
 
         assert proxy_response.status_code == 401
         assert proxy_response.data is None
+        # Derived from a real upstream answer while minting or refreshing a token.
+        assert proxy_response[PROXY_INTERNAL_FAILURE_HEADER] == "false"
 
         self.assert_metric_count(
             metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
@@ -644,6 +772,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
         self.assert_failure_metric_count(
             failure_type=IntegrationProxyFailureMetricType.UNAUTHORIZED_ERROR,
+            internal_failure=False,
             count=1,
             mock_metrics=mock_metrics,
             tags={"provider": "example"},
@@ -678,6 +807,9 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
 
         assert proxy_response.status_code == 429
         assert proxy_response.data is None
+        # The proxied request is streamed back verbatim under raw_response=True and never
+        # raises, so this is the provider rate limiting a token call we made on its behalf.
+        assert proxy_response[PROXY_INTERNAL_FAILURE_HEADER] == "false"
 
         self.assert_metric_count(
             metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
@@ -687,6 +819,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
         self.assert_failure_metric_count(
             failure_type=IntegrationProxyFailureMetricType.RATE_LIMITED_ERROR,
+            internal_failure=False,
             count=1,
             mock_metrics=mock_metrics,
             tags={"provider": "example"},
@@ -719,6 +852,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
 
         assert proxy_response.status_code == 403
         assert proxy_response.data is None
+        assert proxy_response[PROXY_INTERNAL_FAILURE_HEADER] == "false"
 
         self.assert_metric_count(
             metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
@@ -728,6 +862,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
         self.assert_failure_metric_count(
             failure_type=IntegrationProxyFailureMetricType.FORBIDDEN_ERROR,
+            internal_failure=False,
             count=1,
             mock_metrics=mock_metrics,
             tags={"provider": "example"},
@@ -764,6 +899,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         proxy_response = self.client.get(self.path, **headers)
 
         assert proxy_response.status_code == 500
+        # An unhandled exception in proxy code, so the 500 is ours.
+        assert proxy_response[PROXY_INTERNAL_FAILURE_HEADER] == "true"
 
         self.assert_metric_count(
             metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
@@ -773,6 +910,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
         self.assert_failure_metric_count(
             failure_type=IntegrationProxyFailureMetricType.UNKNOWN_ERROR,
+            internal_failure=True,
             count=1,
             mock_metrics=mock_metrics,
             tags={"provider": "example"},
@@ -943,11 +1081,17 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             self.path, **headers, HTTP_ACCEPT="application/octet-stream"
         )
 
+        # The status and headers are already flushed, so the classification reflects the
+        # upstream response that was being streamed. Consuming the body must fail rather
+        # than hand the caller a truncated body under a success status.
         assert proxy_response.status_code == 200
-        assert b"".join(proxy_response.streaming_content) == first_chunk
+        assert proxy_response[PROXY_INTERNAL_FAILURE_HEADER] == "false"
+        with pytest.raises(ChunkedEncodingError):
+            b"".join(proxy_response.streaming_content)
 
         self.assert_failure_metric_count(
             failure_type=IntegrationProxyFailureMetricType.STREAM_INTERRUPTED,
+            internal_failure=False,
             count=1,
             mock_metrics=mock_metrics,
             tags={"provider": "example"},
@@ -987,10 +1131,13 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         proxy_response = self.client.get(self.path, **headers)
 
         assert proxy_response.status_code == 200
-        assert b"".join(proxy_response.streaming_content) == b""
+        assert proxy_response[PROXY_INTERNAL_FAILURE_HEADER] == "false"
+        with pytest.raises(ConnectionResetError):
+            b"".join(proxy_response.streaming_content)
 
         self.assert_failure_metric_count(
             failure_type=IntegrationProxyFailureMetricType.STREAM_INTERRUPTED,
+            internal_failure=False,
             count=1,
             mock_metrics=mock_metrics,
             tags={"provider": "example"},
