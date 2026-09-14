@@ -50,6 +50,9 @@ class AiAutofixPrIterationFeedbackBatchCompletedEvent(analytics.Event):
     # the values Sentry knows about.
     outcome: str
 
+    # Review bots behind the feedback the drain consumed, sorted and deduped.
+    feedback_bot_logins: list[str] = field(default_factory=list)
+
 
 @analytics.eventclass("ai.autofix.pr_iteration.feedback_batch.blocked")
 class AiAutofixPrIterationFeedbackBatchBlockedEvent(analytics.Event):
@@ -78,9 +81,6 @@ class AiAutofixPrIterationFeedbackBatchBlockedEvent(analytics.Event):
     # How long the batch had been waiting when the gate stopped it.
     duration_ms: int
     outcome: str
-
-    # Review bots behind the feedback the drain consumed, sorted and deduped.
-    feedback_bot_logins: list[str] = field(default_factory=list)
 
 
 analytics.register(AiAutofixPrIterationMissingPermissionsEvent)

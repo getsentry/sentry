@@ -432,6 +432,7 @@ class RecordPrIterationBlockedTest(TestCase):
             queued_count=3,
             dropped_count=1,
             automated_feedback_count=1,
+            feedback_bot_logins=[],
         )
         return iteration_id
 
