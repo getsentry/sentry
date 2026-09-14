@@ -17,12 +17,12 @@ import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAt
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
-import {TokenBreakdownTooltip} from 'sentry/views/insights/pages/agents/components/tokenBreakdownTooltip';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
 import {
   NegativeCostInfo,
   TOKEN_TROUBLESHOOTING_URL,
 } from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
+import {TokenBreakdownTooltip} from 'sentry/views/insights/pages/agents/components/tokenBreakdownTooltip';
 import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getIsAiAgentSpan,
