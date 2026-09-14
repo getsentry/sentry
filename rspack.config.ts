@@ -990,4 +990,25 @@ if (env.WEBPACK_CACHE_PATH) {
 }
 
 const configs = [appConfig, workerConfig];
+
+// `--json` defaults to dumping every module with its source, which is too large to
+// open in an analyzer. Restrict the output to the bundle shape when profiling.
+if (env.RSPACK_STATS) {
+  for (const config of configs) {
+    config.stats = {
+      all: false,
+      assets: true,
+      chunks: true,
+      chunkRelations: true,
+      chunkGroups: true,
+      entrypoints: true,
+      hash: true,
+      timings: true,
+      version: true,
+      errors: true,
+      warnings: true,
+    };
+  }
+}
+
 export default configs;
