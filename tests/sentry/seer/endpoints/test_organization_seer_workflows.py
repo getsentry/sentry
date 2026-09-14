@@ -6,7 +6,7 @@ from sentry.seer.models.night_shift import (
     SeerNightShiftRunErrorType,
     SeerNightShiftRunResult,
 )
-from sentry.seer.models.run import SeerAgentRun, SeerRunMirrorStatus, SeerRunPullRequest
+from sentry.seer.models.run import SeerAgentRun, SeerRunPullRequest
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowRun,
@@ -339,15 +339,9 @@ class OrganizationSeerWorkflowsTest(APITestCase):
 
     def test_history_combines_workflows_and_respects_feature_flags(self) -> None:
         older = Factories.create_seer_workflow_run(organization=self.organization)
-        with self.feature("organizations:gen-ai-features"):
-            cleanup = create_workflow_run(
-                SeerAgentClient(self.organization, self.user),
-                strategy=SeerWorkflowStrategy.DUPLICATE_MONITORS,
-                feature_id="monitor_cleanup",
-                title="Monitor cleanup",
-                payload={},
-                extras={"project_ids": [], "results": []},
-            )
+        cleanup = self.create_agent_workflow(
+            SeerWorkflowStrategy.DUPLICATE_MONITORS, "monitor_cleanup"
+        )
         triage_config = SeerWorkflowConfig.get_or_create_for_strategy(
             self.organization.id, SeerWorkflowStrategy.AGENTIC_TRIAGE
         )
@@ -376,6 +370,76 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         with self.feature("organizations:seer-night-shift"):
             response = self.get_success_response(self.organization.slug)
             assert [run["id"] for run in response.data] == [str(newer.id), str(older.id)]
+
+    def test_history_requires_ownership_until_project_access_can_be_checked(self) -> None:
+        project = self.project
+        workflow = self.create_agent_workflow(
+            SeerWorkflowStrategy.DUPLICATE_MONITORS, "monitor_cleanup"
+        )
+        run = workflow.executions.get().seer_run
+        assert run is not None
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member")
+        other_team = self.create_team(organization=self.organization, members=[member])
+        self.create_project(organization=self.organization, teams=[other_team])
+
+        with self.feature(FEATURE):
+            response = self.get_success_response(self.organization.slug)
+        assert [item["id"] for item in response.data] == [str(workflow.id)]
+
+        self.login_as(member)
+        with self.feature(FEATURE):
+            response = self.get_success_response(self.organization.slug)
+        assert response.data == []
+
+        run.agent.update(
+            extras={**run.agent.extras, "status": "complete", "project_ids": [str(project.id)]}
+        )
+        with self.feature(FEATURE):
+            response = self.get_success_response(self.organization.slug)
+        assert response.data == []
+
+        self.create_team_membership(team=self.team, user=member)
+        with self.feature(FEATURE):
+            response = self.get_success_response(self.organization.slug)
+        assert [item["id"] for item in response.data] == [str(workflow.id)]
+
+    def test_org_token_cannot_own_history_after_triggering_user_is_deleted(self) -> None:
+        workflow = self.create_agent_workflow(
+            SeerWorkflowStrategy.DUPLICATE_MONITORS, "monitor_cleanup"
+        )
+        run = workflow.executions.get().seer_run
+        assert run is not None
+        run.update(user_id=None)
+        token = generate_token(self.organization.slug, "")
+        self.create_org_auth_token(
+            name="org-auth-token",
+            token_hashed=hash_token(token),
+            organization_id=self.organization.id,
+            scope_list=["org:read"],
+        )
+        with self.feature(FEATURE):
+            response = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/seer/workflows/",
+                HTTP_AUTHORIZATION=f"Bearer {token}",
+            )
+        assert response.status_code == 200
+        assert response.data == []
+
+    def create_agent_workflow(
+        self, strategy: SeerWorkflowStrategy, feature_id: str
+    ) -> SeerWorkflowRun:
+        with self.feature("organizations:gen-ai-features"):
+            return create_workflow_run(
+                SeerAgentClient(self.organization, self.user),
+                strategy=strategy,
+                feature_id=feature_id,
+                title="Test workflow",
+                payload={},
+                extras={"project_ids": [], "results": []},
+            )
 
 
 class OrganizationSeerMonitorCleanupTest(APITestCase):
@@ -420,49 +484,6 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             {"id": str(self.duplicate.id), "name": "Copy", "enabled": self.duplicate.enabled},
         ]
 
-    def test_dispatch_failure_appears_in_history(self) -> None:
-        run = self.trigger()
-        run.run.update(mirror_status=SeerRunMirrorStatus.FAILED)
-        with self.feature(FEATURE):
-            response = self.client.get(self.url)
-        assert response.status_code == 200
-        assert response.data[0]["extras"] == {"status": "failed"}
-        assert response.data[0]["errorMessage"] == "Seer could not start this workflow."
-
-    def test_history_requires_ownership_until_project_access_can_be_checked(self) -> None:
-        run = self.trigger()
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
-        member = self.create_user()
-        self.create_member(organization=self.organization, user=member, role="member")
-        other_team = self.create_team(organization=self.organization, members=[member])
-        self.create_project(organization=self.organization, teams=[other_team])
-
-        with self.feature(FEATURE):
-            response = self.client.get(self.url)
-        assert response.status_code == 200
-        assert [item["id"] for item in response.data] == [str(run.run.workflow_execution.run_id)]
-
-        self.login_as(member)
-        with self.feature(FEATURE):
-            response = self.client.get(self.url)
-        assert response.status_code == 200
-        assert response.data == []
-
-        deliver_monitor_cleanup_result(
-            self.organization.id, run.run.uuid, "completed", self.result(), None
-        )
-        with self.feature(FEATURE):
-            response = self.client.get(self.url)
-        assert response.status_code == 200
-        assert response.data == []
-
-        self.create_team_membership(team=self.team, user=member)
-        with self.feature(FEATURE):
-            response = self.client.get(self.url)
-        assert response.status_code == 200
-        assert [item["id"] for item in response.data] == [str(run.run.workflow_execution.run_id)]
-
     def test_invalid_result_marks_run_failed(self) -> None:
         run = self.trigger()
         deliver_monitor_cleanup_result(
@@ -486,21 +507,6 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         other = self.create_organization()
         with self.feature(FEATURE):
             self.get_error_response(other.slug, strategy="duplicate_monitors", status_code=403)
-
-    def test_org_token_cannot_own_history_after_triggering_user_is_deleted(self) -> None:
-        agent_run = self.trigger()
-        agent_run.run.update(user_id=None)
-        token = generate_token(self.organization.slug, "")
-        self.create_org_auth_token(
-            name="org-auth-token",
-            token_hashed=hash_token(token),
-            organization_id=self.organization.id,
-            scope_list=["org:read"],
-        )
-        with self.feature(FEATURE):
-            response = self.client.get(self.url, HTTP_AUTHORIZATION=f"Bearer {token}")
-        assert response.status_code == 200
-        assert response.data == []
 
     def test_callback_for_deleted_user_marks_run_failed(self) -> None:
         agent_run = self.trigger()

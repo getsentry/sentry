@@ -6,12 +6,13 @@ import pytest
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.seer.agent.client import SeerAgentClient
-from sentry.seer.models.run import SeerAgentRun, SeerRun
+from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus
 from sentry.seer.models.workflow import SeerWorkflowRun, SeerWorkflowStrategy
 from sentry.seer.workflows.runs import (
     create_workflow_run,
     deliver_workflow_result,
     finish_workflow_run,
+    get_workflow_run_status,
 )
 from sentry.seer.workflows.schemas import WorkflowResult
 from sentry.testutils.cases import TestCase
@@ -125,6 +126,26 @@ class WorkflowRunTest(TestCase):
         assert run.agent.extras["status"] == "failed"
         assert run.agent.extras["date_completed"] is not None
         assert run.agent.extras["error"] == "Seer could not complete this workflow."
+
+    def test_dispatch_failure_is_reported_without_overwriting_a_completed_result(self) -> None:
+        run = self.create_run()
+        run.update(mirror_status=SeerRunMirrorStatus.FAILED)
+        assert get_workflow_run_status(run.agent) == {
+            "status": "failed",
+            "date_completed": None,
+            "error": "Seer could not start this workflow.",
+        }
+        finish_workflow_run(
+            run.id,
+            organization_id=self.organization.id,
+            feature_id="test_workflow",
+            result=WorkflowResult(extras={"summary": "Finished"}),
+        )
+        run.agent.refresh_from_db()
+        status = get_workflow_run_status(run.agent)
+        assert status["status"] == "complete"
+        assert status["date_completed"] is not None
+        assert status["error"] is None
 
     def create_run(self) -> SeerRun:
         with self.feature("organizations:gen-ai-features"):
