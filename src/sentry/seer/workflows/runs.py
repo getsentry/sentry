@@ -39,7 +39,7 @@ def create_workflow_run(
         payload=payload,
         title=title,
         flush=False,
-        extras={**(extras or {}), "status": "running", "date_completed": None, "error": None},
+        extras={**(extras or {}), "status": "running", "error": None},
         referrer=feature_id,
         on_run_created=partial(_create_workflow_run, strategy=strategy),
     )
@@ -113,6 +113,7 @@ def finish_workflow_run(
     result: WorkflowResult | None = None,
     error: str | None = None,
 ) -> None:
+    """Finalize the single-execution workflow created by create_workflow_run."""
     with transaction.atomic(router.db_for_write(SeerAgentRun)):
         agent_run = (
             SeerAgentRun.objects.select_for_update(of=("self",))
@@ -123,10 +124,14 @@ def finish_workflow_run(
             return
         extras: WorkflowRunExtras = {
             "status": "failed" if error else result.status if result else "complete",
-            "date_completed": timezone.now().isoformat(),
             "error": error,
         }
         agent_run.update(extras={**agent_run.extras, **(result.extras if result else {}), **extras})
+        SeerWorkflowRun.objects.filter(
+            organization_id=organization_id,
+            executions__seer_run_id=run_id,
+            date_completed__isnull=True,
+        ).update(date_completed=timezone.now())
     logger.info(
         "seer.workflow.run.finished",
         extra={
@@ -147,11 +152,9 @@ def get_workflow_run_status(agent_run: SeerAgentRun) -> WorkflowRunExtras:
     ):
         return {
             "status": "failed",
-            "date_completed": None,
             "error": "Seer could not start this workflow.",
         }
     return {
         "status": extras["status"],
-        "date_completed": extras["date_completed"],
         "error": extras["error"],
     }

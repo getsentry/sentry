@@ -7,7 +7,6 @@ WorkflowRunStatus = Literal["running", "complete", "partial", "failed"]
 
 class WorkflowRunExtras(TypedDict):
     status: WorkflowRunStatus
-    date_completed: str | None
     error: str | None
 
 
