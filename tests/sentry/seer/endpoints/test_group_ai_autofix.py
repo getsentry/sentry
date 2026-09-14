@@ -826,6 +826,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         self, mock_run_state, mock_trigger_explorer, mock_try_enqueue, mock_consume
     ):
         group = self.create_group()
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
         mock_run_state.return_value = SeerRunState(
             run_id=123,
             blocks=[],
@@ -956,6 +957,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     ):
         """The failed push is the thing to iterate out of, so the PR still counts."""
         group = self.create_group()
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
         mock_run_state.return_value = SeerRunState(
             run_id=123,
             blocks=[],
