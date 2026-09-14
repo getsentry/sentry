@@ -140,8 +140,13 @@ def _parse_autofix_referrer(raw: str | None, request: Request) -> AutofixReferre
 def _check_autofix_setup(organization: Organization, project: Project) -> str | None:
     """Return the setup code blocking a new autofix run, or None if it can start.
 
-    Mirrors the frontend gate in AutofixContent and GroupAutofixSetupCheck.
+    Mirrors the frontend gate in AutofixContent: legacy usage-based Seer plans
+    (organizations:seer-added) may run autofix without an SCM integration or
+    linked repos, so the checks are skipped for them.
     """
+    if features.has("organizations:seer-added", organization):
+        return None
+
     if not has_supported_scm_integration(organization):
         return "scm_integration_required"
 

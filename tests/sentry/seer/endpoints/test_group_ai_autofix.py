@@ -442,6 +442,28 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_trigger_explorer.assert_not_called()
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_kickoff_legacy_seer_org_allowed_without_setup(self, mock_trigger_explorer):
+        """Legacy seer-added orgs skip the setup gate, mirroring AutofixContent."""
+        group = self.create_group()
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=777)
+        mock_trigger_explorer.return_value = run
+
+        self.mock_has_scm.return_value = False
+        self.mock_has_repos.return_value = False
+
+        with with_feature("organizations:seer-added"):
+            self.login_as(user=self.user)
+            response = self.client.post(
+                self._get_url(group.id),
+                data={"step": "root_cause"},
+                format="json",
+            )
+
+        assert response.status_code == 202, response.data
+        assert response.data["run_id"] == 777
+        mock_trigger_explorer.assert_called_once()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_kickoff_returns_sentry_run_id(self, mock_trigger_explorer):
         group = self.create_group()
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=777)
