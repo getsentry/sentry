@@ -89,7 +89,7 @@ class UsecaseId(Enum):
     DEBUG_FILES = "debug_files"
     PROFILE_ATTACHMENTS = "profile_attachments"
     PREPROD = "preprod"
-    SNAPSHOTS = "snapshots"
+    SNAPSHOTS = "preprod_snapshots"
 
     def create(self) -> ObjectstoreClientUsecase:
         match self:

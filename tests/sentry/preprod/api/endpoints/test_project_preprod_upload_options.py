@@ -56,7 +56,7 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
         mock_get_session.assert_called_once_with(UsecaseId.PREPROD, self.project)
 
     def test_rejects_explicit_usecase(self) -> None:
-        response = self.client.get(self.url, {"usecase": "snapshots"})
+        response = self.client.get(self.url, {"usecase": "preprod_snapshots"})
 
         assert response.status_code == 400
 
