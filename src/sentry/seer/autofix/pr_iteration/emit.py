@@ -19,9 +19,13 @@ from __future__ import annotations
 import logging
 from dataclasses import fields
 from enum import StrEnum
+from typing import TypeVar
+
+from django.utils import timezone
 
 from sentry import analytics
 from sentry.analytics.events.pr_iteration_events import (
+    AiAutofixPrIterationFeedbackBatchBlockedEvent,
     AiAutofixPrIterationFeedbackBatchCompletedEvent,
 )
 from sentry.models.group import Group
@@ -38,9 +42,27 @@ from sentry.seer.autofix.pr_iteration.details_store import (
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.models.run import SeerRun, SeerRunPrIteration
 
+EventT = TypeVar("EventT", bound=analytics.Event)
+
+# Blocking outcomes a row has already reported, so each is emitted once per
+# iteration.
+BLOCKED_OUTCOMES_DATA_KEY = "blocked_outcomes"
+
 
 class PrIterationOutcome(StrEnum):
-    """How a batch ended.
+    """How far a batch got. Ending values below the blocking ones.
+
+    The ending values go on the completed event, the blocking values on the
+    blocked event. ``MISSING_PERMISSIONS`` only holds a batch up, so a batch
+    blocked on it reports both: the block now, and an ending value later, once
+    the app is granted what it needs and the work runs.
+
+    The ``PAUSED_`` values are the opposite, and the reason they name the pause
+    rather than just reporting one: nothing lifts a pause, so a batch blocked
+    on one never runs and reports no ending at all. Whether the feedback was
+    abandoned because someone asked Seer to stop or because the run before it
+    broke is the whole question those rows answer. One per ``PauseReason``, and
+    :func:`outcome_for_pause` says so when the two lists drift apart.
 
     ``ALREADY_PUSHED`` is the success: the batch is recorded on the hook pass
     where its changes are on the PR, not on the earlier pass that only asked
@@ -61,6 +83,21 @@ class PrIterationOutcome(StrEnum):
     STALLED = "stalled"
     ERRORED = "errored"
 
+    MISSING_PERMISSIONS = "missing_permissions"
+    PAUSED = "paused"
+    PAUSED_USER_STOP = "paused_user_stop"
+    PAUSED_RUN_ERRORED = "paused_run_errored"
+    PAUSED_PR_CLOSED = "paused_pr_closed"
+
+
+# The pause reasons this module names an outcome for, derived so that adding a
+# ``PAUSED_`` member above is all it takes to report that reason as itself.
+_PAUSE_OUTCOMES = frozenset(
+    outcome.value
+    for outcome in PrIterationOutcome
+    if outcome.value.startswith(f"{PrIterationOutcome.PAUSED.value}_")
+)
+
 
 def outcome_for_failed_run(run_state: SeerRunState) -> str:
     """Seer's reason for a failed run, or ``ERRORED`` when it did not give one.
@@ -69,6 +106,28 @@ def outcome_for_failed_run(run_state: SeerRunState) -> str:
     the batch left on the PR.
     """
     return run_state.failure_reason or PrIterationOutcome.ERRORED.value
+
+
+def outcome_for_pause(log_ctx: PrIterationLogContext, reason: str | None) -> str:
+    """The outcome for a batch that arrived after the run was paused.
+
+    Only the reasons named above are reported as themselves. A ``PauseReason``
+    added to ``pause`` without an outcome here is logged and reported as plain
+    ``PAUSED``, so the batch is still counted under an outcome that already
+    means something rather than opening a value nothing here has defined.
+    ``PAUSED`` also covers a marker too old or too new to name its reason.
+    """
+    if reason is None:
+        return PrIterationOutcome.PAUSED.value
+
+    outcome = f"{PrIterationOutcome.PAUSED.value}_{reason}"
+    if outcome in _PAUSE_OUTCOMES:
+        return outcome
+
+    log_ctx.error(
+        "autofix.pr_iteration.details.unknown_pause_reason", exc_info=False, pause_reason=reason
+    )
+    return PrIterationOutcome.PAUSED.value
 
 
 def _seer_run(*, run_id: int, organization_id: int) -> SeerRun | None:
@@ -226,15 +285,26 @@ def discard_pr_iteration_details(
 def _build_event(
     log_ctx: PrIterationLogContext,
     iteration: SeerRunPrIteration,
+    event_cls: type[EventT],
     *,
     iteration_index: int,
     outcome: str,
-) -> AiAutofixPrIterationFeedbackBatchCompletedEvent | None:
-    """The event for a finished iteration. None when its row is incomplete."""
-    known = {f.name for f in fields(AiAutofixPrIterationFeedbackBatchCompletedEvent)}
+) -> EventT | None:
+    """An event filled from an iteration's row. None when that row is incomplete.
+
+    The row accumulates whatever each stage of the batch learned, and the event
+    class decides how much of that is in scope: a blocked event takes the four
+    identity fields and leaves the drain's behind, still on the row, for the
+    completed event to pick up if the batch gets that far.
+    """
+    known = {f.name for f in fields(event_cls)}
     payload = {key: value for key, value in iteration.data.items() if key in known}
+    # Only the blocked event carries how long the batch waited; the completed
+    # event reports what the drain wrote instead.
+    if "duration_ms" in known:
+        payload["duration_ms"] = int((timezone.now() - iteration.date_added).total_seconds() * 1000)
     try:
-        return AiAutofixPrIterationFeedbackBatchCompletedEvent(
+        return event_cls(
             iteration_id=iteration.id,
             iteration_index=iteration_index,
             outcome=outcome,
@@ -253,6 +323,62 @@ def _build_event(
             missing=sorted(known - written),
         )
         return None
+
+
+def record_pr_iteration_blocked(
+    *,
+    log_ctx: PrIterationLogContext,
+    run_state: SeerRunState,
+    run_id: int,
+    organization_id: int,
+    outcome: str,
+) -> None:
+    """Record that the run's waiting iteration is blocked, once per outcome.
+
+    Unlike :func:`complete_pr_iteration_details`, this neither claims nor
+    removes the row. For a block that lifts, such as missing permissions, that
+    is because the batch has not ended: it reaches the agent once the block
+    clears and completes on its own, so this is a checkpoint on top of that
+    completion rather than a substitute for it.
+
+    For a block that never lifts, such as a paused run, the row stays for a
+    different reason. Keeping it is what holds the ``blocked_outcomes`` marker,
+    and the marker is the only thing stopping a batch nothing will ever drain
+    from recording itself again on every check suite the PR produces. Nothing
+    completes those rows; the stale-row sweep is what eventually takes them.
+
+    Which outcomes a row has already reported lives on the row, so a gate that
+    re-checks on every failing check suite still says each one once.
+    """
+    try:
+        seer_run = _seer_run(run_id=run_id, organization_id=organization_id)
+        if seer_run is None:
+            return
+
+        iteration = untriggered_iteration(seer_run)
+        if iteration is None:
+            return
+
+        recorded = iteration.data.get(BLOCKED_OUTCOMES_DATA_KEY) or []
+        if outcome in recorded:
+            return
+
+        event = _build_event(
+            log_ctx,
+            iteration,
+            AiAutofixPrIterationFeedbackBatchBlockedEvent,
+            iteration_index=get_latest_iteration_index(run_state),
+            outcome=outcome,
+        )
+        if event is None:
+            return
+
+        # Marked before the record, so a failing emit costs one event rather
+        # than repeating on every later check of the same outcome.
+        update_iteration(iteration, **{BLOCKED_OUTCOMES_DATA_KEY: [*recorded, outcome]})
+        analytics.record(event)
+    except Exception:
+        log_ctx.error("autofix.pr_iteration.details.blocked_failed")
 
 
 def complete_pr_iteration_details(
@@ -290,6 +416,7 @@ def complete_pr_iteration_details(
         event = _build_event(
             log_ctx,
             iteration,
+            AiAutofixPrIterationFeedbackBatchCompletedEvent,
             iteration_index=get_latest_iteration_index(run_state),
             outcome=outcome,
         )
