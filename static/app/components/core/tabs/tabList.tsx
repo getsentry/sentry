@@ -143,7 +143,7 @@ function useOverflowTabs({
       }
     }
 
-    const available = outerWrap.clientWidth;
+    const available = outerWrap.getBoundingClientRect().width;
 
     // Width required to render every tab, without reserving the trigger.
     const fullWidth = keys.reduce(

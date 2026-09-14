@@ -201,6 +201,19 @@ export interface Block {
   tool_results?: Array<ToolResult | null> | null;
 }
 
+// The Seer backend sends 'Thinking...' as message.content on in-flight blocks
+// (see add_loading_response_block in the Seer service). Normalize it to null at
+// the API boundary so downstream code never encounters the sentinel.
+const THINKING_SENTINEL = 'Thinking...';
+
+export function normalizeBlocks(blocks: Block[]): Block[] {
+  return blocks.map(block =>
+    block.message.content === THINKING_SENTINEL
+      ? {...block, message: {...block.message, content: null}}
+      : block
+  );
+}
+
 export interface ExplorerSession {
   dateCreated: string;
   id: string;

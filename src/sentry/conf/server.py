@@ -1009,6 +1009,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.uptime.rdap.tasks",
     "sentry.uptime.subscriptions.tasks",
     "sentry.workflow_engine.tasks.delayed_workflows",
+    "sentry.workflow_engine.tasks.health_check",
     "sentry.workflow_engine.tasks.workflows",
     "sentry.workflow_engine.tasks.actions",
     "sentry.tasks.seer.explorer_index",
@@ -1039,6 +1040,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "flush-delayed-workflows": {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
         "schedule": timedelta(seconds=15),
+    },
+    "health-check-organization-detectors": {
+        "task": "workflow_engine:sentry.workflow_engine.tasks.health_check.health_check_organization_detectors",
+        "schedule": crontab("*/30", "*", "*", "*", "*"),
     },
     "resolve-stale-sourcemap-detectors": {
         "task": "workflow_engine:sentry.processing_errors.tasks.resolve_stale_sourcemap_detectors",
@@ -2330,7 +2335,7 @@ if SENTRY_DEV_DSN:
     # In production, this value is *not* set via an env variable
     # https://github.com/getsentry/getsentry/blob/16a07f72853104b911a368cc8ae2b4b49dbf7408/getsentry/conf/settings/prod.py#L604-L606
     # This is used in case you want to report traces of your development set up to a project of your choice
-    SENTRY_SDK_CONFIG["dsn"] = SENTRY_DEV_DSN
+    SENTRY_SDK_CONFIG["sentry_mirror_dsn"] = SENTRY_DEV_DSN
 
 SENTRY_SDK_THREADING_INTEGRATION = os.environ.get("SENTRY_SDK_DISABLE_THREADING") != "1"
 
@@ -2907,7 +2912,7 @@ SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
 # Implemented in getsentry to run additional devserver workers.
 SENTRY_EXTRA_WORKERS: MutableSequence[str] = []
 
-SAMPLED_DEFAULT_RATE = 0.035
+SAMPLED_DEFAULT_RATE = 0.0125
 
 # A set of extra URLs to sample
 ADDITIONAL_SAMPLED_URLS: dict[str, float] = {}
