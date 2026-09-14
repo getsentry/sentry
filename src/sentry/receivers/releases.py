@@ -87,13 +87,27 @@ def invalidate_release_cache(
     transaction.on_commit(on_commit, router.db_for_write(Release))
 
 
-def resolve_group_resolutions(instance: Release, created: bool, **kwargs) -> None:
-    if not created:
+def resolve_group_resolutions(
+    instance: Release, created: bool, update_fields: Iterable[str] | None = None, **kwargs
+) -> None:
+    # save() without update_fields may change either timestamp. Reevaluation
+    # is idempotent, so conservatively handle those saves too.
+    if (
+        not created
+        and update_fields is not None
+        and not {"date_released", "date_added"}.intersection(update_fields)
+    ):
         return
-    transaction.on_commit(
-        lambda: clear_expired_resolutions.delay(release_id=instance.id),
-        router.db_for_write(Release),
-    )
+
+    release_id = instance.id
+
+    def on_commit() -> None:
+        if created or features.has(
+            "organizations:release-resolution-finalized-order", instance.organization
+        ):
+            clear_expired_resolutions.delay(release_id=release_id)
+
+    transaction.on_commit(on_commit, router.db_for_write(Release))
 
 
 def remove_resolved_link(link):
