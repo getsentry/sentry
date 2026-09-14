@@ -331,27 +331,36 @@ class GroupIntegrationDetailsTest(APITestCase):
             "https://api.bitbucket.org/2.0/repositories/myaccount/myrepo/issues/3",
             json={"id": 3, "title": "Existing issue", "content": {"html": "Description"}},
         )
-        path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{integration.id}/"
         with self.feature("organizations:integrations-issue-basic"):
-            response = self.client.put(
-                path, data={"externalIssue": "https://bitbucket.org/myaccount/myrepo/issues/3"}
-            )
-        assert response.status_code == 201
-        assert response.data["key"] == "myaccount/myrepo#3"
-        assert GroupLink.objects.filter(
-            group_id=self.group.id,
-            linked_id=response.data["id"],
-            linked_type=GroupLink.LinkedType.issue,
-            relationship=GroupLink.Relationship.references,
-        ).exists()
-        org_integration = integration_service.get_organization_integration(
-            integration_id=integration.id, organization_id=self.organization.id
-        )
-        assert org_integration is not None
-        assert org_integration.config["project_issue_defaults"][str(self.project.id)] == {
-            "repo": "myaccount/myrepo"
-        }
-        assert len(responses.calls) == 1
+            for data in (
+                {"externalIssue": "https://bitbucket.org/myaccount/myrepo/issues/3"},
+                {
+                    "externalIssue": "https://bitbucket.org/myaccount/myrepo/issues/3/issue-title#comment-1"
+                },
+                {
+                    "externalIssue": "https://bitbucket.org/myaccount/myrepo/issues/3/",
+                    "repo": "myaccount/myrepo",
+                },
+            ):
+                group = self.create_group(project=self.project)
+                path = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/integrations/{integration.id}/"
+                response = self.client.put(path, data=data)
+                assert response.status_code == 201
+                assert response.data["key"] == "myaccount/myrepo#3"
+                assert GroupLink.objects.filter(
+                    group_id=group.id,
+                    linked_id=response.data["id"],
+                    linked_type=GroupLink.LinkedType.issue,
+                    relationship=GroupLink.Relationship.references,
+                ).exists()
+                org_integration = integration_service.get_organization_integration(
+                    integration_id=integration.id, organization_id=self.organization.id
+                )
+                assert org_integration is not None
+                assert org_integration.config["project_issue_defaults"][str(self.project.id)] == {
+                    "repo": "myaccount/myrepo"
+                }
+        assert len(responses.calls) == 3
 
     @responses.activate
     def test_put_bitbucket_issue_url_rejects_mismatched_target(self) -> None:
