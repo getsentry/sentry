@@ -1,6 +1,7 @@
 from sentry.seer.autofix.pr_iteration.bot_identity import bot_logins_for_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
+    GithubPrCommentFeedbackSource,
     GithubPrReviewBodyFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
 )
@@ -20,6 +21,12 @@ def _review_comment(login: str, *, author_is_bot: bool) -> GithubPrReviewComment
     return GithubPrReviewCommentFeedbackSource(
         comment={"id": 2, "body": "fix it", "user": {"id": 2, "login": login}},
         author_is_bot=author_is_bot,
+    )
+
+
+def _pr_comment(login: str) -> GithubPrCommentFeedbackSource:
+    return GithubPrCommentFeedbackSource(
+        comment={"id": 3, "body": "@sentry fix it", "user": {"id": 3, "login": login}}
     )
 
 
@@ -48,6 +55,11 @@ def test_a_human_review_contributes_no_login() -> None:
     ]
 
     assert bot_logins_for_feedback(sources) == []
+
+
+def test_a_top_level_comment_is_classified_by_its_login() -> None:
+    assert bot_logins_for_feedback([_pr_comment("cursor[bot]")]) == ["cursor[bot]"]
+    assert bot_logins_for_feedback([_pr_comment("some-person")]) == []
 
 
 def test_check_suite_feedback_is_ci_and_contributes_no_login() -> None:
