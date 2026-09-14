@@ -49,14 +49,6 @@ const outputSchema = z.object({
 });
 type Finding = z.infer<typeof outputSchema>['findings'][number];
 
-export function MonitorCleanupSummary({row}: {row: WorkflowRow}) {
-  return (
-    <Text size="sm" variant={row.status === 'failed' ? 'danger' : 'primary'}>
-      {getMonitorRunSummary(row)}
-    </Text>
-  );
-}
-
 export function MonitorCleanupRunResults({
   row,
   organizationSlug,
@@ -77,7 +69,7 @@ export function MonitorCleanupRunResults({
   );
 }
 
-function getMonitorRunSummary(row: WorkflowRow) {
+export function getMonitorRunSummary(row: WorkflowRow) {
   if (row.status === 'running') {
     return t('Scanning monitors…');
   }

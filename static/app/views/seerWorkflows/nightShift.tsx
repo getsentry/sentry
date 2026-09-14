@@ -104,34 +104,20 @@ export function getNightShiftRow(run: SeerWorkflowRun) {
   };
 }
 
-export function NightShiftSummary({row}: {row: WorkflowRow}) {
+export function getNightShiftSummary(row: WorkflowRow): string {
   if (row.status === 'running') {
-    return <Text size="sm">{t('Triaging issues…')}</Text>;
+    return t('Triaging issues…');
   }
   if (row.resultText || row.status === 'failed') {
-    return (
-      <Text size="sm" variant={row.status === 'failed' ? 'danger' : 'primary'}>
-        {row.resultText ?? t('Run failed')}
-      </Text>
-    );
+    return row.resultText ?? t('Run failed');
   }
-  const triage = row.triage;
-  if (triage?.options?.dry_run) {
-    return (
-      <Text variant="muted" size="sm">
-        {t('dry run')}
-      </Text>
-    );
+  if (row.triage?.options?.dry_run) {
+    return t('dry run');
   }
-  const issueCount = triage?.issues.length ?? 0;
-  if (issueCount === 0) {
-    return (
-      <Text variant="muted" size="sm">
-        {t('No issues processed')}
-      </Text>
-    );
-  }
-  return <Text size="sm">{tn('%s issue', '%s issues', issueCount)}</Text>;
+  const issueCount = row.triage?.issues.length ?? 0;
+  return issueCount === 0
+    ? t('No issues processed')
+    : tn('%s issue', '%s issues', issueCount);
 }
 
 export function NightShiftResults({

@@ -35,20 +35,6 @@ export type WorkflowRowStatus =
   | 'running'
   | 'partial';
 
-export type Frequency = 'hourly' | 'daily' | 'weekly';
-
-export type OutputId =
-  | 'autofix_runs'
-  | 'issue_activity'
-  | 'release_annotation'
-  | 'performance_annotation'
-  | 'replay_collection'
-  | 'alert_rule_suggestion'
-  | 'monitor_annotation'
-  | 'merge_proposal'
-  | 'ownership_suggestion'
-  | 'notification';
-
 export type WorkflowRow = {
   dateAdded: string;
   id: string;

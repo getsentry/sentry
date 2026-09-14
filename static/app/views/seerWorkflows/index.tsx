@@ -412,7 +412,6 @@ function SeerWorkflows() {
               ) : (
                 sortedRows.map(row => {
                   const isExpanded = expanded.has(row.id);
-                  const {Summary} = STRATEGY_META[row.strategy];
                   return (
                     <Fragment key={row.id}>
                       <SimpleTable.Row
@@ -452,7 +451,12 @@ function SeerWorkflows() {
                           </Flex>
                         </SimpleTable.RowCell>
                         <SimpleTable.RowCell>
-                          <Summary row={row} />
+                          <Text
+                            size="sm"
+                            variant={row.status === 'failed' ? 'danger' : 'primary'}
+                          >
+                            {STRATEGY_META[row.strategy].getSummary(row)}
+                          </Text>
                         </SimpleTable.RowCell>
                         <SimpleTable.RowCell>
                           <Button

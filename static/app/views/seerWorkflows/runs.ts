@@ -1,4 +1,4 @@
-import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
+import {getNightShiftRow} from 'sentry/views/seerWorkflows/nightShift';
 import type {SeerWorkflowRun, WorkflowRow} from 'sentry/views/seerWorkflows/types';
 
 export function toWorkflowRow(run: SeerWorkflowRun): WorkflowRow {
@@ -14,6 +14,6 @@ export function toWorkflowRow(run: SeerWorkflowRun): WorkflowRow {
     errorMessage: run.errorMessage,
     results: run.results ?? [],
     seerRunId: run.seerRunId,
-    ...STRATEGY_META[run.strategy].getRowDetails?.(run),
+    ...getNightShiftRow(run),
   };
 }
