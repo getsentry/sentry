@@ -8,7 +8,7 @@ from typing import TypedDict
 from django.db.models import Q, prefetch_related_objects
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
-from rest_framework.exceptions import NotFound, Throttled
+from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -24,10 +24,8 @@ from sentry.api.serializers.models.seer_night_shift_run import (  # noqa: F401 -
     SeerNightShiftRunSerializer,
 )
 from sentry.models.organization import Organization
-from sentry.ratelimits import backend as ratelimits
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.workflow import SeerWorkflowRun, SeerWorkflowStrategy
-from sentry.seer.monitor_cleanup.constants import FEATURE
 from sentry.seer.monitor_cleanup.runs import create_monitor_cleanup_run
 from sentry.seer.monitor_cleanup.schemas import MonitorCleanupRunExtras, MonitorCleanupRunResponse
 from sentry.seer.workflows.runs import get_workflow_run_status
@@ -68,7 +66,9 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> Response:
         triage_enabled = features.has("organizations:seer-night-shift", organization)
-        cleanup_enabled = features.has(FEATURE, organization, actor=request.user)
+        cleanup_enabled = features.has(
+            "organizations:seer-workflows-monitor-cleanup", organization, actor=request.user
+        )
         if not triage_enabled and not cleanup_enabled:
             raise NotFound
 
@@ -117,12 +117,6 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
         serializer = WorkflowRunCreateSerializer(data=request.data)
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
-        strategy = serializer.validated_data["strategy"]
-        # RateLimitConfig limits browser sessions per user; this cap is shared across the org.
-        if ratelimits.is_limited(
-            f"seer-workflow:{organization.id}:{strategy}", limit=5, window=3600
-        ):
-            raise Throttled(detail="This organization has reached its scan limit. Try again later.")
         run = create_monitor_cleanup_run(request, organization)
         return Response({"runId": str(run.id)}, status=202)
 
