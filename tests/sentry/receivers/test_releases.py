@@ -38,7 +38,7 @@ from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 
 
-class ResolveGroupResolutionsTest(TestCase):
+class InvalidateReleaseCacheTest(TestCase):
     def test_cache_failure_does_not_fail_commit_or_skip_later_callbacks(self) -> None:
         release = self.create_release(version="cache-failure")
         after_invalidation = MagicMock()
@@ -56,7 +56,10 @@ class ResolveGroupResolutionsTest(TestCase):
         release_cache.delete.assert_called_once_with(
             Release.get_cache_key(release.organization_id, release.version)
         )
-        log_exception.assert_called_once_with("release.cache_invalidation_failed")
+        log_exception.assert_called_once_with(
+            "release.cache_invalidation_failed",
+            extra={"release_id": release.id, "organization_id": release.organization_id},
+        )
         after_invalidation.assert_called_once_with()
         release.refresh_from_db()
         assert release.date_released == finalized_at
@@ -78,6 +81,8 @@ class ResolveGroupResolutionsTest(TestCase):
         )
         enqueue.assert_not_called()
 
+
+class ResolveGroupResolutionsTest(TestCase):
     @patch("sentry.receivers.releases.clear_expired_resolutions.delay")
     def test_simple(self, mock_delay: MagicMock) -> None:
         with self.capture_on_commit_callbacks(execute=True):

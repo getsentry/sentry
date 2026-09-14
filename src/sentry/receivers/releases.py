@@ -69,6 +69,8 @@ def invalidate_release_cache(
         return
 
     cache_key = Release.get_cache_key(instance.organization_id, instance.version)
+    release_id = instance.id
+    organization_id = instance.organization_id
 
     # Ingestion caches whole release objects. Invalidate after commit so a
     # concurrent lookup can read the updated dates. A cache failure must not
@@ -77,7 +79,10 @@ def invalidate_release_cache(
         try:
             cache.delete(cache_key)
         except Exception:
-            logger.exception("release.cache_invalidation_failed")
+            logger.exception(
+                "release.cache_invalidation_failed",
+                extra={"release_id": release_id, "organization_id": organization_id},
+            )
 
     transaction.on_commit(on_commit, router.db_for_write(Release))
 
