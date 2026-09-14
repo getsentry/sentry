@@ -1,4 +1,4 @@
-import {RuleTester} from '@typescript-eslint/rule-tester';
+import {RuleTester} from 'oxlint/plugins-dev';
 
 import {noRestrictedModuleMocks} from './noRestrictedModuleMocks';
 
