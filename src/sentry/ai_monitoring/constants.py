@@ -1,13 +1,12 @@
 from sentry.search.events.fields import get_function_alias
 
-AI_CONVERSATION_DURATION_EXPRESSION = (
-    "sum_if(`has:gen_ai.operation.name !gen_ai.operation.type:agent`,span.duration)"
-)
-
 AI_CONVERSATIONS_FIELDS = {
     "conversation.conversationId": ("gen_ai.conversation.id", "gen_ai.conversation.id"),
     "conversation.age": ("max(timestamp)", "max(timestamp)"),
-    "conversation.duration": (AI_CONVERSATION_DURATION_EXPRESSION, "duration"),
+    "conversation.duration": (
+        "sum_if(`has:gen_ai.operation.type !gen_ai.operation.type:agent`,span.duration)",
+        "duration",
+    ),
     "conversation.generationDuration": (
         "sum_if(span.duration,gen_ai.operation.type,equals,ai_client)",
         "generation_duration",
