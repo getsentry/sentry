@@ -13,11 +13,13 @@ def sessions() -> tuple[MagicMock, MagicMock]:
     return MagicMock(name="primary"), MagicMock(name="fallback")
 
 
-def test_get_prefers_primary(sessions) -> None:
+@patch("sentry.preprod.snapshots.storage.logger")
+def test_get_prefers_primary(mock_logger, sessions) -> None:
     primary, fallback = sessions
     storage = SnapshotStorage(primary, fallback)
     assert storage.get("k") is primary.get.return_value
     fallback.get.assert_not_called()
+    mock_logger.info.assert_not_called()
 
 
 def test_get_uses_fallback_when_primary_missing(sessions) -> None:
@@ -28,13 +30,15 @@ def test_get_uses_fallback_when_primary_missing(sessions) -> None:
     fallback.get.assert_called_once_with("k")
 
 
-def test_get_error_propagates_without_fallback(sessions) -> None:
+@patch("sentry.preprod.snapshots.storage.logger")
+def test_get_error_propagates_without_fallback(mock_logger, sessions) -> None:
     primary, fallback = sessions
     primary.get.side_effect = RequestError("boom", 500, "")
     storage = SnapshotStorage(primary, fallback)
     with pytest.raises(RequestError):
         storage.get("k")
     fallback.get.assert_not_called()
+    mock_logger.info.assert_not_called()
 
 
 def test_head_uses_fallback_when_primary_missing(sessions) -> None:
@@ -81,14 +85,24 @@ def test_delete_raises_first_non_404_after_trying_both(
     fallback.delete.assert_called_once_with("k")
 
 
+@pytest.mark.parametrize("operation", ["get", "head"])
+@pytest.mark.parametrize("found", [True, False])
+@patch("sentry.preprod.snapshots.storage.logger")
 @patch("sentry.preprod.snapshots.storage.metrics")
-def test_fallback_records_metric(mock_metrics, sessions) -> None:
+def test_fallback_records_metric_and_log(
+    mock_metrics, mock_logger, sessions, operation: str, found: bool
+) -> None:
     primary, fallback = sessions
-    primary.get.return_value = None
-    fallback.get.return_value = None
-    SnapshotStorage(primary, fallback).get("k")
+    getattr(primary, operation).return_value = None
+    getattr(fallback, operation).return_value = MagicMock() if found else None
+    getattr(SnapshotStorage(primary, fallback), operation)("k")
     mock_metrics.incr.assert_called_once_with(
-        "preprod.snapshot_storage.legacy_fallback", tags={"op": "get", "found": "false"}
+        "preprod.snapshot_storage.legacy_fallback",
+        tags={"op": operation, "found": str(found).lower()},
+    )
+    mock_logger.info.assert_called_once_with(
+        "preprod.objectstore.fallback",
+        extra={"image_type": "preprod_snapshots", "operation": operation, "found": found},
     )
 
 

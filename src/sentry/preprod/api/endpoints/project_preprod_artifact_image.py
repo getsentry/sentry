@@ -102,6 +102,14 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
                 if result is None:
                     # TODO: On January 1, 2027, remove the preprod fallback for app icons.
                     result = get_session(UsecaseId.PREPROD, project).get(object_key)
+                    logger.info(
+                        "preprod.objectstore.fallback",
+                        extra={
+                            "image_type": PREPROD_SIZE_APP_ICON,
+                            "operation": "get",
+                            "found": result is not None,
+                        },
+                    )
             else:
                 result = get_snapshot_storage(project).get(object_key)
             if result is None:
