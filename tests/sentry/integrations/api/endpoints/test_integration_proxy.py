@@ -1131,7 +1131,7 @@ class IntegrationProxyRequestValidatorTest(TestCase):
         assert cm.value.failure_type == IntegrationProxyFailureMetricType.INVALID_INTEGRATION
         assert cm.value.integration_context["integration_id"] is None
         assert cm.value.integration_context["organization_id"] == self.organization.id
-        assert cm.value.integration_context["provider"] is None
+        assert cm.value.integration_context["provider"] == UNKNOWN_PROVIDER
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(Integration, "get_installation")
@@ -1192,4 +1192,4 @@ class IntegrationProxyRequestValidatorTest(TestCase):
 
         assert cm.value.integration_context["integration_id"] is None
         assert cm.value.integration_context["organization_id"] is None
-        assert cm.value.integration_context["provider"] is None
+        assert cm.value.integration_context["provider"] == UNKNOWN_PROVIDER
