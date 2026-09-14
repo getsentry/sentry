@@ -53,7 +53,7 @@ class SentryAppInstallationExternalIssueActionsEndpoint(
 ):
     owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
-        "POST": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
 
     @extend_schema(

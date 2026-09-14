@@ -51,11 +51,6 @@ class GroupExternalIssueDocsTest(APIDocsTestCase):
         )
         self.login_as(user=self.user)
 
-    def test_get(self) -> None:
-        response = self.client.get(self.url)
-
-        self.validate_schema(RequestFactory().get(self.url), response)
-
     def test_delete(self) -> None:
         url = f"{self.url}{self.external_issue.id}/"
         response = self.client.delete(url)

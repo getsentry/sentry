@@ -40,7 +40,7 @@ class IntegrationRepositoriesResponse(TypedDict):
 @cell_silo_endpoint
 class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
 

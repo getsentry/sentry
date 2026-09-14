@@ -58,7 +58,7 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
 class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
     owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
 
     @extend_schema(

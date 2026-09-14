@@ -31,7 +31,7 @@ from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssu
 class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
     owner = ApiOwner.PROJECT_MANAGEMENT_INTEGRATIONS
     publish_status = {
-        "DELETE": ApiPublishStatus.PUBLIC,
+        "DELETE": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
 
     @extend_schema(

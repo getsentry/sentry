@@ -109,7 +109,7 @@ class IntegrationIssueSerializer(Serializer[IntegrationIssueSerializerResponse])
 class GroupIntegrationsEndpoint(GroupEndpoint):
     owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
 
     @extend_schema(
