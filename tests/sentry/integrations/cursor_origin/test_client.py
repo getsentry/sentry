@@ -13,7 +13,7 @@ from sentry.integrations.cursor_origin.client import (
     CursorOriginSetupApiClient,
 )
 from sentry.integrations.cursor_origin.constants import CURSOR_ORIGIN_API_BASE_URL
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, ApiPaginationTruncated
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -148,6 +148,18 @@ class AccessTokenTest(TestCase):
             CursorOriginApiClient(integration=self.integration).get_access_token()
 
     @responses.activate
+    def test_rejects_an_unparseable_expiry(self, mock_jwt: mock.MagicMock) -> None:
+        """Storing it would refresh on every later request, quietly and forever."""
+        responses.add(
+            responses.POST,
+            TOKEN_URL,
+            json={"token": "oit_abc", "expiresAt": "Fri, 01 Aug 2026 10:30:00 GMT"},
+        )
+
+        with pytest.raises(ApiError):
+            CursorOriginApiClient(integration=self.integration).get_access_token()
+
+    @responses.activate
     def test_rejects_a_response_without_an_expiry(self, mock_jwt: mock.MagicMock) -> None:
         responses.add(responses.POST, TOKEN_URL, json={"token": "oit_abc"})
 
@@ -234,6 +246,16 @@ class PaginateTest(TestCase):
     def test_missing_collection_key_yields_nothing(self) -> None:
         with mock.patch.object(self.origin_client, "get", return_value={"nextPageToken": ""}):
             assert self.origin_client._paginate("/installation/repos", "repositories") == []
+
+    def test_raises_when_the_page_limit_is_hit(self) -> None:
+        """A short list reads as removed repositories to the sync, so never truncate silently."""
+        endless = {"repositories": [{"id": "1"}], "nextPageToken": "always-more"}
+        with mock.patch.object(self.origin_client, "get", return_value=endless) as mock_get:
+            with pytest.raises(ApiPaginationTruncated) as excinfo:
+                self.origin_client._paginate("/installation/repos", "repositories")
+
+        assert mock_get.call_count == self.origin_client.page_number_limit
+        assert len(excinfo.value.partial_data) == self.origin_client.page_number_limit
 
     def test_non_dict_response_stops_pagination(self) -> None:
         with mock.patch.object(self.origin_client, "get", return_value=["unexpected"]):
