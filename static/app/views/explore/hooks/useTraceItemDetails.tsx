@@ -158,7 +158,7 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
   return result;
 }
 
-function traceItemDetailsApiOptions({
+export function traceItemDetailsApiOptions({
   organizationSlug,
   projectSlug,
   traceItemId,
