@@ -194,7 +194,7 @@ describe('ConversationDetailPage title', () => {
   });
 });
 
-describe('ConversationDetailPage summary errors', () => {
+describe('ConversationDetailPage summary aggregates', () => {
   beforeEach(() => {
     Element.prototype.scrollTo = jest.fn();
     Element.prototype.scrollIntoView = jest.fn();
@@ -205,24 +205,7 @@ describe('ConversationDetailPage summary errors', () => {
     });
   });
 
-  it('falls back to reported total tokens when the breakdown is unavailable', async () => {
-    mockApis(null, [
-      spanFixture({
-        span_id: 'span-total-only',
-        'span.name': 'total-only turn',
-        'precise.start_ts': 1000,
-        'precise.finish_ts': 1000.5,
-        'gen_ai.request.messages': JSON.stringify([{role: 'user', content: 'Hello'}]),
-        'gen_ai.response.text': 'Hi',
-        'gen_ai.usage.total_tokens': 150,
-      }),
-    ]);
-    renderPage();
-
-    expect(await screen.findByText('150')).toBeInTheDocument();
-  });
-
-  it('keeps the reported total when output tokens are unavailable', async () => {
+  it('uses the reported total when a model breakdown is incomplete', async () => {
     mockApis(null, [
       spanFixture({
         span_id: 'span-partial-tokens',
@@ -231,6 +214,8 @@ describe('ConversationDetailPage summary errors', () => {
         'precise.finish_ts': 1000.5,
         'gen_ai.request.messages': JSON.stringify([{role: 'user', content: 'Hello'}]),
         'gen_ai.response.text': 'Hi',
+        'gen_ai.response.model': '',
+        'gen_ai.request.model': '',
         'gen_ai.usage.input_tokens': 100,
         'gen_ai.usage.total_tokens': 150,
       }),
@@ -241,11 +226,10 @@ describe('ConversationDetailPage summary errors', () => {
     await userEvent.hover(tokenCount.parentElement!);
 
     expect(await screen.findAllByText('150')).toHaveLength(2);
-    expect(screen.queryByText('Input')).not.toBeInTheDocument();
-    expect(screen.queryByText('Output')).not.toBeInTheDocument();
+    expect(screen.getByText('Unknown model')).toBeInTheDocument();
   });
 
-  it('shows the Junior-style token breakdown in the summary tooltip', async () => {
+  it('groups token usage by model and sorts highest usage first', async () => {
     mockApis(null, [
       spanFixture({
         span_id: 'span-tokens',
@@ -255,12 +239,8 @@ describe('ConversationDetailPage summary errors', () => {
         'gen_ai.request.messages': JSON.stringify([{role: 'user', content: 'Hello'}]),
         'gen_ai.response.text': 'Hi',
         'gen_ai.response.model': 'model-alpha',
-        // This provider reports input exclusive of cache tokens.
-        'gen_ai.usage.input_tokens': 100,
+        'gen_ai.usage.input_tokens': 150,
         'gen_ai.usage.output_tokens': 50,
-        'gen_ai.usage.input_tokens.cached': 20,
-        'gen_ai.usage.input_tokens.cache_write': 30,
-        'gen_ai.usage.output_tokens.reasoning': 10,
         'gen_ai.usage.total_tokens': 200,
       }),
       spanFixture({
@@ -274,36 +254,28 @@ describe('ConversationDetailPage summary errors', () => {
         'gen_ai.usage.total_tokens': 300,
       }),
       spanFixture({
-        span_id: 'span-tokens-unknown-model',
-        'span.name': 'unknown model turn',
+        span_id: 'span-tokens-same-model',
+        'span.name': 'same model turn',
         'precise.start_ts': 1002,
         'precise.finish_ts': 1002.5,
-        'gen_ai.response.model': '',
-        'gen_ai.request.model': '',
-        'gen_ai.usage.input_tokens': 5,
-        'gen_ai.usage.output_tokens': 5,
-        'gen_ai.usage.total_tokens': 10,
+        'gen_ai.response.model': 'model-alpha',
+        'gen_ai.usage.input_tokens': 30,
+        'gen_ai.usage.output_tokens': 20,
+        'gen_ai.usage.total_tokens': 50,
       }),
     ]);
     renderPage();
 
-    const tokenCount = await screen.findByText('510');
+    const tokenCount = await screen.findByText('550');
     expect(tokenCount).not.toHaveAttribute('title');
     await userEvent.hover(tokenCount.parentElement!);
 
     const modelAlpha = await screen.findByText('model-alpha');
+    expect(screen.getAllByText('model-alpha')).toHaveLength(1);
     const modelBeta = screen.getByText('model-beta');
     expect(modelBeta.compareDocumentPosition(modelAlpha)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING
     );
-    expect(screen.getByText('Unknown model')).toBeInTheDocument();
-    expect(screen.getAllByText('Input')).toHaveLength(3);
-    expect(screen.getByText('Non-cached')).toBeInTheDocument();
-    expect(screen.getByText('Cache Read')).toBeInTheDocument();
-    expect(screen.getByText('Cache Write')).toBeInTheDocument();
-    expect(screen.getAllByText('Output')).toHaveLength(3);
-    expect(screen.getByText('Non-reasoning')).toBeInTheDocument();
-    expect(screen.getByText('Reasoning')).toBeInTheDocument();
   });
 
   it('renders the fire icon in the summary when a span errored', async () => {

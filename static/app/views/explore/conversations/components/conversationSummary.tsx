@@ -442,11 +442,8 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
         reasoningTokens: reasoning,
         totalTokens: reportedTotal,
       });
-      const componentTotal =
-        breakdown.netNewInput +
-        breakdown.cached +
-        breakdown.cacheWrite +
-        breakdown.output;
+      const inputTotal = breakdown.netNewInput + breakdown.cached + breakdown.cacheWrite;
+      const isComplete = input !== undefined && output !== undefined;
 
       const model =
         getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
@@ -462,15 +459,13 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
         reasoning: 0,
         total: 0,
       };
-      modelTokens.input +=
-        breakdown.netNewInput + breakdown.cached + breakdown.cacheWrite;
+      modelTokens.input += inputTotal;
       modelTokens.output += breakdown.output;
       modelTokens.cacheRead += breakdown.cached;
       modelTokens.cacheWrite += breakdown.cacheWrite;
       modelTokens.reasoning += reasoning;
-      modelTokens.isComplete &&= input !== undefined && output !== undefined;
-      modelTokens.total +=
-        input !== undefined && output !== undefined ? componentTotal : reportedTotal;
+      modelTokens.isComplete &&= isComplete;
+      modelTokens.total += isComplete ? inputTotal + breakdown.output : reportedTotal;
       tokensByModel.set(model, modelTokens);
       totalCost += getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS) ?? 0;
     } else if (getIsExecuteToolSpan(opType)) {

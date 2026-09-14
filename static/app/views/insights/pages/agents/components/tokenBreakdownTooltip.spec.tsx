@@ -3,8 +3,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {TokenBreakdownTooltip} from './tokenBreakdownTooltip';
 
 describe('TokenBreakdownTooltip', () => {
-  it('shows nested complements only when subcategories exist', () => {
-    const {rerender} = render(
+  it('shows input and output subcategories with their complements', () => {
+    render(
       <TokenBreakdownTooltip
         breakdowns={[
           {
@@ -12,6 +12,7 @@ describe('TokenBreakdownTooltip', () => {
             cacheWrite: 10,
             input: 100,
             isComplete: true,
+            model: 'claude-test',
             output: 50,
             reasoning: 5,
             total: 150,
@@ -20,10 +21,16 @@ describe('TokenBreakdownTooltip', () => {
       />
     );
 
-    expect(screen.getByText('Non-cached')).toBeInTheDocument();
-    expect(screen.getByText('Non-reasoning')).toBeInTheDocument();
+    expect(screen.getByText('claude-test')).toBeInTheDocument();
+    expect(screen.getByText('70')).toBeInTheDocument();
+    expect(screen.getByText('20')).toBeInTheDocument();
+    expect(screen.getByText('10')).toBeInTheDocument();
+    expect(screen.getByText('45')).toBeInTheDocument();
+    expect(screen.getByText('5')).toBeInTheDocument();
+  });
 
-    rerender(
+  it('omits subcategories that have no tokens', () => {
+    render(
       <TokenBreakdownTooltip
         breakdowns={[
           {
@@ -40,6 +47,31 @@ describe('TokenBreakdownTooltip', () => {
     );
 
     expect(screen.queryByText('Non-cached')).not.toBeInTheDocument();
+    expect(screen.queryByText('Cache Read')).not.toBeInTheDocument();
+    expect(screen.queryByText('Cache Write')).not.toBeInTheDocument();
     expect(screen.queryByText('Non-reasoning')).not.toBeInTheDocument();
+    expect(screen.queryByText('Reasoning')).not.toBeInTheDocument();
+  });
+
+  it('shows only the reported total for an incomplete breakdown', () => {
+    render(
+      <TokenBreakdownTooltip
+        breakdowns={[
+          {
+            cacheRead: 0,
+            cacheWrite: 0,
+            input: 100,
+            isComplete: false,
+            output: 0,
+            reasoning: 0,
+            total: 150,
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText('150')).toBeInTheDocument();
+    expect(screen.queryByText('Input')).not.toBeInTheDocument();
+    expect(screen.queryByText('Output')).not.toBeInTheDocument();
   });
 });
