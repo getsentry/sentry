@@ -18,6 +18,7 @@ from .organization_test_fire_action import OrganizationTestFireActionsEndpoint
 from .organization_workflow_details import OrganizationWorkflowDetailsEndpoint
 from .organization_workflow_group_history import OrganizationWorkflowGroupHistoryEndpoint
 from .organization_workflow_index import OrganizationWorkflowIndexEndpoint
+from .organization_workflow_project_scope import OrganizationWorkflowProjectScopeEndpoint
 from .organization_workflow_stats import OrganizationWorkflowStatsEndpoint
 
 organization_urlpatterns = [
@@ -60,6 +61,11 @@ organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/workflows/(?P<workflow_id>\d+)/group-history/$",
         OrganizationWorkflowGroupHistoryEndpoint.as_view(),
         name="sentry-api-0-organization-workflow-group-history",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/workflows/(?P<workflow_id>\d+)/project-scope/$",
+        OrganizationWorkflowProjectScopeEndpoint.as_view(),
+        name="sentry-api-0-organization-workflow-project-scope",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/workflows/(?P<workflow_id>[^/]+)/stats/$",

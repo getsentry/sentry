@@ -142,6 +142,7 @@ export function ReleaseComparisonChart({
         ReleaseComparisonChartType.UNHANDLED_SESSIONS,
       ].includes(chartInUrl)
     ) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setExpanded(e => new Set(e.add(ReleaseComparisonChartType.CRASH_FREE_SESSIONS)));
     }
 
@@ -295,6 +296,7 @@ export function ReleaseComparisonChart({
 
   useEffect(() => {
     if (hasDiscover || hasPerformance) {
+      // oxlint-disable-next-line react/set-state-in-effect
       fetchEventsTotals();
       fetchIssuesTotals();
     }

@@ -96,7 +96,7 @@ export function SpanDescription({
     }
 
     return formatter.toString(span.description ?? '');
-  }, [span.description, resolvedModule, span.sentry_tags?.description, system]);
+  }, [span.description, resolvedModule, span.sentry_tags, system]);
 
   const hasInsightModules = organization.features.includes('insight-modules');
 
