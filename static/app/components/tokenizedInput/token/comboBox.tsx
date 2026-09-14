@@ -228,7 +228,9 @@ export function ComboBox({
     shouldCloseOnBlur: false,
     ...comboBoxProps,
   });
+  // oxlint-disable-next-line react/refs
   openMenuRef.current = () => state.open();
+  // oxlint-disable-next-line react/refs
   closeMenuRef.current = () => state.close();
 
   const handleComboBoxFocus: FocusEventHandler<HTMLInputElement> = useCallback(
