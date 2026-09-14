@@ -313,6 +313,7 @@ function DropdownMenu({
   return (
     <DropdownMenuWrap className={className} as={renderWrapAs} role="presentation">
       {renderTrigger()}
+      {/* oxlint-disable-next-line react/refs */}
       {renderMenu()}
     </DropdownMenuWrap>
   );

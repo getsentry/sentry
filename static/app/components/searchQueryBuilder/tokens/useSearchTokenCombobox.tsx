@@ -175,7 +175,8 @@ export function useSearchTokenCombobox<T>(
       onChange: state.setInputValue,
       onKeyDown: isReadOnly
         ? props.onKeyDown
-        : chain(state.isOpen && collectionProps.onKeyDown, onKeyDown, props.onKeyDown),
+        : // oxlint-disable-next-line react/refs
+          chain(state.isOpen && collectionProps.onKeyDown, onKeyDown, props.onKeyDown),
       onBlur,
       value: state.inputValue,
       defaultValue: state.defaultInputValue,

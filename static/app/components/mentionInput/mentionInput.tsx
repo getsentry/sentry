@@ -291,6 +291,7 @@ export function MentionInput<TSuggestion>({
     );
   };
 
+  // oxlint-disable-next-line react/refs
   const inputProps = mergeProps(editorProps, {
     style: {minHeight, ...style},
     role: 'combobox',

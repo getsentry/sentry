@@ -31,6 +31,7 @@ function StoreCapture({
 }: {
   storeRef: React.MutableRefObject<ReturnType<typeof TestCollection.useStore> | null>;
 }) {
+  // oxlint-disable-next-line react/refs
   storeRef.current = TestCollection.useStore();
   return null;
 }
