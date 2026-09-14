@@ -259,6 +259,17 @@ const makeInitialExplorerAutofixData = (): ExplorerAutofixResponse => ({
   autofix: null,
 });
 
+/**
+ * Pulls a readable message out of an API error, falling back to `fallback`.
+ * Only `{detail: "..."}` is surfaced; serializer validation errors are for us,
+ * not for the user, so they fall back too.
+ */
+function getApiErrorMessage(e: unknown, fallback = 'An error occurred'): string {
+  const detail = (e as {responseJSON?: {detail?: unknown}} | null | undefined)
+    ?.responseJSON?.detail;
+  return isString(detail) ? detail : fallback;
+}
+
 const makeErrorExplorerAutofixData = (errorMessage: string): ExplorerAutofixResponse => ({
   autofix: {
     run_id: 0,
@@ -841,15 +852,17 @@ export function useExplorerAutofix(
         return getAutofixRunId(response)!;
       } catch (e: any) {
         setWaitingForResponse(false);
-        queryClient.setQueryData(
-          explorerAutofixApiOptions(orgSlug, groupId).queryKey,
-          prev => ({
+        const errorMessage = getApiErrorMessage(e);
+        const queryKey = explorerAutofixApiOptions(orgSlug, groupId).queryKey;
+        // Replacing the cached run would wipe out the blocks of a run that already exists.
+        if (defined(queryClient.getQueryData(queryKey)?.json?.autofix)) {
+          addErrorMessage(errorMessage);
+        } else {
+          queryClient.setQueryData(queryKey, prev => ({
             headers: prev?.headers ?? {},
-            json: makeErrorExplorerAutofixData(
-              e?.responseJSON?.detail ?? 'An error occurred'
-            ),
-          })
-        );
+            json: makeErrorExplorerAutofixData(errorMessage),
+          }));
+        }
         throw e;
       }
     },
@@ -897,7 +910,7 @@ export function useExplorerAutofix(
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
       } catch (e: any) {
-        addErrorMessage(e?.responseJSON?.detail ?? 'Failed to create PR');
+        addErrorMessage(getApiErrorMessage(e, 'Failed to create PR'));
         throw e;
       }
     },
@@ -1018,9 +1031,7 @@ export function useExplorerAutofix(
           window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
           return;
         }
-        reportCodingAgentErrors([
-          e?.responseJSON?.detail ?? 'Failed to launch coding agent',
-        ]);
+        reportCodingAgentErrors([getApiErrorMessage(e, 'Failed to launch coding agent')]);
         throw e;
       } finally {
         clearIndicators();

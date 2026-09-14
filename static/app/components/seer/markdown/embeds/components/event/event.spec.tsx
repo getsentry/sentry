@@ -2,7 +2,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {
   getEmbedLinkHref,
@@ -89,8 +89,10 @@ describe('Seer event embed', () => {
 
     renderEventEmbed({view: 'tags'});
 
-    expect(await screen.findByText('Tags')).toBeInTheDocument();
-    expect(await screen.findByText('Chrome')).toBeInTheDocument();
+    expect(await screen.findByTestId('seer-event-tags')).toBeInTheDocument();
+    // Sorted by key, the same tree the log embed renders its attributes in.
+    expect(screen.getByTestId('tree-key-browser')).toHaveTextContent('browser');
+    expect(screen.getByTestId('tree-key-level')).toHaveTextContent('level');
     expect(screen.getByRole('link', {name: 'All tags for this issue'})).toHaveAttribute(
       'href',
       `/organizations/org-slug/issues/${ISSUE_ID}/distributions/`
@@ -102,15 +104,13 @@ describe('Seer event embed', () => {
 
     renderEventEmbed({view: 'tags'});
 
-    // Wait on the rows themselves -- the summary above renders the same tag values
-    // before the tree has loaded its project.
-    expect(await screen.findAllByTestId('tag-tree-row')).toHaveLength(2);
-    // The row menu writes project highlight tags and builds its links out of the
-    // host page's `location.query`, so the embed renders the rows without it.
-    expect(screen.queryAllByLabelText('Tag Actions Menu')).toHaveLength(0);
+    expect(await screen.findAllByTestId('attribute-tree-row')).toHaveLength(2);
+    // The row menu builds its links out of the host page's `location.query`, so
+    // the embed renders the rows without it.
+    expect(screen.queryAllByLabelText('Attribute Actions Menu')).toHaveLength(0);
   });
 
-  it('renders a plain tag list when the event has no project slug', async () => {
+  it('renders the tag tree even when the event has no project slug', async () => {
     mockEvent({
       projectSlug: undefined,
       contexts: {},
@@ -119,9 +119,65 @@ describe('Seer event embed', () => {
 
     renderEventEmbed({view: 'tags'});
 
-    expect(await screen.findByText('Tags')).toBeInTheDocument();
-    expect(await screen.findByText('server_name')).toBeInTheDocument();
+    // The tree renders off the tags alone, so a response without a project slug
+    // no longer falls back to a bare list.
+    expect(await screen.findByTestId('seer-event-tags')).toBeInTheDocument();
+    expect(screen.getByTestId('tree-key-server_name')).toHaveTextContent('server_name');
     expect(screen.getByText('web-01')).toBeInTheDocument();
+  });
+
+  it('renders the tags that are worth more than their own text', async () => {
+    mockEvent({
+      contexts: {},
+      projectID: '2',
+      tags: [
+        {key: 'release', value: '1.2.3'},
+        {key: 'transaction', value: '/checkout'},
+      ],
+    });
+
+    renderEventEmbed({view: 'tags'});
+
+    expect(await screen.findByTestId('seer-event-tags')).toBeInTheDocument();
+    // The release links to the release, not to the bare string.
+    expect(screen.getByRole('link', {name: '1.2.3'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: '/checkout'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('transaction=%2Fcheckout')
+    );
+  });
+
+  it('annotates a tag whose value was scrubbed', async () => {
+    mockEvent({
+      contexts: {},
+      tags: [
+        {key: 'level', value: 'error'},
+        {key: 'server_name', value: '[Filtered]'},
+      ],
+      // Served positionally: this annotates `tags[1]`, not a key called '1'.
+      _meta: {
+        tags: {
+          1: {value: {'': {len: 7, rem: [['project:0', 's', 0, 10]]}}},
+        },
+      },
+    });
+
+    renderEventEmbed({view: 'tags'});
+
+    expect(await screen.findByTestId('seer-event-tags')).toBeInTheDocument();
+    await userEvent.hover(screen.getByText('[Filtered]'));
+    expect(
+      await screen.findByText(/Replaced because of a data scrubbing rule/)
+    ).toBeInTheDocument();
+  });
+
+  it('tells the reader when the event has no tags', async () => {
+    mockEvent({contexts: {}, tags: []});
+
+    renderEventEmbed({view: 'tags'});
+
+    expect(await screen.findByText('This event has no tags.')).toBeInTheDocument();
+    expect(screen.queryByTestId('seer-event-tags')).not.toBeInTheDocument();
   });
 
   it('renders the distribution of a single tag for view "tag"', async () => {

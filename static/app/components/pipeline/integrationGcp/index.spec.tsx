@@ -205,7 +205,7 @@ describe('GcpVerificationStep', () => {
       {
         gcpProjectId: 'my-project-prod',
         connectionStatus: 'permission_denied',
-        errorDetail: 'Cloud Trace: IAM roles not granted',
+        errorDetail: null,
         services: [
           {service: 'logging', status: 'connected'},
           {
@@ -280,6 +280,7 @@ describe('GcpVerificationStep', () => {
           gcpProjectId: 'my-project-prod',
           connectionStatus: 'connected',
           errorDetail: null,
+          services: connectedResponse.projects[0]!.services,
         },
       ],
     });
@@ -320,9 +321,9 @@ describe('GcpVerificationStep', () => {
     render(<GcpVerificationStep {...makeVerificationStepProps({stepData})} />);
 
     expect(await screen.findByText('Permission denied')).toBeInTheDocument();
-    expect(screen.getByText('Cloud Trace: IAM roles not granted')).toBeInTheDocument();
+    expect(screen.getByText('IAM roles not granted')).toBeInTheDocument();
     // Services that passed are not listed.
-    expect(screen.queryByText(/^Cloud Logging:/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Cloud Logging')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Continue Anyway'})).toBeEnabled();
   });
 
@@ -344,13 +345,14 @@ describe('GcpVerificationStep', () => {
         {
           gcpProjectId: 'my-project-prod',
           connectionStatus: 'permission_denied',
-          errorDetail: 'Cloud Trace: IAM roles not granted',
+          errorDetail: null,
+          services: deniedResponse.projects[0]!.services,
         },
       ],
     });
   });
 
-  it('forwards a project detail with no failing services of its own', async () => {
+  it('forwards a shared authentication failure without repeating its explanation', async () => {
     MockApiClient.addMockResponse({
       url: VERIFY_URL,
       method: 'POST',
@@ -377,6 +379,7 @@ describe('GcpVerificationStep', () => {
 
     render(<GcpVerificationStep {...makeVerificationStepProps({stepData, advance})} />);
 
+    expect(await screen.findAllByText('SA impersonation chain failed')).toHaveLength(1);
     await userEvent.click(await screen.findByRole('button', {name: 'Continue Anyway'}));
 
     expect(advance).toHaveBeenCalledWith({
@@ -386,6 +389,13 @@ describe('GcpVerificationStep', () => {
           gcpProjectId: 'my-project-prod',
           connectionStatus: 'permission_denied',
           errorDetail: 'SA impersonation chain failed',
+          services: [
+            {
+              service: 'logging',
+              status: 'permission_denied',
+              errorDetail: 'SA impersonation chain failed',
+            },
+          ],
         },
       ],
     });
@@ -432,6 +442,39 @@ describe('GcpVerificationStep', () => {
         {
           gcpProjectId: 'my-project-prod',
           connectionStatus: 'error',
+          errorDetail: 'Verification could not be completed.',
+          services: [],
+        },
+      ],
+    });
+  });
+
+  it('does not reuse an earlier successful result after a failed re-test request', async () => {
+    MockApiClient.addMockResponse({
+      url: VERIFY_URL,
+      method: 'POST',
+      body: connectedResponse,
+    });
+    const advance = jest.fn();
+    render(<GcpVerificationStep {...makeVerificationStepProps({stepData, advance})} />);
+    expect(await screen.findByText('Connected')).toBeInTheDocument();
+
+    MockApiClient.addMockResponse({url: VERIFY_URL, method: 'POST', statusCode: 502});
+    await userEvent.click(screen.getByRole('button', {name: 'Re-test'}));
+    expect(
+      await screen.findByText(
+        'We could not complete the connection test. You can finish setup and re-test from the integration settings page.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Connected')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Continue Anyway'}));
+    expect(advance).toHaveBeenCalledWith({
+      connectionStatus: 'error',
+      projects: [
+        {
+          gcpProjectId: 'my-project-prod',
+          connectionStatus: 'error',
+          services: [],
           errorDetail: 'Verification could not be completed.',
         },
       ],
