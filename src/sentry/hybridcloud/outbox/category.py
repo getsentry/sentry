@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-import functools
-from collections.abc import Callable, Collection, Mapping, Sequence
+import contextlib
+import time
+from collections.abc import Collection, Generator, Mapping, Sequence
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, cast
 
 from sentry.hybridcloud.outbox.signals import process_cell_outbox, process_control_outbox
 from sentry.silo.base import SiloMode
 from sentry.utils import metrics
+from sentry.utils.metrics import MutableTags
 
 if TYPE_CHECKING:
     from sentry.db.models import BaseModel
@@ -18,28 +20,28 @@ _outbox_categories_for_scope: dict[int, set[OutboxCategory]] = {}
 _used_categories: set[OutboxCategory] = set()
 
 
-def _instrument_replication_receiver(
-    category: OutboxCategory, direction: str
-) -> Callable[[Callable[..., None]], Callable[..., None]]:
-    def decorator(receiver: Callable[..., None]) -> Callable[..., None]:
-        @functools.wraps(receiver)
-        def wrapped(*args: Any, **kwargs: Any) -> None:
-            tags = {
-                "silo": SiloMode.get_current_mode().value.lower(),
-                "category": category.name,
-                "direction": direction,
-            }
-            try:
-                with metrics.timer("hybridcloud.replication.handler.duration", tags=tags):
-                    receiver(*args, **kwargs)
-            except Exception:
-                metrics.incr("hybridcloud.replication.processed", tags={**tags, "outcome": "error"})
-                raise
-            metrics.incr("hybridcloud.replication.processed", tags={**tags, "outcome": "success"})
-
-        return wrapped
-
-    return decorator
+@contextlib.contextmanager
+def _record_replication(category: OutboxCategory, direction: str) -> Generator[MutableTags]:
+    """
+    Time a replication receiver and count its outcome. The yielded tags are
+    the ones emitted, so the receiver can add ``action`` once it knows whether
+    it is replicating or deleting.
+    """
+    tags: MutableTags = {
+        "silo": SiloMode.get_current_mode().value.lower(),
+        "category": category.name,
+        "direction": direction,
+    }
+    start = time.monotonic()
+    outcome = "error"
+    try:
+        yield tags
+        outcome = "success"
+    finally:
+        metrics.timing(
+            "hybridcloud.replication.handler.duration", time.monotonic() - start, tags=tags
+        )
+        metrics.incr("hybridcloud.replication.processed", tags={**tags, "outcome": outcome})
 
 
 class OutboxCategory(IntEnum):
@@ -103,7 +105,6 @@ class OutboxCategory(IntEnum):
         return [(i.value, i.value) for i in cls]
 
     def connect_cell_model_updates(self, model: type[ReplicatedCellModel]) -> None:
-        @_instrument_replication_receiver(self, "cell_to_control")
         def receiver(
             object_identifier: int,
             payload: Mapping[str, Any] | None,
@@ -113,20 +114,24 @@ class OutboxCategory(IntEnum):
         ) -> None:
             from sentry.receivers.outbox import maybe_process_tombstone
 
-            maybe_instance: ReplicatedCellModel | None = maybe_process_tombstone(
-                cast(Any, model), object_identifier, cell_name=None
-            )
-            if maybe_instance is None:
-                model.handle_async_deletion(
-                    identifier=object_identifier, shard_identifier=shard_identifier, payload=payload
+            with _record_replication(self, "cell_to_control") as tags:
+                maybe_instance: ReplicatedCellModel | None = maybe_process_tombstone(
+                    cast(Any, model), object_identifier, cell_name=None
                 )
-            else:
-                maybe_instance.handle_async_replication(shard_identifier=shard_identifier)
+                if maybe_instance is None:
+                    tags["action"] = "delete"
+                    model.handle_async_deletion(
+                        identifier=object_identifier,
+                        shard_identifier=shard_identifier,
+                        payload=payload,
+                    )
+                else:
+                    tags["action"] = "replicate"
+                    maybe_instance.handle_async_replication(shard_identifier=shard_identifier)
 
         process_cell_outbox.connect(receiver, weak=False, sender=self)
 
     def connect_control_model_updates(self, model: type[HasControlReplicationHandlers]) -> None:
-        @_instrument_replication_receiver(self, "control_to_cell")
         def receiver(
             object_identifier: int,
             payload: Mapping[str, Any] | None,
@@ -137,20 +142,23 @@ class OutboxCategory(IntEnum):
         ) -> None:
             from sentry.receivers.outbox import maybe_process_tombstone
 
-            maybe_instance: HasControlReplicationHandlers | None = maybe_process_tombstone(
-                cast(Any, model), object_identifier, cell_name=cell_name
-            )
-            if maybe_instance is None:
-                model.handle_async_deletion(
-                    identifier=object_identifier,
-                    cell_name=cell_name,
-                    shard_identifier=shard_identifier,
-                    payload=payload,
+            with _record_replication(self, "control_to_cell") as tags:
+                maybe_instance: HasControlReplicationHandlers | None = maybe_process_tombstone(
+                    cast(Any, model), object_identifier, cell_name=cell_name
                 )
-            else:
-                maybe_instance.handle_async_replication(
-                    shard_identifier=shard_identifier, cell_name=cell_name
-                )
+                if maybe_instance is None:
+                    tags["action"] = "delete"
+                    model.handle_async_deletion(
+                        identifier=object_identifier,
+                        cell_name=cell_name,
+                        shard_identifier=shard_identifier,
+                        payload=payload,
+                    )
+                else:
+                    tags["action"] = "replicate"
+                    maybe_instance.handle_async_replication(
+                        shard_identifier=shard_identifier, cell_name=cell_name
+                    )
 
         process_control_outbox.connect(receiver, weak=False, sender=self)
 
