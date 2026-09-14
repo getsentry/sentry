@@ -349,7 +349,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         domain, account = self.model.metadata["domain_name"].split("/", 1)
         path = get_issue_url_path(url, f"https://{domain}")
         match = re.fullmatch(
-            r"/([^/]+/[^/]+)/(issues|pull)/(\d+)(?:/(files|commits|checks))?", path
+            r"/([^/]+/[^/]+)/(issues|pull)/(\d+)(?:/(files|changes|commits|checks))?", path
         )
         if not match or (match[2] == "issues" and match[4]):
             raise IntegrationFormError({"externalIssue": "Invalid GitHub issue URL"})

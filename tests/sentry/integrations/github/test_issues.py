@@ -509,6 +509,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             "issues/321",
             "pull/321",
             "pull/321/files",
+            "pull/321/changes",
             "pull/321/commits",
             "pull/321/checks",
         ):
@@ -526,7 +527,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             with pytest.raises(IntegrationFormError):
                 self.install.get_issue_link_data(url)
 
-        for path in ("pull/321/unknown", "issues/321/files"):
+        for path in ("pull/321/unknown", "issues/321/files", "issues/321/changes"):
             with pytest.raises(IntegrationFormError) as exc:
                 self.install.get_issue_link_data(f"https://github.com/getsentry/sentry/{path}")
             assert exc.value.field_errors == {"externalIssue": "Invalid GitHub issue URL"}
