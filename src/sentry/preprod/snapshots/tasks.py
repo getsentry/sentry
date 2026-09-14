@@ -13,12 +13,11 @@ from django.contrib.postgres.fields import ArrayField
 from django.db import IntegrityError, models
 from django.db.models import F, Func, Value
 from django.utils import timezone
-from objectstore_client import RequestError, Session
+from objectstore_client import RequestError
 from pydantic import BaseModel, ValidationError
 from taskbroker_client.retry import Retry
 
 from sentry import analytics, options
-from sentry.objectstore import UsecaseId, get_session
 from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.categorize import categorize_image_sets
@@ -50,6 +49,7 @@ from sentry.preprod.snapshots.models import (
     PreprodSnapshotMetrics,
 )
 from sentry.preprod.snapshots.reconstruction import reconstruct_base_manifest
+from sentry.preprod.snapshots.storage import SnapshotStorage, get_snapshot_storage
 from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -112,24 +112,24 @@ def _retry_objectstore[T](operation: Callable[[], T]) -> T:
     raise AssertionError("unreachable")
 
 
-def _read_objectstore(session: Session, key: str) -> bytes:
+def _read_objectstore(session: SnapshotStorage, key: str) -> bytes:
     response = session.get(key)
     if response is None:
         raise FileNotFoundError("Object does not exist in objectstore")
     return response.payload.read()
 
 
-def _get_json[T: BaseModel](session: Session, key: str, model_cls: type[T]) -> T:
+def _get_json[T: BaseModel](session: SnapshotStorage, key: str, model_cls: type[T]) -> T:
     return model_cls(**orjson.loads(_retry_objectstore(lambda: _read_objectstore(session, key))))
 
 
-def _put_json(session: Session, key: str, model: BaseModel) -> None:
+def _put_json(session: SnapshotStorage, key: str, model: BaseModel) -> None:
     _retry_objectstore(
         lambda: session.put(orjson.dumps(model.dict()), key=key, content_type="application/json")
     )
 
 
-def _put_diff_mask(session: Session, key: str, data: bytes) -> None:
+def _put_diff_mask(session: SnapshotStorage, key: str, data: bytes) -> None:
     _retry_objectstore(lambda: session.put(data, key=key, content_type="image/png"))
 
 
@@ -270,7 +270,7 @@ def _image_name_to_path_stem(name: str) -> str:
 
 
 def _fetch_batch_images(
-    session: Session,
+    session: SnapshotStorage,
     key_prefix: str,
     hashes: set[str],
 ) -> tuple[dict[str, bytes], set[str]]:
@@ -393,7 +393,7 @@ class SiblingComparison(NamedTuple):
 
 
 def _find_approved_sibling(
-    head_artifact: PreprodArtifact, session: Session
+    head_artifact: PreprodArtifact, session: SnapshotStorage
 ) -> SiblingComparison | None:
     cc = head_artifact.commit_comparison
     if not cc or not cc.pr_number or not cc.head_repo_name:
@@ -476,7 +476,7 @@ def _try_auto_approve_snapshot(
     comparison_manifest: ComparisonManifest,
     plan: ComparisonPlan,
     sibling_images: dict[str, ComparisonImageResult],
-    session: Session,
+    session: SnapshotStorage,
 ) -> None:
     if plan.sibling_artifact_id is None or not plan.sibling_comparison_key:
         return
@@ -706,7 +706,7 @@ def _build_comparison_plan(
 
 
 def _process_chunk(
-    session: Session,
+    session: SnapshotStorage,
     assignment: ChunkAssignment,
     org_id: int,
     project_id: int,
@@ -901,7 +901,7 @@ def process_snapshot_comparison_chunk(
     base_artifact_id: int,
     **kwargs: Any,
 ) -> None:
-    session = get_session(UsecaseId.PREPROD, project_id, org=org_id)
+    session = get_snapshot_storage(project_id, org=org_id)
     plan_key = _plan_key(org_id, project_id, head_artifact_id, base_artifact_id)
 
     try:
@@ -1100,7 +1100,7 @@ def compare_snapshots(
             )
 
     try:
-        session = get_session(UsecaseId.PREPROD, project_id, org=org_id)
+        session = get_snapshot_storage(project_id, org=org_id)
 
         head_manifest_key = (head_metrics.extras or {}).get("manifest_key")
         base_manifest_key = (base_metrics.extras or {}).get("manifest_key")
@@ -1362,7 +1362,7 @@ def finalize_snapshot_comparison(
     ).update(date_updated=timezone.now())
 
     comparison.refresh_from_db(fields=["chunks_done_indices"])
-    session = get_session(UsecaseId.PREPROD, project_id, org=org_id)
+    session = get_snapshot_storage(project_id, org=org_id)
     plan_key = _plan_key(org_id, project_id, head_artifact_id, base_artifact_id)
     try:
         plan = _get_json(session, plan_key, ComparisonPlan)
