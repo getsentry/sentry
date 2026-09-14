@@ -772,6 +772,10 @@ register("github-console-sdk-app.private-key", flags=FLAG_CREDENTIAL | FLAG_PRIO
 register("github-console-sdk-app.client-id", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("github-console-sdk-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
+# Cursor Origin Integration
+register("cursor-origin-app.id", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("cursor-origin-app.private-key", default="", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
 # Github Enterprise Integration
 register(
     "github-enterprise-app.allowed-hosts-legacy-webhooks",
