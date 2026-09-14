@@ -12,7 +12,7 @@ interface ActivityLineHeadlineProps {
   timestamp: React.ReactNode;
   title: React.ReactNode;
   details?: React.ReactNode;
-  source?: string;
+  source?: null | string;
 }
 
 export function ActivityLineHeadline({
@@ -38,12 +38,7 @@ export function ActivityLineHeadline({
             <ActivityLineDetails>{details}</ActivityLineDetails>
           </Fragment>
         ) : null}
-        {source ? (
-          <Fragment>
-            {' '}
-            <ActivityLineDetails>{tct('via [source]', {source})}</ActivityLineDetails>
-          </Fragment>
-        ) : null}
+        <ActivityLineSource source={source} />
         <Fragment>
           {' '}
           <ActivityLineMeta>
@@ -57,6 +52,19 @@ export function ActivityLineHeadline({
         </Fragment>
       </ActivityLineSentence>
     </Flex>
+  );
+}
+
+export function ActivityLineSource({source}: {source?: null | string}) {
+  if (!source) {
+    return null;
+  }
+
+  return (
+    <Fragment>
+      {' '}
+      <ActivityLineDetails>{tct('via [source]', {source})}</ActivityLineDetails>
+    </Fragment>
   );
 }
 
