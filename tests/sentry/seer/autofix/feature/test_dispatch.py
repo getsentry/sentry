@@ -82,20 +82,8 @@ class TestTriggerAutofixFeature(TestCase):
         assert payload["title"] == self.group.title
         assert payload["user_context"] == "an upstream triage summary"
         assert payload["stopping_point"] == AutofixStoppingPoint.OPEN_PR.value
-        # Retained while Seer continues to consume the legacy RCA payload shape.
-        assert payload["repo_pins"] == {
-            "owner/repo": {
-                "sha": "abc123",
-                "branch": "main",
-                "base_sha": "abc123",
-                "base_branch": "main",
-            }
-        }
-        assert payload["tweaks"] == {
-            "intelligence_level": "high",
-            "reasoning_effort": "low",
-            "user_context": "an upstream triage summary",
-        }
+        assert "repo_pins" not in payload
+        assert "tweaks" not in payload
         assert payload["step_args"] == {
             "intelligence_level": "high",
             "reasoning_effort": "low",

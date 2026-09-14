@@ -17,7 +17,7 @@ import type {
 import {getToolsStringFromBlock} from 'sentry/views/seerExplorer/utils';
 
 import {AssistantBlock} from './assistant';
-import {MessagePlaceholder, hasValidContent} from './shared';
+import {hasValidContent} from './shared';
 import {CODE_MODE_TOOLS, ToolCallList, blockRendersToolContent} from './toolUse';
 
 /**
@@ -195,8 +195,11 @@ export function ResponseGroup({
           readOnly={readOnly ?? false}
           respondToUserInput={respondToUserInput}
         >
-          {/* Show loading placeholder when response is streaming but has no visible content yet */}
-          {active && !hasTrace && !answer ? <MessagePlaceholder /> : null}
+          {active && !hasTrace && !answer ? (
+            <MessageRow from="assistant" density="compact">
+              <ThinkingBlock title={t('Thinking')} startTime={startTime} />
+            </MessageRow>
+          ) : null}
 
           {hasTrace ? (
             <MessageRow from="assistant" density="compact">
