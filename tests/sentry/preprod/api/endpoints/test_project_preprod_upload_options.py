@@ -66,7 +66,7 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
             response = self.client.get(self.url, {"usecase": "auto"})
 
         assert response.status_code == 200
-        assert response.data["objectstore"]["usecase"] == "snapshots"
+        assert response.data["objectstore"]["usecase"] == "preprod_snapshots"
         mock_get_session.assert_called_once_with(UsecaseId.SNAPSHOTS, self.project)
 
     @patch("sentry.preprod.api.endpoints.project_preprod_upload_options.get_session")
