@@ -18,13 +18,14 @@ import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOp
 
 const HIGH_PRIORITY_WORKFLOW_NAME = 'Send a notification for high priority issues';
 
-export type CreatedProjectRule = Pick<IssueAlertRule, 'actions' | 'id'>;
+export type CreatedProjectWorkflow = Pick<IssueAlertRule, 'actions' | 'id'>;
 
 interface Variables extends Partial<
-  Pick<RequestDataFragment, 'conditions' | 'actions' | 'frequency' | 'name'>
+  Pick<RequestDataFragment, 'conditions' | 'actions' | 'frequency'>
 > {
   projectId: string;
   isHighPriority?: boolean;
+  name?: string;
 }
 
 function translateCondition(
@@ -96,7 +97,7 @@ function translateAction(action: IssueAlertRuleAction): NewAutomationAction {
   }
 }
 
-export function useCreateProjectRules() {
+export function useCreateProjectWorkflow() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const {mutateAsync: createAutomation} = useCreateAutomation({
@@ -111,7 +112,7 @@ export function useCreateProjectRules() {
       actions = [],
       frequency,
       isHighPriority = false,
-    }: Variables): Promise<CreatedProjectRule> => {
+    }: Variables): Promise<CreatedProjectWorkflow> => {
       const detectorIds = await fetchIssueStreamDetectorIdsForProjects({
         queryClient,
         organization,

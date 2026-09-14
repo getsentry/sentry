@@ -351,10 +351,10 @@ class UpdateGroupsTest(TestCase):
         assert send_robust.call_args.kwargs["commit_id"] == commit.id
 
     @patch(
-        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.schedule_process_workflow_activity"
     )
     def test_resolving_dispatches_workflow_activity(
-        self, mock_process_workflow_activity: Mock
+        self, mock_schedule_process_workflow_activity: Mock
     ) -> None:
         # Resolving now routes through create_group_activity, which invokes the workflow
         # engine's generic activity handler and dispatches process_workflow_activity.
@@ -369,7 +369,7 @@ class UpdateGroupsTest(TestCase):
         update_groups(request, group_list)
 
         activity = Activity.objects.get(group=group, type=ActivityType.SET_RESOLVED.value)
-        mock_process_workflow_activity.delay.assert_called_once_with(
+        mock_schedule_process_workflow_activity.assert_called_once_with(
             activity_id=activity.id,
             group_id=group.id,
             detector_id=detector.id,
@@ -378,10 +378,10 @@ class UpdateGroupsTest(TestCase):
         assert activity.ident is None
 
     @patch(
-        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.schedule_process_workflow_activity"
     )
     def test_resolving_in_release_dispatches_workflow_activity(
-        self, mock_process_workflow_activity: Mock
+        self, mock_schedule_process_workflow_activity: Mock
     ) -> None:
         release = self.create_release(project=self.project, version="test@1.0.0")
         group = self.create_group(status=GroupStatus.UNRESOLVED)
@@ -400,7 +400,7 @@ class UpdateGroupsTest(TestCase):
         activity = Activity.objects.get(
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
-        mock_process_workflow_activity.delay.assert_called_once_with(
+        mock_schedule_process_workflow_activity.assert_called_once_with(
             activity_id=activity.id,
             group_id=group.id,
             detector_id=detector.id,
@@ -410,10 +410,10 @@ class UpdateGroupsTest(TestCase):
         assert activity.ident == str(resolution.id)
 
     @patch(
-        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.schedule_process_workflow_activity"
     )
     def test_resolving_in_commit_dispatches_workflow_activity(
-        self, mock_process_workflow_activity: Mock
+        self, mock_schedule_process_workflow_activity: Mock
     ) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED)
         repo = self.create_repo(project=group.project)
@@ -434,7 +434,7 @@ class UpdateGroupsTest(TestCase):
         update_groups(request, group_list)
 
         activity = Activity.objects.get(group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value)
-        mock_process_workflow_activity.delay.assert_called_once_with(
+        mock_schedule_process_workflow_activity.assert_called_once_with(
             activity_id=activity.id,
             group_id=group.id,
             detector_id=detector.id,
