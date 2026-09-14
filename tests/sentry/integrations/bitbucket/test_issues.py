@@ -1,9 +1,11 @@
 import orjson
+import pytest
 import responses
 
 from sentry.integrations.bitbucket.issues import BITBUCKET_MAX_TITLE_LENGTH, ISSUE_TYPES, PRIORITIES
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
+from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
@@ -52,6 +54,16 @@ class BitbucketIssueTest(APITestCase):
 
     def build_autocomplete_url(self) -> str:
         return "/extensions/bitbucket/search/baz/%d/" % self.integration.id
+
+    def test_issue_url(self) -> None:
+        installation = self.integration.get_installation(self.organization.id)
+        for domain_name in ("myaccount", "bitbucket.org/myaccount"):
+            installation.model.metadata["domain_name"] = domain_name
+            assert installation.get_issue_link_data(
+                "https://bitbucket.org/myaccount/myrepo/issues/3/issue-title"
+            ) == {"repo": "myaccount/myrepo", "externalIssue": "3"}
+        with pytest.raises(IntegrationFormError):
+            installation.get_issue_link_data("https://bitbucket.org/other/myrepo/issues/3")
 
     @responses.activate
     def test_link_issue(self) -> None:
